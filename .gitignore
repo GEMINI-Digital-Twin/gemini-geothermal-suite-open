@@ -1,0 +1,12 @@
+.idea
+.venv
+.vscode
+venv
+__pycache__
+flask_session
+instance
+poetry.lock
+.coverage
+codedocumentation
+build
+.env

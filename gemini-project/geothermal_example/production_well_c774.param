@@ -1,0 +1,104 @@
+{
+    "id": "c774641e-30c6-474c-9bc4-9b69afb10fc1",
+    "name": "production_well_c774",
+    "parameters": {
+        "property": {
+            "productionwell_friction_correction_factors": [
+                [
+                    1,
+                    0
+                ]
+            ],
+            "productionwell_friction_correlation": [
+                "darcy_weisbach"
+            ],
+            "productionwell_friction_correlation_2p": [
+                "BeggsBrill"
+            ],
+            "productionwell_productivity_index": [
+                0
+            ],
+            "productionwell_soil_temperature": [
+                0
+            ],
+            "productionwell_trajectory_file": [
+                ""
+            ],
+            "productionwell_trajectory_table": [
+                []
+            ],
+            "productionwell_tally_table": [
+                []
+            ],
+            "wellbore_radius": [
+                0.0765
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "tagnames": {
+        "calculated": {
+            "productionwell_bottomhole_pressure": [
+                ""
+            ],
+            "productionwell_bottomhole_temperature": [
+                ""
+            ],
+            "productionwell_flow": [
+                ""
+            ],
+            "productionwell_wellhead_pressure": [
+                ""
+            ],
+            "productionwell_wellhead_temperature": [
+                ""
+            ]
+        },
+        "filtered": {
+            "productionwell_bottomhole_pressure": [
+                ""
+            ],
+            "productionwell_bottomhole_temperature": [
+                ""
+            ],
+            "productionwell_flow": [
+                ""
+            ],
+            "productionwell_wellhead_pressure": [
+                ""
+            ],
+            "productionwell_wellhead_temperature": [
+                ""
+            ]
+        },
+        "measured": {
+            "productionwell_annulus_a_pressure": [
+                ""
+            ],
+            "productionwell_annulus_b_pressure": [
+                ""
+            ],
+            "productionwell_bottomhole_pressure": [
+                ""
+            ],
+            "productionwell_bottomhole_temperature": [
+                ""
+            ],
+            "productionwell_flow": [
+                ""
+            ],
+            "productionwell_wellhead_pressure": [
+                "WELL1.WHP"
+            ],
+            "productionwell_wellhead_temperature": [
+                ""
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "type": "production_well"
+}

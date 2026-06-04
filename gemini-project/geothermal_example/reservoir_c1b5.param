@@ -1,0 +1,48 @@
+{
+    "id": "c1b5a7e3-ac6c-460b-b76c-877d39d0381a",
+    "name": "reservoir_c1b5",
+    "parameters": {
+        "property": {
+            "liquid_density": [
+                0
+            ],
+            "liquid_viscosity": [
+                0
+            ],
+            "reservoir_permeability": [
+                0
+            ],
+            "reservoir_pressure": [
+                0
+            ],
+            "reservoir_radius": [
+                0
+            ],
+            "reservoir_temperature": [
+                0
+            ],
+            "reservoir_thickness": [
+                0
+            ],
+            "reservoir_top": [
+                0
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "tagnames": {
+        "calculated": {
+            "reservoir_pressure": [
+                ""
+            ]
+        },
+        "filtered": {},
+        "measured": {},
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "type": "reservoir"
+}

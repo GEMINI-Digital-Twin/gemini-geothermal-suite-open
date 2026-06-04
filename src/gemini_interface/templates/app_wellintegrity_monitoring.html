@@ -1,0 +1,1574 @@
+{% extends "base.html" %}
+
+{% block title %}
+
+<div class="col-lg-12">
+    <h1 class="page-header">Well Integrity Monitoring</h1>
+</div>
+
+{% endblock %}
+
+{% block content %}
+
+<div class="col-lg-12">
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+    
+    <!-- Two Column Layout -->
+    <div class="row well-logs-row">
+        <!-- Left Column: Well selection first, then Well Logs -->
+        <div class="col-md-4">
+            <!-- Well Name: select well to view WIMS -->
+            <div class="mb-3">
+                <label for="select_well">Well Name</label>
+                <select class="form-control" id="select_well">
+                    <option value=""></option>
+                </select>
+                <small class="text-muted">Select well to view WIMS</small>
+            </div>
+            
+            <!-- Well Logs window: shown as soon as a well is selected -->
+            <div class="card well-logs-card" id="well_data_section" style="display: none; margin-bottom: 20px;">
+                <div class="well-logs-card-header">
+                    <span class="d-inline-flex align-items-center">
+                        <i class="fa fa-list-alt mr-2" aria-hidden="true" style="margin-right: 8px; opacity: 0.9;"></i>
+                        Well Logs
+                    </span>
+                </div>
+                <div class="card-body">
+                    <label class="small text-muted mb-1 d-block">Caliper logs (.las)</label>
+                    <div class="well-logs-table-wrap mb-3">
+                        <table class="table well-logs-table">
+                            <thead>
+                                <tr>
+                                    <th>Log name</th>
+                                    <th style="width: 110px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs_table_body">
+                                <tr class="well-logs-empty"><td colspan="2" class="text-muted text-center py-4">No logs yet. Upload a .las file below.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <label class="small text-muted mb-1 d-block">Upload new log</label>
+                    <div id="dropzone" class="well-logs-dropzone mb-3">
+                        <i class="fa fa-cloud-upload" aria-hidden="true" style="font-size: 1.2rem;"></i>
+                        <span id="dropzone-text">Drag & drop .las file or click to browse</span>
+                    </div>
+                    <input type="file" id="log_upload" class="d-none" accept=".las">
+                    <div class="well-logs-actions">
+                        <button type="button" id="upload_log_btn" class="btn btn-default btn-sm">Upload</button>
+                        <button type="button" id="process_logs_btn" class="btn btn-default btn-sm" disabled>Process Logs</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: View processed log above panel (same layout as Well Name above Well Logs) -->
+        <div class="col-md-8">
+            <div id="view_processed_log_block" class="mb-3" style="display: none;">
+                <label for="processed_log_select">View processed log</label>
+                <div id="processed_log_section">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <select id="processed_log_select" class="form-control" style="width: 280px;">
+                            <option value="">Select a processed log...</option>
+                        </select>
+                    </div>
+                </div>
+                <small class="text-muted">Select a log to view details</small>
+            </div>
+            <div class="processed-logs-panel" id="processed_logs_panel" style="display: none;">
+                <div class="processed-logs-panel-header">
+                    <span class="d-inline-flex align-items-center">
+                        <i class="fa fa-table mr-2" aria-hidden="true" style="margin-right: 8px; opacity: 0.9;"></i>
+                        Processed Logs
+                    </span>
+                </div>
+                <div class="panel-body-wrap">
+                    <div id="processing_results_container" style="display: none; flex: 1; min-height: 0;">
+                        <!-- Processing results table will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- WIMS big card -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card wims-card" id="wims_card" style="display: none;">
+                <div class="wims-card-header">
+                    <span class="d-inline-flex align-items-center">
+                        <i class="fa fa-shield mr-2" aria-hidden="true" style="margin-right: 8px; opacity: 0.9;"></i>
+                        WIMS (Well Integrity Monitoring System) Panel
+                    </span>
+                    <div id="saved_schematics_section" class="wims-schematic-inline">
+                        <select id="saved_schematics_select" class="form-control">
+                            <option value="">Select a saved schematic...</option>
+                        </select>
+                        <button type="button" class="btn btn-default btn-sm" id="wims_save_panel_btn">Save panel</button>
+                    </div>
+                </div>
+                <div class="wims-card-body" id="wims_card_body">
+                    <div class="wims-body-left">
+                        <div id="wims_schematic_image_output" style="display: none;"></div>
+                    </div>
+                    <div class="wims-body-right" id="wims_subcards_container" style="display: none;">
+                        <div class="wims-subcards-row">
+                            <div class="wims-subcard">
+                                <div class="wims-subcard-header">Overall Integrity status</div>
+                                <div class="wims-subcard-body">
+                                    <div class="wims-integrity-status-row">
+                                        <div class="wims-status-left">
+                                            <span>Overall Integrity status:</span>
+                                            <span class="wims-integrity-dot verified" id="wims_overall_status_dot" title="Verified and in good state"></span>
+                                        </div>
+                                        <div class="wims-last-update">
+                                            <strong>Last update date:</strong> <input type="date" id="wims_last_update_date" class="wims-last-update-input">
+                                        </div>
+                                    </div>
+                                    <div class="mb-2" style="color: #888; font-size: 0.85em;">Integrity status description:</div>
+                                    <div class="wims-legend-item">
+                                        <span>Failed</span>
+                                        <span class="wims-integrity-dot failed"></span>
+                                    </div>
+                                    <div class="wims-legend-item">
+                                        <span>Not verified or other issues</span>
+                                        <span class="wims-integrity-dot not-verified"></span>
+                                    </div>
+                                    <div class="wims-legend-item">
+                                        <span>Verified and in good state</span>
+                                        <span class="wims-integrity-dot verified"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="wims-subcard wims-annulus-subcard">
+                                <div class="wims-subcard-header wims-annulus-header">
+                                    <span>Annulus monitoring</span>
+                                    <button type="button" class="btn btn-default btn-sm" id="wims_add_monitor_btn">Add monitor</button>
+                                </div>
+                                <div class="wims-subcard-body" id="wims_annulus_monitoring_content">
+                                    <div id="wims_annulus_monitors_list" class="wims-annulus-monitors-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wims-subcard wims-barrier-subcard">
+                            <div class="wims-subcard-header wims-barrier-header">
+                                <span>Well Barrier Envelope (WBE)</span>
+                                <button type="button" class="btn btn-default btn-sm" id="wims_add_element_btn">Add element</button>
+                            </div>
+                            <div class="wims-subcard-body wims-barrier-section">
+                                <div class="wims-barrier-row">
+                                    <div class="wims-barrier-card primary">
+                                        <div class="wims-barrier-table-wrap">
+                                            <table class="table wims-barrier-table">
+                                                <caption class="wims-barrier-caption">Primary Barrier Elements</caption>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Element</th>
+                                                        <th>Qualification</th>
+                                                        <th>Monitoring</th>
+                                                        <th>Status</th>
+                                                        <th>Remarks</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="wims_primary_barrier_tbody">
+                                                    <tr><td colspan="5" class="text-muted text-center py-3">No primary barrier elements loaded.</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="wims-barrier-card secondary">
+                                        <div class="wims-barrier-table-wrap">
+                                            <table class="table wims-barrier-table">
+                                                <caption class="wims-barrier-caption">Secondary Barrier Elements</caption>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Element</th>
+                                                        <th>Qualification</th>
+                                                        <th>Monitoring</th>
+                                                        <th>Status</th>
+                                                        <th>Remarks</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="wims_secondary_barrier_tbody">
+                                                    <tr><td colspan="5" class="text-muted text-center py-3">No secondary barrier elements loaded.</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wims-subcard wims-wbe-risk-subcard">
+                            <div class="wims-subcard-header wims-wbe-risk-header">
+                                <span>Well Barrier Envelope (WBE) Risk</span>
+                                <button type="button" class="btn btn-default btn-sm" id="wims_add_risk_btn">Add risk</button>
+                            </div>
+                            <div class="wims-subcard-body wims-wbe-risk-section">
+                                <div class="wims-wbe-risk-table-wrap">
+                                    <table class="table wims-wbe-risk-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Failure mode</th>
+                                                <th>Effect</th>
+                                                <th colspan="3">Risk</th>
+                                                <th>Action Plan</th>
+                                                <th colspan="1">Response time</th>
+                                                <th>Operate during failure</th>
+                                            </tr>
+                                            <tr class="wims-wbe-risk-subhead">
+                                                <th></th>
+                                                <th></th>
+                                                <th>L</th>
+                                                <th>E</th>
+                                                <th>RF</th>
+                                                <th></th>
+                                                <th>Months</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="wims_wbe_risk_tbody">
+                                            <tr class="wims-wbe-risk-placeholder"><td colspan="8" class="text-muted text-center py-3">No WBE risk rows loaded.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecasting panel -->
+    <div class="row mt-3">
+        <div class="col-lg-12">
+            <div class="card forecasting-card" id="forecasting_card" style="display: none;">
+                <div class="forecasting-card-header">
+                    <span class="d-inline-flex align-items-center">
+                        <i class="fa fa-line-chart mr-2" aria-hidden="true" style="margin-right: 8px; opacity: 0.9;"></i>
+                        Forecasting Panel
+                    </span>
+                </div>
+                <div class="forecasting-card-body" id="forecasting_card_body">
+                    <div id="forecasting_log_dates_section" class="forecasting-subcards-row" style="display: none;">
+                        <div class="forecasting-subcard">
+                            <div class="forecasting-subcard-header forecasting-subcard-header-with-btn">
+                                <span>Log and Baseline Dates</span>
+                                <button type="button" class="btn btn-default btn-sm" id="forecasting_save_log_dates_btn">Save dates</button>
+                            </div>
+                            <div class="forecasting-subcard-body">
+                                <div class="mb-3">
+                                    <label for="forecasting_start_time_input" style="color: #aaa; font-size: 0.875rem;">Baseline date</label>
+                                    <input type="date" id="forecasting_start_time_input" class="form-control form-control-sm" style="background:#2a2d47;border:1px solid #444;color:#ccc;max-width:160px;" placeholder="Leave empty to use 1 year before first log">
+                                </div>
+                                <p class="mb-2" style="color: #888; font-size: 0.875rem;">Set the date for each processed log.</p>
+                                <div class="forecasting-table-wrap mb-2" style="max-height: 200px; overflow: auto;">
+                                    <table class="table table-sm forecasting-corrosion-table" id="forecasting_log_dates_table">
+                                        <thead><tr><th style="color: #aaa;">Log name</th><th style="color: #aaa;">Date</th></tr></thead>
+                                        <tbody id="forecasting_log_dates_tbody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="forecasting-subcard">
+                            <div class="forecasting-subcard-header forecasting-subcard-header-with-btn">
+                                <span>Corrosion limits</span>
+                                <button type="button" class="btn btn-default btn-sm" id="forecasting_save_corrosion_limits_btn">Save</button>
+                            </div>
+                            <div class="forecasting-subcard-body">
+                                <label for="forecasting_min_remaining_thickness" style="color: #aaa; font-size: 0.875rem;">Minimum remaining thickness [mm]</label>
+                                <input type="number" id="forecasting_min_remaining_thickness" class="form-control form-control-sm" style="background:#2a2d47;border:1px solid #444;color:#ccc;max-width:120px;" placeholder="e.g. 2.0" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="forecasting_calculate_row" class="forecasting-calculate-row mb-3" style="display: none;">
+                        <div class="forecasting-calculate-block">
+                            <p class="text-muted mb-1" style="font-size: 0.875rem;">Set log dates and click Calculate to compute.</p>
+                            <button type="button" class="btn btn-default btn-sm" id="forecasting_calculate_corrosion_btn" disabled title="Set Baseline date and a date for every log, then click Save dates.">Calculate</button>
+                        </div>
+                    </div>
+                    <div id="forecasting_corrosion_rate_section" class="forecasting-subcard forecasting-subcard-full" style="display: none;">
+                        <div class="forecasting-subcard-header">
+                            <span>Corrosion</span>
+                        </div>
+                        <div class="forecasting-subcard-body">
+                            <div class="forecasting-table-wrap" style="max-height: 320px; overflow: auto;">
+                                <table class="table table-sm forecasting-corrosion-table" id="forecasting_corrosion_rate_table">
+                                    <thead id="forecasting_corrosion_rate_thead"></thead>
+                                    <tbody id="forecasting_corrosion_rate_tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted mb-0" id="forecasting_corrosion_rate_placeholder"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add annulus monitor modal -->
+    <div class="wims-add-element-modal-overlay" id="wims_add_monitor_modal">
+        <div class="wims-add-element-modal">
+            <div class="modal-header">Add annulus monitor</div>
+            <div class="modal-body">
+                <label for="wims_add_monitor_annulus">Annulus</label>
+                <select id="wims_add_monitor_annulus" class="form-control">
+                    <option value="">Loading annuli...</option>
+                </select>
+                <p id="wims_add_monitor_error" class="text-danger small mb-0" style="display: none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" id="wims_add_monitor_cancel_btn">Cancel</button>
+                <button type="button" class="btn btn-default btn-sm" id="wims_add_monitor_submit_btn">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configure annulus gauge modal -->
+    <div class="wims-add-element-modal-overlay" id="wims_configure_gauge_modal">
+        <div class="wims-add-element-modal">
+            <div class="modal-header">Configure gauge</div>
+            <div class="modal-body">
+                <label for="wims_gauge_tag_select">Tag</label>
+                <select id="wims_gauge_tag_select" class="form-control">
+                    <option value="">Select tag...</option>
+                </select>
+                <label for="wims_gauge_min">Min value</label>
+                <input type="number" id="wims_gauge_min" class="form-control" placeholder="Min" step="any">
+                <label for="wims_gauge_max">Max value</label>
+                <input type="number" id="wims_gauge_max" class="form-control" placeholder="Max" step="any">
+                <p id="wims_gauge_error" class="text-danger small mb-0" style="display: none;"></p>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-sm btn-danger" id="wims_gauge_delete_btn">Delete monitor</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-default btn-sm" id="wims_gauge_cancel_btn">Cancel</button>
+                    <button type="button" class="btn btn-default btn-sm" id="wims_gauge_save_btn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Well Barrier Envelope (WBE) modal -->
+    <div class="wims-add-element-modal-overlay" id="wims_edit_element_modal">
+        <div class="wims-add-element-modal">
+            <div class="modal-header">Edit Well Barrier Envelope (WBE)</div>
+            <div class="modal-body">
+                <label for="wims_edit_element">Element</label>
+                <input type="text" id="wims_edit_element" class="form-control" placeholder="e.g. A) Formation Brine">
+                <label for="wims_edit_qualification">Qualification</label>
+                <input type="text" id="wims_edit_qualification" class="form-control" placeholder="e.g. Pressure test to 75 bar">
+                <label for="wims_edit_monitoring">Monitoring</label>
+                <input type="text" id="wims_edit_monitoring" class="form-control" placeholder="e.g. Annulus pressure monitoring">
+                <label for="wims_edit_status">Status</label>
+                <select id="wims_edit_status" class="form-control">
+                    <option value="failed">Failed</option>
+                    <option value="not-verified">Not verified or other issues</option>
+                    <option value="verified">Verified and in good state</option>
+                </select>
+                <label for="wims_edit_remarks">Remarks</label>
+                <input type="text" id="wims_edit_remarks" class="form-control" placeholder="Optional remarks">
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-sm btn-danger" id="wims_edit_element_delete_btn">Delete</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-default btn-sm" id="wims_edit_element_cancel_btn">Cancel</button>
+                    <button type="button" class="btn btn-default btn-sm" id="wims_edit_element_save_btn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Well Barrier Envelope (WBE) modal -->
+    <div class="wims-add-element-modal-overlay" id="wims_add_element_modal">
+        <div class="wims-add-element-modal">
+            <div class="modal-header">Add Well Barrier Envelope (WBE)</div>
+            <div class="modal-body">
+                <label for="wims_add_table_type">Table</label>
+                <select id="wims_add_table_type" class="form-control">
+                    <option value="primary">Primary Barrier Elements</option>
+                    <option value="secondary">Secondary Barrier Elements</option>
+                </select>
+                <label>Element</label>
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label class="radio-inline" style="margin-right: 12px;"><input type="radio" name="wims_add_element_source" value="schematic" id="wims_add_element_source_schematic"> From schematic</label>
+                    <label class="radio-inline"><input type="radio" name="wims_add_element_source" value="custom" id="wims_add_element_source_custom"> Custom</label>
+                </div>
+                <div id="wims_add_element_schematic_wrap" style="margin-bottom: 10px;">
+                    <label for="wims_add_element_from_schematic">Select element</label>
+                    <select id="wims_add_element_from_schematic" class="form-control">
+                        <option value="">— Select from schematic —</option>
+                    </select>
+                </div>
+                <div id="wims_add_element_custom_wrap" style="margin-bottom: 10px; display: none;">
+                    <label for="wims_add_element">Custom element name</label>
+                    <input type="text" id="wims_add_element" class="form-control" placeholder="e.g. A) Formation Brine">
+                </div>
+                <label for="wims_add_qualification">Qualification</label>
+                <input type="text" id="wims_add_qualification" class="form-control" placeholder="e.g. Pressure test to 75 bar">
+                <label for="wims_add_monitoring">Monitoring</label>
+                <input type="text" id="wims_add_monitoring" class="form-control" placeholder="e.g. Annulus pressure monitoring">
+                <label for="wims_add_status">Status</label>
+                <select id="wims_add_status" class="form-control">
+                    <option value="failed">Failed</option>
+                    <option value="not-verified">Not verified or other issues</option>
+                    <option value="verified">Verified and in good state</option>
+                </select>
+                <label for="wims_add_remarks">Remarks</label>
+                <input type="text" id="wims_add_remarks" class="form-control" placeholder="Optional remarks">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" id="wims_add_element_cancel_btn">Cancel</button>
+                <button type="button" class="btn btn-default btn-sm" id="wims_add_element_submit_btn">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add WBE Risk modal -->
+    <div class="wims-add-element-modal-overlay" id="wims_add_risk_modal">
+        <div class="wims-add-element-modal">
+            <div class="modal-header">Add WBE Risk</div>
+            <div class="modal-body">
+                <label for="wims_risk_failure_mode">Failure mode</label>
+                <input type="text" id="wims_risk_failure_mode" class="form-control" placeholder="e.g. Corrosion">
+                <label for="wims_risk_effect">Effect</label>
+                <input type="text" id="wims_risk_effect" class="form-control" placeholder="e.g. Loss of containment">
+                <label>Risk</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label for="wims_risk_l" class="small">L</label>
+                        <input type="text" id="wims_risk_l" class="form-control" placeholder="L">
+                    </div>
+                    <div>
+                        <label for="wims_risk_e" class="small">E</label>
+                        <input type="text" id="wims_risk_e" class="form-control" placeholder="E">
+                    </div>
+                    <div>
+                        <label for="wims_risk_rf" class="small">RF</label>
+                        <input type="text" id="wims_risk_rf" class="form-control" placeholder="RF">
+                    </div>
+                </div>
+                <label for="wims_risk_action_plan">Action Plan</label>
+                <input type="text" id="wims_risk_action_plan" class="form-control" placeholder="e.g. Inspect and repair">
+                <label for="wims_risk_months">Response time (Months)</label>
+                <input type="number" id="wims_risk_months" class="form-control" placeholder="Months" min="0" step="1">
+                <label for="wims_risk_operate_during_failure">Operate during failure</label>
+                <input type="text" id="wims_risk_operate_during_failure" class="form-control" placeholder="e.g. Yes/No or conditions">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" id="wims_add_risk_cancel_btn">Cancel</button>
+                <button type="button" class="btn btn-default btn-sm" id="wims_add_risk_submit_btn">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit WBE Risk modal -->
+    <div class="wims-add-element-modal-overlay" id="wims_edit_risk_modal">
+        <div class="wims-add-element-modal">
+            <div class="modal-header">Edit WBE Risk</div>
+            <div class="modal-body">
+                <label for="wims_edit_risk_failure_mode">Failure mode</label>
+                <input type="text" id="wims_edit_risk_failure_mode" class="form-control" placeholder="e.g. Corrosion">
+                <label for="wims_edit_risk_effect">Effect</label>
+                <input type="text" id="wims_edit_risk_effect" class="form-control" placeholder="e.g. Loss of containment">
+                <label>Risk</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label for="wims_edit_risk_l" class="small">L</label>
+                        <input type="text" id="wims_edit_risk_l" class="form-control" placeholder="L">
+                    </div>
+                    <div>
+                        <label for="wims_edit_risk_e" class="small">E</label>
+                        <input type="text" id="wims_edit_risk_e" class="form-control" placeholder="E">
+                    </div>
+                    <div>
+                        <label for="wims_edit_risk_rf" class="small">RF</label>
+                        <input type="text" id="wims_edit_risk_rf" class="form-control" placeholder="RF">
+                    </div>
+                </div>
+                <label for="wims_edit_risk_action_plan">Action Plan</label>
+                <input type="text" id="wims_edit_risk_action_plan" class="form-control" placeholder="e.g. Inspect and repair">
+                <label for="wims_edit_risk_months">Response time (Months)</label>
+                <input type="number" id="wims_edit_risk_months" class="form-control" placeholder="Months" min="0" step="1">
+                <label for="wims_edit_risk_operate_during_failure">Operate during failure</label>
+                <input type="text" id="wims_edit_risk_operate_during_failure" class="form-control" placeholder="e.g. Yes/No or conditions">
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-sm btn-danger" id="wims_edit_risk_delete_btn">Delete</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-default btn-sm" id="wims_edit_risk_cancel_btn">Cancel</button>
+                    <button type="button" class="btn btn-default btn-sm" id="wims_edit_risk_save_btn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Schematic and Monitoring Display -->
+    <div class="row" id="schematic_monitoring_section" style="margin-top: 20px; display: none;">
+        <!-- Left Column: Schematic Image -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Well Schematic</h5>
+                </div>
+                <div class="card-body" id="schematic_image_output">
+                    <!-- Schematic image will be displayed here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: Monitoring Boxes -->
+        <div class="col-md-8">
+            <!-- Annulus Monitoring Box -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Annulus Monitoring</h5>
+                    <div>
+                        <button id="load_monitors_btn" class="btn btn-default btn-sm mr-2" onclick="loadSavedMonitors()">Load Monitors</button>
+                        <button id="save_monitors_btn" class="btn btn-default btn-sm" onclick="saveMonitors()">Save Monitors</button>
+                    </div>
+                </div>
+                <div class="card-body" id="annulus_monitoring_content">
+                    <p class="text-muted">Annulus monitoring data will be displayed here</p>
+                </div>
+            </div>
+            
+            <!-- Integrity Monitoring Box -->
+            <!-- TO BE ADDED LATER --> 
+            <!-- <div class="card">
+                <div class="card-header">
+                    <h5>Integrity Monitoring</h5>
+                </div>
+                <div class="card-body" id="integrity_monitoring_content">
+                    <p class="text-muted">Integrity monitoring data will be displayed here</p>
+                </div>
+            </div> -->
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<style>
+    #process_logs_btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    #process_logs_btn {
+        transition: all 0.3s ease;
+    }
+    
+    .ml-2 {
+        margin-left: 0.5rem;
+    }
+    
+    /* Well Logs card – same color scheme as app (dark theme) */
+    #well_data_section.well-logs-card {
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #2a2d47;
+    }
+    #well_data_section .well-logs-card-header {
+        background: #23243a;
+        border-bottom: 1px solid #444;
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #aaa;
+    }
+    #well_data_section .well-logs-card-header .fa {
+        color: #aaa;
+    }
+    #well_data_section .well-logs-table-wrap {
+        max-height: 160px;
+        overflow: auto;
+        border: 1px solid #444;
+        border-radius: 6px;
+        background: #23243a;
+    }
+    #well_data_section .well-logs-table {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #aaa;
+    }
+    #well_data_section .well-logs-table thead th {
+        background: #1e1e2e;
+        color: #aaa;
+        font-weight: 600;
+        padding: 10px 12px;
+        border: none;
+        border-bottom: 1px solid #444;
+        white-space: nowrap;
+    }
+    #well_data_section .well-logs-table tbody td {
+        padding: 8px 12px;
+        vertical-align: middle;
+        color: #ccc;
+        border-bottom: 1px solid #333;
+    }
+    #well_data_section .well-logs-table tbody tr:hover {
+        background-color: #32355a;
+    }
+    #well_data_section .well-logs-table tbody tr:not(:last-child) td {
+        border-bottom: 1px solid #333;
+    }
+    #well_data_section .well-logs-dropzone {
+        min-height: 52px;
+        padding: 12px 16px;
+        border: 2px dashed #007bff;
+        border-radius: 6px;
+        background: #23243a;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: #aaa;
+        font-size: 0.9rem;
+        transition: border-color 0.2s, background-color 0.2s;
+    }
+    #well_data_section .well-logs-dropzone:hover {
+        border-color: #339cff;
+        background: #2a2d47;
+    }
+    #well_data_section .well-logs-dropzone.dragover {
+        border-color: #339cff;
+        background: #32355a;
+    }
+    #well_data_section .well-logs-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    #well_data_section .well-logs-table .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    #well_data_section .well-logs-table .badge-success { background: #28a745; color: #fff; }
+    #well_data_section .well-logs-table .badge-secondary { background: #6c757d; color: #fff; }
+    #well_data_section .small.text-muted { color: #888 !important; }
+    #well_data_section .card-body {
+        background: #2a2d47;
+        color: #ccc;
+        border: none;
+    }
+    #well_data_section .well-logs-table .text-muted { color: #888 !important; }
+    #well_data_section .well-logs-table .text-danger { color: #dc3545 !important; }
+    .table th, .table td { vertical-align: middle !important; }
+    .badge-uploaded { background: #28a745; color: #fff; font-size: 0.85em; }
+    
+    /* Toast Notification Styles */
+    #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 350px;
+    }
+    
+    .toast-notification {
+        background: #1e1e2e;
+        border-left: 4px solid #28a745;
+        color: #fff;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        opacity: 0;
+        font-size: 0.9em;
+        position: relative;
+    }
+    
+    .toast-notification.show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    
+    .toast-notification.error {
+        border-left-color: #dc3545;
+    }
+    
+    .toast-notification.success {
+        border-left-color: #28a745;
+    }
+    
+    .toast-notification.info {
+        border-left-color: #17a2b8;
+    }
+    
+    .toast-notification .toast-icon {
+        display: inline-block;
+        margin-right: 8px;
+        font-size: 1.1em;
+    }
+    
+    .toast-notification .toast-close {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        background: none;
+        border: none;
+        color: #aaa;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 0;
+        line-height: 1;
+    }
+    
+    .toast-notification .toast-close:hover {
+        color: #fff;
+    }
+    
+    .toast-notification.fade-out {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    
+    /* Monitoring Box Styles */
+    .monitoring-reading {
+        background: #2a2d47;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 8px;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .monitoring-reading:hover {
+        background: #32355a;
+        border-color: #555;
+    }
+    
+    .status-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .pressure-elements-table {
+        font-size: 0.85em;
+    }
+    
+    .pressure-elements-table th,
+    .pressure-elements-table td {
+        padding: 6px 8px;
+        vertical-align: middle;
+    }
+    
+    /* Two-column layout: row height from left column; Processed Logs panel capped to Well Logs height */
+    .row.well-logs-row {
+        display: flex;
+        align-items: flex-start;
+    }
+    .row.well-logs-row .col-md-4,
+    .row.well-logs-row .col-md-8 {
+        display: flex;
+        flex-direction: column;
+    }
+    .row.well-logs-row .col-md-4 .mb-3:first-child { margin-bottom: 1rem; }
+    .row.well-logs-row #well_data_section {
+        min-height: 320px;
+        display: flex;
+        flex-direction: column;
+    }
+    .row.well-logs-row .processed-logs-panel {
+        min-height: 320px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .row.well-logs-row .processed-logs-panel .panel-body-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+    
+    /* Processed Logs panel – same color scheme as Well Logs card */
+    .processed-logs-panel {
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #2a2d47;
+        margin-bottom: 20px;
+    }
+    .processed-logs-panel .processed-logs-panel-header {
+        background: #23243a;
+        border-bottom: 1px solid #444;
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #aaa;
+    }
+    .processed-logs-panel .panel-body-wrap {
+        padding: 16px;
+        background: #2a2d47;
+        color: #ccc;
+    }
+    .processed-logs-panel label {
+        color: #888;
+        font-size: 0.875rem;
+    }
+    .processed-logs-panel .form-control {
+        background: #23243a;
+        border-color: #444;
+        color: #ccc;
+    }
+    
+    /* Processed results container – hidden when no log selected; same height as Well Logs card */
+    #processing_results_container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        margin-top: 12px;
+    }
+    #processing_results_container .card {
+        background: #23243a;
+        border: 1px solid #444;
+        border-radius: 6px;
+        overflow: hidden;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    #processing_results_container .card-body {
+        background: #23243a;
+        color: #ccc;
+        padding: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    #processing_results_container .table-responsive {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        border: none;
+    }
+    #processing_results_container .table {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: #ccc;
+    }
+    #processing_results_container .table thead th {
+        background: #1e1e2e;
+        color: #aaa;
+        font-weight: 600;
+        padding: 10px 12px;
+        border: none;
+        border-bottom: 1px solid #444;
+        white-space: nowrap;
+    }
+    #processing_results_container .table tbody td {
+        padding: 8px 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #333;
+        color: #ccc;
+    }
+    #processing_results_container .table tbody tr:hover {
+        background-color: #32355a;
+    }
+    #processing_results_container .alert {
+        margin: 12px;
+        background: #2a2d47;
+        border-color: #444;
+        color: #aaa;
+    }
+    
+    /* WIMS big card – full width below Well Logs / Processed Logs */
+    .wims-card {
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #2a2d47;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        min-height: 200px;
+    }
+    .wims-card .wims-card-header {
+        background: #23243a;
+        border-bottom: 1px solid #444;
+        padding: 16px 20px;
+        font-weight: 600;
+        font-size: 1.125rem;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        gap: 12px;
+    }
+    .wims-card .wims-card-header .fa {
+        color: #aaa;
+    }
+    .wims-card .wims-card-header > span:first-child {
+        min-width: 0;
+        flex-shrink: 1;
+    }
+    .wims-card .wims-card-header .wims-schematic-inline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        flex-shrink: 0;
+    }
+    .wims-card .wims-card-header .wims-schematic-inline label {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #aaa;
+    }
+    .wims-card .wims-card-header .wims-schematic-inline .form-control {
+        background: #2a2d47;
+        border-color: #444;
+        color: #ccc;
+        min-width: 220px;
+        max-width: 320px;
+    }
+    .wims-card .wims-card-header .wims-schematic-inline #wims_save_panel_btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .wims-card .wims-card-body {
+        padding: 24px;
+        background: #2a2d47;
+        color: #ccc;
+        min-height: 160px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-start;
+    }
+    .wims-card .wims-card-body .wims-body-left {
+        flex: 0 0 20%;
+        min-width: 140px;
+    }
+    .wims-card .wims-card-body .wims-body-right {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .wims-card .wims-subcards-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .wims-card .wims-barrier-subcard {
+        width: 100%;
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+    .wims-card .wims-barrier-section {
+        position: relative;
+        width: 100%;
+    }
+    .wims-card .wims-barrier-row {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+    }
+    .wims-card .wims-barrier-add-wrap {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+    .wims-card .wims-wbe-risk-subcard {
+        width: 100%;
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+    .wims-card .wims-wbe-risk-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: #1e1e2e;
+        border-bottom: 1px solid #444;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #aaa;
+    }
+    .wims-card .wims-wbe-risk-section {
+        padding: 0;
+        overflow-x: auto;
+    }
+    .wims-card .wims-wbe-risk-table-wrap {
+        width: 100%;
+        max-height: 280px;
+        overflow: auto;
+        border-radius: 6px;
+    }
+    .wims-card .wims-wbe-risk-table {
+        width: 100%;
+        margin: 0;
+        font-size: 0.875rem;
+        color: #ccc;
+        border-collapse: collapse;
+    }
+    .wims-card .wims-wbe-risk-table thead tr:first-child th {
+        background: #6f42c1;
+        color: #fff;
+        padding: 10px 12px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left;
+        border-right: 1px solid rgba(255,255,255,0.2);
+    }
+    .wims-card .wims-wbe-risk-table thead tr:first-child th:last-child {
+        border-right: none;
+    }
+    .wims-card .wims-wbe-risk-table thead tr.wims-wbe-risk-subhead th {
+        background: #5a32a3;
+        color: #e0e0e0;
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+        border-right: 1px solid rgba(255,255,255,0.15);
+    }
+    .wims-card .wims-wbe-risk-table thead tr.wims-wbe-risk-subhead th:first-child,
+    .wims-card .wims-wbe-risk-table thead tr.wims-wbe-risk-subhead th:nth-child(2),
+    .wims-card .wims-wbe-risk-table thead tr.wims-wbe-risk-subhead th:nth-child(6),
+    .wims-card .wims-wbe-risk-table thead tr.wims-wbe-risk-subhead th:last-child {
+        background: #5a32a3;
+    }
+    .wims-card .wims-wbe-risk-table tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #333;
+        border-right: 1px solid #444;
+        vertical-align: top;
+        line-height: 1.4;
+        color: #ccc;
+    }
+    .wims-card .wims-wbe-risk-table tbody td:last-child {
+        border-right: none;
+    }
+    .wims-card .wims-wbe-risk-table tbody tr:nth-child(even) td {
+        background: #23243a;
+    }
+    .wims-card .wims-wbe-risk-table tbody tr:nth-child(odd) td {
+        background: #1e1e2e;
+    }
+    .wims-card .wims-wbe-risk-table tbody tr:hover td {
+        background: #2a2d47 !important;
+    }
+    .wims-card .wims-wbe-risk-table tbody tr.wims-wbe-risk-data-row {
+        cursor: pointer;
+    }
+    .wims-card .wims-wbe-risk-table .text-muted {
+        color: #888 !important;
+    }
+    .wims-annulus-monitors-list {
+        min-height: 80px;
+        margin-bottom: 10px;
+        font-size: 0.875rem;
+        color: #ccc;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .wims-annulus-monitors-list .wims-monitor-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 0 0 auto;
+        min-width: 150px;
+    }
+    .wims-annulus-monitors-list .wims-gauge-wrap {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #23243a;
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 10px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .wims-annulus-monitors-list .wims-gauge-wrap:hover {
+        border-color: #666;
+        box-shadow: 0 0 0 1px #555;
+    }
+    .wims-annulus-monitors-list .wims-gauge-label {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #aaa;
+        margin-bottom: 8px;
+    }
+    .wims-annulus-monitors-list .wims-gauge-semi-wrap {
+        flex-shrink: 0;
+        width: 140px;
+        height: 105px;
+    }
+    .wims-annulus-monitors-list .wims-gauge-semi-wrap svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    .wims-annulus-monitors-list .wims-gauge-semi-wrap .wims-gauge-semi-value {
+        font-size: 0.8rem;
+        color: #ccc;
+        text-align: center;
+        margin-top: 4px;
+    }
+    .wims-annulus-monitors-list .wims-gauge-placeholder {
+        font-size: 0.65rem;
+        color: #666;
+        font-style: italic;
+        text-align: center;
+        margin-top: 4px;
+    }
+    .wims-annulus-monitors-list .wims-gauge-placeholder-circle {
+        flex-shrink: 0;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 3px dashed #444;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        color: #666;
+        text-align: center;
+        padding: 4px;
+    }
+    .wims-card .wims-annulus-subcard {
+        display: flex;
+        flex-direction: column;
+    }
+    .wims-card .wims-annulus-subcard .wims-subcard-body {
+        flex: 1;
+    }
+    .wims-annulus-add-wrap {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+    /* Add element modal */
+    .wims-add-element-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1050;
+        align-items: center;
+        justify-content: center;
+    }
+    .wims-add-element-modal-overlay.show {
+        display: flex;
+    }
+    .wims-add-element-modal {
+        background: #2a2d47;
+        border: 1px solid #444;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 480px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .wims-add-element-modal .modal-header {
+        background: #23243a;
+        border-bottom: 1px solid #444;
+        padding: 14px 18px;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #aaa;
+    }
+    .wims-add-element-modal .modal-body {
+        padding: 18px;
+    }
+    .wims-add-element-modal .modal-body label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.875rem;
+        color: #aaa;
+    }
+    .wims-add-element-modal .modal-body .form-control {
+        background: #23243a;
+        border: 1px solid #444;
+        color: #ccc;
+        padding: 8px 12px;
+        border-radius: 6px;
+        width: 100%;
+        margin-bottom: 12px;
+    }
+    .wims-add-element-modal .modal-footer {
+        padding: 12px 18px;
+        border-top: 1px solid #444;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .wims-card .wims-barrier-card {
+        width: 100%;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #444;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table-wrap {
+        background: #23243a;
+        overflow-x: auto;
+        max-height: 280px;
+        overflow-y: auto;
+        border-radius: 6px;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table caption.wims-barrier-caption {
+        padding: 12px 16px;
+        font-weight: 700;
+        font-size: 1rem;
+        letter-spacing: 0.02em;
+        caption-side: top;
+        text-align: left;
+        background: #23243a;
+        border-bottom: 1px solid #444;
+    }
+    .wims-card .wims-barrier-card.primary .wims-barrier-table caption.wims-barrier-caption {
+        color: #0d6efd;
+    }
+    .wims-card .wims-barrier-card.secondary .wims-barrier-table caption.wims-barrier-caption {
+        color: #dc3545;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table {
+        width: 100%;
+        margin: 0;
+        font-size: 0.875rem;
+        color: #ccc;
+        border-collapse: collapse;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table thead th {
+        padding: 10px 14px;
+        border: none;
+        border-right: 1px solid rgba(255, 255, 255, 0.35);
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left;
+        white-space: nowrap;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table thead th:last-child {
+        border-right: none;
+    }
+    .wims-card .wims-barrier-card.primary .wims-barrier-table thead th {
+        background: #0d6efd;
+        color: #fff;
+    }
+    .wims-card .wims-barrier-card.secondary .wims-barrier-table thead th {
+        background: #dc3545;
+        color: #fff;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table thead th:first-child {
+        width: 14%;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table thead th:nth-child(2),
+    .wims-card .wims-barrier-card .wims-barrier-table thead th:nth-child(3) {
+        width: 33%;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table thead th:nth-child(4) {
+        width: 8%;
+        text-align: center;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table thead th:last-child {
+        width: 10%;
+        text-align: center;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #333;
+        border-right: 1px solid #444;
+        vertical-align: top;
+        line-height: 1.4;
+        color: #ccc;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody td:last-child {
+        border-right: none;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody tr:nth-child(even) td {
+        background: #23243a;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody tr:nth-child(odd) td {
+        background: #1e1e2e;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody tr:hover td {
+        background: #2a2d47 !important;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody tr.wims-barrier-data-row {
+        cursor: pointer;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody td:first-child {
+        font-weight: 600;
+        color: #e0e0e0;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody td:nth-child(4),
+    .wims-card .wims-barrier-card .wims-barrier-table tbody td:last-child {
+        text-align: center;
+        vertical-align: middle;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table tbody td:nth-child(4) {
+        font-size: 0.8rem;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-remark-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        background: #28a745;
+        display: inline-block;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table .text-muted {
+        color: #888 !important;
+    }
+    .wims-card .wims-subcard {
+        flex: 1;
+        min-width: 260px;
+        border: 1px solid #444;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #23243a;
+    }
+    .wims-card .wims-subcard .wims-subcard-header {
+        background: #1e1e2e;
+        border-bottom: 1px solid #444;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #aaa;
+    }
+    .wims-card .wims-subcard .wims-annulus-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .wims-card .wims-subcard .wims-barrier-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .wims-card .wims-subcard .wims-wbe-risk-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .wims-card .wims-subcard .wims-subcard-body {
+        padding: 14px;
+        color: #ccc;
+        font-size: 0.9rem;
+    }
+    .wims-card .wims-integrity-status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .wims-card .wims-integrity-status-row .wims-status-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .wims-card .wims-integrity-status-row .wims-last-update {
+        font-size: 0.85rem;
+        color: #888;
+    }
+    .wims-card .wims-integrity-status-row .wims-last-update strong {
+        color: #aaa;
+        font-weight: 600;
+    }
+    .wims-card .wims-integrity-status-row .wims-last-update input[type="date"] {
+        background: #23243a;
+        border: 1px solid #444;
+        color: #ccc;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+    .wims-card .wims-integrity-status-row .wims-last-update input[type="date"]:focus {
+        outline: none;
+        border-color: #0d6efd;
+    }
+    .wims-card .wims-integrity-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        flex-shrink: 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+    .wims-card .wims-integrity-dot.failed { background: #dc3545; }
+    .wims-card .wims-integrity-dot.not-verified { background: #ffc107; }
+    .wims-card .wims-integrity-dot.verified { background: #28a745; }
+    /* Status column square in barrier tables – ensure visible */
+    .wims-card .wims-barrier-card .wims-barrier-table .wims-integrity-dot {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        min-width: 14px;
+        min-height: 14px;
+        border-radius: 2px;
+        vertical-align: middle;
+    }
+    .wims-card .wims-barrier-card .wims-barrier-table .wims-integrity-dot.failed { background: #dc3545; }
+    .wims-card .wims-barrier-card .wims-barrier-table .wims-integrity-dot.not-verified { background: #ffc107; }
+    .wims-card .wims-barrier-card .wims-barrier-table .wims-integrity-dot.verified { background: #28a745; }
+    .wims-card .wims-legend-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        background: #2a2d47;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #ccc;
+    }
+    .wims-card #wims_schematic_image_output {
+        border-radius: 6px;
+        border: 1px solid #444;
+        background: #23243a;
+    }
+    .wims-card #wims_schematic_image_output img {
+        max-width: 100%;
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    /* Forecasting panel – full width below WIMS */
+    .forecasting-card {
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #2a2d47;
+        margin-top: 0;
+        margin-bottom: 20px;
+        min-height: 120px;
+    }
+    .forecasting-card .forecasting-card-header {
+        background: #23243a;
+        border-bottom: 1px solid #444;
+        padding: 16px 20px;
+        font-weight: 600;
+        font-size: 1.125rem;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+    }
+    .forecasting-card .forecasting-card-header .fa {
+        color: #aaa;
+    }
+    .forecasting-card .forecasting-card-body {
+        padding: 24px;
+        background: #2a2d47;
+        color: #ccc;
+        font-size: 0.95rem;
+    }
+    .forecasting-card .forecasting-corrosion-table {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #ccc;
+    }
+    .forecasting-card .forecasting-corrosion-table thead th {
+        background: #1e1e2e;
+        color: #aaa;
+        font-weight: 600;
+        padding: 10px 12px;
+        border: 1px solid #444;
+        white-space: nowrap;
+    }
+    .forecasting-card .forecasting-corrosion-table tbody td {
+        padding: 8px 12px;
+        border: 1px solid #333;
+        color: #ccc;
+    }
+    .forecasting-card .forecasting-corrosion-table tbody tr:nth-child(even) td {
+        background: #23243a;
+    }
+    /* Forecasting panel – subcard (log dates & start time) */
+    .forecasting-card .forecasting-subcards-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    .forecasting-card .forecasting-subcard {
+        flex: 0 0 calc(50% - 8px);
+        max-width: calc(50% - 8px);
+        box-sizing: border-box;
+        min-width: 0;
+        border: 1px solid #444;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #23243a;
+    }
+    .forecasting-card .forecasting-subcard .forecasting-subcard-header {
+        background: #1e1e2e;
+        border-bottom: 1px solid #444;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #aaa;
+    }
+    .forecasting-card .forecasting-subcard .forecasting-subcard-header.forecasting-subcard-header-with-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .forecasting-card .forecasting-subcard .forecasting-subcard-body {
+        padding: 14px;
+        color: #ccc;
+        font-size: 0.9rem;
+    }
+    .forecasting-card .forecasting-subcard-full {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+    .forecasting-card .forecasting-calculate-row {
+        display: flex;
+        justify-content: flex-end;
+    }
+    .forecasting-card .forecasting-calculate-block {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+</style>
+
+<script src="{{ url_for('static', filename='page/app_wellintegrity_monitoring/js/api.js') }}"></script>
+
+{% endblock %} 

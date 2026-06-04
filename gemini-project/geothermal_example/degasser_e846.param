@@ -1,0 +1,55 @@
+{
+    "id": "e8469de8-5f11-47d2-9b58-c0cb694528d9",
+    "name": "degasser_e846",
+    "parameters": {
+        "property": {
+            "heat_transfer_coeff": [
+                100000
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "tagnames": {
+        "calculated": {},
+        "filtered": {
+            "degasser_inlet_flow": [
+                ""
+            ],
+            "degasser_level": [
+                ""
+            ],
+            "degasser_outlet_gas_flow": [
+                ""
+            ],
+            "degasser_outlet_liquid_flow": [
+                ""
+            ],
+            "degasser_pressure": [
+                ""
+            ]
+        },
+        "measured": {
+            "degasser_inlet_flow": [
+                ""
+            ],
+            "degasser_level": [
+                ""
+            ],
+            "degasser_outlet_gas_flow": [
+                ""
+            ],
+            "degasser_outlet_liquid_flow": [
+                ""
+            ],
+            "degasser_pressure": [
+                ""
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "type": "degasser"
+}

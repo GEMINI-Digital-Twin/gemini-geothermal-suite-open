@@ -1,0 +1,104 @@
+{
+    "id": "380806d5-f794-4be7-acac-73691f363fd6",
+    "name": "injection_pump_3808",
+    "parameters": {
+        "property": {
+            "injectionpump_no_stage": [
+                0
+            ],
+            "injectionpump_type": [
+                ""
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "tagnames": {
+        "calculated": {
+            "injectionpump_efficiency": [
+                ""
+            ],
+            "injectionpump_head": [
+                ""
+            ],
+            "injectionpump_power": [
+                ""
+            ]
+        },
+        "filtered": {
+            "injectionpump_current": [
+                ""
+            ],
+            "injectionpump_flow": [
+                ""
+            ],
+            "injectionpump_frequency": [
+                ""
+            ],
+            "injectionpump_head": [
+                ""
+            ],
+            "injectionpump_inlet_pressure": [
+                ""
+            ],
+            "injectionpump_inlet_temperature": [
+                ""
+            ],
+            "injectionpump_motor_temperature": [
+                ""
+            ],
+            "injectionpump_outlet_pressure": [
+                ""
+            ],
+            "injectionpump_outlet_temperature": [
+                ""
+            ],
+            "injectionpump_power_consumption": [
+                ""
+            ],
+            "injectionpump_voltage": [
+                ""
+            ]
+        },
+        "measured": {
+            "injectionpump_current": [
+                ""
+            ],
+            "injectionpump_flow": [
+                ""
+            ],
+            "injectionpump_frequency": [
+                ""
+            ],
+            "injectionpump_head": [
+                ""
+            ],
+            "injectionpump_inlet_pressure": [
+                ""
+            ],
+            "injectionpump_inlet_temperature": [
+                ""
+            ],
+            "injectionpump_motor_temperature": [
+                ""
+            ],
+            "injectionpump_outlet_pressure": [
+                ""
+            ],
+            "injectionpump_outlet_temperature": [
+                ""
+            ],
+            "injectionpump_power_consumption": [
+                ""
+            ],
+            "injectionpump_voltage": [
+                ""
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "type": "injection_pump"
+}
