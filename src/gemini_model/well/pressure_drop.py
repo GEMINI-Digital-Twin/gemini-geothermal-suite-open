@@ -8,7 +8,7 @@ import numpy as np
 
 from gemini_model.model_abstract import Model
 from gemini_model.well.correlation.beggsbrill import BeggsBrill
-from gemini_model.well.correlation.frictiondarcyweisbach import frictiondarcyweisbach
+from gemini_model.well.correlation.darcyweisbach import DarcyWeisbach
 from gemini_model.well.correlation.temperaturedrop import TemperatureDrop
 
 
@@ -95,9 +95,9 @@ class DPDT(Model):
                 mg = gmf * m_tot  # kg/s
 
                 if mg == 0:
-                    model = 1  # mg = 0, using techo or darcy-weisbach model
+                    model = 1  # mg = 0, using darcy-weisbach model
                 else:
-                    model = 2  # using beggs & brill model
+                    model = 2  # using  beggsbrill model
 
                 us_l = ml / rho_l / Atube[k - 1]  # superficial liquid velocity [m/s]
                 us_g = gmf / rho_g / Atube[k - 1]  # superficial gas velocity [m/s]
@@ -106,7 +106,7 @@ class DPDT(Model):
 
                     if correlation == "darcy_weisbach":
 
-                        dp_fric, dp_grav = frictiondarcyweisbach.calculate_dp(
+                        dp_fric, dp_grav = DarcyWeisbach.calculate_dp(
                             us_l,
                             rho_l,
                             theta_rad[k - 1],

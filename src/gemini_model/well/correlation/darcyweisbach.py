@@ -8,7 +8,7 @@ Journal of the hydraulics division, 102(5), 657-664."
 import math
 
 
-class frictiondarcyweisbach:
+class DarcyWeisbach:
     """Single-phase dp using Darcy–Weisbach with Swamee–Jain friction factor."""
 
     @staticmethod
