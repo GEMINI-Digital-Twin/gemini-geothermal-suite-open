@@ -72,6 +72,40 @@
                         <input type="checkbox" name="injection_report" id="injection_report" checked> Create Injection
                         well plots
                     </label>
+                    <h5 class="mb-3">Cross plots</h5>
+                    <label class="d-block mb-2">
+                        <input type="checkbox" name="pressure-injection-dates_V_flowrate_plot" id="P-Q-date_checkbox"
+                               checked> Pressure-Flowrate-Date
+                    </label>
+                    <label class="d-block mb-3">
+                        <input type="checkbox" name="pressure-injection-temperature_V_flowrate_plot" id="P-Q-T_checkbox"
+                               checked> Pressure-Flowrate-Temperature
+                    </label>
+                    <h5 class="mb-3">Skin Plot Parameters</h5>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                        <tr>
+                            <th></th>
+                            <th class="text-center">Min</th>
+                            <th class="text-center">Max</th>
+                            <th class="text-center">Intervals</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Flow rate [m³/h]</td>
+                            <td><input class="form-control" id="min_flow_plot" value="0"></td>
+                            <td><input class="form-control" id="max_flow_plot" value="400"></td>
+                            <td><input class="form-control" id="no_interval_flow_plot" value="25"></td>
+                        </tr>
+                        <tr>
+                            <td>Skin Factor [-]</td>
+                            <td><input class="form-control" id="min_skin_plot" value="0"></td>
+                            <td><input class="form-control" id="max_skin_plot" value="200"></td>
+                            <td><input class="form-control" id="no_interval_skin_plot" value="5"></td>
+                        </tr>
+                        </tbody>
+                    </table>
                     <textarea id="InjReportComments"
                               placeholder="Type your comments about the Injection Well(s) Report here..."
                               style="width: 100%; padding: 8px; box-sizing: border-box; resize: none; overflow: hidden;"

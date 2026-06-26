@@ -131,9 +131,12 @@ def generate_report():
     ProjectName = request.json["ProjectName"]
 
     esp_plots_options = request.json["esp_plots_options"]
+    inj_well_crossplot_options = request.json["inj_well_crossplot_options"]
 
     injection_report = request.json["InjectionReport"]
     production_report = request.json["ProductionReport"]
+    p_q_date_crossplot = request.json["P_Q_date_crossplot"]
+    p_q_t_crossplot = request.json["P_Q_T_crossplot"]
     esp_q_pow_date_crossplot = request.json["ESP_Q_Pow_date_crossplot"]
     esp_freq_i_date_crossplot = request.json["ESP_freq_I_date_crossplot"]
 
@@ -226,6 +229,40 @@ def generate_report():
         esp_plots_options[option]["tagname"] = tagname
 
     app_instance.add_esp_report(esps, esp_plots_options)
+
+    if p_q_date_crossplot:
+        print("CREATING INJECTION CROSS PLOT...")
+        tagnames = [
+            "injectionwell_wellhead_pressure.measured",
+            "injectionwell_flow.measured",
+            "datestamp",
+        ]
+
+        # Function below creates generic cross-plot without skin lines
+        # app_instance.add_cross_plot(inj_wells, tagnames, 'Pressure-Flow-Date')
+
+        inj_well_crossplot_options["starttime"] = StartTime
+        inj_well_crossplot_options["endtime"] = EndTime
+        inj_well_crossplot_options["plot_type"] = "Pressure-Flow-Date"
+
+        app_instance.add_cross_plot_with_skin_lines(inj_wells, tagnames, inj_well_crossplot_options)
+
+    if p_q_t_crossplot:
+        print("CREATING INJECTION CROSS PLOT...")
+        tagnames = [
+            "injectionwell_wellhead_pressure.measured",
+            "injectionwell_flow.measured",
+            "injectionwell_wellhead_temperature.measured",
+        ]
+
+        # Function below creates generic cross-plot without skin lines
+        # app_instance.add_cross_plot(inj_wells, tagnames, 'Pressure-Flow-Temperature')
+
+        inj_well_crossplot_options["starttime"] = StartTime
+        inj_well_crossplot_options["endtime"] = EndTime
+        inj_well_crossplot_options["plot_type"] = "Pressure-Flow-Date"
+
+        app_instance.add_cross_plot_with_skin_lines(inj_wells, tagnames, inj_well_crossplot_options)
 
     if esp_q_pow_date_crossplot:
         print("CREATING ESP CROSS PLOT...")

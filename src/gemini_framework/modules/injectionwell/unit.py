@@ -4,6 +4,9 @@ from gemini_framework.abstract.unit_abstract import UnitAbstract
 from gemini_framework.modules.injectionwell.calculate_bottomhole_pressure import (
     CalculateBottomholePressure,
 )
+from gemini_framework.modules.injectionwell.calculate_injectivity_index import (
+    CalculateInjectivityIndex,
+)
 
 
 class InjectionWellUnit(UnitAbstract):
@@ -15,3 +18,4 @@ class InjectionWellUnit(UnitAbstract):
 
         # define unit modules
         self.modules["model"].append(CalculateBottomholePressure(self))
+        self.modules["model"].append(CalculateInjectivityIndex(self))

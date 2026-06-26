@@ -21,7 +21,6 @@
     <ul class="tab-links">
         <li class="active"><a href="#monitoring">Monitoring</a></li>
         <li><a href="#calibration">Calibration</a></li>
-        <li><a href="#prediction">Prediction</a></li>
     </ul>
 </div>
 
@@ -141,45 +140,6 @@
                 </div>
                 <div class="card-body">
                     <div id="plot_comparison" style="width:100%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Prediction Tab Content -->
-<div id="prediction" class="tab-content">
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card ">
-                <div class="card-header">
-                    <h2>ESP Failure Prediction</h2>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info" role="alert" style="margin-bottom: 20px;">
-                        <strong><i class="fa fa-info-circle"></i> Disclaimer:</strong><br>
-                        The ESP failure forecasting model has been trained on limited examples from one well for a given type of ESP. 
-                        The predictions should be interpreted with caution as the model's performance may vary depending on the specific 
-                        operating conditions and historical data availability. <strong>No scenario analysis can be performed yet on the forecasting.</strong>
-                    </div>
-                    <label>Prediction Mode:</label>
-                    <select class='form-control' id="prediction_mode" style='width: 300px; margin-bottom: 10px;'>
-                        <option value="forward">Forward Prediction (Next 30 Days)</option>
-                        <option value="historical">Historical Analysis (Full Period)</option>
-                    </select>
-                    <br>
-                    <label>Date Range for Prediction:<i class="fa fa-calendar"></i></label>
-                    <input class='form-control' type="text" name="datetimeprediction" id="datetimeprediction" style='width: 400px'>
-                    <br>
-                    <input type="button" id="predict" value="Predict Failure" onclick="predict_failure();" class="btn btn-default btn-sm"
-                        style="width:150px">
-                    <br><br>
-                    <div id="prediction_results" style="width:100%"></div>
-                    <div id="plot_diagnostic" class="responsive-plot" style="width:100%; margin-bottom: 20px;"></div>
-                    <div id="plot_prediction" class="responsive-plot" style="width:100%"></div>
-                    <h3 style="color:#D2D2D5; margin-top: 20px; margin-bottom: 10px;">Features (model inputs)</h3>
-                    <div id="plot_features_prediction" class="responsive-plot" style="width:100%; margin-top: 20px;"></div>
-                    <div id="plot_training_features_prediction" class="responsive-plot" style="width:100%; margin-top: 20px;"></div>
                 </div>
             </div>
         </div>

@@ -19,9 +19,11 @@ from flask import Flask
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, current_user
-from flask_session import Session
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
+
+from flask_session import Session
 
 db = SQLAlchemy()
 
@@ -37,8 +39,7 @@ def create_app():
 
     app.config["SECRET_KEY"] = b"0\xbf\xb6\x04q\xf2\x12,\xfa\xfa\xf8T"
     app.config["SQLALCHEMY_DATABASE_URI"] = (
-        f"mysql+pymysql://root:root@{os.getenv('GEMINI_MYSQLDB_URL')}:3306/"
-        f"{os.getenv('MYSQL_DATABASE')}"
+        f"mysql+pymysql://root:root@{os.getenv('GEMINI_MYSQLDB_URL')}:3306/{os.getenv('MYSQL_DATABASE')}"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -86,6 +87,9 @@ def create_app():
     admin = Admin(app, name="Admin Manager", template_mode="bootstrap4")
     admin.add_view(UserModelView(User, db.session))
     admin.add_view(ProjectModelView(Project, db.session))
+
+    # for migration database
+    Migrate(app, db)
 
     # blueprint for auth routes in our app
     from gemini_interface.blueprint.auth.routes import auth as auth_blueprint
@@ -137,6 +141,13 @@ def create_app():
     )
 
     app.register_blueprint(app_productionwellperformance_blueprint)
+
+    # blueprint for app injectionwellmonitoring routes in our app
+    from gemini_interface.blueprint.app_injectionwellmonitoring.routes import (
+        app_injectionwellmonitoring as app_injectionwellmonitoring_blueprint,
+    )
+
+    app.register_blueprint(app_injectionwellmonitoring_blueprint)
 
     # blueprint for app well_schematics routes in our app
     from gemini_interface.blueprint.app_well_schematics.routes import (

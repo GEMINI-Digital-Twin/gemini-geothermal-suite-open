@@ -8,6 +8,7 @@ from celery import Celery
 
 from gemini_application.chatpopup.chatpopup import ChatPopup
 from gemini_application.esp.esp import ESPApp
+from gemini_application.injectionwell.injectionwell_monitoring import InjectionWellMonitoring
 from gemini_application.productionwell.productionwell_performance import ProductionWellPerformance
 
 celery = Celery(
@@ -68,6 +69,78 @@ def productionwellperformance_app_calculate_vlp_ipr(
             "sol_intake_pressure": None,
             "sol_discharge_pressure": None,
         }
+
+    return results
+
+
+@celery.task(name="injectionwellmonitoring_app_calculate_hall_integral")
+def injectionwellmonitoring_app_calculate_hall_integral(
+    project_folder_path, project_name, well_name, inputs
+):
+    """Calculate Hall integral for injection well monitoring."""
+    app_instance = InjectionWellMonitoring()
+
+    app_instance.load_plant(project_folder_path, project_name)
+    app_instance.select_unit(well_name)
+
+    app_instance.init_parameters(inputs["parameters"])
+    app_instance.set_input(inputs["boundary"])
+    app_instance.get_data()
+    app_instance.calculate_hall_integral()
+
+    inputs = app_instance.get_input()
+    outputs = app_instance.get_output()
+
+    if len(outputs["cumulative_flow"]) > 1:
+        results = {
+            "cumulative_flow": outputs["cumulative_flow"].tolist(),
+            "hall_integral": outputs["hall_integral"].tolist(),
+            "hall_derivative_numerical": outputs["hall_derivative_numerical"].tolist(),
+        }
+    else:
+        results = {"cumulative_flow": [], "hall_integral": [], "hall_derivative_numerical": []}
+
+    return results
+
+
+@celery.task(name="injectionwellmonitoring_app_calculate_skin_lines")
+def injectionwellmonitoring_app_calculate_skin_lines(
+    project_folder_path, project_name, well_name, inputs
+):
+    """Calculate skin lines for injection well monitoring."""
+    app_instance = InjectionWellMonitoring()
+
+    app_instance.load_plant(project_folder_path, project_name)
+    app_instance.select_unit(well_name)
+
+    app_instance.init_parameters(inputs["parameters"])
+    app_instance.set_input(inputs["boundary"])
+    app_instance.get_data()
+    app_instance.calculate_skin_lines()
+
+    inputs = app_instance.get_input()
+    outputs = app_instance.get_output()
+
+    results = {
+        "starttime": inputs["start_time"],
+        "endtime": inputs["end_time"],
+        "min_flow_plot": inputs["min_flow_plot"],
+        "max_flow_plot": inputs["max_flow_plot"],
+        "no_interval_flow_plot": inputs["no_interval_flow_plot"],
+        "min_skin_plot": inputs["min_skin_plot"],
+        "max_skin_plot": inputs["max_skin_plot"],
+        "no_interval_skin_plot": inputs["no_interval_skin_plot"],
+        "wellbore_radius": inputs["wellbore_radius"],
+        "max_flow_rate": inputs["max_flow_rate"],
+        "max_pressure": inputs["max_pressure"],
+        "realTime_time": inputs["time"].tolist(),
+        "realTime_flow": inputs["flow"].tolist(),
+        "realTime_pressure": inputs["wellhead_pressure"].tolist(),
+        "injection_pressure": outputs["injection_pressure"],
+        "max_cal_P_inj": outputs["max_cal_P_inj"],
+        "skin_array": inputs["skin_array"].tolist(),
+        "flow_array": inputs["flow_array"].tolist(),
+    }
 
     return results
 
@@ -314,3 +387,4 @@ def rag_generate_response(parameters, user_message):
 
         print(traceback.format_exc())
         raise
+
