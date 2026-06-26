@@ -25,7 +25,7 @@ $('#select_database').on('change', function () {
 });
 
 function hide_all_database_parameter_table() {
-    document.getElementById("table-avevadb").style.display = "none"one"
+    document.getElementById("table-avevadb").style.display = "none"
 }
 
 function show_database_parameter_table() {

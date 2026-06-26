@@ -10,7 +10,7 @@ class Plant:
         self.name = None
         self.parameters = dict()
         self.units = []
-        self.database = None
+        self.databases = dict()
         self.diagram = None
 
     def update_parameters(self, parameters):
@@ -58,18 +58,26 @@ class Plant:
         for unit in self.units:
             unit.link()
 
-    def add_database(self, database):
+    def add_database(self, database, category):
         """Add database to plant."""
-        self.database = database
-        self.database.update_parameters(self.parameters["database"])
+        database.update_parameters(self.parameters["database"])
+
+        if category in self.databases:
+            self.databases[category].append(database)
+        else:
+            self.databases[category] = [database]
 
     def connect_database(self):
         """Connect to database."""
-        self.database.connect()
+        for category, databases in self.databases.items():
+            for database in databases:
+                database.connect()
 
     def register_tags(self):
         """Register tags with database."""
-        self.database.register_tags(self.units)
+        for category, databases in self.databases.items():
+            for database in databases:
+                database.register_tags(self.units)
 
     def find_modules(self, category):
         """Find modules of specified category."""

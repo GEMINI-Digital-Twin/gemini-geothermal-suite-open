@@ -15,18 +15,15 @@ from datetime import datetime, timezone
 import pytz
 from celery import Celery
 from flask import Blueprint, current_app, jsonify, request
-
-from gemini_application.module.offlinesimulation import OfflineModuleSimulation
+from gemini_application.tagbrowser.datamanager import DataManager
 from gemini_framework.database.connector.avevadb_driver import AvevaDriver
 from gemini_framework.database.connector.influxdb_driver import InfluxdbDriver
-from gemini_interface.blueprint.celerytasks import import_raw_data, offline_simulation
 
 # Create the tag browser application blueprint
 app_tagbrowser = Blueprint("app_tagbrowser", __name__)
 
 # Global database driver instance
-db_driver = None
-app_instance = OfflineModuleSimulation()
+app_instance = DataManager()
 
 # Initialize Celery for background task processing
 celery = Celery(
@@ -59,40 +56,6 @@ def load_plant():
     selected_database = app_instance.plant.parameters["database"]["external_database"]
 
     return selected_database
-
-
-@app_tagbrowser.route("/app/tagbrowser/connect_database", methods=["POST"])
-def connect_database():
-    """Connect to the specified database for tag browsing."""
-    global db_driver
-
-    project_name = request.json["field_name"]
-    database_name = request.json["database_name"]
-
-    project_folder_path = os.path.join(current_app.config["GEMINI_PROJECT_FOLDER"], project_name)
-    with open(os.path.join(project_folder_path, "plant.conf"), "r") as jsonfile:
-        plant_conf = json.load(jsonfile)
-
-    if database_name == "geminidb":
-        db_driver = InfluxdbDriver()
-        db_conf = {
-            "url": os.getenv("INFLUXDB_URL"),
-            "org": os.getenv("INFLUXDB_ORG"),
-            "username": os.getenv("INFLUXDB_USERNAME"),
-            "password": os.getenv("INFLUXDB_PASSWORD"),
-            "bucket": os.getenv("INFLUXDB_BUCKET"),
-        }
-        db_driver.update_parameters(db_conf)
-
-    if database_name == "avevadb":
-        db_driver = AvevaDriver()
-
-        db_conf = plant_conf["database"][database_name]
-        db_driver.update_parameters(db_conf)
-
-    db_driver.connect()
-
-    return database_name + " is connected"
 
 
 @app_tagbrowser.route("/app/tagbrowser/get_unitnames", methods=["POST"])
@@ -178,50 +141,6 @@ def plot_tagnames():
     return {"x": times_local, "y": result}
 
 
-@app_tagbrowser.route("/app/tagbrowser/manual_import_raw_data", methods=["GET"])
-def manual_import_raw_data():
-    """Import raw data from external database."""
-    project_folder_path = app_instance.plant.project_path
-    project_name = app_instance.plant.name
-
-    task = import_raw_data.delay(project_folder_path, project_name)
-
-    task_id = str(task.id)
-
-    return task_id
-
-
-@app_tagbrowser.route("/app/tagbrowser/run_offline_sim", methods=["POST"])
-def run_offline_sim():
-    """Run offline simulation."""
-    start_date = request.json["start_date"]
-    end_date = request.json["end_date"]
-
-    start_date_iso = change_to_iso(start_date)
-    end_date_iso = change_to_iso(end_date)
-
-    project_folder_path = app_instance.plant.project_path
-    project_name = app_instance.plant.name
-
-    task = offline_simulation.delay(project_folder_path, project_name, start_date_iso, end_date_iso)
-
-    task_id = str(task.id)
-
-    return task_id
-
-
-@app_tagbrowser.route("/app/tagbrowser/status_offline_sim", methods=["POST"])
-def status_offline_sim():
-    """Check the status of a background calculation task."""
-    task_id = request.json["task_id"]
-    task_result = celery.AsyncResult(task_id)
-
-    result = {
-        "task_id": task_id,
-        "task_status": task_result.status,
-        "task_result": task_result.result,
-    }
-    return result
 
 
 def change_to_iso(str_time):
@@ -255,7 +174,6 @@ def upload_data_csv():
         return jsonify("CSV data is uploaded")
     return jsonify("ERROR : file type should be csv!")
 
-
 @app_tagbrowser.route("/app/tagbrowser/status_unit_tagnames", methods=["POST"])
 def status_unit_tagnames():
     """Get status of tag names for a specific unit."""
@@ -278,7 +196,6 @@ def status_unit_tagnames():
     current_time = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return {"status": status, "start_time": start_time, "current_time": current_time}
-
 
 @app_tagbrowser.route("/app/tagbrowser/save_esp_database", methods=["POST"])
 def save_esp_database():

@@ -1,6 +1,5 @@
 load_plant()
 get_unitnames()
-connect_database()
 
 function load_plant() {
 
@@ -12,22 +11,11 @@ function load_plant() {
         contentType: 'application/json',
         data: JSON.stringify({ field_name: fieldID }),
         success: function (data) {
-            if (data == 'csv') {
-                document.getElementById("button_import_data").disabled = true
-            } else {
-                document.getElementById("button_upload_data_csv").disabled = true
-                document.getElementById("data_csv").disabled = true
-            }
         }
     })
 }
 
 
-
-
-$('#select_database').on('change', function () {
-    connect_database()
-});
 
 function show_unit_selection() {
     document.getElementById("unit").style.display = "block"
@@ -35,32 +23,6 @@ function show_unit_selection() {
 
 function hide_unit_selection() {
     document.getElementById("unit").style.display = "none"
-}
-
-
-
-function connect_database() {
-
-    clear_tagnames()
-
-    var fieldID = $('#select_project').val();
-    var database = $('#select_database').val();
-
-
-    $.ajax({
-        type: 'POST',
-        url: '/app/tagbrowser/connect_database',
-        contentType: 'application/json',
-        data: JSON.stringify({ field_name: fieldID, database_name: database }),
-        success: function (data) {
-            if (database == 'geminidb') {
-                show_unit_selection()
-            } else {
-                get_tagnames()
-                hide_unit_selection()
-            }
-        }
-    })
 }
 
 function get_unitnames() {
@@ -154,63 +116,6 @@ function plot_tagname() {
         }
     })
 
-}
-
-
-var task_id
-
-function run_offline_simulation() {
-
-    start_date = document.getElementById("offlinesimstarttime").value;
-    end_date = document.getElementById("offlinesimendtime").value;
-
-    $.ajax({
-        type: 'POST',
-        url: '/app/tagbrowser/run_offline_sim',
-        contentType: 'application/json',
-        data: JSON.stringify({ start_date: start_date, end_date: end_date }),
-        success: function (data) {
-
-            task_id = data
-
-            document.getElementById("offline_status_log").value = "Status Task ID " + task_id + ": " + "offline simulation is started"
-
-
-        }
-    })
-}
-
-
-
-function get_offline_status() {
-
-    $.ajax({
-        type: 'POST',
-        url: '/app/tagbrowser/status_offline_sim',
-        contentType: 'application/json',
-        data: JSON.stringify({ task_id: task_id }),
-        success: function (data) {
-
-            document.getElementById("offline_status_log").value = "Status Task ID " + task_id + ": " + data.task_status + " - " + data.task_result
-
-
-        }
-    })
-
-
-}
-
-function import_raw_data() {
-
-    $.ajax({
-        type: 'GET',
-        url: '/app/tagbrowser/manual_import_raw_data',
-        contentType: 'application/json',
-        success: function (data) {
-            console.log(data)
-            alert("manual import data process has been started.")
-        }
-    })
 }
 
 

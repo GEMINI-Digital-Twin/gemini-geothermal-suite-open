@@ -8,7 +8,6 @@ from celery import Celery
 
 from gemini_application.chatpopup.chatpopup import ChatPopup
 from gemini_application.esp.esp import ESPApp
-from gemini_application.module.offlinesimulation import OfflineModuleSimulation
 from gemini_application.productionwell.productionwell_performance import ProductionWellPerformance
 
 celery = Celery(
@@ -315,33 +314,3 @@ def rag_generate_response(parameters, user_message):
 
         print(traceback.format_exc())
         raise
-
-
-@celery.task(bind=True, name="offline_simulation")
-def offline_simulation(self, project_folder_path, project_name, start_date, end_date):
-    """Run offline simulation using the specified module."""
-    app_instance = OfflineModuleSimulation()
-    app_instance.load_plant(project_folder_path, project_name)
-    app_instance.task = self
-
-    parameters = {"start_date": start_date, "end_date": end_date}
-    app_instance.init_parameters(parameters)
-
-    app_instance.calculate()
-
-    return "offline simulation is done"
-
-
-@celery.task(bind=True, name="import_raw_data")
-def import_raw_data(self, project_folder_path, project_name):
-    """Run import raw data from external database."""
-    app_instance = OfflineModuleSimulation()
-    app_instance.load_plant(project_folder_path, project_name)
-    app_instance.task = self
-
-    parameters = {"start_date": None, "end_date": None}
-    app_instance.init_parameters(parameters)
-
-    app_instance.import_raw_data()
-
-    return "Import raw data is done"

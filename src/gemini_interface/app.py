@@ -25,4 +25,4 @@ from gemini_interface.create_app import create_app
 if __name__ == "__main__":
     app = create_app()
 
-    app.run(host="0.0.0.0", port=int(os.getenv("GEMINI_FRONTEND_PORT")), debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("GEMINI_FRONTEND_PORT")), debug=False)
