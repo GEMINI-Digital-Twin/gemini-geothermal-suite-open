@@ -97,15 +97,18 @@ def boot_unit(plant):
 def boot_database(plant):
     """Start up the boot database."""
     logger.info("Boot Database")
-    # add measured database
-    if plant.parameters["database"]["external_database"] == "avevadb":
-        meas_database = InfluxdbAvevaReaderDB("measured")
-    elif plant.parameters["database"]["external_database"] == "csv":
-        meas_database = InfluxdbCSVReaderDB("measured")
-    else:
-        return plant
 
-    plant.add_database(meas_database)
+    # csv database for manual upload
+    category = "measured"
+    meas_database = InfluxdbCSVReaderDB(category)
+    plant.add_database(meas_database, category)
+
+    # add external measured database
+    if plant.parameters["database"]["external_database"] == "avevadb":
+        category = "measured"
+        meas_database = InfluxdbAvevaReaderDB(category)
+        plant.add_database(meas_database, category)
+
     plant.register_tags()
     plant.connect_database()
 

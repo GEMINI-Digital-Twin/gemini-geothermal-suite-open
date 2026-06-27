@@ -105,9 +105,24 @@ function get_esp_plot_options() {
     return inputs;
 }
 
+function get_inj_well_crossplot_options() {
+    var inputs = {
+        min_flow_plot: document.getElementById('min_flow_plot').value,
+        max_flow_plot: document.getElementById('max_flow_plot').value,
+        no_interval_flow_plot: document.getElementById('no_interval_flow_plot').value,
+        min_skin_plot: document.getElementById('min_skin_plot').value,
+        max_skin_plot: document.getElementById('max_skin_plot').value,
+        no_interval_skin_plot: document.getElementById('no_interval_skin_plot').value
+    };
+
+    console.log(inputs);
+    return inputs;
+}
 
 
 function generate_report() {
+    inj_well_crossplot_options = get_inj_well_crossplot_options()
+
     esp_plots_options = get_esp_plot_options()
 
     range_time = document.getElementById("datetime").value
@@ -122,9 +137,12 @@ function generate_report() {
         ProjectName: document.getElementById("select_project").value,
         InjectionReport: document.getElementById("injection_report").checked,
         ProductionReport: document.getElementById("production_report").checked,
+        P_Q_date_crossplot: document.getElementById("P-Q-date_checkbox").checked,
+        P_Q_T_crossplot: document.getElementById("P-Q-T_checkbox").checked,
         ESP_Q_Pow_date_crossplot: document.getElementById("ESP_Q-Pow-date_checkbox").checked,
         ESP_freq_I_date_crossplot: document.getElementById("ESP_freq-I-date_checkbox").checked,
         esp_plots_options: esp_plots_options,
+        inj_well_crossplot_options: inj_well_crossplot_options,
         // User comments
         inj_report_comments: document.getElementById("InjReportComments").value,
         prod_report_comments: document.getElementById("ProdReportComments").value,

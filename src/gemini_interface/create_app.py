@@ -19,6 +19,7 @@ from flask import Flask
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, current_user
+from flask_migrate import Migrate
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
@@ -87,6 +88,9 @@ def create_app():
     admin.add_view(UserModelView(User, db.session))
     admin.add_view(ProjectModelView(Project, db.session))
 
+    # for migration database
+    Migrate(app, db)
+
     # blueprint for auth routes in our app
     from gemini_interface.blueprint.auth.routes import auth as auth_blueprint
 
@@ -137,6 +141,13 @@ def create_app():
     )
 
     app.register_blueprint(app_productionwellperformance_blueprint)
+
+    # blueprint for app injectionwellmonitoring routes in our app
+    from gemini_interface.blueprint.app_injectionwellmonitoring.routes import (
+        app_injectionwellmonitoring as app_injectionwellmonitoring_blueprint,
+    )
+
+    app.register_blueprint(app_injectionwellmonitoring_blueprint)
 
     # blueprint for app well_schematics routes in our app
     from gemini_interface.blueprint.app_well_schematics.routes import (
