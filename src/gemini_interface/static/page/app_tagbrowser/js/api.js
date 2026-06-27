@@ -1,5 +1,5 @@
 load_plant()
-get_unitnames()
+
 
 function load_plant() {
 
@@ -11,28 +11,20 @@ function load_plant() {
         contentType: 'application/json',
         data: JSON.stringify({ field_name: fieldID }),
         success: function (data) {
+
+            select_database = document.getElementById('select_database');
+            select_database.dispatchEvent(new Event('change'))
+
         }
     })
 }
 
-
-
-function show_unit_selection() {
-    document.getElementById("unit").style.display = "block"
-}
-
-function hide_unit_selection() {
-    document.getElementById("unit").style.display = "none"
-}
-
 function get_unitnames() {
-    var fieldID = $('#select_project').val();
-
     $.ajax({
         type: 'POST',
         url: '/app/tagbrowser/get_unitnames',
         contentType: 'application/json',
-        data: JSON.stringify({ field_name: fieldID }),
+        data: JSON.stringify(),
         success: function (data) {
             var fieldselect = document.getElementById('select_unitnames');
             fieldselect.options.length = 1;
@@ -50,10 +42,37 @@ function get_unitnames() {
 
 }
 
+
+
+function show_unit_selection() {
+    document.getElementById("unit").style.display = "block"
+}
+
+function hide_unit_selection() {
+    document.getElementById("unit").style.display = "none"
+}
+
+
 function clear_tagnames() {
     fieldselect = document.getElementById('select_tagnames');
     fieldselect.options.length = 1;
 }
+
+$('#select_database').on('change', function () {
+    clear_tagnames()
+
+    var database = $('#select_database').val();
+
+    if (database == 'geminidb') {
+        get_unitnames()
+        show_unit_selection()
+        get_tagnames()
+    } else {
+        hide_unit_selection()
+        get_tagnames()           
+    }
+});
+
 
 $('#select_unitnames').on('change', function () {
     get_tagnames()
@@ -61,15 +80,19 @@ $('#select_unitnames').on('change', function () {
 
 
 
+
+
+
+
 function get_tagnames() {
     var unitname = $('#select_unitnames').val();
-    var fieldID = $('#select_project').val();
+    var database = $('#select_database').val();
 
     $.ajax({
         type: 'POST',
         url: '/app/tagbrowser/get_tagnames',
         contentType: 'application/json',
-        data: JSON.stringify({ field_name: fieldID, unit_name: unitname }),
+        data: JSON.stringify({ database: database, unit_name: unitname }),
         success: function (data) {
             var fieldselect = document.getElementById('select_tagnames');
             fieldselect.options.length = 1;
@@ -90,7 +113,7 @@ function plot_tagname() {
 
     Plotly.newPlot('div_plot_tagname', [], layout)
 
-    var fieldID = $('#select_project').val();
+    var database = $('#select_database').val();
     var tagname = $('#select_tagnames').val();
     var unitname = $('#select_unitnames').val();
     var starttime = document.getElementById("starttime").value;
@@ -101,7 +124,7 @@ function plot_tagname() {
         type: 'POST',
         url: '/app/tagbrowser/plot_tagnames',
         contentType: 'application/json',
-        data: JSON.stringify({ field_name: fieldID, tagname: tagname, unitname: unitname, starttime: starttime, endtime: endtime, timestep: timestep }),
+        data: JSON.stringify({ database: database, tagname: tagname, unitname: unitname, starttime: starttime, endtime: endtime, timestep: timestep }),
         success: function (data) {
 
             trace = {

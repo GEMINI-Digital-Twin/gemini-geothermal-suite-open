@@ -101,13 +101,13 @@ def boot_database(plant):
     # csv database for manual upload
     category = "measured"
     meas_database = InfluxdbCSVReaderDB(category)
-    plant.add_database(meas_database,category)
+    plant.add_database(meas_database, category)
 
     # add external measured database
     if plant.parameters["database"]["external_database"] == "avevadb":
         category = "measured"
         meas_database = InfluxdbAvevaReaderDB(category)
-        plant.add_database(meas_database,category)
+        plant.add_database(meas_database, category)
 
     plant.register_tags()
     plant.connect_database()

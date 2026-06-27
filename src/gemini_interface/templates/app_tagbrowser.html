@@ -14,8 +14,7 @@
         <li class="nav-item"><a class="nav-link active" href="#databrowser" data-toggle="tab" style="color:white">Data
                 Browser</a>
         </li>
-        <li class="nav-item"><a class="nav-link" href="#tagmanager" data-toggle="tab" style="color:white">Tag
-                Manager</a>
+        <li class="nav-item"><a class="nav-link" href="#dataupload" data-toggle="tab" style="color:white">Data Upload</a>
         </li>
         <li class="nav-item"><a class="nav-link" href="#espdatabase" data-toggle="tab" style="color:white">ESP
                 Database</a>
@@ -25,7 +24,7 @@
         <div class="tab-pane fade show active" id="databrowser">
             <br>
             <div class="row">
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="card ">
                         <div class="card-header">
                             <h3>Data Browser</h3>
@@ -34,7 +33,6 @@
                             <label style="color:white">Database</label>
                             <select class='form-control' style='width: 200px;' id='select_database'>
                                 <option value="avevadb">avevadb (external)</option>
-                                <option value="pisystem">pisystem (external)</option>
                                 <option value="geminidb">geminidb (internal)</option>
                             </select>
                             <br>
@@ -65,7 +63,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-12">
+                <div class="col-lg-8">
                     <div class="card ">
                         <div class="card-body">
                             <input type="button" id="plot_tagname" value="Plot" onclick="plot_tagname();"
@@ -78,59 +76,19 @@
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="tagmanager">
+        <div class="tab-pane fade" id="dataupload">
             <br>
             <div class="row">
                 <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Offline Simulation</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-lg-4">
-                                    <label style="color:white">Start Date: <i class="fa fa-calendar"></i></label>
-                                    <input class='form-control' type="text" name="datetimesofflinesimstart"
-                                        id="offlinesimstarttime" style='width: 200px'>
-                                    <br>
-                                    <label style="color:white">End Date: <i class="fa fa-calendar"></i></label>
-                                    <input class='form-control' type="text" name="datetimesofflinesimend"
-                                        id="offlinesimendtime" style='width: 200px'>
-
-                                    <br>
-                                    <br>
-                                    <button id="button_run_offline_simulation" type="button" class="btn btn-default"
-                                        onclick="run_offline_simulation();">Run Offline Simulation
-                                    </button>
-                                </div>
-                                <div class="col-lg-8">
-                                    <label style="color:white">Status:</label>
-                                    <textarea class="form-control" id="offline_status_log" rows="3">Unknown</textarea>
-                                    <button id="button_get_offline_status" type="button" class="btn btn-default"
-                                        onclick="get_offline_status();">Get Status
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-12">
                     <div class="card ">
                         <div class="card-header">
-                            <h3>Manual Data Import</h3>
+                            <h3>Manual Data Upload</h3>
                         </div>
                         <div class="card-body">
                             <div class="alert alert-info" role="alert" style="margin-bottom: 20px;">
                                 <strong><i class="fa fa-info-circle"></i> Info:</strong><br>
-                                Please check your external database setting in plant setting</strong>
+                                this action will overwrite your current data in the internal database with the value from csv</strong>
                             </div>
-                            <label style="color:white">Import data from external database</label>
-                            <br>
-                            <button id="button_import_data" type="button" class="btn btn-default"
-                                onclick="import_raw_data();">Import
-                            </button>
-                            <br>
-                            <br>
                             <label style="color:white">Import data from CSV file</label>
                             <br>
                             <input type="file" name="data_csv" id="data_csv" accept=".csv" />

@@ -15,9 +15,9 @@ from datetime import datetime, timezone
 import pytz
 from celery import Celery
 from flask import Blueprint, current_app, jsonify, request
+
 from gemini_application.tagbrowser.datamanager import DataManager
 from gemini_framework.database.connector.avevadb_driver import AvevaDriver
-from gemini_framework.database.connector.influxdb_driver import InfluxdbDriver
 
 # Create the tag browser application blueprint
 app_tagbrowser = Blueprint("app_tagbrowser", __name__)
@@ -61,40 +61,33 @@ def load_plant():
 @app_tagbrowser.route("/app/tagbrowser/get_unitnames", methods=["POST"])
 def get_unitnames():
     """Get list of unit names from the project."""
-    project_name = request.json["field_name"]
-    project_folder_path = os.path.join(current_app.config["GEMINI_PROJECT_FOLDER"], project_name)
+    unitname_list = []
+    for unit in app_instance.plant.units:
+        unitname_list.append(unit.name)
 
-    component_list = []
-    for file in os.listdir(project_folder_path):
-        if file.endswith(".param"):
-            component_list.append(file[0:-6])
-
-    return sorted(component_list)
+    return sorted(unitname_list)
 
 
 @app_tagbrowser.route("/app/tagbrowser/get_tagnames", methods=["POST"])
 def get_tagnames():
     """Get list of tag names for a specific unit."""
-    project_name = request.json["field_name"]
     unit_name = request.json["unit_name"]
+    database = request.json["database"]
+    tagnames = []
 
-    if isinstance(db_driver, AvevaDriver):
-        tagname, tag_desc = db_driver.get_tagnames("")
-        tagnames = []
-        for ii in range(len(tagname)):
-            tagnames.append(tagname[ii] + " - " + tag_desc[ii])
-    if isinstance(db_driver, InfluxdbDriver):
-        project_folder_path = os.path.join(
-            current_app.config["GEMINI_PROJECT_FOLDER"], project_name
-        )
-        with open(os.path.join(project_folder_path, unit_name + ".param"), "r") as jsonfile:
-            component_param = json.load(jsonfile)
-
-        tagnames = []
-        for tagname in component_param["tagnames"]["measured"].keys():
-            tagnames.append(tagname + ".measured")
-        for tagname in component_param["tagnames"]["calculated"].keys():
-            tagnames.append(tagname + ".calculated")
+    if database == "avevadb":
+        for db in app_instance.plant.databases["measured"]:
+            if isinstance(db.external_db_driver, AvevaDriver):
+                tagname, tag_desc = db.external_db_driver.get_tagnames("")
+                for ii in range(len(tagname)):
+                    tagnames.append(tagname[ii] + " - " + tag_desc[ii])
+    if database == "geminidb":
+        for unit in app_instance.plant.units:
+            if unit.name == unit_name:
+                categories = ["measured", "calculated"]
+                for category in categories:
+                    for tagname in unit.tags[category].keys():
+                        tagnames.append(tagname + "." + category)
 
     return {"tagnames": sorted(tagnames)}
 
@@ -103,6 +96,7 @@ def get_tagnames():
 def plot_tagnames():
     """Plot tag data for visualization."""
     unitname = request.json["unitname"]
+    database = request.json["database"]
     project_name = request.json["field_name"]
 
     start_time = request.json["starttime"]
@@ -119,19 +113,28 @@ def plot_tagnames():
     end_time = tzobject.localize(end_time)
     end_time = end_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    if isinstance(db_driver, AvevaDriver):
+    result = []
+    times_utc = []
+    times_local = []
+
+    if database == "avevadb":
         tagname_desc = request.json["tagname"]
         index = tagname_desc.find("-")
         tagname = tagname_desc[0 : index - 1]
-        result, times_utc = db_driver.read_data(tagname, start_time, end_time, timestep)
 
-    if isinstance(db_driver, InfluxdbDriver):
+        for db in app_instance.plant.databases["measured"]:
+            if isinstance(db.external_db_driver, AvevaDriver):
+                result, times_utc = db.external_db_driver.read_data(
+                    tagname, start_time, end_time, timestep
+                )
+
+    if database == "geminidb":
         tagname = request.json["tagname"]
-        result, times_utc = db_driver.read_data(
+        db = app_instance.plant.databases["measured"][0]
+        result, times_utc = db.internal_db_driver.read_data(
             project_name, unitname, tagname, start_time, end_time, timestep
         )
 
-    times_local = []
     for time_utc in times_utc:
         time_local = (
             datetime.fromisoformat(time_utc).astimezone(tzobject).strftime("%Y-%m-%d %H:%M:%S")
@@ -139,8 +142,6 @@ def plot_tagnames():
         times_local.append(time_local)
 
     return {"x": times_local, "y": result}
-
-
 
 
 def change_to_iso(str_time):
@@ -174,6 +175,7 @@ def upload_data_csv():
         return jsonify("CSV data is uploaded")
     return jsonify("ERROR : file type should be csv!")
 
+
 @app_tagbrowser.route("/app/tagbrowser/status_unit_tagnames", methods=["POST"])
 def status_unit_tagnames():
     """Get status of tag names for a specific unit."""
@@ -196,6 +198,7 @@ def status_unit_tagnames():
     current_time = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return {"status": status, "start_time": start_time, "current_time": current_time}
+
 
 @app_tagbrowser.route("/app/tagbrowser/save_esp_database", methods=["POST"])
 def save_esp_database():

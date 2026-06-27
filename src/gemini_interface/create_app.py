@@ -20,10 +20,9 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
+from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
-
-from flask_session import Session
 
 db = SQLAlchemy()
 
@@ -39,7 +38,8 @@ def create_app():
 
     app.config["SECRET_KEY"] = b"0\xbf\xb6\x04q\xf2\x12,\xfa\xfa\xf8T"
     app.config["SQLALCHEMY_DATABASE_URI"] = (
-        f"mysql+pymysql://root:root@{os.getenv('GEMINI_MYSQLDB_URL')}:3306/{os.getenv('MYSQL_DATABASE')}"
+        f"mysql+pymysql://root:root@{os.getenv('GEMINI_MYSQLDB_URL')}:3306/"
+        f"{os.getenv('MYSQL_DATABASE')}"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 

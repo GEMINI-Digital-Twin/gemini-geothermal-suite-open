@@ -387,4 +387,3 @@ def rag_generate_response(parameters, user_message):
 
         print(traceback.format_exc())
         raise
-

@@ -2,6 +2,7 @@
 
 from gemini_application.application_abstract import ApplicationAbstract
 
+
 class DataManager(ApplicationAbstract):
     """Class for application data management in tag browser."""
 
