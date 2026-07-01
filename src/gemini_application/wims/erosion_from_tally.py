@@ -24,7 +24,7 @@ def annulus_id_m(outer_id_m, inner_od_m):
     inner_od_m = float(inner_od_m)
     if inner_od_m >= outer_id_m:
         return 0.0
-    return math.sqrt(outer_id_m ** 2 - inner_od_m ** 2)
+    return math.sqrt(outer_id_m**2 - inner_od_m**2)
 
 
 def flow_cross_section_area_m2(
@@ -39,12 +39,12 @@ def flow_cross_section_area_m2(
         inner_d_m = float(inner_od_m)
         if inner_d_m >= outer_d_m:
             return 0.0
-        return math.pi * (outer_d_m ** 2 - inner_d_m ** 2) / 4.0
+        return math.pi * (outer_d_m**2 - inner_d_m**2) / 4.0
 
     diameter_m = float(flow_diameter_m or 0)
     if diameter_m <= 0:
         return 0.0
-    return math.pi * diameter_m ** 2 / 4.0
+    return math.pi * diameter_m**2 / 4.0
 
 
 def default_esp_geometry_template():
@@ -237,9 +237,7 @@ def split_depth_interval_by_tally_joints(well_tally, top_md_m, bottom_md_m):
     return sub_intervals
 
 
-def build_esp_joint_annulus_segments(
-    esp_geometry, esp_setting_depth_m, well_tally
-):
+def build_esp_joint_annulus_segments(esp_geometry, esp_setting_depth_m, well_tally):
     """Stack ESP components; split each component at tally joint boundaries."""
     components = esp_geometry.get("components") or []
     depth_m = float(esp_setting_depth_m)
@@ -256,9 +254,7 @@ def build_esp_joint_annulus_segments(
         esp_od_m = inch_to_m(od_inch)
         comp_name = comp.get("name") or comp.get("component_type") or "ESP"
 
-        sub_intervals = split_depth_interval_by_tally_joints(
-            well_tally, comp_top_m, comp_bottom_m
-        )
+        sub_intervals = split_depth_interval_by_tally_joints(well_tally, comp_top_m, comp_bottom_m)
         if not sub_intervals:
             tally_entry = find_tally_joint_at_depth(well_tally, comp_top_m)
             if tally_entry is None:
@@ -362,9 +358,7 @@ def segments_for_production_well(
             )
 
     # -- ESP package: annulus (tally joint ID at depth vs ESP OD) ------------
-    esp_segments = build_esp_joint_annulus_segments(
-        esp_geometry, setting_m, well_tally
-    )
+    esp_segments = build_esp_joint_annulus_segments(esp_geometry, setting_m, well_tally)
     if not esp_segments:
         raise ValueError(
             "ESP geometry must include at least one component with positive length and OD."

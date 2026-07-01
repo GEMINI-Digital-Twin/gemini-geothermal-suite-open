@@ -214,10 +214,12 @@ def compute_corrosion_for_interval(
 
     # -- store results in outputs -------------------------------------------
     try:
-        corrosion_df = pd.DataFrame({
-            "Joint": range(1, n_total_joints + 1),
-            column_label: corrosion_rates,
-        })
+        corrosion_df = pd.DataFrame(
+            {
+                "Joint": range(1, n_total_joints + 1),
+                column_label: corrosion_rates,
+            }
+        )
         corrosion_df.set_index("Joint", inplace=True)
         outputs["modelledCorrosionRate"][column_label] = corrosion_df[column_label]
 
@@ -313,7 +315,12 @@ def get_corrosion_rate_from_models_segmented(
 
 
 def build_prod_corrosion_context(
-    well_tally, inputs, vlp, co2_models, esp_joint_start_idx=0, verbose=True,
+    well_tally,
+    inputs,
+    vlp,
+    co2_models,
+    esp_joint_start_idx=0,
+    verbose=True,
     boundaries=None,
 ):
     """Precompute the parameter-independent inputs for prod-data corrosion.
@@ -366,12 +373,18 @@ def build_prod_corrosion_context(
 
     # -- build time-series DataFrame ----------------------------------------
     times = pd.to_datetime(inputs["time"])
-    prod_df = pd.DataFrame({
-        "datetime": times,
-        "flow": inputs["flow"],
-        "pressure": inputs["pressure"],
-        "temperature": inputs["temperature"],
-    }).sort_values("datetime").reset_index(drop=True)
+    prod_df = (
+        pd.DataFrame(
+            {
+                "datetime": times,
+                "flow": inputs["flow"],
+                "pressure": inputs["pressure"],
+                "temperature": inputs["temperature"],
+            }
+        )
+        .sort_values("datetime")
+        .reset_index(drop=True)
+    )
 
     if prod_df.empty:
         context["degenerate"] = True
@@ -429,10 +442,12 @@ def build_prod_corrosion_context(
         # -- compute step durations (non-uniform after coarsening) ----------
         step_times = interval_data["datetime"].values
         step_ends = np.append(step_times[1:], interval_end)
-        step_durations_yr = np.array([
-            (pd.Timestamp(end) - pd.Timestamp(start)).total_seconds() / SECONDS_PER_YEAR
-            for start, end in zip(step_times, step_ends)
-        ])
+        step_durations_yr = np.array(
+            [
+                (pd.Timestamp(end) - pd.Timestamp(start)).total_seconds() / SECONDS_PER_YEAR
+                for start, end in zip(step_times, step_ends)
+            ]
+        )
 
         # -- run VLP -> per-joint P/T -> PVT -> CO2 for each live step -------
         eff_flow_m3s = []
@@ -504,9 +519,7 @@ def build_prod_corrosion_context(
             # -- per-joint PVT -> CO2 partial pressure ---------------------
             step_co2_pp = np.empty(n_active_joints)
             for active_idx in range(n_active_joints):
-                rho_g, *_ = vlp.PVT.get_pvt(
-                    joint_temp_c[active_idx], joint_pres_bar[active_idx]
-                )
+                rho_g, *_ = vlp.PVT.get_pvt(joint_temp_c[active_idx], joint_pres_bar[active_idx])
 
                 co2_input = {
                     "gas_pressure": 0.5,
@@ -538,27 +551,27 @@ def build_prod_corrosion_context(
             temp_c = np.zeros((n_active_joints, 0))
             co2_pp = np.zeros((n_active_joints, 0))
 
-        total_duration_yr = (
-            interval_end - interval_start
-        ).total_seconds() / SECONDS_PER_YEAR
+        total_duration_yr = (interval_end - interval_start).total_seconds() / SECONDS_PER_YEAR
 
         date_fmt = "%Y-%m-%d"
         start_str = interval_start.strftime(date_fmt)
         end_str = interval_end.strftime(date_fmt)
 
-        context["intervals"].append({
-            "rate_col": wall_thickness_change_rate_col(start_str, end_str),
-            "corroded_col": wall_thickness_change_col(start_str, end_str),
-            "start": start_str,
-            "end": end_str,
-            "total_duration_yr": total_duration_yr,
-            "n_eff_steps": len(eff_flow_m3s),
-            "flow_m3s": np.asarray(eff_flow_m3s, dtype=float),
-            "step_durations_yr": np.asarray(eff_durations_yr, dtype=float),
-            "pres_bar": pres_bar,
-            "temp_c": temp_c,
-            "co2_pp": co2_pp,
-        })
+        context["intervals"].append(
+            {
+                "rate_col": wall_thickness_change_rate_col(start_str, end_str),
+                "corroded_col": wall_thickness_change_col(start_str, end_str),
+                "start": start_str,
+                "end": end_str,
+                "total_duration_yr": total_duration_yr,
+                "n_eff_steps": len(eff_flow_m3s),
+                "flow_m3s": np.asarray(eff_flow_m3s, dtype=float),
+                "step_durations_yr": np.asarray(eff_durations_yr, dtype=float),
+                "pres_bar": pres_bar,
+                "temp_c": temp_c,
+                "co2_pp": co2_pp,
+            }
+        )
 
     # -- index intervals by their rate-column name (convenience lookup) -----
     context["interval_by_col"] = {iv["rate_col"]: iv for iv in context["intervals"]}

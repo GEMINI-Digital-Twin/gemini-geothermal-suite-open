@@ -76,9 +76,7 @@ class ErosionModel(Model):
 
     def _calculate(self, u):
         """Run the selected erosion correlation."""
-        model_key = normalize_model_name(
-            self.parameters.get("erosion_model", MODEL_DNVGL)
-        )
+        model_key = normalize_model_name(self.parameters.get("erosion_model", MODEL_DNVGL))
 
         correlation_input = dict(u)
         out = {
@@ -89,14 +87,10 @@ class ErosionModel(Model):
         # -- velocity-limit model (API) -------------------------------------
         if model_key == MODEL_API:
             rho_fluid_kgm3 = float(correlation_input.get("rho_fluid", 0))
-            out["erosion_velocity_ms"] = ErosionAPI.calculate_erosion_velocity(
-                rho_fluid_kgm3
-            )
+            out["erosion_velocity_ms"] = ErosionAPI.calculate_erosion_velocity(rho_fluid_kgm3)
             return out
 
         # -- rate models (DNVGL, OKA, E/CRC Tulsa) --------------------------
         correlation = _RATE_CORRELATIONS[model_key]
-        out["erosion_rate_mm_yr"] = correlation.calculate_erosion_rate(
-            correlation_input
-        )
+        out["erosion_rate_mm_yr"] = correlation.calculate_erosion_rate(correlation_input)
         return out

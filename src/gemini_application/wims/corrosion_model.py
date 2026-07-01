@@ -1,7 +1,7 @@
 """CO2 corrosion analysis application with caliper log processing and model optimization."""
 
-import os
 import json
+import os
 from datetime import datetime, timedelta, timezone
 
 import lasio as ls
@@ -107,9 +107,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
         or malformed (production-only wells may not have this file).
         """
         try:
-            project_folder = os.path.join(
-                self.plant.project_path, self.plant.name + "/wims_data"
-            )
+            project_folder = os.path.join(self.plant.project_path, self.plant.name + "/wims_data")
             unit_data_folder = os.path.join(project_folder, self.unit.name)
             logs_info_path = os.path.join(unit_data_folder, "logs_information.json")
 
@@ -129,9 +127,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
         """Initialize model parameters using tally from well parameters only."""
         well_tally = self._get_tally_from_well_parameters()
         if not well_tally:
-            raise ValueError(
-                "No well tally found in Well Parameters (app builder)."
-            )
+            raise ValueError("No well tally found in Well Parameters (app builder).")
         self.inputs["well_tally"] = well_tally
 
         # Load per-log metadata from logs_information.json (graceful if missing).
@@ -354,9 +350,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
                 baseline_date = dt
 
         if not log_dates:
-            return (
-                "No log dates in logs_metadata. Set dates in logs_information.json."
-            )
+            return "No log dates in logs_metadata. Set dates in logs_information.json."
 
         start_dt = baseline_date if baseline_date is not None else min(log_dates)
         end_dt = max(log_dates)
@@ -597,9 +591,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
             )
             OD_nominal = [i.get("OD") for i in self.inputs["well_tally"]]
             col_label2 = f"Remaining wall thickenss [inch] ({end_date})"
-            max_id_values = (
-                sorted_logs[-1][3]["Max. Radius [inch]"].values.astype(float) * 2
-            )
+            max_id_values = sorted_logs[-1][3]["Max. Radius [inch]"].values.astype(float) * 2
             predicted_values = self.outputs["predictedCorrosionRate"][col_label].values / 25.4
             self.outputs["predictedThickness"][col_label2] = np.round(
                 OD_nominal - (max_id_values + predicted_values), 3
@@ -749,9 +741,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
         still runs without persistence.
         """
         try:
-            project_folder = os.path.join(
-                self.plant.project_path, self.plant.name + "/wims_data"
-            )
+            project_folder = os.path.join(self.plant.project_path, self.plant.name + "/wims_data")
             unit_data_folder = os.path.join(project_folder, self.unit.name)
             return os.path.join(unit_data_folder, "corrosion_opt_params.json")
         except AttributeError:
@@ -869,8 +859,11 @@ class CO2CorrosionApplication(ApplicationAbstract):
         temperature_df = pd.DataFrame({"datetime": times, "value": self.inputs["temperature"]})
         try:
             flow_df, pressure_df, temperature_df = coarsen_timeseries_by_change_point(
-                flow_df, pressure_df, temperature_df,
-                pen=pen, predecimate_bin_hours=predecimate_bin_hours,
+                flow_df,
+                pressure_df,
+                temperature_df,
+                pen=pen,
+                predecimate_bin_hours=predecimate_bin_hours,
             )
         except Exception:
             return
@@ -901,9 +894,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
         n_active_joints = n_total_joints - esp_joint_start_idx
 
         # -- require persisted optimized params (latest interval) -----------
-        latest_params, error = self._load_latest_opt_params(
-            n_active_joints, esp_joint_start_idx
-        )
+        latest_params, error = self._load_latest_opt_params(n_active_joints, esp_joint_start_idx)
         if error:
             return {"status": "error", "message": error}
 
@@ -939,11 +930,13 @@ class CO2CorrosionApplication(ApplicationAbstract):
         sign_by_active = {}
         for active_idx in range(n_active_joints):
             entry = latest_params[active_idx] if isinstance(latest_params[active_idx], dict) else {}
-            self.corrosion_models[active_idx].update_parameters({
-                name: float(entry[name])
-                for name in ("A", "B", "C", "D")
-                if entry.get(name) is not None
-            })
+            self.corrosion_models[active_idx].update_parameters(
+                {
+                    name: float(entry[name])
+                    for name in ("A", "B", "C", "D")
+                    if entry.get(name) is not None
+                }
+            )
             sign_by_active[active_idx] = float(entry.get("E", 1.0))
 
         # -- single forward window context [latest log -> now] --------------
@@ -982,9 +975,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
             )
             signed_corroded_mm = sign_by_active[active_idx] * raw_corroded_mm
             corroded_mm[total_idx] = signed_corroded_mm
-            rate_mm_yr[total_idx] = (
-                signed_corroded_mm / duration_yr if duration_yr > 0 else 0.0
-            )
+            rate_mm_yr[total_idx] = signed_corroded_mm / duration_yr if duration_yr > 0 else 0.0
 
         # -- remaining wall thickness from the latest log bore (radial) -----
         # The DLD corrosion_rate is a one-sided penetration and the calibration
@@ -1005,14 +996,17 @@ class CO2CorrosionApplication(ApplicationAbstract):
         latest_str = latest_date.strftime("%Y-%m-%d")
         now_str = now.strftime("%Y-%m-%d")
         window = f"({latest_str} -> {now_str})"
-        result_df = pd.DataFrame({
-            "Joint No.": context["joint_labels"],
-            "Latest log IR [inch]": np.round(latest_max_ir_inch, 4),
-            f"{PREDICTED_WALL_THICKNESS_CHANGE_RATE_PREFIX} {window}": np.round(rate_mm_yr, 5),
-            f"{WALL_THICKNESS_CHANGE_PREFIX} {window}": np.round(corroded_mm, 5),
-            f"Predicted IR [inch] ({now_str})": np.round(predicted_ir_inch, 4),
-            f"Remaining wall thickness [mm] ({now_str})": np.round(remaining_wall_mm, 4),
-        }, index=range(n_total_joints))
+        result_df = pd.DataFrame(
+            {
+                "Joint No.": context["joint_labels"],
+                "Latest log IR [inch]": np.round(latest_max_ir_inch, 4),
+                f"{PREDICTED_WALL_THICKNESS_CHANGE_RATE_PREFIX} {window}": np.round(rate_mm_yr, 5),
+                f"{WALL_THICKNESS_CHANGE_PREFIX} {window}": np.round(corroded_mm, 5),
+                f"Predicted IR [inch] ({now_str})": np.round(predicted_ir_inch, 4),
+                f"Remaining wall thickness [mm] ({now_str})": np.round(remaining_wall_mm, 4),
+            },
+            index=range(n_total_joints),
+        )
 
         self.outputs["predictedRemainingThickness"] = result_df
         print(
@@ -1078,8 +1072,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
                 "message": "Could not determine current remaining wall thickness.",
             }
         remaining_cols = [
-            c for c in pred_df.columns
-            if str(c).startswith("Remaining wall thickness [mm]")
+            c for c in pred_df.columns if str(c).startswith("Remaining wall thickness [mm]")
         ]
         if not remaining_cols:
             return {
@@ -1095,9 +1088,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
         n_active_joints = n_total_joints - esp_joint_start_idx
         joint_labels = [e.get("Joint", str(i + 1)) for i, e in enumerate(well_tally)]
 
-        latest_params, error = self._load_latest_opt_params(
-            n_active_joints, esp_joint_start_idx
-        )
+        latest_params, error = self._load_latest_opt_params(n_active_joints, esp_joint_start_idx)
         if error:
             return {"status": "error", "message": error}
 
@@ -1124,11 +1115,13 @@ class CO2CorrosionApplication(ApplicationAbstract):
         sign_by_active = {}
         for active_idx in range(n_active_joints):
             entry = latest_params[active_idx] if isinstance(latest_params[active_idx], dict) else {}
-            self.corrosion_models[active_idx].update_parameters({
-                name: float(entry[name])
-                for name in ("A", "B", "C", "D")
-                if entry.get(name) is not None
-            })
+            self.corrosion_models[active_idx].update_parameters(
+                {
+                    name: float(entry[name])
+                    for name in ("A", "B", "C", "D")
+                    if entry.get(name) is not None
+                }
+            )
             sign_by_active[active_idx] = float(entry.get("E", 1.0))
 
         # -- single trailing-year context -> per-joint annual rate ----------
@@ -1161,9 +1154,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
                 interval, active_idx, self.corrosion_models[active_idx]
             )
             signed_corroded_mm = sign_by_active[active_idx] * raw_corroded_mm
-            rate_mm_yr[total_idx] = (
-                signed_corroded_mm / duration_yr if duration_yr > 0 else 0.0
-            )
+            rate_mm_yr[total_idx] = signed_corroded_mm / duration_yr if duration_yr > 0 else 0.0
 
         # -- JSON-safe rounding helpers -------------------------------------
         def _safe(x, ndigits):
@@ -1197,9 +1188,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
             candidates = []
             for total_idx in groups[key]["joints"]:
                 t_cur_mm = (
-                    remaining_now_mm[total_idx]
-                    if total_idx < len(remaining_now_mm)
-                    else np.nan
+                    remaining_now_mm[total_idx] if total_idx < len(remaining_now_mm) else np.nan
                 )
                 r_mm_yr = rate_mm_yr[total_idx]
                 if np.isnan(t_cur_mm) or np.isnan(r_mm_yr):
@@ -1210,12 +1199,14 @@ class CO2CorrosionApplication(ApplicationAbstract):
                     years_to_min_yr = np.inf
                 else:
                     years_to_min_yr = (t_cur_mm - min_mm) / r_mm_yr
-                candidates.append({
-                    "years_to_min_yr": years_to_min_yr,
-                    "joint": joint_labels[total_idx],
-                    "remaining_now_mm": t_cur_mm,
-                    "rate_mm_yr": r_mm_yr,
-                })
+                candidates.append(
+                    {
+                        "years_to_min_yr": years_to_min_yr,
+                        "joint": joint_labels[total_idx],
+                        "remaining_now_mm": t_cur_mm,
+                        "rate_mm_yr": r_mm_yr,
+                    }
+                )
             if not candidates:
                 continue  # no joint with both a valid rate and remaining wall
 
@@ -1223,25 +1214,31 @@ class CO2CorrosionApplication(ApplicationAbstract):
             top_joints = []
             for rank, cand in enumerate(candidates[:5], start=1):
                 y = cand["years_to_min_yr"]
-                top_joints.append({
-                    "rank": rank,
-                    "joint": cand["joint"],
-                    "remaining_now_mm": round(float(cand["remaining_now_mm"]), 4),
-                    "rate_mm_yr": round(float(cand["rate_mm_yr"]), 5),
-                    "years_to_min_yr": None if not np.isfinite(y) else round(float(y), 2),
-                })
+                top_joints.append(
+                    {
+                        "rank": rank,
+                        "joint": cand["joint"],
+                        "remaining_now_mm": round(float(cand["remaining_now_mm"]), 4),
+                        "rate_mm_yr": round(float(cand["rate_mm_yr"]), 5),
+                        "years_to_min_yr": None if not np.isfinite(y) else round(float(y), 2),
+                    }
+                )
 
             worst = candidates[0]
             worst_y = worst["years_to_min_yr"]
-            per_casing.append({
-                "od_inch": round(groups[key]["od_inch"], 4),
-                "min_thickness_mm": round(min_mm, 4),
-                "years_to_min_yr": None if not np.isfinite(worst_y) else round(float(worst_y), 2),
-                "limiting_joint": worst["joint"],
-                "remaining_now_mm": round(float(worst["remaining_now_mm"]), 4),
-                "rate_mm_yr": round(float(worst["rate_mm_yr"]), 5),
-                "top_joints": top_joints,
-            })
+            per_casing.append(
+                {
+                    "od_inch": round(groups[key]["od_inch"], 4),
+                    "min_thickness_mm": round(min_mm, 4),
+                    "years_to_min_yr": (
+                        None if not np.isfinite(worst_y) else round(float(worst_y), 2)
+                    ),
+                    "limiting_joint": worst["joint"],
+                    "remaining_now_mm": round(float(worst["remaining_now_mm"]), 4),
+                    "rate_mm_yr": round(float(worst["rate_mm_yr"]), 5),
+                    "top_joints": top_joints,
+                }
+            )
 
         # -- per-joint detail table -----------------------------------------
         per_joint = {

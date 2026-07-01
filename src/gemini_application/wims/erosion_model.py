@@ -85,9 +85,7 @@ class ErosionApplication(ApplicationAbstract):
         return None
 
     def _well_data_folder(self):
-        project_folder = os.path.join(
-            self.plant.project_path, self.plant.name + "/wims_data"
-        )
+        project_folder = os.path.join(self.plant.project_path, self.plant.name + "/wims_data")
         return os.path.join(project_folder, self.unit.name)
 
     def esp_geometry_path(self):
@@ -188,9 +186,7 @@ class ErosionApplication(ApplicationAbstract):
         """Build erosion flow-path segments from well tally and ESP geometry."""
         well_tally = self._get_tally_from_well_parameters()
         if not well_tally:
-            raise ValueError(
-                "No well tally found in Well Parameters (app builder)."
-            )
+            raise ValueError("No well tally found in Well Parameters (app builder).")
         self.inputs["well_tally"] = well_tally
 
         well_type = self._get_well_type()
@@ -214,16 +210,12 @@ class ErosionApplication(ApplicationAbstract):
         """Return tally-derived production casing and tubing IDs [inch]."""
         well_tally = self._get_tally_from_well_parameters()
         if not well_tally:
-            raise ValueError(
-                "No well tally found in Well Parameters (app builder)."
-            )
+            raise ValueError("No well tally found in Well Parameters (app builder).")
         if esp_geometry is None:
             esp_geometry = self.load_esp_geometry()
         setting_m = self.resolve_esp_setting_depth_m(esp_geometry)
         return {
-            "production_casing_id_inch": get_production_casing_id_inch(
-                well_tally, setting_m
-            ),
+            "production_casing_id_inch": get_production_casing_id_inch(well_tally, setting_m),
             "production_tubing_id_inch": resolve_production_tubing_id_inch(
                 well_tally, setting_m, esp_geometry=esp_geometry
             ),

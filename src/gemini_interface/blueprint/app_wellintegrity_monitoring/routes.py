@@ -23,7 +23,6 @@ from werkzeug.utils import secure_filename
 # Import the same application instance as well_schematics
 from gemini_application.wims.corrosion_model import CO2CorrosionApplication
 from gemini_application.wims.erosion_model import ErosionApplication
-
 from gemini_framework.modules.injectionwell.unit import InjectionWellUnit
 from gemini_framework.modules.productionwell.unit import ProductionWellUnit
 from gemini_interface.blueprint.celerytasks import (
@@ -66,9 +65,7 @@ def load_plant():
             erosion_app_instance.load_plant(project_folder_path, project_name.strip())
         except Exception as erosion_err:
             erosion_app_instance = None
-            current_app.logger.warning(
-                "Erosion application failed to load: %s", erosion_err
-            )
+            current_app.logger.warning("Erosion application failed to load: %s", erosion_err)
         return jsonify({"message": "OK"})
     except Exception as e:
         app_instance = None
@@ -999,20 +996,22 @@ def get_joint_finger_data():
                 mnrd_series = mnrd_series / 2
             mnrd = mnrd_series.tolist()
 
-        return jsonify({
-            "depths": depths,
-            "fingers": fingers,
-            "max": row_max,
-            "min": row_min,
-            "mean": row_mean,
-            "max_finger": max_finger,
-            "min_finger": min_finger,
-            "mxrd": mxrd,
-            "mnrd": mnrd,
-            "finger_cols": finger_cols,
-            "top_depth": top_depth,
-            "bottom_depth": bottom_depth,
-        })
+        return jsonify(
+            {
+                "depths": depths,
+                "fingers": fingers,
+                "max": row_max,
+                "min": row_min,
+                "mean": row_mean,
+                "max_finger": max_finger,
+                "min_finger": min_finger,
+                "mxrd": mxrd,
+                "mnrd": mnrd,
+                "finger_cols": finger_cols,
+                "top_depth": top_depth,
+                "bottom_depth": bottom_depth,
+            }
+        )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -1023,8 +1022,13 @@ FMT_LOG_DATE = "%H-%M-%S %d-%m-%Y"  # used by co2_corrosion for log date strings
 FMT_LOG_DATE_STORAGE = "%Y-%m-%d"  # stored in JSON as YYYY-MM-DD
 
 _REQUIRED_LOG_INFO_FIELDS = (
-    "date", "finger_units", "joint_identification_marker", "finger_name",
-    "max_column_name", "min_column_name", "average_column_name",
+    "date",
+    "finger_units",
+    "joint_identification_marker",
+    "finger_name",
+    "max_column_name",
+    "min_column_name",
+    "average_column_name",
 )
 
 
@@ -1512,9 +1516,7 @@ def get_esp_geometry():
         plant_esp_depth_m = erosion_app_instance._get_esp_depth_m()
         tally_geometry = {}
         if erosion_app_instance._get_well_type() == "productionwell":
-            tally_geometry = erosion_app_instance.get_production_geometry_from_tally(
-                geometry
-            )
+            tally_geometry = erosion_app_instance.get_production_geometry_from_tally(geometry)
 
         return jsonify(
             {
@@ -1624,9 +1626,7 @@ def optimize_corrosion():
         return jsonify({"error": str(e)}), 400
 
 
-@app_wellintegrity_monitoring.route(
-    "/app/wellintegrity/optimization_status", methods=["POST"]
-)
+@app_wellintegrity_monitoring.route("/app/wellintegrity/optimization_status", methods=["POST"])
 def optimization_status():
     """Report whether calibrated corrosion parameters exist for a well.
 
@@ -1686,9 +1686,7 @@ def predict_corrosion():
         return jsonify({"error": str(e)}), 400
 
 
-@app_wellintegrity_monitoring.route(
-    "/app/wellintegrity/forecast_years_to_min", methods=["POST"]
-)
+@app_wellintegrity_monitoring.route("/app/wellintegrity/forecast_years_to_min", methods=["POST"])
 def forecast_years_to_min():
     """Kick off a Celery task forecasting years-to-min-thickness per casing.
 
@@ -2368,8 +2366,19 @@ def load_dashboard():
 
 
 HISTORY_DOCUMENT_EXTENSIONS = {
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv",
-    ".png", ".jpg", ".jpeg", ".gif", ".zip", ".las",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".txt",
+    ".csv",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".zip",
+    ".las",
 }
 
 
@@ -2433,11 +2442,13 @@ def upload_history_document():
         stored_name = f"{document_id}{ext}"
         file.save(os.path.join(docs_folder, stored_name))
 
-        return jsonify({
-            "message": "Document uploaded successfully",
-            "document_id": document_id,
-            "document_filename": original_name,
-        })
+        return jsonify(
+            {
+                "message": "Document uploaded successfully",
+                "document_id": document_id,
+                "document_filename": original_name,
+            }
+        )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400

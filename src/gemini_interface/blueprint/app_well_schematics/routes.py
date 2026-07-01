@@ -130,12 +130,14 @@ def get_saved_schematics():
                 modified_at = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
             except OSError:
                 pass
-            schematic_list.append({
-                "name": schematic_name,
-                "filename": filename,
-                "path": file_path,
-                "modified_at": modified_at,
-            })
+            schematic_list.append(
+                {
+                    "name": schematic_name,
+                    "filename": filename,
+                    "path": file_path,
+                    "modified_at": modified_at,
+                }
+            )
 
         schematic_list.sort(key=lambda item: item.get("name", "").lower())
         return jsonify(schematic_list)

@@ -236,8 +236,12 @@ def wellintegrity_app_process_caliper_logs(project_folder_path, project_name, we
         finger_units_val = (uploaded_logs.get("finger_units") or [None])[i] or ""
 
         _extract_finger_data_for_log(
-            caliper_df, processed_df, log_name, finger_name_val,
-            finger_units_val, finger_data_folder
+            caliper_df,
+            processed_df,
+            log_name,
+            finger_name_val,
+            finger_units_val,
+            finger_data_folder,
         )
 
     results = {"processed_logs": selected_logs, "results": {"processedLogs": processed_logs_dict}}
@@ -245,8 +249,9 @@ def wellintegrity_app_process_caliper_logs(project_folder_path, project_name, we
     return results
 
 
-def _extract_finger_data_for_log(caliper_df, processed_df, log_name, finger_name,
-                                  finger_units, finger_data_folder):
+def _extract_finger_data_for_log(
+    caliper_df, processed_df, log_name, finger_name, finger_units, finger_data_folder
+):
     """Extract and save per-joint finger data as small JSON files."""
     import json
     import re
@@ -405,13 +410,17 @@ def wellintegrity_app_detect_joints(project_folder_path, project_name, well_name
         )
 
         detected = app_instance.outputs.get("detectedJoints", [])
-        log_result = detected[0] if detected else {
-            "method": "unknown",
-            "candidates": [],
-            "chart_depths": [],
-            "chart_values": [],
-            "joint_boundaries": [],
-        }
+        log_result = (
+            detected[0]
+            if detected
+            else {
+                "method": "unknown",
+                "candidates": [],
+                "chart_depths": [],
+                "chart_values": [],
+                "joint_boundaries": [],
+            }
+        )
 
         log_result = _make_serializable(log_result)
 
@@ -460,8 +469,7 @@ def wellintegrity_app_optimize_corrosion(self, project_folder_path, project_name
         for col in df.columns:
             vals = df[col].tolist()
             vals = [
-                None if (isinstance(x, float) and (np.isnan(x) or np.isinf(x))) else x
-                for x in vals
+                None if (isinstance(x, float) and (np.isnan(x) or np.isinf(x))) else x for x in vals
             ]
             data[col] = vals
         return data
@@ -602,8 +610,7 @@ def wellintegrity_app_predict_corrosion(project_folder_path, project_name, well_
         for col in df.columns:
             vals = df[col].tolist()
             vals = [
-                None if (isinstance(x, float) and (np.isnan(x) or np.isinf(x))) else x
-                for x in vals
+                None if (isinstance(x, float) and (np.isnan(x) or np.isinf(x))) else x for x in vals
             ]
             data[col] = vals
         return data
@@ -659,9 +666,7 @@ def wellintegrity_app_predict_corrosion(project_folder_path, project_name, well_
 
 
 @celery.task(name="wellintegrity_app_forecast_years_to_min")
-def wellintegrity_app_forecast_years_to_min(
-    project_folder_path, project_name, well_name, casings
-):
+def wellintegrity_app_forecast_years_to_min(project_folder_path, project_name, well_name, casings):
     """Forecast years until each casing size reaches its minimum thickness.
 
     Loads the well's processed caliper logs and the persisted optimized
@@ -716,7 +721,7 @@ def wellintegrity_app_forecast_years_to_min(
 
     # -- minimum thickness [mm] keyed by casing OD [inch] -------------------
     min_thickness_by_od = {}
-    for casing in (casings or []):
+    for casing in casings or []:
         if not isinstance(casing, dict):
             continue
         try:

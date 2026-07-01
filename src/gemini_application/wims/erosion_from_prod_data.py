@@ -43,7 +43,7 @@ def flow_velocity_ms(flow_m3h, diameter_m):
     if diameter_m <= 0:
         return None
     flow_m3s = float(flow_m3h) / 3600.0
-    area_m2 = math.pi * diameter_m ** 2 / 4.0
+    area_m2 = math.pi * diameter_m**2 / 4.0
     if area_m2 <= 0:
         return None
     return flow_m3s / area_m2
@@ -147,9 +147,7 @@ def compute_erosion_for_segments(
         result["erosion_velocity_ms"] = velocity
         if is_api_model:
             result["api_erosion_limit_velocity_ms"] = api_limit_velocity_ms
-            result.update(
-                api_velocity_comparison(actual_flow_velocity_ms, api_limit_velocity_ms)
-            )
+            result.update(api_velocity_comparison(actual_flow_velocity_ms, api_limit_velocity_ms))
         results.append(result)
 
     summary = {
@@ -248,12 +246,10 @@ def aggregate_erosion_by_joint(segment_results, well_type):
         summary["max_flow_velocity_below_esp_intake_ms"] = (
             float(max(below_flow_velocities_ms)) if below_flow_velocities_ms else None
         )
-        summary["joints_exceeding_api_limit_count"] = sum(
-            1 for row in joints_below_esp_intake if row.get("exceeds_api_limit")
-        ) + sum(
-            1 for row in esp_annulus_segments if row.get("exceeds_api_limit")
-        ) + sum(
-            1 for row in tubing_above_esp_joints if row.get("exceeds_api_limit")
+        summary["joints_exceeding_api_limit_count"] = (
+            sum(1 for row in joints_below_esp_intake if row.get("exceeds_api_limit"))
+            + sum(1 for row in esp_annulus_segments if row.get("exceeds_api_limit"))
+            + sum(1 for row in tubing_above_esp_joints if row.get("exceeds_api_limit"))
         )
         esp_flow_velocities_ms = [
             row["flow_velocity_ms"]
@@ -273,14 +269,10 @@ def aggregate_erosion_by_joint(segment_results, well_type):
         )
         summary["tubing_interior_segment_count"] = tubing_interior_segment_count
         summary["tubing_interior_average_mm_yr"] = (
-            float(np.mean(tubing_interior_rates_mm_yr))
-            if tubing_interior_rates_mm_yr
-            else None
+            float(np.mean(tubing_interior_rates_mm_yr)) if tubing_interior_rates_mm_yr else None
         )
         summary["tubing_interior_average_velocity_ms"] = (
-            float(np.mean(tubing_interior_velocities_ms))
-            if tubing_interior_velocities_ms
-            else None
+            float(np.mean(tubing_interior_velocities_ms)) if tubing_interior_velocities_ms else None
         )
         summary["tubing_interior_average_flow_velocity_ms"] = (
             float(np.mean(tubing_interior_flow_velocities_ms))

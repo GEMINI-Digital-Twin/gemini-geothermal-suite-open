@@ -36,33 +36,33 @@ class ErosionOKA:
         EL: float
             erosion rate (mm/y or mpy)
         """
-        alpha = input['alpha']
-        D = input['diameter']
-        dens_liq = input['rho_fluid']
+        alpha = input["alpha"]
+        D = input["diameter"]
+        dens_liq = input["rho_fluid"]
         # mp [kg/s], Up [m/s] (mixture velocity in multiphase), A_pipe1 [m2]
-        mp, Up, A_pipe1 = mass_flow_and_velocity(input['flowRate'], dens_liq, D)
+        mp, Up, A_pipe1 = mass_flow_and_velocity(input["flowRate"], dens_liq, D)
 
-        Hv = input['Hv']  # Vickers [GPa] NB:Hv[GPa] = 0.009807*Hv_
-        material_particles = input['mater_particle']
-        dp = input['diameter_particle']
+        Hv = input["Hv"]  # Vickers [GPa] NB:Hv[GPa] = 0.009807*Hv_
+        material_particles = input["mater_particle"]
+        dp = input["diameter_particle"]
 
-        if material_particles.upper() == 'SIO2':
+        if material_particles.upper() == "SIO2":
             # SiO2 particles
             Upref = 104
             dpref = 326
             k1 = -0.12
-            k2 = 2.3 * Hv ** 0.038
+            k2 = 2.3 * Hv**0.038
             k3 = 0.19
             K = 65
-        elif material_particles.upper() == 'SIC':
+        elif material_particles.upper() == "SIC":
             # SiC particles
             Upref = 99
             dpref = 326
             k1 = -0.05
-            k2 = 3 * Hv ** 0.085
+            k2 = 3 * Hv**0.085
             k3 = 0.19
             K = 45
-        elif material_particles.upper() == 'GLASS':
+        elif material_particles.upper() == "GLASS":
             # Glass beads
             Upref = 100
             dpref = 200
@@ -72,8 +72,7 @@ class ErosionOKA:
             K = 27
         else:
             raise ValueError(
-                f"Unknown mater_particle '{material_particles}'. "
-                "Use SIO2, SIC, or GLASS."
+                f"Unknown mater_particle '{material_particles}'. " "Use SIO2, SIC, or GLASS."
             )
 
         a = 1

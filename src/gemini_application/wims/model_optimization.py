@@ -61,8 +61,16 @@ _OBJECTIVE_PENALTY = 1e12
 class OptCO2Corrosion:
     """Calibrate per-joint CO2 corrosion parameters against log-measured rates."""
 
-    def __init__(self, inputs, outputs, corrosion_models, co2_models, vlp,
-                 esp_joint_start_idx=None, param_store_path=None):
+    def __init__(
+        self,
+        inputs,
+        outputs,
+        corrosion_models,
+        co2_models,
+        vlp,
+        esp_joint_start_idx=None,
+        param_store_path=None,
+    ):
         """Initialise the optimizer and precompute everything reusable.
 
         The expensive, parameter-independent work (VLP/PVT/CO2) and the measured
@@ -108,8 +116,8 @@ class OptCO2Corrosion:
 
         # -- per-(joint, interval) state, keyed by (total_idx, rate_col) ----
         self.interval_by_col = self.context.get("interval_by_col", {})
-        self.pair_signs = {}    # measured direction E in {-1, +1}
-        self.pair_params = {}   # calibrated [A, B, C, D] written by calibrate()
+        self.pair_signs = {}  # measured direction E in {-1, +1}
+        self.pair_params = {}  # calibrated [A, B, C, D] written by calibrate()
         self.warm_pairs = self._load_warm_pairs()
 
         # -- resolve common rate columns + per-(joint, interval) targets ----
@@ -166,8 +174,7 @@ class OptCO2Corrosion:
             for i in range(self.n_active_joints):
                 entry = params[i] if isinstance(params[i], dict) else {}
                 warm[(self.esp_joint_start_idx + i, rate_col)] = [
-                    float(entry.get(name, DLD_X0[j]))
-                    for j, name in enumerate(self.param_names)
+                    float(entry.get(name, DLD_X0[j])) for j, name in enumerate(self.param_names)
                 ]
         return warm
 
@@ -244,10 +251,9 @@ class OptCO2Corrosion:
         """Write A, B, C, D into the corrosion model for one joint."""
         active_idx = total_idx - self.esp_joint_start_idx
         model = self.corrosion_models[active_idx]
-        model.update_parameters({
-            name: float(value)
-            for name, value in zip(self.param_names, real_params)
-        })
+        model.update_parameters(
+            {name: float(value) for name, value in zip(self.param_names, real_params)}
+        )
 
     def _pair_modelled_rate(self, total_idx, rate_col, model):
         """Signed modelled rate for one (joint, interval): ``E * dld_rate``.
@@ -380,12 +386,8 @@ class OptCO2Corrosion:
 
         # -- store the uncalibrated modelled result (nominal DLD defaults) --
         self._apply_nominal_params()
-        uncalibrated_table = corrosion_rates_from_context(
-            self.context, self.corrosion_models
-        )
-        self.outputs["modelledCorrosionRate"] = self._apply_signs_to_table(
-            uncalibrated_table
-        )
+        uncalibrated_table = corrosion_rates_from_context(self.context, self.corrosion_models)
+        self.outputs["modelledCorrosionRate"] = self._apply_signs_to_table(uncalibrated_table)
 
         # -- build the ordered list of (joint, interval) pairs to solve -----
         pairs = [
@@ -420,19 +422,21 @@ class OptCO2Corrosion:
             calibrated_params["E"] = float(self.pair_signs.get((total_idx, rate_col), SIGN_POS))
 
             # -- record + report per-(joint, interval) error / convergence -
-            per_joint.append({
-                "joint": int(total_idx),
-                "joint_label": str(self.context["joint_labels"][total_idx]),
-                "interval": self._interval_label(rate_col),
-                "rate_col": rate_col,
-                "sse_before": float(pair_sse_before),
-                "sse_after": float(pair_sse_after),
-                "params": calibrated_params,
-                "iterations": int(getattr(result, "nit", 0)),
-                "n_func_evals": int(getattr(result, "nfev", 0)),
-                "converged": bool(getattr(result, "success", False)),
-                "message": str(getattr(result, "message", "")),
-            })
+            per_joint.append(
+                {
+                    "joint": int(total_idx),
+                    "joint_label": str(self.context["joint_labels"][total_idx]),
+                    "interval": self._interval_label(rate_col),
+                    "rate_col": rate_col,
+                    "sse_before": float(pair_sse_before),
+                    "sse_after": float(pair_sse_after),
+                    "params": calibrated_params,
+                    "iterations": int(getattr(result, "nit", 0)),
+                    "n_func_evals": int(getattr(result, "nfev", 0)),
+                    "converged": bool(getattr(result, "success", False)),
+                    "message": str(getattr(result, "message", "")),
+                }
+            )
             if progress_callback is not None:
                 try:
                     progress_callback(completed, n_pairs, per_joint)
@@ -567,25 +571,21 @@ class OptCO2Corrosion:
                 total_idx = self.esp_joint_start_idx + active_idx
                 pair = self.pair_params.get((total_idx, rate_col))
                 if pair is not None:
-                    entry = {
-                        name: float(value)
-                        for name, value in zip(self.param_names, pair)
-                    }
+                    entry = {name: float(value) for name, value in zip(self.param_names, pair)}
                 else:
-                    entry = {
-                        name: float(DLD_X0[j])
-                        for j, name in enumerate(self.param_names)
-                    }
+                    entry = {name: float(DLD_X0[j]) for j, name in enumerate(self.param_names)}
                 entry["E"] = float(self.pair_signs.get((total_idx, rate_col), SIGN_POS))
                 params_list.append(entry)
 
-            intervals_payload.append({
-                "rate_col": rate_col,
-                "start": interval.get("start"),
-                "end": interval.get("end"),
-                "total_duration_yr": interval["total_duration_yr"],
-                "params": params_list,
-            })
+            intervals_payload.append(
+                {
+                    "rate_col": rate_col,
+                    "start": interval.get("start"),
+                    "end": interval.get("end"),
+                    "total_duration_yr": interval["total_duration_yr"],
+                    "params": params_list,
+                }
+            )
 
         payload = {
             "corrosion_model": "DLD",

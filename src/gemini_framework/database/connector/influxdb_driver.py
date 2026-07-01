@@ -92,7 +92,13 @@ class InfluxdbDriver(DatabaseDriverAbstract):
         return results, timestamps
 
     def write_data(
-        self, plant_name, asset_name, tag_name, time, value, write_option=SYNCHRONOUS,
+        self,
+        plant_name,
+        asset_name,
+        tag_name,
+        time,
+        value,
+        write_option=SYNCHRONOUS,
         batch_size=5000,
     ):
         """Write data to internal database in batches."""
