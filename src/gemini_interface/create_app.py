@@ -53,7 +53,7 @@ def create_app():
         "GEMINI_DOCUMENTATION_FOLDER", os.path.join(gemini_root_dir, "src/gemini_documentation")
     )
 
-    app.config["MAX_CONTENT_LENGTH"] = 500 * 1000 * 1000
+    app.config["MAX_CONTENT_LENGTH"] = 500 * 1000 * 1000 * 2
 
     Session(app)
 

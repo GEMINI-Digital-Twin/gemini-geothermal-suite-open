@@ -897,6 +897,7 @@ function update_productionwell_tally_table(table_data_json) {
     $('#data-table-productionwelltally').DataTable({
         data: data,
         columns: [
+            { data: "Joint", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },
             { data: "TopMD", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },
             { data: "BottomMD", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },
             { data: "TopTVD", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },
@@ -918,6 +919,7 @@ function update_injectionwell_tally_table(table_data_json) {
     $('#data-table-injectionwelltally').DataTable({
         data: data,
         columns: [
+            { data: "Joint", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },
             { data: "TopMD", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },
             { data: "BottomMD", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },
             { data: "TopTVD", render: function (d) { return '<font color="black">' + (d != null ? d : '') + '</font>'; } },

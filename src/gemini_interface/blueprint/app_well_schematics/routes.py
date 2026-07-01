@@ -10,13 +10,15 @@ processing and corrosion pattern analysis.
 import glob
 import json
 import os
+import re
+from datetime import datetime, timezone
 
 import requests
 from celery import Celery
 from flask import Blueprint, current_app, jsonify, request
 
 # TODO: Change to well integrity application
-from gemini_application.wims.co2_corrosion import CO2CorrosionApplication
+from gemini_application.wims.corrosion_model import CO2CorrosionApplication
 from gemini_framework.modules.injectionwell.unit import InjectionWellUnit
 from gemini_framework.modules.productionwell.unit import ProductionWellUnit
 
@@ -29,6 +31,24 @@ celery = Celery(
     backend=os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379"),
     broker=os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379"),
 )
+
+
+def _sanitize_schematic_name(schematic_name):
+    """Strip path separators and unsafe characters from a schematic filename stem."""
+    if not schematic_name or not str(schematic_name).strip():
+        return None
+    name = str(schematic_name).strip()
+    name = re.sub(r'[\\/:*?"<>|]', "_", name)
+    name = name.replace("..", "_")
+    return name if name else None
+
+
+def _well_schematics_folder(selected_well):
+    """Return the on-disk schematics folder for a well."""
+    project_data_folder = os.path.join(
+        app_instance.plant.project_path, app_instance.plant.name + "/wims_data"
+    )
+    return os.path.join(project_data_folder, selected_well, "schematics")
 
 
 @app_well_schematics.route("/app/well_schematics/load_plant", methods=["POST"])
@@ -91,10 +111,7 @@ def get_saved_schematics():
             return jsonify([])
 
         # Create schematics folder path
-        project_data_folder = os.path.join(
-            app_instance.plant.project_path, app_instance.plant.name + "/wims_data"
-        )
-        well_data_folder = os.path.join(project_data_folder, selected_well, "schematics")
+        well_data_folder = _well_schematics_folder(selected_well)
 
         if not os.path.exists(well_data_folder):
             return jsonify([])
@@ -107,8 +124,20 @@ def get_saved_schematics():
             filename = os.path.basename(file_path)
             # Remove .json extension for display
             schematic_name = filename[:-5] if filename.endswith(".json") else filename
-            schematic_list.append({"name": schematic_name, "filename": filename, "path": file_path})
+            modified_at = None
+            try:
+                mtime = os.path.getmtime(file_path)
+                modified_at = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+            except OSError:
+                pass
+            schematic_list.append({
+                "name": schematic_name,
+                "filename": filename,
+                "path": file_path,
+                "modified_at": modified_at,
+            })
 
+        schematic_list.sort(key=lambda item: item.get("name", "").lower())
         return jsonify(schematic_list)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -125,10 +154,7 @@ def load_schematic():
             return jsonify({"error": "Missing well name or schematic filename"}), 400
 
         # Create path to schematic file
-        project_data_folder = os.path.join(
-            app_instance.plant.project_path, app_instance.plant.name + "/wims_data"
-        )
-        well_data_folder = os.path.join(project_data_folder, selected_well, "schematics")
+        well_data_folder = _well_schematics_folder(selected_well)
         schematic_path = os.path.join(well_data_folder, schematic_filename)
 
         if not os.path.exists(schematic_path):
@@ -155,23 +181,50 @@ def save_schematic():
         if not selected_well or not schematic_name or not schematic_data:
             return jsonify({"error": "Missing required data"}), 400
 
+        safe_name = _sanitize_schematic_name(schematic_name)
+        if not safe_name:
+            return jsonify({"error": "Invalid schematic name"}), 400
+
         # Create schematics folder path
-        project_data_folder = os.path.join(
-            app_instance.plant.project_path, app_instance.plant.name + "/wims_data"
-        )
-        well_data_folder = os.path.join(project_data_folder, selected_well, "schematics")
+        well_data_folder = _well_schematics_folder(selected_well)
 
         # Create directory if it doesn't exist
         os.makedirs(well_data_folder, exist_ok=True)
 
         # Save schematic file
-        filename = f"{schematic_name}.json"
+        filename = f"{safe_name}.json"
         schematic_path = os.path.join(well_data_folder, filename)
 
         with open(schematic_path, "w") as f:
             json.dump(schematic_data, f, indent=2)
 
         return jsonify({"message": "Schematic saved successfully", "filename": filename})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app_well_schematics.route("/app/well_schematics/delete_schematic", methods=["POST"])
+def delete_schematic():
+    """Delete a saved schematic file for the selected well."""
+    try:
+        data = request.get_json()
+        selected_well = data.get("selected_well")
+        schematic_filename = data.get("schematic_filename")
+
+        if not selected_well or not schematic_filename:
+            return jsonify({"error": "Missing well name or schematic filename"}), 400
+
+        if ".." in schematic_filename or "/" in schematic_filename or "\\" in schematic_filename:
+            return jsonify({"error": "Invalid schematic filename"}), 400
+
+        well_data_folder = _well_schematics_folder(selected_well)
+        schematic_path = os.path.join(well_data_folder, schematic_filename)
+
+        if not os.path.exists(schematic_path):
+            return jsonify({"error": "Schematic file not found"}), 404
+
+        os.remove(schematic_path)
+        return jsonify({"message": "Schematic deleted successfully"})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -206,7 +259,7 @@ def generate_schematic():
             error_data = e.response.json()
             if "error" in error_data:
                 error_msg = error_data["error"]
-        except:
+        except Exception:
             pass
         return jsonify({"error": error_msg}), e.response.status_code
     except Exception as e:

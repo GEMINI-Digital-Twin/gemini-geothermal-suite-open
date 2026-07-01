@@ -171,6 +171,9 @@ def upload_well_tally():
             "ID": "ID",
             "Roughness": "Roughness",
             "OD": "OD",
+            "Joint": "Joint",
+            "Joint No": "Joint",
+            "Joint No.": "Joint",
         }
         rename = {}
         for c in df.columns:
@@ -203,6 +206,7 @@ def upload_well_tally():
                 rowdata["OD"] = float(df["OD"].iloc[ii])
             else:
                 rowdata["OD"] = None
+            rowdata["Joint"] = str(df["Joint"].iloc[ii]) if "Joint" in df.columns else str(ii + 1)
             table.append(rowdata)
 
         return {"data": table}

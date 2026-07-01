@@ -19,6 +19,9 @@ class CO2CorrosionOpt(Model):
         """Initialize CO2 corrosion optimization model."""
         self.parameters = {}
         self.output = {}
+        # Cache correlation instances so they are built once, not per call
+        # (the calibration loop evaluates this model many times per joint).
+        self._correlation_cache = {}
 
     def update_parameters(self, parameters):
         """Update model parameters.
@@ -49,15 +52,21 @@ class CO2CorrosionOpt(Model):
 
     def calculate_corrosion_rate(self, u, x):
         """Calculate the corrosion rate."""
+        # -- reuse a cached correlation instance (hot-loop friendly) --------
         model = self.parameters["corrosion_model"]
+        corrosion_model = self._correlation_cache.get(model)
+        if corrosion_model is None:
+            if model == "DLD":
+                corrosion_model = DLD()
+            elif model == "DLM":
+                corrosion_model = DLM()
+            elif model == "NORSOK":
+                corrosion_model = NORSOK()
+            else:
+                raise ValueError(f"Unknown corrosion_model '{model}'.")
+            self._correlation_cache[model] = corrosion_model
 
-        if model == "DLD":
-            corrosion_model = DLD()
-        elif model == "DLM":
-            corrosion_model = DLM()
-        elif model == "NORSOK":
-            corrosion_model = NORSOK()
-
+        # -- run with the current parameters --------------------------------
         corrosion_model.update_parameters(self.parameters)
         corrosion_model.calculate_output(u, x)
         return corrosion_model.get_output()

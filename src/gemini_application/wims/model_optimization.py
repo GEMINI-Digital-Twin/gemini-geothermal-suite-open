@@ -1,655 +1,637 @@
-"""CO2 corrosion model parameter optimization using SciPy minimize."""
+"""Per-joint CO2 corrosion parameter calibration using SciPy minimize.
 
+The modelled corrosion rate comes from the production-data path
+(:func:`build_prod_corrosion_context` + the corrosion correlation) and the
+measured target from caliper logs
+(:func:`get_measured_corrosion_rate_from_logs`).  Because each joint's modelled
+rate depends only on its own parameters and its own precomputed
+pressure/temperature/CO2, and each log-to-log interval is independent, the
+total sum-of-squared-errors is fully separable: the calibration solves one
+small SLSQP problem per (joint, interval) over a shared, precomputed context
+instead of one large coupled optimization.  A well with three logs therefore
+yields a distinct parameter set for the log1->log2 and log2->log3 intervals.
+"""
+
+import json
+import os
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import ruptures as rpt
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 
-# TODO: save optmized parameters and use them as initial guess
+from gemini_application.wims.corrosion_from_logs import (
+    WALL_THICKNESS_CHANGE_RATE_PREFIX,
+    get_measured_corrosion_rate_from_logs,
+)
+from gemini_application.wims.corrosion_from_prod_data import (
+    build_prod_corrosion_context,
+    corroded_mm_for_interval,
+    corrosion_rate_for_joint_interval,
+    corrosion_rates_from_context,
+)
+
+# Real-valued bounds and initial guess for the DLD parameters (A, B, C, D).
+# Bounds are intentionally wide and signed (negatives allowed): the calibration
+# prioritises matching the measured rate over physical plausibility, so the
+# optimizer is free to move each coefficient either side of its nominal value.
+# Ranges are still kept inside numerically safe limits (the reaction term is
+# 10 ** (A - B/T + C*log10(f)), which overflows for very large exponents); the
+# objective penalises any parameter set that yields a non-finite rate.
+DLD_PARAM_NAMES = ["A", "B", "C", "D"]
+DLD_REAL_BOUNDS = [(-100.0, 100.0), (-1.0e5, 1.0e5), (-50.0, 50.0), (-1000.0, 1000.0)]
+DLD_X0 = [4.93, 1119.0, 0.58, 2.45]
+
+# Per-joint sign multiplier E in {-1, +1} applied in front of the rate
+# (modelled = E * dld_rate).  The DLD model can only produce a non-negative
+# corrosion rate (metal loss), so E lets the modelled rate match measured values
+# that are negative (a survey-to-survey tool/calibration difference where the
+# later log reads a smaller bore).  E is the direction of the measured change, so
+# it is *derived* per joint from the sign of the measured rate (not optimized);
+# the DLD coefficients then calibrate the magnitude and stay meaningful.
+SIGN_POS = 1.0
+SIGN_NEG = -1.0
+
+# Penalty returned when a parameter combination makes the model blow up
+# (e.g. underflow in the reaction-controlled term -> division by zero).
+_OBJECTIVE_PENALTY = 1e12
 
 
 class OptCO2Corrosion:
-    """Calibrate CO2 Corrosion Model parameters against measured data.
+    """Calibrate per-joint CO2 corrosion parameters against log-measured rates."""
 
-    Uses SciPy's minimize function for optimization.
-    """
+    def __init__(self, inputs, outputs, corrosion_models, co2_models, vlp,
+                 esp_joint_start_idx=None, param_store_path=None):
+        """Initialise the optimizer and precompute everything reusable.
 
-    def __init__(self, inputs, outputs, VLP, unit, co2_models, joint_corrosion_models_opt):
-        """Initialize CO2 corrosion optimization model."""
-        # Store references
+        The expensive, parameter-independent work (VLP/PVT/CO2) and the measured
+        target are computed once here; the per-joint solves reuse them.
+        """
+        # -- store references -----------------------------------------------
         self.inputs = inputs
         self.outputs = outputs
-        self.VLP = VLP
-        self.logs = inputs["uploadedLogs"]
-        self.unit = unit
+        self.corrosion_models = corrosion_models
         self.co2_models = co2_models
-        self.corrosion_models = joint_corrosion_models_opt
+        self.vlp = vlp
+        self.param_store_path = param_store_path
 
-        self.outputs["modelledCorrosionRateCalibrated"] = pd.DataFrame(
-            range(1, len(self.corrosion_models) + 1),
-            index=range(len(self.corrosion_models)),
-            columns=["Joint No."],
+        if esp_joint_start_idx is None:
+            esp_joint_start_idx = inputs.get("esp_joint_start_idx", 0)
+        self.esp_joint_start_idx = esp_joint_start_idx
+
+        # -- joint bookkeeping ----------------------------------------------
+        self.well_tally = inputs["well_tally"]
+        self.n_total_joints = len(self.well_tally)
+        self.n_active_joints = self.n_total_joints - esp_joint_start_idx
+
+        # -- precompute parameter-independent prod-data context -------------
+        self.context = build_prod_corrosion_context(
+            self.well_tally,
+            inputs,
+            vlp,
+            co2_models,
+            esp_joint_start_idx=esp_joint_start_idx,
+            verbose=False,
         )
-        self.outputs["modelledCorrosionRate"] = pd.DataFrame(
-            range(1, len(self.corrosion_models) + 1),
-            index=range(len(self.corrosion_models)),
-            columns=["Joint No."],
-        )
-        # --- Build Real-Valued and Normalized Bounds --- #
-        self.real_bounds = []
-        self.xo_real = []
-        for model in self.corrosion_models:
-            corrosion_model_name = model.parameters["corrosion_model"]
 
-            if corrosion_model_name == "DLD":
-                # Suppose we have 1 parameter with real bound [0, 10]
-                # self.real_bounds.append((0.0, 10.0))
-                self.real_bounds.extend(
-                    [
-                        (0.0, 1000.0),
-                        (0.0, 100000.0),
-                        (0.0, 20),
-                        (0.0, 100),
-                    ]
-                )
-                self.xo_real.extend(
-                    [
-                        4.93,
-                        1119,
-                        0.58,
-                        2.45,
-                    ]
-                )
-            elif corrosion_model_name == "DLM":
-                # Suppose 3 parameters with real bounds
-                self.real_bounds.extend([(0.0, 100.0), (0.0, 10.0), (0.0, 5.0)])
-            else:
-                # Default => 1 parameter
-                self.real_bounds.append((0.0, 1.0))
+        # -- compute the log-measured calibration target once ---------------
+        self.measured_df = self._compute_measured_target()
 
-        # Normalized bounds are always 0..1 for each parameter
+        # -- bounds / warm-start (DLD: A, B, C, D) --------------------------
+        # The optimizer fits the 4 DLD coefficients to the measured *magnitude*
+        # of each (joint, interval); the sign multiplier E (in {-1, +1}) is
+        # derived per (joint, interval), not solved.
+        self.param_names = DLD_PARAM_NAMES
+        self.real_bounds = list(DLD_REAL_BOUNDS)
         self.normalized_bounds = [(0.0, 1.0)] * len(self.real_bounds)
 
-    # ----------------------------------------------------------------------------------------------
-    # Normalization / Denormalization
-    # ----------------------------------------------------------------------------------------------
-    def normalize_params(self, real_params):
-        """Convert real-valued parameters to normalized [0,1]."""
-        norm_params = []
-        for x, (lo, hi) in zip(real_params, self.real_bounds):
-            z = (x - lo) / (hi - lo)
-            norm_params.append(z)
-        return np.array(norm_params)
+        # -- per-(joint, interval) state, keyed by (total_idx, rate_col) ----
+        self.interval_by_col = self.context.get("interval_by_col", {})
+        self.pair_signs = {}    # measured direction E in {-1, +1}
+        self.pair_params = {}   # calibrated [A, B, C, D] written by calibrate()
+        self.warm_pairs = self._load_warm_pairs()
 
-    def denormalize_params(self, norm_params):
-        """Convert normalized parameters [0,1] to real-valued."""
-        real_params = []
-        for z, (lo, hi) in zip(norm_params, self.real_bounds):
-            x = lo + z * (hi - lo)
-            real_params.append(x)
-        return np.array(real_params)
+        # -- resolve common rate columns + per-(joint, interval) targets ----
+        self._build_calibration_targets()
 
-    # -------------------------------------------------------------------------
-    # Main "multi-interval" modelled corrosion logic
-    # -------------------------------------------------------------------------
+    # ----------------------------------------------------------------------
+    # Setup helpers
+    # ----------------------------------------------------------------------
+    def _compute_measured_target(self):
+        """Compute the measured corrosion rate from caliper logs (once)."""
+        return get_measured_corrosion_rate_from_logs(
+            well_tally=self.well_tally,
+            logs_metadata=self.inputs.get("logs_metadata", {}),
+            selected_log_names=self.inputs.get("selectedLogs", []),
+            processed_logs=self.outputs.get("processedLogs", []),
+            start_time=self.inputs["start_time"],
+        )
 
-    def get_corrosion_rate_from_models_segmented(self, calibrated_interval, init_run=False):
-        """Compute modelled corrosion in multiple intervals.
+    def _load_warm_pairs(self):
+        """Return persisted ``{(total_idx, rate_col): [A, B, C, D]}`` warm starts.
 
-        - Nominal (baseline) date -> 1st log date
-        - 1st log date -> 2nd log date
-        - 2nd log date -> 3rd log date
-        - ...
-
-        For each interval, we:
-
-        1) Filter the flow/pressure/temp data to [start_date, end_date)
-        2) Compute partial corrosion with a pairwise approach
-        3) Convert the sum of partial corrosion to [mm/year] over that interval
-        4) Store in a new column in `self.outputs['modelled_corrosion_rate']`
+        Reads the per-interval store written by :meth:`_save_params`.  Returns an
+        empty dict (every pair falls back to the DLD defaults) when no compatible
+        store exists -- the store is compatible when it targets the same ESP
+        offset and a matching number of active joints per interval.
         """
-        # Check well type
+        warm = {}
+        path = self.param_store_path
+        if not path or not os.path.exists(path):
+            return warm
 
-        # We'll store multiple columns, one per interval
-        # Start with the "base" DataFrame
+        # -- read and validate the stored parameters ------------------------
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                stored = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return warm
 
-        unsorted_logs = list(
-            zip(
-                self.inputs["uploadedLogs"]["logName"],
-                self.inputs["uploadedLogs"]["logDate"],
-                self.inputs["uploadedLogs"]["logData"],
-                self.outputs["processedLogs"],
-            )
-        )
-        sorted_logs = sorted(
-            unsorted_logs, key=lambda x: datetime.strptime(x[1], "%H-%M-%S %d-%m-%Y")
-        )
+        intervals = stored.get("intervals")
+        if (
+            not isinstance(intervals, list)
+            or stored.get("esp_joint_start_idx") != self.esp_joint_start_idx
+        ):
+            return warm
 
-        # 2) Build a sorted list of log dates
-        #    plus a "nominal baseline date"
-        #    (this could be well installation date or an artificial baseline).
-        fmt = "%Y-%m-%d %H:%M:%S"  # The format of your date string
-        nominal_baseline_date = datetime.strptime(self.inputs["start_time"], fmt)
-        sorted_log_dates = []
-        for log in sorted_logs:
-            sorted_log_dates.append(datetime.strptime(log[1], "%H-%M-%S %d-%m-%Y"))
+        # -- map each stored interval's per-joint params by rate_col --------
+        for interval in intervals:
+            if not isinstance(interval, dict):
+                continue
+            rate_col = interval.get("rate_col")
+            params = interval.get("params")
+            if not rate_col or not isinstance(params, list) or len(params) != self.n_active_joints:
+                continue
+            for i in range(self.n_active_joints):
+                entry = params[i] if isinstance(params[i], dict) else {}
+                warm[(self.esp_joint_start_idx + i, rate_col)] = [
+                    float(entry.get(name, DLD_X0[j]))
+                    for j, name in enumerate(self.param_names)
+                ]
+        return warm
 
-        # If no logs at all => just 1 interval from nominal_baseline_date -> now (or skip)
-        if len(sorted_log_dates) == 0:
-            print("No logs => single interval from nominal to 'end of data' assumed.")
-            interval_label = f"Modelled Corrosion (Nominal->{datetime.now().strftime('%Y-%m-%d')})"
-            self._compute_corrosion_for_interval(
-                nominal_baseline_date, datetime.now(), interval_label
-            )
+    def _build_calibration_targets(self):
+        """Find the rate columns shared by modelled context and measured logs.
+
+        Stores ``self.common_cols`` (ordered rate-column names present in both)
+        and ``self.joint_targets`` -- ``{total_idx: {col: measured_value}}`` for
+        joints that have at least one finite measured value.
+        """
+        # -- collect modelled (context) rate columns ------------------------
+        context_cols = [interval["rate_col"] for interval in self.context["intervals"]]
+
+        measured = self.measured_df
+        if measured is None or "Joint No." not in measured.columns:
+            self.common_cols = []
+            self.joint_targets = {}
             return
 
-        # If we have logs => build the boundaries list
-        boundaries = [nominal_baseline_date] + sorted_log_dates
-        if calibrated_interval == "last":
-            boundaries = ([nominal_baseline_date] + sorted_log_dates)[-2:]
-        else:
-            boundaries = [nominal_baseline_date] + sorted_log_dates
-        # Example: if we have 2 logs => boundaries = [ nominal, log1, log2 ]
-
-        # 3) For each adjacent pair in boundaries, compute partial modelled corrosion
-        for i in range(len(boundaries) - 1):
-            start_date = boundaries[i]
-            end_date = boundaries[i + 1]
-
-            # We'll build a label for the column
-            if i == 0:
-                # nominal -> log1
-                if len(sorted_log_dates) == 1:
-                    col_label = (
-                        f"Corrosion rate [mm/year] (Nominal -> " f"{end_date.strftime('%Y-%m-%d')})"
-                    )
-                else:
-                    col_label = (
-                        f"Corrosion rate [mm/year] ({start_date.strftime('%Y-%m-%d')} -> "
-                        f"{end_date.strftime('%Y-%m-%d')})"
-                    )
-            else:
-                # log_i -> log_{i+1}
-                col_label = (
-                    f"Corrosion rate [mm/year] ({start_date.strftime('%Y-%m-%d')} -> "
-                    f"{end_date.strftime('%Y-%m-%d')})"
-                )
-
-            self._compute_corrosion_for_interval(start_date, end_date, col_label, init_run)
-
-    def _compute_corrosion_for_interval(
-        self, start_date, end_date, column_label, init_run, output_switch="rate"
-    ):
-        """Filter flow/pressure/temp data and compute partial pairwise calculation.
-
-        Filters data to [start_date, end_date), does partial pairwise
-        calculation, and stores result in modelled_corrosion_rate.
-        """
-        # Check well type
-        well_type = "productionwell"  # Default to production well
-        if "production" in self.unit.name:
-            well_type = "productionwell"
-        elif "injection" in self.unit.name:
-            well_type = "injectionwell"
-
-        # 1) Filter your flow/pressure/temp data for that time range
-        flow_df = pd.DataFrame(
-            {"datetime": self.inputs["time"], "value": self.inputs["flow"]}
-        ).copy()
-        # Convert to datetime (assume the DataFrame datetimes are already in UTC)
-        flow_df["datetime"] = pd.to_datetime(flow_df["datetime"])
-        # Convert start_date and end_date to timezone-aware datetimes (UTC)
-        start_date = pd.to_datetime(start_date).tz_localize("UTC")
-        end_date = pd.to_datetime(end_date).tz_localize("UTC")
-
-        try:
-            flow_subset = flow_df[
-                (flow_df["datetime"] >= start_date) & (flow_df["datetime"] < end_date)
-            ].sort_values("datetime")
-            pressure_df = pd.DataFrame(
-                {"datetime": self.inputs["time"], "value": self.inputs["pressure"]}
-            ).copy()
-            pressure_df["datetime"] = pd.to_datetime(pressure_df["datetime"])
-            pressure_subset = pressure_df[
-                (pressure_df["datetime"] >= start_date) & (pressure_df["datetime"] < end_date)
-            ].sort_values("datetime")
-
-            temperature_df = pd.DataFrame(
-                {"datetime": self.inputs["time"], "value": self.inputs["temperature"]}
-            ).copy()
-            temperature_df["datetime"] = pd.to_datetime(temperature_df["datetime"])
-            temperature_subset = temperature_df[
-                (temperature_df["datetime"] >= start_date) & (temperature_df["datetime"] < end_date)
-            ].sort_values("datetime")
-
-            # Try to coarsen the time series
-            try:
-                flow_subset, pressure_subset, temperature_subset = (
-                    self.coarsen_timeseries_by_change_point(
-                        flow_subset, pressure_subset, temperature_subset
-                    )
-                )
-            except Exception:
-                pass
-
-            # Get the number of joints
-            n_joints = len(self.unit.parameters[f"{well_type}_tally_table"])
-
-            # Initialize the corrosion rate arrays
-            corrosion_rates = np.zeros(n_joints)
-            partial_corrosion = np.zeros(n_joints)
-
-            # Get the time arrays
-            # Note: removed unused variables flow_times
-            # since they're not used in the calculations
-
-            # Here for simplicity, we say i-th row in flow_subset aligns with
-            # i-th row in pressure_subset, etc.
-            n_time_points = len(flow_subset)
-
-            # Initialize the well hydraulic model
-            well_hydraulic_param = {
-                "flow": flow_subset["value"].values,
-                "pressure": pressure_subset["value"].values,
-                "temperature": temperature_subset["value"].values,
-                "n_time_points": n_time_points,
-                "n_joints": n_joints,
-                "water_chemistry_data": self.inputs.get("water_chemistry"),
-                "monthly_production_data": self.inputs.get("monthly_production_data"),
-                "monthly_dates": self.inputs.get("monthly_dates"),
-                "direction": "down",  # Fixed undefined variable
-            }
-            self.VLP.update_parameters(well_hydraulic_param)
-
-            # Loop through each joint
-            for joint_idx in range(n_joints):
-                section_temps = temperature_subset["value"].values
-                section_pressures = pressure_subset["value"].values
-                # Calculate the corrosion rate for this joint
-                for sec_idx, (sec_temp_c, sec_pres_bar) in enumerate(
-                    zip(section_temps, section_pressures)
-                ):
-                    # Get the CO2 partial pressure
-                    co2_partial_pressure = self.co2_models[joint_idx].get_co2_partial_pressure(
-                        sec_temp_c, sec_pres_bar, self.inputs.get("water_chemistry")
-                    )
-                    # Get the corrosion rate
-                    corrosion_rate = self.corrosion_models[joint_idx].get_corrosion_rate(
-                        sec_temp_c, sec_pres_bar, co2_partial_pressure
-                    )
-                    # Add the corrosion rate to the total
-                    corrosion_rates[joint_idx] += corrosion_rate
-
-                # Calculate the average corrosion rate for this joint
-                corrosion_rates[joint_idx] /= n_time_points
-
-                # Calculate the partial corrosion for this joint
-                delta_time = end_date - start_date
-                partial_corrosion[joint_idx] = (
-                    corrosion_rates[joint_idx] * delta_time.total_seconds() / 31536000
-                )
-
-            # Store the results in the outputs
-            try:
-                # Create a DataFrame with the corrosion rates
-                corrosion_df = pd.DataFrame(
-                    {"Joint": range(1, n_joints + 1), column_label: corrosion_rates}
-                )
-                # Set the index to the joint number
-                corrosion_df.set_index("Joint", inplace=True)
-                # Store the corrosion rates in the outputs
-                self.outputs["modelledCorrosionRate"][column_label] = corrosion_df[column_label]
-
-                # Store the partial corrosion in the outputs
-                if output_switch == "partial":
-                    if "modelledCorrosionRateCalibrated" not in self.outputs:
-                        self.outputs["modelledCorrosionRateCalibrated"] = pd.DataFrame()
-                    self.outputs["modelledCorrosionRateCalibrated"][
-                        column_label
-                    ] = partial_corrosion
-
-            except Exception as e:
-                print(f"Error in corrosion computation: {e}")
-                pass
-
-        except Exception as e:
-            print(f"Error in corrosion computation: {e}")
-            pass
-
-    def _compute_single_reading_corrosion(
-        self, flow_row, press_row, temp_row, start_date, end_date, column_label
-    ):
-        """Calculate single partial calculation for single data point interval.
-
-        If only one data point in interval, assume (end_date - start_date)
-        for duration and do a single partial calculation.
-        """
-        n_joints = len(self.inputs["tally"]["Joint No."])
-        partial_corrosion = np.zeros(n_joints)
-
-        duration_hours = (end_date - start_date).total_seconds() / 3600.0
-        if duration_hours <= 0:
-            duration_hours = 1.0  # fallback
-
-        flow_val = flow_row["value"] / 3600.0
-        pres_pa = press_row["value"] * 1e5
-        temp_k = temp_row["value"] + 273.15
-
-        vlp_input = {
-            "pressure": pres_pa,
-            "temperature": temp_k,
-            "flowrate": flow_val,
-            "temperature_ambient": 15.0 + 273.15,
-            "direction": "down",
-        }
-        self.VLP.calculate_output(vlp_input, [])
-        vlp_output = self.VLP.get_output()
-        section_pressures = [p / 1e5 for p in vlp_output["section_pressure_output"]]
-        section_temps = [t - 273.15 for t in vlp_output["section_temperature_output"]]
-
-        for i, (sec_temp_c, sec_pres_bar) in enumerate(zip(section_temps, section_pressures)):
-            (rho_g, rho_l, gmf, eta_g, eta_l, cp_g, cp_l, K_g, K_l, sigma) = self.VLP.PVT.get_pvt(
-                sec_temp_c, sec_pres_bar
-            )
-
-            co2_input = {
-                "gas_pressure": 0.5,
-                "co2_mol_fraction": 0.1882,
-                "gas_water_ratio": 0.01,
-                "temperature_sample": 20.0,
-                "temperature_system": sec_temp_c,
-                "gas_molecular_weight": 22.955,
-                "gas_density": rho_g,
-            }
-            self.co2_models[i].calculate_output(co2_input, [])
-            co2_pp = self.co2_models[i].get_output()["CO2 Partial Pressure [bar]"]
-
-            corr_input = {
-                "pressure": sec_pres_bar,
-                "temperature": sec_temp_c,
-                "co2_partial_pressure": co2_pp,
-                "flow_rate": flow_val,
-            }
-            self.corrosion_models[i].calculate_output(corr_input, [])
-            corrosion_rate = self.corrosion_models[i].get_output()["corrosion_rate"]
-
-            partial_corrosion[i] += corrosion_rate * (duration_hours / 8760.0)
-
-        # Scale to mm/year over that interval
-        partial_corrosion *= 8760.0 / duration_hours
-
-        self.outputs["modelled_corrosion_rate"][column_label] = partial_corrosion
-
-    # ----------------------------------------------------------------------------------------------
-    # Objective Function
-    # ----------------------------------------------------------------------------------------------
-    def objective_function(self, norm_param_vector, calibrated_interval=None, *args):
-        """
-        Objective function to be minimized during calibration.
-
-        Sum of squared errors (SSE) between modelled and measured corrosion.
-        """
-        # print(norm_param_vector[:12])
-        # 1) Denormalize
-        real_params = self.denormalize_params(norm_param_vector)
-
-        # 2) Unpack parameters into each corrosion model
-        idx = 0
-        for model in self.corrosion_models:
-            corrosion_model_name = model.parameters["corrosion_model"]
-            if corrosion_model_name == "DLD":
-                p1 = real_params[idx]
-                p2 = real_params[idx + 1]
-                p3 = real_params[idx + 2]
-                p4 = real_params[idx + 3]
-                idx += 4
-                model.parameters["A"] = p1
-                model.parameters["B"] = p2
-                model.parameters["C"] = p3
-                model.parameters["D"] = p4
-            elif corrosion_model_name == "DLM":
-                p1 = real_params[idx]
-                p2 = real_params[idx + 1]
-                p3 = real_params[idx + 2]
-                idx += 3
-                model.parameters["A"] = p1
-                model.parameters["B"] = p2
-                model.parameters["C"] = p3
-            else:
-                p1 = real_params[idx]
-                idx += 1
-                model.parameters["A"] = p1
-
-        # 3) Compute corrosion: single-section or all-sections
-        self.get_corrosion_rate_from_models_segmented(calibrated_interval)
-
-        # 4) Extract SSE from outputs
-        modelled_df = self.outputs["modelledCorrosionRateCalibrated"]
-        # print(modelled_df)
-        measured_df = self.outputs["measuredCorrosionRate"]
-
-        # 4) Build a list of columns to compare (skip 'Joint No.' or other metadata)
-        #    We'll collect only columns that exist in BOTH modelled_df and measured_df
-        #    in the same name.
-        all_modelled_cols = [
-            c for c in modelled_df.columns if c != "Joint No." and c in measured_df.columns
+        # -- intersect with measured rate columns ---------------------------
+        measured_rate_cols = [
+            c
+            for c in measured.columns
+            if c != "Joint No." and c.startswith(WALL_THICKNESS_CHANGE_RATE_PREFIX)
         ]
+        self.common_cols = [c for c in context_cols if c in measured_rate_cols]
 
-        # (6) Compute SSE across the chosen columns
-        sse = 0.0
-        for col in all_modelled_cols:
-            modelled_vals = modelled_df[col].values
-            measured_vals = measured_df[col].values
-            errors = modelled_vals - measured_vals
-            sse += np.sum(errors**2)
+        # -- cache finite per-joint measured values over common columns -----
+        joint_targets = {}
+        for active_idx in range(self.n_active_joints):
+            total_idx = self.esp_joint_start_idx + active_idx
+            if total_idx >= len(measured):
+                continue
+            targets = {}
+            for col in self.common_cols:
+                value = measured[col].iloc[total_idx]
+                if pd.notna(value):
+                    targets[col] = float(value)
+            if targets:
+                joint_targets[total_idx] = targets
+        self.joint_targets = joint_targets
 
-        print(sse)
-        return sse
+        # -- per-(joint, interval) sign E in {-1, +1} from the measured -----
+        # direction.  E is the direction of the bore change for that interval
+        # (positive = corrosion/metal loss, negative = bore shrank); the DLD
+        # coefficients then calibrate the magnitude of that single interval.
+        self.pair_signs = {
+            (total_idx, col): (SIGN_NEG if value < 0 else SIGN_POS)
+            for total_idx, targets in joint_targets.items()
+            for col, value in targets.items()
+        }
 
-    def get_constraints(self):
-        """Define constraints for optimization.
+    # ----------------------------------------------------------------------
+    # Normalisation / denormalisation
+    # ----------------------------------------------------------------------
+    def normalize_params(self, real_params):
+        """Convert real-valued parameters to normalized [0, 1]."""
+        norm = []
+        for x, (lo, hi) in zip(real_params, self.real_bounds):
+            norm.append((x - lo) / (hi - lo) if hi > lo else 0.0)
+        return np.array(norm)
 
-        Example method to define constraints for optimization.
-        Returns None if not used.
+    def denormalize_params(self, norm_params):
+        """Convert normalized parameters [0, 1] to real-valued."""
+        real = []
+        for z, (lo, hi) in zip(norm_params, self.real_bounds):
+            real.append(lo + z * (hi - lo))
+        return np.array(real)
+
+    # ----------------------------------------------------------------------
+    # Per-joint parameter handling
+    # ----------------------------------------------------------------------
+    def _set_joint_params(self, total_idx, real_params):
+        """Write A, B, C, D into the corrosion model for one joint."""
+        active_idx = total_idx - self.esp_joint_start_idx
+        model = self.corrosion_models[active_idx]
+        model.update_parameters({
+            name: float(value)
+            for name, value in zip(self.param_names, real_params)
+        })
+
+    def _pair_modelled_rate(self, total_idx, rate_col, model):
+        """Signed modelled rate for one (joint, interval): ``E * dld_rate``.
+
+        ``E`` in {-1, +1} is the measured direction for that pair (defaults to
+        +1 when unknown).  Returns ``None`` when the interval/joint is unknown or
+        the model yields a non-finite rate.
         """
-        return None
+        interval = self.interval_by_col.get(rate_col)
+        if interval is None:
+            return None
+        rate = corrosion_rate_for_joint_interval(self.context, total_idx, interval, model)
+        if rate is None or not np.isfinite(rate):
+            return None
+        sign = self.pair_signs.get((total_idx, rate_col), SIGN_POS)
+        return sign * rate
 
-    # ----------------------------------------------------------------------------------------------
-    # 5) Primary calibration routine: normalizes init guess & uses normalized bounds
-    # ----------------------------------------------------------------------------------------------
-    def calibrate_slsqp(self):
-        """Calibrate parameters for all models in normalized space.
+    def _pair_sse(self, total_idx, rate_col):
+        """Squared error for one (joint, interval) at the model's current params."""
+        active_idx = total_idx - self.esp_joint_start_idx
+        model = self.corrosion_models[active_idx]
+        modelled = self._pair_modelled_rate(total_idx, rate_col, model)
+        if modelled is None:
+            return 0.0
+        error = modelled - self.joint_targets[total_idx][rate_col]
+        return error * error
 
-        Optimize parameters for all models at once, in normalized [0..1]
-        space. Then denormalize the final solution, push it back to the
-        model, and show final measured vs. modeled rates.
+    # ----------------------------------------------------------------------
+    # Per-joint calibration (separable problem)
+    # ----------------------------------------------------------------------
+    def _calibrate_pair(self, total_idx, rate_col, maxiter=100):
+        """Run SLSQP for one (joint, interval) from several starts; keep the best.
+
+        Multiple starting points -- the nominal literature DLD defaults plus any
+        persisted warm-start guess for this exact (joint, interval) -- make the
+        solve robust to a degenerate initial guess.  A large ``B`` saved from a
+        previously collapsed run drives the reaction term
+        ``10 ** (A - B/T + C*log10(f))`` to underflow, so the modelled rate (and
+        its gradient) is ~0 and SLSQP "converges" after a single step without
+        moving.  Always starting from the nominal defaults (a healthy, non-zero
+        rate) lets the optimizer escape that flat region.  The objective
+        penalises any parameter set that yields a non-finite rate, so the wide,
+        signed bounds cannot be exploited by driving the model into NaN/inf.
+
+        The modelled rate carries the pair sign E (``modelled = E * dld_rate``),
+        so the 4 coefficients calibrate the *magnitude* of this single interval
+        and the fit can match a negative measured value the DLD model cannot.
+        Stores the winning ``[A, B, C, D]`` in ``self.pair_params``.
         """
-        x0_real = self.xo_real
+        active_idx = total_idx - self.esp_joint_start_idx
+        model = self.corrosion_models[active_idx]
+        measured_value = self.joint_targets[total_idx][rate_col]
 
-        # Normalize the initial guess so each param is in [0,1]
-        x0_norm = self.normalize_params(x0_real)
+        # -- objective: single-interval SSE; blow-up / non-finite -> penalty
+        def objective(norm_params):
+            self._set_joint_params(total_idx, self.denormalize_params(norm_params))
+            try:
+                modelled = self._pair_modelled_rate(total_idx, rate_col, model)
+            except (ZeroDivisionError, ValueError, OverflowError, FloatingPointError):
+                return _OBJECTIVE_PENALTY
+            if modelled is None:
+                return _OBJECTIVE_PENALTY
+            error = modelled - measured_value
+            return error * error
 
-        # Define constraints in normalized space, if needed (here: None)
-        constraints = self.get_constraints()
+        # -- candidate starts: nominal defaults + this pair's warm-start ----
+        starts = [list(DLD_X0)]
+        warm = self.warm_pairs.get((total_idx, rate_col))
+        if warm is not None and not np.allclose(warm, DLD_X0):
+            starts.append(list(warm))
 
-        # Get un-calibrated result
-        self.get_corrosion_rate_from_models_segmented(calibrated_interval="last", init_run=True)
+        # -- solve from each start, keep the lowest-SSE result --------------
+        best = None
+        for start_real in starts:
+            result = minimize(
+                fun=objective,
+                x0=self.normalize_params(start_real),
+                bounds=self.normalized_bounds,
+                method="SLSQP",
+                options={"maxiter": maxiter, "ftol": 1e-9},
+            )
+            if best is None or result.fun < best.fun:
+                best = result
 
-        # Actually run the optimization in normalized [0..1] space
-        result = minimize(
-            fun=lambda p: self.objective_function(p, calibrated_interval="last"),
-            x0=x0_norm,
-            bounds=self.normalized_bounds,  # (0,1) for each parameter
-            method="SLSQP",
-            constraints=constraints,
-            options={"maxiter": 2, "iprint": 6, "ftol": 1e-6, "disp": True, "eps": 1e-3},
+        # -- write the winning parameters back + record them ----------------
+        best_real = self.denormalize_params(best.x)
+        self._set_joint_params(total_idx, best_real)
+        self.pair_params[(total_idx, rate_col)] = list(best_real)
+        return best
+
+    # ----------------------------------------------------------------------
+    # Top-level calibration routine
+    # ----------------------------------------------------------------------
+    def _interval_label(self, rate_col):
+        """Short interval label ('(d1 -> d2)') derived from a rate-column name."""
+        return rate_col.replace(WALL_THICKNESS_CHANGE_RATE_PREFIX + " ", "").strip()
+
+    def calibrate(self, maxiter=100, progress_callback=None):
+        """Calibrate per-(joint, interval) parameters against log-measured rates.
+
+        Solves one independent 4-variable problem for every (joint, interval)
+        pair that has a measured rate -- so a well with three logs yields a
+        separate parameter set for the log1->log2 and log2->log3 intervals.
+        Stores the uncalibrated and calibrated modelled rates and the measured
+        target in ``outputs``, persists the per-interval parameters, and returns
+        a summary dict.
+
+        Parameters
+        ----------
+        progress_callback : callable or None
+            Optional ``fn(completed, total, per_joint)`` invoked after each pair
+            is solved.  ``per_joint`` is the growing list of per-(joint,
+            interval) records (so callers can render live progress).  Exceptions
+            raised by the callback are swallowed so progress reporting never
+            breaks the calibration.
+
+        The returned summary includes ``"per_joint"`` -- one record per (joint,
+        interval) with ``interval``/``rate_col`` tags, params (A,B,C,D,E), and
+        before/after SSE -- used for the final error plot and coefficient table.
+        """
+        # -- guard: nothing to calibrate ------------------------------------
+        if self.context["degenerate"] or not self.common_cols or not self.joint_targets:
+            message = (
+                "Corrosion calibration skipped: no overlapping measured/modelled "
+                "intervals (need processed logs and production data)."
+            )
+            print(message)
+            self.outputs["measuredCorrosionRateFromLogs"] = self.measured_df
+            return {"status": "skipped", "message": message, "n_joints": 0, "per_joint": []}
+
+        # -- store the uncalibrated modelled result (nominal DLD defaults) --
+        self._apply_nominal_params()
+        uncalibrated_table = corrosion_rates_from_context(
+            self.context, self.corrosion_models
+        )
+        self.outputs["modelledCorrosionRate"] = self._apply_signs_to_table(
+            uncalibrated_table
         )
 
-        # Check if optimization succeeded
-        if result.success:
-            print("Optimization succeeded!")
-        else:
-            print(f"Optimization failed: {result.message}")
+        # -- build the ordered list of (joint, interval) pairs to solve -----
+        pairs = [
+            (total_idx, rate_col)
+            for total_idx in sorted(self.joint_targets.keys())
+            for rate_col in self.common_cols
+            if rate_col in self.joint_targets[total_idx]
+        ]
+        n_pairs = len(pairs)
 
-        # ------------------------------------------------------------------------------------------
-        # 6) Convert the final normalized params -> real space
-        # ------------------------------------------------------------------------------------------
-        # Note: removed unused variable best_params_real
+        # -- solve each (joint, interval) independently (SSE is separable) --
+        sse_before = 0.0
+        sse_after = 0.0
+        per_joint = []
+        for completed, (total_idx, rate_col) in enumerate(pairs, start=1):
+            # "before" = nominal literature DLD (stable, healthy baseline; never
+            # a previous run's persisted/collapsed parameters)
+            self._set_joint_params(total_idx, list(DLD_X0))
+            pair_sse_before = self._pair_sse(total_idx, rate_col)
 
-        # Inspect the final columns for debugging
-        # print(self.outputs['modelled_corrosion_rate'])
-        # print(self.outputs['modelled_corrosion_rate_init'])
-        # print(self.outputs['measured_corrosion_rate'])
-        # fig = self.plot()
-        print("Optimization complete")
-        return result
+            result = self._calibrate_pair(total_idx, rate_col, maxiter=maxiter)
+            pair_sse_after = float(result.fun)
 
-    def calibrate_cobyla(self):
-        """Calibrate parameters for all models in normalized space.
+            sse_before += pair_sse_before
+            sse_after += pair_sse_after
 
-        Optimize parameters for all models at once, in normalized [0..1]
-        space. Then denormalize the final solution, push it back to the
-        model, and show final measured vs. modeled rates.
+            # -- read the calibrated A, B, C, D + the sign E for this pair --
+            params = self.pair_params[(total_idx, rate_col)]
+            calibrated_params = {
+                name: float(value) for name, value in zip(self.param_names, params)
+            }
+            calibrated_params["E"] = float(self.pair_signs.get((total_idx, rate_col), SIGN_POS))
+
+            # -- record + report per-(joint, interval) error / convergence -
+            per_joint.append({
+                "joint": int(total_idx),
+                "joint_label": str(self.context["joint_labels"][total_idx]),
+                "interval": self._interval_label(rate_col),
+                "rate_col": rate_col,
+                "sse_before": float(pair_sse_before),
+                "sse_after": float(pair_sse_after),
+                "params": calibrated_params,
+                "iterations": int(getattr(result, "nit", 0)),
+                "n_func_evals": int(getattr(result, "nfev", 0)),
+                "converged": bool(getattr(result, "success", False)),
+                "message": str(getattr(result, "message", "")),
+            })
+            if progress_callback is not None:
+                try:
+                    progress_callback(completed, n_pairs, per_joint)
+                except Exception:
+                    pass
+
+        # -- store calibrated results (per-interval params + sign) ----------
+        calibrated_table = self._build_calibrated_table()
+        self.outputs["modelledCorrosionRateCalibrated"] = self._apply_signs_to_table(
+            calibrated_table
+        )
+        self.outputs["measuredCorrosionRateFromLogs"] = self.measured_df
+
+        # -- persist optimized per-interval parameters for reuse next run ---
+        self._save_params()
+
+        n_joints = len({total_idx for total_idx, _ in pairs})
+        summary = {
+            "status": "ok",
+            "n_joints": n_joints,
+            "n_intervals": len(self.common_cols),
+            "n_pairs": n_pairs,
+            "sse_before": sse_before,
+            "sse_after": sse_after,
+            "per_joint": per_joint,
+        }
+        print(
+            f"Corrosion calibration complete: {n_pairs} (joint, interval) pairs "
+            f"across {n_joints} joints, SSE {sse_before:.4g} -> {sse_after:.4g}."
+        )
+        return summary
+
+    def _apply_nominal_params(self):
+        """Reset all active joints to the nominal literature DLD parameters.
+
+        This is the *uncalibrated* baseline reported to the user (before vs
+        after).  It deliberately ignores any persisted warm-start so the
+        baseline is stable and never reflects a previous run's (possibly
+        collapsed) parameters.
         """
-        # Build a random initial guess in real space
-        # x0_real = []
-        # for (lo, hi) in self.real_bounds:
-        #     # Draw a random float in [lo, hi]
-        #     init_val = random.uniform(lo, hi)
-        #     x0_real.append(init_val)
-        # x0_real = np.array(x0_real)
-        # 1) Build initial guess in REAL space as midpoints
-        x0_real = []
-        param_constraints = []
-        # Note: removed unused variable n_params
+        for active_idx in range(self.n_active_joints):
+            total_idx = self.esp_joint_start_idx + active_idx
+            self._set_joint_params(total_idx, list(DLD_X0))
 
-        for i, (lo, hi) in enumerate(self.real_bounds):
-            # Midpoint as initial guess
+    def _apply_signs_to_table(self, df):
+        """Flip each (joint, interval) cell whose sign E is -1.
 
-            def lower_bound_constraint_factory(index, lower):
-                # Return a function that checks x[index] >= lower
-                return lambda x: x[index] - lower  # must be >= 0
+        The sign is per (joint, interval): a negative-E pair (the bore shrank
+        over that interval) gets its rate and matching corroded value flipped so
+        the modelled table carries the measured direction.  Pairs with E = +1
+        are left untouched.
+        """
+        # -- nothing to flip without negative signs -------------------------
+        if df is None or not self.pair_signs:
+            return df
 
-            def upper_bound_constraint_factory(index, upper):
-                # Return a function that checks x[index] <= upper
-                return lambda x: upper - x[index]  # must be >= 0
+        # -- flip the rate + corroded columns of each negative-E pair -------
+        for (total_idx, rate_col), sign in self.pair_signs.items():
+            if sign >= 0 or total_idx not in df.index:
+                continue
+            interval = self.interval_by_col.get(rate_col)
+            corroded_col = interval["corroded_col"] if interval else None
+            for col in (rate_col, corroded_col):
+                if col and col in df.columns and pd.notna(df.at[total_idx, col]):
+                    df.at[total_idx, col] = -float(df.at[total_idx, col])
+        return df
 
-            param_constraints.append({"type": "ineq", "fun": lower_bound_constraint_factory(i, lo)})
-            param_constraints.append({"type": "ineq", "fun": upper_bound_constraint_factory(i, hi)})
+    def _build_calibrated_table(self):
+        """Build the calibrated rate/corroded table column-by-column.
 
-        x0_real = self.xo_real
-        x0_norm = self.normalize_params(x0_real)
+        Each interval column uses that interval's own per-joint calibrated
+        parameters (falling back to the nominal DLD defaults for joints that had
+        no measured value for the interval).  Signs are applied separately by
+        :meth:`_apply_signs_to_table`, so this returns unsigned magnitudes.
+        """
+        n_total_joints = self.context["n_total_joints"]
+        esp_start = self.esp_joint_start_idx
 
-        # Get un-calibrated result
-        self.get_corrosion_rate_from_models_segmented(calibrated_interval="last", init_run=True)
-        print("Optimization started")
-        result = minimize(
-            fun=lambda p: self.objective_function(p, calibrated_interval="last"),
-            x0=x0_norm,
-            method="COBYLA",
-            constraints=param_constraints,  # Our manually created inequalities
-            options={
-                "maxiter": 2000,
-                "disp": True,
-                "rhobeg": 10e-1,  # initial step size guess
-                # you can also set 'tol' or others if you want
-            },
+        result_df = pd.DataFrame(
+            self.context["joint_labels"],
+            index=range(n_total_joints),
+            columns=["Joint No."],
         )
 
-        # Check if optimization succeeded
-        if result.success:
-            print("Optimization succeeded!")
-        else:
-            print(f"Optimization stoped: {result.message}")
+        # -- one column pair per interval, each with its own joint params ---
+        for interval in self.context["intervals"]:
+            rate_col = interval["rate_col"]
+            total_duration_yr = interval["total_duration_yr"]
 
-        # Note: removed unused variable best_params_real
+            corroded_mm = np.full(n_total_joints, np.nan)
+            corroded_mm[esp_start:] = 0.0
 
-        # Inspect the final columns for debugging
-        # print(self.outputs['modelledCorrosionRate'])
-        # print(self.outputs['modelledCorrosionRateCalibrated'])
-        # print(self.outputs['measuredCorrosionRate'])
-        print("Optimization complete")
-        return result
+            for active_idx in range(self.n_active_joints):
+                total_idx = esp_start + active_idx
+                model = self.corrosion_models[active_idx]
+                params = self.pair_params.get((total_idx, rate_col), list(DLD_X0))
+                self._set_joint_params(total_idx, params)
+                corroded_mm[total_idx] = corroded_mm_for_interval(interval, active_idx, model)
 
-    def coarsen_timeseries_by_change_point(
-        self, df1, df2, df3, value_col="value", pen=3, plot=False
-    ):
-        """Coarsen a time series by detecting segments where the values do not change much.
+            if total_duration_yr > 0:
+                avg_rate = corroded_mm / total_duration_yr
+            else:
+                avg_rate = np.where(np.isnan(corroded_mm), np.nan, 0.0)
 
-        Parameters:
-          df (pd.DataFrame): DataFrame with a DateTime index.
-          value_col (str): The column name containing the values to analyze.
-          pen (float or int): Penalty parameter for the PELT change-point
-                             detection algorithm.
-          plot (bool): If True, plot the original time series with detected
-                      change points.
+            result_df[rate_col] = avg_rate
+            result_df[interval["corroded_col"]] = corroded_mm
 
-        Returns:
-          pd.DataFrame: A DataFrame with columns ['start_date', 'end_date',
-                       'mean_value'] for each segment.
+        return result_df
+
+    # ----------------------------------------------------------------------
+    # Persistence
+    # ----------------------------------------------------------------------
+    def _save_params(self):
+        """Write optimized per-interval, per-joint parameters to JSON (atomic).
+
+        The store keeps one entry per interval (in chronological order) so that
+        prediction can pick the *latest* interval's parameters.  Each per-joint
+        entry holds the calibrated ``A, B, C, D`` plus the derived sign ``E`` so
+        the prediction can carry the direction forward.  Joints without a
+        calibrated value for an interval fall back to the DLD defaults / E=+1.
         """
-        # Fit the change-point detection algorithm (PELT) on the time series values
-        algo = rpt.Pelt(model="l2").fit(df1[value_col].values)
-        change_points = algo.predict(pen=pen)
+        path = self.param_store_path
+        if not path:
+            return
 
-        dfs = [df1, df2, df3]
-        dfs_coarse = []
+        # -- gather per-interval, per-joint A, B, C, D, E -------------------
+        intervals_payload = []
+        for interval in self.context["intervals"]:
+            rate_col = interval["rate_col"]
+            params_list = []
+            for active_idx in range(self.n_active_joints):
+                total_idx = self.esp_joint_start_idx + active_idx
+                pair = self.pair_params.get((total_idx, rate_col))
+                if pair is not None:
+                    entry = {
+                        name: float(value)
+                        for name, value in zip(self.param_names, pair)
+                    }
+                else:
+                    entry = {
+                        name: float(DLD_X0[j])
+                        for j, name in enumerate(self.param_names)
+                    }
+                entry["E"] = float(self.pair_signs.get((total_idx, rate_col), SIGN_POS))
+                params_list.append(entry)
 
-        for df in dfs:
-            segments = []
-            start = 0
-            segments.append({"datetime": df.datetime.iloc[0], "value": df.value.iloc[0]})
-            for cp in change_points:
-                # Extract the segment from start index to the current change point
-                segment = df.iloc[start:cp]
-                mean_value = segment[value_col].mean()
-                segments.append(
-                    {"datetime": segment.datetime[(segment.index[-1])], "value": mean_value}
-                )
-                start = cp
-            dfs_coarse.append(pd.DataFrame(segments))
+            intervals_payload.append({
+                "rate_col": rate_col,
+                "start": interval.get("start"),
+                "end": interval.get("end"),
+                "total_duration_yr": interval["total_duration_yr"],
+                "params": params_list,
+            })
 
-        return dfs_coarse
+        payload = {
+            "corrosion_model": "DLD",
+            "esp_joint_start_idx": self.esp_joint_start_idx,
+            # local timestamp of this calibration (surfaced as "last optimized")
+            "optimized_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "intervals": intervals_payload,
+        }
 
-    # def optimize(self):
-    #     bounds = self.get_bounds()
-    #     init_guess = self.get_init_guess()
-    #     constraints = self.get_constraints()
-    #     opt = minimize(self.objective_func,
-    #                    x0=init_guess,
-    #                    bounds=bounds,
-    #                    method='SLSQP',
-    #                    options={'maxiter': 100,
-    #                             'ftol': 1e-6,
-    #                             'iprint': 6,
-    #                             'disp': True,
-    #                             'eps': 0.01},
-    #                    args=[],
-    #                    constraints=constraints)
-    #
-    #     return opt.x * self.get_norms()
+        # -- atomic write (tmp + replace) -----------------------------------
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            os.replace(tmp, path)
+        except OSError as exc:
+            print(f"Could not persist corrosion parameters to {path}: {exc}")
 
+    # ----------------------------------------------------------------------
+    # Plotting
+    # ----------------------------------------------------------------------
     def plot(self):
-        """Plot optimization results."""
+        """Plot measured vs modelled (uncalibrated and calibrated) corrosion."""
+        measured = self.outputs.get("measuredCorrosionRateFromLogs")
+        modelled = self.outputs.get("modelledCorrosionRate")
+        calibrated = self.outputs.get("modelledCorrosionRateCalibrated")
+        if measured is None or modelled is None or calibrated is None:
+            print("Nothing to plot: run calibrate() first.")
+            return None
+
+        # -- one line trio per shared interval column -----------------------
         plt.figure()
-        x = self.outputs["modelledCorrosionRate"]["Joint No."].values
-
-        for column in self.outputs["measured_corrosion_rate"].columns[1:]:
-            y = self.outputs["measured_corrosion_rate"][column]
-            y0 = self.outputs["modelledCorrosionRate"][column]
-            y1 = self.outputs["modelledCorrosionRateCalibrated"][column]
-
-            plt.plot(x, y, label=f"True response {column} ")
-            plt.plot(x, y0, label=f"Un-optimized response {column} ")
-            plt.plot(x, y1, label=f"Optimized response {column} ")
+        x = modelled["Joint No."].values
+        for column in self.common_cols:
+            if column in measured.columns:
+                plt.plot(x, measured[column], label=f"Measured {column}")
+            if column in modelled.columns:
+                plt.plot(x, modelled[column], label=f"Un-calibrated {column}")
+            if column in calibrated.columns:
+                plt.plot(x, calibrated[column], label=f"Calibrated {column}")
 
         plt.legend()
         plt.title("Corrosion rate plot")
         plt.xlabel("Joint number")
-        plt.ylabel("Corrosion rate [mm/year]")
+        plt.ylabel(WALL_THICKNESS_CHANGE_RATE_PREFIX)
         plt.grid()
         plt.tight_layout()
         plt.show()

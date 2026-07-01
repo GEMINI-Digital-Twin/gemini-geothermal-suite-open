@@ -104,106 +104,212 @@
         border-color: #28a745 !important;
         background-color: #2d4d2d !important;
     }
+
+    /* Schematic toolbar selects — avoid form-control-sm (clips text on Windows) */
+    #schematic_toolbar .schematic-toolbar-select {
+        display: inline-block;
+        vertical-align: middle;
+        height: 34px;
+        padding: 4px 28px 4px 10px;
+        font-size: 0.875rem;
+        line-height: 1.4;
+        background-color: #2a2d47 !important;
+        border: 1px solid #555 !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff;
+        border-radius: 4px;
+        appearance: auto;
+        -webkit-appearance: menulist;
+        cursor: pointer;
+    }
+
+    #schematic_toolbar .schematic-toolbar-select:focus,
+    #schematic_toolbar .schematic-toolbar-select:active {
+        background-color: #323654 !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff;
+        border-color: #3297d3 !important;
+        box-shadow: none;
+        outline: none;
+    }
+
+    #schematic_toolbar select.schematic-toolbar-select:focus::-ms-value {
+        color: #ffffff !important;
+        background-color: #323654 !important;
+    }
+
+    #schematic_toolbar .schematic-toolbar-select option {
+        background-color: #27293d;
+        color: #ffffff;
+        font-size: 0.875rem;
+    }
+
+    #schematic_name_prompt_modal .form-control {
+        background-color: #2a2d47;
+        border: 1px solid #555;
+        color: #ffffff;
+        -webkit-text-fill-color: #ffffff;
+    }
+
+    #schematic_name_prompt_modal .form-control:focus {
+        background-color: #323654;
+        color: #ffffff;
+        -webkit-text-fill-color: #ffffff;
+        border-color: #3297d3;
+        box-shadow: none;
+    }
+
+    /* Editor lists/tables — show all rows, no inner scrollbars */
+    #well_schematics_input_card #unit_list,
+    #well_schematics_input_card #fluids_list,
+    #well_schematics_input_card #cements_list,
+    #well_schematics_input_card #packers_list,
+    #well_schematics_input_card #plugs_list,
+    #well_schematics_input_card #screens_list,
+    #well_schematics_input_card #segments_table_wrapper {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    #well_schematics_input_card #segments_table {
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+    /* Keep editor inputs readable on dark theme (avoid white focus + light text) */
+    #well_schematics_input_card .form-control {
+        background-color: #2a2d47;
+        border-color: #555;
+        color: #f0f0f0;
+    }
+
+    #well_schematics_input_card .form-control:focus {
+        background-color: #323654;
+        color: #ffffff;
+        border-color: #3297d3;
+        box-shadow: none;
+    }
+
+    #well_schematics_input_card select.form-control option {
+        background-color: #27293d;
+        color: #ffffff;
+    }
+
+    #schematic_status_badge.badge-saved {
+        background-color: #28a745;
+        color: #fff;
+    }
+
+    #schematic_status_badge.badge-unsaved {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    #schematic_status_badge.badge-loading {
+        background-color: #17a2b8;
+        color: #fff;
+    }
+
+    #schematic_status_badge.badge-idle {
+        background-color: #6c757d;
+        color: #fff;
+    }
+
+    /* Sub-element list rows and unit cards — dark theme */
+    .sub-element-row,
+    .unit-item {
+        padding: 8px 10px;
+        margin: 4px 0;
+        background: #2a2d47;
+        border: 1px solid #555;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        cursor: pointer;
+        color: #ddd;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .sub-element-row:hover,
+    .unit-item:hover {
+        background: #323654;
+    }
+
+    .sub-element-row.selected,
+    .unit-item.selected {
+        background: #323654;
+        border-color: #3297d3;
+        border-left: 3px solid #3297d3;
+    }
+
+    .sub-element-row .sub-element-label,
+    .unit-item .unit-item-name {
+        color: #e0e0e0;
+        flex: 1;
+        font-weight: bold;
+    }
+
+    .unit-item .unit-item-meta {
+        font-size: 0.85em;
+        color: #aaa;
+    }
+
+    .unit-item .unit-item-detail {
+        font-size: 0.8em;
+        color: #888;
+    }
+
+    .sub-element-list-empty {
+        color: #888;
+        font-style: italic;
+        text-align: center;
+        padding: 10px;
+    }
+
+    .sub-element-editor-status,
+    #unit_editor_status {
+        color: #aaa;
+        font-size: 0.85em;
+        font-style: italic;
+        margin-top: 6px;
+    }
 </style>
 
 <div class="col-lg-12">
     <!-- Toast Container -->
     <div id="toast-container"></div>
-    
-    <div class="row">
-        <!-- Left Column: Well Name and Schematic Selection -->
-        <div class="col-lg-3">
-            <label>Well Name</label>
-            <select class='form-control' style='width: 200px; margin-bottom: 10px;' id='select_well' value="">
-            </select>
-            
-            <!-- Saved Schematics Section -->
-            <div id="saved_schematics_section" style="display: none;">
-                <label>Select Schematic</label>
-                <select class='form-control' style='width: 200px; margin-bottom: 10px;' id='saved_schematics_select'>
-                    <option value=""></option>
-                </select>
-                
-                <!-- Schematic Management Buttons -->
-                <div style="margin-bottom: 10px;">
-                    <button id="load_schematic_btn" class="btn btn-default btn-sm" style="display: none;">Load Selected</button>
+
+    <!-- Schematic context toolbar -->
+    <div id="schematic_toolbar" class="card" style="margin-bottom: 15px;">
+        <div class="card-body" style="padding: 12px 16px;">
+            <div class="d-flex flex-wrap align-items-center" style="gap: 12px;">
+                <div class="form-group mb-0">
+                    <label for="select_well" class="mb-0 mr-2" style="color: white;">Well</label>
+                    <select class="form-control schematic-toolbar-select" id="select_well" style="width: 180px;">
+                        <option value="">Select a well...</option>
+                    </select>
                 </div>
-                
-                <!-- Save Schematic Section -->
-                <div style="margin-top: 10px; margin-bottom: 10px;">
-                    <label for="schematic_name_input">Schematic Name:</label>
-                    <input type="text" id="schematic_name_input" class="form-control" placeholder="Enter schematic name..." style="width: 200px; margin-bottom: 10px;">
-                    <button id="new_schematic_btn" class="btn btn-default btn-sm">Create New</button>
-                    <button class="btn btn-default btn-sm" id="save_schematic_btn" style="margin-left: 10px;">Save Schematic</button>
-                    <div id="json_input_error" style="color:red; margin-top:10px;"></div>
+                <div class="form-group mb-0">
+                    <label for="saved_schematics_select" class="mb-0 mr-2" style="color: white;">Schematic</label>
+                    <select class="form-control schematic-toolbar-select" id="saved_schematics_select" style="width: 240px;">
+                        <option value="">Select a schematic...</option>
+                    </select>
                 </div>
-                
-                <!-- Template Selection Modal -->
-                <div id="template_selection_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 10000; overflow-y: auto;">
-                    <div style="position: relative; margin: 50px auto; max-width: 800px; background-color: #1e1e2e; border-radius: 8px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-                        <h3 style="color: white; margin-bottom: 20px;">Select a Template</h3>
-                        <p style="color: #aaa; margin-bottom: 30px;">Choose a template to start with, or create a new schematic from scratch.</p>
-                        
-                        <div class="row" style="margin-bottom: 20px;">
-                            <div class="col-md-3">
-                                <div class="template-card" data-template="simple" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
-                                    <h4 style="color: white; margin-bottom: 10px;">Simple Well</h4>
-                                    <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Basic well with conductor casing and production tubing</p>
-                                    <ul style="color: #aaa; font-size: 0.85em; padding-left: 20px;">
-                                        <li>Conductor Casing</li>
-                                        <li>Production Tubing</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="template-card" data-template="standard" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
-                                    <h4 style="color: white; margin-bottom: 10px;">Standard Well</h4>
-                                    <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Complete well with multiple casings and tubing</p>
-                                    <ul style="color: #aaa; font-size: 0.85em; padding-left: 20px;">
-                                        <li>Conductor Casing</li>
-                                        <li>Surface Casing</li>
-                                        <li>Intermediate Casing</li>
-                                        <li>Production Tubing</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="template-card" data-template="double_skin" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
-                                    <h4 style="color: white; margin-bottom: 10px;">Double Skin Template</h4>
-                                    <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Well configuration with conductor, surface casing, intermediate liner, tapered casing and production tubing</p>
-                                    <ul style="color: #aaa; font-size: 0.85em; padding-left: 20px;">
-                                        <li>Conductor</li>
-                                        <li>Surface Casing</li>
-                                        <li>Intermediate Liner</li>
-                                        <li>Tapered Surface Casing</li>
-                                        <li>Production Tubing</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="template-card" data-template="scratch" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
-                                    <h4 style="color: white; margin-bottom: 10px;">Create from Scratch</h4>
-                                    <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Start with an empty schematic and build your own configuration</p>
-                                    <ul style="color: #aaa; font-size: 0.85em; padding-left: 20px;">
-                                        <li>Empty schematic</li>
-                                        <li>Full customization</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="text-align: center; margin-top: 30px;">
-                            <button id="cancel_template_selection_btn" class="btn btn-default">Cancel</button>
-                        </div>
-                    </div>
+                <span id="schematic_status_badge" class="badge badge-idle">No schematic open</span>
+                <div class="ml-auto d-flex flex-wrap" style="gap: 6px;">
+                    <button id="new_schematic_btn" class="btn btn-default btn-sm" disabled>New</button>
+                    <button id="save_schematic_btn" class="btn btn-default btn-sm" disabled>Save</button>
+                    <button id="save_as_schematic_btn" class="btn btn-default btn-sm" disabled>Save As…</button>
+                    <button id="delete_schematic_btn" class="btn btn-default btn-sm" disabled>Delete</button>
                 </div>
             </div>
+            <div id="json_input_error" style="color:red; margin-top:8px;"></div>
         </div>
-        
-        <!-- Right Column: Well Schematics Input Card -->
-        <div class="col-lg-9" style="padding-right: 30px;">
-            <!-- Well Unit Form Input Card -->
-            <div class="card" id="well_schematics_input_card" style="margin-bottom: 20px; display: none;">
+    </div>
+
+    <!-- Well Unit Form Input Card -->
+    <div class="card" id="well_schematics_input_card" style="margin-bottom: 20px; display: none;">
       <div class="card-header"><h2>Well Schematics Input</h2></div>
       <div class="card-body">
         <div class="row">
@@ -211,69 +317,18 @@
           <div class="col-lg-4">
             <!-- Unit List Section - Always visible when schematic is active -->
             <div class="card" style="margin-bottom: 20px; border: 2px solid #727477;">
-              <div class="card-header" style="background-color: transparent; color: white;">
+              <div class="card-header d-flex justify-content-between align-items-center" style="background-color: transparent; color: white;">
                 <h4 style="margin: 0;">Current Units</h4>
+                <button id="new_unit_btn" class="btn btn-default btn-sm">Add unit</button>
               </div>
               <div class="card-body">
-                <div id="unit_list" style="margin-bottom: 15px; min-height: 50px;">
+                <div id="unit_list" style="margin-bottom: 10px; min-height: 50px;">
                   <div style="color: #666; font-style: italic; text-align: center; padding: 20px;">
-                    No units defined yet. Start by adding your first unit below.
+                    No units defined yet. Click Add unit to get started.
                   </div>
                 </div>
-                
-                <!-- Unit Management Buttons -->
-                <div class="row">
-                  <div class="col-md-6">
-                    <button id="new_unit_btn" class="btn btn-default btn-sm" style="width: 100%;">
-                      Create New Unit
-                    </button>
-                  </div>
-                  <div class="col-md-6">
-                    <button id="edit_unit_btn" class="btn btn-default btn-sm" style="width: 100%; display: none;">
-                      Edit Selected Unit
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Unit Editing Mode Controls -->
-            <div class="form-group" id="unit_editing_controls" style="display: none;">
-              <div class="alert alert-info" style="margin-bottom: 15px;">
-                <i class="fa fa-info-circle"></i> 
-                <strong>Editing Mode:</strong> You are currently editing an existing unit. 
-                Add or remove sub-elements as needed, then click "Save Changes" to persist your modifications.
-              </div>
-              <div style="margin-bottom: 10px;">
-                <button id="save_unit_changes_btn" class="btn btn-default btn-sm">
-                  <i class="fa fa-save"></i> Save Changes
-                </button>
-                <button id="delete_current_unit_btn" class="btn btn-default btn-sm" style="margin-left: 10px;">
-                  <i class="fa fa-trash"></i> Delete Unit
-                </button>
-                <button id="cancel_edit_btn" class="btn btn-default btn-sm" style="margin-left: 10px;">
-                  <i class="fa fa-times"></i> Cancel Edit
-                </button>
-              </div>
-            </div>
-
-            <!-- Unit Creation Mode Controls -->
-            <div class="form-group" id="unit_creation_controls" style="display: none;">
-              <div class="alert alert-success" style="margin-bottom: 15px;">
-                <i class="fa fa-plus-circle"></i> 
-                <strong>Creation Mode:</strong> You are creating a new unit. 
-                Fill in the details below and add sub-elements as needed.
-              </div>
-              <div class="row" style="margin-bottom: 10px;">
-                <div class="col-md-6">
-                  <button id="add_unit_btn" class="btn btn-default btn-sm" style="width: 100%; display: none;">
-                    <i class="fa fa-save"></i> Save Unit
-                  </button>
-                </div>
-                <div class="col-md-6">
-                  <button id="clear_form_btn" class="btn btn-default btn-sm" style="width: 100%;">
-                    <i class="fa fa-eraser"></i> Clear Form
-                  </button>
+                <div id="unit_editor_status" style="color: #aaa; font-size: 0.85em; font-style: italic;">
+                  Select a unit to edit
                 </div>
               </div>
             </div>
@@ -285,6 +340,9 @@
             <ul class="nav nav-tabs" id="unitFormTabs" role="tablist" style="margin-bottom: 15px;">
               <li class="nav-item">
                 <a class="nav-link" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="false" style="color: white;">General</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="caprock-tab" data-toggle="tab" href="#caprock" role="tab" aria-controls="caprock" aria-selected="false" style="color: white;">Caprock</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link active" id="tubulars-tab" data-toggle="tab" href="#tubulars" role="tab" aria-controls="tubulars" aria-selected="true" style="color: white;">Tubulars</a>
@@ -346,6 +404,51 @@
                       <div class="form-group col-md-4">
                         <label for="layout_figure_height" style="color: white;">Figure Size Height</label>
                         <input id="layout_figure_height" class="form-control" type="number" step="0.5" min="1" placeholder="e.g. 10" style="max-width: 150px;">
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="layout_show_axes" checked>
+                        <label class="custom-control-label" for="layout_show_axes" style="color: white;">
+                          <strong>Show Axes</strong>
+                        </label>
+                      </div>
+                      <small class="form-text text-muted">When unchecked, hides axis labels, ticks, spines, and grid.</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Caprock Tab -->
+              <div class="tab-pane fade" id="caprock" role="tabpanel" aria-labelledby="caprock-tab">
+                <div class="card" style="margin-bottom: 15px; border: 1px solid #727477;">
+                  <div class="card-body" style="padding: 15px;">
+                    <h5 style="color: white; margin-bottom: 15px;">Caprock</h5>
+                    <div class="form-group">
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="caprock_enabled">
+                        <label class="custom-control-label" for="caprock_enabled" style="color: white;">
+                          <strong>Enable Caprock</strong>
+                        </label>
+                      </div>
+                    </div>
+                    <div id="caprock_fields" style="display: none;">
+                      <div class="form-row" style="max-width: 800px;">
+                        <div class="form-group col-md-4">
+                          <label for="caprock_top_depth" style="color: white;">Top Depth [m]</label>
+                          <input id="caprock_top_depth" class="form-control" type="number" step="0.1" placeholder="e.g. 1400" style="max-width: 150px;">
+                        </div>
+                        <div class="form-group col-md-4">
+                          <label for="caprock_bottom_depth" style="color: white;">Bottom Depth [m]</label>
+                          <input id="caprock_bottom_depth" class="form-control" type="number" step="0.1" placeholder="e.g. 1500" style="max-width: 150px;">
+                        </div>
+                        <div class="form-group col-md-4">
+                          <label for="caprock_hatch" style="color: white;">Hatch Pattern</label>
+                          <select id="caprock_hatch" class="form-control" style="max-width: 150px;">
+                            <option value="--">--</option>
+                            <option value="//">//</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -416,10 +519,10 @@
                 </div>
               </div>
               <div class="form-group col-md-6">
-                <label for="hanger_seal_type">Hanger Seal Type</label>
-                <select id="hanger_seal_type" class="form-control" style="max-width: 200px;">
-                  <option value="single_seal_hanger">Single Seal Hanger</option>
-                  <option value="double_seal_hanger" selected>Double Seal Hanger</option>
+                <label for="num_seals">Number of hanger seals per spool</label>
+                <select id="num_seals" class="form-control" style="max-width: 200px;">
+                  <option value="1">1 hanger seal</option>
+                  <option value="2" selected>2 hanger seals</option>
                 </select>
               </div>
             </div>
@@ -461,22 +564,24 @@
                 </div>
               </div>
               <div id="tapered_fields" style="display: none;">
-                <div class="form-row">
-                  <div class="form-group col-md-12">
-                    <label for="transition_depth">Transition Depth [m]</label>
-                    <input id="transition_depth" class="form-control" type="number" step="0.1" placeholder="Transition Depth">
-                  </div>
+                <p style="color: #aaa; font-size: 0.9em;">Define one or more depth segments. Top/bottom depth fields above set the overall span for non-tapered fields.</p>
+                <div id="segments_table_wrapper">
+                  <table class="table table-sm" id="segments_table" style="color: white;">
+                    <thead>
+                      <tr>
+                        <th>Top [m]</th>
+                        <th>Bottom [m]</th>
+                        <th>ID [inch]</th>
+                        <th>OD [inch]</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="segments_table_body"></tbody>
+                  </table>
                 </div>
-                <div class="form-row">
-                  <div class="form-group col-md-6">
-                    <label for="bottom_id">Bottom Inner Diameter [inch]</label>
-                    <input id="bottom_id" class="form-control" type="number" step="0.001" placeholder="Bottom Inner Diameter">
-                  </div>
-                  <div class="form-group col-md-6">
-                    <label for="bottom_od">Bottom Outer Diameter [inch]</label>
-                    <input id="bottom_od" class="form-control" type="number" step="0.001" placeholder="Bottom Outer Diameter">
-                  </div>
-                </div>
+                <button type="button" id="add_segment_btn" class="btn btn-default btn-sm">
+                  <i class="fa fa-plus"></i> Add Segment
+                </button>
               </div>
             </div>
                   </div>
@@ -518,15 +623,19 @@
                 <input id="fluid_bottom" class="form-control" type="number" step="0.1" placeholder="Bottom Depth [m]" style="max-width: 150px;">
               </div>
             </div>
+            <div class="form-row" style="max-width: 800px;">
+              <div class="form-group col-md-4">
+                <label for="fluid_density">Density (optional)</label>
+                <input id="fluid_density" class="form-control" type="number" step="0.01" placeholder="e.g. 1.15" style="max-width: 150px;">
+              </div>
+            </div>
             <button id="add_fluid_btn" class="btn btn-default btn-sm">
               <i class="fa fa-plus"></i> Add Fluid
             </button>
-            <button id="update_fluid_btn" class="btn btn-default btn-sm" style="display: none; margin-left: 8px;">
-              <i class="fa fa-save"></i> Update Selected Fluid
-            </button>
             <div id="fluids_list" style="margin-top: 10px; padding: 10px; background-color: transparent; border-radius: 5px; min-height: 30px;">
-              <div style="color: #666; font-style: italic; text-align: center;">No fluids added yet</div>
+              <div class="sub-element-list-empty">No fluids added yet</div>
             </div>
+            <div id="fluid_editor_status" class="sub-element-editor-status">Click a fluid to edit, or use Add Fluid</div>
                   </div>
                 </div>
               </div>
@@ -565,12 +674,10 @@
             <button id="add_cement_btn" class="btn btn-default btn-sm">
               <i class="fa fa-plus"></i> Add Cement
             </button>
-            <button id="update_cement_btn" class="btn btn-default btn-sm" style="display: none; margin-left: 8px;">
-              <i class="fa fa-save"></i> Update Selected Cement
-            </button>
             <div id="cements_list" style="margin-top: 10px; padding: 10px; background-color: transparent; border-radius: 5px; min-height: 30px;">
-              <div style="color: #666; font-style: italic; text-align: center;">No cements added yet</div>
+              <div class="sub-element-list-empty">No cements added yet</div>
             </div>
+            <div id="cement_editor_status" class="sub-element-editor-status">Click a cement to edit, or use Add Cement</div>
                   </div>
                 </div>
               </div>
@@ -584,6 +691,7 @@
                 <label for="packer_type">Packer Type</label>
                 <select id="packer_type" class="form-control" style="max-width: 200px;">
                   <option value="">Select Packer Type</option>
+                  <option value="primary">Primary</option>
                   <option value="standard">Standard</option>
                   <option value="mechanical">Mechanical</option>
                   <option value="retrievable">Retrievable</option>
@@ -606,12 +714,10 @@
             <button id="add_packer_btn" class="btn btn-default btn-sm">
               <i class="fa fa-plus"></i> Add Packer
             </button>
-            <button id="update_packer_btn" class="btn btn-default btn-sm" style="display: none; margin-left: 8px;">
-              <i class="fa fa-save"></i> Update Selected Packer
-            </button>
             <div id="packers_list" style="margin-top: 10px; padding: 10px; background-color: transparent; border-radius: 5px; min-height: 30px;">
-              <div style="color: #666; font-style: italic; text-align: center;">No packers added yet</div>
+              <div class="sub-element-list-empty">No packers added yet</div>
             </div>
+            <div id="packer_editor_status" class="sub-element-editor-status">Click a packer to edit, or use Add Packer</div>
                   </div>
                 </div>
               </div>
@@ -642,12 +748,10 @@
             <button id="add_plug_btn" class="btn btn-default btn-sm">
               <i class="fa fa-plus"></i> Add Plug
             </button>
-            <button id="update_plug_btn" class="btn btn-default btn-sm" style="display: none; margin-left: 8px;">
-              <i class="fa fa-save"></i> Update Selected Plug
-            </button>
             <div id="plugs_list" style="margin-top: 10px; padding: 10px; background-color: transparent; border-radius: 5px; min-height: 30px;">
-              <div style="color: #666; font-style: italic; text-align: center;">No plugs added yet</div>
+              <div class="sub-element-list-empty">No plugs added yet</div>
             </div>
+            <div id="plug_editor_status" class="sub-element-editor-status">Click a plug to edit, or use Add Plug</div>
                   </div>
                 </div>
               </div>
@@ -679,12 +783,10 @@
             <button id="add_screen_btn" class="btn btn-default btn-sm">
               <i class="fa fa-plus"></i> Add Screen
             </button>
-            <button id="update_screen_btn" class="btn btn-default btn-sm" style="display: none; margin-left: 8px;">
-              <i class="fa fa-save"></i> Update Selected Screen
-            </button>
             <div id="screens_list" style="margin-top: 10px; padding: 10px; background-color: transparent; border-radius: 5px; min-height: 30px;">
-              <div style="color: #666; font-style: italic; text-align: center;">No screens added yet</div>
+              <div class="sub-element-list-empty">No screens added yet</div>
             </div>
+            <div id="screen_editor_status" class="sub-element-editor-status">Click a screen to edit, or use Add Screen</div>
                   </div>
                 </div>
               </div>
@@ -703,12 +805,30 @@
                         </label>
                       </div>
                     </div>
-                    
+
+                    <div class="form-group">
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="wellhead_show_seals" checked>
+                        <label class="custom-control-label" for="wellhead_show_seals" style="color: white;">
+                          <strong>Show Seals</strong>
+                        </label>
+                      </div>
+                      <small class="form-text text-muted">Seal layout is derived from tubular num_seals and annulus geometry.</small>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                      <button type="button" id="wellhead_legacy_toggle" class="btn btn-default btn-sm">
+                        <i class="fa fa-chevron-down" id="wellhead_legacy_toggle_icon"></i>
+                        Per-spool configuration
+                      </button>
+                    </div>
+
+                    <div id="wellhead_legacy_section" style="display: none;">
                     <div class="form-group" style="margin-bottom: 20px;">
-                      <label style="color: white; font-weight: bold; margin-bottom: 8px; display: block;">A-Ring Configuration</label>
+                      <label style="color: white; font-weight: bold; margin-bottom: 8px; display: block;">A-annulus configuration</label>
                       <div class="custom-control custom-checkbox" style="margin-bottom: 5px;">
-                        <input type="checkbox" class="custom-control-input" id="wellhead_a_enabled" checked>
-                        <label class="custom-control-label" for="wellhead_a_enabled" style="color: white;">Enable A-Ring</label>
+                        <input type="checkbox" class="custom-control-input" id="wellhead_a_enabled">
+                        <label class="custom-control-label" for="wellhead_a_enabled" style="color: white;">Enable A-annulus spool</label>
                       </div>
                       <div class="custom-control custom-checkbox" style="margin-bottom: 5px;">
                         <input type="checkbox" class="custom-control-input" id="wellhead_a_left_valves">
@@ -723,7 +843,7 @@
                     <div class="form-group" style="margin-bottom: 20px;">
                       <label style="color: white; font-weight: bold; margin-bottom: 8px; display: block;">B-Ring Configuration</label>
                       <div class="custom-control custom-checkbox" style="margin-bottom: 5px;">
-                        <input type="checkbox" class="custom-control-input" id="wellhead_b_enabled" checked>
+                        <input type="checkbox" class="custom-control-input" id="wellhead_b_enabled">
                         <label class="custom-control-label" for="wellhead_b_enabled" style="color: white;">Enable B-Ring</label>
                       </div>
                       <div class="custom-control custom-checkbox" style="margin-bottom: 5px;">
@@ -767,6 +887,7 @@
                         <label class="custom-control-label" for="wellhead_d_right_valves" style="color: white;">Include Right Valves</label>
                       </div>
                     </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -786,30 +907,34 @@
                       </div>
                     </div>
                     
-                    <div class="form-group">
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="xmas_tree_lower_master">
-                        <label class="custom-control-label" for="xmas_tree_lower_master" style="color: white;">Include Lower Master Valve</label>
+                    <div id="xmas_tree_valve_section">
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <div class="custom-control custom-checkbox">
+                          <input type="checkbox" class="custom-control-input" id="xmas_tree_lower_master">
+                          <label class="custom-control-label" for="xmas_tree_lower_master" style="color: white;">Include Lower Master Valve</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                          <input type="checkbox" class="custom-control-input" id="xmas_tree_upper_master" checked>
+                          <label class="custom-control-label" for="xmas_tree_upper_master" style="color: white;">Include Upper Master Valve</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                          <input type="checkbox" class="custom-control-input" id="xmas_tree_swab" checked>
+                          <label class="custom-control-label" for="xmas_tree_swab" style="color: white;">Include Swab Valve</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                          <input type="checkbox" class="custom-control-input" id="xmas_tree_wings" checked>
+                          <label class="custom-control-label" for="xmas_tree_wings" style="color: white;">Include Wing Valves</label>
+                        </div>
                       </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="xmas_tree_upper_master" checked>
-                        <label class="custom-control-label" for="xmas_tree_upper_master" style="color: white;">Include Upper Master Valve</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="xmas_tree_swab" checked>
-                        <label class="custom-control-label" for="xmas_tree_swab" style="color: white;">Include Swab Valve</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="xmas_tree_wings" checked>
-                        <label class="custom-control-label" for="xmas_tree_wings" style="color: white;">Include Wing Valves</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="xmas_tree_left_wing" checked>
-                        <label class="custom-control-label" for="xmas_tree_left_wing" style="color: white;">Include Left Wing Valve</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="xmas_tree_right_wing">
-                        <label class="custom-control-label" for="xmas_tree_right_wing" style="color: white;">Include Right Wing Valve</label>
+                      <div id="xmas_tree_wing_section" style="margin-left: 24px; margin-top: 8px;">
+                        <div class="custom-control custom-checkbox">
+                          <input type="checkbox" class="custom-control-input" id="xmas_tree_left_wing" checked>
+                          <label class="custom-control-label" for="xmas_tree_left_wing" style="color: white;">Include Left Wing Valve</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                          <input type="checkbox" class="custom-control-input" id="xmas_tree_right_wing">
+                          <label class="custom-control-label" for="xmas_tree_right_wing" style="color: white;">Include Right Wing Valve</label>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -820,29 +945,9 @@
           </div>
         </div>
       </div>
-        </div>
     </div>
-    
-    <!-- Generated JSON Display -->
-    <div class="card" style="display: none; margin-bottom: 20px;" id="json_output_card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin: 0;">Generated JSON</h2>
-            <div>
-                <button class="btn btn-default btn-sm" id="generate_json_btn">Generate JSON</button>
-                <button class="btn btn-default btn-sm" id="copy_json_btn" style="margin-left: 10px;">Copy JSON</button>
-                <button class="btn btn-default btn-sm" id="toggle_json_card_btn" style="margin-left: 10px;">
-                    <i class="fa fa-chevron-up" id="json_card_toggle_icon"></i>
-                </button>
-            </div>
-        </div>
-        <div class="card-body" id="json_output_card_body" style="display: block; max-width: 100%; overflow-x: hidden;">
-            <pre id="generated_json_output" style="background-color: #1e1e2e; color: #d4d4d4; padding: 15px; border-radius: 5px; max-height: 600px; overflow-y: auto; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; margin: 0; max-width: 100%;">
-                <!-- Generated JSON will be displayed here -->
-            </pre>
-        </div>
-    </div>
-    
-    <!-- Schematic Output Placeholder -->
+
+    <!-- Schematic Output -->
     <div class="card" style="display: none; margin-bottom: 20px;" id="schematic_output_card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2 style="margin: 0;">Well Schematic Output</h2>
@@ -858,11 +963,71 @@
                 <!-- Schematic image or plot will be inserted here -->
             </div>
         </div>
+    </div>
+
+    <!-- Template Selection Modal -->
+    <div id="template_selection_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 10000; overflow-y: auto;">
+        <div style="position: relative; margin: 50px auto; max-width: 900px; background-color: #1e1e2e; border-radius: 8px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <h3 style="color: white; margin-bottom: 20px;">Select a Template</h3>
+            <p style="color: #aaa; margin-bottom: 30px;">Choose a template to start with, or create a new schematic from scratch.</p>
+            <div class="row" style="margin-bottom: 20px;">
+                <div class="col-md-3">
+                    <div class="template-card" data-template="simple" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
+                        <h4 style="color: white; margin-bottom: 10px;">Simple Well</h4>
+                        <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Basic well with conductor, surface casing, and production tubing</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="template-card" data-template="standard" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
+                        <h4 style="color: white; margin-bottom: 10px;">Standard Well</h4>
+                        <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Complete well with multiple casings and tubing</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="template-card" data-template="double_skin" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
+                        <h4 style="color: white; margin-bottom: 10px;">Double Skin</h4>
+                        <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Conductor, surface casing, liner, tapered casing and tubing</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="template-card" data-template="scratch" style="border: 2px solid #727477; border-radius: 5px; padding: 20px; cursor: pointer; background-color: #2d2d3e; transition: all 0.3s;">
+                        <h4 style="color: white; margin-bottom: 10px;">Create from Scratch</h4>
+                        <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">Start with an empty schematic and build your own configuration</p>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="cancel_template_selection_btn" class="btn btn-default">Cancel</button>
             </div>
         </div>
     </div>
+
+    <!-- Schematic Name Prompt Modal -->
+    <div id="schematic_name_prompt_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 10001;">
+        <div style="position: relative; margin: 120px auto; max-width: 420px; background-color: #1e1e2e; border-radius: 8px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <h4 style="color: white; margin-bottom: 16px;" id="schematic_name_prompt_title">Save Schematic</h4>
+            <div class="form-group">
+                <label for="schematic_name_prompt_input" style="color: white;">Schematic name</label>
+                <input type="text" id="schematic_name_prompt_input" class="form-control" placeholder="Enter schematic name...">
+            </div>
+            <div class="d-flex justify-content-end" style="gap: 8px; margin-top: 16px;">
+                <button id="schematic_name_prompt_cancel_btn" class="btn btn-default btn-sm">Cancel</button>
+                <button id="schematic_name_prompt_save_btn" class="btn btn-default btn-sm">Save</button>
+            </div>
         </div>
     </div>
+
+    <!-- Unsaved Changes Modal -->
+    <div id="unsaved_changes_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 10002;">
+        <div style="position: relative; margin: 120px auto; max-width: 440px; background-color: #1e1e2e; border-radius: 8px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <h4 style="color: white; margin-bottom: 12px;">Unsaved changes</h4>
+            <p style="color: #aaa; margin-bottom: 20px;">You have unsaved changes. Save before continuing?</p>
+            <div class="d-flex justify-content-end flex-wrap" style="gap: 8px;">
+                <button id="unsaved_changes_cancel_btn" class="btn btn-default btn-sm">Cancel</button>
+                <button id="unsaved_changes_discard_btn" class="btn btn-default btn-sm">Discard</button>
+                <button id="unsaved_changes_save_btn" class="btn btn-default btn-sm">Save</button>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -91,27 +91,31 @@ class InfluxdbDriver(DatabaseDriverAbstract):
 
         return results, timestamps
 
-    def write_data(self, plant_name, asset_name, tag_name, time, value, write_option=SYNCHRONOUS):
-        """Write data to internal database."""
-        data = []
+    def write_data(
+        self, plant_name, asset_name, tag_name, time, value, write_option=SYNCHRONOUS,
+        batch_size=5000,
+    ):
+        """Write data to internal database in batches."""
         if not isinstance(time, list):
             time = [time]
         if not isinstance(value, list):
             value = [value]
-        for ii in range(0, len(value)):
-            data.append(
+
+        write_api = self.conn.write_api(write_option)
+
+        for start in range(0, len(value), batch_size):
+            batch = [
                 {
                     "measurement": plant_name,
                     "tags": {"asset_name": asset_name},
                     "fields": {tag_name: value[ii]},
                     "time": int(datetime.fromisoformat(time[ii]).timestamp()),
                 }
+                for ii in range(start, min(start + batch_size, len(value)))
+            ]
+            write_api.write(
+                self.parameters["bucket"], self.parameters["org"], batch, write_precision="s"
             )
-
-        write_api = self.conn.write_api(write_option)
-        write_api.write(
-            self.parameters["bucket"], self.parameters["org"], data, write_precision="s"
-        )
 
     def get_last_data(self, plant_name, asset_name, tag_name):
         """Get last data from database."""
