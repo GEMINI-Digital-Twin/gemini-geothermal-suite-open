@@ -10,7 +10,7 @@ as the central hub for the web interface.
 
 import os
 
-from flask import Blueprint, current_app, render_template, send_from_directory
+from flask import Blueprint, current_app, render_template, send_from_directory, redirect
 from flask_login import current_user, login_required
 
 # Create the main blueprint instance
@@ -22,6 +22,12 @@ main = Blueprint("main", __name__)
 def index():
     """Navigate to the main application dashboard."""
     return render_template("index.html")
+
+
+@main.route("/grafana")
+@login_required
+def grafana():
+    return redirect(os.getenv("GRAFANA_URL"))
 
 
 @main.route("/app/diagram")

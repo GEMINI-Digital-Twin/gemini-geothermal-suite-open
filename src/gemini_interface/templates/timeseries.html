@@ -23,15 +23,7 @@
 
 <script>
     function loadURL(){
-        if (window.location.protocol=="http:"){
-            port = ":3000"
-        }else{
-            port = ":3001"
-        }
-
-        custom_url = window.location.protocol + "//" + window.location.hostname + port
-
-        document.getElementById('iFrame_dashboard').src = custom_url
+        document.getElementById('iFrame_dashboard').src = '/grafana'
     }
 
     loadURL()
