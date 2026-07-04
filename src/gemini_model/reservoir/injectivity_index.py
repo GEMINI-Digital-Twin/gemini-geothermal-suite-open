@@ -5,10 +5,10 @@ Reference: R. Arnold (2021), Analytics-Driven Method for Injectivity Analysis
 in Tight and Heterogeneous Waterflooded Reservoir, Proceedings joint convention Bandung.
 """
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class injectivity_index(Model):
+class injectivity_index(StaticModel):
     """Calculate injectivity index from flow and pressure differential."""
 
     def __init__(self):

@@ -9,10 +9,10 @@ https://doi.org/10.1016/B978-0-12-813649-2.00007-4.
 
 """
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class IPR(Model):
+class IPR(StaticModel):
     """Reservoir inflow performance calculator (production/injection)."""
 
     def __init__(self):

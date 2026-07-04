@@ -19,10 +19,10 @@ Provide inputs `u` and optional state `x`, and set `parameters` including
 from gemini_model.corrosion.correlation.dld_model import DLD
 from gemini_model.corrosion.correlation.dlm_model import DLM
 from gemini_model.corrosion.correlation.norsok_model import NORSOK
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class CO2Corrosion(Model):
+class CO2Corrosion(StaticModel):
     """CO2 corrosion rate model (dispatcher).
 
     Selects and runs one of the supported CO2 corrosion correlations

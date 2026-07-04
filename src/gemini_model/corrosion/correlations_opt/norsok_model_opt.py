@@ -3,10 +3,10 @@
 import bisect
 import math
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class NORSOK(Model):
+class NORSOK(StaticModel):
     """NORSOK standard M-506 "CO2 Corrosion Rate Calculation Model".
 
     Spreadsheet-based software model is available online (https://www.standard.no).

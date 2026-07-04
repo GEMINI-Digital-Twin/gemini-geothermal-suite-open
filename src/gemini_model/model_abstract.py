@@ -1,49 +1,52 @@
-"""Abstract base interface for Gemini simulation models.
-
-All concrete models should inherit from :class:`Model` and implement the
-parameter update, state initialization/update, output calculation, and
-output retrieval methods shown below.
-"""
+"""Abstract base interfaces for Gemini simulation models."""
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class Model(ABC):
-    """Abstract base class for discrete state-space models."""
+    """Common base for all simulation models."""
 
-    @abstractmethod
     def __init__(self):
         """Model initialization."""
-        self.parameters = {}
-        self.output = {}
+        self.parameters: dict[str, Any] = {}
+        self.output: dict[str, Any] = {}
+
+    def update_parameters(self, parameters: dict[str, Any]):
+        """Update model parameters."""
+        self.parameters.update(parameters)
 
     @abstractmethod
-    def update_parameters(self, parameters):
-        """Update model parameters.
-
-        Parameters
-        ----------
-        parameters : dict
-            Parameters dict as defined by the model.
-        """
+    def calculate_output(self, u: dict[str, Any], x: Any = None):
+        """Calculate output of the model."""
         pass
 
+    def get_output(self):
+        """Get output of the model as a copy."""
+        return dict(self.output)
+
+
+class StaticModel(Model):
+    """Base class for algebraic/stateless models (y = f(u, p))."""
+
+    def initialize_state(self, x: Any = None):
+        """Stateless models do not use internal state."""
+        return None
+
+    def update_state(self, u: dict[str, Any], x: Any = None):
+        """Stateless models do not evolve internal state."""
+        return None
+
+
+class DynamicModel(Model):
+    """Base class for dynamic/stateful models (x_next = g(x, u, p), y = f(x, u, p))."""
+
     @abstractmethod
-    def initialize_state(self, x):
+    def initialize_state(self, x: Any):
         """Generate an initial state based on user parameters."""
         pass
 
     @abstractmethod
-    def update_state(self, u, x):
+    def update_state(self, u: dict[str, Any], x: Any):
         """Update the state based on input u and state x."""
         pass
-
-    @abstractmethod
-    def calculate_output(self, u, x):
-        """Calculate output based on input u and state x."""
-        pass
-
-    @abstractmethod
-    def get_output(self):
-        """Get output of the model."""
-        return self.output

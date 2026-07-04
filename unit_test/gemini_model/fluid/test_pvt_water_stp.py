@@ -10,13 +10,19 @@ class TestPVTWaterSTP(unittest.TestCase):
 
     def test_get_pvt(self):
         """Test PVT water STP calculation."""
-        # ARRANGE
         pvt_instance = PVTConstantSTP()
 
-        # ACT
         P = 1e5
         T = 15 + 273.15
         rho_g, rho_l, gmf, eta_g, eta_l, cp_g, cp_l, K_g, K_l, sigma = pvt_instance.get_pvt(P, T)
 
-        # ASSERT
+        self.assertEqual(rho_g, pvt_instance.parameters["RHOG"])
         self.assertEqual(rho_l, 1000)
+        self.assertEqual(gmf, pvt_instance.parameters["GMF"])
+        self.assertEqual(eta_g, pvt_instance.parameters["VISG"])
+        self.assertEqual(eta_l, pvt_instance.parameters["VISL"])
+        self.assertEqual(cp_g, pvt_instance.parameters["CPG"])
+        self.assertEqual(cp_l, pvt_instance.parameters["CPL"])
+        self.assertEqual(K_g, pvt_instance.parameters["TCG"])
+        self.assertEqual(K_l, pvt_instance.parameters["TCL"])
+        self.assertEqual(sigma, pvt_instance.parameters["SIGMA"])

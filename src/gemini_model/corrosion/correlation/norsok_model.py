@@ -8,10 +8,10 @@ CO2 fugacity, shear stress estimation and temperature/pH adjustments.
 import bisect
 import math
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class NORSOK(Model):
+class NORSOK(StaticModel):
     """CO2 corrosion rate using the NORSOK M-506 correlation."""
 
     def __init__(self):

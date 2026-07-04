@@ -4,7 +4,7 @@ from gemini_model.erosion.correlation.API import ErosionAPI
 from gemini_model.erosion.correlation.DNV import ErosionDNV
 from gemini_model.erosion.correlation.OKA import ErosionOKA
 from gemini_model.erosion.correlation.TULSA import ErosionTULSA
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 # -- canonical model names ------------------------------------------------
 MODEL_DNVGL = "DNVGL"
@@ -45,7 +45,7 @@ def is_velocity_model(name):
     return normalize_model_name(name) == MODEL_API
 
 
-class ErosionModel(Model):
+class ErosionModel(StaticModel):
     """Erosion correlation dispatcher (OKA, DNVGL, API, E/CRC Tulsa)."""
 
     def __init__(self):

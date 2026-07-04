@@ -8,10 +8,10 @@ at system temperature.
 
 import math
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class CO2PartialPressureModel(Model):
+class CO2PartialPressureModel(StaticModel):
     """Calculate CO2 partial pressure from gas/liquid conditions."""
 
     def __init__(self):

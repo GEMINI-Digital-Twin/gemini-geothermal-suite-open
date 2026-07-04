@@ -6,13 +6,13 @@ for single- and two-phase flow, and temperature change due to heat transfer.
 
 import numpy as np
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 from gemini_model.well.correlation.beggsbrill import BeggsBrill
 from gemini_model.well.correlation.darcyweisbach import DarcyWeisbach
 from gemini_model.well.correlation.temperaturedrop import TemperatureDrop
 
 
-class DPDT(Model):
+class DPDT(StaticModel):
     """Pressure and temperature along-well calculator (single/two-phase)."""
 
     def __init__(self):
@@ -59,7 +59,7 @@ class DPDT(Model):
         correlation_2p = self.parameters["friction_correlation_2p"]
         correction_factors = self.parameters["correction_factors"]
 
-        direction = u["direction"]  # down for injection and up for production
+        direction = str(u["direction"]).strip().lower()  # down for injection and up for production
         pressure = u["pressure"]  # Pa
         temperature = u["temperature"]  # K
         flowRate = u["flowrate"]  # m3/s
@@ -72,6 +72,8 @@ class DPDT(Model):
             krange = range(1, Ngrid + 1)
         elif direction == "up":
             krange = range(Ngrid, 0, -1)
+        else:
+            raise ValueError(f"Unsupported direction '{u['direction']}'. Use 'down' or 'up'.")
 
         pressuredrop_fric = 0
         pressuredrop_grav = 0
