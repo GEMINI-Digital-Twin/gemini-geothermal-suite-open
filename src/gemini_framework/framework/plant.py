@@ -15,8 +15,7 @@ class Plant:
 
     def update_parameters(self, parameters):
         """Update plant parameters."""
-        for key, value in parameters.items():
-            self.parameters[key] = value
+        self.parameters.update(parameters)
 
     def add_unit(self, unit):
         """Add asset instance to the plant."""
@@ -27,21 +26,17 @@ class Plant:
 
         :param str unit_id: the unique identifier of an asset.
         """
-        for ii in range(0, len(self.units)):
-            if self.units[ii].id == unit_id:
+        for ii, unit in enumerate(self.units):
+            if unit.id == unit_id:
                 del self.units[ii]
+                break
 
     def get_unit(self, unit_id):
         """Get asset instance based on unit id.
 
         :param str unit_id: the unique identifier of an asset.
         """
-        unit = None
-        for ii in range(0, len(self.units)):
-            if self.units[ii].id == unit_id:
-                unit = self.units[ii]
-                break
-        return unit
+        return next((unit for unit in self.units if unit.id == unit_id), None)
 
     def connect_unit(self):
         """Connect all units."""
@@ -49,7 +44,7 @@ class Plant:
             if cell["type"] == "devs.Link":
                 source_unit = self.get_unit(cell["source"]["id"])
                 target_unit = self.get_unit(cell["target"]["id"])
-                if not (source_unit is None) and not (target_unit is None):
+                if source_unit is not None and target_unit is not None:
                     source_unit.to_units.append(target_unit)
                     target_unit.from_units.append(source_unit)
 
@@ -83,6 +78,6 @@ class Plant:
         """Find modules of specified category."""
         modules = []
         for unit in self.units:
-            modules += unit.modules[category]
+            modules.extend(unit.modules[category])
 
         return modules
