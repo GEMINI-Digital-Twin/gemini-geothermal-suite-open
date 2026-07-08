@@ -83,25 +83,22 @@ class ReportGenerator(ApplicationAbstract):
     def get_units(self, tagname):
         """Get units for given tagname."""
         tag = tagname.lower()
-        if "pressure" in tag:
-            units = "[bar]"
-        elif "temperature" in tag:
-            units = "[°C]"
-        elif "flow" in tag:
-            units = "[m^3/h]"
-        elif "frequency" in tag:
-            units = "[Hz]"
-        elif "current" in tag:
-            units = "[A]"
-        elif "power" in tag:
-            units = "[kW]"
-        else:
-            units = "[-]"
-        return units
+        unit_map = {
+            "pressure": "[bar]",
+            "temperature": "[°C]",
+            "flow": "[m^3/h]",
+            "frequency": "[Hz]",
+            "current": "[A]",
+            "power": "[kW]",
+        }
+        for key, unit in unit_map.items():
+            if key in tag:
+                return unit
+        return "[-]"
 
-    def get_data(self, tagname):
-        """Get data for given tagname."""
-        result, time = self.plant.database.read_internal_database(
+    def _read_internal_series(self, tagname):
+        """Read a time series from the internal database for the selected unit."""
+        return self.plant.database.read_internal_database(
             self.unit.plant.name,
             self.unit.name,
             tagname,
@@ -109,7 +106,14 @@ class ReportGenerator(ApplicationAbstract):
             self.end_time,
             self.timestep,
         )
-        return result, time
+
+    def _unit_names_containing(self, needle):
+        """Return unit names containing a substring."""
+        return [unit.name for unit in self.plant.units if needle in unit.name]
+
+    def get_data(self, tagname):
+        """Get data for given tagname."""
+        return self._read_internal_series(tagname)
 
     def initialize_pdf_object(self):
         """Initialize PDF object."""
@@ -156,50 +160,31 @@ class ReportGenerator(ApplicationAbstract):
 
     def get_injection_wells(self):
         """Get injection wells data."""
-        output = list()
-        for unit in self.plant.units:
-            unit_name = unit.name
-            if "injection_well" in unit_name:
-                output.append(unit_name)
-        return output
+        return self._unit_names_containing("injection_well")
 
     def get_production_wells(self):
         """Get production wells data."""
-        output = list()
-        for unit in self.plant.units:
-            unit_name = unit.name
-            if "production_well" in unit_name:
-                output.append(unit_name)
-        return output
+        return self._unit_names_containing("production_well")
 
     def get_esps(self):
         """Get ESP data."""
-        output = list()
-        for unit in self.plant.units:
-            unit_name = unit.name
-            if "esp" in unit_name:
-                output.append(unit_name)
-        return output
+        return self._unit_names_containing("esp")
 
     def get_hexs(self):
         """Get HEX data."""
-        output = list()
-        for unit in self.plant.units:
-            unit_name = unit.name
-            if "heat_exchanger" in unit_name:
-                output.append(unit_name)
-        return output
+        return self._unit_names_containing("heat_exchanger")
 
     def add_timeseries_plot_to_pdf(self, data, timestamps, xlabel, ylabel, title):
         """Add timeseries plot to PDF."""
         plt.figure(figsize=(10, 5))
-        dates = [datetime.fromisoformat(ts.replace("Z", "")) for ts in timestamps]
-        plt.plot(timestamps, dates, linestyle="-", color="b", label="Time Series")
+        dates = pd.to_datetime(timestamps, utc=True)
+        plt.plot(dates, data, linestyle="-", color="b", label="Time Series")
 
-        plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(nbins="auto"))
-        plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(nbins="auto"))
+        plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
+        plt.gcf().autofmt_xdate()
 
-        plt.xlabel("Timestamp")
+        plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.title(title)
         plt.legend()
@@ -222,16 +207,16 @@ class ReportGenerator(ApplicationAbstract):
 
     def get_clean_list(self, value_list):
         """Get clean list from value list."""
-        clean_list = []
-        for value in value_list:
-            try:
-                # Try converting to float
-                converted = float(value)
-                clean_list.append(converted)
-            except (ValueError, TypeError):
-                # Discard if not convertible
-                continue
-        return clean_list
+        return [float(value) for value in value_list if self._is_float_like(value)]
+
+    @staticmethod
+    def _is_float_like(value):
+        """Check whether a value can be converted to float."""
+        try:
+            float(value)
+            return True
+        except (ValueError, TypeError):
+            return False
 
     def add_stats_plot(self, inj_wells, prod_wells):
         """Add statistics plot to PDF."""

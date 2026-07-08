@@ -8,6 +8,11 @@ import numpy as np
 import pytz
 
 from gemini_application.application_abstract import ApplicationAbstract
+from gemini_application.wims.common import (
+    get_esp_depth_m,
+    get_tally_from_well_parameters,
+    get_well_type,
+)
 from gemini_application.wims.erosion_from_prod_data import compute_erosion_for_segments
 from gemini_application.wims.erosion_from_tally import (
     default_esp_geometry_template,
@@ -38,51 +43,15 @@ class ErosionApplication(ApplicationAbstract):
 
     def _get_well_type(self):
         """Return 'productionwell' or 'injectionwell'."""
-        try:
-            ut = self.unit.parameters.get("type")
-            if ut == "production_well":
-                return "productionwell"
-            if ut == "injection_well":
-                return "injectionwell"
-        except (KeyError, TypeError):
-            pass
-        if "production" in self.unit.name.lower():
-            return "productionwell"
-        if "injection" in self.unit.name.lower():
-            return "injectionwell"
-        return "productionwell"
+        return get_well_type(self.unit)
 
     def _get_tally_from_well_parameters(self):
         """Get well tally from unit parameters (app builder)."""
-        well_type = self._get_well_type()
-        key = f"{well_type}_tally_table"
-        prop = self.unit.parameters.get("property") or {}
-        table = prop.get(key)
-        if table is not None and len(table) > 0:
-            first = table[0]
-            if isinstance(first, list):
-                if first:
-                    return list(first)
-            else:
-                return list(table)
-        if key in self.unit.parameters and self.unit.parameters[key]:
-            tbl = self.unit.parameters[key]
-            if isinstance(tbl, list) and tbl:
-                first = tbl[0]
-                if isinstance(first, list) and first:
-                    return list(first)
-                return list(tbl)
-        return None
+        return get_tally_from_well_parameters(self.unit)
 
     def _get_esp_depth_m(self):
         """ESP setting depth [m] from linked ESP unit, or None."""
-        for u in getattr(self.unit, "to_units", []):
-            if "esp" in u.name.lower():
-                prop = u.parameters.get("property") or {}
-                depths = prop.get("esp_depth")
-                if depths:
-                    return float(depths[0])
-        return None
+        return get_esp_depth_m(self.unit)
 
     def _well_data_folder(self):
         project_folder = os.path.join(self.plant.project_path, self.plant.name + "/wims_data")

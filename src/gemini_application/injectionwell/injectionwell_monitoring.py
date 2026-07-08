@@ -9,6 +9,7 @@ import pytz
 from matplotlib import pyplot as plt
 
 from gemini_application.application_abstract import ApplicationAbstract
+from gemini_application.wims.common import build_trajectory_geometry
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP
 from gemini_model.reservoir.reservoir_pressuredrop import bottomhole_skin_dp
 from gemini_model.well.pressure_drop import DPDT
@@ -53,23 +54,11 @@ class InjectionWellMonitoring(ApplicationAbstract):
 
         well_param = dict()
         well_traj = well_unit.parameters["property"]["injectionwell_trajectory_table"][-1]
-        length = []
-        diameter = []
-        angle = []
-        roughness = []
-        for ii in range(1, len(well_traj)):
-            MD = well_traj[ii]["MD"] - well_traj[ii - 1]["MD"]
-            TVD = well_traj[ii]["TVD"] - well_traj[ii - 1]["TVD"]
-
-            roughness.append(well_traj[ii]["roughness"])
-            length.append(MD)
-            diameter.append(well_traj[ii]["ID"])
-            angle.append((np.round(90 - np.arccos(TVD / MD) * 180 / np.pi, 2)) * np.pi / 180)
-
-        well_param["diameter"] = np.array(diameter)  # well diameter in [m]
-        well_param["length"] = np.array(length)  # well length in [m]
-        well_param["angle"] = np.array(angle)  # well angle in [rad]
-        well_param["roughness"] = roughness  # roughness of cells [m]
+        geometry = build_trajectory_geometry(well_traj)
+        well_param["diameter"] = np.array(geometry["diameter"])  # well diameter in [m]
+        well_param["length"] = np.array(geometry["length"])  # well length in [m]
+        well_param["angle"] = np.array(geometry["angle"])  # well angle in [rad]
+        well_param["roughness"] = geometry["roughness"]  # roughness of cells [m]
         well_param["friction_correlation"] = well_unit.parameters["property"][
             "injectionwell_friction_correlation"
         ][-1]

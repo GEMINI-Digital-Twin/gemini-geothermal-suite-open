@@ -1,4 +1,4 @@
-"""Interactive chat pop-up application using Azure OpenAI or local Ollama.
+"""Interactive chat pop-up application using local Ollama.
 
 Supports document ingestion into ChromaDB and retrieval-augmented generation.
 """
@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import chromadb
 import langid
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from ollama import Client
 
 from gemini_application.application_abstract import ApplicationAbstract
@@ -35,28 +34,13 @@ class ChunkRecord:
 
 
 class ChatPopup(ApplicationAbstract):
-    """Retrieval-augmented chat application built on ChromaDB + Ollama/Azure OpenAI."""
+    """Retrieval-augmented chat application built on ChromaDB + Ollama."""
 
     def __init__(self):
         """Initialize configuration fields; actual clients are created in initialize_model()."""
         super().__init__()
 
-        # Whether to use Azure OpenAI (True) or local Ollama (False)
-        self.azure_openai: bool = False
-
-        # Azure OpenAI API key (only used when azure_openai=True)
-        self.azure_openai_key: Optional[str] = None
-
-        # Azure OpenAI endpoint/host (only used when azure_openai=True)
-        self.azure_openai_host: Optional[str] = None
-
-        # Azure OpenAI chat client (created in initialize_model)
-        self.azure_openai_client: Optional[AzureChatOpenAI] = None
-
-        # Azure embeddings client (created in initialize_model)
-        self.azure_embedding_client: Optional[AzureOpenAIEmbeddings] = None
-
-        # Ollama client (created in initialize_model when azure_openai=False)
+        # Ollama client (created in initialize_model)
         self.ollama_client: Optional[Client] = None
 
         # Ollama embedding model name
@@ -158,38 +142,9 @@ class ChatPopup(ApplicationAbstract):
         if self.langchain_api_key:
             os.environ["LANGCHAIN_API_KEY"] = self.langchain_api_key
 
-        if self.azure_openai:
-            self.azure_openai_client = AzureChatOpenAI(
-                azure_deployment="gpt-35-turbo",
-                api_version="2023-06-01-preview",
-                api_key=self.azure_openai_key,
-                azure_endpoint=self.azure_openai_host,
-                temperature=0,
-                max_tokens=None,
-                timeout=None,
-                max_retries=2,
-            )
-            self.azure_embedding_client = AzureOpenAIEmbeddings(
-                model="text-embedding-3-small",
-                api_key=self.azure_openai_key,
-                azure_endpoint=self.azure_openai_host,
-            )
-        else:
-            print(f"http://{self.ollama_host}:{self.ollama_port}")
-            self.ollama_client = Client(host=f"http://{self.ollama_host}:{self.ollama_port}")
+        self.ollama_client = self._build_ollama_client()
 
-        if self.chromadb_use_http:
-            if not self.chromadb_host or not self.chromadb_port:
-                raise ValueError(
-                    "chromadb_host and chromadb_port must " "be set when chromadb_use_http=True"
-                )
-            self.chroma_client = chromadb.HttpClient(
-                host=self.chromadb_host, port=self.chromadb_port
-            )
-        else:
-            if not self.chroma_dir:
-                raise ValueError("chroma_dir must be set when chromadb_use_http=False")
-            self.chroma_client = chromadb.PersistentClient(path=self.chroma_dir)
+        self.chroma_client = self._build_chroma_client()
 
         if not self.collection_name:
             raise ValueError("collection_name must be set")
@@ -200,11 +155,28 @@ class ChatPopup(ApplicationAbstract):
         )
         logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
         logger.info(
-            "ChatPopup initialized. azure_openai=%s, chromadb_use_http=%s, collection=%s",
-            self.azure_openai,
+            "ChatPopup initialized. chromadb_use_http=%s, collection=%s",
             self.chromadb_use_http,
             self.collection_name,
         )
+
+    def _build_ollama_client(self):
+        """Create an Ollama client."""
+        logger.info("Using Ollama at http://%s:%s", self.ollama_host, self.ollama_port)
+        return Client(host=f"http://{self.ollama_host}:{self.ollama_port}")
+
+    def _build_chroma_client(self):
+        """Create a Chroma client using HTTP or local persistence."""
+        if self.chromadb_use_http:
+            if not self.chromadb_host or not self.chromadb_port:
+                raise ValueError(
+                    "chromadb_host and chromadb_port must be set when chromadb_use_http=True"
+                )
+            return chromadb.HttpClient(host=self.chromadb_host, port=self.chromadb_port)
+
+        if not self.chroma_dir:
+            raise ValueError("chroma_dir must be set when chromadb_use_http=False")
+        return chromadb.PersistentClient(path=self.chroma_dir)
 
     def delete_collection(self) -> None:
         """Delete the current Chroma collection."""
@@ -287,8 +259,6 @@ class ChatPopup(ApplicationAbstract):
 
     def get_embedding(self, user_message: str) -> List[float]:
         """Embed a user query string for retrieval."""
-        if self.azure_openai:
-            return self.azure_embedding_client.embed_query(user_message)
         response = self.ollama_client.embeddings(
             model=self.ollama_embeddings_model, prompt=user_message
         )
@@ -354,9 +324,6 @@ class ChatPopup(ApplicationAbstract):
 
     def get_embedding_list(self, chunks: List[str]) -> List[List[float]]:
         """Embed a list of chunks using batching."""
-        if self.azure_openai:
-            return self.azure_embedding_client.embed_documents(chunks)
-
         embeddings: List[List[float]] = []
         bs = max(1, int(self.embedding_batch_size))
         for i in range(0, len(chunks), bs):
@@ -402,30 +369,27 @@ class ChatPopup(ApplicationAbstract):
                 "ENGLISH:"
             )
 
-            if self.azure_openai:
-                translated = self.azure_openai_client.invoke(prompt).content
-            else:
-                translated = (
-                    self.ollama_client.generate(
-                        model=self.ollama_translation_llm,
-                        prompt=prompt,
-                        stream=False,
-                        options={
-                            "temperature": 0,
-                            "top_p": 0.1,
-                            "num_predict": 2048,
-                            "stop": [
-                                "Here is",
-                                "Here’s",
-                                "Translation:",
-                                "Translated text:",
-                                "Note:",
-                            ],
-                        },
-                    )
-                    .model_dump()
-                    .get("response", "")
+            translated = (
+                self.ollama_client.generate(
+                    model=self.ollama_translation_llm,
+                    prompt=prompt,
+                    stream=False,
+                    options={
+                        "temperature": 0,
+                        "top_p": 0.1,
+                        "num_predict": 2048,
+                        "stop": [
+                            "Here is",
+                            "Here’s",
+                            "Translation:",
+                            "Translated text:",
+                            "Note:",
+                        ],
+                    },
                 )
+                .model_dump()
+                .get("response", "")
+            )
             out_chunks.append(translated.strip())
         return "\n\n".join(out_chunks).strip()
 
@@ -719,9 +683,6 @@ class ChatPopup(ApplicationAbstract):
 
     def get_response(self, prompt: str) -> str:
         """Generate an answer from the selected LLM."""
-        if self.azure_openai:
-            response = self.azure_openai_client.invoke(prompt)
-            return response.content
         response = self.ollama_client.generate(
             model=self.ollama_llm_model,
             prompt=prompt,

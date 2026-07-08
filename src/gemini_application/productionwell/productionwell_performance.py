@@ -22,6 +22,15 @@ class ProductionWellPerformance(ApplicationAbstract):
         self.VLP2 = DPDT()
         self.ESP = ESP()
 
+    def _build_vlp_input(self, pressure_bar, temperature_c, ambient_c):
+        """Build a DPDT input payload."""
+        return {
+            "pressure": pressure_bar * 1e5,
+            "temperature": temperature_c + 273.15,
+            "temperature_ambient": ambient_c + 273.15,
+            "direction": "down",
+        }
+
     def init_parameters(self, parameters):
         """Initialize model parameters."""
         well_unit = self.unit
@@ -111,23 +120,19 @@ class ProductionWellPerformance(ApplicationAbstract):
     def calculate_dp_top_esp(self):
         """Calculate pressure drop from wellhead to ESP."""
         try:
-            u = dict()
             x = []
+            u = self._build_vlp_input(
+                self.inputs["wellhead_pressure"],
+                self.inputs["wellhead_temperature"],
+                self.inputs["soil_temperature"],
+            )
 
             discharge_pressure = []
             discharge_temperature = []
             for flow in self.inputs["flow"]:
-                u["pressure"] = self.inputs["wellhead_pressure"] * 1e5  # bar to Pa
-                u["temperature"] = self.inputs["wellhead_temperature"] + 273.15  # C to K
                 u["flowrate"] = flow / 3600  # m3/hr to m3/s
-                u["temperature_ambient"] = self.inputs["soil_temperature"] + 273.15  # C to K
-                u["direction"] = "down"
-
                 self.VLP1.calculate_output(u, x)
-
-                # ASSERT
                 y = self.VLP1.get_output()
-
                 discharge_pressure.append(y["pressure_output"] / 1e5)  # Pa to bar
                 discharge_temperature.append(y["temperature_output"] - 273.15)  # K to C
         except Exception as e:
@@ -146,28 +151,21 @@ class ProductionWellPerformance(ApplicationAbstract):
             )
             self.outputs["intake_temperature"] = self.outputs["discharge_temperature"]
 
-            u = dict()
             x = []
+            u = self._build_vlp_input(0, 0, 0, self.inputs["soil_temperature"])
 
             bottomhole_pressure = []
             bottomhole_temperature = []
-            ii = 0
-            for flow in self.inputs["flow"]:
+            for ii, flow in enumerate(self.inputs["flow"]):
                 u["pressure"] = self.outputs["intake_pressure"][ii] * 1e5  # bar to Pa
                 u["temperature"] = self.outputs["intake_temperature"][ii] + 273.15  # C to K
                 u["flowrate"] = flow / 3600  # m3/hr to m3/s
-                u["temperature_ambient"] = self.inputs["soil_temperature"] + 273.15  # C to K
-                u["direction"] = "down"
 
                 self.VLP2.calculate_output(u, x)
-
-                # ASSERT
                 y = self.VLP2.get_output()
 
                 bottomhole_pressure.append(y["pressure_output"] / 1e5)  # Pa to bar
                 bottomhole_temperature.append(y["temperature_output"] - 273.15)  # C to K
-
-                ii = ii + 1
 
         except Exception as e:
             print("ERROR:" + repr(e))
@@ -180,19 +178,17 @@ class ProductionWellPerformance(ApplicationAbstract):
     def calculate_esp(self):
         """Calculate ESP output."""
         try:
-            u = dict()
             x = []
+            u = {"pump_freq": self.inputs["esp_freq"], "pump_flow": 0}
 
             pump_head = []
             pump_power = []
             pump_eff = []
             for flow in self.inputs["flow"]:
-                u["pump_freq"] = self.inputs["esp_freq"]
                 u["pump_flow"] = flow / 3600
 
                 self.ESP.calculate_output(u, x)
 
-                # ASSERT
                 y = self.ESP.get_output()
                 pump_head.append(y["pump_head"] / 1e5)
                 pump_power.append(y["pump_power"])
@@ -211,8 +207,8 @@ class ProductionWellPerformance(ApplicationAbstract):
     def calculate_pbh_res(self):
         """Calculate bottomhole pressure from reservoir."""
         try:
-            u = dict()
             x = []
+            u = {"flow": 0}
 
             pbh_res = []
             p_res = []
@@ -221,7 +217,6 @@ class ProductionWellPerformance(ApplicationAbstract):
 
                 self.IPR.calculate_output(u, x)
 
-                # ASSERT
                 y = self.IPR.get_output()
                 pbh_res.append(y["bottomhole_pressure"])
                 p_res.append(self.IPR.parameters["reservoir_pressure"])
@@ -273,7 +268,6 @@ class ProductionWellPerformance(ApplicationAbstract):
         except Exception as e:
             print("ERROR:" + repr(e))
 
-            self.outputs["sol_flow"] = None
             self.outputs["sol_flow"] = None
             self.outputs["sol_pbh"] = None
             self.outputs["sol_esp_head"] = None

@@ -49,100 +49,43 @@ class ESPApp(ApplicationAbstract):
             "esp_correction_factor"
         ][0]
 
-    def get_data(self):
-        """Get ESP data."""
+    def _read_series(self, tagname):
+        """Read a measured/calculated series from the internal database."""
         start_time = datetime.strptime(self.inputs["start_time"], "%Y-%m-%d %H:%M:%S")
-        start_time = tzobject.localize(start_time)
-        start_time = start_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        start_time = tzobject.localize(start_time).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         end_time = datetime.strptime(self.inputs["end_time"], "%Y-%m-%d %H:%M:%S")
-        end_time = tzobject.localize(end_time)
-        end_time = end_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_time = tzobject.localize(end_time).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        timestep = 3600  # hardcoded 1 hour since flowrate is in m3/h
-
-        database = self.plant.database
-
-        result, time = database.read_internal_database(
+        timestep = 3600
+        result, time = self.plant.database.read_internal_database(
             self.unit.plant.name,
             self.unit.name,
-            "esp_flow.measured",
+            tagname,
             start_time,
             end_time,
             timestep,
         )
-        self.outputs["flow_measured"] = np.array(result)  # m3/hr
-        self.outputs["time"] = np.array(time)
+        return np.array(result), np.array(time)
 
-        result, time = database.read_internal_database(
-            self.unit.plant.name,
-            self.unit.name,
-            "esp_frequency.measured",
-            start_time,
-            end_time,
-            timestep,
+    def get_data(self):
+        """Get ESP data."""
+        self.outputs["flow_measured"], self.outputs["time"] = self._read_series("esp_flow.measured")
+        self.outputs["frequency_measured"], _ = self._read_series("esp_frequency.measured")
+        self.outputs["inlet_pressure_measured"], _ = self._read_series("esp_inlet_pressure.measured")
+        self.outputs["esp_vlp_head_calculated"], _ = self._read_series("esp_vlp_head.calculated")
+        self.outputs["esp_theoretical_head_calculated"], _ = self._read_series(
+            "esp_theoretical_head.calculated"
         )
-        self.outputs["frequency_measured"] = np.array(result)  # Hz
-
-        result, time = database.read_internal_database(
-            self.unit.plant.name,
-            self.unit.name,
-            "esp_inlet_pressure.measured",
-            start_time,
-            end_time,
-            timestep,
+        self.outputs["esp_vlp_outlet_pressure_calculated"], _ = self._read_series(
+            "esp_vlp_outlet_pressure.calculated"
         )
-        self.outputs["inlet_pressure_measured"] = np.array(result)  # bar
-
-        result, time = database.read_internal_database(
-            self.unit.plant.name,
-            self.unit.name,
-            "esp_vlp_head.calculated",
-            start_time,
-            end_time,
-            timestep,
+        self.outputs["esp_vlp_ipr_inlet_pressure_calculated"], _ = self._read_series(
+            "esp_vlp_ipr_inlet_pressure.calculated"
         )
-        self.outputs["esp_vlp_head_calculated"] = np.array(result)
-
-        result, time = database.read_internal_database(
-            self.unit.plant.name,
-            self.unit.name,
-            "esp_theoretical_head.calculated",
-            start_time,
-            end_time,
-            timestep,
+        self.outputs["esp_theoretical_outlet_pressure_calculated"], _ = self._read_series(
+            "esp_theoretical_outlet_pressure.calculated"
         )
-        self.outputs["esp_theoretical_head_calculated"] = np.array(result)  # bar
-
-        result, time = database.read_internal_database(
-            self.unit.plant.name,
-            self.unit.name,
-            "esp_vlp_outlet_pressure.calculated",
-            start_time,
-            end_time,
-            timestep,
-        )
-        self.outputs["esp_vlp_outlet_pressure_calculated"] = np.array(result)  # bar
-
-        result, time = database.read_internal_database(
-            self.unit.plant.name,
-            self.unit.name,
-            "esp_vlp_ipr_inlet_pressure.calculated",
-            start_time,
-            end_time,
-            timestep,
-        )
-        self.outputs["esp_vlp_ipr_inlet_pressure_calculated"] = np.array(result)  # bar
-
-        result, time = database.read_internal_database(
-            self.unit.plant.name,
-            self.unit.name,
-            "esp_theoretical_outlet_pressure.calculated",
-            start_time,
-            end_time,
-            timestep,
-        )
-        self.outputs["esp_theoretical_outlet_pressure_calculated"] = np.array(result)  # bar
 
     def calibrate_esp_head_simple(self):
         """Calibrate ESP head using simple method."""

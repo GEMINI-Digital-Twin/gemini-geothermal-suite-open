@@ -1,4 +1,4 @@
-"""Tabg browser to browser external database and manual csv upload."""
+"""Tag browser application for browsing external database and CSV uploads."""
 
 from gemini_application.application_abstract import ApplicationAbstract
 
@@ -12,8 +12,9 @@ class DataManager(ApplicationAbstract):
 
     def init_parameters(self, initial_parameters):
         """Initialize application-specific parameters."""
-        pass
+        self.parameters.update(initial_parameters or {})
+        return None
 
     def calculate(self):
         """Run application computation model."""
-        pass
+        return None
