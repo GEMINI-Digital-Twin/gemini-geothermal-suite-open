@@ -16,12 +16,6 @@ from gemini_application.wims.common import (
     get_tally_from_well_parameters,
     get_well_type,
 )
-from gemini_application.wims.common import (
-    get_esp_depth_m,
-    get_esp_joint_start_idx,
-    get_tally_from_well_parameters,
-    get_well_type,
-)
 from gemini_application.wims.corrosion_from_logs import (
     ANNUAL_WALL_THICKNESS_CHANGE_RATE_COL,
     PREDICTED_WALL_THICKNESS_CHANGE_RATE_PREFIX,

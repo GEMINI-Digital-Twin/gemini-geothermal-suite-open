@@ -52,10 +52,14 @@ class ESPApp(ApplicationAbstract):
     def _read_series(self, tagname):
         """Read a measured/calculated series from the internal database."""
         start_time = datetime.strptime(self.inputs["start_time"], "%Y-%m-%d %H:%M:%S")
-        start_time = tzobject.localize(start_time).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        start_time = (
+            tzobject.localize(start_time).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        )
 
         end_time = datetime.strptime(self.inputs["end_time"], "%Y-%m-%d %H:%M:%S")
-        end_time = tzobject.localize(end_time).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_time = (
+            tzobject.localize(end_time).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        )
 
         timestep = 3600
         result, time = self.plant.database.read_internal_database(
@@ -72,7 +76,9 @@ class ESPApp(ApplicationAbstract):
         """Get ESP data."""
         self.outputs["flow_measured"], self.outputs["time"] = self._read_series("esp_flow.measured")
         self.outputs["frequency_measured"], _ = self._read_series("esp_frequency.measured")
-        self.outputs["inlet_pressure_measured"], _ = self._read_series("esp_inlet_pressure.measured")
+        self.outputs["inlet_pressure_measured"], _ = self._read_series(
+            "esp_inlet_pressure.measured"
+        )
         self.outputs["esp_vlp_head_calculated"], _ = self._read_series("esp_vlp_head.calculated")
         self.outputs["esp_theoretical_head_calculated"], _ = self._read_series(
             "esp_theoretical_head.calculated"
