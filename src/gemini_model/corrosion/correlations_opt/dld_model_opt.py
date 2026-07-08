@@ -2,10 +2,10 @@
 
 import math
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class DLD(Model):
+class DLD(StaticModel):
     """DLD corrosion model (de Waard, Lotz, Dugstad, 1995).
 
     Reference: "Influence of liquid flow velocity on CO2 corrosion: A semi-emperical model"

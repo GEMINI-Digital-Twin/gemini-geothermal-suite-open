@@ -8,10 +8,10 @@ https://doi.org/10.5006/1.3585212
 
 import math
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class DLM(Model):
+class DLM(StaticModel):
     """CO2 corrosion rate using the DLM (1991) correlation."""
 
     def __init__(self):

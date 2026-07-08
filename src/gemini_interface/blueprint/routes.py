@@ -10,7 +10,7 @@ as the central hub for the web interface.
 
 import os
 
-from flask import Blueprint, current_app, render_template, send_from_directory, redirect
+from flask import Blueprint, current_app, redirect, render_template, send_from_directory
 from flask_login import current_user, login_required
 
 # Create the main blueprint instance
@@ -27,6 +27,7 @@ def index():
 @main.route("/grafana")
 @login_required
 def grafana():
+    """Navigate to the application timeseries viewer."""
     return redirect(os.getenv("GRAFANA_URL"))
 
 

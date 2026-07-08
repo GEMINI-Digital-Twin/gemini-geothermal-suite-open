@@ -9,10 +9,10 @@ set ``parameters['corrosion_model']`` to one of ``'DLD'``, ``'DLM'``, or
 from gemini_model.corrosion.correlations_opt.dld_model_opt import DLD
 from gemini_model.corrosion.correlations_opt.dlm_model_opt import DLM
 from gemini_model.corrosion.correlations_opt.norsok_model_opt import NORSOK
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class CO2CorrosionOpt(Model):
+class CO2CorrosionOpt(StaticModel):
     """CO2 corrosion rate model using optimized correlation implementations."""
 
     def __init__(self):

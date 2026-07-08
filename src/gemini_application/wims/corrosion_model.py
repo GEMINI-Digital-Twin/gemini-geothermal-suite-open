@@ -10,6 +10,12 @@ import pandas as pd
 import pytz
 
 from gemini_application.application_abstract import ApplicationAbstract
+from gemini_application.wims.common import (
+    get_esp_depth_m,
+    get_esp_joint_start_idx,
+    get_tally_from_well_parameters,
+    get_well_type,
+)
 from gemini_application.wims.corrosion_from_logs import (
     ANNUAL_WALL_THICKNESS_CHANGE_RATE_COL,
     PREDICTED_WALL_THICKNESS_CHANGE_RATE_PREFIX,
@@ -49,19 +55,7 @@ class CO2CorrosionApplication(ApplicationAbstract):
 
     def _get_well_type(self):
         """Return 'productionwell' or 'injectionwell' from unit type or name."""
-        try:
-            ut = self.unit.parameters.get("type")
-            if ut == "production_well":
-                return "productionwell"
-            if ut == "injection_well":
-                return "injectionwell"
-        except (KeyError, TypeError):
-            pass
-        if "production" in self.unit.name.lower():
-            return "productionwell"
-        if "injection" in self.unit.name.lower():
-            return "injectionwell"
-        return "productionwell"
+        return get_well_type(self.unit)
 
     def _get_esp_depth_m(self):
         """Return ESP setting depth in meters MD, or None if no ESP unit found.
@@ -69,36 +63,11 @@ class CO2CorrosionApplication(ApplicationAbstract):
         Looks for an ESP unit in ``self.unit.to_units`` and reads
         ``esp_unit.parameters["property"]["esp_depth"]``.
         """
-        for u in getattr(self.unit, "to_units", []):
-            if "esp" in u.name.lower():
-                prop = u.parameters.get("property") or {}
-                depths = prop.get("esp_depth")
-                if depths:
-                    return float(depths[0])
-        return None
+        return get_esp_depth_m(self.unit)
 
     def _get_tally_from_well_parameters(self):
         """Get well tally from unit parameters (well parameter). Returns list of dicts or None."""
-        well_type = self._get_well_type()
-        key = f"{well_type}_tally_table"
-        prop = self.unit.parameters.get("property") or {}
-        table = prop.get(key)
-        if table is not None and len(table) > 0:
-            # table can be list per timestamp [[row,...], ...] or single list [row,...]
-            first = table[0]
-            if isinstance(first, list):
-                if first:
-                    return list(first)
-            else:
-                return list(table)
-        if key in self.unit.parameters and self.unit.parameters[key]:
-            tbl = self.unit.parameters[key]
-            if isinstance(tbl, list) and tbl:
-                first = tbl[0]
-                if isinstance(first, list) and first:
-                    return list(first)
-                return list(tbl)
-        return None
+        return get_tally_from_well_parameters(self.unit)
 
     def _load_logs_metadata(self):
         """Load per-log metadata from logs_information.json.
@@ -135,17 +104,8 @@ class CO2CorrosionApplication(ApplicationAbstract):
 
         # -- determine ESP joint offset for production wells ---
         well_type = self._get_well_type()
-        esp_joint_start_idx = 0
-
-        if well_type == "productionwell":
-            esp_depth_m = self._get_esp_depth_m()
-            if esp_depth_m is not None:
-                for idx, entry in enumerate(well_tally):
-                    if float(entry["TopMD"]) >= esp_depth_m:
-                        esp_joint_start_idx = idx
-                        break
-                else:
-                    esp_joint_start_idx = len(well_tally)
+        esp_depth_m = self._get_esp_depth_m() if well_type == "productionwell" else None
+        esp_joint_start_idx = get_esp_joint_start_idx(well_tally, esp_depth_m)
 
         self.inputs["esp_joint_start_idx"] = esp_joint_start_idx
 

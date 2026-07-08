@@ -26,18 +26,21 @@ class ApplicationAbstract(ABC):
         for unit in self.plant.units:
             if unit.name == unit_name:
                 self.unit = unit
+                return
+
+        raise ValueError(f"Unit '{unit_name}' was not found in the loaded plant.")
 
     def set_input(self, inputs):
         """Set the input."""
-        self.inputs = inputs
+        self.inputs = dict(inputs)
 
     def get_input(self):
         """Set application inputs."""
-        return self.inputs
+        return dict(self.inputs)
 
     def get_output(self):
         """Return application outputs."""
-        return self.outputs
+        return dict(self.outputs)
 
     @abstractmethod
     def init_parameters(self, initial_parameters):

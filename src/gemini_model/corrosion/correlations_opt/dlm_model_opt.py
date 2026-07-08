@@ -2,10 +2,10 @@
 
 import math
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class DLM(Model):
+class DLM(StaticModel):
     """The original DLM (C. de Waard; U. Lotz; D. E. Milliams, 1991) model.
 
     Model proposed in the article "Predictive Model

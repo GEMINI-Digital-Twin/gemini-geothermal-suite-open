@@ -18,23 +18,19 @@ logger.setLevel(logging.INFO)
 class UnitModuleAbstract(ABC):
     """Abstract base class for unit modules."""
 
-    logger = logger
-    unit = None
-    loop = None
-    tags = {
-        "input": {"measured": {}, "filtered": {}, "calculated": {}},
-        "output": {"measured": {}, "filtered": {}, "calculated": {}},
-    }
-
     def __init__(self, unit):
         """Initialize unit module."""
+        self.logger = logger
         self.unit = unit
+        self.loop = None
+        self.tags = {
+            "input": {"measured": {}, "filtered": {}, "calculated": {}},
+            "output": {"measured": {}, "filtered": {}, "calculated": {}},
+        }
 
     def link(self):
         """Link module inputs and outputs."""
-        self.logger.error(
-            print("Module " + self.__class__.__name__ + " did not implement a link method")
-        )
+        self.logger.error("Module %s did not implement a link method", self.__class__.__name__)
 
     def init(self, loop):
         """Initialize module with loop."""
@@ -62,28 +58,24 @@ class UnitModuleAbstract(ABC):
 
     def get_output_last_data_time(self, tagname):
         """Get last data time for output tag."""
-        for category in list(self.tags["output"].keys()):
-            if tagname in list(self.tags["output"][category].keys()):
-                break
+        _, tag_meta = self._find_tag_meta("output", tagname)
 
         time_str = self.unit.plant.database.get_internal_database_last_time_str(
             self.unit.plant.name,
-            self.tags["output"][category][tagname]["unit_name"],
-            self.tags["output"][category][tagname]["internal_name"],
+            tag_meta["unit_name"],
+            tag_meta["internal_name"],
         )
 
         return time_str
 
     def get_input_data(self, tagname):
         """Get input data for tag."""
-        for category in list(self.tags["input"].keys()):
-            if tagname in list(self.tags["input"][category].keys()):
-                break
+        _, tag_meta = self._find_tag_meta("input", tagname)
 
         result, time = self.unit.plant.database.read_internal_database(
             self.unit.plant.name,
-            self.tags["input"][category][tagname]["unit_name"],
-            self.tags["input"][category][tagname]["internal_name"],
+            tag_meta["unit_name"],
+            tag_meta["internal_name"],
             self.loop.start_time,
             self.loop.end_time,
             self.loop.timestep,
@@ -93,14 +85,12 @@ class UnitModuleAbstract(ABC):
 
     def write_output_data(self, tagname, time, result):
         """Write output data for tag."""
-        for category in list(self.tags["output"].keys()):
-            if tagname in list(self.tags["output"][category].keys()):
-                break
+        _, tag_meta = self._find_tag_meta("output", tagname)
 
         self.unit.plant.database.write_internal_database(
             self.unit.plant.name,
-            self.tags["output"][category][tagname]["unit_name"],
-            self.tags["output"][category][tagname]["internal_name"],
+            tag_meta["unit_name"],
+            tag_meta["internal_name"],
             time,
             result,
         )
@@ -109,15 +99,22 @@ class UnitModuleAbstract(ABC):
         """Get parameter index for given timestamp."""
         timestamps_unix = datetime.fromisoformat(timestamps).timestamp()
 
-        timestamps_parameters_unix = []
-        for timestamp_parameter in unit.parameters["timestamps"]:
-            timestamps_parameters_unix.append(
-                datetime.strptime(timestamp_parameter, "%Y-%m-%d %H:%M:%S").timestamp()
-            )
+        timestamps_parameters_unix = [
+            datetime.strptime(timestamp_parameter, "%Y-%m-%d %H:%M:%S").timestamp()
+            for timestamp_parameter in unit.parameters["timestamps"]
+        ]
 
         index = np.argwhere(np.array(timestamps_parameters_unix) <= timestamps_unix).max()
 
         return index
+
+    def _find_tag_meta(self, io_type, tagname):
+        """Resolve tag metadata from linked input/output tags."""
+        for category, tag_map in self.tags[io_type].items():
+            if tagname in tag_map:
+                return category, tag_map[tagname]
+
+        raise KeyError(f"Tag '{tagname}' is not linked in {io_type} tags.")
 
     @abstractmethod
     def update_model_parameter(self, timestamp):

@@ -8,10 +8,10 @@ using surveillance analysis methods. Renewable Energy. https://doi.org/10.1016/j
 
 import numpy as np
 
-from gemini_model.model_abstract import Model
+from gemini_model.model_abstract import StaticModel
 
 
-class reservoir_pressure(Model):
+class reservoir_pressure(StaticModel):
     """Estimate reservoir pressure from p/Q vs 1/Q regression."""
 
     def __init__(self):

@@ -22,6 +22,19 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
+UNIT_FACTORIES = {
+    "esp": ESPUnit,
+    "injection_pump": InjectionPumpUnit,
+    "production_well": ProductionWellUnit,
+    "injection_well": InjectionWellUnit,
+    "degasser": DegasserUnit,
+    "heat_exchanger": HeatExchangerUnit,
+    "filter": FilterUnit,
+    "reservoir": ReservoirUnit,
+    "booster_pump": BoosterPumpUnit,
+    "gas_boiler": GasBoilerUnit,
+}
+
 
 def setup(project_path, plant_name):
     """Set up the plant.
@@ -29,18 +42,18 @@ def setup(project_path, plant_name):
     :param str project_path: location of the project folder.
     :param str plant_name: the plant name or location name.
     """
-    logger.info("Boot application " + plant_name)
+    logger.info("Boot application %s", plant_name)
 
     plant = Plant()
     plant.project_path = project_path
     plant.name = plant_name
 
     project_folder = os.path.join(plant.project_path, plant.name)
-    with open(os.path.join(project_folder, "plant.conf"), "r") as jsonfile:
+    with open(os.path.join(project_folder, "plant.conf"), "r", encoding="utf-8") as jsonfile:
         cfg = json.load(jsonfile)
         plant.update_parameters(cfg)
 
-    with open(os.path.join(project_folder, "diagram.json"), "r") as jsonfile:
+    with open(os.path.join(project_folder, "diagram.json"), "r", encoding="utf-8") as jsonfile:
         plant.diagram = json.load(jsonfile)
 
     plant = boot_unit(plant)
@@ -56,31 +69,14 @@ def boot_unit(plant):
     project_folder = os.path.join(plant.project_path, plant.name)
     for file in os.listdir(project_folder):
         if file.endswith(".param"):
-            with open(os.path.join(project_folder, file), "r") as jsonfile:
+            with open(os.path.join(project_folder, file), "r", encoding="utf-8") as jsonfile:
                 unitfile = json.load(jsonfile)
-                unit = []
-                if unitfile["type"] == "esp":
-                    unit = ESPUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "injection_pump":
-                    unit = InjectionPumpUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "production_well":
-                    unit = ProductionWellUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "injection_well":
-                    unit = InjectionWellUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "degasser":
-                    unit = DegasserUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "heat_exchanger":
-                    unit = HeatExchangerUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "filter":
-                    unit = FilterUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "reservoir":
-                    unit = ReservoirUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "booster_pump":
-                    unit = BoosterPumpUnit(unitfile["id"], unitfile["name"], plant)
-                elif unitfile["type"] == "gas_boiler":
-                    unit = GasBoilerUnit(unitfile["id"], unitfile["name"], plant)
-                else:
-                    logger.error("UNIT " + unitfile["type"] + " not yet implemented")
+                unit_factory = UNIT_FACTORIES.get(unitfile["type"])
+                if unit_factory is None:
+                    logger.error("UNIT %s not yet implemented", unitfile["type"])
+                    continue
+
+                unit = unit_factory(unitfile["id"], unitfile["name"], plant)
 
                 unit.set_parameters(unitfile["parameters"])
                 unit.set_tagnames(unitfile["tagnames"])

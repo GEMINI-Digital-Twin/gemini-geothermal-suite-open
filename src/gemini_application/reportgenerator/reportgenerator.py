@@ -1,9 +1,12 @@
 """PDF report generation for well performance analysis and monitoring data."""
 
 import io
+import json
 import os
+import re
 from datetime import datetime, timezone
 from math import ceil, sqrt
+from pathlib import Path
 
 import matplotlib
 import matplotlib.dates as mdates
@@ -19,7 +22,9 @@ from openpyxl import load_workbook
 from openpyxl.utils.cell import column_index_from_string, coordinate_from_string
 
 from gemini_application.application_abstract import ApplicationAbstract
+from gemini_application.injectionwell.injectionwell_monitoring import InjectionWellMonitoring
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP
+from gemini_model.reservoir.reservoir_pressuredrop import bottomhole_skin_dp
 from gemini_model.well.pressure_drop import DPDT
 
 matplotlib.use("Agg")
@@ -53,6 +58,7 @@ class ReportGenerator(ApplicationAbstract):
         # Well pressure drop model
         self.well_DP = DPDT()
         self.well_DP.PVT = PVTConstantSTP()
+        self.bottomhole_skin_dp = bottomhole_skin_dp()
 
     def init_parameters(self, **kwargs):
         """Initialize parameters."""
@@ -101,6 +107,9 @@ class ReportGenerator(ApplicationAbstract):
 
     def get_data(self, tagname):
         """Get data for given tagname."""
+        if tagname is None or tagname == "":
+            return None, None  # return both result and time as None
+
         result, time = self.plant.database.read_internal_database(
             self.unit.plant.name,
             self.unit.name,
@@ -155,7 +164,7 @@ class ReportGenerator(ApplicationAbstract):
         plt.close(fig)
 
     def get_injection_wells(self):
-        """Get injection wells data."""
+        """Get injection wells component names."""
         output = list()
         for unit in self.plant.units:
             unit_name = unit.name
@@ -164,7 +173,7 @@ class ReportGenerator(ApplicationAbstract):
         return output
 
     def get_production_wells(self):
-        """Get production wells data."""
+        """Get production wells component names."""
         output = list()
         for unit in self.plant.units:
             unit_name = unit.name
@@ -173,7 +182,7 @@ class ReportGenerator(ApplicationAbstract):
         return output
 
     def get_esps(self):
-        """Get ESP data."""
+        """Get ESP component names."""
         output = list()
         for unit in self.plant.units:
             unit_name = unit.name
@@ -182,11 +191,38 @@ class ReportGenerator(ApplicationAbstract):
         return output
 
     def get_hexs(self):
-        """Get HEX data."""
+        """Get HEX component names."""
         output = list()
         for unit in self.plant.units:
             unit_name = unit.name
             if "heat_exchanger" in unit_name:
+                output.append(unit_name)
+        return output
+
+    def get_injection_pumps(self):
+        """Get injection pump component names."""
+        output = list()
+        for unit in self.plant.units:
+            unit_name = unit.name
+            if "injection_pump" in unit_name:
+                output.append(unit_name)
+        return output
+
+    def get_booster_pumps(self):
+        """Get injection pump component names."""
+        output = list()
+        for unit in self.plant.units:
+            unit_name = unit.name
+            if "booster_pump" in unit_name:
+                output.append(unit_name)
+        return output
+
+    def get_aquifers(self):
+        """Get aquifer component names."""
+        output = list()
+        for unit in self.plant.units:
+            unit_name = unit.name
+            if "aquifer" in unit_name:
                 output.append(unit_name)
         return output
 
@@ -816,6 +852,59 @@ class ReportGenerator(ApplicationAbstract):
         self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.3)
         plt.close(fig)
 
+    def compute_skin_lines(self, inputs, flow_array, skin_array):
+        """Compute skin lines for plot."""
+        well_name = inputs["well_name"]
+        print(f"Computing skin lines for well: {well_name}")
+
+        app_IWM = InjectionWellMonitoring()
+        app_IWM.load_plant(self.project_path, self.project_name)
+        app_IWM.select_unit(well_name)
+
+        print(app_IWM.unit.name)
+        print(app_IWM.unit.to_units[0].name)
+
+        well_param = app_IWM.unit.parameters["property"]
+        reservoir_param = app_IWM.unit.to_units[0].parameters["property"]
+
+        # Get inputs for skin lines
+        boundary = {
+            "min_flow_plot": inputs["min_flow_plot"],
+            "max_flow_plot": inputs["max_flow_plot"],
+            "no_interval_flow_plot": inputs["no_interval_flow_plot"],
+            "min_skin_plot": inputs["min_skin_plot"],
+            "max_skin_plot": inputs["max_skin_plot"],
+            "no_interval_skin_plot": inputs["no_interval_skin_plot"],
+            "max_pressure": None,
+            "max_flow_rate": None,
+            "wellbore_radius": well_param["wellbore_radius"][0],
+            "start_time": inputs["starttime"],
+            "end_time": inputs["endtime"],
+        }
+        app_IWM.set_input(boundary)
+
+        parameters = {
+            "reservoir_pressure": reservoir_param["reservoir_pressure"][0],
+            "reservoir_radius": reservoir_param["reservoir_radius"][0],
+            "reservoir_permeability": reservoir_param["reservoir_permeability"][0],
+            "reservoir_thickness": reservoir_param["reservoir_thickness"][0],
+            "reservoir_top": reservoir_param["reservoir_top"][0],
+            "liquid_density": reservoir_param["liquid_density"][0],
+            "liquid_viscosity": reservoir_param["liquid_viscosity"][0],
+        }
+        app_IWM.init_parameters(parameters)
+        app_IWM.get_data()
+        app_IWM.calculate_skin_lines()
+
+        inputs = app_IWM.get_input()
+        outputs = app_IWM.get_output()
+
+        results = {
+            "injection_pressure": outputs["injection_pressure"],
+            "max_cal_P_inj": outputs["max_cal_P_inj"],
+        }
+        return results
+
     def convert_numeric_values(self, inputs):
         """Convert numeric values in inputs."""
         for key, val in inputs.items():
@@ -956,7 +1045,7 @@ class ReportGenerator(ApplicationAbstract):
         self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.3)
         plt.close(fig)
 
-    def calculate_total_volume(self, timestamps, flow_rates):
+    def calculate_total_volume(self, flow_rates, timestamps):
         """Calculate total volume from timestamps and flow rates."""
         if len(timestamps) != len(flow_rates):
             raise ValueError("timestamps and flow_rates must have the same length")
@@ -1068,6 +1157,19 @@ class ReportGenerator(ApplicationAbstract):
 
         return weighted_sum / total_volume
 
+    def align_series_on_common_timestamps(self, values_a, timestamps_a, values_b, timestamps_b):
+        """Align two series on shared timestamps, preserving series A ordering."""
+        if values_a is None or timestamps_a is None or values_b is None or timestamps_b is None:
+            return [], [], []
+
+        series_b = {ts: val for ts, val in zip(timestamps_b, values_b)}
+        common_timestamps = [ts for ts in timestamps_a if ts in series_b]
+
+        aligned_a = [values_a[i] for i, ts in enumerate(timestamps_a) if ts in series_b]
+        aligned_b = [series_b[ts] for ts in common_timestamps]
+
+        return aligned_a, aligned_b, common_timestamps
+
     def format_value(self, val):
         """Change the format of a value."""
         if isinstance(val, (float, int)):
@@ -1075,7 +1177,751 @@ class ReportGenerator(ApplicationAbstract):
         else:
             return str(val)
 
-    def add_nlog_data(self, LicenseHolder, NlogPeriod, df_prod, df_inj, table3_df):
+    def find_adjacent_component_name(self, main_unit, adj_unit):
+        """Return the adjacent component name matching the requested unit type."""
+        self.select_unit(main_unit)
+        for unit in self.unit.to_units:
+            if adj_unit in unit.name:
+                self.select_unit(unit.name)
+                return unit.name
+
+    @staticmethod
+    def _is_nlog_row_enabled(row):
+        """Return True unless an NLOG row explicitly disables the parameter."""
+        value = row.get("enabled", True)
+        if isinstance(value, str):
+            return value.strip().lower() not in {"false", "0", "no", "off"}
+        return value is not False
+
+    def _enabled_nlog_rows(self, rows):
+        return [row for row in (rows or []) if self._is_nlog_row_enabled(row)]
+
+    @staticmethod
+    def _ensure_nlog_enabled_default(rows):
+        for row in rows or []:
+            row.setdefault("enabled", True)
+        return rows
+
+    def calculate_nlog_1A(self, rows, prod_wells, esps):
+        """Calculate NLOG Section 1A values for each production well."""
+        all_rows = rows or []
+        enabled_parameters = {
+            row.get("parameter") for row in all_rows if self._is_nlog_row_enabled(row)
+        }
+        rows = self._enabled_nlog_rows(all_rows)
+
+        # Output structure
+        result_rows = []
+
+        # Ordered parameter list
+        param_order = [
+            "prod_vol_water",
+            "prod_temp_avg_weighted",
+            "prod_pres_avg",
+            "prod_pres_min",
+            "prod_wh_pres",
+            "prod_oil_vol",
+            "prod_gas_vol",
+            "prod_condens_vol",
+            "prod_inhibit_vol",
+        ]
+
+        # Convert rows list into lookup table:
+        # lookup[(component_name, parameter)] -> tagname
+        tag_lookup = {(r["component_name"], r["parameter"]): r["tagname"] for r in rows}
+
+        # Get unique production wells from rows (respects user-selected units from frontend)
+        selected_prod_wells = list(
+            set(r["component_name"] for r in rows if r.get("component_type") == "production_well")
+        )
+        if not selected_prod_wells:
+            selected_prod_wells = prod_wells  # Fallback to defaults if none in rows
+
+        # Loop through selected production wells
+        for well_name in selected_prod_wells:
+            self.select_unit(well_name)
+
+            # Find ESP and aquifer for this production well
+            # First try to find from rows (user-selected), then fallback to system discovery
+            esp_name = next(
+                (r["component_name"] for r in rows if r.get("component_type") == "esp"),
+                self.find_adjacent_component_name(well_name, "esp"),
+            )
+            aquifer_name = next(
+                (r["component_name"] for r in rows if r.get("component_type") == "aquifer"),
+                self.find_adjacent_component_name(well_name, "aquifer"),
+            )
+            # Prepare a row output
+            # 1
+            tagname_prod_vol = tag_lookup.get((well_name, "prod_vol_water"))
+            if tagname_prod_vol:
+                flow_values, flow_datestamps = self.get_data(tagname_prod_vol)
+                prod_vol_water, _ = self.calculate_total_volume(flow_values, flow_datestamps)
+            else:
+                flow_values, flow_datestamps = None, None
+                prod_vol_water = None
+
+            # 2
+            # Calculate volume_intervals from flow for use in all flow-dependent averages
+            _, flow_volume_intervals = (
+                self.calculate_total_volume(flow_values, flow_datestamps)
+                if flow_values
+                else (None, [])
+            )
+
+            tagname_prod_temp = tag_lookup.get((well_name, "prod_temp_avg_weighted"))
+            values, datestamps = (
+                self.get_data(tagname_prod_temp) if tagname_prod_temp else (None, None)
+            )
+            if (
+                flow_values is not None
+                and flow_datestamps is not None
+                and values is not None
+                and datestamps is not None
+            ):
+                aligned_flow, aligned_values, aligned_datestamps = (
+                    self.align_series_on_common_timestamps(
+                        flow_values,
+                        flow_datestamps,
+                        values,
+                        datestamps,
+                    )
+                )
+                if len(aligned_datestamps) > 1:
+                    _, volume_intervals = self.calculate_total_volume(
+                        aligned_flow, aligned_datestamps
+                    )
+                    prod_temp_avg_weighted = self.weighted_average_value_with_volume(
+                        aligned_values, aligned_datestamps, volume_intervals
+                    )
+                else:
+                    prod_temp_avg_weighted = None
+            else:
+                prod_temp_avg_weighted = None
+
+            # 5
+            # Wellhead pressure - use flow-weighted averages instead of uniform weights
+            tagname_prod_wh = tag_lookup.get((well_name, "prod_wh_pres"))
+            values, datestamps = self.get_data(tagname_prod_wh) if tagname_prod_wh else (None, None)
+            if (
+                values is not None
+                and datestamps is not None
+                and len(values) > 1
+                and len(values) == len(datestamps)
+                and flow_volume_intervals
+            ):
+                # Align pressure with flow timestamps
+                aligned_flow_wh, aligned_pres_wh, aligned_ts_wh = (
+                    self.align_series_on_common_timestamps(
+                        flow_values, flow_datestamps, values, datestamps
+                    )
+                )
+                if len(aligned_ts_wh) > 1:
+                    _, volume_intervals_wh = self.calculate_total_volume(
+                        aligned_flow_wh, aligned_ts_wh
+                    )
+                    prod_wh_pres = self.weighted_average_value_with_volume(
+                        aligned_pres_wh, aligned_ts_wh, volume_intervals_wh
+                    )
+                else:
+                    prod_wh_pres = None
+            else:
+                prod_wh_pres = None
+
+            # 3
+            # Production pressure from ESP - use flow-weighted averages instead of uniform weights
+            self.select_unit(esp_name)
+            tagname_esp_pres_avg = tag_lookup.get((esp_name, "prod_pres_avg"))
+            values, datestamps = (
+                self.get_data(tagname_esp_pres_avg) if tagname_esp_pres_avg else (None, None)
+            )
+            if values is not None and len(values) > 1 and flow_volume_intervals:
+                # Align ESP pressure with flow timestamps
+                aligned_flow_esp, aligned_pres_esp, aligned_ts_esp = (
+                    self.align_series_on_common_timestamps(
+                        flow_values, flow_datestamps, values, datestamps
+                    )
+                )
+                if len(aligned_ts_esp) > 1:
+                    _, volume_intervals_esp = self.calculate_total_volume(
+                        aligned_flow_esp, aligned_ts_esp
+                    )
+                    prod_pres_avg = self.weighted_average_value_with_volume(
+                        aligned_pres_esp, aligned_ts_esp, volume_intervals_esp
+                    )
+                else:
+                    prod_pres_avg = None
+            else:
+                prod_pres_avg = None
+
+            # 4
+            tagname_esp_pres_min = tag_lookup.get((esp_name, "prod_pres_min"))
+            values, _ = (
+                self.get_data(tagname_esp_pres_min) if tagname_esp_pres_min else (None, None)
+            )
+            if values is not None and len(values) > 1:
+                prod_pres_min = min(values)
+            else:
+                prod_pres_min = None
+
+            if aquifer_name is not None:
+                # 6: prod_oil_vol
+                tagname_oil = tag_lookup.get((aquifer_name, "prod_oil_vol"))
+                if tagname_oil:
+                    values, datestamps = self.get_data(tagname_oil)
+                    prod_oil_vol, _ = self.calculate_total_volume(values, datestamps)
+                else:
+                    prod_oil_vol = None
+
+                # 7: prod_gas_vol
+                tagname_gas = tag_lookup.get((aquifer_name, "prod_gas_vol"))
+                if tagname_gas:
+                    values, datestamps = self.get_data(tagname_gas)
+                    prod_gas_vol, _ = self.calculate_total_volume(values, datestamps)
+                else:
+                    prod_gas_vol = None
+
+                # 8: prod_condens_vol
+                tagname_cond = tag_lookup.get((aquifer_name, "prod_condens_vol"))
+                if tagname_cond:
+                    values, datestamps = self.get_data(tagname_cond)
+                    prod_condens_vol, _ = self.calculate_total_volume(values, datestamps)
+                else:
+                    prod_condens_vol = None
+
+                # 9: prod_inhibit_vol
+                tagname_inhibit = tag_lookup.get((aquifer_name, "prod_inhibit_vol"))
+                if tagname_inhibit:
+                    values, datestamps = self.get_data(tagname_inhibit)
+                    prod_inhibit_vol, _ = self.calculate_total_volume(values, datestamps)
+                else:
+                    prod_inhibit_vol = None
+            else:
+                prod_oil_vol = None
+                prod_gas_vol = None
+                prod_condens_vol = None
+                prod_inhibit_vol = None
+
+            row_data = {
+                "well_name": well_name,
+                "prod_vol_water": prod_vol_water,
+                "prod_temp_avg_weighted": prod_temp_avg_weighted,
+                "prod_pres_avg": prod_pres_avg,
+                "prod_pres_min": prod_pres_min,
+                "prod_wh_pres": prod_wh_pres,
+                "prod_oil_vol": prod_oil_vol,
+                "prod_gas_vol": prod_gas_vol,
+                "prod_condens_vol": prod_condens_vol,
+                "prod_inhibit_vol": prod_inhibit_vol,
+            }
+
+            # Add row to results
+            result_rows.append(row_data)
+
+        # Convert to dataframe in correct column order
+        df = pd.DataFrame(result_rows, columns=["well_name"] + param_order)
+        for parameter in param_order:
+            if parameter not in enabled_parameters:
+                df[parameter] = None
+
+        return df
+
+    import pandas as pd
+
+    def calculate_nlog_1B(self, rows, inj_wells, hexs, injection_pumps):
+        """
+        Calculate NLOG Section 1B values for each injection well.
+
+        Output columns:
+            - well_name
+            - inj_vol_water
+            - inj_temp_avg_weighted
+            - inj_pres_avg
+            - inj_pres_max
+            - inj_inhibit_vol
+        """
+        all_rows = rows or []
+        enabled_parameters = {
+            row.get("parameter") for row in all_rows if self._is_nlog_row_enabled(row)
+        }
+        rows = self._enabled_nlog_rows(all_rows)
+
+        # Output structure
+        result_rows = []
+
+        # Ordered parameter list
+        param_order = [
+            "inj_vol_water",
+            "inj_temp_avg_weighted",
+            "inj_pres_avg",
+            "inj_pres_max",
+            "inj_inhibit_vol",
+        ]
+
+        # Build lookup: (component_name, parameter) -> tagname
+        tag_lookup = {(r["component_name"], r["parameter"]): r["tagname"] for r in rows}
+
+        # Get unique injection wells from rows (respects user-selected units from frontend)
+        selected_inj_wells = list(
+            set(r["component_name"] for r in rows if r.get("component_type") == "injection_well")
+        )
+        if not selected_inj_wells:
+            selected_inj_wells = inj_wells  # Fallback to defaults if none in rows
+
+        # Loop through selected injection wells
+        for ii, well_name in enumerate(selected_inj_wells):
+
+            # Find HEX and injection pump for this injection well
+            hex_name = next(
+                (r["component_name"] for r in rows if r.get("component_type") == "heat_exchanger"),
+                None,
+            )
+            if hex_name is None:
+                hex_name = self.find_adjacent_component_name(well_name, "heat_exchanger")
+            if hex_name is None and len(hexs) > 0:
+                hex_name = hexs[ii]
+
+            inj_pump_name = next(
+                (r["component_name"] for r in rows if r.get("component_type") == "injection_pump"),
+                None,
+            )
+            if inj_pump_name is None:
+                inj_pump_name = self.find_adjacent_component_name(well_name, "injection_pump")
+            if inj_pump_name is None and len(injection_pumps) > 0:
+                inj_pump_name = injection_pumps[ii]
+            # 1) inj_vol_water (total injected water volume)
+            self.select_unit(well_name)
+            tagname_inj_flow = tag_lookup.get((well_name, "inj_vol_water"))
+            flow_values, flow_datestamps = (
+                self.get_data(tagname_inj_flow) if tagname_inj_flow else (None, None)
+            )
+            if flow_values is not None and flow_datestamps is not None:
+                inj_vol_water, _ = self.calculate_total_volume(flow_values, flow_datestamps)
+            else:
+                inj_vol_water = None
+                flow_values, flow_datestamps = None, None
+
+            # 2) inj_temp_avg_weighted (weighted average of HEX primary outlet temperature)
+            inj_temp_avg_weighted = None
+            if hex_name is not None:
+                self.select_unit(hex_name)
+                tagname_inj_temp = tag_lookup.get((hex_name, "inj_temp_avg_weighted"))
+                values, datestamps = (
+                    self.get_data(tagname_inj_temp) if tagname_inj_temp else (None, None)
+                )
+                if (
+                    flow_values is not None
+                    and flow_datestamps is not None
+                    and values is not None
+                    and datestamps is not None
+                ):
+                    aligned_flow, aligned_values, aligned_datestamps = (
+                        self.align_series_on_common_timestamps(
+                            flow_values,
+                            flow_datestamps,
+                            values,
+                            datestamps,
+                        )
+                    )
+                    if len(aligned_datestamps) > 1:
+                        _, volume_intervals = self.calculate_total_volume(
+                            aligned_flow, aligned_datestamps
+                        )
+                        inj_temp_avg_weighted = self.weighted_average_value_with_volume(
+                            aligned_values, aligned_datestamps, volume_intervals
+                        )
+
+            # 3) inj_pres_avg: average outlet pressure from injection pump.
+            # Use flow-weighted averages.
+            inj_pres_avg = None
+            if (
+                inj_pump_name is not None
+                and flow_values is not None
+                and flow_datestamps is not None
+            ):
+                self.select_unit(inj_pump_name)
+                tagname_inj_pres_avg = tag_lookup.get((inj_pump_name, "inj_pres_avg"))
+                values, datestamps = (
+                    self.get_data(tagname_inj_pres_avg) if tagname_inj_pres_avg else (None, None)
+                )
+                if (
+                    values is not None
+                    and datestamps is not None
+                    and len(values) > 0
+                    and len(datestamps) > 0
+                ):
+                    # Align pump pressure with flow timestamps for flow-weighted averaging
+                    aligned_flow_pres, aligned_pres, aligned_ts_pres = (
+                        self.align_series_on_common_timestamps(
+                            flow_values, flow_datestamps, values, datestamps
+                        )
+                    )
+                    if len(aligned_ts_pres) > 1:
+                        _, pressure_weights = self.calculate_total_volume(
+                            aligned_flow_pres, aligned_ts_pres
+                        )
+                        inj_pres_avg = self.weighted_average_value_with_volume(
+                            aligned_pres, aligned_ts_pres, pressure_weights
+                        )
+
+            # 4) inj_pres_max (maximum outlet pressure from injection pump)
+            inj_pres_max = None
+            if inj_pump_name is not None:
+                self.select_unit(inj_pump_name)
+                tagname_inj_pres_max = tag_lookup.get((inj_pump_name, "inj_pres_max"))
+                values, _ = (
+                    self.get_data(tagname_inj_pres_max) if tagname_inj_pres_max else (None, None)
+                )
+                if values is not None and len(values) > 0:
+                    inj_pres_max = max(values)
+
+            # 5) inj_inhibit_vol (total injected inhibitor volume - currently placeholder)
+            self.select_unit(well_name)
+            inj_inhibit_vol = None
+            tag_inhibit = tag_lookup.get((well_name, "inj_inhibit_vol"))
+            if tag_inhibit:
+                values, datestamps = self.get_data(tag_inhibit)
+                if values is not None and datestamps is not None:
+                    inj_inhibit_vol, _ = self.calculate_total_volume(values, datestamps)
+
+            # Collect row
+            row_data = {
+                "well_name": well_name,
+                "inj_vol_water": inj_vol_water,
+                "inj_temp_avg_weighted": inj_temp_avg_weighted,
+                "inj_pres_avg": inj_pres_avg,
+                "inj_pres_max": inj_pres_max,
+                "inj_inhibit_vol": inj_inhibit_vol,
+            }
+
+            result_rows.append(row_data)
+
+        # Build dataframe in correct column order
+        df = pd.DataFrame(result_rows, columns=["well_name"] + param_order)
+        for parameter in param_order:
+            if parameter not in enabled_parameters:
+                df[parameter] = None
+        return df
+
+    def calculate_nlog_2(self, rows_section2):
+        """
+        Calculate Section 2 NLOG values per doublet from flat rows_section2.
+
+        rows_section2: list[dict] with keys:
+            component_name, component_type, nlog_parameter, parameter, tagname, doublet
+
+        Returns
+        -------
+        pd.DataFrame with columns:
+            ["doublet", "tot_heat_MJ", "tot_oper_hours", "tot_el_cons_KWh"]
+        """
+        all_rows = rows_section2 or []
+        enabled_nlog_parameters = {
+            row.get("nlog_parameter") for row in all_rows if self._is_nlog_row_enabled(row)
+        }
+        rows_section2 = self._enabled_nlog_rows(all_rows)
+
+        # Helpers --------------------------------------------------------------
+
+        def normalize_doublet_name(doublet_raw: str) -> str:
+            doublet_raw = (doublet_raw or "").strip()
+            normalized = re.sub(r"\s+", "", doublet_raw.lower())
+            return normalized or "default"
+
+        def parse_utc_timestamp(timestamp_str: str) -> datetime:
+            timestamp_str = timestamp_str.strip()
+            if timestamp_str.endswith("Z"):
+                timestamp_str = timestamp_str[:-1] + "+00:00"
+            return datetime.fromisoformat(timestamp_str).astimezone(timezone.utc)
+
+        def series_from_tagname(component_name: str, tagname: str) -> pd.Series:
+            if not tagname:
+                return pd.Series(dtype="float64")
+            self.select_unit(component_name)
+            values, datestamps = self.get_data(tagname)
+            if values is None or datestamps is None:
+                return pd.Series(dtype="float64")
+            if len(values) == 0 or len(values) != len(datestamps):
+                return pd.Series(dtype="float64")
+
+            time_index = pd.to_datetime(
+                [parse_utc_timestamp(ts) for ts in datestamps],
+                utc=True,
+            )
+            series = pd.Series(list(values), index=time_index)
+            series = pd.to_numeric(series, errors="coerce")
+            series = series[~series.index.duplicated(keep="last")].sort_index()
+            return series
+
+        # Group rows by normalized doublet -------------------------------------
+
+        doublet_groups = {}
+        for row in rows_section2 or []:
+            raw_doublet = row.get("doublet") or "default"
+            norm_doublet = normalize_doublet_name(raw_doublet)
+            if norm_doublet not in doublet_groups:
+                doublet_groups[norm_doublet] = {
+                    "label": raw_doublet,
+                    "rows": [],
+                }
+            doublet_groups[norm_doublet]["rows"].append(row)
+
+        result_rows = []
+
+        # Process each doublet group -------------------------------------------
+
+        for norm_doublet, group_data in doublet_groups.items():
+            group_label = group_data["label"] or norm_doublet
+            group_rows = group_data["rows"]
+
+            # 1) Total heat (tot_heat_MJ) -------------------------------------
+            total_heat_J = 0.0
+            density_kg_per_m3 = 1000.0
+            heat_capacity_J_per_kgK = 4186.0
+
+            hex_rows = [
+                row
+                for row in group_rows
+                if row.get("nlog_parameter") == "tot_heat_MJ"
+                and row.get("component_type") == "heat_exchanger"
+            ]
+
+            hex_param_map = {}
+            for row in hex_rows:
+                hex_name = row["component_name"]
+                parameter_name = row["parameter"]
+                tagname = row["tagname"]
+                hex_param_map.setdefault(hex_name, {})[parameter_name] = tagname
+
+            for hex_name, param_tags in hex_param_map.items():
+                tag_flow = param_tags.get("tot_heat_MJ_flow", "")
+                tag_temp_inlet = param_tags.get("tot_heat_MJ_inlet_temp", "")
+                tag_temp_outlet = param_tags.get("tot_heat_MJ_outlet_temp", "")
+
+                series_flow = series_from_tagname(hex_name, tag_flow)
+                series_temp_inlet = series_from_tagname(hex_name, tag_temp_inlet)
+                series_temp_outlet = series_from_tagname(hex_name, tag_temp_outlet)
+
+                if series_flow.empty or series_temp_inlet.empty or series_temp_outlet.empty:
+                    continue
+
+                union_index = (
+                    series_flow.index.union(series_temp_inlet.index)
+                    .union(series_temp_outlet.index)
+                    .sort_values()
+                )
+
+                df_hex = pd.DataFrame(
+                    {
+                        "flow_m3h": series_flow.reindex(union_index),
+                        "temp_in_C": series_temp_inlet.reindex(union_index),
+                        "temp_out_C": series_temp_outlet.reindex(union_index),
+                    },
+                    index=union_index,
+                ).interpolate(method="time", limit_direction="both")
+
+                time_index = df_hex.index
+                for interval_index in range(len(df_hex) - 1):
+                    time_start = time_index[interval_index]
+                    time_end = time_index[interval_index + 1]
+                    delta_seconds = (time_end - time_start).total_seconds()
+                    if delta_seconds <= 0:
+                        continue
+
+                    flow_start, flow_end = (
+                        df_hex.iloc[interval_index]["flow_m3h"],
+                        df_hex.iloc[interval_index + 1]["flow_m3h"],
+                    )
+                    temp_in_start, temp_in_end = (
+                        df_hex.iloc[interval_index]["temp_in_C"],
+                        df_hex.iloc[interval_index + 1]["temp_in_C"],
+                    )
+                    temp_out_start, temp_out_end = (
+                        df_hex.iloc[interval_index]["temp_out_C"],
+                        df_hex.iloc[interval_index + 1]["temp_out_C"],
+                    )
+
+                    if (
+                        pd.isna(flow_start)
+                        or pd.isna(flow_end)
+                        or pd.isna(temp_in_start)
+                        or pd.isna(temp_in_end)
+                        or pd.isna(temp_out_start)
+                        or pd.isna(temp_out_end)
+                    ):
+                        continue
+
+                    flow_avg_m3h = 0.5 * (float(flow_start) + float(flow_end))
+                    temp_in_avg = 0.5 * (float(temp_in_start) + float(temp_in_end))
+                    temp_out_avg = 0.5 * (float(temp_out_start) + float(temp_out_end))
+
+                    delta_temperature_K = temp_out_avg - temp_in_avg
+                    mass_flow_kg_per_s = (flow_avg_m3h * density_kg_per_m3) / 3600.0
+                    energy_J = (
+                        mass_flow_kg_per_s
+                        * heat_capacity_J_per_kgK
+                        * delta_temperature_K
+                        * delta_seconds
+                    )
+                    total_heat_J += energy_J
+
+            total_heat_MJ = total_heat_J / 1_000_000.0
+
+            # 2) Total operating hours (tot_oper_hours) ------------------------
+
+            flow_threshold_m3_per_h = 1.0
+            total_operating_hours = 0.0
+
+            oper_rows = [row for row in group_rows if row.get("nlog_parameter") == "tot_oper_hours"]
+
+            for row in oper_rows:
+                well_name = row["component_name"]
+                tag_flow = row["tagname"]
+
+                series_flow = series_from_tagname(well_name, tag_flow)
+                if series_flow.empty:
+                    continue
+
+                series_flow = series_flow.reindex(series_flow.index.sort_values())
+                series_flow = series_flow.interpolate(method="time", limit_direction="both")
+
+                time_index = series_flow.index
+                for interval_index in range(len(series_flow) - 1):
+                    time_start = time_index[interval_index]
+                    time_end = time_index[interval_index + 1]
+                    delta_seconds = (time_end - time_start).total_seconds()
+                    if delta_seconds <= 0:
+                        continue
+
+                    flow_start = series_flow.iloc[interval_index]
+                    flow_end = series_flow.iloc[interval_index + 1]
+                    if pd.isna(flow_start) or pd.isna(flow_end):
+                        continue
+
+                    flow_avg = 0.5 * (float(flow_start) + float(flow_end))
+                    if flow_avg > flow_threshold_m3_per_h:
+                        total_operating_hours += delta_seconds / 3600.0
+
+            # 3) Total electric consumption (tot_el_cons_KWh) ------------------
+
+            electric_rows = [
+                row
+                for row in group_rows
+                if row.get("nlog_parameter") == "tot_el_cons_KWh"
+                and row.get("component_type") in ("esp", "injection_pump", "booster_pump")
+            ]
+
+            component_param_map = {}
+            for row in electric_rows:
+                component_name = row["component_name"]
+                parameter_name = row["parameter"]
+                tagname = row["tagname"]
+                component_param_map.setdefault(component_name, {})[parameter_name] = tagname
+
+            total_energy_Wh = 0.0
+            power_factor = 1.0
+            use_sqrt3 = False
+            sqrt3_value = sqrt(3.0)
+
+            for component_name, param_tags in component_param_map.items():
+                tag_power = param_tags.get(
+                    "tot_el_cons_KWh_power", ""
+                )  # expected power_consumption tag (cumulative kWh)
+                tag_current = param_tags.get("tot_el_cons_KWh_current", "")  # expected current tag
+                tag_voltage = param_tags.get("tot_el_cons_KWh_voltage", "")  # expected voltage tag
+
+                # Preferred: direct power consumption tag (cumulative energy meter in kWh)
+                series_power = series_from_tagname(component_name, tag_power)
+                if not series_power.empty:
+                    series_power = series_power.reindex(series_power.index.sort_values())
+                    series_power = series_power.interpolate(method="time", limit_direction="both")
+
+                    # Power consumption data is cumulative energy (kWh), not instantaneous power
+                    # Calculate final_reading_kWh - initial_reading_kWh,
+                    # then convert to Wh for accumulation.
+                    if len(series_power) >= 2:
+                        energy_start_kWh = float(series_power.iloc[0])
+                        energy_end_kWh = float(series_power.iloc[-1])
+                        if not pd.isna(energy_start_kWh) and not pd.isna(energy_end_kWh):
+                            total_energy_Wh += (energy_end_kWh - energy_start_kWh) * 1000.0
+
+                    continue  # do not fall back if power series is available
+
+                # Fallback: power = voltage * current
+                series_current = series_from_tagname(component_name, tag_current)
+                series_voltage = series_from_tagname(component_name, tag_voltage)
+                if series_current.empty or series_voltage.empty:
+                    continue
+
+                union_index = series_current.index.union(series_voltage.index).sort_values()
+                df_power = pd.DataFrame(
+                    {
+                        "current": series_current.reindex(union_index),
+                        "voltage": series_voltage.reindex(union_index),
+                    },
+                    index=union_index,
+                ).interpolate(method="time", limit_direction="both")
+
+                time_index = df_power.index
+                for interval_index in range(len(df_power) - 1):
+                    time_start = time_index[interval_index]
+                    time_end = time_index[interval_index + 1]
+                    delta_seconds = (time_end - time_start).total_seconds()
+                    if delta_seconds <= 0:
+                        continue
+
+                    current_start = df_power.iloc[interval_index]["current"]
+                    current_end = df_power.iloc[interval_index + 1]["current"]
+                    voltage_start = df_power.iloc[interval_index]["voltage"]
+                    voltage_end = df_power.iloc[interval_index + 1]["voltage"]
+
+                    if (
+                        pd.isna(current_start)
+                        or pd.isna(current_end)
+                        or pd.isna(voltage_start)
+                        or pd.isna(voltage_end)
+                    ):
+                        continue
+
+                    current_avg = 0.5 * (float(current_start) + float(current_end))
+                    voltage_avg = 0.5 * (float(voltage_start) + float(voltage_end))
+
+                    power_W = voltage_avg * current_avg * float(power_factor)
+                    if use_sqrt3:
+                        power_W *= sqrt3_value
+
+                    delta_hours = delta_seconds / 3600.0
+                    total_energy_Wh += power_W * delta_hours
+
+            total_energy_kWh = total_energy_Wh / 1000.0
+
+            result_rows.append(
+                {
+                    "doublet": group_label,
+                    "tot_heat_MJ": total_heat_MJ,
+                    "tot_oper_hours": total_operating_hours,
+                    "tot_el_cons_KWh": total_energy_kWh,
+                }
+            )
+
+        section2_param_order = ["tot_heat_MJ", "tot_oper_hours", "tot_el_cons_KWh"]
+        dataframe = pd.DataFrame(
+            result_rows,
+            columns=["doublet"] + section2_param_order,
+        )
+        for parameter in section2_param_order:
+            if parameter not in enabled_nlog_parameters:
+                dataframe[parameter] = None
+        return dataframe
+
+    def add_nlog_data(
+        self,
+        LicenseHolder,
+        NlogPeriod,
+        df_prod,
+        df_inj,
+        table3_df,
+    ):
         """Load the NLOG EXCEL template and writes the data."""
         # Build template path
         if not hasattr(self, "project_path") or not self.project_path:
@@ -1120,15 +1966,77 @@ class ReportGenerator(ApplicationAbstract):
                 for c_idx, value in enumerate(row_vals, start=0):
                     ws.cell(row=start_row + r_idx, column=start_col + c_idx).value = value
 
-        # df_prod -> A9 (unchanged)
-        _write_df_at("A9", df_prod)
+        # --------------------------------------------------------------------------------------------
+        # Write df_prod and df_inj with shared well_name column A and shading rules
+        # --------------------------------------------------------------------------------------------
+        from openpyxl.styles import PatternFill
 
-        # df_inj -> skip first row, start at M9
+        gray_fill = PatternFill(fill_type="solid", fgColor="D9D9D9")
+
+        start_row = 9
+
+        # Column index helpers
+        COL_A = 1
+        COL_B = 2
+        COL_J = column_index_from_string("J")  # prod data B-J
+        COL_M = column_index_from_string("M")  # inj data M-Q
+        COL_Q = column_index_from_string("Q")
+
+        current_row = start_row
+
+        # --- Production rows ---
+        if df_prod is not None and not df_prod.empty:
+            prod_cols = list(df_prod.columns)
+            if "well_name" not in prod_cols:
+                raise ValueError("df_prod must contain a 'well_name' column.")
+
+            prod_other_cols = [c for c in prod_cols if c != "well_name"]
+
+            for _, r in df_prod.iterrows():
+                # Well name in column A
+                ws.cell(row=current_row, column=COL_A).value = r["well_name"]
+
+                # Remaining prod columns start at B (write across)
+                for i, col_name in enumerate(prod_other_cols):
+                    target_col = COL_B + i
+                    if target_col > COL_J:
+                        break
+                    ws.cell(row=current_row, column=target_col).value = r[col_name]
+
+                # Shade injection area (M-Q) gray for this production row
+                for c in range(COL_M, COL_Q + 1):
+                    ws.cell(row=current_row, column=c).fill = gray_fill
+
+                current_row += 1
+
+        # --- Injection rows ---
         if df_inj is not None and not df_inj.empty:
-            df_inj_trimmed = df_inj.drop(columns=["well_name"])
-            _write_df_at("M9", df_inj_trimmed)
+            inj_cols = list(df_inj.columns)
+            if "well_name" not in inj_cols:
+                raise ValueError("df_inj must contain a 'well_name' column.")
 
+            inj_other_cols = [c for c in inj_cols if c != "well_name"]
+
+            for _, r in df_inj.iterrows():
+                # Well name in column A
+                ws.cell(row=current_row, column=COL_A).value = r["well_name"]
+
+                # Remaining inj columns start at M (write across)
+                for i, col_name in enumerate(inj_other_cols):
+                    target_col = COL_M + i
+                    if target_col > COL_Q:
+                        break
+                    ws.cell(row=current_row, column=target_col).value = r[col_name]
+
+                # Shade production area (B-J) gray for this injection row
+                for c in range(COL_B, COL_J + 1):
+                    ws.cell(row=current_row, column=c).fill = gray_fill
+
+                current_row += 1
+
+        # --------------------------------------------------------------------------------------------
         # Add Mining work table data
+        # --------------------------------------------------------------------------------------------
         _write_df_at("A28", table3_df)
 
         return wb
@@ -1187,328 +2095,323 @@ class ReportGenerator(ApplicationAbstract):
 
         return table_data
 
-    def calculate_total_heat_extracted_MJ(self, hex_data):
-        """Calculate the total heat extracted from heat exchanger measured data."""
-        rho_kg_m3 = 1000.0
-        cp_J_kgK = 4186.0
+    # def calculate_total_heat_extracted_MJ(self, hex_data):
+    #     """Calculate the total heat extracted from heat exchanger measured data."""
+    #     rho_kg_m3 = 1000.0
+    #     cp_J_kgK = 4186.0
+    #
+    #     def _parse_utc(ts: str) -> datetime:
+    #         # Handles '...Z' and also already-offset strings.
+    #         ts = ts.strip()
+    #         if ts.endswith("Z"):
+    #             ts = ts[:-1] + "+00:00"
+    #         return datetime.fromisoformat(ts).astimezone(timezone.utc)
+    #
+    #     def _series_from(signal):
+    #         vals = signal.get("values", []) or []
+    #         dts = signal.get("datestamps", []) or []
+    #         if len(vals) != len(dts) or len(vals) == 0:
+    #             return pd.Series(dtype="float64")
+    #
+    #         idx = pd.to_datetime([_parse_utc(t) for t in dts], utc=True)
+    #         s = pd.Series(list(vals), index=idx)
+    #
+    #         # Convert to numeric; non-numeric -> NaN
+    #         s = pd.to_numeric(s, errors="coerce")
+    #
+    #         # If duplicates exist, keep the last reading per timestamp
+    #         s = s[~s.index.duplicated(keep="last")].sort_index()
+    #         return s
+    #
+    #     total_J = 0.0
+    #
+    #     for key, hx in (hex_data or {}).items():
+    #         if "heat_exchanger" not in str(key):
+    #             continue
+    #         if not isinstance(hx, dict):
+    #             continue
+    #
+    #         # If you want to enforce status, uncomment:
+    #         # if hx.get("status") not in ("loaded", "ok", True):
+    #         #     continue
+    #
+    #         flow_s = _series_from(hx.get("hex_secondary_flow", {}))
+    #         tin_s = _series_from(hx.get("hex_secondary_inlet_temperature", {}))
+    #         tout_s = _series_from(hx.get("hex_secondary_outlet_temperature", {}))
+    #
+    #         if flow_s.empty or tin_s.empty or tout_s.empty:
+    #             continue
+    #
+    #         # Union of timestamps across signals
+    #         union_index = flow_s.index.union(tin_s.index).union(tout_s.index).sort_values()
+    #
+    #         df = pd.DataFrame(
+    #             {
+    #                 "flow_m3h": flow_s.reindex(union_index),
+    #                 "tin_C": tin_s.reindex(union_index),
+    #                 "tout_C": tout_s.reindex(union_index),
+    #             },
+    #             index=union_index,
+    #         )
+    #
+    #         # Interpolate in time (linear), consistent with "average between measured values"
+    #         df = df.interpolate(method="time", limit_direction="both")
+    #
+    #         # Compute interval energy using average of endpoints (trapezoid)
+    #         t = df.index
+    #         for i in range(len(df) - 1):
+    #             t0 = t[i]
+    #             t1 = t[i + 1]
+    #             dt_s = (t1 - t0).total_seconds()
+    #             if dt_s <= 0:
+    #                 continue
+    #
+    #             f0, f1 = df.iloc[i]["flow_m3h"], df.iloc[i + 1]["flow_m3h"]
+    #             ti0, ti1 = df.iloc[i]["tin_C"], df.iloc[i + 1]["tin_C"]
+    #             to0, to1 = df.iloc[i]["tout_C"], df.iloc[i + 1]["tout_C"]
+    #
+    #             # Skip intervals with NaN
+    #             if (
+    #                     pd.isna(f0)
+    #                     or pd.isna(f1)
+    #                     or pd.isna(ti0)
+    #                     or pd.isna(ti1)
+    #                     or pd.isna(to0)
+    #                     or pd.isna(to1)
+    #             ):
+    #                 continue
+    #
+    #             flow_avg_m3h = 0.5 * (float(f0) + float(f1))
+    #             tin_avg = 0.5 * (float(ti0) + float(ti1))
+    #             tout_avg = 0.5 * (float(to0) + float(to1))
+    #
+    #             dT_K = tout_avg - tin_avg
+    #             # If you want to ignore negative extraction, uncomment:
+    #             # if dT_K <= 0:
+    #             #     continue
+    #
+    #             m_dot_kg_s = (flow_avg_m3h * rho_kg_m3) / 3600.0
+    #             Q_J = m_dot_kg_s * cp_J_kgK * dT_K * dt_s
+    #             total_J += Q_J
+    #
+    #     return total_J / 1_000_000.0  # MJ
 
-        def _parse_utc(ts: str) -> datetime:
-            # Handles '...Z' and also already-offset strings.
-            ts = ts.strip()
-            if ts.endswith("Z"):
-                ts = ts[:-1] + "+00:00"
-            return datetime.fromisoformat(ts).astimezone(timezone.utc)
-
-        def _series_from(signal):
-            vals = signal.get("values", []) or []
-            dts = signal.get("datestamps", []) or []
-            if len(vals) != len(dts) or len(vals) == 0:
-                return pd.Series(dtype="float64")
-
-            idx = pd.to_datetime([_parse_utc(t) for t in dts], utc=True)
-            s = pd.Series(list(vals), index=idx)
-
-            # Convert to numeric; non-numeric -> NaN
-            s = pd.to_numeric(s, errors="coerce")
-
-            # If duplicates exist, keep the last reading per timestamp
-            s = s[~s.index.duplicated(keep="last")].sort_index()
-            return s
-
-        total_J = 0.0
-
-        for key, hx in (hex_data or {}).items():
-            if "heat_exchanger" not in str(key):
-                continue
-            if not isinstance(hx, dict):
-                continue
-
-            # If you want to enforce status, uncomment:
-            # if hx.get("status") not in ("loaded", "ok", True):
-            #     continue
-
-            flow_s = _series_from(hx.get("hex_secondary_flow", {}))
-            tin_s = _series_from(hx.get("hex_secondary_inlet_temperature", {}))
-            tout_s = _series_from(hx.get("hex_secondary_outlet_temperature", {}))
-
-            if flow_s.empty or tin_s.empty or tout_s.empty:
-                continue
-
-            # Union of timestamps across signals
-            union_index = flow_s.index.union(tin_s.index).union(tout_s.index).sort_values()
-
-            df = pd.DataFrame(
-                {
-                    "flow_m3h": flow_s.reindex(union_index),
-                    "tin_C": tin_s.reindex(union_index),
-                    "tout_C": tout_s.reindex(union_index),
-                },
-                index=union_index,
-            )
-
-            # Interpolate in time (linear), consistent with "average between measured values"
-            df = df.interpolate(method="time", limit_direction="both")
-
-            # Compute interval energy using average of endpoints (trapezoid)
-            t = df.index
-            for i in range(len(df) - 1):
-                t0 = t[i]
-                t1 = t[i + 1]
-                dt_s = (t1 - t0).total_seconds()
-                if dt_s <= 0:
-                    continue
-
-                f0, f1 = df.iloc[i]["flow_m3h"], df.iloc[i + 1]["flow_m3h"]
-                ti0, ti1 = df.iloc[i]["tin_C"], df.iloc[i + 1]["tin_C"]
-                to0, to1 = df.iloc[i]["tout_C"], df.iloc[i + 1]["tout_C"]
-
-                # Skip intervals with NaN
-                if (
-                    pd.isna(f0)
-                    or pd.isna(f1)
-                    or pd.isna(ti0)
-                    or pd.isna(ti1)
-                    or pd.isna(to0)
-                    or pd.isna(to1)
-                ):
-                    continue
-
-                flow_avg_m3h = 0.5 * (float(f0) + float(f1))
-                tin_avg = 0.5 * (float(ti0) + float(ti1))
-                tout_avg = 0.5 * (float(to0) + float(to1))
-
-                dT_K = tout_avg - tin_avg
-                # If you want to ignore negative extraction, uncomment:
-                # if dT_K <= 0:
-                #     continue
-
-                m_dot_kg_s = (flow_avg_m3h * rho_kg_m3) / 3600.0
-                Q_J = m_dot_kg_s * cp_J_kgK * dT_K * dt_s
-                total_J += Q_J
-
-        return total_J / 1_000_000.0  # MJ
-
-    def calculate_esp_operational_hours_and_kwh(self, esp_data):
-        """Calculate the total number of operational hours and the total power consumption."""
-        current_threshold = 2.0
-        power_factor = 1.0
-        include_sqrt3 = False
-
-        def _parse_utc(ts):
-            ts = ts.strip()
-            if ts.endswith("Z"):
-                ts = ts[:-1] + "+00:00"
-            return datetime.fromisoformat(ts).astimezone(timezone.utc)
-
-        def _series_from(signal):
-            vals = signal.get("values", []) or []
-            dts = signal.get("datestamps", []) or []
-            if len(vals) == 0 or len(vals) != len(dts):
-                return pd.Series(dtype="float64")
-
-            idx = pd.to_datetime([_parse_utc(t) for t in dts], utc=True)
-            s = pd.Series(list(vals), index=idx)
-            s = pd.to_numeric(s, errors="coerce")
-            s = s[~s.index.duplicated(keep="last")].sort_index()
-            return s
-
-        if not esp_data:
-            return 0.0, 0.0
-
-        esp_keys = [k for k in esp_data.keys() if str(k).startswith("esp_")]
-        if not esp_keys:
-            return 0.0, 0.0
-
-        total_running_hours_all_esps = 0.0
-        total_energy_Wh_all_esps = 0.0
-
-        sqrt3 = sqrt(3.0)
-
-        for esp_key in esp_keys:
-            esp = esp_data.get(esp_key, {})
-            if not isinstance(esp, dict):
-                continue
-
-            esp_current = _series_from(esp.get("esp_current", {}))
-            esp_voltage = _series_from(esp.get("esp_voltage", {}))
-
-            if esp_current.empty or esp_voltage.empty:
-                continue
-
-            # Align on union of timestamps and interpolate in time
-            idx = esp_current.index.union(esp_voltage.index).sort_values()
-            df = pd.DataFrame(
-                {"esp_current": esp_current.reindex(idx), "esp_voltage": esp_voltage.reindex(idx)},
-                index=idx,
-            )
-            df = df.interpolate(method="time", limit_direction="both")
-
-            # Integrate over intervals
-            for i in range(len(df) - 1):
-                t0, t1 = df.index[i], df.index[i + 1]
-                dt_s = (t1 - t0).total_seconds()
-                if dt_s <= 0:
-                    continue
-
-                I0, I1 = df.iloc[i]["esp_current"], df.iloc[i + 1]["esp_current"]
-                V0, V1 = df.iloc[i]["esp_voltage"], df.iloc[i + 1]["esp_voltage"]
-                if pd.isna(I0) or pd.isna(I1) or pd.isna(V0) or pd.isna(V1):
-                    continue
-
-                I_avg = 0.5 * (float(I0) + float(I1))
-                V_avg = 0.5 * (float(V0) + float(V1))
-
-                dt_h = dt_s / 3600.0
-
-                # Running time rule
-                if I_avg >= current_threshold:
-                    total_running_hours_all_esps += dt_h
-
-                # Power + energy
-                P_W = V_avg * I_avg * float(power_factor)
-                if include_sqrt3:
-                    P_W *= sqrt3
-
-                total_energy_Wh_all_esps += P_W * dt_h  # W * h = Wh
-
-        num_esps = len(esp_keys)
-        operational_hours = total_running_hours_all_esps / num_esps if num_esps > 0 else 0.0
-        electricity_consumption_kWh = total_energy_Wh_all_esps / 1000.0
-
-        return operational_hours, electricity_consumption_kWh
+    # def calculate_esp_operational_hours_and_kwh(self, esp_data):
+    #     """Calculate the total number of operational hours and the total power consumption."""
+    #     current_threshold = 2.0
+    #     power_factor = 1.0
+    #     include_sqrt3 = False
+    #
+    #     def _parse_utc(ts):
+    #         ts = ts.strip()
+    #         if ts.endswith("Z"):
+    #             ts = ts[:-1] + "+00:00"
+    #         return datetime.fromisoformat(ts).astimezone(timezone.utc)
+    #
+    #     def _series_from(signal):
+    #         vals = signal.get("values", []) or []
+    #         dts = signal.get("datestamps", []) or []
+    #         if len(vals) == 0 or len(vals) != len(dts):
+    #             return pd.Series(dtype="float64")
+    #
+    #         idx = pd.to_datetime([_parse_utc(t) for t in dts], utc=True)
+    #         s = pd.Series(list(vals), index=idx)
+    #         s = pd.to_numeric(s, errors="coerce")
+    #         s = s[~s.index.duplicated(keep="last")].sort_index()
+    #         return s
+    #
+    #     if not esp_data:
+    #         return 0.0, 0.0
+    #
+    #     esp_keys = [k for k in esp_data.keys() if str(k).startswith("esp_")]
+    #     if not esp_keys:
+    #         return 0.0, 0.0
+    #
+    #     total_running_hours_all_esps = 0.0
+    #     total_energy_Wh_all_esps = 0.0
+    #
+    #     sqrt3 = sqrt(3.0)
+    #
+    #     for esp_key in esp_keys:
+    #         esp = esp_data.get(esp_key, {})
+    #         if not isinstance(esp, dict):
+    #             continue
+    #
+    #         esp_current = _series_from(esp.get("esp_current", {}))
+    #         esp_voltage = _series_from(esp.get("esp_voltage", {}))
+    #
+    #         if esp_current.empty or esp_voltage.empty:
+    #             continue
+    #
+    #         # Align on union of timestamps and interpolate in time
+    #         idx = esp_current.index.union(esp_voltage.index).sort_values()
+    #         df = pd.DataFrame(
+    #             {
+    #                 "esp_current": esp_current.reindex(idx),
+    #                 "esp_voltage": esp_voltage.reindex(idx),
+    #             },
+    #             index=idx,
+    #         )
+    #         df = df.interpolate(method="time", limit_direction="both")
+    #
+    #         # Integrate over intervals
+    #         for i in range(len(df) - 1):
+    #             t0, t1 = df.index[i], df.index[i + 1]
+    #             dt_s = (t1 - t0).total_seconds()
+    #             if dt_s <= 0:
+    #                 continue
+    #
+    #             I0, I1 = df.iloc[i]["esp_current"], df.iloc[i + 1]["esp_current"]
+    #             V0, V1 = df.iloc[i]["esp_voltage"], df.iloc[i + 1]["esp_voltage"]
+    #             if pd.isna(I0) or pd.isna(I1) or pd.isna(V0) or pd.isna(V1):
+    #                 continue
+    #
+    #             I_avg = 0.5 * (float(I0) + float(I1))
+    #             V_avg = 0.5 * (float(V0) + float(V1))
+    #
+    #             dt_h = dt_s / 3600.0
+    #
+    #             # Running time rule
+    #             if I_avg >= current_threshold:
+    #                 total_running_hours_all_esps += dt_h
+    #
+    #             # Power + energy
+    #             P_W = V_avg * I_avg * float(power_factor)
+    #             if include_sqrt3:
+    #                 P_W *= sqrt3
+    #
+    #             total_energy_Wh_all_esps += P_W * dt_h  # W * h = Wh
+    #
+    #     num_esps = len(esp_keys)
+    #     operational_hours = total_running_hours_all_esps / num_esps if num_esps > 0 else 0.0
+    #     electricity_consumption_kWh = total_energy_Wh_all_esps / 1000.0
+    #
+    #     return operational_hours, electricity_consumption_kWh
 
     def add_nlog_report(
-        self,
-        LicenseHolder,
-        NlogPeriod,
-        inj_wells,
-        prod_wells,
-        esps,
-        hexs,
-        prod_table_tagnames,
-        inj_table_tagnames,
-        esp_tagnames,
-        hex_tagnames,
+        self, LicenseHolder, NlogPeriod, data_section1A, data_section1B, data_section2
     ):
         """Prepare NLOG report data and return Excel file as BytesIO."""
-        prod_table_data = self.get_unit_data(
-            prod_wells, prod_table_tagnames, use_plant_units_fallback=False
-        )
-        inj_table_data = self.get_unit_data(
-            inj_wells, inj_table_tagnames, use_plant_units_fallback=True
-        )
-        hex_data = self.get_unit_data(hexs, hex_tagnames, use_plant_units_fallback=True)
-        esp_data = self.get_unit_data(esps, esp_tagnames, use_plant_units_fallback=True)
+        # prod_table_data = self.get_unit_data(
+        #     prod_wells, prod_table_tagnames, use_plant_units_fallback=False
+        # )
+        # inj_table_data = self.get_unit_data(
+        #     inj_wells, inj_table_tagnames, use_plant_units_fallback=True
+        # )
+        # hex_data = self.get_unit_data(hexs, hex_tagnames, use_plant_units_fallback=True)
+        # esp_data = self.get_unit_data(esps, esp_tagnames, use_plant_units_fallback=True)
 
         # ------------------------------------------------------------------------------------------------
         #                                   Prepare DataFrames
         # ------------------------------------------------------------------------------------------------
-        prod_table_rows = []
-        for well_name in prod_wells:
-            row = {"well_name": well_name}
+        # prod_table_rows = []
+        # for well_name in prod_wells:
+        #     row = {"well_name": well_name}
 
-            # Water production volume
-            if prod_table_data[well_name]["water_prod_volume"]["status"] == "loaded":
-                total_volume, _ = self.calculate_total_volume(
-                    prod_table_data[well_name]["water_prod_volume"]["datestamps"],
-                    prod_table_data[well_name]["water_prod_volume"]["values"],
-                )
-                row["water_prod_volume"] = total_volume
-            else:
-                row["water_prod_volume"] = "No data found"
-
-            # Production pressure average
-            if prod_table_data[well_name]["prod_pressure_avg"]["status"] == "loaded":
-                _, volume_intervals = self.calculate_total_volume(
-                    prod_table_data[well_name]["water_prod_volume"]["datestamps"],
-                    prod_table_data[well_name]["water_prod_volume"]["values"],
-                )
-                row["prod_pressure_avg"] = self.weighted_average_value_with_volume(
-                    prod_table_data[well_name]["prod_pressure_avg"]["values"],
-                    prod_table_data[well_name]["prod_pressure_avg"]["datestamps"],
-                    volume_intervals,
-                )
-            else:
-                row["prod_pressure_avg"] = "No data found"
-
-            # Production pressure min
-            values = prod_table_data[well_name]["prod_pressure_avg"]["values"]
-            row["prod_pressure_min"] = (
-                min(v for v in values if v is not None) if values else "No data found"
-            )
-
-            # Well pressure average
-            if prod_table_data[well_name]["well_pressure_avg"]["status"] == "loaded":
-                _, volume_intervals = self.calculate_total_volume(
-                    prod_table_data[well_name]["water_prod_volume"]["datestamps"],
-                    prod_table_data[well_name]["water_prod_volume"]["values"],
-                )
-                row["well_pressure_avg"] = self.weighted_average_value_with_volume(
-                    prod_table_data[well_name]["well_pressure_avg"]["values"],
-                    prod_table_data[well_name]["well_pressure_avg"]["datestamps"],
-                    volume_intervals,
-                )
-            else:
-                row["well_pressure_avg"] = "No data found"
-
-            prod_table_rows.append(row)
-
-        inj_table_rows = []
-        for well_name in inj_wells:
-            row = {"well_name": well_name}
-
-            if inj_table_data[well_name]["water_inj_volume"]["status"] == "loaded":
-                total_volume, _ = self.calculate_total_volume(
-                    inj_table_data[well_name]["water_inj_volume"]["datestamps"],
-                    inj_table_data[well_name]["water_inj_volume"]["values"],
-                )
-                row["water_inj_volume"] = total_volume
-            else:
-                row["water_inj_volume"] = "No data found"
-
-            if inj_table_data[well_name]["inj_temperature_avg"]["status"] == "loaded":
-                _, volume_intervals = self.calculate_total_volume(
-                    inj_table_data[well_name]["water_inj_volume"]["datestamps"],
-                    inj_table_data[well_name]["water_inj_volume"]["values"],
-                )
-                row["inj_temperature_avg"] = self.weighted_average_value_with_volume(
-                    inj_table_data[well_name]["inj_temperature_avg"]["values"],
-                    inj_table_data[well_name]["inj_temperature_avg"]["datestamps"],
-                    volume_intervals,
-                )
-            else:
-                row["inj_temperature_avg"] = "No data found"
-
-            if inj_table_data[well_name]["inj_pump_pressure_avg"]["status"] == "loaded":
-                values = inj_table_data[well_name]["inj_pump_pressure_avg"]["values"]
-                row["inj_pump_pressure_avg"] = sum(values) / len(values)
-                row["inj_pump_pressure_max"] = max(v for v in values if v is not None)
-            else:
-                row["inj_pump_pressure_avg"] = "No data found"
-                row["inj_pump_pressure_max"] = "No data found"
-
-            inj_table_rows.append(row)
-
-        df_prod = pd.DataFrame(prod_table_rows)
-        df_inj = pd.DataFrame(inj_table_rows)
-
-        # Create Mining work table dataframe
-        operational_hours, electricity_consumption_kWh = (
-            self.calculate_esp_operational_hours_and_kwh(esp_data)
-        )
-        table3_dictionary = {
-            "mining_work_tile": "Doublet 1",
-            "total_extracted_heat": self.calculate_total_heat_extracted_MJ(hex_data),
-            "operational_hours": operational_hours,
-            "electricity_consumption_kWh": electricity_consumption_kWh,
-        }
-
-        table3_df = pd.DataFrame([table3_dictionary])
+        #     # Water production volume
+        #     if prod_table_data[well_name]["water_prod_volume"]["status"] == "loaded":
+        #         total_volume, _ = self.calculate_total_volume(
+        #             prod_table_data[well_name]["water_prod_volume"]["datestamps"],
+        #             prod_table_data[well_name]["water_prod_volume"]["values"],
+        #         )
+        #         row["water_prod_volume"] = total_volume
+        #     else:
+        #         row["water_prod_volume"] = "No data found"
+        #
+        #     # Production pressure average
+        #     if prod_table_data[well_name]["prod_pressure_avg"]["status"] == "loaded":
+        #         _, volume_intervals = self.calculate_total_volume(
+        #             prod_table_data[well_name]["water_prod_volume"]["datestamps"],
+        #             prod_table_data[well_name]["water_prod_volume"]["values"],
+        #         )
+        #         row["prod_pressure_avg"] = self.weighted_average_value_with_volume(
+        #             prod_table_data[well_name]["prod_pressure_avg"]["values"],
+        #             prod_table_data[well_name]["prod_pressure_avg"]["datestamps"],
+        #             volume_intervals,
+        #         )
+        #     else:
+        #         row["prod_pressure_avg"] = "No data found"
+        #
+        #     # Production pressure min
+        #     values = prod_table_data[well_name]["prod_pressure_avg"]["values"]
+        #     row["prod_pressure_min"] = (
+        #         min(v for v in values if v is not None) if values else "No data found"
+        #     )
+        #
+        #     # Well pressure average
+        #     if prod_table_data[well_name]["well_pressure_avg"]["status"] == "loaded":
+        #         _, volume_intervals = self.calculate_total_volume(
+        #             prod_table_data[well_name]["water_prod_volume"]["datestamps"],
+        #             prod_table_data[well_name]["water_prod_volume"]["values"],
+        #         )
+        #         row["well_pressure_avg"] = self.weighted_average_value_with_volume(
+        #             prod_table_data[well_name]["well_pressure_avg"]["values"],
+        #             prod_table_data[well_name]["well_pressure_avg"]["datestamps"],
+        #             volume_intervals,
+        #         )
+        #     else:
+        #         row["well_pressure_avg"] = "No data found"
+        #
+        #     prod_table_rows.append(row)
+        #
+        # inj_table_rows = []
+        # for well_name in inj_wells:
+        #     row = {"well_name": well_name}
+        #
+        #     if inj_table_data[well_name]["water_inj_volume"]["status"] == "loaded":
+        #         total_volume, _ = self.calculate_total_volume(
+        #             inj_table_data[well_name]["water_inj_volume"]["datestamps"],
+        #             inj_table_data[well_name]["water_inj_volume"]["values"],
+        #         )
+        #         row["water_inj_volume"] = total_volume
+        #     else:
+        #         row["water_inj_volume"] = "No data found"
+        #
+        #     if inj_table_data[well_name]["inj_temperature_avg"]["status"] == "loaded":
+        #         _, volume_intervals = self.calculate_total_volume(
+        #             inj_table_data[well_name]["water_inj_volume"]["datestamps"],
+        #             inj_table_data[well_name]["water_inj_volume"]["values"],
+        #         )
+        #         row["inj_temperature_avg"] = self.weighted_average_value_with_volume(
+        #             inj_table_data[well_name]["inj_temperature_avg"]["values"],
+        #             inj_table_data[well_name]["inj_temperature_avg"]["datestamps"],
+        #             volume_intervals,
+        #         )
+        #     else:
+        #         row["inj_temperature_avg"] = "No data found"
+        #
+        #     if inj_table_data[well_name]["inj_pump_pressure_avg"]["status"] == "loaded":
+        #         values = inj_table_data[well_name]["inj_pump_pressure_avg"]["values"]
+        #         row["inj_pump_pressure_avg"] = sum(values) / len(values)
+        #         row["inj_pump_pressure_max"] = max(v for v in values if v is not None)
+        #     else:
+        #         row["inj_pump_pressure_avg"] = "No data found"
+        #         row["inj_pump_pressure_max"] = "No data found"
+        #
+        #     inj_table_rows.append(row)
+        #
+        # df_prod = pd.DataFrame(prod_table_rows)
+        # df_inj = pd.DataFrame(inj_table_rows)
+        #
+        # # Create Mining work table dataframe
+        # operational_hours, electricity_consumption_kWh = (
+        #     self.calculate_esp_operational_hours_and_kwh(esp_data)
+        # )
+        # table3_dictionary = {
+        #     "mining_work_tile": "Doublet 1",
+        #     "total_extracted_heat": self.calculate_total_heat_extracted_MJ(hex_data),
+        #     "operational_hours": operational_hours,
+        #     "electricity_consumption_kWh": electricity_consumption_kWh,
+        # }
+        #
+        # table3_df = pd.DataFrame([table3_dictionary])
 
         # ------------------------------------------------------------------------------------------------
         #                                   Load & modify Excel
         # ------------------------------------------------------------------------------------------------
-        wb = self.add_nlog_data(LicenseHolder, NlogPeriod, df_prod, df_inj, table3_df)
+        wb = self.add_nlog_data(
+            LicenseHolder, NlogPeriod, data_section1A, data_section1B, data_section2
+        )
 
         # ------------------------------------------------------------------------------------------------
         #                                   Return BytesIO for download
@@ -1589,3 +2492,421 @@ class ReportGenerator(ApplicationAbstract):
 
         # Move to the beginning of the buffer
         self.pdf_buffer.seek(0)
+
+    def load_section_config(self, folder: Path, json_name: str, default_name: str) -> dict:
+        """Load section config JSON, falling back to default file if main file is missing."""
+        json_path = folder / json_name
+        default_path = folder / default_name
+
+        if json_path.exists():
+            return json.loads(json_path.read_text(encoding="utf-8"))
+
+        if default_path.exists():
+            data = json.loads(default_path.read_text(encoding="utf-8"))
+            json_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            return data
+
+        # Fallback: empty config if both files are missing
+        json_path.write_text("{}", encoding="utf-8")
+        return {}
+
+    # def rows_from_section_config(self, section_cfg: dict, component_mapping: dict) -> list:
+    #     """Build rows for all sections, handling nested section 2 structure properly."""
+    #
+    #     rows = []
+    #
+    #     for parameter, params_dict in section_cfg.items():
+    #
+    #         # -------------------------------
+    #         # CASE 1: Flat structure (Section 1)
+    #         # -------------------------------
+    #         if "unit" in params_dict:
+    #             component_type = params_dict["unit"]
+    #
+    #         else:
+    #             # -----------------------------------------
+    #             # CASE 2: Nested structure (Section 2)
+    #             # Find the in-between key that contains a unit
+    #             # -----------------------------------------
+    #             component_type = ""
+    #             for subkey, meta in params_dict.items():
+    #                 if isinstance(meta, dict) and "unit" in meta:
+    #                     component_type = meta["unit"]
+    #                     break
+    #
+    #         # Skip if no component type identified
+    #         unit_names = component_mapping.get(component_type, [])
+    #         if not unit_names:
+    #             continue
+    #
+    #         # -----------------------------------------
+    #         # SECTION 1 FLAT FORMAT
+    #         # -----------------------------------------
+    #         if "tagname" in params_dict:
+    #             tagname_value = params_dict.get("tagname", "")
+    #             for unit_name in unit_names:
+    #                 rows.append(
+    #                     {
+    #                         "component_name": unit_name,
+    #                         "component_type": component_type,
+    #                         "parameter": parameter,
+    #                         "tagname": tagname_value,
+    #                     }
+    #                 )
+    #             continue
+    #
+    #         # -----------------------------------------
+    #         # SECTION 2 NESTED FORMAT
+    #         # -----------------------------------------
+    #         for subkey, meta in params_dict.items():
+    #             if subkey == "unit":
+    #                 continue
+    #
+    #             meta = meta or {}
+    #             tagname_value = meta.get("tagname", "")
+    #
+    #             for unit_name in unit_names:
+    #                 rows.append(
+    #                     {
+    #                         "component_name": unit_name,
+    #                         "component_type": component_type,
+    #                         "parameter": subkey,
+    #                         "tagname": tagname_value,
+    #                     }
+    #                 )
+    #
+    #     return rows
+
+    def rows_from_section1_config(self, section_cfg: dict, component_mapping: dict) -> list:
+        """
+        Build rows for Section 1A / Section 1B (flat structure).
+
+        JSON format example::
+
+            {
+                "prod_pres_avg": { "tagname": "...", "unit": "production_well" }
+            }
+        """
+        rows = []
+
+        for parameter, meta in section_cfg.items():
+            if not isinstance(meta, dict):
+                continue
+
+            # Component type comes directly from the 'unit' field
+            component_type = meta.get("unit", "")
+            unit_names = component_mapping.get(component_type, [])
+            if not unit_names:
+                continue
+
+            tagname_value = meta.get("tagname", "")
+
+            for unit_name in unit_names:
+                rows.append(
+                    {
+                        "component_name": unit_name,
+                        "component_type": component_type,
+                        "parameter": parameter,
+                        "tagname": tagname_value,
+                        "enabled": True,
+                    }
+                )
+
+        return rows
+
+    def rows_from_section2_config(self, section_cfg: dict, component_mapping: dict) -> list:
+        """
+        Build rows for Section 2 (nested structure with in-between keys).
+
+        Handles:
+          - subkeys with a single unit:
+                "unit": "esp"
+          - subkeys with multiple units:
+                "unit": ["esp", "booster_pump", "injection_pump"]
+
+        Produces one row per:
+            component_type × component_instance × subkey
+        """
+        rows = []
+
+        for parameter, params_dict in section_cfg.items():
+            if not isinstance(params_dict, dict):
+                continue
+
+            # ------------------------------------------------------------------
+            # Determine all unit types referenced by this parameter
+            # They may vary per subkey, so we will handle per-subkey logic below
+            # ------------------------------------------------------------------
+
+            for subkey, meta in params_dict.items():
+                if subkey == "unit":
+                    continue
+                if not isinstance(meta, dict):
+                    continue
+
+                # Extract tagname and unit(s)
+                tagname_value = meta.get("tagname", "")
+                unit_field = meta.get("unit", "")
+
+                # Standardize into list
+                if isinstance(unit_field, str):
+                    component_types = [unit_field]
+                elif isinstance(unit_field, list):
+                    component_types = unit_field
+                else:
+                    continue  # unsupported format
+
+                # ------------------------------------------------------------------
+                # Build rows for each component_type + component instance
+                # ------------------------------------------------------------------
+                for component_type in component_types:
+
+                    # list of component names for this type
+                    unit_names = component_mapping.get(component_type, [])
+                    if not unit_names:
+                        continue
+
+                    for unit_name in unit_names:
+                        # final generated tagname
+                        if parameter == "tot_el_cons_KWh":
+                            full_tagname = f"{component_type}{tagname_value}"
+                        else:
+                            full_tagname = tagname_value
+
+                        rows.append(
+                            {
+                                "component_name": unit_name,
+                                "component_type": component_type,
+                                "nlog_parameter": parameter,
+                                "parameter": subkey,  # subkey becomes parameter
+                                "tagname": full_tagname,
+                                "doublet": "Doublet 1",
+                                "enabled": True,
+                            }
+                        )
+
+        return rows
+
+    def _load_or_create_section1_default_rows(
+        self, default_file: Path, component_mapping: dict
+    ) -> list:
+        """Load Section 1 default rows, converting legacy default config files if needed."""
+        default_data = json.loads(default_file.read_text(encoding="utf-8"))
+        if isinstance(default_data, list):
+            rows = self._ensure_nlog_enabled_default(default_data)
+        elif isinstance(default_data, dict):
+            rows = self.rows_from_section1_config(default_data, component_mapping)
+        else:
+            raise ValueError(f"Unsupported NLOG default file structure: {default_file}")
+
+        default_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+        return rows
+
+    def _load_or_create_section2_default_rows(
+        self, default_file: Path, component_mapping: dict
+    ) -> list:
+        """Load Section 2 default rows, converting legacy default config files if needed."""
+        default_data = json.loads(default_file.read_text(encoding="utf-8"))
+        if isinstance(default_data, list):
+            rows = self._ensure_nlog_enabled_default(default_data)
+        elif isinstance(default_data, dict):
+            rows = self.rows_from_section2_config(default_data, component_mapping)
+        else:
+            raise ValueError(f"Unsupported NLOG default file structure: {default_file}")
+
+        default_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+        return rows
+
+    def create_section1a_df(
+        self, folder: Path, prod_wells: list, esps: list, aquifers: list
+    ) -> pd.DataFrame:
+        """Create dataframe for section 1A (production_well, esp, aquifer)."""
+        folder.mkdir(parents=True, exist_ok=True)
+
+        target_name = "tagnames_section1A.json"
+        default_name = "tagnames_section1A_default.json"
+
+        target_file = folder / target_name
+        default_file = folder / default_name
+
+        # -----------------------------------------------------------
+        # CASE 1: Load existing section file
+        # -----------------------------------------------------------
+        if target_file.exists():
+            rows = self._ensure_nlog_enabled_default(
+                json.loads(target_file.read_text(encoding="utf-8"))
+            )
+            return pd.DataFrame(
+                rows,
+                columns=["component_name", "component_type", "parameter", "tagname", "enabled"],
+            )
+
+        # -----------------------------------------------------------
+        # CASE 2: Create section from default file
+        # -----------------------------------------------------------
+        if not default_file.exists():
+            raise FileNotFoundError(f"Default file missing: {default_file}")
+
+        component_mapping = {
+            "production_well": prod_wells,
+            "esp": esps,
+            "aquifer": aquifers,
+        }
+
+        rows = self._load_or_create_section1_default_rows(default_file, component_mapping)
+
+        # Save default rows to the user-editable settings file
+        target_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+        return pd.DataFrame(
+            rows, columns=["component_name", "component_type", "parameter", "tagname", "enabled"]
+        )
+
+    def create_section1b_df(
+        self, folder: Path, inj_wells: list, hexs: list, injection_pumps: list
+    ) -> pd.DataFrame:
+        """Create dataframe for section 1B (injection_well, heat_exchanger, injection_pump)."""
+        folder.mkdir(parents=True, exist_ok=True)
+
+        target_name = "tagnames_section1B.json"
+        default_name = "tagnames_section1B_default.json"
+
+        target_file = folder / target_name
+        default_file = folder / default_name
+
+        # ---------- Case 1: file already exists -> load rows ----------
+        if target_file.exists():
+            rows = self._ensure_nlog_enabled_default(
+                json.loads(target_file.read_text(encoding="utf-8"))
+            )
+            return pd.DataFrame(
+                rows,
+                columns=["component_name", "component_type", "parameter", "tagname", "enabled"],
+            )
+
+        # ---------- Case 2: file missing -> create from default ----------
+        if not default_file.exists():
+            raise FileNotFoundError(f"Default file missing: {default_file}")
+
+        component_mapping = {
+            "injection_well": inj_wells,
+            "heat_exchanger": hexs,
+            "injection_pump": injection_pumps,
+        }
+
+        rows = self._load_or_create_section1_default_rows(default_file, component_mapping)
+
+        # Save default rows to the user-editable settings file
+        target_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+        return pd.DataFrame(
+            rows,
+            columns=["component_name", "component_type", "parameter", "tagname", "enabled"],
+        )
+
+    def create_section2_df(
+        self,
+        folder: Path,
+        prod_wells: list,
+        hexs: list,
+        esps: list,
+        booster_pumps: list,
+        injection_pumps: list,
+    ) -> pd.DataFrame:
+        """Create dataframe for section 2.
+
+        Covers production wells, heat exchangers, ESPs, booster pumps,
+        and injection pumps.
+        """
+        folder.mkdir(parents=True, exist_ok=True)
+
+        target_name = "tagnames_section2.json"
+        default_name = "tagnames_section2_default.json"
+
+        target_file = folder / target_name
+        default_file = folder / default_name
+
+        # ---------- Case 1: file already exists -> load rows ----------
+        if target_file.exists():
+            rows = self._ensure_nlog_enabled_default(
+                json.loads(target_file.read_text(encoding="utf-8"))
+            )
+            return pd.DataFrame(
+                rows,
+                columns=[
+                    "component_name",
+                    "component_type",
+                    "nlog_parameter",
+                    "parameter",
+                    "tagname",
+                    "doublet",
+                    "enabled",
+                ],
+            )
+
+        # ---------- Case 2: file missing -> create from default ----------
+        if not default_file.exists():
+            raise FileNotFoundError(f"Default file missing: {default_file}")
+
+        component_mapping = {
+            "production_well": prod_wells,
+            "heat_exchanger": hexs,
+            "esp": esps,
+            "booster_pump": booster_pumps,
+            "injection_pump": injection_pumps,
+        }
+
+        rows = self._load_or_create_section2_default_rows(default_file, component_mapping)
+
+        # Save default rows to the user-editable settings file
+        target_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+        return pd.DataFrame(
+            rows,
+            columns=[
+                "component_name",
+                "component_type",
+                "nlog_parameter",
+                "parameter",
+                "tagname",
+                "doublet",
+                "enabled",
+            ],
+        )
+
+    def get_nlog_tagnames_df(
+        self,
+        folder: Path,
+        inj_wells: list,
+        prod_wells: list,
+        esps: list,
+        hexs: list,
+        booster_pumps: list,
+        injection_pumps: list,
+        aquifers: list,
+    ):
+        """Build dataframes for sections 1A, 1B, and 2."""
+        section1a_df = self.create_section1a_df(
+            folder=folder,
+            prod_wells=prod_wells,
+            esps=esps,
+            aquifers=aquifers,
+        )
+
+        section1b_df = self.create_section1b_df(
+            folder=folder,
+            inj_wells=inj_wells,
+            hexs=hexs,
+            injection_pumps=injection_pumps,
+        )
+
+        section2_df = self.create_section2_df(
+            folder=folder,
+            prod_wells=prod_wells,
+            hexs=hexs,
+            esps=esps,
+            booster_pumps=booster_pumps,
+            injection_pumps=injection_pumps,
+        )
+
+        return section1a_df, section1b_df, section2_df
