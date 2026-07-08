@@ -40,7 +40,6 @@ def ensure_nlog_default_files(project_root: Path, project_name: str) -> Path:
     report_folder = project_root / project_name / "report_generator"
     report_folder.mkdir(parents=True, exist_ok=True)
 
-
     template_folder = project_root / "_template" / "report_generator"
 
     for filename, _ in NLOG_SECTION_FILE_PAIRS:
