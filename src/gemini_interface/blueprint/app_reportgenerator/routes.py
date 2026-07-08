@@ -7,8 +7,11 @@ This module handles the generation of the report of the plant automatically.
 """
 
 import calendar
+import json
 import logging
+import shutil
 from datetime import datetime
+from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, request, send_file
 from werkzeug.exceptions import BadRequest
@@ -24,6 +27,34 @@ except Exception:
 logger = logging.getLogger(__name__)
 
 app_reportgenerator = Blueprint("app_reportgenerator", __name__)
+
+NLOG_SECTION_FILE_PAIRS = (
+    ("tagnames_section1A_default.json", "tagnames_section1A.json"),
+    ("tagnames_section1B_default.json", "tagnames_section1B.json"),
+    ("tagnames_section2_default.json", "tagnames_section2.json"),
+)
+
+
+def ensure_nlog_default_files(project_root: Path, project_name: str) -> Path:
+    """Ensure NLOG default section files exist for a project."""
+    report_folder = project_root / project_name / "report_generator"
+    report_folder.mkdir(parents=True, exist_ok=True)
+
+
+    template_folder = project_root / "_template" / "report_generator"
+
+    for filename, _ in NLOG_SECTION_FILE_PAIRS:
+        target_file = report_folder / filename
+        if target_file.exists():
+            continue
+
+        source_file = template_folder / filename
+        if not source_file.exists():
+            raise FileNotFoundError(f"Default template file missing: {source_file}")
+
+        shutil.copy2(source_file, target_file)
+
+    return report_folder
 
 
 @app_reportgenerator.route("/app/reportgenerator/load_plant", methods=["POST"])
@@ -296,7 +327,14 @@ def generate_report():
 def generate_nlog_report():
     """Generate the NLOG report excel object."""
     ProjectName = request.json["ProjectName"]
+    project_root = current_app.config.get("GEMINI_PROJECT_FOLDER", "")
+    project_path = Path(project_root).expanduser().resolve()
+    ensure_nlog_default_files(project_path, ProjectName)
+
     NlogPeriod = request.json["NlogPeriod"]
+    rows_section1A = request.json["rows_section1A"]
+    rows_section1B = request.json["rows_section1B"]
+    rows_section2 = request.json["rows_section2"]
     year, month = map(int, NlogPeriod.split("-"))
 
     # Start: last hour of the previous month (23:00:00)
@@ -331,96 +369,24 @@ def generate_nlog_report():
     # Initialize app
     app_instance.init_parameters(**parameters)
 
-    print("CREATING NLOG REPORT")
-    prod_table_tagnames = {
-        "water_prod_volume": {"tagname": "esp_flow.measured", "unit": "esp"},
-        "water_prod_temp": {"tagname": "unknown", "unit": "unknown"},
-        "prod_pressure_avg": {"tagname": "esp_inlet_pressure.measured", "unit": "esp"},
-        "prod_pressure_min": {"tagname": "previous_tagname", "unit": "esp"},
-        "well_pressure_avg": {
-            "tagname": "productionwell_wellhead_pressure.measured",
-            "unit": "production_well",
-        },
-        "aquifer_oil_vol_total": {"tagname": "unknown", "unit": "unknown"},
-        "aquifer_gas_vol_total": {"tagname": "unknown", "unit": "unknown"},
-        "aquifer_cond_vol_total": {"tagname": "unknown", "unit": "unknown"},
-        "prod_inhibit_total": {"tagname": "unknown", "unit": "unknown"},
-    }
-
-    inj_table_tagnames = {
-        "status": {"tagname": "unknown", "unit": "unknown"},
-        "type": {"tagname": "unknown", "unit": "unknown"},
-        "water_inj_volume": {
-            "tagname": "injectionwell_flow.measured",
-            "unit": "injection_well",
-        },
-        "inj_temperature_avg": {
-            "tagname": "injectionwell_wellhead_temperature.measured",
-            "unit": "injection_well",
-        },
-        "inj_pump_pressure_avg": {
-            "tagname": "injectionpump_outlet_pressure.measured",
-            "unit": "injection_pump",
-        },
-        "inj_pump_pressure_max": {"tagname": "previous_tagname", "unit": "unknown"},
-        "inj_inhibit_total": {"tagname": "unknown", "unit": "unknown"},
-    }
-
-    hex_tagnames = {
-        "status": {"tagname": "unknown", "unit": "unknown"},
-        "type": {"tagname": "unknown", "unit": "unknown"},
-        "hex_primary_flow": {
-            "tagname": "hex_primary_flow.measured",
-            "unit": "heat_exchanger",
-        },
-        "hex_primary_inlet_temperature": {
-            "tagname": "hex_primary_inlet_temperature.measured",
-            "unit": "heat_exchanger",
-        },
-        "hex_secondary_flow": {
-            "tagname": "hex_secondary_flow.measured",
-            "unit": "heat_exchanger",
-        },
-        "hex_secondary_inlet_temperature": {
-            "tagname": "hex_secondary_inlet_temperature.measured",
-            "unit": "heat_exchanger",
-        },
-        "hex_secondary_outlet_temperature": {
-            "tagname": "hex_secondary_outlet_temperature.measured",
-            "unit": "heat_exchanger",
-        },
-    }
-
-    esp_tagnames = {
-        "status": {"tagname": "unknown", "unit": "unknown"},
-        "type": {"tagname": "unknown", "unit": "unknown"},
-        "esp_current": {
-            "tagname": "esp_current.measured",
-            "unit": "esp",
-        },
-        "esp_voltage": {
-            "tagname": "esp_voltage.measured",
-            "unit": "esp",
-        },
-    }
-
     # Get plant components
     inj_wells = app_instance.get_injection_wells()
     prod_wells = app_instance.get_production_wells()
     esps = app_instance.get_esps()
     hexs = app_instance.get_hexs()
+    injection_pumps = app_instance.get_injection_pumps()
+    data_section1A = app_instance.calculate_nlog_1A(rows_section1A, prod_wells, esps)
+    data_section1B = app_instance.calculate_nlog_1B(
+        rows_section1B, inj_wells, hexs, injection_pumps
+    )
+    data_section2 = app_instance.calculate_nlog_2(rows_section2)
 
     nlog_object = app_instance.add_nlog_report(
         LicenseHolder,
         NlogPeriod,
-        inj_wells,
-        prod_wells,
-        esps,
-        hexs,
-        prod_table_tagnames,
-        inj_table_tagnames,
-        esp_tagnames,
-        hex_tagnames,
+        data_section1A,
+        data_section1B,
+        data_section2,
     )
 
     return send_file(
@@ -429,3 +395,344 @@ def generate_nlog_report():
         as_attachment=True,
         download_name=f"{LicenseHolder}_{ProjectName}_{NlogPeriod}_NLOG.xlsm",
     )
+
+
+@app_reportgenerator.route("/app/reportgenerator/get_nlog_tagnames", methods=["POST"])
+def get_nlog_tagnames():
+    """Return NLOG tagname settings for all report sections."""
+    # Resolve project path and report_generator folder
+    ProjectName = request.json["ProjectName"]
+    project_root = current_app.config.get("GEMINI_PROJECT_FOLDER", "")
+    project_path = Path(project_root).expanduser().resolve()
+    folder = ensure_nlog_default_files(project_path, ProjectName)
+
+    # Get plant components (lists of names)
+    inj_wells = app_instance.get_injection_wells()
+    prod_wells = app_instance.get_production_wells()
+    esps = app_instance.get_esps()
+    hexs = app_instance.get_hexs()
+    booster_pumps = app_instance.get_booster_pumps()
+    injection_pumps = app_instance.get_injection_pumps()
+    aquifers = app_instance.get_aquifers()
+    # Build section dataframes
+    section1a_df, section1b_df, section2_df = app_instance.get_nlog_tagnames_df(
+        folder=folder,
+        inj_wells=inj_wells,
+        prod_wells=prod_wells,
+        esps=esps,
+        hexs=hexs,
+        booster_pumps=booster_pumps,
+        injection_pumps=injection_pumps,
+        aquifers=aquifers,
+    )
+
+    # Convert to records for JS
+    section1a_dict = section1a_df.to_dict(orient="records")
+    section1b_dict = section1b_df.to_dict(orient="records")
+    section2_dict = section2_df.to_dict(orient="records")
+
+    return jsonify(
+        {
+            "section1A": section1a_dict,
+            "section1B": section1b_dict,
+            "section2": section2_dict,
+        }
+    )
+
+
+@app_reportgenerator.route("/app/reportgenerator/get_unit_tagnames", methods=["POST"])
+def get_unit_tagnames():
+    """Retrieve all available tagnames for a given unit in format 'tagname.category'."""
+    data = request.get_json(silent=True) or {}
+    unit_name = data.get("unit_name", "").strip()
+
+    if not unit_name or not hasattr(app_instance, "plant"):
+        return jsonify({"tagnames": []}), 200
+
+    try:
+        unit = None
+
+        # Try direct lookup if units_by_name exists
+        if hasattr(app_instance.plant, "units_by_name"):
+            unit = app_instance.plant.units_by_name.get(unit_name)
+
+        # Otherwise, search through units list
+        if not unit and hasattr(app_instance.plant, "units"):
+            for u in app_instance.plant.units:
+                if hasattr(u, "name") and u.name == unit_name:
+                    unit = u
+                    break
+
+        if not unit:
+            return jsonify({"tagnames": []}), 200
+
+        # Collect all tagnames in format "tagname.category"
+        all_tags = []
+        if hasattr(unit, "tags"):
+            for category in ["measured", "filtered", "calculated"]:
+                category_tags = unit.tags.get(category, {})
+                for tag_key in category_tags.keys():
+                    all_tags.append(f"{tag_key}.{category}")
+
+        return jsonify({"tagnames": all_tags}), 200
+    except Exception as e:
+        logger.error(f"Error getting unit tagnames for {unit_name}: {e}")
+        return jsonify({"tagnames": []}), 200
+
+
+@app_reportgenerator.route("/app/reportgenerator/get_all_units", methods=["GET"])
+def get_all_units():
+    """Return sorted list of all available unit names."""
+    if not hasattr(app_instance, "plant"):
+        return jsonify({"units": []}), 200
+
+    try:
+        units = []
+        if hasattr(app_instance.plant, "units"):
+            units = [u.name for u in app_instance.plant.units if hasattr(u, "name") and u.name]
+
+        return jsonify({"units": sorted(units)}), 200
+    except Exception as e:
+        logger.error(f"Error getting all units: {e}")
+        return jsonify({"units": []}), 200
+
+
+@app_reportgenerator.route("/app/reportgenerator/validate_nlog_tagnames", methods=["POST"])
+def validate_nlog_tagnames():
+    """Validate tagnames against available unit tagnames; return warnings organized by section."""
+    data = request.get_json(silent=True) or {}
+    rows_section1A = data.get("rows_section1A", [])
+    rows_section1B = data.get("rows_section1B", [])
+    rows_section2 = data.get("rows_section2", [])
+
+    warnings_section1A = []
+    warnings_section1B = []
+    warnings_section2 = []
+
+    if not hasattr(app_instance, "plant"):
+        return jsonify({"warnings": [], "warnings_by_section": {}}), 200
+
+    try:
+        # Helper function to get unit by name
+        def get_unit_by_name(unit_name):
+            # Try direct lookup if units_by_name exists
+            if hasattr(app_instance.plant, "units_by_name"):
+                unit = app_instance.plant.units_by_name.get(unit_name)
+                if unit:
+                    return unit
+
+            # Otherwise, search through units list
+            if hasattr(app_instance.plant, "units"):
+                for u in app_instance.plant.units:
+                    if hasattr(u, "name") and u.name == unit_name:
+                        return u
+
+            return None
+
+        # Helper function to validate tagname in format "tagname.category"
+        def validate_tagname_format(tagname, unit):
+            """Validate tagname in format 'tagname.category' against available tags."""
+            if "." not in tagname:
+                return False
+
+            parts = tagname.rsplit(".", 1)
+            if len(parts) != 2:
+                return False
+
+            tag_key, category = parts
+            category = category.strip().lower()
+
+            if not hasattr(unit, "tags"):
+                return False
+
+            # Check if category exists and tagname key is in that category
+            category_tags = unit.tags.get(category, {})
+            return tag_key in category_tags
+
+        # Helper function to validate and collect warnings
+        def is_row_enabled(row):
+            value = row.get("enabled", True)
+            if isinstance(value, str):
+                return value.strip().lower() not in {"false", "0", "no", "off"}
+            return value is not False
+
+        def validate_rows(rows, section_name, warnings_list):
+            for row in rows:
+                if not is_row_enabled(row):
+                    continue
+
+                unit_name = row.get("component_name", "").strip()
+                tagname = row.get("tagname", "").strip()
+                parameter = row.get("parameter", "")
+                param_label = (
+                    PARAM_DISPLAY_LABELS.get(parameter, parameter) if parameter else parameter
+                )
+
+                # Check unit first (even if tagname is also empty)
+                if not unit_name:
+                    # Unit is empty
+                    warnings_list.append(
+                        f"Parameter: {param_label} | Unit: EMPTY | Status: Unit not selected"
+                    )
+                    continue
+
+                if not tagname:
+                    # Tagname is empty
+                    warnings_list.append(
+                        f"Parameter: {param_label} | Unit: {unit_name} | "
+                        "Status: Tagname not selected"
+                    )
+                    continue
+
+                # Both are present, validate them
+                unit = get_unit_by_name(unit_name)
+                if not unit:
+                    warnings_list.append(
+                        f"Parameter: {param_label} | Unit: {unit_name} | "
+                        f"Tagname: {tagname} — Unit not found"
+                    )
+                    continue
+
+                # Validate tagname in format "tagname.category"
+                if not validate_tagname_format(tagname, unit):
+                    warnings_list.append(
+                        f"Parameter: {param_label} | Unit: {unit_name} | "
+                        f"Tagname: {tagname} — Tagname not found or incorrect"
+                    )
+
+        validate_rows(rows_section1A, "Production well (1A)", warnings_section1A)
+        validate_rows(rows_section1B, "Injection well (1B)", warnings_section1B)
+        validate_rows(rows_section2, "Plant (2)", warnings_section2)
+
+        # Combine all warnings for backward compatibility
+        all_warnings = warnings_section1A + warnings_section1B + warnings_section2
+
+        return (
+            jsonify(
+                {
+                    "warnings": all_warnings,
+                    "warnings_by_section": {
+                        "production_well": warnings_section1A,
+                        "injection_well": warnings_section1B,
+                        "plant": warnings_section2,
+                    },
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"Error validating NLOG tagnames: {e}")
+        return jsonify({"warnings": [], "warnings_by_section": {}}), 200
+
+
+# Mapping for parameter display labels (mirrored from JS for backend validation)
+PARAM_DISPLAY_LABELS = {
+    "prod_vol_water": "Produced water volume",
+    "prod_temp_avg_weighted": "Average produced temperature (weighted)",
+    "prod_pres_avg": "Production pressure (average)",
+    "prod_pres_min": "Production pressure (minimum)",
+    "prod_wh_pres": "Wellhead pressure",
+    "prod_oil_vol": "Produced oil volume",
+    "prod_gas_vol": "Produced gas volume",
+    "prod_condens_vol": "Produced condensate volume",
+    "prod_inhibit_vol": "Produced inhibitor volume",
+    "inj_vol_water": "Injected water volume",
+    "inj_temp_avg_weighted": "Average injection temperature (weighted)",
+    "inj_pres_avg": "Injection pressure (average)",
+    "inj_pres_max": "Injection pressure (maximum)",
+    "inj_inhibit_vol": "Injected inhibitor volume",
+    "tot_heat_MJ": "Total heat [MJ]",
+    "tot_heat_MJ_inlet_temp": "Heat exchanger inlet temperature",
+    "tot_heat_MJ_outlet_temp": "Heat exchanger outlet temperature",
+    "tot_heat_MJ_flow": "Heat exchanger flow",
+    "tot_oper_hours": "Total operating hours",
+    "tot_oper_hours_flow": "Total operating hours (flow-weighted)",
+    "tot_el_cons_KWh": "Total electric consumption [kWh]",
+    "tot_el_cons_KWh_power": "Electric consumption – cumulative energy meter [kWh]",
+    "tot_el_cons_KWh_voltage": "Electric consumption – voltage",
+    "tot_el_cons_KWh_current": "Electric consumption – current",
+}
+
+
+def save_section_json(folder: Path, filename: str, rows: list):
+    """Save rows to the JSON file in ``folder / filename``.
+
+    Create the file if it does not exist and overwrite existing content.
+    """
+    file_path = folder / filename
+    file_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
+def delete_nlog_section_json_files(folder: Path, include_defaults: bool = False):
+    """Delete saved NLOG section files, optionally including project default files."""
+    for default_name, target_name in NLOG_SECTION_FILE_PAIRS:
+        for filename in ((default_name, target_name) if include_defaults else (target_name,)):
+            file_path = folder / filename
+            if file_path.exists():
+                file_path.unlink()
+
+
+@app_reportgenerator.route("/app/reportgenerator/reset_nlog_settings", methods=["POST"])
+def reset_nlog_settings():
+    """Reset NLOG tagname settings to the default files."""
+    data = request.get_json(force=True)
+
+    project_name = data.get("ProjectName")
+    if not project_name:
+        return jsonify({"status": "error", "message": "Missing ProjectName."}), 400
+
+    project_root = current_app.config.get("GEMINI_PROJECT_FOLDER", "")
+    project_path = Path(project_root).expanduser().resolve()
+    folder = project_path / project_name / "report_generator"
+    folder.mkdir(parents=True, exist_ok=True)
+
+    # Remove project defaults first so fresh template defaults are copied and normalized.
+    delete_nlog_section_json_files(folder, include_defaults=True)
+    folder = ensure_nlog_default_files(project_path, project_name)
+
+    # Remove saved files so get_nlog_tagnames_df recreates them from the fresh defaults.
+    delete_nlog_section_json_files(folder, include_defaults=False)
+
+    inj_wells = app_instance.get_injection_wells()
+    prod_wells = app_instance.get_production_wells()
+    esps = app_instance.get_esps()
+    hexs = app_instance.get_hexs()
+    booster_pumps = app_instance.get_booster_pumps()
+    injection_pumps = app_instance.get_injection_pumps()
+    aquifers = app_instance.get_aquifers()
+    app_instance.get_nlog_tagnames_df(
+        folder=folder,
+        inj_wells=inj_wells,
+        prod_wells=prod_wells,
+        esps=esps,
+        hexs=hexs,
+        booster_pumps=booster_pumps,
+        injection_pumps=injection_pumps,
+        aquifers=aquifers,
+    )
+
+    return jsonify({"status": "ok"})
+
+
+@app_reportgenerator.route("/app/reportgenerator/save_nlog_settings", methods=["POST"])
+def save_nlog_settings():
+    """Save NLOG tagname settings for all report sections."""
+    data = request.get_json(force=True)
+
+    project_name = data.get("ProjectName")
+    project_root = current_app.config.get("GEMINI_PROJECT_FOLDER", "")
+    project_path = Path(project_root).expanduser().resolve()
+
+    folder = project_path / project_name / "report_generator"
+    folder.mkdir(parents=True, exist_ok=True)
+
+    rows_section1A = data.get("rows_section1A", [])
+    rows_section1B = data.get("rows_section1B", [])
+    rows_section2 = data.get("rows_section2", [])
+
+    # Save the three files
+    save_section_json(folder, "tagnames_section1A.json", rows_section1A)
+    save_section_json(folder, "tagnames_section1B.json", rows_section1B)
+    save_section_json(folder, "tagnames_section2.json", rows_section2)
+
+    return jsonify({"status": "ok"})
