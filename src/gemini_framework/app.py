@@ -9,6 +9,7 @@ import sys
 
 sys.path.append(os.path.join(os.getcwd(), "src"))
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 from gemini_framework.framework.boot_plant import setup

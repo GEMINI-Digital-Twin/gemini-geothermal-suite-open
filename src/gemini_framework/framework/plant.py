@@ -75,7 +75,6 @@ class Plant:
 
         return measured[-1] if measured else None
 
-
     def connect_database(self):
         """Connect to database."""
         for category, databases in self.databases.items():
