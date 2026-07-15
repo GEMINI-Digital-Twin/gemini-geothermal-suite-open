@@ -138,6 +138,8 @@ class DPDT(StaticModel):
                         )
                     else:
                         print("The model is not implemented.")
+                        dp_fric = 0
+                        dp_grav = 0
 
                 else:
                     dp_fric = 0

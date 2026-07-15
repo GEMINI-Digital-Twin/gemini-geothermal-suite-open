@@ -24,7 +24,7 @@ documentation = "https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-
 repository = "https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.11, <3.13"
 pandas = "2.3.3"
 scipy = "1.13.1"
 numpy = "2.2.6"

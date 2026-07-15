@@ -9,11 +9,14 @@ import sys
 
 sys.path.append(os.path.join(os.getcwd(), "src"))
 from pathlib import Path
+from dotenv import load_dotenv
 
 from gemini_framework.framework.boot_plant import setup
 from gemini_framework.framework.mainmodule import MainModule
 
 gemini_root_dir = Path(__file__).parents[2]
+
+load_dotenv(os.path.join(gemini_root_dir, ".env"))
 
 
 class App:

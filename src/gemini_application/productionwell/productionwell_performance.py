@@ -152,7 +152,7 @@ class ProductionWellPerformance(ApplicationAbstract):
             self.outputs["intake_temperature"] = self.outputs["discharge_temperature"]
 
             x = []
-            u = self._build_vlp_input(0, 0, 0, self.inputs["soil_temperature"])
+            u = self._build_vlp_input(0, 0, self.inputs["soil_temperature"])
 
             bottomhole_pressure = []
             bottomhole_temperature = []
