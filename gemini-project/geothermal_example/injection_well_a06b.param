@@ -16,10 +16,10 @@
                 "BeggsBrill"
             ],
             "injectionwell_injectivity_index": [
-                0
+                20
             ],
             "injectionwell_soil_temperature": [
-                0
+                15
             ],
             "injectionwell_trajectory_file": [
                 ""

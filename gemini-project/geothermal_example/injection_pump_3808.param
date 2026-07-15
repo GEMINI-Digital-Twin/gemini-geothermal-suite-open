@@ -4,10 +4,10 @@
     "parameters": {
         "property": {
             "injectionpump_no_stage": [
-                0
+                10
             ],
             "injectionpump_type": [
-                ""
+                "DEFAULT-PUMP"
             ]
         },
         "timestamps": [

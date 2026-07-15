@@ -4,28 +4,28 @@
     "parameters": {
         "property": {
             "liquid_density": [
-                0
+                1068
             ],
             "liquid_viscosity": [
-                0
+                0.00065
             ],
             "reservoir_permeability": [
-                0
+                10000
             ],
             "reservoir_pressure": [
-                0
+                220
             ],
             "reservoir_radius": [
-                0
+                1000
             ],
             "reservoir_temperature": [
-                0
+                80
             ],
             "reservoir_thickness": [
-                0
+                45
             ],
             "reservoir_top": [
-                0
+                1800
             ]
         },
         "timestamps": [

@@ -97,28 +97,28 @@
                 "parameters": {
                     "property": {
                         "liquid_density": [
-                            0
+                            1068
                         ],
                         "liquid_viscosity": [
-                            0
+                            0.00065
                         ],
                         "reservoir_permeability": [
-                            0
+                            10000
                         ],
                         "reservoir_pressure": [
-                            0
+                            220
                         ],
                         "reservoir_radius": [
-                            0
+                            1000
                         ],
                         "reservoir_temperature": [
-                            0
+                            80
                         ],
                         "reservoir_thickness": [
-                            0
+                            45
                         ],
                         "reservoir_top": [
-                            0
+                            1800
                         ]
                     },
                     "timestamps": [
@@ -255,10 +255,10 @@
                             "BeggsBrill"
                         ],
                         "productionwell_productivity_index": [
-                            0
+                            21
                         ],
                         "productionwell_soil_temperature": [
-                            0
+                            15
                         ],
                         "productionwell_tally_table": [
                             []
@@ -329,7 +329,7 @@
                             ""
                         ],
                         "productionwell_wellhead_pressure": [
-                            "WELL1.WHP"
+                            ""
                         ],
                         "productionwell_wellhead_temperature": [
                             ""
@@ -445,34 +445,34 @@
                 "parameters": {
                     "property": {
                         "esp_bep_flow": [
-                            0
+                            135
                         ],
                         "esp_correction_factor": [
                             "1;0"
                         ],
                         "esp_depth": [
-                            0
+                            600
                         ],
                         "esp_head_coeff": [
-                            ""
+                            "1.25518426e+02;-2.08528560e-03;2.28955651e-07;-1.45640214e-11;2.37859645e-16;-1.18258356e-21"
                         ],
                         "esp_max_flow": [
-                            0
+                            180
                         ],
                         "esp_min_flow": [
-                            0
+                            80
                         ],
                         "esp_no_stage": [
-                            0
+                            20
                         ],
                         "esp_power_coeff": [
                             ""
                         ],
                         "esp_tubing": [
-                            0
+                            0.1778
                         ],
                         "esp_type": [
-                            ""
+                            "DEFAULT-ESP"
                         ]
                     },
                     "timestamps": [
@@ -1510,10 +1510,10 @@
                             "BeggsBrill"
                         ],
                         "injectionwell_injectivity_index": [
-                            0
+                            20
                         ],
                         "injectionwell_soil_temperature": [
-                            0
+                            15
                         ],
                         "injectionwell_tally_table": [
                             []
