@@ -1,5 +1,6 @@
 [![Test workflow status](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_test.yaml/badge.svg)](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_test.yaml)
 [![Lint workflow status](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_lint.yaml/badge.svg)](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_lint.yaml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 
 # gemini-geothermal-suite-open
@@ -8,6 +9,12 @@ This repository is part of the 'Nieuwe Warmte Nu GEMINI Digital Twin' project.
 
 The open source repository of the GEMINI Digital Twin
 
+## Installation
+
+Full installation and setup instructions (Docker-based setup, local development setup, plant
+configuration, and Chat Assistant setup) are maintained in the project documentation. See the
+**Installation** page of the [GEMINI documentation](https://gemini-digital-twin.github.io/gemini-geothermal-suite-open/)
+(built from `src/gemini_documentation`) to get started.
 
 ## Bug reports and discussions
 
@@ -16,7 +23,7 @@ Focused suggestions and requests can also be opened as issues. Before opening a 
 
 ## Contribution
 
-If you want to contribute to the package, please read our [CONTRIBUTING.md](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/blob/main/CONTRIBUTING.md) file.
+If you want to contribute to the package, please read our [CONTRIBUTING.md](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/main/CONTRIBUTING.md) file.
 
 ## License
 
