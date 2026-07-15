@@ -10,6 +10,7 @@ In this page you can find the links to all pages that give a general overview to
     :maxdepth: 1
     :caption: Links
 
+    start_installation_quickstart
     start_installation
     start_login
     start_main_page

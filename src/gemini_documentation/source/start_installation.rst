@@ -1,6 +1,11 @@
 Installation
 ===========================
 
+.. tip::
+   New to GEMINI or just want to try it out quickly? See the :ref:`quickstart-installation` page
+   for a shorter, beginner-friendly version of these instructions. Come back here for full detail
+   on every service, environment variable, and the local development workflow.
+
 .. _gemini-suite-setup:
 
 GEMINI Suite Setup
@@ -338,7 +343,7 @@ Log in using the ``GEMINI_ADMIN_EMAIL`` / ``GEMINI_ADMIN_PASSWORD`` configured i
 file.
 
 Accessing Grafana from the Timeseries Viewer
-+++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++
 
 The Timeseries Viewer tab embeds Grafana in an iframe pointing at ``GRAFANA_URL``. Two things
 are required for this to work correctly:
