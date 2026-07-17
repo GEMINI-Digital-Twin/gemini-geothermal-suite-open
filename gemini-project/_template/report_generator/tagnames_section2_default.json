@@ -21,7 +21,7 @@
 	},
 	"tot_el_cons_KWh": {
 		"tot_el_cons_KWh_power": {
-			"tagname": "_current.measured",
+			"tagname": "_power_consumption.measured",
 		"unit": ["esp", "booster_pump", "injection_pump"]
 		},
 		"tot_el_cons_KWh_voltage": {
@@ -29,7 +29,7 @@
 			"unit": ["esp", "booster_pump", "injection_pump"]
 		},
 		"tot_el_cons_KWh_current": {
-			"tagname": "_power_consumption.measured",
+			"tagname": "_current.measured",
 			"unit": ["esp", "booster_pump", "injection_pump"]
 		}
 	}

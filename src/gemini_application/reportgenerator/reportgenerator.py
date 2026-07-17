@@ -269,6 +269,48 @@ class ReportGenerator(ApplicationAbstract):
                 continue
         return clean_list
 
+    def _compose_tagname(self, component_type: str, tagname_value: str) -> str:
+        """Return a robust tagname by prefixing a sanitized component_type when needed.
+
+        Some component types use an underscore (e.g. "booster_pump") while stored
+        tagnames may omit the underscore ("boosterpump_power..."). This helper
+        removes underscores from the component_type and prefixes it to the
+        tagname_value when the tagname does not already begin with the
+        component_type (with or without underscores).
+        """
+        if not tagname_value:
+            return ""
+
+        ct = (component_type or "")
+        sanitized = ct.replace("_", "")
+
+        # Some component types have established short prefixes in tag names
+        # (e.g. heat_exchanger -> 'hex'). Provide a small alias map to cover
+        # these cases and prefer the alias when prefixing.
+        alias_prefix = {
+            "heat_exchanger": "hex",
+        }
+
+        preferred = alias_prefix.get(ct, sanitized if sanitized else ct)
+
+        # Remove leading underscores from the tag when checking prefixes so that
+        # tags like '_power_consumption' are correctly detected as not already
+        # prefixed.
+        tag_clean = tagname_value.lstrip("_")
+
+        # If tagname already starts with any reasonable prefix, leave it unchanged.
+        candidates = {ct, sanitized, preferred}
+        for p in candidates:
+            if not p:
+                continue
+            if tag_clean.startswith(p):
+                return tagname_value
+
+        # Otherwise prefix the preferred form (alias or sanitized) to the raw
+        # tagname (preserving any leading underscore). Example: component_type
+        # 'booster_pump' + tagname '_power' -> 'boosterpump_power'.
+        return f"{preferred}{tagname_value}"
+
     def add_stats_plot(self, inj_wells, prod_wells):
         """Add statistics plot to PDF."""
         inj_well_tagnames = [
@@ -2601,13 +2643,18 @@ class ReportGenerator(ApplicationAbstract):
 
             tagname_value = meta.get("tagname", "")
 
+            # Build a robust tagname that tolerates small naming inconsistencies
+            # between component_type (may contain underscores) and tagname
+            # prefixes (may omit underscores).
+            full_tagname = self._compose_tagname(component_type, tagname_value)
+
             for unit_name in unit_names:
                 rows.append(
                     {
                         "component_name": unit_name,
                         "component_type": component_type,
                         "parameter": parameter,
-                        "tagname": tagname_value,
+                        "tagname": full_tagname,
                         "enabled": True,
                     }
                 )
@@ -2667,11 +2714,10 @@ class ReportGenerator(ApplicationAbstract):
                         continue
 
                     for unit_name in unit_names:
-                        # final generated tagname
-                        if parameter == "tot_el_cons_KWh":
-                            full_tagname = f"{component_type}{tagname_value}"
-                        else:
-                            full_tagname = tagname_value
+                        # Build a robust tagname that tolerates small naming
+                        # inconsistencies between component_type (may contain
+                        # underscores) and tagname prefixes (may omit underscores).
+                        full_tagname = self._compose_tagname(component_type, tagname_value)
 
                         rows.append(
                             {
