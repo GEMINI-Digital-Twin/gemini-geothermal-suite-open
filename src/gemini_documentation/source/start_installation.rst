@@ -186,8 +186,7 @@ Make sure the following tools are installed on your machine before you start:
   Redis, MongoDB, ChromaDB and Ollama)
 * **Git** for cloning the repository
 
-Optionally, **Ollama** (https://ollama.com/) can be used to run the LLM/embedding models locally
-instead of Azure OpenAI. The ``ollama`` service is included in ``docker-compose.yml`` and started
+**Ollama** (https://ollama.com/) can be used to run the LLM/embedding models locally. The ``ollama`` service is included in ``docker-compose.yml`` and started
 by default along with the other supporting services.
 
 1. Clone the repository
@@ -259,8 +258,7 @@ configuration, and the MySQL/InfluxDB/MongoDB container initialization variables
 
 .. warning::
    Never commit your ``.env`` file. It contains credentials and secrets and is already excluded
-   via ``.gitignore``. If you use an LLM provider such as Azure OpenAI, also set the corresponding
-   ``AZURE_OPENAI_HOST``/``AZURE_OPENAI_KEY``/``AZURE_OPENAI`` variables in ``.env``.
+   via ``.gitignore``.
 
 3. Install Python dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
