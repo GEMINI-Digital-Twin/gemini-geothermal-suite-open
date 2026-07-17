@@ -22,7 +22,7 @@
             "manufacturer": "XXX",
             "maxrate": "26872",
             "minrate": "12379",
-            "pumptype": "ESP_XXX"
+            "pumptype": "DEFAULT-PUMP"
         }
     ]
 }

@@ -58,6 +58,7 @@ scikit-learn = "1.8.0"
 joblib = "1.5.3"
 openpyxl = "3.1.5"
 langid = "1.1.6"
+pypdf = "^6.14.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.4.2"

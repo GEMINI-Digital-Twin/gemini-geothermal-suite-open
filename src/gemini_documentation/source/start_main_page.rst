@@ -1,13 +1,17 @@
 Main Page Overview
 ===========================
 
+After opening a project, the main page is the operational entry point for
+applications, settings, and project information.
+
 .. image:: images/Start_project_11.jpg
     :width: 100%
 
 Dashboard
 -----------------------------
 
-On the main page, once a project is open, you can see the dashboard, which includes "Applications," "Settings," and "Info" sections. Each section is explained below
+The dashboard groups features into three sections: **Applications**,
+**Settings**, and **Info**.
 
     .. image:: images/Start_mainpage_0.jpg
         :width: 100%
@@ -16,31 +20,33 @@ On the main page, once a project is open, you can see the dashboard, which inclu
 Applications
 -----------------------------
 - Diagram Builder:
-    Visualize the components in a plant and assign parameters to each component. 
+    Build the plant diagram and configure component parameters.
 
     .. image:: images/Start_mainpage_1.jpg
         :width: 100%
 
 - Timeseries Viewer:
-    Connects to Grafana for real-time monitoring of measured or calculated parameters or properties via the module layer. Instructions on how to use Grafana can be found :doc:`application_grafana`.
+    Opens Grafana for real-time monitoring of measured and calculated signals.
+    See :doc:`application_grafana`.
 
     .. image:: images/Start_mainpage_2.jpg
         :width: 100%
 
 - Production Well Performance and Injection Well Monitoring:
-    Contains applications for monitoring injection or production well performance (e.g., IPR/VLP plot, Hall plot, and skin effect). More details can be found :doc:`index_applications`.
+    Provides advanced well monitoring tools (for example IPR/VLP, Hall plot, and
+    skin analysis). See :doc:`index_applications`.
 
     .. image:: images/Start_mainpage_3.jpg
         :width: 100%
 
 - Tag Browser:
-    Plot measured or calculated properties for a component over a specific time duration.
+    Plot selected tags for a component over a chosen time window.
 
     .. image:: images/Start_mainpage_4.jpg
         :width: 100%
 
 - Parameters Overview:
-    Lists parameters and corresponding tag names in the database related to each component.
+    View and edit component parameters and tag mappings.
 
     .. image:: images/Start_mainpage_5.jpg
         :width: 100%
@@ -50,7 +56,7 @@ Settings
 -----------------------------
 
 - Plant Configuration:
-    Set plant and database configurations. Control database access start time and communication speed for reading measured data, preprocessing them, and writing calculated information. Edit database URL, company name, username, passwords, etc.
+    Configure plant timing settings and database connection settings.
 
     .. image:: images/Start_mainpage_6.jpg
         :width: 100%
@@ -60,13 +66,13 @@ Info
 -----------------------------
 
 - Report:
-    Access relevant reports (e.g., P&ID of a plant).
+    Upload and view project reports (for example P&IDs).
 
     .. image:: images/Start_mainpage_7.jpg
         :width: 100%
 
 - Documentation:
-    Link to the user manual documentation.
+    Open this user manual.
 
     .. image:: images/Start_mainpage_8.jpg
         :width: 100%

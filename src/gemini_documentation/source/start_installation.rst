@@ -16,10 +16,13 @@ MongoDB, ChromaDB and, optionally, Ollama) that are packaged together in this re
 ``docker-compose.yml``. It is needed to have a basic knowledge of Docker to install this tool.
 Several tutorial can be found in the internet (`example <https://medium.com/@sayalishewale12/docker-compose-and-essential-commands-the-ultimate-guide-to-streamlining-your-container-workflow-8018ca171300>`_)
 
-The pre-requisite software of this installation are:
+Basic Docker knowledge is recommended. For Docker fundamentals, refer to
+official Docker documentation.
 
-* Docker Desktop (https://docs.docker.com/engine/install/)
-* Docker Compose (https://docs.docker.com/compose/install/)
+Prerequisites:
+
+* Docker Desktop: https://docs.docker.com/engine/install/
+* Docker Compose: https://docs.docker.com/compose/install/
 
 docker-compose.yml
  .. code-block::
@@ -131,40 +134,36 @@ docker-compose.yml
 There are several services in this docker-compose.yml file:
 
 #. Grafana
-    This is a multi-platform open source analytics and interactive visualization web application.
-    It can produce charts, graphs, and alerts for the web when connected to supported data sources.
-    It is used to visualize the time series data.
+    Visualization platform for time-series dashboards and alerts.
 
 #. MySQLDB
-    It is an open-source relational database management system. To handle several data structured of
-    GEMINI.
+    Relational database for user, configuration, and project metadata.
 
 #. InfluxDB
-    It is an open-source time series database. It is used for storage and retrieval of time series
-    data in fields such as operations monitoring, application metrics, Internet of Things sensor
-    data, and real-time analytics. We use this database to store time series data from Geothermal
-    assets.
+    Time-series database used for geothermal operational data.
 
 #. Redis
-    Redis acts primarily as a high-performance message broker and result backend. It enables
-    asynchronous task processing by storing task queues, facilitating communication between GEMINI app
-    and workers, and storing task execution results. Redis provides rapid, in-memory storage, allowing
-    workers to pick up tasks instantly and enhancing system scalability.
+    In-memory broker/backend for asynchronous task queues and task results.
 
-#. mongodb
-    MongoDB is a document-oriented NoSQL database designed for high-volume storage, flexibility,
-    and scalability. It stores data in JSON-like documents (BSON) rather than tables, allowing for
-    rapid development, easy handling of unstructured/semi-structured data, and horizontal scaling
-    through sharding. We use this database to store the document uploaded by user.
+#. MongoDB
+    Document database used for uploaded report and document storage.
 
-#. chromadb
-    ChromaDB is an open-source vector database designed to store, manage, and query high-dimensional
-    vector embeddings, making it a critical component in AI applications, particularly those utilizing
-    Retrieval-Augmented Generation (RAG). It serves as a specialized, efficient repository for semantic
-    data (text, images, etc.) to enhance the performance of Large Language Models (LLMs).
+#. ChromaDB
+    Vector database used by RAG workflows for semantic document retrieval.
 
 #. Ollama
-    An open-source framework for installing and running Llama or other open-source LLMs.
+    Runtime for local LLM and embedding model execution.
+
+Starting the stack
+~~~~~~~~~~~~~~~~~~
+
+Run:
+
+.. code-block:: bash
+
+   docker-compose up -d
+
+After startup, open the GEMINI GUI on the configured frontend port.
 
 .. _local-development-setup:
 
@@ -428,36 +427,38 @@ Start the Flower monitoring dashboard:
 Chat Assistant Setup
 --------------------
 
-The Chat Assistant setup process is designed to be simple and mostly automated.
+The Chat Assistant setup is mostly automatic.
 
-The application uses Ollama to run Large Language Models (LLMs).
-Ollama is started automatically inside a separate Docker container when the following command is executed:
+The application uses Ollama to host LLM and embedding models. Ollama starts in
+its own container when you run:
 
 .. code-block:: bash
 
    docker-compose up
 
-The provided docker-compose.yml file creates and starts the Ollama container, among other necessary containers for the GEMINI digital twin.
-This container hosts the LLM and embedding models used by the Retrieval-Augmented Generation (RAG) application.
+The provided compose file starts Ollama together with the other required GEMINI
+services.
 
-After the containers are running, the required Ollama models can be installed by double-clicking the pull_ollama_models.bat file.
-This step must be performed only after the docker-compose up command has completed successfully.
+After all containers are up, install required models by running
+``pull_ollama_models.bat``. Do this only after ``docker-compose up`` completes.
 
 Model configuration
 ~~~~~~~~~~~~~~~~~~~
 
-The Chat Assistant supports switching between different LLMs using environment variables defined for the gemini_gui container. To change the models, update the following variables:
+The Chat Assistant supports model switching via environment variables in the
+``gemini_gui`` service:
 
 .. code-block:: bash
 
    LLM_MODEL_VERSION=llama3.2
    EMBED_MODEL_VERSION=snowflake-arctic-embed
 
-Only Ollama-supported models are allowed, as the Ollama client is integrated with the RAG application.
+Only Ollama-supported models can be used.
 
-When selecting models other than the recommended defaults, it is important to ensure that the chosen models are also downloaded into the Ollama container.
+If you choose non-default models, make sure they are pulled into the Ollama
+container.
 
-For example, if you want to use ``mistral-nemo`` instead of ``llama3.2``, you can install it while the container is running by executing the following command in a command prompt window:
+Example (pull ``mistral-nemo``):
 
 .. code-block:: bash
 
@@ -466,7 +467,7 @@ For example, if you want to use ``mistral-nemo`` instead of ``llama3.2``, you ca
 Recommended Models
 ~~~~~~~~~~~~~~~~~~
 
-The following models were tested during development and are recommended defaults.
+The following models were validated during development and are recommended:
 
 **Response Generation Models (LLM_MODEL_VERSION)**
 
@@ -481,8 +482,7 @@ The following models were tested during development and are recommended defaults
 - snowflake-arctic-embed
   The recommended model for generating embeddings used by the RAG pipeline.
 
-These models provide a balanced trade-off between speed and accuracy and are the recommended defaults in this documentation.
-
+These defaults provide a practical balance between latency and response quality.
 
 
 

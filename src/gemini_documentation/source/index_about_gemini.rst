@@ -3,13 +3,17 @@
 About GEMINI
 ==============================================
 
-GEMINI is a digital twin for geothermal systems in development by TNO since 2020. Its core consists of a monitoring and modelling framework with API's (Application Programming Interface) for interfacing with a database streaming continuous real-time production data coming from a geothermal doublet; from wellbore, to ESP, to topside facilities (filters, heat exchangers, CHP units, etc.). The framework allows not only for the monitoring of raw production data, but also the calculation and visualization of key performance indicators. In addition, the modelling functionalities within the system enable the user to calibrate physical model based on process data, calculate process values at points where no sensors are present, and optimize the system's operating conditions for specific KPIs, suggesting actions to take to improve the doublet's performance.
+GEMINI is a geothermal digital twin framework developed by TNO. It combines
+real-time monitoring, physical modeling, and application-level analysis tools.
+The platform connects to plant databases and supports workflows from wellbore
+monitoring to ESP and topside system performance analysis.
 
-In this page you can find the links to all pages that give a general overview to the GEMINI architecture, and open-source strategy.
+This section introduces the platform architecture and explains the design
+principles behind GEMINI.
 
 
 .. toctree::
     :maxdepth: 1
-    :caption: Pages
+    :caption: Pages in this section
 
     about_gemini_overview

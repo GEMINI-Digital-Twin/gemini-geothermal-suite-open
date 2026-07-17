@@ -4,34 +4,34 @@
     "parameters": {
         "property": {
             "esp_bep_flow": [
-                0
+                129.98
             ],
             "esp_correction_factor": [
                 "1;0"
             ],
             "esp_depth": [
-                0
+                600
             ],
             "esp_head_coeff": [
-                ""
+                "1.25518426e+02;-2.08528560e-03;2.28955651e-07;-1.45640214e-11;2.37859645e-16;-1.18258356e-21"
             ],
             "esp_max_flow": [
-                0
+                178
             ],
             "esp_min_flow": [
-                0
+                82
             ],
             "esp_no_stage": [
-                0
+                20
             ],
             "esp_power_coeff": [
-                ""
+                "0;0;0;0;0;0"
             ],
             "esp_tubing": [
-                0
+                0.1778
             ],
             "esp_type": [
-                ""
+                "DEFAULT-PUMP"
             ]
         },
         "timestamps": [

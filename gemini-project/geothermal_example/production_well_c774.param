@@ -16,18 +16,18 @@
                 "BeggsBrill"
             ],
             "productionwell_productivity_index": [
-                0
+                21
             ],
             "productionwell_soil_temperature": [
-                0
+                15
+            ],
+            "productionwell_tally_table": [
+                []
             ],
             "productionwell_trajectory_file": [
                 ""
             ],
             "productionwell_trajectory_table": [
-                []
-            ],
-            "productionwell_tally_table": [
                 []
             ],
             "wellbore_radius": [
@@ -90,7 +90,7 @@
                 ""
             ],
             "productionwell_wellhead_pressure": [
-                "WELL1.WHP"
+                ""
             ],
             "productionwell_wellhead_temperature": [
                 ""

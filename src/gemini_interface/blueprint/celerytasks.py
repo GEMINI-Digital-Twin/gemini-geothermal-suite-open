@@ -19,8 +19,8 @@ load_dotenv(os.path.join(gemini_root_dir, ".env"))
 
 celery = Celery(
     "gemini-celery-app",
-    backend=os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379"),
-    broker=os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379"),
+    backend=os.environ.get("CELERY_RESULT_BACKEND"),
+    broker=os.environ.get("CELERY_BROKER_URL"),
 )
 
 

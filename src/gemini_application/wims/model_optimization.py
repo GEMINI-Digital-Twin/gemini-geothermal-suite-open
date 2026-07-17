@@ -363,6 +363,8 @@ class OptCO2Corrosion:
 
         Parameters
         ----------
+        maxiter : int, optional
+            Maximum SLSQP iterations per (joint, interval) pair.
         progress_callback : callable or None
             Optional ``fn(completed, total, per_joint)`` invoked after each pair
             is solved.  ``per_joint`` is the growing list of per-(joint,
@@ -370,9 +372,13 @@ class OptCO2Corrosion:
             raised by the callback are swallowed so progress reporting never
             breaks the calibration.
 
-            The returned summary includes ``"per_joint"`` -- one record per (joint,
-            interval) with ``interval``/``rate_col`` tags, params (A,B,C,D,E), and
-            before/after SSE -- used for the final error plot and coefficient table.
+        Returns
+        -------
+        dict
+            Summary dict that includes ``"per_joint"`` -- one record per
+            (joint, interval) with ``interval``/``rate_col`` tags, params
+            (A,B,C,D,E), and before/after SSE -- used for the final error
+            plot and coefficient table.
         """
         # -- guard: nothing to calibrate ------------------------------------
         if self.context["degenerate"] or not self.common_cols or not self.joint_targets:
