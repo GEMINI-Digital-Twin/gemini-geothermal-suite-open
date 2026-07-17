@@ -21,13 +21,13 @@
             "productionwell_soil_temperature": [
                 15
             ],
+            "productionwell_tally_table": [
+                []
+            ],
             "productionwell_trajectory_file": [
                 ""
             ],
             "productionwell_trajectory_table": [
-                []
-            ],
-            "productionwell_tally_table": [
                 []
             ],
             "wellbore_radius": [

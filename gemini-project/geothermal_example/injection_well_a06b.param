@@ -21,13 +21,13 @@
             "injectionwell_soil_temperature": [
                 15
             ],
+            "injectionwell_tally_table": [
+                []
+            ],
             "injectionwell_trajectory_file": [
                 ""
             ],
             "injectionwell_trajectory_table": [
-                []
-            ],
-            "injectionwell_tally_table": [
                 []
             ],
             "wellbore_radius": [
