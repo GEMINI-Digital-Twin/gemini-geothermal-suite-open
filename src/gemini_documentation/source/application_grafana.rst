@@ -27,14 +27,14 @@ Set up the InfluxDB data source
 
 6. Fill **Basic Auth** credentials:
 
-    * Username: gemini-user
-    * Password: gemini-password
+    * Username: <you can find in your .env file>
+    * Password: <you can find in your .env file>
 
 7. Fill **InfluxDB Details**:
 
-    * Organization: TNO
+    * Organization: <you can find in your .env file>
     * Token: <create token InfluxDB> (Follow the steps below to create a token)
-    * Default Bucket: gemini-project
+    * Default Bucket: <you can find in your .env file>
 
 8. Click **Save & test**.
 
@@ -113,7 +113,7 @@ Import a dashboard
     :width: 100%
 
 3. Upload a JSON file from
-   ``gemini-user-interface/src/static/grafana_template``,
+   ``gemini-project/_template/grafana_template``,
    or paste JSON text directly.
 
 .. image:: images/import_dashboard_2.JPG
