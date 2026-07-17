@@ -94,6 +94,40 @@ To configure tags, open *Diagram Builder*, right-click the asset, select
 ``Open Parameter``, then switch to the **Tagnames** tab and enter tag values.
 Use consistent naming and avoid typos, as shown in :numref:`edit-component-tags`.
 
+Connect to real-time database of manual CSV upload
+---------------------------------------------------
+
+After assigning tags, connect the project to a real-time database or upload CSV files to
+get the measured data. Open the *DATA MANAGEMENT* application (under *SETTINGS*).
+
+This first tab is *Data Browser*, which allows you to browse both external database (if applicable) and internal database.
+
+.. figure:: animations/datamanagement_application_data_viewer.gif
+    :width: 100%
+    :align: center
+
+    Data browser application to view the data from database
+
+The second tab is *Data Upload*, which allows you to upload the data manually from a csv file and check the tag status.
+Before upload the csv, you need to assign the tags to the components in the diagram builder.
+
+.. figure:: animations/datamanagement_application_data_tagname.gif
+    :width: 100%
+    :align: center
+
+    Assign the tags to the components in the diagram builder
+
+The csv file should have the following format: gemini-geothermal-suite-open/dataset/geothermal_example_dataset.csv
+
+The csv can be uploaded by clicking the **Upload** button and selecting the file.
+After upload, you can check the tag status.
+
+.. figure:: animations/datamanagement_application_data_upload.gif
+    :width: 100%
+    :align: center
+
+    Upload csv data to the database
+
 
 Viewing plant configuration and parameters
 --------------------------------------------
