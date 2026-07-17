@@ -427,36 +427,55 @@ Start the Flower monitoring dashboard:
 Chat Assistant Setup
 --------------------
 
-The Chat Assistant setup is mostly automatic.
-
-The application uses Ollama to host LLM and embedding models. Ollama starts in
-its own container when you run:
+The Chat Assistant setup is mostly automatic. The Ollama service is hosted in
+the optional Docker container named ``ollama``. Start this container before
+using the RAG pipeline, for example by running:
 
 .. code-block:: bash
 
    docker-compose up
 
-The provided compose file starts Ollama together with the other required GEMINI
-services.
+The provided compose file starts Ollama together with the other GEMINI
+services. The ``ollama`` service must remain running for the RAG pipeline to be
+functional.
 
-After all containers are up, install required models by running
-``pull_ollama_models.bat``. Do this only after ``docker-compose up`` completes.
+Models must be pulled (downloaded) into the Ollama service before they can be
+used. For a quick start on Windows, run
+``ci\\windows\\run_ollama_models.bat``. A shell script for Linux/macOS is
+also provided at ``ci/linux/run_ollama_models.sh``. The script checks that Docker is
+reachable and that the ``ollama`` container is running, then pulls all three
+recommended models: ``llama3.2``, ``snowflake-arctic-embed``, and
+``zongwei/gemma3-translator:4b``. Run this script only after
+``docker-compose up`` completes.
+
+If you prefer to pull models manually (or are on Linux/macOS), make sure the
+``ollama`` container is running and then run the pull command inside the
+container, for example:
+
+.. code-block:: bash
+
+   docker exec -it ollama ollama pull llama3.2
+
+Replace ``llama3.2`` with the model you want to install. Only Ollama-supported
+models can be used by the Chat Assistant.
 
 Model configuration
 ~~~~~~~~~~~~~~~~~~~
 
-The Chat Assistant supports model switching via environment variables in the
-``gemini_gui`` service:
+The full RAG pipeline needs three models: an LLM for response generation, an
+embedding model, and an LLM for translation. These models are configured in the
+``.env`` file with the following parameters:
 
 .. code-block:: bash
 
    LLM_MODEL_VERSION=llama3.2
    EMBED_MODEL_VERSION=snowflake-arctic-embed
+   TRANSLATION_LLM_MODEL=zongwei/gemma3-translator:4b
 
-Only Ollama-supported models can be used.
-
-If you choose non-default models, make sure they are pulled into the Ollama
-container.
+You may choose other models, but only models supported by Ollama can be used.
+If you change any configured model, pull that model into the ``ollama``
+container as well. The translation model (``TRANSLATION_LLM_MODEL``) translates
+non-English documents before embedding and generation.
 
 Example (pull ``mistral-nemo``):
 
@@ -482,8 +501,13 @@ The following models were validated during development and are recommended:
 - snowflake-arctic-embed
   The recommended model for generating embeddings used by the RAG pipeline.
 
-These defaults provide a practical balance between latency and response quality.
+**Translation Model (TRANSLATION_LLM_MODEL)**
 
+- zongwei/gemma3-translator:4b
+  The recommended model for translating non-English documents before they are
+  embedded and used for response generation.
+
+These defaults provide a practical balance between latency and response quality.
 
 
 
