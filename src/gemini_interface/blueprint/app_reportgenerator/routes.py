@@ -302,9 +302,7 @@ def generate_report():
     if esp_freq_i_date_crossplot:
         print("CREATING ESP CROSS PLOT...")
         tagnames = ["esp_frequency.measured", "esp_current.measured", "datestamp"]
-        app_instance.add_cross_plot(
-            esps, tagnames, "ESP frequency-ESP current-Date"
-        )
+        app_instance.add_cross_plot(esps, tagnames, "ESP frequency-ESP current-Date")
 
     user_text_esp_report_title = "ESP report: User comments"
     user_text_esp_report = esp_report_comments

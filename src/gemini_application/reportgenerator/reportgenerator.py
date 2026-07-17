@@ -282,7 +282,7 @@ class ReportGenerator(ApplicationAbstract):
         if not tagname_value:
             return ""
 
-        ct = (component_type or "")
+        ct = component_type or ""
         sanitized = ct.replace("_", "")
 
         # Some component types have established short prefixes in tag names

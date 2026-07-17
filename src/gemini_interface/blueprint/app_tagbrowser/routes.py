@@ -200,10 +200,9 @@ def status_unit_tagnames():
                 app_instance.plant.name, app_instance.unit.name, tagname
             )
             status[tagname] = {
-                'first_timestamp': first_timestamp[0] if first_timestamp else None,
-                'last_timestamp': last_timestamp[0] if last_timestamp else None,
+                "first_timestamp": first_timestamp[0] if first_timestamp else None,
+                "last_timestamp": last_timestamp[0] if last_timestamp else None,
             }
-
 
     return {"status": status, "start_time": start_time, "current_time": current_time}
 
