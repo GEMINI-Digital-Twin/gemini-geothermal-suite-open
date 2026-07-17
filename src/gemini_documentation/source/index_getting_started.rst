@@ -11,6 +11,7 @@ installation, authentication, the main interface, and project management.
     :maxdepth: 1
     :caption: Getting started pages
 
+    start_installation_quickstart
     start_installation
     start_login
     start_main_page
