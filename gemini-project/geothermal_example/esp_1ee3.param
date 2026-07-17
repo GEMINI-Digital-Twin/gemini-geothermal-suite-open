@@ -111,7 +111,7 @@
                 ""
             ],
             "esp_frequency": [
-                ""
+                "ESP_freq"
             ],
             "esp_head": [
                 ""

@@ -15,6 +15,8 @@ function load_plant() {
             select_database = document.getElementById('select_database');
             select_database.dispatchEvent(new Event('change'))
 
+            get_unitnames()
+
         }
     })
 }
@@ -64,7 +66,6 @@ $('#select_database').on('change', function () {
     var database = $('#select_database').val();
 
     if (database == 'geminidb') {
-        get_unitnames()
         show_unit_selection()
         get_tagnames()
     } else {
@@ -220,7 +221,18 @@ function get_tagnames_status() {
 
             for (var i = 0; i < tagnames.length; i++) {
                 var trace0 = {
-                    x: [data.start_time, data.status[tagnames[i]]],
+                    x: [data.start_time, data.current_time],
+                    y: [i + 1, i + 1],
+                    mode: 'lines',
+                    line: {
+                        color: 'rgba(255, 0, 0, 0.3)',
+                        width: 10,
+                        opacity: 0.5
+                    },
+                    name: 'not available'
+                };
+                var trace1 = {
+                    x: [data.status[tagnames[i]]['first_timestamp'], data.status[tagnames[i]]['last_timestamp']],
                     y: [i + 1, i + 1],
                     mode: 'lines',
                     line: {
@@ -231,17 +243,7 @@ function get_tagnames_status() {
                     name: 'available'
 
                 };
-                var trace1 = {
-                    x: [data.status[tagnames[i]], data.current_time],
-                    y: [i + 1, i + 1],
-                    mode: 'lines',
-                    line: {
-                        color: 'rgba(255, 0, 0, 0.3)',
-                        width: 10,
-                        opacity: 0.5
-                    },
-                    name: 'not available'
-                };
+                
 
                 traceall.push(trace0)
                 traceall.push(trace1)

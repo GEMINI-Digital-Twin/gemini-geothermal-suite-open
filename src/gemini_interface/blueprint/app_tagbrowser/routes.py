@@ -97,7 +97,6 @@ def plot_tagnames():
     """Plot tag data for visualization."""
     unitname = request.json["unitname"]
     database = request.json["database"]
-    project_name = request.json["field_name"]
 
     start_time = request.json["starttime"]
     end_time = request.json["endtime"]
@@ -112,6 +111,8 @@ def plot_tagnames():
     end_time = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
     end_time = tzobject.localize(end_time)
     end_time = end_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    plant_name = app_instance.plant.name
 
     result = []
     times_utc = []
@@ -132,7 +133,7 @@ def plot_tagnames():
         tagname = request.json["tagname"]
         db = app_instance.plant.databases["measured"][0]
         result, times_utc = db.internal_db_driver.read_data(
-            project_name, unitname, tagname, start_time, end_time, timestep
+            plant_name, unitname, tagname, start_time, end_time, timestep
         )
 
     for time_utc in times_utc:
@@ -184,18 +185,25 @@ def status_unit_tagnames():
     app_instance.select_unit(unitname)
 
     start_time = change_to_iso(app_instance.plant.parameters["database"]["start_time"])
+    current_time = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     status = {}
 
     categories = ["measured", "calculated"]
     for category in categories:
         for key, value in app_instance.unit.tags[category].items():
             tagname = key + "." + category
-            _, timestamp = app_instance.plant.database.internal_db_driver.get_last_data(
+            _, last_timestamp = app_instance.plant.database.internal_db_driver.get_last_data(
                 app_instance.plant.name, app_instance.unit.name, tagname
             )
-            status[tagname] = timestamp[0] if timestamp else start_time
+            _, first_timestamp = app_instance.plant.database.internal_db_driver.get_first_data(
+                app_instance.plant.name, app_instance.unit.name, tagname
+            )
+            status[tagname] = {
+                'first_timestamp': first_timestamp[0] if first_timestamp else None,
+                'last_timestamp': last_timestamp[0] if last_timestamp else None,
+            }
 
-    current_time = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return {"status": status, "start_time": start_time, "current_time": current_time}
 

@@ -90,7 +90,7 @@
                 ""
             ],
             "productionwell_wellhead_pressure": [
-                ""
+                "Pwh_prod"
             ],
             "productionwell_wellhead_temperature": [
                 ""

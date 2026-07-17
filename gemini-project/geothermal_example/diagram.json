@@ -329,7 +329,7 @@
                             ""
                         ],
                         "productionwell_wellhead_pressure": [
-                            ""
+                            "Pwh_prod"
                         ],
                         "productionwell_wellhead_temperature": [
                             ""
@@ -552,7 +552,7 @@
                             ""
                         ],
                         "esp_frequency": [
-                            ""
+                            "ESP_freq"
                         ],
                         "esp_head": [
                             ""
