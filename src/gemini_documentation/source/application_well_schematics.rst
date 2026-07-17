@@ -3,12 +3,12 @@ Well Schematics
 
 Description
 ---------------------------
-Comprehensive tool for creating, visualizing, and managing detailed well 
-schematics diagrams for well integrity management.
+Comprehensive tool for creating, visualizing, and managing detailed well
+schematic diagrams used in integrity workflows.
 
 Schematics components
 ---------------------------
-Each unit is edited through a set of tabs: **General**, **Caprock**, **Tubulars**,
+Each unit is configured through tabs: **General**, **Caprock**, **Tubulars**,
 **Fluids**, **Cements**, **Packers**, **Plugs**, **Screens**, **Wellhead**, and
 **Xmas Tree**.
 
@@ -107,13 +107,14 @@ buttons.
 
 4. **Preview** — Click **Generate Schematic** in the schematic output card to draw the diagram.
 
-5. **Save schematic** — Click **Save** to store changes to the current schematic, or **Save As…** to save under a new name (you are prompted for the schematic name). Use **Delete** to remove the selected schematic. Schematics are stored on the server for the selected well.
+5. **Save schematic** — Click **Save** to store changes, or **Save As...** to
+   save under a new name. Use **Delete** to remove the selected schematic.
+   Schematics are stored on the server for the selected well.
 
 
 
 
       
-
 
 
 

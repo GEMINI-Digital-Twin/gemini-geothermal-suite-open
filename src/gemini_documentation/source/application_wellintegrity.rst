@@ -52,10 +52,12 @@ Workflow (per Well Integrity Monitoring app)
             :align: center
 
 
-6. **Forecast** — In the **Forecast** subcard, click **Optimize** to calibrate the corrosion model against the processed logs, then choose a **Prediction** method (*Current wall thickness* or *Years to minimum thickness*) and click **Run** (see `Wall thickness forecast`_).
+6. **Forecast** — In the **Forecast** subcard, click **Optimize** to calibrate
+   the corrosion model against processed logs, then choose a **Prediction**
+   method (*Current wall thickness* or *Years to minimum thickness*) and click
+   **Run** (see `Wall thickness forecast`_).
 
-        .. add screenshot, then restore the ".. image::" directive below:
-            image:: images/application_wims_6.png
+        .. image:: images/application_wims_6.png
             :width: 100%
             :align: center
 
@@ -116,10 +118,6 @@ persist all Dashboard state.
 
 * **WBE Risk** — Table of Failure mode, Effect, Risk (Likelihood L, Effect E, Risk factor L x E), Action Plan, Response time (months) and Operate during failure. Add via **Add risk**; click a row to edit or delete.
 
-        .. add screenshot, then restore the ".. image::" directive below:
-            image:: images/application_wims_dashboard.png
-            :width: 100%
-            :align: center
 
 Wall thickness forecast
 --------------------------------------
@@ -144,10 +142,6 @@ well tally, ESP geometry and production data.
 
 * **Results** — Per-segment flow velocity [m/s] and erosion rate [mm/year] (for DNVGL / OKA / E/CRC Tulsa), or an API velocity-limit comparison (erosional velocity limit, flow velocity, and whether it is exceeded). A summary aggregates the worst erosion rate per joint.
 
-        .. add screenshot, then restore the ".. image::" directive below:
-            image:: images/application_wims_erosion.png
-            :width: 100%
-            :align: center
 
 How the calculations work
 --------------------------------------

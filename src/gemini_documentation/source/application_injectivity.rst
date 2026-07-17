@@ -4,11 +4,14 @@ Injectivity Application
 
 Description
 ---------------------------
-This application provides the following features as the monitoring tools for injection in geothermal reservoir.
+This application provides monitoring and diagnostic tools for injection wells in
+geothermal reservoirs.
 
 Injectivity Index
 ---------------------------
-The injectivity index (:math:`II`) is a measure of the capacity of a reservoir to accept fluids and drived from Darcy's Law (:math:`Q = - \frac{kA}{\mu L} \Delta P`). It reads:
+The injectivity index (:math:`II`) quantifies how easily a reservoir accepts
+injected fluid. It is derived from Darcy's law
+(:math:`Q = - \frac{kA}{\mu L} \Delta P`):
 
 .. math::
 
@@ -22,15 +25,17 @@ where:
 - :math:`\Delta P` is the pressure difference (reservoir pressure - bottomhole pressure)
 
 
-Injectivity index can be plotted for specefic duration and a selected well via Tag Browser in the main menu:
+Injectivity index can be plotted for a selected well and time range through the
+Tag Browser.
 
 .. image:: images/application_injectivity_index.JPG
     :width: 100%
 
 
-Hall plot and its Derivative
+Hall plot and derivative
 ----------------------------
-The Hall integral equation is used in well testing to analyze injectivity. It integrates the pressure difference between bottomhole and reservoir over time and being plotted versus cumulative flow rate. 
+The Hall integral is a standard injectivity diagnostic. It integrates pressure
+difference over time and plots it against cumulative flow.
 
 The Hall integral (:math:`HI`) is given by:
 
@@ -43,7 +48,7 @@ where:
 - :math:`\Delta P` is the pressure difference (bottomhole pressure - reservoir pressure)
 - :math:`t`  is the time
 
-The derivative of a Hall plot (:math:`D_{Hall}`) can be calculated numerically by :
+The Hall derivative (:math:`D_{Hall}`) can be computed numerically as:
 
 
 .. math::
@@ -56,17 +61,22 @@ where:
 - :math:`t`  is the time
 - :math:`Q` is the flow rate
 
-This tool allows to select a specific time duration and reservoir pressure as the inputs for the Hall plot for a selected well.
+The application allows users to choose time range and reservoir pressure for Hall
+analysis.
 
 .. image:: images/application_injectivity_HallPlot.JPG
     :width: 100%
 
 
-* The two curves of Hall and its derivative trace the same path when neither plugging or improvement occurs! 
+When Hall and Hall-derivative trends are stable, the system generally indicates
+no major plugging or stimulation effect.
 
 Skin factor plot
 ---------------------------
-Real-time flow rate and pressure can be plotted and compared with skin lines. Skin lines are calculated using specific reservoir properties and well parameters. For a given flow rate and skin factor value, the injection pressure can be calculated. Depending on which skin factor line the real-time data crosses, the corresponding skin effect in the reservoir can be determined. A positive skin factor indicates that the reservoir is damaged and may require treatment. The equations used to calculate the skin lines are as follows:
+The skin-factor plot compares measured flow/pressure data to model-derived skin
+lines. For a given flow rate and skin value, injection pressure can be
+calculated. A positive skin factor usually indicates formation damage and may
+require treatment.
 
 .. math::
 
@@ -84,7 +94,8 @@ Real-time flow rate and pressure can be plotted and compared with skin lines. Sk
 
     \Delta P_{skin} = \frac{Q \cdot \mu_{brine} \cdot \text{Skin}}{2 \cdot \pi \cdot k \cdot h}
 
-Pressure drop due to the friction is calculated using Darcy-Weisbach correlation and Darcy friction coefficient (Swamee-Jain) as follows:
+Friction loss is calculated with Darcy-Weisbach and a Swamee-Jain friction
+factor:
 
 .. math::
     
@@ -113,7 +124,8 @@ where:
 - :math:`\varepsilon` is the roughness of the well
 - :math:`Re` is the Reynolds number
 
-A Q-P plot, including skin lines, can be generated for a specific duration and a selected well using the required well and reservoir parameters:
+A Q-P plot with skin lines can be generated for any selected well and date range,
+using the specified well and reservoir parameters.
 
 .. image:: images/application_injectivity_skinplot.JPG
     :width: 100%

@@ -15,13 +15,14 @@ The schematic below illustrates a typical pressure profile across a geothermal p
     :width: 40%
     :align: center
 
-The application is organized into three main tabs: **Monitoring**, **Calibration**, and **Prediction**.
+The application is organized into three tabs: **Monitoring**, **Calibration**,
+and **Prediction**.
 
 
 Monitoring Tab
 ---------------------------
 
-The Monitoring tab provides real-time visualization of ESP performance and operational data.
+The Monitoring tab provides real-time ESP performance visualization.
 
 **ESP Pump Curve and Real-Time Data**
 
@@ -29,11 +30,11 @@ This section shows the ESP pump curve from the manufacturer, plotted as head ver
 
 The pump curve displays theoretical frequency lines (typically 30, 40, 50, and 60 Hz) as "Theoretical Frequency" in the legend. The real-time operational point is overlaid on the pump curve, allowing users to compare actual performance against expected behavior.
 
-Since there is usually no discharge pressure sensor in the ESP system, the pump head is estimated using two values:
+Because discharge pressure is often unavailable, pump head is estimated from:
 
-- Inlet pressure, measured directly by a downhole sensor.
-
-- Upper pressure difference (:math:`\Delta P^{1}`), calculated using the VLP (as described in :doc:`application_production_well_performance`) from the top of the ESP to the wellhead.
+* inlet pressure measured by a downhole sensor
+* upper pressure difference (:math:`\Delta P^{1}`), calculated with VLP (see
+  :doc:`application_production_well_performance`) from ESP top to wellhead
 
 From these, we estimate the actual pressure increase provided by the pump. This gives us the real-time pump head, which is plotted with the flowrate on top of the manufacturer pump curve.
 
@@ -49,7 +50,8 @@ A time-series plot displays the measured flow rate and frequency over the select
 
 **Note on Calibration**
 
-If there is a mismatch between the real-time frequency and the operational point on the pump curve with the theoretical frequency, the ESP might not be calibrated correctly. In such cases, users should proceed to the Calibration tab to calibrate the calculated pump head.
+If the measured operating point does not align with theoretical frequency lines,
+the ESP model may require calibration.
 
 
 Calibration Tab
@@ -65,7 +67,7 @@ By clicking "Run Calibration", the application performs a linear fit of the form
 
 **Comparison Plots**
 
-This section shows time-based comparisons between real-time measurements and expected values from ESP models:
+This section compares real-time measurements with model-based values:
 
 .. image:: images/application_esp_Calib_1.png
     :width: 100%
@@ -106,7 +108,8 @@ These comparisons act as diagnostic tools to check consistency between measureme
 Prediction Tab
 ---------------------------
 
-The Prediction tab provides ESP failure forecasting using a machine learning model trained on historical operational data.
+The Prediction tab provides ESP failure forecasting using a machine-learning
+model trained on historical operating data.
 
 **Prediction Modes**
 
@@ -148,4 +151,5 @@ The application displays all sensor features used as inputs to the ML model in a
 
 **Model Disclaimer**
 
-The ESP failure forecasting model has been trained on limited examples from one well for a given type of ESP. The predictions should be interpreted with caution as the model's performance may vary depending on the specific operating conditions and historical data availability. No scenario analysis can be performed yet on the forecasting.
+The model was trained on limited examples from one well/ESP type. Interpret
+predictions with caution, especially in unfamiliar operating envelopes.

@@ -11,7 +11,9 @@ Application
 
 
 Asset
-    A part of the physical system, in many cases corresponding to a unit operation, that can be treated indepently or as a subcomponent of a larger system. The digital counterpart of an asset in the diagram builder is referred to as a "unit". 
+    A part of the physical system, often corresponding to a unit operation, that
+    can be treated independently or as part of a larger system. The digital
+    counterpart of an asset in Diagram Builder is called a "unit".
 
 
 Calculated Data
@@ -35,7 +37,9 @@ GUI
 
 
 Model
-    A script that takes a set of inputs, performs a calculation, and returns a set of outputs. Static models are pure input-output models, while dynamic models have an internal state that is tracked and updated everytime the model is executed.
+    A script that takes inputs, performs calculations, and returns outputs.
+    Static models are pure input-output; dynamic models maintain internal state
+    across executions.
 
 
 Module
@@ -51,11 +55,13 @@ Plant
 
 
 Project
-    An instance of a specific combination of components, settings, and data of plant or individual asset for which the digital twin is set up.
+    A saved combination of components, settings, and data for a plant or asset
+    scope in GEMINI.
 
 
 Tag
-    A named numeric data item in the database. For each tag, a history of time stamped numerical values is stored in the database. It is used to store a measured or computed signal as a function of time.
+    A named numeric data item in the database. Each tag stores time-stamped
+    measured or calculated values.
 
 
 Unit

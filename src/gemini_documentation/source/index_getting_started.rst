@@ -3,12 +3,13 @@
 Getting started
 ==============================================
 
-In this page you can find the links to all pages that give a general overview to the GEMINI project, structure, and open-source strategy.
+Use this section for first-time onboarding. The pages below guide you through
+installation, authentication, the main interface, and project management.
 
 
 .. toctree::
     :maxdepth: 1
-    :caption: Links
+    :caption: Getting started pages
 
     start_installation
     start_login
