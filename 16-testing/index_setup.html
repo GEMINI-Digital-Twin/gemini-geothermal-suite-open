@@ -56,8 +56,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#adding-asset-parameters">3.2. Adding asset parameters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#linking-tags-to-plant-assets">3.3. Linking tags to plant assets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#connect-to-real-time-database-of-manual-csv-upload">3.4. Connect to real-time database of manual CSV upload</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#viewing-plant-configuration-and-parameters">3.5. Viewing plant configuration and parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#uploading-and-viewing-documents">3.6. Uploading and viewing documents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-gemini-module">3.5. Running gemini module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#viewing-plant-configuration-and-parameters">3.6. Viewing plant configuration and parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#uploading-and-viewing-documents">3.7. Uploading and viewing documents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="index_applications.html">4. Applications</a></li>
@@ -189,8 +190,16 @@ After upload, you can check the tag status.</p>
 </figcaption>
 </figure>
 </section>
+<section id="running-gemini-module">
+<h2><span class="section-number">3.5. </span>Running gemini module<a class="headerlink" href="#running-gemini-module" title="Link to this heading"></a></h2>
+<p>After the plant diagram is created, parameters are configured, and tags are linked to the database, you can run the GEMINI module to perform calculations and predictions.</p>
+<p>This action can be started by running the script:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>src/gemini_framework/app.py
+</pre></div>
+</div>
+</section>
 <section id="viewing-plant-configuration-and-parameters">
-<h2><span class="section-number">3.5. </span>Viewing plant configuration and parameters<a class="headerlink" href="#viewing-plant-configuration-and-parameters" title="Link to this heading"></a></h2>
+<h2><span class="section-number">3.6. </span>Viewing plant configuration and parameters<a class="headerlink" href="#viewing-plant-configuration-and-parameters" title="Link to this heading"></a></h2>
 <p>Use the <em>PLANT CONFIGURATION</em> application (under <em>SETTINGS</em>) to configure
 project-wide plant and database parameters.</p>
 <dl class="simple">
@@ -224,7 +233,7 @@ project-wide plant and database parameters.</p>
 <a class="reference internal" href="#plant-configuration"><span class="std std-numref">Fig. 3.9</span></a>).</p>
 </section>
 <section id="uploading-and-viewing-documents">
-<h2><span class="section-number">3.6. </span>Uploading and viewing documents<a class="headerlink" href="#uploading-and-viewing-documents" title="Link to this heading"></a></h2>
+<h2><span class="section-number">3.7. </span>Uploading and viewing documents<a class="headerlink" href="#uploading-and-viewing-documents" title="Link to this heading"></a></h2>
 <p>The report library lets you upload and access project documents from one place.
 Supported uploads are PDF files, stored in your account/project context.</p>
 <figure class="align-center" id="id10">
