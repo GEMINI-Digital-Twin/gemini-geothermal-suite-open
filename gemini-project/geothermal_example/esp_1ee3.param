@@ -1,0 +1,152 @@
+{
+    "id": "1ee3802a-99d1-49fb-86fc-6955f79935c7",
+    "name": "esp_1ee3",
+    "parameters": {
+        "property": {
+            "esp_bep_flow": [
+                129.98
+            ],
+            "esp_correction_factor": [
+                "1;0"
+            ],
+            "esp_depth": [
+                600
+            ],
+            "esp_head_coeff": [
+                "1.25518426e+02;-2.08528560e-03;2.28955651e-07;-1.45640214e-11;2.37859645e-16;-1.18258356e-21"
+            ],
+            "esp_max_flow": [
+                178
+            ],
+            "esp_min_flow": [
+                82
+            ],
+            "esp_no_stage": [
+                20
+            ],
+            "esp_power_coeff": [
+                "0;0;0;0;0;0"
+            ],
+            "esp_tubing": [
+                0.1778
+            ],
+            "esp_type": [
+                "DEFAULT-PUMP"
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "tagnames": {
+        "calculated": {
+            "esp_efficiency": [
+                ""
+            ],
+            "esp_theoretical_head": [
+                ""
+            ],
+            "esp_theoretical_outlet_pressure": [
+                ""
+            ],
+            "esp_theoretical_power": [
+                ""
+            ],
+            "esp_vlp_head": [
+                ""
+            ],
+            "esp_vlp_ipr_inlet_pressure": [
+                ""
+            ],
+            "esp_vlp_outlet_pressure": [
+                ""
+            ]
+        },
+        "filtered": {
+            "esp_current": [
+                ""
+            ],
+            "esp_flow": [
+                ""
+            ],
+            "esp_frequency": [
+                ""
+            ],
+            "esp_head": [
+                ""
+            ],
+            "esp_inlet_pressure": [
+                ""
+            ],
+            "esp_inlet_temperature": [
+                ""
+            ],
+            "esp_motor_temperature": [
+                ""
+            ],
+            "esp_outlet_pressure": [
+                ""
+            ],
+            "esp_outlet_temperature": [
+                ""
+            ],
+            "esp_power_consumption": [
+                ""
+            ],
+            "esp_vibration_x": [
+                ""
+            ],
+            "esp_vibration_y": [
+                ""
+            ],
+            "esp_voltage": [
+                ""
+            ]
+        },
+        "measured": {
+            "esp_current": [
+                ""
+            ],
+            "esp_flow": [
+                ""
+            ],
+            "esp_frequency": [
+                "ESP_freq"
+            ],
+            "esp_head": [
+                ""
+            ],
+            "esp_inlet_pressure": [
+                ""
+            ],
+            "esp_inlet_temperature": [
+                ""
+            ],
+            "esp_motor_temperature": [
+                ""
+            ],
+            "esp_outlet_pressure": [
+                ""
+            ],
+            "esp_outlet_temperature": [
+                ""
+            ],
+            "esp_power_consumption": [
+                ""
+            ],
+            "esp_vibration_x": [
+                ""
+            ],
+            "esp_vibration_y": [
+                ""
+            ],
+            "esp_voltage": [
+                ""
+            ]
+        },
+        "timestamps": [
+            "2020-01-01 00:00:00"
+        ]
+    },
+    "type": "esp"
+}

@@ -1,0 +1,1 @@
+poetry run python src/gemini_interface/app.py

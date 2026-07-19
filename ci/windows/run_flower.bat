@@ -1,0 +1,1 @@
+poetry run celery -A src.gemini_interface.blueprint.celerytasks.celery flower
