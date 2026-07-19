@@ -2,19 +2,25 @@
 
 import os
 import sys
+from pathlib import Path
 
 sys.path.append(os.path.join(os.getcwd(), "src"))
 from celery import Celery
+from dotenv import load_dotenv
 
 from gemini_application.chatpopup.chatpopup import ChatPopup
 from gemini_application.esp.esp import ESPApp
 from gemini_application.injectionwell.injectionwell_monitoring import InjectionWellMonitoring
 from gemini_application.productionwell.productionwell_performance import ProductionWellPerformance
 
+gemini_root_dir = Path(__file__).parents[3]
+
+load_dotenv(os.path.join(gemini_root_dir, ".env"))
+
 celery = Celery(
     "gemini-celery-app",
-    backend=os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379"),
-    broker=os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379"),
+    backend=os.environ.get("CELERY_RESULT_BACKEND"),
+    broker=os.environ.get("CELERY_BROKER_URL"),
 )
 
 

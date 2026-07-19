@@ -57,7 +57,7 @@ class CalculateVLPIPRInletPressure(UnitModuleAbstract):
                 # ASSERT
                 y = self.IPR.get_output()
 
-                pbh_res.append(y["pressure_bottomhole"])
+                pbh_res.append(y["bottomhole_pressure"])
 
             """Calculate pressure drop from bottomhole to ESP"""
             u = dict()

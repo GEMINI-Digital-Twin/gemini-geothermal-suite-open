@@ -3,25 +3,44 @@ Well Schematics
 
 Description
 ---------------------------
-Comprehensive tool for creating, visualizing, and managing detailed well 
-schematics diagrams for well integrity management.
+Comprehensive tool for creating, visualizing, and managing detailed well
+schematic diagrams used in integrity workflows.
 
 Schematics components
 ---------------------------
+Each unit is configured through tabs: **General**, **Caprock**, **Tubulars**,
+**Fluids**, **Cements**, **Packers**, **Plugs**, **Screens**, **Wellhead**, and
+**Xmas Tree**.
+
+General (layout and figure)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * **Layout Mode:** Uniform | Depth Transformed (Uniform: fixed width; Depth Transformed: scale by depth).
+  * **Uniform Width** — Tubular width.
+  * **Uniform Spacing** — Annular space.
+  * **Figure Size Width** — Figure width.
+  * **Figure Size Height** — Figure height.
+  * **Show Axes** — When unchecked, hides axis labels, ticks, spines, and grid.
+
+Caprock
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * **Caprock** — Optional caprock band drawn over a depth interval.
+
+  **Options:** Enable Caprock. Top Depth [m]; Bottom Depth [m]; Hatch Pattern: ``--`` | ``//``.
+
 Tubulars
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * **Casing** — Pipe cemented in the wellbore (conductor, surface, intermediate); can be tapered. Defines top/bottom depth, OD/ID, and optional openhole.
   * **Tubing** — Production conduit inside casing; can include an ESP interval.
   * **Liner** — Casing that does not extend to surface. Same depth/OD/ID as other tubulars.
 
-  **Options:** Type: Casing | Tubing | Liner. Casing can be tapered (two segments). Hanger seal: Single Seal Hanger | Double Seal Hanger.
+  **Options:** Type: Casing | Tubing | Liner. Top/Bottom Depth [m]; Inner Diameter [inch]; Outer Diameter [inch]; optional Openhole Diameter [inch] with optional Hole Top Depth / Hole Bottom Depth [m]. Draw Shoe toggle. Number of hanger seals per spool: 1 | 2. Casing can be tapered (define one or more depth segments with Top/Bottom [m] and ID/OD [inch]). Tubing can enable an ESP interval (ESP Top/Bottom Depth [m]).
 
 Fluids
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * **Inner fluids** — Fluids inside a tubular. Defined by type, location, and depth interval (top–bottom).
   * **Annulus fluids** — Fluids in the ring between two tubulars; use location “Outside”.
 
-  **Options:** Fluid type: Brine | Oil | Mud | Gas | Water | Air | N2 | Empty. Location: Inside | Outside.
+  **Options:** Fluid type: Brine | Oil | Mud | Gas | Water | Air | N2 | Empty. Location: Inside | Outside. Top/Bottom Depth [m]; optional Density.
 
 Cements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,7 +52,7 @@ Packers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * **Packer** — Seals the annulus at a depth interval. Placed within a tubular unit.
 
-  **Options:** Packer type: Standard | Mechanical | Retrievable | Permanent | Inflatable | Hydraulic | Compression | Tension.
+  **Options:** Packer type: Primary | Standard | Mechanical | Retrievable | Permanent | Inflatable | Hydraulic | Compression | Tension.
 
 Plugs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,18 +66,11 @@ Screens
 
   **Options:** Screen type: Wire Wrap | Slotted | Perforated | Mesh.
 
-General (layout and figure)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  * **Layout mode:** Uniform | Depth Transformed (Uniform: fixed width; Depth Transformed: scale by depth).
-  * **Uniform Width** — Tubular Width.
-  * **Uniform Spacing** — Annular Space.
-  * **Figure Size Width** — Figure Width.
-  * **Figure Size Height** — Figure height.
-
 Wellhead
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * **Enable Wellhead Valves** — Toggle to show/hide wellhead valves on the schematic.
-  * **A-Ring, B-Ring, C-Ring, D-Ring** — For each ring: Enable ring; Include Left Valves; Include Right Valves. Controls which annulus valves are drawn at the wellhead.
+  * **Show Seals** — Toggle wellhead seals. The seal layout is derived from the tubular ``num_seals`` and annulus geometry.
+  * **Per-spool configuration** — Collapsible advanced section for A-annulus, B-Ring, C-Ring, and D-Ring. For each: Enable; Include Left Valves; Include Right Valves. Controls which annulus valves are drawn at the wellhead.
 
 Xmas Tree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -67,37 +79,42 @@ Xmas Tree
 
 Workflow (per Well Schematics app)
 ------------------------------------
-1. **Select well** — Choose **Well Name** from the dropdown (well list is loaded from the project).
+The toolbar at the top of the app holds the **Well** dropdown, the **Schematic**
+dropdown, a status badge, and the **New**, **Save**, **Save As…**, and **Delete**
+buttons.
+
+1. **Select well** — Choose a well from the **Well** dropdown (well list is loaded from the project).
+
         .. image:: images/application_schematics_1.png
             :width: 100%
             :align: center
+
 2. **Create or load a schematic**
-   * **Create New** — Click **Create New**. Choose a template (Simple Well, Standard Well, Double Skin, or Create from Scratch). The form opens with template data or empty.
-   * **Load existing** — Select a saved schematic from the dropdown and click **Load Selected** to load it into the form.
+   * **Create new** — Click **New** (or choose *New schematic* in the **Schematic** dropdown) to open the template picker. Choose a template — Simple Well, Standard Well, Double Skin, or Create from Scratch — and the editor opens with template data or empty.
+   * **Load existing** — Select a saved schematic in the **Schematic** dropdown; it loads automatically into the editor. If the current schematic has unsaved changes, you are prompted to save or discard before switching.
 
         .. image:: images/application_schematics_2.png
           :width: 100%
           :align: center
 
 3. **Define units**
-   * **Create New Unit** — Click **Create New Unit**. Fill the **Tubulars** tab (type, name, depths, OD/ID, optional openhole, draw shoe, hanger seal; for tubing, optional ESP). Add **Fluids**, **Cements**, **Packers**, **Plugs**, or **Screens** in their tabs. Set **General** (layout, figure size), **Wellhead**, and **Xmas Tree** if needed. Click **Save Unit**.
-   * **Edit unit** — In the unit list, select a unit, then click **Edit Selected Unit**. Change fields and sub-elements as needed. Click **Save Changes** to keep, **Delete** to remove the unit, or **Cancel Edit** to discard.
-          
+   * **Add unit** — In the **Current Units** panel click **Add unit**, then fill the tabs: **Tubulars** (type, name, depths, OD/ID, optional openhole and hole interval, draw shoe, hanger seals; for tubing, optional ESP), plus **Fluids**, **Cements**, **Packers**, **Plugs**, and **Screens**. Set **General** (layout, figure size, show axes), **Caprock**, **Wellhead**, and **Xmas Tree** as needed.
+   * **Edit unit** — Select a unit in the **Current Units** list to edit it in the tabs. Edits are held in the working schematic and are persisted when you save; there is no separate per-unit save.
+
           .. image:: images/application_schematics_3.png
             :width: 100%
             :align: center
 
-4. **Preview** — Click **Generate Schematic** to draw the diagram in the schematic output card.
+4. **Preview** — Click **Generate Schematic** in the schematic output card to draw the diagram.
 
-5. **Save schematic** — Enter a **Schematic Name** and click **Save Schematic** to save to the server for the selected well.
-
-6. **Optional** — Use **Generate JSON** to view or copy the schematic JSON. Annulus and Pressure Barrier Elements are derived from tubular and fluid data and can be passed to the Well Integrity application.
+5. **Save schematic** — Click **Save** to store changes, or **Save As...** to
+   save under a new name. Use **Delete** to remove the selected schematic.
+   Schematics are stored on the server for the selected well.
 
 
 
 
       
-
 
 
 

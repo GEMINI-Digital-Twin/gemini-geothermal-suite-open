@@ -62,6 +62,19 @@ class Plant:
         else:
             self.databases[category] = [database]
 
+    @property
+    def database(self):
+        """Return the primary "measured" database reader.
+
+        Convenience accessor for callers that expect a single database
+        connection. When more than one reader is registered for the
+        "measured" category (e.g. a CSV reader plus an external historian
+        reader), the most recently added one takes precedence.
+        """
+        measured = self.databases.get("measured")
+
+        return measured[-1] if measured else None
+
     def connect_database(self):
         """Connect to database."""
         for category, databases in self.databases.items():

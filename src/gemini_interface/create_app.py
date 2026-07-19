@@ -15,6 +15,7 @@ the Gemini web application. It handles:
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Flask
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
@@ -27,6 +28,8 @@ from werkzeug.security import generate_password_hash
 db = SQLAlchemy()
 
 gemini_root_dir = Path(__file__).parents[2]
+
+load_dotenv(os.path.join(gemini_root_dir, ".env"))
 
 if not os.path.exists(os.path.join(gemini_root_dir, "gemini-project")):
     os.mkdir(os.path.join(gemini_root_dir, "gemini-project"))

@@ -3,13 +3,17 @@
 Set-up
 ==============================================
 
-This page serves as a guide on how to set up your first project, and include step-by-step instructions on how to create a representation of your physical system in the *diagram builder*, set asset parameters, and link to the corresponding tags in the plant database.
+This section explains how to configure a GEMINI project after creation. It
+covers plant diagram setup, parameter configuration, tag mapping, plant-level
+settings, and report/document handling.
 
-The first step to set-up your project is to create a new project. In the chapter :ref:`Projects <projects>`, instructions for creating a new project are given. If you do not have a project yet, you may go back to this chapter and follow the instructions.
+Before starting, make sure you have created and opened a project as described in
+:ref:`Projects <projects>`.
 
-Creating a plant in the diagram builder app
+Creating a plant diagram
 --------------------------------------------
-As soon as you have create your project, you can start setting it up. The first thing would be to model the plant geometry.
+After opening a project, start by defining the plant geometry in the
+*Diagram Builder* application.
 
 .. _new-component:
 
@@ -20,7 +24,9 @@ As soon as you have create your project, you can start setting it up. The first 
     Adding new component in the plant diagram from the *diagram builder* application.
 
 
-The *diagram builder* application allows you to model your plant. For a new project, you will see an empty canvas in the *diagram builder* application. You now need to add the components comprising your plant. You can do that by clicking on the component you need from the list of components in the bottom of your screen. The list is illustrated in figure :numref:`new-component`.
+For a new project, the canvas is empty. Add the required components by selecting
+them from the component list at the bottom of the screen (see
+:numref:`new-component`).
 
 .. _add-move-component:
 
@@ -30,7 +36,8 @@ The *diagram builder* application allows you to model your plant. For a new proj
 
     Moving component on canvas from the *diagram builder* application.
 
-As soon as you click on a component, it will appear on the top left of the canvas. As it is illustrated with figure :numref:`add-move-component`, you need to drag and drop each component to the location of your preference.
+When a component is added, it appears on the top-left of the canvas. Drag and
+drop it to the preferred location (see :numref:`add-move-component`).
 
 .. _connect-components:
 
@@ -40,11 +47,14 @@ As soon as you click on a component, it will appear on the top left of the canva
 
     Creating a connection between two components from the *diagram builder* application.
 
-You then need to connect your components to introduce relations between them and create a linear process for your plant. The connection can be created by clicking and dragging from one asset connection point to another. You can see an example in figure :numref:`connect-components`.
+Connect components to define process flow relations. Create a connection by
+clicking and dragging from one connection point to another, as shown in
+:numref:`connect-components`.
 
 Adding asset parameters
 --------------------------------------------
-Now you should have a diagram of your plant. The next step is to add the required parameters to the components. This is possible via the *diagram builder* application.
+After creating the diagram, define parameters for each asset through
+*Diagram Builder*.
 
 .. _edit-component-parameters:
 
@@ -55,16 +65,22 @@ Now you should have a diagram of your plant. The next step is to add the require
     Edit components parameters from the *diagram builder* application.
 
 
-What you need to do is right click on one component and go through the parameters of the component. In figure :numref:`edit-component-parameters`, an example of a production well is given. In the example the soil temperature, productivity index and friction correlation are modified. Make sure to press the SAVE button to keep your changes. The SAVE button updates the json files in the project folder. Repeat this process for all of the components in your plant model.
+Right-click a component and open its parameter editor. Figure
+:numref:`edit-component-parameters` shows an example for a production well.
+After editing values, click **SAVE** to persist changes to the project JSON
+files. Repeat for all relevant components.
 
-For the production well and injection well, the trajectory is required.
+For production and injection wells, trajectory data is required.
 
 
 
 Linking tags to plant assets
 --------------------------------------------
 
-A tag is the reference that links values that are inputs or are calculated with a module. These values are stored on a database. A tag comprises a tagname and a tagvalue. The tagname is a descriptive name for identifying the type of value and the asset that is refers to and the tagvalue is the variable reference to retrieve the tag value from the database.
+A tag links model variables to database values. Each tag has:
+
+* a **tag name** (human-readable descriptor)
+* a **tag value** (database variable reference)
 
 .. _edit-component-tags:
 
@@ -74,15 +90,63 @@ A tag is the reference that links values that are inputs or are calculated with 
 
     Edit components tags from the *diagram builder* application.
 
-To link tags to assets in the plant you must follow similar steps as for modifying a parameter value. You first need to open the *diagram builder*. Then right click on the asset of interest and select "Open Parameter". Finally, switch to the Tagnames tab and fill in tagvalues. Make sure to fill in the values correctly without any typos. You can see the process in figure :numref:`edit-component-tags` above.
+To configure tags, open *Diagram Builder*, right-click the asset, select
+``Open Parameter``, then switch to the **Tagnames** tab and enter tag values.
+Use consistent naming and avoid typos, as shown in :numref:`edit-component-tags`.
 
+Connect to real-time database of manual CSV upload
+---------------------------------------------------
+
+After assigning tags, connect the project to a real-time database or upload CSV files to
+get the measured data. Open the *DATA MANAGEMENT* application (under *SETTINGS*).
+
+This first tab is *Data Browser*, which allows you to browse both external database (if applicable) and internal database.
+
+.. figure:: animations/datamanagement_application_data_viewer.gif
+    :width: 100%
+    :align: center
+
+    Data browser application to view the data from database
+
+The second tab is *Data Upload*, which allows you to upload the data manually from a csv file and check the tag status.
+Before upload the csv, you need to assign the tags to the components in the diagram builder.
+
+.. figure:: animations/datamanagement_application_data_tagname.gif
+    :width: 100%
+    :align: center
+
+    Assign the tags to the components in the diagram builder
+
+The csv file should have the following format: gemini-geothermal-suite-open/dataset/geothermal_example_dataset.csv
+
+The csv can be uploaded by clicking the **Upload** button and selecting the file.
+After upload, you can check the tag status.
+
+.. figure:: animations/datamanagement_application_data_upload.gif
+    :width: 100%
+    :align: center
+
+    Upload csv data to the database
+
+
+Running gemini module
+----------------------
+
+After the plant diagram is created, parameters are configured, and tags are linked to the database, you can run the GEMINI module to perform calculations and predictions.
+
+This action can be started by running the script:
+
+.. code-block:: bash
+
+   poetry run python src/gemini_framework/app.py
 
 Viewing plant configuration and parameters
 --------------------------------------------
 
-To modify the general plant parameters you can select the *PLANT CONFIGURATION* application from the *SETTINGS* category.
+Use the *PLANT CONFIGURATION* application (under *SETTINGS*) to configure
+project-wide plant and database parameters.
 
-With the *PLANT CONFIGURATION* window you can configure the plant parameters:
+Plant settings include:
     - Start time
     - Measured Interval, in seconds
     - Filtered Interval, in seconds
@@ -90,7 +154,7 @@ With the *PLANT CONFIGURATION* window you can configure the plant parameters:
     - Prediction Interval, in seconds
     - Prediction Horizon, in days
 
-You can also configure the database parameters:
+Database settings include:
     - Database name, from the dropdown menu
     - url
     - organisation
@@ -107,12 +171,14 @@ You can also configure the database parameters:
 
     Configure the plant parameters and the database parameters from the *PLANT CONFIGURATION* window.
 
-As you can observe in the figure :numref:`plant-configuration` above, a save button is include which you should click to keep your changes.
+Click **Save** to persist configuration updates (see
+:numref:`plant-configuration`).
 
 
 Uploading and viewing documents
 --------------------------------------------
-A functionality for uploading and viewing reports allows the user to create a library of reports in one location. You can upload your reports in pdf. The documents are then stored in your account.
+The report library lets you upload and access project documents from one place.
+Supported uploads are PDF files, stored in your account/project context.
 
 .. _report-upload-view:
 
@@ -122,4 +188,6 @@ A functionality for uploading and viewing reports allows the user to create a li
 
     Upload and view pdf report from the *REPORT* window.
 
-To upload a report you first need to select the *REPORT* window from *INFO*. Then, you need to select the document from your local computer and click upload. Now your report is available to view from the dropdown menu on the top of your window. A delete button is also available for removing documents that are not useful anymore. You can see the process in figure :numref:`report-upload-view` above.
+To upload a report, open *INFO* -> *REPORT*, select a local file, and click
+**Upload**. Uploaded files are available from the report dropdown. Use **Delete**
+to remove obsolete documents (see :numref:`report-upload-view`).

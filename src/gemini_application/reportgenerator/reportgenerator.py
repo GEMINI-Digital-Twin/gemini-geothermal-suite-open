@@ -29,6 +29,8 @@ from gemini_model.well.pressure_drop import DPDT
 
 matplotlib.use("Agg")
 
+A4_LANDSCAPE_SIZE = (11.69, 8.27)
+
 
 class ReportGenerator(ApplicationAbstract):
     """Class for generating reports.
@@ -53,7 +55,7 @@ class ReportGenerator(ApplicationAbstract):
         self.author_name = None
         self.project_name = None
         self.number_days = None
-        self.page_size = (11.69, 8.27)
+        self.page_size = A4_LANDSCAPE_SIZE
 
         # Well pressure drop model
         self.well_DP = DPDT()
@@ -158,9 +160,8 @@ class ReportGenerator(ApplicationAbstract):
             ax.text(0.95, 0.92, "[Logo Here]", fontsize=12, ha="right", va="top", style="italic")
 
         # Save to PDF
-        width, height = 11.69, 8.27
-        fig.set_size_inches(width, height)
-        self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.5)
+        fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+        self.pdf_object.savefig(fig)
         plt.close(fig)
 
     def get_injection_wells(self):
@@ -228,7 +229,7 @@ class ReportGenerator(ApplicationAbstract):
 
     def add_timeseries_plot_to_pdf(self, data, timestamps, xlabel, ylabel, title):
         """Add timeseries plot to PDF."""
-        plt.figure(figsize=(10, 5))
+        fig = plt.figure(figsize=A4_LANDSCAPE_SIZE)
         dates = [datetime.fromisoformat(ts.replace("Z", "")) for ts in timestamps]
         plt.plot(timestamps, dates, linestyle="-", color="b", label="Time Series")
 
@@ -241,19 +242,19 @@ class ReportGenerator(ApplicationAbstract):
         plt.legend()
         plt.grid()
 
-        self.pdf_object.savefig()
+        self.pdf_object.savefig(fig)
         plt.close()
 
     def add_X_Y_plot_to_pdf(self, x_data, y_data):
         """Add X-Y plot to PDF."""
-        plt.figure(figsize=(11.69, 8.27))
+        fig = plt.figure(figsize=A4_LANDSCAPE_SIZE)
         plt.plot(x_data, y_data, marker="o", linestyle="-", color="r", label="X-Y Plot")
         plt.xlabel("X Data")
         plt.ylabel("Y Data")
         plt.title("X-Y Plot")
         plt.legend()
         plt.grid()
-        self.pdf_object.savefig()
+        self.pdf_object.savefig(fig)
         plt.close()
 
     def get_clean_list(self, value_list):
@@ -268,6 +269,48 @@ class ReportGenerator(ApplicationAbstract):
                 # Discard if not convertible
                 continue
         return clean_list
+
+    def _compose_tagname(self, component_type: str, tagname_value: str) -> str:
+        """Return a robust tagname by prefixing a sanitized component_type when needed.
+
+        Some component types use an underscore (e.g. "booster_pump") while stored
+        tagnames may omit the underscore ("boosterpump_power..."). This helper
+        removes underscores from the component_type and prefixes it to the
+        tagname_value when the tagname does not already begin with the
+        component_type (with or without underscores).
+        """
+        if not tagname_value:
+            return ""
+
+        ct = component_type or ""
+        sanitized = ct.replace("_", "")
+
+        # Some component types have established short prefixes in tag names
+        # (e.g. heat_exchanger -> 'hex'). Provide a small alias map to cover
+        # these cases and prefer the alias when prefixing.
+        alias_prefix = {
+            "heat_exchanger": "hex",
+        }
+
+        preferred = alias_prefix.get(ct, sanitized if sanitized else ct)
+
+        # Remove leading underscores from the tag when checking prefixes so that
+        # tags like '_power_consumption' are correctly detected as not already
+        # prefixed.
+        tag_clean = tagname_value.lstrip("_")
+
+        # If tagname already starts with any reasonable prefix, leave it unchanged.
+        candidates = {ct, sanitized, preferred}
+        for p in candidates:
+            if not p:
+                continue
+            if tag_clean.startswith(p):
+                return tagname_value
+
+        # Otherwise prefix the preferred form (alias or sanitized) to the raw
+        # tagname (preserving any leading underscore). Example: component_type
+        # 'booster_pump' + tagname '_power' -> 'boosterpump_power'.
+        return f"{preferred}{tagname_value}"
 
     def add_stats_plot(self, inj_wells, prod_wells):
         """Add statistics plot to PDF."""
@@ -365,8 +408,8 @@ class ReportGenerator(ApplicationAbstract):
             fontweight="bold",
         )
 
-        fig.set_size_inches(11.69, 8.27)
-        self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.3)
+        fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+        self.pdf_object.savefig(fig)
         plt.close(fig)
 
     def gather_stats(self, well_names, tagnames):
@@ -496,9 +539,8 @@ class ReportGenerator(ApplicationAbstract):
             ax_left.tick_params(axis="x", labelrotation=45, labelsize=8)
 
         # Default to A4 landscape in inches
-        width, height = 11.69, 8.27
-        fig.set_size_inches(width, height)
-        self.pdf_object.savefig(fig, bbox_inches="tight")
+        fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+        self.pdf_object.savefig(fig)
         plt.close(fig)
 
     def add_production_report(self, prod_wells, tagnames):
@@ -588,14 +630,13 @@ class ReportGenerator(ApplicationAbstract):
             ax_left.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d %H:%M"))
             ax_left.tick_params(axis="x", labelrotation=45, labelsize=8)
 
-        width, height = 11.69, 8.27
-        fig.set_size_inches(width, height)
-        self.pdf_object.savefig(fig, bbox_inches="tight")
+        fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+        self.pdf_object.savefig(fig)
         plt.close(fig)
 
     def add_esp_report(self, esps, options):
         """Add ESP report to PDF."""
-        rcParams["figure.figsize"] = [11.69, 8.27]  # A4 landscape
+        rcParams["figure.figsize"] = list(A4_LANDSCAPE_SIZE)
         color_cycle = plt.cm.tab10.colors
         plots_per_page = 6  # 2 columns x 3 rows
         ncols = 2
@@ -691,8 +732,8 @@ class ReportGenerator(ApplicationAbstract):
                 for ax in axes:
                     ax.tick_params(axis="x", labelbottom=True, pad=2)
 
-                fig.set_size_inches(11.69, 8.27)  # A4 landscape
-                self.pdf_object.savefig(fig, bbox_inches="tight")
+                fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+                self.pdf_object.savefig(fig)
                 plt.close(fig)
 
     def add_stats_table(self, inj_wells, prod_wells):
@@ -754,9 +795,8 @@ class ReportGenerator(ApplicationAbstract):
         table.auto_set_column_width(col=list(range(len(df.columns))))
 
         # Save figure to PDF
-        width, height = 11.69, 8.27
-        fig.set_size_inches(width, height)
-        self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.5)
+        fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+        self.pdf_object.savefig(fig)
         plt.close(fig)
 
     def add_cross_plot(self, units, tagnames, plot_type):
@@ -848,8 +888,8 @@ class ReportGenerator(ApplicationAbstract):
         fig.suptitle(f"{plot_type} Cross Plots", fontsize=14, fontweight="bold")
 
         # A4 landscape size
-        fig.set_size_inches(11.69, 8.27)
-        self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.3)
+        fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+        self.pdf_object.savefig(fig)
         plt.close(fig)
 
     def compute_skin_lines(self, inputs, flow_array, skin_array):
@@ -1041,8 +1081,8 @@ class ReportGenerator(ApplicationAbstract):
         fig.suptitle(
             f"{inputs['plot_type']} Cross Plots with Skin Lines", fontsize=14, fontweight="bold"
         )
-        fig.set_size_inches(11.69, 8.27)  # A4 landscape
-        self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.3)
+        fig.set_size_inches(*A4_LANDSCAPE_SIZE)
+        self.pdf_object.savefig(fig)
         plt.close(fig)
 
     def calculate_total_volume(self, flow_rates, timestamps):
@@ -2482,7 +2522,7 @@ class ReportGenerator(ApplicationAbstract):
                 transform=ax.transAxes,
             )
 
-            self.pdf_object.savefig(fig, bbox_inches="tight", pad_inches=0.3)
+            self.pdf_object.savefig(fig)
             plt.close(fig)
 
     def export_pdf(self):
@@ -2601,13 +2641,18 @@ class ReportGenerator(ApplicationAbstract):
 
             tagname_value = meta.get("tagname", "")
 
+            # Build a robust tagname that tolerates small naming inconsistencies
+            # between component_type (may contain underscores) and tagname
+            # prefixes (may omit underscores).
+            full_tagname = self._compose_tagname(component_type, tagname_value)
+
             for unit_name in unit_names:
                 rows.append(
                     {
                         "component_name": unit_name,
                         "component_type": component_type,
                         "parameter": parameter,
-                        "tagname": tagname_value,
+                        "tagname": full_tagname,
                         "enabled": True,
                     }
                 )
@@ -2667,11 +2712,10 @@ class ReportGenerator(ApplicationAbstract):
                         continue
 
                     for unit_name in unit_names:
-                        # final generated tagname
-                        if parameter == "tot_el_cons_KWh":
-                            full_tagname = f"{component_type}{tagname_value}"
-                        else:
-                            full_tagname = tagname_value
+                        # Build a robust tagname that tolerates small naming
+                        # inconsistencies between component_type (may contain
+                        # underscores) and tagname prefixes (may omit underscores).
+                        full_tagname = self._compose_tagname(component_type, tagname_value)
 
                         rows.append(
                             {

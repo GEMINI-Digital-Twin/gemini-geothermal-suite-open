@@ -1,72 +1,76 @@
 Time Series Viewer
 ===========================
 
+The Time Series Viewer integrates Grafana in GEMINI for real-time and
+historical trend analysis.
 
-Setup Database Connection
----------------------------
+Set up the InfluxDB data source
+-------------------------------
 
-* Click Connection
-* Click Add new connection
-* Search "influxdb"
-* Click Data Source InfluxDB
-* Click Add New Data Source
+1. Open **Connections** in Grafana.
+2. Click **Add new connection**.
+3. Search for ``influxdb`` and select **Data Source InfluxDB**.
+4. Click **Add new data source**.
 
 .. image:: images/database_setup_connection_1.JPG
     :width: 100%
 
-* Fill the database name
-* Choose Query language "Flux"
-* add URL http://influxdb:8086
-* toggle Basic auth
+5. Configure the connection:
+
+   * Database name: choose a clear name (for example ``gemini-influxdb``)
+   * Query language: ``Flux``
+   * URL: ``http://influxdb:8086``
+   * Enable **Basic auth**
 
 .. image:: images/database_setup_connection_2.JPG
     :width: 100%
 
-* Fill Basic Auth Details
+6. Fill **Basic Auth** credentials:
 
-    * Username: gemini-user
-    * Password: gemini-password
+    * Username: <you can find in your .env file>
+    * Password: <you can find in your .env file>
 
-* Fill InfluxDB Details
+7. Fill **InfluxDB Details**:
 
-    * Organization: TNO
+    * Organization: <you can find in your .env file>
     * Token: <create token InfluxDB> (Follow the steps below to create a token)
-    * Default Bucket: gemini-project
+    * Default Bucket: <you can find in your .env file>
 
-* Click Save & test
+8. Click **Save & test**.
 
 .. image:: images/database_setup_connection_3.JPG
     :width: 100%
 
-* Create Token Influx DB
-    * Using your browser, log in to <yourdomain>:8086, where <yourdomain> is the cloud address you use to access Gemini
-    * Fill username and password (same as the Basic Auth Details)
-    * Generate API token
-    * Click All Access API Token
-    * Fill Description, e.g. gemini-token
-    * Copy the API token and put in InfluxDB Details
+Create an InfluxDB token
+~~~~~~~~~~~~~~~~~~~~~~~~
+If you do not have a token yet:
+
+1. Open ``<yourdomain>:8086`` in a browser.
+2. Sign in with the same credentials used for basic authentication.
+3. Create an API token (for example **All Access API Token**).
+4. Copy the token and paste it into Grafana.
 
 .. image:: images/database_setup_connection_4.JPG
     :width: 100%
 
 
-Create Dashboard
----------------------------
-* Click "New" button
-* Click "Add visualization" button
+Create a dashboard
+------------------
+1. Click **New**.
+2. Click **Add visualization**.
 
 .. image:: images/create_dashboard_1.JPG
     :width: 100%
 
-* Select data source influxdb
-* if you dont see any data source, please follow section Setup Database Connection
+3. Select your InfluxDB data source.
+   If no data source is available, complete the setup section above first.
 
 .. image:: images/create_dashboard_2.JPG
     :width: 100%
 
-* Select Time Series. There are several chart style e.g. bar chart, gauge, pie chart, etc.
-* Fill Title
-* In box A, fill the query code. It is based on FluxQL syntax. See the example below.
+4. Choose a panel type (for example **Time Series**).
+5. Set a panel title.
+6. Enter a Flux query in query box ``A``.
 
 .. code-block::
 
@@ -78,39 +82,39 @@ Create Dashboard
     |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
     |> yield(name: "mean")
 
-* Parameter explanation:
-    * _measurement : it is the project name
-    * asset_name : it is the component name
-    * _field : it is the tagname that we want to plot.
+Query parameter meaning:
+
+* ``_measurement``: project name
+* ``asset_name``: component/asset name
+* ``_field``: tag to visualize
 
 
 .. image:: images/create_dashboard_3.JPG
     :width: 100%
 
 
-Save Dashboard
----------------------------
+Export a dashboard
+------------------
 
-* Click "share" button
-* Click Export tab
-* Click "Save to file" button
+1. Click **Share**.
+2. Open the **Export** tab.
+3. Click **Save to file**.
 
 .. image:: images/save_dashboard.JPG
     :width: 100%
 
 
-Import Dashboard
----------------------------
-* Click "New" dropdown button
-* Click Import
-* Click "Save to file" button
+Import a dashboard
+------------------
+1. Click **New**.
+2. Click **Import**.
 
 .. image:: images/import_dashboard.JPG
     :width: 100%
 
-* Upload JSON file from template folder: gemini-user-interface/src/static/grafana_template
-* or copy paste JSON text in the box
+3. Upload a JSON file from
+   ``gemini-project/_template/grafana_template``,
+   or paste JSON text directly.
 
 .. image:: images/import_dashboard_2.JPG
     :width: 100%
-
