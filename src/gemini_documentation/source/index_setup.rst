@@ -129,6 +129,17 @@ After upload, you can check the tag status.
     Upload csv data to the database
 
 
+Running gemini module
+----------------------
+
+After the plant diagram is created, parameters are configured, and tags are linked to the database, you can run the GEMINI module to perform calculations and predictions.
+
+This action can be started by running the script:
+
+.. code-block:: bash
+
+   poetry run python src/gemini_framework/app.py
+
 Viewing plant configuration and parameters
 --------------------------------------------
 
