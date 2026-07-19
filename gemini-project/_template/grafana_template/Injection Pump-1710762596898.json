@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 0,
   "links": [],
   "panels": [
     {
@@ -38,6 +38,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -54,6 +55,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -69,7 +71,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -96,17 +98,19 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "fdfjquvnwhudcd"
           },
-          "query": "from(bucket: \"gemini-project\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"HAL\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${injection_pump_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_inlet_pressure.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
+          "query": "from(bucket: \"${bucket}\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"${measurement}\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${asset_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_inlet_pressure.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
           "refId": "A"
         },
         {
@@ -115,7 +119,7 @@
             "uid": "fdfjquvnwhudcd"
           },
           "hide": false,
-          "query": "from(bucket: \"gemini-project\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"HAL\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${injection_pump_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_outlet_pressure.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
+          "query": "from(bucket: \"${bucket}\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"${measurement}\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${asset_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_outlet_pressure.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
           "refId": "B"
         }
       ],
@@ -136,6 +140,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -152,6 +157,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -167,7 +173,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -194,17 +200,19 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "fdfjquvnwhudcd"
           },
-          "query": "from(bucket: \"gemini-project\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"HAL\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${injection_pump_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_frequency.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
+          "query": "from(bucket: \"${bucket}\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"${measurement}\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${asset_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_frequency.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
           "refId": "A"
         }
       ],
@@ -225,6 +233,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -241,6 +250,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -256,7 +266,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -283,17 +293,19 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "fdfjquvnwhudcd"
           },
-          "query": "from(bucket: \"gemini-project\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"HAL\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${injection_pump_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_current.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
+          "query": "from(bucket: \"${bucket}\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"${measurement}\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${asset_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_current.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
           "refId": "A"
         }
       ],
@@ -314,6 +326,7 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -330,6 +343,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -345,7 +359,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -372,17 +386,19 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "fdfjquvnwhudcd"
           },
-          "query": "from(bucket: \"gemini-project\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"HAL\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${injection_pump_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_voltage.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
+          "query": "from(bucket: \"${bucket}\")\r\n|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n|> filter(fn: (r) => r[\"_measurement\"] == \"${measurement}\")\r\n|> filter(fn: (r) => r[\"asset_name\"] == \"${asset_name}\")\r\n|> filter(fn: (r) => r[\"_field\"] == \"injectionpump_voltage.measured\")\r\n|> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n|> yield(name: \"mean\")",
           "refId": "A"
         }
       ],
@@ -390,39 +406,71 @@
       "type": "timeseries"
     }
   ],
+  "preload": false,
   "refresh": "",
-  "schemaVersion": 39,
+  "schemaVersion": 42,
   "tags": [],
   "templating": {
     "list": [
       {
         "current": {
-          "selected": true,
-          "text": "injection_pump_a0bb",
-          "value": "injection_pump_a0bb"
+          "text": "gemini-project",
+          "value": "gemini-project"
         },
-        "description": "",
-        "hide": 0,
+        "datasource": {
+          "type": "influxdb",
+          "uid": "cfsm4wylvxipsd"
+        },
+        "definition": "buckets()\n  |> keep(columns: [\"name\"])\n  |> rename(columns: {name: \"_value\"})\n  |> sort(columns: [\"_value\"])",
         "includeAll": false,
-        "label": "Injection Pump Name",
-        "multi": false,
-        "name": "injection_pump_name",
-        "options": [
-          {
-            "selected": true,
-            "text": "injection_pump_a0bb",
-            "value": "injection_pump_a0bb"
-          },
-          {
-            "selected": false,
-            "text": "injection_pump_7578",
-            "value": "injection_pump_7578"
-          }
-        ],
-        "query": "injection_pump_a0bb,injection_pump_7578",
-        "queryValue": "",
-        "skipUrlSync": false,
-        "type": "custom"
+        "label": "Bucket",
+        "name": "bucket",
+        "options": [],
+        "query": "buckets()\n  |> keep(columns: [\"name\"])\n  |> rename(columns: {name: \"_value\"})\n  |> sort(columns: [\"_value\"])",
+        "refresh": 1,
+        "regex": "/^(?!_).*/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "geothermal_example",
+          "value": "geothermal_example"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "cfsm4wylvxipsd"
+        },
+        "definition": "import \"influxdata/influxdb/schema\"\n\nschema.measurements(bucket: \"${bucket}\", start: -3650d)\n  |> sort(columns: [\"_value\"])",
+        "includeAll": false,
+        "label": "Measurement",
+        "name": "measurement",
+        "options": [],
+        "query": "import \"influxdata/influxdb/schema\"\n\nschema.measurements(bucket: \"${bucket}\", start: -3650d)\n  |> sort(columns: [\"_value\"])",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "cfsm4wylvxipsd"
+        },
+        "definition": "import \"influxdata/influxdb/schema\"\n\nschema.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"asset_name\",\n  predicate: (r) => r._measurement == \"${measurement}\" and r.asset_name =~ /^injection_pump_.*/,\n  start: -3650d\n)\n  |> sort(columns: [\"_value\"])",
+        "includeAll": false,
+        "label": "Injection Pump Asset",
+        "name": "asset_name",
+        "options": [],
+        "query": "import \"influxdata/influxdb/schema\"\n\nschema.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"asset_name\",\n  predicate: (r) => r._measurement == \"${measurement}\" and r.asset_name =~ /^injection_pump_.*/,\n  start: -3650d\n)\n  |> sort(columns: [\"_value\"])",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
       }
     ]
   },
@@ -434,6 +482,5 @@
   "timezone": "browser",
   "title": "Injection Pump",
   "uid": "cdfn34haj0tfkf",
-  "version": 2,
-  "weekStart": ""
+  "version": 2
 }
