@@ -62,6 +62,11 @@ poetry run pytest -v --cov -p no:faulthandler
 On every push, the Docs workflow builds Sphinx docs and deploys to `gh-pages` under a
 branch-specific folder, enabling side-by-side docs per branch.
 
+## Versioning and release notes
+
+- Versioning policy: [VERSIONING.md](./VERSIONING.md)
+- Release notes / change history: [CHANGELOG.md](./CHANGELOG.md)
+
 ## Contribution
 
 Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
