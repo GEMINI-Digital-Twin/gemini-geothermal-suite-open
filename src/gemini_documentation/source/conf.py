@@ -14,6 +14,8 @@ import sys
 project = "GEMINI Geothermal Digital Twin"
 copyright = "2024, TNO"
 author = "Ryvo Octaviano, Demetris Palochis, Leila Hashemi, Jonah Poort, Pejman Shoeibi Omrani"
+version = os.getenv("DOCS_VERSION", os.getenv("GITHUB_REF_NAME", "local"))
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -52,6 +54,7 @@ numfig = True
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = [""]
+html_title = f"{project} ({version})"
 
 
 sys.path.insert(0, os.path.abspath("../../"))
