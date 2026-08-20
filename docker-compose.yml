@@ -50,6 +50,8 @@ services:
           - 6379:6379
         env_file:
           - .env
+        volumes:
+          - redis-storage:/data
         restart: unless-stopped
         networks:
           - gemini
@@ -62,6 +64,7 @@ services:
           - .env
         volumes:
           - mongo-storage:/data/db
+          - mongo-config:/data/configdb
         restart: unless-stopped
         networks:
           - gemini
@@ -83,8 +86,8 @@ services:
         image: ollama/ollama:latest
         ports:
           - 11434:11434
-        environment:
-          - OLLAMA_HOST=0.0.0.0:11434
+        env_file:
+          - .env
         volumes:
           - ollama_data:/root/.ollama
         restart: unless-stopped
@@ -100,5 +103,7 @@ volumes:
   influxdb2-storage:
   influxdb2etc-storage:
   mongo-storage:
+  mongo-config:
   chroma-data:
   ollama_data:
+  redis-storage:
