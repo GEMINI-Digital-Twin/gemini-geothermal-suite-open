@@ -192,7 +192,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        user = User.query.filter_by(email="admin@localhost").first()
+        user = User.query.filter_by(email=os.getenv("GEMINI_ADMIN_EMAIL")).first()
         if not user:
             new_user = User(
                 email=os.getenv("GEMINI_ADMIN_EMAIL"),

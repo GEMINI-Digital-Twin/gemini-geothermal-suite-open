@@ -121,9 +121,6 @@ class ChatPopup(ApplicationAbstract):
         # Enable extra debug logging
         self.debug: bool = False
 
-        # Optional LangChain API key (only needed for LangSmith tracing etc.)
-        self.langchain_api_key: Optional[str] = None
-
         # Manifest filename used to track ingested files
         self.manifest_filename: str = ".rag_manifest.json"
 
@@ -139,9 +136,6 @@ class ChatPopup(ApplicationAbstract):
 
     def initialize_model(self) -> None:
         """Create LLM/embedding clients and open the Chroma collection."""
-        if self.langchain_api_key:
-            os.environ["LANGCHAIN_API_KEY"] = self.langchain_api_key
-
         self.ollama_client = self._build_ollama_client()
 
         self.chroma_client = self._build_chroma_client()
