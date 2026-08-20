@@ -67,12 +67,8 @@ def get_parameters():
     parameters["ollama_llm_model"] = os.getenv(
         "LLM_MODEL_VERSION"
     )  # Fast-->llama3.2, Accurate-->mistral-nemo
-    parameters["ollama_translation_llm"] = os.getenv(
-        "TRANSLATION_LLM_MODEL"
-    )
-    parameters["ollama_embeddings_model"] = os.getenv(
-        "EMBED_MODEL_VERSION"
-    )
+    parameters["ollama_translation_llm"] = os.getenv("TRANSLATION_LLM_MODEL")
+    parameters["ollama_embeddings_model"] = os.getenv("EMBED_MODEL_VERSION")
 
     parameters["chunk_size"] = 200
     parameters["collection_name"] = "gemini_rag_collection_" + app_instance.plant.name
