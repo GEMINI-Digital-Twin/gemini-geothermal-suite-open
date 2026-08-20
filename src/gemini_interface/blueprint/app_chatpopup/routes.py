@@ -71,7 +71,7 @@ def get_parameters():
         "TRANSLATION_LLM_MODEL"
     )
     parameters["ollama_embeddings_model"] = os.getenv(
-        "EMBED_MODEL_VERSION", "snowflake-arctic-embed"
+        "EMBED_MODEL_VERSION"
     )
 
     parameters["chunk_size"] = 200
@@ -92,11 +92,11 @@ def get_parameters():
     parameters["similarity_threshold"] = 0.1
 
     # Connection to docker containers
-    parameters["chromadb_port"] = int(os.getenv("CHROMADB_PORT"))
-    parameters["chromadb_host"] = os.getenv("CHROMADB_HOST")
+    parameters["chromadb_port"] = int(os.getenv("CHROMADB_GUI_PORT"))
+    parameters["chromadb_host"] = os.getenv("CHROMADB_GUI_HOST")
     parameters["chromadb_use_http"] = True
-    parameters["ollama_port"] = int(os.getenv("OLLAMA_PORT"))
-    parameters["ollama_host"] = os.getenv("OLLAMA_HOST")
+    parameters["ollama_port"] = int(os.getenv("OLLAMA_GUI_PORT"))
+    parameters["ollama_host"] = os.getenv("OLLAMA_GUI_HOST")
     return parameters
 
 

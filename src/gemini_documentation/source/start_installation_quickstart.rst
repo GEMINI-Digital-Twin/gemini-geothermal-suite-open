@@ -72,10 +72,11 @@ the passwords:
    LLM_MODEL_VERSION=llama3.2
    EMBED_MODEL_VERSION=snowflake-arctic-embed
    TRANSLATION_LLM_MODEL=zongwei/gemma3-translator:4b
-   CHROMADB_HOST=localhost
-   CHROMADB_PORT=8000
-   OLLAMA_HOST=localhost
-   OLLAMA_PORT=11434
+   CHROMADB_GUI_HOST=localhost
+   CHROMADB_GUI_PORT=8000
+   OLLAMA_GUI_HOST=localhost
+   OLLAMA_GUI_PORT=11434
+   OLLAMA_HOST=0.0.0.0:11434
 
    GRAFANA_URL=http://localhost:3000
    GF_SECURITY_ALLOW_EMBEDDING=true
