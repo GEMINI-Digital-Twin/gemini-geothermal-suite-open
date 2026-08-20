@@ -15,8 +15,8 @@ Lorenz COP equation:
     COP_lorenz = eta_lorenz * (Th / (Th - Ts))
     where Th and Ts are the logarithmic mean temperatures of the heat sink
     (condenser) and heat source (evaporator) glide, respectively:
-        Th = (Th_in - Th_out) / ln(Th_in / Th_out)
-        Ts = (Ts_in - Ts_out) / ln(Ts_in / Ts_out)
+    Th = (Th_in - Th_out) / ln(Th_in / Th_out) and
+    Ts = (Ts_in - Ts_out) / ln(Ts_in / Ts_out).
     The Lorenz cycle extends the Carnot cycle to non-isothermal heat exchange
     (glide), which is relevant for heat pumps with secondary fluids.
     See: Lorenz, H. (1894). "Die Ermittlung der Grenzwerte der thermodynamischen
