@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_model.erosion.correlation.DNV</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;DNV RP O501 erosive wear correlation.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""DNV RP O501 erosive wear correlation."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
@@ -89,16 +89,16 @@
 <div class="viewcode-block" id="ErosionDNV">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.erosion.correlation.DNV.html#gemini_model.erosion.correlation.DNV.ErosionDNV">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ErosionDNV</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for DNV erosion model.</span>
+<span class="w">    </span><span class="sd">"""Class for DNV erosion model.</span>
 
 <span class="sd">    source: https://wiki.pengtools.com/images/9/91/RP_O501_EROSIVE_WEAR_IN_PIPING_SYSTEMS.pdf</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
 <div class="viewcode-block" id="ErosionDNV.calculate_erosion_rate">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.erosion.correlation.DNV.html#gemini_model.erosion.correlation.DNV.ErosionDNV.calculate_erosion_rate">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_erosion_rate</span><span class="p">(</span><span class="nb">input</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate maximum erosion rate per year.</span>
+<span class="w">        </span><span class="sd">"""Calculate maximum erosion rate per year.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -117,32 +117,32 @@
 <span class="sd">        --------</span>
 <span class="sd">        EL: float</span>
 <span class="sd">            erosion rate (mm/y or mpy)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span>
-        <span class="n">material</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">&quot;mater&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">material</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;steel&quot;</span><span class="p">:</span>
+<span class="sd">        """</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">"alpha"</span><span class="p">]</span>
+        <span class="n">material</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">"mater"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">material</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"steel"</span><span class="p">:</span>
             <span class="n">K</span> <span class="o">=</span> <span class="mf">2e-9</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mf">2.6</span>
             <span class="n">rho_pipe</span> <span class="o">=</span> <span class="mi">7800</span>
-        <span class="k">elif</span> <span class="n">material</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;titanium&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">material</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"titanium"</span><span class="p">:</span>
             <span class="n">K</span> <span class="o">=</span> <span class="mf">2e-9</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mf">2.6</span>
             <span class="n">rho_pipe</span> <span class="o">=</span> <span class="mi">4500</span>
-        <span class="k">elif</span> <span class="n">material</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;grp/epoxy&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">material</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"grp/epoxy"</span><span class="p">:</span>
             <span class="n">K</span> <span class="o">=</span> <span class="mf">0.3e-9</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mf">3.6</span>
             <span class="n">rho_pipe</span> <span class="o">=</span> <span class="mi">1800</span>
-        <span class="k">elif</span> <span class="n">material</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;grp/vinyl ester&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">material</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"grp/vinyl ester"</span><span class="p">:</span>
             <span class="n">K</span> <span class="o">=</span> <span class="mf">0.6e-9</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mf">3.6</span>
             <span class="n">rho_pipe</span> <span class="o">=</span> <span class="mi">1800</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown mater &#39;</span><span class="si">{</span><span class="n">material</span><span class="si">}</span><span class="s2">&#39; for DNV erosion.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown mater '</span><span class="si">{</span><span class="n">material</span><span class="si">}</span><span class="s2">' for DNV erosion."</span><span class="p">)</span>
 
-        <span class="n">D</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">&quot;diameter&quot;</span><span class="p">]</span>
-        <span class="n">dens_liq</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">&quot;rho_fluid&quot;</span><span class="p">]</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">"diameter"</span><span class="p">]</span>
+        <span class="n">dens_liq</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">"rho_fluid"</span><span class="p">]</span>
         <span class="c1"># mp [kg/s], Up [m/s] (mixture velocity in multiphase), A_pipe [m2]</span>
-        <span class="n">mp</span><span class="p">,</span> <span class="n">Up</span><span class="p">,</span> <span class="n">A_pipe</span> <span class="o">=</span> <span class="n">mass_flow_and_velocity</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="s2">&quot;flowRate&quot;</span><span class="p">],</span> <span class="n">dens_liq</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+        <span class="n">mp</span><span class="p">,</span> <span class="n">Up</span><span class="p">,</span> <span class="n">A_pipe</span> <span class="o">=</span> <span class="n">mass_flow_and_velocity</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="s2">"flowRate"</span><span class="p">],</span> <span class="n">dens_liq</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
 
         <span class="n">aa</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
         <span class="n">F</span> <span class="o">=</span> <span class="n">aa</span> <span class="o">*</span> <span class="p">(</span>

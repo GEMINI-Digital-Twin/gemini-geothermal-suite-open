@@ -79,14 +79,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_interface.blueprint.app_tagbrowser.routes</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">Tag Browser Application Routes.</span>
 
 <span class="sd">===============================</span>
 
 <span class="sd">This module provides data tag management and system component browsing functionality including</span>
 <span class="sd">database connectivity, tag listing, and data visualization.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -101,28 +101,28 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.database.connector.avevadb_driver</span><span class="w"> </span><span class="kn">import</span> <span class="n">AvevaDriver</span>
 
 <span class="c1"># Create the tag browser application blueprint</span>
-<span class="n">app_tagbrowser</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">&quot;app_tagbrowser&quot;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+<span class="n">app_tagbrowser</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">"app_tagbrowser"</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
 
 <span class="c1"># Global database driver instance</span>
 <span class="n">app_instance</span> <span class="o">=</span> <span class="n">DataManager</span><span class="p">()</span>
 
 <span class="c1"># Initialize Celery for background task processing</span>
 <span class="n">celery</span> <span class="o">=</span> <span class="n">Celery</span><span class="p">(</span>
-    <span class="s2">&quot;gemini-celery-app&quot;</span><span class="p">,</span>
-    <span class="n">backend</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CELERY_RESULT_BACKEND&quot;</span><span class="p">,</span> <span class="s2">&quot;redis://localhost:6379&quot;</span><span class="p">),</span>
-    <span class="n">broker</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CELERY_BROKER_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;redis://localhost:6379&quot;</span><span class="p">),</span>
+    <span class="s2">"gemini-celery-app"</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CELERY_RESULT_BACKEND"</span><span class="p">,</span> <span class="s2">"redis://localhost:6379"</span><span class="p">),</span>
+    <span class="n">broker</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CELERY_BROKER_URL"</span><span class="p">,</span> <span class="s2">"redis://localhost:6379"</span><span class="p">),</span>
 <span class="p">)</span>
 
 
 <span class="c1"># Allowed file extensions for plant configuration uploads</span>
-<span class="n">ALLOWED_EXTENSIONS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;csv&quot;</span><span class="p">])</span>
+<span class="n">ALLOWED_EXTENSIONS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">"csv"</span><span class="p">])</span>
 
 
 <div class="viewcode-block" id="allowed_file">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.allowed_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">allowed_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the uploaded file has an allowed extension.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">filename</span> <span class="ow">and</span> <span class="n">filename</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">ALLOWED_EXTENSIONS</span></div>
+<span class="w">    </span><span class="sd">"""Check if the uploaded file has an allowed extension."""</span>
+    <span class="k">return</span> <span class="s2">"."</span> <span class="ow">in</span> <span class="n">filename</span> <span class="ow">and</span> <span class="n">filename</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">ALLOWED_EXTENSIONS</span></div>
 
 
 
@@ -131,15 +131,15 @@
 <span class="c1"># ================================================================</span>
 <div class="viewcode-block" id="load_plant">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.load_plant">[docs]</a>
-<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/tagbrowser/load_plant&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/load_plant"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_plant</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load plant configuration and setup plant instance.&quot;&quot;&quot;</span>
-    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;field_name&quot;</span><span class="p">]</span>
-    <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;GEMINI_PROJECT_FOLDER&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">"""Load plant configuration and setup plant instance."""</span>
+    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"field_name"</span><span class="p">]</span>
+    <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"GEMINI_PROJECT_FOLDER"</span><span class="p">]</span>
 
     <span class="n">app_instance</span><span class="o">.</span><span class="n">load_plant</span><span class="p">(</span><span class="n">project_folder_path</span><span class="p">,</span> <span class="n">project_name</span><span class="p">)</span>
 
-    <span class="n">selected_database</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">][</span><span class="s2">&quot;external_database&quot;</span><span class="p">]</span>
+    <span class="n">selected_database</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"database"</span><span class="p">][</span><span class="s2">"external_database"</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">selected_database</span></div>
 
@@ -147,9 +147,9 @@
 
 <div class="viewcode-block" id="get_unitnames">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.get_unitnames">[docs]</a>
-<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/tagbrowser/get_unitnames&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/get_unitnames"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_unitnames</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get list of unit names from the project.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Get list of unit names from the project."""</span>
     <span class="n">unitname_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
         <span class="n">unitname_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -160,52 +160,52 @@
 
 <div class="viewcode-block" id="get_tagnames">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.get_tagnames">[docs]</a>
-<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/tagbrowser/get_tagnames&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/get_tagnames"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_tagnames</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get list of tag names for a specific unit.&quot;&quot;&quot;</span>
-    <span class="n">unit_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;unit_name&quot;</span><span class="p">]</span>
-    <span class="n">database</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">"""Get list of tag names for a specific unit."""</span>
+    <span class="n">unit_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"unit_name"</span><span class="p">]</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"database"</span><span class="p">]</span>
     <span class="n">tagnames</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">&quot;avevadb&quot;</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">databases</span><span class="p">[</span><span class="s2">&quot;measured&quot;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">"avevadb"</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">databases</span><span class="p">[</span><span class="s2">"measured"</span><span class="p">]:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">external_db_driver</span><span class="p">,</span> <span class="n">AvevaDriver</span><span class="p">):</span>
-                <span class="n">tagname</span><span class="p">,</span> <span class="n">tag_desc</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">get_tagnames</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">tagname</span><span class="p">,</span> <span class="n">tag_desc</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">get_tagnames</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tagname</span><span class="p">)):</span>
-                    <span class="n">tagnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tagname</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; - &quot;</span> <span class="o">+</span> <span class="n">tag_desc</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
-    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">&quot;geminidb&quot;</span><span class="p">:</span>
+                    <span class="n">tagnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tagname</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="s2">" - "</span> <span class="o">+</span> <span class="n">tag_desc</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">"geminidb"</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">unit</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unit_name</span><span class="p">:</span>
-                <span class="n">categories</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;calculated&quot;</span><span class="p">]</span>
+                <span class="n">categories</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"calculated"</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">tagname</span> <span class="ow">in</span> <span class="n">unit</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="n">category</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                        <span class="n">tagnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tagname</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">category</span><span class="p">)</span>
+                        <span class="n">tagnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tagname</span> <span class="o">+</span> <span class="s2">"."</span> <span class="o">+</span> <span class="n">category</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tagnames&quot;</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tagnames</span><span class="p">)}</span></div>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"tagnames"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tagnames</span><span class="p">)}</span></div>
 
 
 
 <div class="viewcode-block" id="plot_tagnames">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.plot_tagnames">[docs]</a>
-<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/tagbrowser/plot_tagnames&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/plot_tagnames"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_tagnames</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot tag data for visualization.&quot;&quot;&quot;</span>
-    <span class="n">unitname</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;unitname&quot;</span><span class="p">]</span>
-    <span class="n">database</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">"""Plot tag data for visualization."""</span>
+    <span class="n">unitname</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"unitname"</span><span class="p">]</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"database"</span><span class="p">]</span>
 
-    <span class="n">start_time</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;starttime&quot;</span><span class="p">]</span>
-    <span class="n">end_time</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;endtime&quot;</span><span class="p">]</span>
-    <span class="n">timestep</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;timestep&quot;</span><span class="p">]</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"starttime"</span><span class="p">]</span>
+    <span class="n">end_time</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"endtime"</span><span class="p">]</span>
+    <span class="n">timestep</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"timestep"</span><span class="p">]</span>
 
-    <span class="n">tzobject</span> <span class="o">=</span> <span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">&quot;Europe/Amsterdam&quot;</span><span class="p">)</span>
+    <span class="n">tzobject</span> <span class="o">=</span> <span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">"Europe/Amsterdam"</span><span class="p">)</span>
 
-    <span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S"</span><span class="p">)</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">tzobject</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span><span class="n">start_time</span><span class="p">)</span>
-    <span class="n">start_time</span> <span class="o">=</span> <span class="n">start_time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">)</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">start_time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
 
-    <span class="n">end_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">end_time</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+    <span class="n">end_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">end_time</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S"</span><span class="p">)</span>
     <span class="n">end_time</span> <span class="o">=</span> <span class="n">tzobject</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span><span class="n">end_time</span><span class="p">)</span>
-    <span class="n">end_time</span> <span class="o">=</span> <span class="n">end_time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">)</span>
+    <span class="n">end_time</span> <span class="o">=</span> <span class="n">end_time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
 
     <span class="n">plant_name</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span>
 
@@ -213,43 +213,43 @@
     <span class="n">times_utc</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">times_local</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">&quot;avevadb&quot;</span><span class="p">:</span>
-        <span class="n">tagname_desc</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;tagname&quot;</span><span class="p">]</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="n">tagname_desc</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">"avevadb"</span><span class="p">:</span>
+        <span class="n">tagname_desc</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"tagname"</span><span class="p">]</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">tagname_desc</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"-"</span><span class="p">)</span>
         <span class="n">tagname</span> <span class="o">=</span> <span class="n">tagname_desc</span><span class="p">[</span><span class="mi">0</span> <span class="p">:</span> <span class="n">index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
 
-        <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">databases</span><span class="p">[</span><span class="s2">&quot;measured&quot;</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">databases</span><span class="p">[</span><span class="s2">"measured"</span><span class="p">]:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">external_db_driver</span><span class="p">,</span> <span class="n">AvevaDriver</span><span class="p">):</span>
                 <span class="n">result</span><span class="p">,</span> <span class="n">times_utc</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">read_data</span><span class="p">(</span>
                     <span class="n">tagname</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">timestep</span>
                 <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">&quot;geminidb&quot;</span><span class="p">:</span>
-        <span class="n">tagname</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;tagname&quot;</span><span class="p">]</span>
-        <span class="n">db</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">databases</span><span class="p">[</span><span class="s2">&quot;measured&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">"geminidb"</span><span class="p">:</span>
+        <span class="n">tagname</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"tagname"</span><span class="p">]</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">databases</span><span class="p">[</span><span class="s2">"measured"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">result</span><span class="p">,</span> <span class="n">times_utc</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">internal_db_driver</span><span class="o">.</span><span class="n">read_data</span><span class="p">(</span>
             <span class="n">plant_name</span><span class="p">,</span> <span class="n">unitname</span><span class="p">,</span> <span class="n">tagname</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">timestep</span>
         <span class="p">)</span>
 
     <span class="k">for</span> <span class="n">time_utc</span> <span class="ow">in</span> <span class="n">times_utc</span><span class="p">:</span>
         <span class="n">time_local</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">time_utc</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">tzobject</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">time_utc</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">tzobject</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S"</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">times_local</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time_local</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">times_local</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">}</span></div>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"x"</span><span class="p">:</span> <span class="n">times_local</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">:</span> <span class="n">result</span><span class="p">}</span></div>
 
 
 
 <div class="viewcode-block" id="change_to_iso">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.change_to_iso">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">change_to_iso</span><span class="p">(</span><span class="n">str_time</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Change date string to ISO format.&quot;&quot;&quot;</span>
-    <span class="n">tzobject</span> <span class="o">=</span> <span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">&quot;Europe/Amsterdam&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Change date string to ISO format."""</span>
+    <span class="n">tzobject</span> <span class="o">=</span> <span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">"Europe/Amsterdam"</span><span class="p">)</span>
 
-    <span class="n">iso_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">str_time</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+    <span class="n">iso_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">str_time</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S"</span><span class="p">)</span>
     <span class="n">iso_time</span> <span class="o">=</span> <span class="n">tzobject</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span><span class="n">iso_time</span><span class="p">)</span>
-    <span class="n">iso_time</span> <span class="o">=</span> <span class="n">iso_time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">)</span>
+    <span class="n">iso_time</span> <span class="o">=</span> <span class="n">iso_time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">iso_time</span></div>
 
@@ -257,46 +257,46 @@
 
 <div class="viewcode-block" id="upload_data_csv">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.upload_data_csv">[docs]</a>
-<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/tagbrowser/upload_data_csv&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/upload_data_csv"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">upload_data_csv</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Upload CSV data to the plant instance.&quot;&quot;&quot;</span>
-    <span class="n">file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Upload CSV data to the plant instance."""</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"file"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">&quot;ERROR : No file selected!&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">"ERROR : No file selected!"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">file</span> <span class="ow">and</span> <span class="n">allowed_file</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">):</span>
         <span class="n">tmp_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp_dir</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;data.csv&quot;</span><span class="p">)</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp_dir</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"data.csv"</span><span class="p">)</span>
         <span class="n">file</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
-        <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">({</span><span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">filename</span><span class="p">})</span>
+        <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">({</span><span class="s2">"url"</span><span class="p">:</span> <span class="n">filename</span><span class="p">})</span>
         <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
 
         <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">import_raw_data</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">&quot;CSV data is uploaded&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">&quot;ERROR : file type should be csv!&quot;</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">"CSV data is uploaded"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">"ERROR : file type should be csv!"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="status_unit_tagnames">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.status_unit_tagnames">[docs]</a>
-<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/tagbrowser/status_unit_tagnames&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/status_unit_tagnames"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">status_unit_tagnames</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get status of tag names for a specific unit.&quot;&quot;&quot;</span>
-    <span class="n">unitname</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;unitname&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">"""Get status of tag names for a specific unit."""</span>
+    <span class="n">unitname</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"unitname"</span><span class="p">]</span>
 
     <span class="n">app_instance</span><span class="o">.</span><span class="n">select_unit</span><span class="p">(</span><span class="n">unitname</span><span class="p">)</span>
 
-    <span class="n">start_time</span> <span class="o">=</span> <span class="n">change_to_iso</span><span class="p">(</span><span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">][</span><span class="s2">&quot;start_time&quot;</span><span class="p">])</span>
-    <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">)</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">change_to_iso</span><span class="p">(</span><span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"database"</span><span class="p">][</span><span class="s2">"start_time"</span><span class="p">])</span>
+    <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
 
     <span class="n">status</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="n">categories</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;calculated&quot;</span><span class="p">]</span>
+    <span class="n">categories</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"calculated"</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="n">category</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">tagname</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">category</span>
+            <span class="n">tagname</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">"."</span> <span class="o">+</span> <span class="n">category</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">last_timestamp</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">internal_db_driver</span><span class="o">.</span><span class="n">get_last_data</span><span class="p">(</span>
                 <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">tagname</span>
             <span class="p">)</span>
@@ -304,26 +304,26 @@
                 <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">tagname</span>
             <span class="p">)</span>
             <span class="n">status</span><span class="p">[</span><span class="n">tagname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">&quot;first_timestamp&quot;</span><span class="p">:</span> <span class="n">first_timestamp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">first_timestamp</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s2">&quot;last_timestamp&quot;</span><span class="p">:</span> <span class="n">last_timestamp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">last_timestamp</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">"first_timestamp"</span><span class="p">:</span> <span class="n">first_timestamp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">first_timestamp</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">"last_timestamp"</span><span class="p">:</span> <span class="n">last_timestamp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">last_timestamp</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">}</span>
 
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span> <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="n">start_time</span><span class="p">,</span> <span class="s2">&quot;current_time&quot;</span><span class="p">:</span> <span class="n">current_time</span><span class="p">}</span></div>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span> <span class="s2">"start_time"</span><span class="p">:</span> <span class="n">start_time</span><span class="p">,</span> <span class="s2">"current_time"</span><span class="p">:</span> <span class="n">current_time</span><span class="p">}</span></div>
 
 
 
 <div class="viewcode-block" id="save_esp_database">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.save_esp_database">[docs]</a>
-<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/tagbrowser/save_esp_database&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/save_esp_database"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_esp_database</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save updated esp database.&quot;&quot;&quot;</span>
-    <span class="n">esp_table</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;tabledata&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">"""Save updated esp database."""</span>
+    <span class="n">esp_table</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"tabledata"</span><span class="p">]</span>
 
     <span class="n">json_str</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">esp_table</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_app</span><span class="o">.</span><span class="n">static_folder</span><span class="p">,</span> <span class="s2">&quot;database&quot;</span><span class="p">,</span> <span class="s2">&quot;pumpdatabase.json&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_app</span><span class="o">.</span><span class="n">static_folder</span><span class="p">,</span> <span class="s2">"database"</span><span class="p">,</span> <span class="s2">"pumpdatabase.json"</span><span class="p">),</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_str</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="s2">&quot;ESP database is saved.&quot;</span></div>
+    <span class="k">return</span> <span class="s2">"ESP database is saved."</span></div>
 
 </pre></div>
 

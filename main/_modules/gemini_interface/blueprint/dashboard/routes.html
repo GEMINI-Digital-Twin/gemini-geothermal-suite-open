@@ -79,14 +79,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_interface.blueprint.dashboard.routes</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">Dashboard Application Routes.</span>
 
 <span class="sd">=============================</span>
 
 <span class="sd">This module provides dashboard functionality for plant parameter visualization and</span>
 <span class="sd">system overview including configuration management and monitoring capabilities.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -94,7 +94,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blueprint</span><span class="p">,</span> <span class="n">current_app</span><span class="p">,</span> <span class="n">request</span>
 
 <span class="c1"># Create the dashboard blueprint</span>
-<span class="n">dashboard</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">&quot;dashboard&quot;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+<span class="n">dashboard</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">"dashboard"</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
 
 
 <span class="c1"># ================================================================</span>
@@ -104,16 +104,16 @@
 
 <div class="viewcode-block" id="get_plant_parameters">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.dashboard.routes.html#gemini_interface.blueprint.dashboard.routes.get_plant_parameters">[docs]</a>
-<span class="nd">@dashboard</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/dashboard/get_url&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@dashboard</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/dashboard/get_url"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_plant_parameters</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get plant parameters and configuration for dashboard display.&quot;&quot;&quot;</span>
-    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;field_name&quot;</span><span class="p">]</span>
-    <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;GEMINI_PROJECT_FOLDER&quot;</span><span class="p">],</span> <span class="n">project_name</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Get plant parameters and configuration for dashboard display."""</span>
+    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"field_name"</span><span class="p">]</span>
+    <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"GEMINI_PROJECT_FOLDER"</span><span class="p">],</span> <span class="n">project_name</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder_path</span><span class="p">,</span> <span class="s2">&quot;plant.conf&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder_path</span><span class="p">,</span> <span class="s2">"plant.conf"</span><span class="p">),</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
         <span class="n">plant_conf</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span>
 
-    <span class="n">url</span> <span class="o">=</span> <span class="n">plant_conf</span><span class="p">[</span><span class="s2">&quot;dashboard&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">plant_conf</span><span class="p">[</span><span class="s2">"dashboard"</span><span class="p">][</span><span class="s2">"url"</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">url</span></div>
 

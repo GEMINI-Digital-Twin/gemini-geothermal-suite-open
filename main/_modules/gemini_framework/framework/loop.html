@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.framework.loop</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Loop helper to manage time windows and step counts for module execution.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Loop helper to manage time windows and step counts for module execution."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
@@ -88,10 +88,10 @@
 <div class="viewcode-block" id="Loop">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.loop.html#gemini_framework.framework.loop.Loop">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Loop</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encapsulates start time, end time, timestep, and computed step count.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Encapsulates start time, end time, timestep, and computed step count."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize simulation loop.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize simulation loop."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">timestep</span> <span class="o">=</span> <span class="kc">None</span>
@@ -100,7 +100,7 @@
 <div class="viewcode-block" id="Loop.initialize">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.loop.html#gemini_framework.framework.loop.Loop.initialize">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timestep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize loop with start time, end time, and timestep.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize loop with start time, end time, and timestep."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">start_time</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span> <span class="o">=</span> <span class="n">end_time</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">timestep</span> <span class="o">=</span> <span class="n">timestep</span></div>
@@ -109,7 +109,7 @@
 <div class="viewcode-block" id="Loop.compute_n_simulation">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.loop.html#gemini_framework.framework.loop.Loop.compute_n_simulation">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_n_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute number of simulation steps.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Compute number of simulation steps."""</span>
         <span class="n">starttime_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span>
         <span class="n">endtime_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="p">)</span>
 

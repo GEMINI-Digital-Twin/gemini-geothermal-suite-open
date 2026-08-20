@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.framework.mainmodule</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Main execution module organizing pre/model/post processors per loop.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Main execution module organizing pre/model/post processors per loop."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.framework.loop</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loop</span>
 
@@ -87,48 +87,48 @@
 <div class="viewcode-block" id="MainModule">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.mainmodule.html#gemini_framework.framework.mainmodule.MainModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MainModule</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coordinates reading data and executing all unit modules per category.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Coordinates reading data and executing all unit modules per category."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize main module with plant.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize main module with plant."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plant</span> <span class="o">=</span> <span class="n">plant</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">modules</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s2">&quot;preprocessor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">find_modules</span><span class="p">(</span><span class="s2">&quot;preprocessor&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">find_modules</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s2">&quot;postprocessor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">find_modules</span><span class="p">(</span><span class="s2">&quot;postprocessor&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s2">"preprocessor"</span><span class="p">]</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">find_modules</span><span class="p">(</span><span class="s2">"preprocessor"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">find_modules</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s2">"postprocessor"</span><span class="p">]</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">find_modules</span><span class="p">(</span><span class="s2">"postprocessor"</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">&quot;filtered&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_loop</span><span class="p">(</span><span class="s2">&quot;filtered&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">&quot;calculated&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_loop</span><span class="p">(</span><span class="s2">&quot;calculated&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">"filtered"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_loop</span><span class="p">(</span><span class="s2">"filtered"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">"calculated"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_loop</span><span class="p">(</span><span class="s2">"calculated"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MainModule.step">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.mainmodule.html#gemini_framework.framework.mainmodule.MainModule.step">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute one simulation step.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Execute one simulation step."""</span>
         <span class="c1"># self.plant.database.delete(self.plant.name)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">import_raw_data</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_run_modules</span><span class="p">(</span><span class="s2">&quot;preprocessor&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">&quot;filtered&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_run_modules</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">&quot;calculated&quot;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_run_modules</span><span class="p">(</span><span class="s2">&quot;postprocessor&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">&quot;calculated&quot;</span><span class="p">])</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_modules</span><span class="p">(</span><span class="s2">"preprocessor"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">"filtered"</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_modules</span><span class="p">(</span><span class="s2">"model"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">"calculated"</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_modules</span><span class="p">(</span><span class="s2">"postprocessor"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">[</span><span class="s2">"calculated"</span><span class="p">])</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_build_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and initialize a loop instance for the requested category.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Create and initialize a loop instance for the requested category."""</span>
         <span class="n">loop</span> <span class="o">=</span> <span class="n">Loop</span><span class="p">()</span>
         <span class="n">end_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">get_current_time_str</span><span class="p">()</span>
-        <span class="n">timestep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">][</span><span class="n">category</span><span class="p">][</span><span class="s2">&quot;interval&quot;</span><span class="p">]</span>
+        <span class="n">timestep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"database"</span><span class="p">][</span><span class="n">category</span><span class="p">][</span><span class="s2">"interval"</span><span class="p">]</span>
         <span class="c1"># start time will be set inside the module based on the latest available calculated value</span>
         <span class="n">loop</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">end_time</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span> <span class="n">timestep</span><span class="o">=</span><span class="n">timestep</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">loop</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_run_modules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_category</span><span class="p">,</span> <span class="n">loop</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run all modules in a category with consistent logging.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Run all modules in a category with consistent logging."""</span>
         <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module_category</span><span class="p">]:</span>
             <span class="n">module</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Timestamps: </span><span class="si">{</span><span class="n">loop</span><span class="o">.</span><span class="n">end_time</span><span class="si">}</span><span class="s2">. Running </span><span class="si">{</span><span class="n">module_category</span><span class="si">}</span><span class="s2"> &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;module: </span><span class="si">{</span><span class="n">module</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"Timestamps: </span><span class="si">{</span><span class="n">loop</span><span class="o">.</span><span class="n">end_time</span><span class="si">}</span><span class="s2">. Running </span><span class="si">{</span><span class="n">module_category</span><span class="si">}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"module: </span><span class="si">{</span><span class="n">module</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
             <span class="n">module</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">loop</span><span class="p">)</span></div>
 

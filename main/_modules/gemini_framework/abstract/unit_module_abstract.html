@@ -79,11 +79,11 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.abstract.unit_module_abstract</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Abstract module interface for unit components.</span>
+<span></span><span class="sd">"""Abstract module interface for unit components.</span>
 
 <span class="sd">Defines the contract for unit modules that link inputs/outputs to the</span>
 <span class="sd">framework database and update model parameters over time windows.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
@@ -99,68 +99,68 @@
 <div class="viewcode-block" id="UnitModuleAbstract">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UnitModuleAbstract</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract base class for unit modules.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Abstract base class for unit modules."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize unit module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize unit module."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;measured&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;filtered&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;calculated&quot;</span><span class="p">:</span> <span class="p">{}},</span>
-            <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;measured&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;filtered&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;calculated&quot;</span><span class="p">:</span> <span class="p">{}},</span>
+            <span class="s2">"input"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"measured"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"filtered"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"calculated"</span><span class="p">:</span> <span class="p">{}},</span>
+            <span class="s2">"output"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"measured"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"filtered"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"calculated"</span><span class="p">:</span> <span class="p">{}},</span>
         <span class="p">}</span>
 
 <div class="viewcode-block" id="UnitModuleAbstract.link">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.link">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">link</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Link module inputs and outputs.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Module </span><span class="si">%s</span><span class="s2"> did not implement a link method&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span></div>
+<span class="w">        </span><span class="sd">"""Link module inputs and outputs."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"Module </span><span class="si">%s</span><span class="s2"> did not implement a link method"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="UnitModuleAbstract.init">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.init">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loop</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize module with loop.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize module with loop."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">loop</span></div>
 
 
 <div class="viewcode-block" id="UnitModuleAbstract.link_input">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.link_input">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">link_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">tagname</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Link input tag to module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Link input tag to module."""</span>
         <span class="n">reference</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="n">category</span><span class="p">][</span><span class="n">tagname</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">][</span><span class="n">category</span><span class="p">][</span><span class="n">tagname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;external_name&quot;</span><span class="p">:</span> <span class="n">reference</span><span class="p">,</span>
-            <span class="s2">&quot;internal_name&quot;</span><span class="p">:</span> <span class="n">tagname</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">category</span><span class="p">,</span>
-            <span class="s2">&quot;unit_name&quot;</span><span class="p">:</span> <span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="s2">"input"</span><span class="p">][</span><span class="n">category</span><span class="p">][</span><span class="n">tagname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"external_name"</span><span class="p">:</span> <span class="n">reference</span><span class="p">,</span>
+            <span class="s2">"internal_name"</span><span class="p">:</span> <span class="n">tagname</span> <span class="o">+</span> <span class="s2">"."</span> <span class="o">+</span> <span class="n">category</span><span class="p">,</span>
+            <span class="s2">"unit_name"</span><span class="p">:</span> <span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="UnitModuleAbstract.link_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.link_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">link_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">tagname</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Link output tag to module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Link output tag to module."""</span>
         <span class="n">reference</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="n">category</span><span class="p">][</span><span class="n">tagname</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="n">category</span><span class="p">][</span><span class="n">tagname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;external_name&quot;</span><span class="p">:</span> <span class="n">reference</span><span class="p">,</span>
-            <span class="s2">&quot;internal_name&quot;</span><span class="p">:</span> <span class="n">tagname</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">category</span><span class="p">,</span>
-            <span class="s2">&quot;unit_name&quot;</span><span class="p">:</span> <span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="s2">"output"</span><span class="p">][</span><span class="n">category</span><span class="p">][</span><span class="n">tagname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"external_name"</span><span class="p">:</span> <span class="n">reference</span><span class="p">,</span>
+            <span class="s2">"internal_name"</span><span class="p">:</span> <span class="n">tagname</span> <span class="o">+</span> <span class="s2">"."</span> <span class="o">+</span> <span class="n">category</span><span class="p">,</span>
+            <span class="s2">"unit_name"</span><span class="p">:</span> <span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="UnitModuleAbstract.get_output_last_data_time">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.get_output_last_data_time">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_output_last_data_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tagname</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get last data time for output tag.&quot;&quot;&quot;</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">tag_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_tag_meta</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="n">tagname</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Get last data time for output tag."""</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">tag_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_tag_meta</span><span class="p">(</span><span class="s2">"output"</span><span class="p">,</span> <span class="n">tagname</span><span class="p">)</span>
 
         <span class="n">time_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">get_internal_database_last_time_str</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">&quot;unit_name&quot;</span><span class="p">],</span>
-            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">&quot;internal_name&quot;</span><span class="p">],</span>
+            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">"unit_name"</span><span class="p">],</span>
+            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">"internal_name"</span><span class="p">],</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">time_str</span></div>
@@ -169,13 +169,13 @@
 <div class="viewcode-block" id="UnitModuleAbstract.get_input_data">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.get_input_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tagname</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get input data for tag.&quot;&quot;&quot;</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">tag_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_tag_meta</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="n">tagname</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Get input data for tag."""</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">tag_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_tag_meta</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="n">tagname</span><span class="p">)</span>
 
         <span class="n">result</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">read_internal_database</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">&quot;unit_name&quot;</span><span class="p">],</span>
-            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">&quot;internal_name&quot;</span><span class="p">],</span>
+            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">"unit_name"</span><span class="p">],</span>
+            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">"internal_name"</span><span class="p">],</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">start_time</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">end_time</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">timestep</span><span class="p">,</span>
@@ -187,13 +187,13 @@
 <div class="viewcode-block" id="UnitModuleAbstract.write_output_data">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.write_output_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">write_output_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tagname</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write output data for tag.&quot;&quot;&quot;</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">tag_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_tag_meta</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="n">tagname</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Write output data for tag."""</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">tag_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_tag_meta</span><span class="p">(</span><span class="s2">"output"</span><span class="p">,</span> <span class="n">tagname</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">write_internal_database</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">&quot;unit_name&quot;</span><span class="p">],</span>
-            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">&quot;internal_name&quot;</span><span class="p">],</span>
+            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">"unit_name"</span><span class="p">],</span>
+            <span class="n">tag_meta</span><span class="p">[</span><span class="s2">"internal_name"</span><span class="p">],</span>
             <span class="n">time</span><span class="p">,</span>
             <span class="n">result</span><span class="p">,</span>
         <span class="p">)</span></div>
@@ -202,12 +202,12 @@
 <div class="viewcode-block" id="UnitModuleAbstract.get_parameter_index">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.get_parameter_index">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_parameter_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get parameter index for given timestamp.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get parameter index for given timestamp."""</span>
         <span class="n">timestamps_unix</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
 
         <span class="n">timestamps_parameters_unix</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestamp_parameter</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">timestamp_parameter</span> <span class="ow">in</span> <span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;timestamps&quot;</span><span class="p">]</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestamp_parameter</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S"</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">timestamp_parameter</span> <span class="ow">in</span> <span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"timestamps"</span><span class="p">]</span>
         <span class="p">]</span>
 
         <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">timestamps_parameters_unix</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">timestamps_unix</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
@@ -216,18 +216,18 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_find_tag_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">io_type</span><span class="p">,</span> <span class="n">tagname</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve tag metadata from linked input/output tags.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Resolve tag metadata from linked input/output tags."""</span>
         <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">tag_map</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="n">io_type</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">tagname</span> <span class="ow">in</span> <span class="n">tag_map</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">category</span><span class="p">,</span> <span class="n">tag_map</span><span class="p">[</span><span class="n">tagname</span><span class="p">]</span>
 
-        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tag &#39;</span><span class="si">{</span><span class="n">tagname</span><span class="si">}</span><span class="s2">&#39; is not linked in </span><span class="si">{</span><span class="n">io_type</span><span class="si">}</span><span class="s2"> tags.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Tag '</span><span class="si">{</span><span class="n">tagname</span><span class="si">}</span><span class="s2">' is not linked in </span><span class="si">{</span><span class="n">io_type</span><span class="si">}</span><span class="s2"> tags."</span><span class="p">)</span>
 
 <div class="viewcode-block" id="UnitModuleAbstract.update_model_parameter">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.abstract.unit_module_abstract.html#gemini_framework.abstract.unit_module_abstract.UnitModuleAbstract.update_model_parameter">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_model_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model parameters for given timestamp.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update model parameters for given timestamp."""</span>
         <span class="k">pass</span></div>
 </div>
 

@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_interface.create_app</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">Create Flask Application.</span>
 
 <span class="sd">====================================</span>
@@ -91,7 +91,7 @@
 <span class="sd">- Authentication management with Flask-Login</span>
 <span class="sd">- Session management with Flask-Session</span>
 <span class="sd">- Admin interface for managing users and projects</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -110,67 +110,67 @@
 
 <span class="n">gemini_root_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
-<span class="n">load_dotenv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">&quot;.env&quot;</span><span class="p">))</span>
+<span class="n">load_dotenv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">".env"</span><span class="p">))</span>
 
-<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">&quot;gemini-project&quot;</span><span class="p">)):</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">&quot;gemini-project&quot;</span><span class="p">))</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">"gemini-project"</span><span class="p">)):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">"gemini-project"</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="create_app">
 <a class="viewcode-back" href="../../codedocumentation/gemini_interface.create_app.html#gemini_interface.create_app.create_app">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_app</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create and configure the Gemini web application using Flask and importing the blueprints.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Create and configure the Gemini web application using Flask and importing the blueprints."""</span>
     <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;SECRET_KEY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;0</span><span class="se">\xbf\xb6\x04</span><span class="s2">q</span><span class="se">\xf2\x12</span><span class="s2">,</span><span class="se">\xfa\xfa\xf8</span><span class="s2">T&quot;</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;SQLALCHEMY_DATABASE_URI&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;mysql+pymysql://root:root@</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;GEMINI_MYSQLDB_URL&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">:3306/&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;MYSQL_DATABASE&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"SECRET_KEY"</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"0</span><span class="se">\xbf\xb6\x04</span><span class="s2">q</span><span class="se">\xf2\x12</span><span class="s2">,</span><span class="se">\xfa\xfa\xf8</span><span class="s2">T"</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"SQLALCHEMY_DATABASE_URI"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"mysql+pymysql://root:root@</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'GEMINI_MYSQLDB_URL'</span><span class="p">)</span><span class="si">}</span><span class="s2">:3306/"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'MYSQL_DATABASE'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
     <span class="p">)</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;SQLALCHEMY_TRACK_MODIFICATIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"SQLALCHEMY_TRACK_MODIFICATIONS"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;SESSION_PERMANENT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;SESSION_TYPE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;filesystem&quot;</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"SESSION_PERMANENT"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"SESSION_TYPE"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"filesystem"</span>
 
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;GEMINI_PROJECT_FOLDER&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">&quot;GEMINI_PROJECT_FOLDER&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">&quot;gemini-project&quot;</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"GEMINI_PROJECT_FOLDER"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
+        <span class="s2">"GEMINI_PROJECT_FOLDER"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">"gemini-project"</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;GEMINI_DOCUMENTATION_FOLDER&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">&quot;GEMINI_DOCUMENTATION_FOLDER&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">&quot;src/gemini_documentation&quot;</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"GEMINI_DOCUMENTATION_FOLDER"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
+        <span class="s2">"GEMINI_DOCUMENTATION_FOLDER"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">"src/gemini_documentation"</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;MAX_CONTENT_LENGTH&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"MAX_CONTENT_LENGTH"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">*</span> <span class="mi">2</span>
 
     <span class="n">Session</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
 
     <span class="n">db</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
 
     <span class="n">login_manager</span> <span class="o">=</span> <span class="n">LoginManager</span><span class="p">()</span>
-    <span class="n">login_manager</span><span class="o">.</span><span class="n">login_view</span> <span class="o">=</span> <span class="s2">&quot;auth.login&quot;</span>
+    <span class="n">login_manager</span><span class="o">.</span><span class="n">login_view</span> <span class="o">=</span> <span class="s2">"auth.login"</span>
     <span class="n">login_manager</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_interface.blueprint.dbmodels</span><span class="w"> </span><span class="kn">import</span> <span class="n">Project</span><span class="p">,</span> <span class="n">User</span>
 
     <span class="nd">@login_manager</span><span class="o">.</span><span class="n">user_loader</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">load_user</span><span class="p">(</span><span class="n">user_id</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load user from database by ID.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Load user from database by ID."""</span>
         <span class="k">return</span> <span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">user_id</span><span class="p">))</span>
 
     <span class="c1"># for admin manager</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;FLASK_ADMIN_SWATCH&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;slate&quot;</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"FLASK_ADMIN_SWATCH"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"slate"</span>
 
     <span class="k">class</span><span class="w"> </span><span class="nc">UserModelView</span><span class="p">(</span><span class="n">ModelView</span><span class="p">):</span>
         <span class="n">can_create</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">column_exclude_list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">]</span>
+        <span class="n">column_exclude_list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"password"</span><span class="p">]</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">is_accessible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">current_user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;admin&quot;</span>
+            <span class="k">return</span> <span class="n">current_user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"admin"</span>
 
     <span class="k">class</span><span class="w"> </span><span class="nc">ProjectModelView</span><span class="p">(</span><span class="n">ModelView</span><span class="p">):</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">is_accessible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">current_user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;admin&quot;</span>
+            <span class="k">return</span> <span class="n">current_user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"admin"</span>
 
-    <span class="n">admin</span> <span class="o">=</span> <span class="n">Admin</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Admin Manager&quot;</span><span class="p">,</span> <span class="n">template_mode</span><span class="o">=</span><span class="s2">&quot;bootstrap4&quot;</span><span class="p">)</span>
+    <span class="n">admin</span> <span class="o">=</span> <span class="n">Admin</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"Admin Manager"</span><span class="p">,</span> <span class="n">template_mode</span><span class="o">=</span><span class="s2">"bootstrap4"</span><span class="p">)</span>
     <span class="n">admin</span><span class="o">.</span><span class="n">add_view</span><span class="p">(</span><span class="n">UserModelView</span><span class="p">(</span><span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="p">))</span>
     <span class="n">admin</span><span class="o">.</span><span class="n">add_view</span><span class="p">(</span><span class="n">ProjectModelView</span><span class="p">(</span><span class="n">Project</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="p">))</span>
 
@@ -275,21 +275,21 @@
 
     <span class="k">with</span> <span class="n">app</span><span class="o">.</span><span class="n">app_context</span><span class="p">():</span>
         <span class="n">db</span><span class="o">.</span><span class="n">create_all</span><span class="p">()</span>
-        <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="s2">&quot;admin@localhost&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"GEMINI_ADMIN_EMAIL"</span><span class="p">))</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
             <span class="n">new_user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span>
-                <span class="n">email</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;GEMINI_ADMIN_EMAIL&quot;</span><span class="p">),</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;GEMINI_ADMIN_NAME&quot;</span><span class="p">),</span>
+                <span class="n">email</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"GEMINI_ADMIN_EMAIL"</span><span class="p">),</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"GEMINI_ADMIN_NAME"</span><span class="p">),</span>
                 <span class="n">password</span><span class="o">=</span><span class="n">generate_password_hash</span><span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;GEMINI_ADMIN_PASSWORD&quot;</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;scrypt&quot;</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"GEMINI_ADMIN_PASSWORD"</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">"scrypt"</span>
                 <span class="p">),</span>
-                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span>
+                <span class="n">role</span><span class="o">=</span><span class="s2">"admin"</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_user</span><span class="p">)</span>
             <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-        <span class="n">template_project</span> <span class="o">=</span> <span class="n">Project</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;geothermal_example&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="n">template_project</span> <span class="o">=</span> <span class="n">Project</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"geothermal_example"</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">template_project</span><span class="p">:</span>
-            <span class="n">new_project</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;geothermal_example&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&quot;admin&quot;</span><span class="p">)</span>
+            <span class="n">new_project</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"geothermal_example"</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">"admin"</span><span class="p">)</span>
             <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_project</span><span class="p">)</span>
             <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 

@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.modules.injectionwell.calculate_injectivity_index</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Calculate injectivity index from flow and bottomhole pressure.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Calculate injectivity index from flow and bottomhole pressure."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
 
@@ -90,10 +90,10 @@
 <div class="viewcode-block" id="CalculateInjectivityIndex">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_injectivity_index.html#gemini_framework.modules.injectionwell.calculate_injectivity_index.CalculateInjectivityIndex">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CalculateInjectivityIndex</span><span class="p">(</span><span class="n">UnitModuleAbstract</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate injectivity index for injection wells.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Calculate injectivity index for injection wells."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize injectivity index calculation module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize injectivity index calculation module."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">injectivity_index</span><span class="p">()</span>
@@ -101,24 +101,24 @@
 <div class="viewcode-block" id="CalculateInjectivityIndex.link">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_injectivity_index.html#gemini_framework.modules.injectionwell.calculate_injectivity_index.CalculateInjectivityIndex.link">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">link</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Link module inputs and outputs.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;injectionwell_flow&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;calculated&quot;</span><span class="p">,</span> <span class="s2">&quot;injectionwell_bottomhole_pressure&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;calculated&quot;</span><span class="p">,</span> <span class="s2">&quot;injectionwell_injectivity_index&quot;</span><span class="p">)</span></div>
+<span class="w">        </span><span class="sd">"""Link module inputs and outputs."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"injectionwell_flow"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"calculated"</span><span class="p">,</span> <span class="s2">"injectionwell_bottomhole_pressure"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"calculated"</span><span class="p">,</span> <span class="s2">"injectionwell_injectivity_index"</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CalculateInjectivityIndex.step">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_injectivity_index.html#gemini_framework.modules.injectionwell.calculate_injectivity_index.CalculateInjectivityIndex.step">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loop</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute module step calculation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Execute module step calculation."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">loop</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_last_data_time</span><span class="p">(</span><span class="s2">&quot;injectionwell_injectivity_index&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_last_data_time</span><span class="p">(</span><span class="s2">"injectionwell_injectivity_index"</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">compute_n_simulation</span><span class="p">()</span>
 
-            <span class="n">time</span><span class="p">,</span> <span class="n">injectionwell_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">&quot;injectionwell_flow&quot;</span><span class="p">)</span>
+            <span class="n">time</span><span class="p">,</span> <span class="n">injectionwell_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">"injectionwell_flow"</span><span class="p">)</span>
             <span class="n">time</span><span class="p">,</span> <span class="n">injectionwell_bottomhole_pressure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span>
-                <span class="s2">&quot;injectionwell_bottomhole_pressure&quot;</span>
+                <span class="s2">"injectionwell_bottomhole_pressure"</span>
             <span class="p">)</span>
 
             <span class="n">u</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -134,37 +134,37 @@
                     <span class="n">injectivity_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                     <span class="k">continue</span>
 
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;flow&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_flow</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;bottomhole_pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_bottomhole_pressure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"flow"</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_flow</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"bottomhole_pressure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_bottomhole_pressure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
 
                 <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">calculate_output</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 
                 <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_output</span><span class="p">()</span>
 
-                <span class="n">injectivity_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="s2">&quot;injectivity_index&quot;</span><span class="p">])</span>
+                <span class="n">injectivity_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="s2">"injectivity_index"</span><span class="p">])</span>
 
             <span class="k">if</span> <span class="n">time_calc</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">write_output_data</span><span class="p">(</span>
-                    <span class="s2">&quot;injectionwell_injectivity_index&quot;</span><span class="p">,</span> <span class="n">time_calc</span><span class="p">,</span> <span class="n">injectivity_index</span>
+                    <span class="s2">"injectionwell_injectivity_index"</span><span class="p">,</span> <span class="n">time_calc</span><span class="p">,</span> <span class="n">injectivity_index</span>
                 <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;ERROR in module &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+                <span class="s2">"ERROR in module "</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">" : "</span> <span class="o">+</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
             <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CalculateInjectivityIndex.update_model_parameter">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_injectivity_index.html#gemini_framework.modules.injectionwell.calculate_injectivity_index.CalculateInjectivityIndex.update_model_parameter">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_model_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model parameters for given timestamp.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update model parameters for given timestamp."""</span>
         <span class="n">reservoir_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">reservoir_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_index</span><span class="p">(</span><span class="n">reservoir_unit</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
 
         <span class="n">res_param</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">res_param</span><span class="p">[</span><span class="s2">&quot;reservoir_pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;reservoir_pressure&quot;</span>
+        <span class="n">res_param</span><span class="p">[</span><span class="s2">"reservoir_pressure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"reservoir_pressure"</span>
         <span class="p">][</span><span class="n">reservoir_index</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">res_param</span><span class="p">)</span></div>

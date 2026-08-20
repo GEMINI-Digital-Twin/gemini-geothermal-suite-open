@@ -65,8 +65,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#start-the-supporting-services-docker">2.2.2.5. 4. Start the supporting services (Docker)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#run-the-application">2.2.2.6. 5. Run the application</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#configuring-a-plant">2.2.2.7. Configuring a plant</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#running-tests-linting-and-formatting">2.2.2.8. Running tests, linting and formatting</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#background-workers-celery-flower">2.2.2.9. Background workers (Celery/Flower)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#running-the-framework-module-populating-time-series-data">2.2.2.8. Running the framework module (populating time-series data)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#running-tests-linting-and-formatting">2.2.2.9. Running tests, linting and formatting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#background-workers-celery-flower">2.2.2.10. Background workers (Celery/Flower)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#troubleshooting">2.2.2.11. Troubleshooting</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#chat-assistant-setup">2.2.3. Chat Assistant Setup</a><ul>
@@ -124,156 +126,55 @@ on every service, environment variable, and the local development workflow.</p>
 <span id="id1"></span><h2><span class="section-number">2.2.1. </span>GEMINI Suite Setup<a class="headerlink" href="#gemini-suite-setup" title="Link to this heading"></a></h2>
 <p>GEMINI Digital Twin relies on several supporting services (Grafana, MySQL, InfluxDB, Redis,
 MongoDB, ChromaDB and, optionally, Ollama) that are packaged together in this repository’s
-<code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code>. It is needed to have a basic knowledge of Docker to install this tool.
-Several tutorial can be found in the internet (<a class="reference external" href="https://medium.com/&#64;sayalishewale12/docker-compose-and-essential-commands-the-ultimate-guide-to-streamlining-your-container-workflow-8018ca171300">example</a>)</p>
-<p>Basic Docker knowledge is recommended. For Docker fundamentals, refer to
-official Docker documentation.</p>
+<code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code>. Basic Docker knowledge is recommended – see the official
+<a class="reference external" href="https://docs.docker.com/">Docker documentation</a> for fundamentals.</p>
 <p>Prerequisites:</p>
 <ul class="simple">
 <li><p>Docker Desktop: <a class="reference external" href="https://docs.docker.com/engine/install/">https://docs.docker.com/engine/install/</a></p></li>
 <li><p>Docker Compose: <a class="reference external" href="https://docs.docker.com/compose/install/">https://docs.docker.com/compose/install/</a></p></li>
 </ul>
-<dl>
-<dt>docker-compose.yml</dt><dd><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">  1</span><span class="n">networks</span><span class="p">:</span>
-<span class="linenos">  2</span>  <span class="n">gemini</span><span class="p">:</span>
-<span class="linenos">  3</span>
-<span class="linenos">  4</span><span class="n">services</span><span class="p">:</span>
-<span class="linenos">  5</span>      <span class="n">grafana</span><span class="p">:</span>
-<span class="linenos">  6</span>        <span class="n">image</span><span class="p">:</span> <span class="n">grafana</span><span class="o">/</span><span class="n">grafana</span><span class="p">:</span><span class="n">latest</span>
-<span class="linenos">  7</span>        <span class="n">ports</span><span class="p">:</span>
-<span class="linenos">  8</span>            <span class="o">-</span> <span class="mi">3000</span><span class="p">:</span><span class="mi">3000</span>
-<span class="linenos">  9</span>        <span class="n">env_file</span><span class="p">:</span>
-<span class="linenos"> 10</span>            <span class="o">-</span> <span class="o">.</span><span class="n">env</span>
-<span class="linenos"> 11</span>        <span class="n">volumes</span><span class="p">:</span>
-<span class="linenos"> 12</span>            <span class="o">-</span> <span class="n">grafana</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">grafana</span>
-<span class="linenos"> 13</span>        <span class="n">depends_on</span><span class="p">:</span>
-<span class="linenos"> 14</span>            <span class="o">-</span> <span class="n">influxdb</span>
-<span class="linenos"> 15</span>        <span class="n">restart</span><span class="p">:</span> <span class="n">unless</span><span class="o">-</span><span class="n">stopped</span>
-<span class="linenos"> 16</span>        <span class="n">networks</span><span class="p">:</span>
-<span class="linenos"> 17</span>            <span class="o">-</span> <span class="n">gemini</span>
-<span class="linenos"> 18</span>
-<span class="linenos"> 19</span>      <span class="n">mysqldb</span><span class="p">:</span>
-<span class="linenos"> 20</span>        <span class="n">image</span><span class="p">:</span> <span class="n">mysql</span><span class="p">:</span><span class="mf">8.0</span>
-<span class="linenos"> 21</span>        <span class="n">ports</span><span class="p">:</span>
-<span class="linenos"> 22</span>          <span class="o">-</span> <span class="mi">3306</span><span class="p">:</span><span class="mi">3306</span>
-<span class="linenos"> 23</span>        <span class="n">env_file</span><span class="p">:</span>
-<span class="linenos"> 24</span>          <span class="o">-</span> <span class="o">.</span><span class="n">env</span>
-<span class="linenos"> 25</span>        <span class="n">volumes</span><span class="p">:</span>
-<span class="linenos"> 26</span>          <span class="o">-</span> <span class="n">mysqldb_data</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">db</span>
-<span class="linenos"> 27</span>          <span class="o">-</span> <span class="n">mysqldb_var_lib</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span>
-<span class="linenos"> 28</span>        <span class="n">restart</span><span class="p">:</span> <span class="n">unless</span><span class="o">-</span><span class="n">stopped</span>
-<span class="linenos"> 29</span>        <span class="n">networks</span><span class="p">:</span>
-<span class="linenos"> 30</span>          <span class="o">-</span> <span class="n">gemini</span>
-<span class="linenos"> 31</span>
-<span class="linenos"> 32</span>      <span class="n">influxdb</span><span class="p">:</span>
-<span class="linenos"> 33</span>        <span class="n">image</span><span class="p">:</span> <span class="n">influxdb</span><span class="p">:</span><span class="n">latest</span>
-<span class="linenos"> 34</span>        <span class="n">ports</span><span class="p">:</span>
-<span class="linenos"> 35</span>          <span class="o">-</span> <span class="mi">8086</span><span class="p">:</span><span class="mi">8086</span>
-<span class="linenos"> 36</span>          <span class="o">-</span> <span class="mi">8998</span><span class="p">:</span><span class="mi">8088</span>
-<span class="linenos"> 37</span>        <span class="n">env_file</span><span class="p">:</span>
-<span class="linenos"> 38</span>          <span class="o">-</span> <span class="o">.</span><span class="n">env</span>
-<span class="linenos"> 39</span>        <span class="n">volumes</span><span class="p">:</span>
-<span class="linenos"> 40</span>          <span class="o">-</span> <span class="n">influxdb</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">influxdb</span>
-<span class="linenos"> 41</span>          <span class="o">-</span> <span class="n">influxdb2</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">influxdb2</span>
-<span class="linenos"> 42</span>          <span class="o">-</span> <span class="n">influxdb2etc</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">influxdb2</span>
-<span class="linenos"> 43</span>        <span class="n">restart</span><span class="p">:</span> <span class="n">unless</span><span class="o">-</span><span class="n">stopped</span>
-<span class="linenos"> 44</span>        <span class="n">networks</span><span class="p">:</span>
-<span class="linenos"> 45</span>          <span class="o">-</span> <span class="n">gemini</span>
-<span class="linenos"> 46</span>
-<span class="linenos"> 47</span>      <span class="n">redis</span><span class="p">:</span>
-<span class="linenos"> 48</span>        <span class="n">image</span><span class="p">:</span> <span class="n">redis</span><span class="p">:</span><span class="mi">6</span><span class="o">-</span><span class="n">alpine</span>
-<span class="linenos"> 49</span>        <span class="n">ports</span><span class="p">:</span>
-<span class="linenos"> 50</span>          <span class="o">-</span> <span class="mi">6379</span><span class="p">:</span><span class="mi">6379</span>
-<span class="linenos"> 51</span>        <span class="n">env_file</span><span class="p">:</span>
-<span class="linenos"> 52</span>          <span class="o">-</span> <span class="o">.</span><span class="n">env</span>
-<span class="linenos"> 53</span>        <span class="n">restart</span><span class="p">:</span> <span class="n">unless</span><span class="o">-</span><span class="n">stopped</span>
-<span class="linenos"> 54</span>        <span class="n">networks</span><span class="p">:</span>
-<span class="linenos"> 55</span>          <span class="o">-</span> <span class="n">gemini</span>
-<span class="linenos"> 56</span>
-<span class="linenos"> 57</span>      <span class="n">mongodb</span><span class="p">:</span>
-<span class="linenos"> 58</span>        <span class="n">image</span><span class="p">:</span> <span class="n">mongo</span><span class="p">:</span><span class="n">latest</span>
-<span class="linenos"> 59</span>        <span class="n">ports</span><span class="p">:</span>
-<span class="linenos"> 60</span>          <span class="o">-</span> <span class="mi">27017</span><span class="p">:</span><span class="mi">27017</span>
-<span class="linenos"> 61</span>        <span class="n">env_file</span><span class="p">:</span>
-<span class="linenos"> 62</span>          <span class="o">-</span> <span class="o">.</span><span class="n">env</span>
-<span class="linenos"> 63</span>        <span class="n">volumes</span><span class="p">:</span>
-<span class="linenos"> 64</span>          <span class="o">-</span> <span class="n">mongo</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">db</span>
-<span class="linenos"> 65</span>        <span class="n">restart</span><span class="p">:</span> <span class="n">unless</span><span class="o">-</span><span class="n">stopped</span>
-<span class="linenos"> 66</span>        <span class="n">networks</span><span class="p">:</span>
-<span class="linenos"> 67</span>          <span class="o">-</span> <span class="n">gemini</span>
-<span class="linenos"> 68</span>
-<span class="linenos"> 69</span>      <span class="n">chromadb</span><span class="p">:</span>
-<span class="linenos"> 70</span>        <span class="n">image</span><span class="p">:</span> <span class="n">chromadb</span><span class="o">/</span><span class="n">chroma</span>
-<span class="linenos"> 71</span>        <span class="n">ports</span><span class="p">:</span>
-<span class="linenos"> 72</span>          <span class="o">-</span> <span class="mi">8000</span><span class="p">:</span><span class="mi">8000</span>
-<span class="linenos"> 73</span>        <span class="n">env_file</span><span class="p">:</span>
-<span class="linenos"> 74</span>          <span class="o">-</span> <span class="o">.</span><span class="n">env</span>
-<span class="linenos"> 75</span>        <span class="n">networks</span><span class="p">:</span>
-<span class="linenos"> 76</span>          <span class="o">-</span> <span class="n">gemini</span>
-<span class="linenos"> 77</span>        <span class="n">volumes</span><span class="p">:</span>
-<span class="linenos"> 78</span>          <span class="o">-</span> <span class="n">chroma</span><span class="o">-</span><span class="n">data</span><span class="p">:</span><span class="o">/</span><span class="n">data</span>
-<span class="linenos"> 79</span>        <span class="n">restart</span><span class="p">:</span> <span class="n">unless</span><span class="o">-</span><span class="n">stopped</span>
-<span class="linenos"> 80</span>
-<span class="linenos"> 81</span>      <span class="n">ollama</span><span class="p">:</span>
-<span class="linenos"> 82</span>        <span class="n">container_name</span><span class="p">:</span> <span class="n">ollama</span>
-<span class="linenos"> 83</span>        <span class="n">image</span><span class="p">:</span> <span class="n">ollama</span><span class="o">/</span><span class="n">ollama</span><span class="p">:</span><span class="n">latest</span>
-<span class="linenos"> 84</span>        <span class="n">ports</span><span class="p">:</span>
-<span class="linenos"> 85</span>          <span class="o">-</span> <span class="mi">11434</span><span class="p">:</span><span class="mi">11434</span>
-<span class="linenos"> 86</span>        <span class="n">environment</span><span class="p">:</span>
-<span class="linenos"> 87</span>           <span class="o">-</span> <span class="n">OLLAMA_HOST</span><span class="o">=</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">11434</span>
-<span class="linenos"> 88</span>        <span class="n">volumes</span><span class="p">:</span>
-<span class="linenos"> 89</span>          <span class="o">-</span> <span class="n">ollama_data</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="o">/.</span><span class="n">ollama</span>
-<span class="linenos"> 90</span>        <span class="n">restart</span><span class="p">:</span> <span class="n">unless</span><span class="o">-</span><span class="n">stopped</span>
-<span class="linenos"> 91</span>        <span class="n">command</span><span class="p">:</span> <span class="n">serve</span>
-<span class="linenos"> 92</span>
-<span class="linenos"> 93</span><span class="n">volumes</span><span class="p">:</span>
-<span class="linenos"> 94</span>  <span class="n">mysqldb_data</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span>
-<span class="linenos"> 95</span>  <span class="n">mysqldb_var_lib</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span>
-<span class="linenos"> 96</span>  <span class="n">grafana</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span>
-<span class="linenos"> 97</span>  <span class="n">influxdb</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span>
-<span class="linenos"> 98</span>  <span class="n">influxdb2</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span>
-<span class="linenos"> 99</span>  <span class="n">influxdb2etc</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span>
-<span class="linenos">100</span>  <span class="n">mongo</span><span class="o">-</span><span class="n">storage</span><span class="p">:</span>
-<span class="linenos">101</span>  <span class="n">chroma</span><span class="o">-</span><span class="n">data</span><span class="p">:</span>
-<span class="linenos">102</span>  <span class="n">ollama_data</span><span class="p">:</span>
-</pre></div>
-</div>
-</dd>
-</dl>
-<p>There are several services in this docker-compose.yml file:</p>
+<p>The full service definitions live in <code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code> at the repo root. Here’s what each
+one is for:</p>
 <ol class="arabic simple">
 <li><dl class="simple">
-<dt>Grafana</dt><dd><p>Visualization platform for time-series dashboards and alerts.</p>
+<dt>Grafana</dt><dd><p>Visualization platform for time-series dashboards and alerts. Embedded in the app’s
+Timeseries Viewer tab.</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>MySQLDB</dt><dd><p>Relational database for user, configuration, and project metadata.</p>
+<dt>MySQLDB</dt><dd><p>Relational database for user, configuration, and project metadata. <strong>Required.</strong></p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>InfluxDB</dt><dd><p>Time-series database used for geothermal operational data.</p>
+<dt>InfluxDB</dt><dd><p>Time-series database used for geothermal operational data, written by the framework module
+and read by Grafana. <strong>Required.</strong></p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>Redis</dt><dd><p>In-memory broker/backend for asynchronous task queues and task results.</p>
+<dt>Redis</dt><dd><p>In-memory broker/backend for Celery task queues. <strong>Required</strong> for most analysis tabs (ESP,
+production well performance, injection well monitoring, well integrity monitoring) and the
+AI Chat Assistant.</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>MongoDB</dt><dd><p>Document database used for uploaded report and document storage.</p>
+<dt>MongoDB</dt><dd><p>Document database used for uploaded report and document storage. Optional – only needed for
+the report upload/download feature.</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>ChromaDB</dt><dd><p>Vector database used by RAG workflows for semantic document retrieval.</p>
+<dt>ChromaDB</dt><dd><p>Vector database used by RAG workflows for semantic document retrieval. Optional – only
+needed for the AI Chat Assistant (see <a class="reference internal" href="#chat-assistant-setup"><span class="std std-ref">Chat Assistant Setup</span></a>).</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>Ollama</dt><dd><p>Runtime for local LLM and embedding model execution.</p>
+<dt>Ollama</dt><dd><p>Runtime for local LLM and embedding model execution. Optional – only needed for the AI Chat
+Assistant.</p>
 </dd>
 </dl>
 </li>
@@ -281,7 +182,7 @@ official Docker documentation.</p>
 <section id="starting-the-stack">
 <h3><span class="section-number">2.2.1.1. </span>Starting the stack<a class="headerlink" href="#starting-the-stack" title="Link to this heading"></a></h3>
 <p>Run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span>up<span class="w"> </span>-d
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
 </pre></div>
 </div>
 <p>After startup, open the GEMINI GUI on the configured frontend port.</p>
@@ -329,45 +230,28 @@ the process starts.</p>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">Copy-Item</span> <span class="p">.</span><span class="n">env</span><span class="p">.</span><span class="n">template</span> <span class="p">.</span><span class="n">env</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">.env.template</span></code> is organized into a <strong>Required</strong> section (needed to run the GUI, framework
+module, and Celery-backed analysis tabs) and an <strong>Optional</strong> section (report upload/download via
+MongoDB; the AI Chat Assistant via ChromaDB/Ollama – see <a class="reference internal" href="#chat-assistant-setup"><span class="std std-ref">Chat Assistant Setup</span></a>). Fill in
+the Required section; leave the Optional section blank unless you use those features. See the
+complete, working example (including the Optional section) in the <a class="reference internal" href="start_installation_quickstart.html#quickstart-installation"><span class="std std-ref">Quick Start (Beginners)</span></a>
+guide.</p>
+<p><code class="docutils literal notranslate"><span class="pre">MONGODB_USERNAME</span></code>/<code class="docutils literal notranslate"><span class="pre">PASSWORD</span></code> and <code class="docutils literal notranslate"><span class="pre">MONGO_INITDB_ROOT_*</span></code> can stay blank for a no-auth Mongo
+setup (fine for local development) – only fill them in (with matching values on both sides) if
+you want Mongo authentication enabled. See <a class="reference internal" href="#chat-assistant-setup"><span class="std std-ref">Chat Assistant Setup</span></a> for the Ollama model
+values and how to pull the models into the container.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Hostnames depend on how you run the app. How you set hostnames like <code class="docutils literal notranslate"><span class="pre">GEMINI_MYSQLDB_URL</span></code>,
-<code class="docutils literal notranslate"><span class="pre">MONGODB_HOST</span></code>, <code class="docutils literal notranslate"><span class="pre">INFLUXDB_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">CELERY_BROKER_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">CHROMADB_HOST</span></code> and <code class="docutils literal notranslate"><span class="pre">OLLAMA_HOST</span></code>
-depends on where the Flask app / Celery worker process runs, not on where the supporting
-services run:</p>
-<ul class="simple">
-<li><p><strong>Running the app locally with</strong> <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">run</span></code> (the default/recommended workflow for
-development) – your Python process runs outside Docker’s network, so these variables must
-point at <code class="docutils literal notranslate"><span class="pre">localhost</span></code> plus the host-published port from <code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code> (e.g.
-<code class="docutils literal notranslate"><span class="pre">GEMINI_MYSQLDB_URL=localhost</span></code>, <code class="docutils literal notranslate"><span class="pre">MONGODB_HOST=localhost</span></code>,
-<code class="docutils literal notranslate"><span class="pre">INFLUXDB_URL=http://localhost:8086</span></code>, <code class="docutils literal notranslate"><span class="pre">CELERY_BROKER_URL=redis://localhost:6379/0</span></code>,
-<code class="docutils literal notranslate"><span class="pre">CHROMADB_HOST=localhost</span></code>, <code class="docutils literal notranslate"><span class="pre">OLLAMA_HOST=localhost</span></code>).</p></li>
-<li><p><strong>Running everything inside Docker</strong> (the <code class="docutils literal notranslate"><span class="pre">gemini_gui</span></code>/<code class="docutils literal notranslate"><span class="pre">gemini_module</span></code>/<code class="docutils literal notranslate"><span class="pre">gemini_celery</span></code>
-images described above) – the app process runs inside the same <code class="docutils literal notranslate"><span class="pre">gemini</span></code> Docker network as
-the other services, so these variables must use the Docker Compose service names instead
-(e.g. <code class="docutils literal notranslate"><span class="pre">GEMINI_MYSQLDB_URL=mysqldb</span></code>, <code class="docutils literal notranslate"><span class="pre">MONGODB_HOST=mongodb</span></code>,
-<code class="docutils literal notranslate"><span class="pre">INFLUXDB_URL=http://influxdb:8086</span></code>, <code class="docutils literal notranslate"><span class="pre">CELERY_BROKER_URL=redis://redis:6379/0</span></code>).</p></li>
-</ul>
-<p>Mixing these up is the most common setup error – trying to resolve a Docker service name
-(e.g. <code class="docutils literal notranslate"><span class="pre">mysqldb</span></code>) from a locally-run process fails with <code class="docutils literal notranslate"><span class="pre">getaddrinfo</span> <span class="pre">failed</span></code> (<code class="docutils literal notranslate"><span class="pre">Can't</span>
-<span class="pre">connect</span> <span class="pre">to</span> <span class="pre">MySQL</span> <span class="pre">server</span> <span class="pre">on</span> <span class="pre">'mysqldb'</span></code>), since that name doesn’t exist in your host’s DNS.</p>
+<p>Hostnames (<code class="docutils literal notranslate"><span class="pre">GEMINI_MYSQLDB_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">MONGODB_HOST</span></code>, <code class="docutils literal notranslate"><span class="pre">INFLUXDB_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">CELERY_BROKER_URL</span></code>,
+<code class="docutils literal notranslate"><span class="pre">CHROMADB_HOST</span></code>, <code class="docutils literal notranslate"><span class="pre">OLLAMA_HOST</span></code>) depend on where the app runs: use <code class="docutils literal notranslate"><span class="pre">localhost</span></code> (with the
+host-published port) when running with <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">run</span></code>, or the Docker Compose service name
+(e.g. <code class="docutils literal notranslate"><span class="pre">mysqldb</span></code>, <code class="docutils literal notranslate"><span class="pre">influxdb</span></code>, <code class="docutils literal notranslate"><span class="pre">redis</span></code>) when running the app itself inside Docker. Mixing
+these up is the most common setup error – see <a class="reference internal" href="#troubleshooting"><span class="std std-ref">Troubleshooting</span></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">GRAFANA_URL</span></code> must also be reachable at that exact URL from your browser, or the Timeseries
+Viewer tab won’t work. Never commit your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file – it’s already excluded via
+<code class="docutils literal notranslate"><span class="pre">.gitignore</span></code>.</p>
 </div>
-<p>Also make sure to set:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GRAFANA_URL</span><span class="o">=</span>http://localhost:3000
-</pre></div>
-</div>
-<p>This is required for the in-app Timeseries Viewer tab (which embeds Grafana in an iframe) to work
-at all – without it, that tab shows a “Not Found” page.</p>
-<p>Then edit <code class="docutils literal notranslate"><span class="pre">.env</span></code> and fill in the required values, including <code class="docutils literal notranslate"><span class="pre">GEMINI_PLANT</span></code>, the InfluxDB
-connection settings, <code class="docutils literal notranslate"><span class="pre">GEMINI_FRONTEND_PORT</span></code>, the MySQL/MongoDB/Redis connection settings, the
-default admin credentials (<code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_EMAIL</span></code>, <code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_NAME</span></code>, <code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_PASSWORD</span></code>),
-the LLM/embedding model names, the ChromaDB and Ollama connection settings, the Grafana
-configuration, and the MySQL/InfluxDB/MongoDB container initialization variables.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Never commit your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file. It contains credentials and secrets and is already excluded
-via <code class="docutils literal notranslate"><span class="pre">.gitignore</span></code>.</p>
-</div>
+<p>See <a class="reference internal" href="#troubleshooting"><span class="std std-ref">Troubleshooting</span></a> for common errors after changing <code class="docutils literal notranslate"><span class="pre">.env</span></code>.</p>
 </section>
 <section id="install-python-dependencies">
 <h3><span class="section-number">2.2.2.4. </span>3. Install Python dependencies<a class="headerlink" href="#install-python-dependencies" title="Link to this heading"></a></h3>
@@ -386,7 +270,7 @@ via <code class="docutils literal notranslate"><span class="pre">.gitignore</spa
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 pip<span class="w"> </span>install<span class="w"> </span>poetry
 poetry<span class="w"> </span>lock
-poetry<span class="w"> </span>install<span class="w">            </span><span class="c1"># add &quot;--only main&quot; to skip dev dependencies</span>
+poetry<span class="w"> </span>install<span class="w">            </span><span class="c1"># add "--only main" to skip dev dependencies</span>
 </pre></div>
 </div>
 </section>
@@ -422,11 +306,8 @@ is set) and listens on <code class="docutils literal notranslate"><span class="p
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Always use <code class="docutils literal notranslate"><span class="pre">http://localhost:&lt;port&gt;</span></code>, not <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;</span></code>. Even though they
-point at the same machine, browsers treat <code class="docutils literal notranslate"><span class="pre">localhost</span></code> and <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code> as different
-origins. Since <code class="docutils literal notranslate"><span class="pre">GRAFANA_URL</span></code> is set to <code class="docutils literal notranslate"><span class="pre">http://localhost:3000</span></code>, accessing the app via
-<code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code> will break the embedded Grafana session in the Timeseries Viewer tab (it keeps
-looping back to the login screen).</p>
+<p>Always use <code class="docutils literal notranslate"><span class="pre">http://localhost:&lt;port&gt;</span></code>, not <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;</span></code>. See “Accessing
+Grafana from the Timeseries Viewer” below for why this matters.</p>
 </div>
 <p>Log in using the <code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_EMAIL</span></code> / <code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_PASSWORD</span></code> configured in your <code class="docutils literal notranslate"><span class="pre">.env</span></code>
 file.</p>
@@ -457,8 +338,26 @@ A <code class="docutils literal notranslate"><span class="pre">_template</span><
 new plant. Set <code class="docutils literal notranslate"><span class="pre">GEMINI_PLANT</span></code> in your <code class="docutils literal notranslate"><span class="pre">.env</span></code> to the name of the folder you want to load (e.g.
 <code class="docutils literal notranslate"><span class="pre">geothermal_example</span></code>).</p>
 </section>
+<section id="running-the-framework-module-populating-time-series-data">
+<h3><span class="section-number">2.2.2.8. </span>Running the framework module (populating time-series data)<a class="headerlink" href="#running-the-framework-module-populating-time-series-data" title="Link to this heading"></a></h3>
+<p>The Flask app (<code class="docutils literal notranslate"><span class="pre">gemini_interface</span></code>) alone lets you log in and browse the UI, but the Timeseries
+Viewer/dashboards stay empty until the <strong>framework</strong> module (<code class="docutils literal notranslate"><span class="pre">gemini_framework</span></code>) has processed
+plant data into InfluxDB. It reads raw data for the configured <code class="docutils literal notranslate"><span class="pre">GEMINI_PLANT</span></code>, runs the physics
+model modules, and writes the results, then exits (it performs one processing step per run, not a
+continuous loop). Run it any time you want to process the latest data, with the Docker services
+already running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>src/gemini_framework/app.py
+</pre></div>
+</div>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="n">ci</span><span class="p">\</span><span class="n">windows</span><span class="p">\</span><span class="n">run_gemini_module</span><span class="p">.</span><span class="n">bat</span>        <span class="c"># Windows</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>ci/linux/run_gemini_module.sh<span class="w">      </span><span class="c1"># Linux/macOS</span>
+</pre></div>
+</div>
+</section>
 <section id="running-tests-linting-and-formatting">
-<h3><span class="section-number">2.2.2.8. </span>Running tests, linting and formatting<a class="headerlink" href="#running-tests-linting-and-formatting" title="Link to this heading"></a></h3>
+<h3><span class="section-number">2.2.2.9. </span>Running tests, linting and formatting<a class="headerlink" href="#running-tests-linting-and-formatting" title="Link to this heading"></a></h3>
 <p><strong>Tests</strong> (pytest with coverage):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-v<span class="w"> </span>--cov<span class="w"> </span>-p<span class="w"> </span>no:faulthandler
 <span class="c1"># or</span>
@@ -479,9 +378,14 @@ bash<span class="w"> </span>ci/linux/run_test.sh<span class="w">      </span><sp
 </div>
 </section>
 <section id="background-workers-celery-flower">
-<h3><span class="section-number">2.2.2.9. </span>Background workers (Celery/Flower)<a class="headerlink" href="#background-workers-celery-flower" title="Link to this heading"></a></h3>
-<p>Some features (e.g. asynchronous reports, translations) run as Celery tasks against the Redis
-broker started via Docker Compose.</p>
+<h3><span class="section-number">2.2.2.10. </span>Background workers (Celery/Flower)<a class="headerlink" href="#background-workers-celery-flower" title="Link to this heading"></a></h3>
+<p>Celery is <strong>required</strong> for most interactive analysis tabs – ESP analysis, production well
+performance (VLP/IPR), injection well monitoring (Hall integral, skin lines), well integrity
+monitoring (caliper log processing, corrosion prediction/optimization/forecasting), and the AI
+Chat Assistant (RAG response generation). These all queue their work as Celery tasks against the
+Redis broker started via Docker Compose; without a running worker, those actions queue but never
+complete. You can skip this section only if you just want to browse the dashboard, plant
+settings, and Timeseries Viewer without using those analysis features.</p>
 <p>Start a Celery worker:</p>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="n">ci</span><span class="p">\</span><span class="n">windows</span><span class="p">\</span><span class="n">run_celery</span><span class="p">.</span><span class="n">bat</span>
 </pre></div>
@@ -489,7 +393,7 @@ broker started via Docker Compose.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>celery<span class="w"> </span>--app<span class="w"> </span>src.gemini_interface.blueprint.celerytasks.celery<span class="w"> </span>worker<span class="w"> </span>--loglevel<span class="o">=</span>info
 </pre></div>
 </div>
-<p>Start the Flower monitoring dashboard:</p>
+<p>Optionally, start the Flower monitoring dashboard to inspect Celery tasks:</p>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="n">ci</span><span class="p">\</span><span class="n">windows</span><span class="p">\</span><span class="n">run_flower</span><span class="p">.</span><span class="n">bat</span>
 </pre></div>
 </div>
@@ -497,13 +401,51 @@ broker started via Docker Compose.</p>
 </pre></div>
 </div>
 </section>
+<section id="troubleshooting">
+<span id="id3"></span><h3><span class="section-number">2.2.2.11. </span>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h3>
+<dl>
+<dt><strong>“Unknown database ‘None’” (MySQL / SQLAlchemy) when running the app</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">MYSQL_DATABASE</span></code> is blank in <code class="docutils literal notranslate"><span class="pre">.env</span></code>. It’s read by both the <code class="docutils literal notranslate"><span class="pre">mysqldb</span></code> container (to
+create the database) and the app (to build its connection string). Fill it in, then reset the
+volume (see below) since the container already initialized without it.</p>
+</dd>
+<dt><strong>InfluxDB “401 Unauthorized” when running the framework module</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">INFLUXDB_USERNAME</span></code>/<code class="docutils literal notranslate"><span class="pre">PASSWORD</span></code> don’t match what the <code class="docutils literal notranslate"><span class="pre">influxdb</span></code> container was actually
+initialized with (<code class="docutils literal notranslate"><span class="pre">DOCKER_INFLUXDB_INIT_USERNAME</span></code>/<code class="docutils literal notranslate"><span class="pre">PASSWORD</span></code>). This commonly happens after
+changing a password in <code class="docutils literal notranslate"><span class="pre">.env</span></code> without resetting the volume – see below.</p>
+</dd>
+<dt><strong>InfluxDB “could not find bucket” (404) when running the framework module</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">INFLUXDB_BUCKET</span></code> doesn’t match <code class="docutils literal notranslate"><span class="pre">DOCKER_INFLUXDB_INIT_BUCKET</span></code> – the app is asking for a
+bucket name that was never actually created in the container. Set <code class="docutils literal notranslate"><span class="pre">INFLUXDB_BUCKET</span></code> to the
+same value as <code class="docutils literal notranslate"><span class="pre">DOCKER_INFLUXDB_INIT_BUCKET</span></code> in <code class="docutils literal notranslate"><span class="pre">.env</span></code> (same rule applies to
+<code class="docutils literal notranslate"><span class="pre">INFLUXDB_ORG</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCKER_INFLUXDB_INIT_ORG</span></code>).</p>
+</dd>
+<dt><strong>MongoDB / report blueprint fails at app startup with</strong> <code class="docutils literal notranslate"><span class="pre">ValueError:</span> <span class="pre">invalid</span> <span class="pre">literal</span> <span class="pre">for</span> <span class="pre">int()</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">MONGODB_PORT</span></code> was left blank. The report blueprint connects to MongoDB eagerly at import
+time (even if you never use the report feature), so <code class="docutils literal notranslate"><span class="pre">MONGODB_HOST</span></code>/<code class="docutils literal notranslate"><span class="pre">MONGODB_PORT</span></code> must
+always be filled in – see the Required section of <code class="docutils literal notranslate"><span class="pre">.env.template</span></code>.</p>
+</dd>
+<dt><strong>Reset Docker volumes after changing container-init variables</strong></dt><dd><p><code class="docutils literal notranslate"><span class="pre">MYSQL_DATABASE</span></code>, <code class="docutils literal notranslate"><span class="pre">MYSQL_ROOT_PASSWORD</span></code>, <code class="docutils literal notranslate"><span class="pre">DOCKER_INFLUXDB_INIT_*</span></code> and
+<code class="docutils literal notranslate"><span class="pre">MONGO_INITDB_ROOT_*</span></code> only take effect the <strong>first</strong> time their container initializes its
+data volume. If you change one of these after already starting the stack once, the container
+keeps its old state. Fix by resetting the volumes and restarting:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</pre></div>
+</div>
+</dd>
+<dt><strong>``getaddrinfo failed`` / “Can’t connect to MySQL server on ‘mysqldb’”</strong></dt><dd><p>You used a Docker Compose service name (e.g. <code class="docutils literal notranslate"><span class="pre">mysqldb</span></code>) as a hostname from a process running
+outside Docker. Use <code class="docutils literal notranslate"><span class="pre">localhost</span></code> instead when running the app with <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">run</span></code> – see the
+hostname rules under “Configure environment variables” above.</p>
+</dd>
+<dt><strong>Grafana keeps looping back to its login screen inside the Timeseries Viewer</strong></dt><dd><p>Access the app via <code class="docutils literal notranslate"><span class="pre">http://localhost:&lt;port&gt;</span></code>, not <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;</span></code>. See
+“Accessing Grafana from the Timeseries Viewer” above for the full explanation.</p>
+</dd>
+</dl>
+</section>
 </section>
 <section id="chat-assistant-setup">
-<span id="id3"></span><h2><span class="section-number">2.2.3. </span>Chat Assistant Setup<a class="headerlink" href="#chat-assistant-setup" title="Link to this heading"></a></h2>
+<span id="id4"></span><h2><span class="section-number">2.2.3. </span>Chat Assistant Setup<a class="headerlink" href="#chat-assistant-setup" title="Link to this heading"></a></h2>
 <p>The Chat Assistant setup is mostly automatic. The Ollama service is hosted in
 the optional Docker container named <code class="docutils literal notranslate"><span class="pre">ollama</span></code>. Start this container before
 using the RAG pipeline, for example by running:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span>up
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
 </pre></div>
 </div>
 <p>The provided compose file starts Ollama together with the other GEMINI
@@ -511,12 +453,12 @@ services. The <code class="docutils literal notranslate"><span class="pre">ollam
 functional.</p>
 <p>Models must be pulled (downloaded) into the Ollama service before they can be
 used. For a quick start on Windows, run
-<code class="docutils literal notranslate"><span class="pre">ci\\windows\\run_ollama_models.bat</span></code>. A shell script for Linux/macOS is
+<code class="docutils literal notranslate"><span class="pre">ci\windows\run_ollama_models.bat</span></code>. A shell script for Linux/macOS is
 also provided at <code class="docutils literal notranslate"><span class="pre">ci/linux/run_ollama_models.sh</span></code>. The script checks that Docker is
 reachable and that the <code class="docutils literal notranslate"><span class="pre">ollama</span></code> container is running, then pulls all three
 recommended models: <code class="docutils literal notranslate"><span class="pre">llama3.2</span></code>, <code class="docutils literal notranslate"><span class="pre">snowflake-arctic-embed</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">zongwei/gemma3-translator:4b</span></code>. Run this script only after
-<code class="docutils literal notranslate"><span class="pre">docker-compose</span> <span class="pre">up</span></code> completes.</p>
+<code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">up</span></code> completes.</p>
 <p>If you prefer to pull models manually (or are on Linux/macOS), make sure the
 <code class="docutils literal notranslate"><span class="pre">ollama</span></code> container is running and then run the pull command inside the
 container, for example:</p>

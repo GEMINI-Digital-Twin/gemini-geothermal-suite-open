@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.framework.boot_plant</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Build a Plant from project configuration.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Build a Plant from project configuration."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
@@ -104,39 +104,39 @@
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
 
 <span class="n">UNIT_FACTORIES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;esp&quot;</span><span class="p">:</span> <span class="n">ESPUnit</span><span class="p">,</span>
-    <span class="s2">&quot;injection_pump&quot;</span><span class="p">:</span> <span class="n">InjectionPumpUnit</span><span class="p">,</span>
-    <span class="s2">&quot;production_well&quot;</span><span class="p">:</span> <span class="n">ProductionWellUnit</span><span class="p">,</span>
-    <span class="s2">&quot;injection_well&quot;</span><span class="p">:</span> <span class="n">InjectionWellUnit</span><span class="p">,</span>
-    <span class="s2">&quot;degasser&quot;</span><span class="p">:</span> <span class="n">DegasserUnit</span><span class="p">,</span>
-    <span class="s2">&quot;heat_exchanger&quot;</span><span class="p">:</span> <span class="n">HeatExchangerUnit</span><span class="p">,</span>
-    <span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="n">FilterUnit</span><span class="p">,</span>
-    <span class="s2">&quot;reservoir&quot;</span><span class="p">:</span> <span class="n">ReservoirUnit</span><span class="p">,</span>
-    <span class="s2">&quot;booster_pump&quot;</span><span class="p">:</span> <span class="n">BoosterPumpUnit</span><span class="p">,</span>
-    <span class="s2">&quot;gas_boiler&quot;</span><span class="p">:</span> <span class="n">GasBoilerUnit</span><span class="p">,</span>
+    <span class="s2">"esp"</span><span class="p">:</span> <span class="n">ESPUnit</span><span class="p">,</span>
+    <span class="s2">"injection_pump"</span><span class="p">:</span> <span class="n">InjectionPumpUnit</span><span class="p">,</span>
+    <span class="s2">"production_well"</span><span class="p">:</span> <span class="n">ProductionWellUnit</span><span class="p">,</span>
+    <span class="s2">"injection_well"</span><span class="p">:</span> <span class="n">InjectionWellUnit</span><span class="p">,</span>
+    <span class="s2">"degasser"</span><span class="p">:</span> <span class="n">DegasserUnit</span><span class="p">,</span>
+    <span class="s2">"heat_exchanger"</span><span class="p">:</span> <span class="n">HeatExchangerUnit</span><span class="p">,</span>
+    <span class="s2">"filter"</span><span class="p">:</span> <span class="n">FilterUnit</span><span class="p">,</span>
+    <span class="s2">"reservoir"</span><span class="p">:</span> <span class="n">ReservoirUnit</span><span class="p">,</span>
+    <span class="s2">"booster_pump"</span><span class="p">:</span> <span class="n">BoosterPumpUnit</span><span class="p">,</span>
+    <span class="s2">"gas_boiler"</span><span class="p">:</span> <span class="n">GasBoilerUnit</span><span class="p">,</span>
 <span class="p">}</span>
 
 
 <div class="viewcode-block" id="setup">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.boot_plant.html#gemini_framework.framework.boot_plant.setup">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="n">project_path</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set up the plant.</span>
+<span class="w">    </span><span class="sd">"""Set up the plant.</span>
 
 <span class="sd">    :param str project_path: location of the project folder.</span>
 <span class="sd">    :param str plant_name: the plant name or location name.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Boot application </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Boot application </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">)</span>
 
     <span class="n">plant</span> <span class="o">=</span> <span class="n">Plant</span><span class="p">()</span>
     <span class="n">plant</span><span class="o">.</span><span class="n">project_path</span> <span class="o">=</span> <span class="n">project_path</span>
     <span class="n">plant</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">plant_name</span>
 
     <span class="n">project_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plant</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder</span><span class="p">,</span> <span class="s2">&quot;plant.conf&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder</span><span class="p">,</span> <span class="s2">"plant.conf"</span><span class="p">),</span> <span class="s2">"r"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
         <span class="n">cfg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span>
         <span class="n">plant</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder</span><span class="p">,</span> <span class="s2">&quot;diagram.json&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder</span><span class="p">,</span> <span class="s2">"diagram.json"</span><span class="p">),</span> <span class="s2">"r"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
         <span class="n">plant</span><span class="o">.</span><span class="n">diagram</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span>
 
     <span class="n">plant</span> <span class="o">=</span> <span class="n">boot_unit</span><span class="p">(</span><span class="n">plant</span><span class="p">)</span>
@@ -149,23 +149,23 @@
 <div class="viewcode-block" id="boot_unit">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.boot_plant.html#gemini_framework.framework.boot_plant.boot_unit">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">boot_unit</span><span class="p">(</span><span class="n">plant</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Boot unit in the plant.&quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Boot Unit Plant&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Boot unit in the plant."""</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Boot Unit Plant"</span><span class="p">)</span>
 
     <span class="n">project_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plant</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">project_folder</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.param&quot;</span><span class="p">):</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder</span><span class="p">,</span> <span class="n">file</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".param"</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder</span><span class="p">,</span> <span class="n">file</span><span class="p">),</span> <span class="s2">"r"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
                 <span class="n">unitfile</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span>
-                <span class="n">unit_factory</span> <span class="o">=</span> <span class="n">UNIT_FACTORIES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">])</span>
+                <span class="n">unit_factory</span> <span class="o">=</span> <span class="n">UNIT_FACTORIES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">"type"</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">unit_factory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;UNIT </span><span class="si">%s</span><span class="s2"> not yet implemented&quot;</span><span class="p">,</span> <span class="n">unitfile</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">])</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"UNIT </span><span class="si">%s</span><span class="s2"> not yet implemented"</span><span class="p">,</span> <span class="n">unitfile</span><span class="p">[</span><span class="s2">"type"</span><span class="p">])</span>
                     <span class="k">continue</span>
 
-                <span class="n">unit</span> <span class="o">=</span> <span class="n">unit_factory</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">unitfile</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">plant</span><span class="p">)</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="n">unit_factory</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">"id"</span><span class="p">],</span> <span class="n">unitfile</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span> <span class="n">plant</span><span class="p">)</span>
 
-                <span class="n">unit</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">])</span>
-                <span class="n">unit</span><span class="o">.</span><span class="n">set_tagnames</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">&quot;tagnames&quot;</span><span class="p">])</span>
+                <span class="n">unit</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">"parameters"</span><span class="p">])</span>
+                <span class="n">unit</span><span class="o">.</span><span class="n">set_tagnames</span><span class="p">(</span><span class="n">unitfile</span><span class="p">[</span><span class="s2">"tagnames"</span><span class="p">])</span>
 
                 <span class="n">plant</span><span class="o">.</span><span class="n">add_unit</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
 
@@ -180,17 +180,17 @@
 <div class="viewcode-block" id="boot_database">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.framework.boot_plant.html#gemini_framework.framework.boot_plant.boot_database">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">boot_database</span><span class="p">(</span><span class="n">plant</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Start up the boot database.&quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Boot Database&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Start up the boot database."""</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Boot Database"</span><span class="p">)</span>
 
     <span class="c1"># csv database for manual upload</span>
-    <span class="n">category</span> <span class="o">=</span> <span class="s2">&quot;measured&quot;</span>
+    <span class="n">category</span> <span class="o">=</span> <span class="s2">"measured"</span>
     <span class="n">meas_database</span> <span class="o">=</span> <span class="n">InfluxdbCSVReaderDB</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
     <span class="n">plant</span><span class="o">.</span><span class="n">add_database</span><span class="p">(</span><span class="n">meas_database</span><span class="p">,</span> <span class="n">category</span><span class="p">)</span>
 
     <span class="c1"># add external measured database</span>
-    <span class="k">if</span> <span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">][</span><span class="s2">&quot;external_database&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;avevadb&quot;</span><span class="p">:</span>
-        <span class="n">category</span> <span class="o">=</span> <span class="s2">&quot;measured&quot;</span>
+    <span class="k">if</span> <span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"database"</span><span class="p">][</span><span class="s2">"external_database"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"avevadb"</span><span class="p">:</span>
+        <span class="n">category</span> <span class="o">=</span> <span class="s2">"measured"</span>
         <span class="n">meas_database</span> <span class="o">=</span> <span class="n">InfluxdbAvevaReaderDB</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
         <span class="n">plant</span><span class="o">.</span><span class="n">add_database</span><span class="p">(</span><span class="n">meas_database</span><span class="p">,</span> <span class="n">category</span><span class="p">)</span>
 

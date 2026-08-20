@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.modules.injectionwell.calculate_bottomhole_pressure</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Calculate injection well bottomhole pressure via VLP from wellhead data.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Calculate injection well bottomhole pressure via VLP from wellhead data."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
 
@@ -93,10 +93,10 @@
 <div class="viewcode-block" id="CalculateBottomholePressure">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.html#gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.CalculateBottomholePressure">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CalculateBottomholePressure</span><span class="p">(</span><span class="n">UnitModuleAbstract</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate bottomhole pressure for injection wells.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Calculate bottomhole pressure for injection wells."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize bottomhole pressure calculation module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize bottomhole pressure calculation module."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">DPDT</span><span class="p">()</span>
@@ -105,30 +105,30 @@
 <div class="viewcode-block" id="CalculateBottomholePressure.link">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.html#gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.CalculateBottomholePressure.link">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">link</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Link module inputs and outputs.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;injectionwell_flow&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;injectionwell_wellhead_pressure&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;injectionwell_wellhead_temperature&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;calculated&quot;</span><span class="p">,</span> <span class="s2">&quot;injectionwell_bottomhole_pressure&quot;</span><span class="p">)</span></div>
+<span class="w">        </span><span class="sd">"""Link module inputs and outputs."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"injectionwell_flow"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"injectionwell_wellhead_pressure"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"injectionwell_wellhead_temperature"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"calculated"</span><span class="p">,</span> <span class="s2">"injectionwell_bottomhole_pressure"</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CalculateBottomholePressure.step">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.html#gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.CalculateBottomholePressure.step">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loop</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute module step calculation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Execute module step calculation."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">loop</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_last_data_time</span><span class="p">(</span>
-                <span class="s2">&quot;injectionwell_bottomhole_pressure&quot;</span>
+                <span class="s2">"injectionwell_bottomhole_pressure"</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">compute_n_simulation</span><span class="p">()</span>
 
-            <span class="n">time</span><span class="p">,</span> <span class="n">injectionwell_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">&quot;injectionwell_flow&quot;</span><span class="p">)</span>
+            <span class="n">time</span><span class="p">,</span> <span class="n">injectionwell_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">"injectionwell_flow"</span><span class="p">)</span>
             <span class="n">time</span><span class="p">,</span> <span class="n">injectionwell_wellhead_pressure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span>
-                <span class="s2">&quot;injectionwell_wellhead_pressure&quot;</span>
+                <span class="s2">"injectionwell_wellhead_pressure"</span>
             <span class="p">)</span>
             <span class="n">time</span><span class="p">,</span> <span class="n">injectionwell_wellhead_temperature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span>
-                <span class="s2">&quot;injectionwell_wellhead_temperature&quot;</span>
+                <span class="s2">"injectionwell_wellhead_temperature"</span>
             <span class="p">)</span>
 
             <span class="n">u</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -146,79 +146,79 @@
                     <span class="n">injectionwell_bottomhole_pressure</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                     <span class="k">continue</span>
 
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;flowrate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">injectionwell_flow</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3600</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_wellhead_pressure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e5</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_wellhead_temperature</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;direction&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;down&quot;</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature_ambient&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;soil_temperature&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"flowrate"</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">injectionwell_flow</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3600</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_wellhead_pressure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e5</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span> <span class="o">=</span> <span class="n">injectionwell_wellhead_temperature</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"direction"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"down"</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"temperature_ambient"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"soil_temperature"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>
 
                 <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">calculate_output</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 
                 <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_output</span><span class="p">()</span>
 
-                <span class="n">injectionwell_bottomhole_pressure</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="s2">&quot;pressure_output&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e5</span><span class="p">)</span>
+                <span class="n">injectionwell_bottomhole_pressure</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="s2">"pressure_output"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e5</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">time_calc</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">write_output_data</span><span class="p">(</span>
-                    <span class="s2">&quot;injectionwell_bottomhole_pressure&quot;</span><span class="p">,</span>
+                    <span class="s2">"injectionwell_bottomhole_pressure"</span><span class="p">,</span>
                     <span class="n">time_calc</span><span class="p">,</span>
                     <span class="n">injectionwell_bottomhole_pressure</span><span class="p">,</span>
                 <span class="p">)</span>
 
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;ERROR in module &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+                <span class="s2">"ERROR in module "</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">" : "</span> <span class="o">+</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
             <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CalculateBottomholePressure.update_model_parameter">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.html#gemini_framework.modules.injectionwell.calculate_bottomhole_pressure.CalculateBottomholePressure.update_model_parameter">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_model_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model parameters for given timestamp.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update model parameters for given timestamp."""</span>
         <span class="n">reservoir_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">well_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
         <span class="n">reservoir_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_index</span><span class="p">(</span><span class="n">reservoir_unit</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
 
         <span class="n">well_param</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;soil_temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;injectionwell_soil_temperature&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"soil_temperature"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"injectionwell_soil_temperature"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
 
-        <span class="n">well_traj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;injectionwell_trajectory_table&quot;</span><span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
+        <span class="n">well_traj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"injectionwell_trajectory_table"</span><span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
         <span class="n">length</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">diameter</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">angle</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">roughness</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">well_traj</span><span class="p">)):</span>
-            <span class="n">MD</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;MD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">&quot;MD&quot;</span><span class="p">]</span>
-            <span class="n">TVD</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;TVD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">&quot;TVD&quot;</span><span class="p">]</span>
+            <span class="n">MD</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"MD"</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">"MD"</span><span class="p">]</span>
+            <span class="n">TVD</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"TVD"</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">"TVD"</span><span class="p">]</span>
 
             <span class="n">length</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MD</span><span class="p">)</span>
-            <span class="n">diameter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;ID&quot;</span><span class="p">])</span>
+            <span class="n">diameter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"ID"</span><span class="p">])</span>
             <span class="n">angle</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">90</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">TVD</span> <span class="o">/</span> <span class="n">MD</span><span class="p">)</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span>
-            <span class="n">roughness</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;roughness&quot;</span><span class="p">])</span>
+            <span class="n">roughness</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"roughness"</span><span class="p">])</span>
 
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;diameter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">diameter</span><span class="p">)</span>  <span class="c1"># well diameter in [m]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>  <span class="c1"># well length in [m]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;angle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>  <span class="c1"># well angle in [degree]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;roughness&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">roughness</span>  <span class="c1"># roughness of cells (mm)</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;friction_correlation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;injectionwell_friction_correlation&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"diameter"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">diameter</span><span class="p">)</span>  <span class="c1"># well diameter in [m]</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"length"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>  <span class="c1"># well length in [m]</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"angle"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>  <span class="c1"># well angle in [degree]</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"roughness"</span><span class="p">]</span> <span class="o">=</span> <span class="n">roughness</span>  <span class="c1"># roughness of cells (mm)</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"friction_correlation"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"injectionwell_friction_correlation"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;friction_correlation_2p&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;injectionwell_friction_correlation_2p&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"friction_correlation_2p"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"injectionwell_friction_correlation_2p"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;correction_factors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;injectionwell_friction_correction_factors&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"correction_factors"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"injectionwell_friction_correction_factors"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">well_param</span><span class="p">)</span>
 
         <span class="n">pvt_param</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">&quot;RHOL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;liquid_density&quot;</span><span class="p">][</span><span class="n">reservoir_index</span><span class="p">]</span>
-        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">&quot;VISL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;liquid_viscosity&quot;</span><span class="p">][</span>
+        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">"RHOL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"liquid_density"</span><span class="p">][</span><span class="n">reservoir_index</span><span class="p">]</span>
+        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">"VISL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"liquid_viscosity"</span><span class="p">][</span>
             <span class="n">reservoir_index</span>
         <span class="p">]</span>
 

@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_application.wims.common</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Shared helpers for WIMS application workflows.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Shared helpers for WIMS application workflows."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -91,32 +91,32 @@
 <div class="viewcode-block" id="get_well_type">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.wims.common.html#gemini_application.wims.common.get_well_type">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_well_type</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the canonical WIMS well type for a unit.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return the canonical WIMS well type for a unit."""</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">unit_type</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">unit_type</span> <span class="o">==</span> <span class="s2">&quot;production_well&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s2">&quot;productionwell&quot;</span>
-        <span class="k">if</span> <span class="n">unit_type</span> <span class="o">==</span> <span class="s2">&quot;injection_well&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s2">&quot;injectionwell&quot;</span>
+        <span class="n">unit_type</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unit_type</span> <span class="o">==</span> <span class="s2">"production_well"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">"productionwell"</span>
+        <span class="k">if</span> <span class="n">unit_type</span> <span class="o">==</span> <span class="s2">"injection_well"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">"injectionwell"</span>
     <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="n">unit_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s2">&quot;production&quot;</span> <span class="ow">in</span> <span class="n">unit_name</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;productionwell&quot;</span>
-    <span class="k">if</span> <span class="s2">&quot;injection&quot;</span> <span class="ow">in</span> <span class="n">unit_name</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;injectionwell&quot;</span>
-    <span class="k">return</span> <span class="s2">&quot;productionwell&quot;</span></div>
+    <span class="n">unit_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">"production"</span> <span class="ow">in</span> <span class="n">unit_name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"productionwell"</span>
+    <span class="k">if</span> <span class="s2">"injection"</span> <span class="ow">in</span> <span class="n">unit_name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"injectionwell"</span>
+    <span class="k">return</span> <span class="s2">"productionwell"</span></div>
 
 
 
 <div class="viewcode-block" id="get_tally_from_well_parameters">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.wims.common.html#gemini_application.wims.common.get_tally_from_well_parameters">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_tally_from_well_parameters</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the latest tally table from a unit if available.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return the latest tally table from a unit if available."""</span>
     <span class="n">well_type</span> <span class="o">=</span> <span class="n">get_well_type</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_tally_table&quot;</span>
-    <span class="n">prop</span> <span class="o">=</span> <span class="p">(</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;property&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;parameters&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_tally_table"</span>
+    <span class="n">prop</span> <span class="o">=</span> <span class="p">(</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"property"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"parameters"</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
     <span class="n">table</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">first</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -124,7 +124,7 @@
             <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">first</span><span class="p">)</span> <span class="k">if</span> <span class="n">first</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">and</span> <span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"parameters"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">and</span> <span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
         <span class="n">tbl</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tbl</span><span class="p">:</span>
             <span class="n">first</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -138,11 +138,11 @@
 <div class="viewcode-block" id="get_esp_depth_m">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.wims.common.html#gemini_application.wims.common.get_esp_depth_m">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_esp_depth_m</span><span class="p">(</span><span class="n">unit</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the ESP setting depth in meters if a linked ESP is present.&quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">linked_unit</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;to_units&quot;</span><span class="p">,</span> <span class="p">[]):</span>
-        <span class="k">if</span> <span class="s2">&quot;esp&quot;</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">linked_unit</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-            <span class="n">prop</span> <span class="o">=</span> <span class="n">linked_unit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;property&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
-            <span class="n">depths</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;esp_depth&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Return the ESP setting depth in meters if a linked ESP is present."""</span>
+    <span class="k">for</span> <span class="n">linked_unit</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"to_units"</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="s2">"esp"</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">linked_unit</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">prop</span> <span class="o">=</span> <span class="n">linked_unit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"property"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="n">depths</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"esp_depth"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">depths</span><span class="p">:</span>
                 <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">depths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">return</span> <span class="kc">None</span></div>
@@ -152,12 +152,12 @@
 <div class="viewcode-block" id="get_esp_joint_start_idx">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.wims.common.html#gemini_application.wims.common.get_esp_joint_start_idx">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_esp_joint_start_idx</span><span class="p">(</span><span class="n">well_tally</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">esp_depth_m</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the first tally index at or below the ESP setting depth.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return the first tally index at or below the ESP setting depth."""</span>
     <span class="k">if</span> <span class="n">esp_depth_m</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="mi">0</span>
 
     <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">well_tally</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;TopMD&quot;</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">esp_depth_m</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"TopMD"</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">esp_depth_m</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">idx</span>
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">well_tally</span><span class="p">)</span></div>
 
@@ -166,25 +166,25 @@
 <div class="viewcode-block" id="build_trajectory_geometry">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.wims.common.html#gemini_application.wims.common.build_trajectory_geometry">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_trajectory_geometry</span><span class="p">(</span><span class="n">well_traj</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build section arrays from a trajectory table.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Build section arrays from a trajectory table."""</span>
     <span class="n">length</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">diameter</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">angle</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">roughness</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">well_traj</span><span class="p">)):</span>
-        <span class="n">md</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;MD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">&quot;MD&quot;</span><span class="p">]</span>
-        <span class="n">tvd</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;TVD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">&quot;TVD&quot;</span><span class="p">]</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"MD"</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">"MD"</span><span class="p">]</span>
+        <span class="n">tvd</span> <span class="o">=</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"TVD"</span><span class="p">]</span> <span class="o">-</span> <span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="s2">"TVD"</span><span class="p">]</span>
         <span class="n">length</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">md</span><span class="p">)</span>
-        <span class="n">diameter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;ID&quot;</span><span class="p">])</span>
+        <span class="n">diameter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"ID"</span><span class="p">])</span>
         <span class="n">angle</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">90</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">tvd</span> <span class="o">/</span> <span class="n">md</span><span class="p">)</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span>
-        <span class="n">roughness</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">&quot;roughness&quot;</span><span class="p">])</span>
+        <span class="n">roughness</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">well_traj</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s2">"roughness"</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;length&quot;</span><span class="p">:</span> <span class="n">length</span><span class="p">,</span>
-        <span class="s2">&quot;diameter&quot;</span><span class="p">:</span> <span class="n">diameter</span><span class="p">,</span>
-        <span class="s2">&quot;angle&quot;</span><span class="p">:</span> <span class="n">angle</span><span class="p">,</span>
-        <span class="s2">&quot;roughness&quot;</span><span class="p">:</span> <span class="n">roughness</span><span class="p">,</span>
+        <span class="s2">"length"</span><span class="p">:</span> <span class="n">length</span><span class="p">,</span>
+        <span class="s2">"diameter"</span><span class="p">:</span> <span class="n">diameter</span><span class="p">,</span>
+        <span class="s2">"angle"</span><span class="p">:</span> <span class="n">angle</span><span class="p">,</span>
+        <span class="s2">"roughness"</span><span class="p">:</span> <span class="n">roughness</span><span class="p">,</span>
     <span class="p">}</span></div>
 
 </pre></div>

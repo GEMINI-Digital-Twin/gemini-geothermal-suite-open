@@ -79,14 +79,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_interface.blueprint.app_productionwellperformance.routes</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">Production Well Performance Application Routes.</span>
 
 <span class="sd">==============================================</span>
 
 <span class="sd">This module handles production well performance analysis and optimization including</span>
 <span class="sd">VLP (Vertical Lift Performance) calculations and IPR (Inflow Performance Relationship) analysis.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
@@ -98,13 +98,13 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_interface.blueprint.celerytasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">productionwellperformance_app_calculate_vlp_ipr</span>
 
 <span class="c1"># Create the production well performance application blueprint</span>
-<span class="n">app_productionwellperformance</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">&quot;app_productionwellperformance&quot;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+<span class="n">app_productionwellperformance</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">"app_productionwellperformance"</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
 
 <span class="c1"># Initialize Celery for background task processing</span>
 <span class="n">celery</span> <span class="o">=</span> <span class="n">Celery</span><span class="p">(</span>
-    <span class="s2">&quot;gemini-celery-app&quot;</span><span class="p">,</span>
-    <span class="n">backend</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CELERY_RESULT_BACKEND&quot;</span><span class="p">,</span> <span class="s2">&quot;redis://localhost:6379&quot;</span><span class="p">),</span>
-    <span class="n">broker</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CELERY_BROKER_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;redis://localhost:6379&quot;</span><span class="p">),</span>
+    <span class="s2">"gemini-celery-app"</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CELERY_RESULT_BACKEND"</span><span class="p">,</span> <span class="s2">"redis://localhost:6379"</span><span class="p">),</span>
+    <span class="n">broker</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CELERY_BROKER_URL"</span><span class="p">,</span> <span class="s2">"redis://localhost:6379"</span><span class="p">),</span>
 <span class="p">)</span>
 
 <span class="c1"># Global application instance for production well operations</span>
@@ -113,29 +113,29 @@
 
 <div class="viewcode-block" id="load_plant">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_productionwellperformance.routes.html#gemini_interface.blueprint.app_productionwellperformance.routes.load_plant">[docs]</a>
-<span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/productionwellperformance/load_plant&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/productionwellperformance/load_plant"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_plant</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a plant/project into the production well performance application instance.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Load a plant/project into the production well performance application instance."""</span>
     <span class="k">global</span> <span class="n">app_instance</span>
 
     <span class="n">app_instance</span> <span class="o">=</span> <span class="n">ProductionWellPerformance</span><span class="p">()</span>
 
-    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;field_name&quot;</span><span class="p">]</span>
-    <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;GEMINI_PROJECT_FOLDER&quot;</span><span class="p">]</span>
+    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"field_name"</span><span class="p">]</span>
+    <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"GEMINI_PROJECT_FOLDER"</span><span class="p">]</span>
 
     <span class="n">app_instance</span><span class="o">.</span><span class="n">load_plant</span><span class="p">(</span><span class="n">project_folder_path</span><span class="p">,</span> <span class="n">project_name</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="s2">&quot;OK&quot;</span></div>
+    <span class="k">return</span> <span class="s2">"OK"</span></div>
 
 
 
 <div class="viewcode-block" id="get_well_list">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_productionwellperformance.routes.html#gemini_interface.blueprint.app_productionwellperformance.routes.get_well_list">[docs]</a>
 <span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span>
-    <span class="s2">&quot;/app/productionwellperformance/get_well_list&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">]</span>
+    <span class="s2">"/app/productionwellperformance/get_well_list"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">]</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_well_list</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get list of production wells for performance analysis.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Get list of production wells for performance analysis."""</span>
     <span class="n">well_unit_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">ProductionWellUnit</span><span class="p">):</span>
@@ -147,10 +147,10 @@
 
 <div class="viewcode-block" id="calculate">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_productionwellperformance.routes.html#gemini_interface.blueprint.app_productionwellperformance.routes.calculate">[docs]</a>
-<span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/productionwellperformance/calculate&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/productionwellperformance/calculate"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate VLP and IPR for production well performance analysis.&quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">],</span> <span class="s2">&quot;boundary&quot;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;boundary&quot;</span><span class="p">]}</span>
+<span class="w">    </span><span class="sd">"""Calculate VLP and IPR for production well performance analysis."""</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"parameters"</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"parameters"</span><span class="p">],</span> <span class="s2">"boundary"</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"boundary"</span><span class="p">]}</span>
 
     <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">project_path</span>
     <span class="n">project_name</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span>
@@ -168,16 +168,16 @@
 
 <div class="viewcode-block" id="get_results">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_productionwellperformance.routes.html#gemini_interface.blueprint.app_productionwellperformance.routes.get_results">[docs]</a>
-<span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/app/productionwellperformance/get_results&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/productionwellperformance/get_results"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_results</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get results from the background calculation task.&quot;&quot;&quot;</span>
-    <span class="n">task_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;task_id&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">"""Get results from the background calculation task."""</span>
+    <span class="n">task_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"task_id"</span><span class="p">]</span>
     <span class="n">task_result</span> <span class="o">=</span> <span class="n">celery</span><span class="o">.</span><span class="n">AsyncResult</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;task_id&quot;</span><span class="p">:</span> <span class="n">task_id</span><span class="p">,</span>
-        <span class="s2">&quot;task_status&quot;</span><span class="p">:</span> <span class="n">task_result</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
-        <span class="s2">&quot;task_result&quot;</span><span class="p">:</span> <span class="n">task_result</span><span class="o">.</span><span class="n">result</span><span class="p">,</span>
+        <span class="s2">"task_id"</span><span class="p">:</span> <span class="n">task_id</span><span class="p">,</span>
+        <span class="s2">"task_status"</span><span class="p">:</span> <span class="n">task_result</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+        <span class="s2">"task_result"</span><span class="p">:</span> <span class="n">task_result</span><span class="o">.</span><span class="n">result</span><span class="p">,</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="n">result</span></div>
 
@@ -186,18 +186,18 @@
 <div class="viewcode-block" id="get_parameters">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_productionwellperformance.routes.html#gemini_interface.blueprint.app_productionwellperformance.routes.get_parameters">[docs]</a>
 <span class="nd">@app_productionwellperformance</span><span class="o">.</span><span class="n">route</span><span class="p">(</span>
-    <span class="s2">&quot;/app/productionwellperformance/get_parameters&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">]</span>
+    <span class="s2">"/app/productionwellperformance/get_parameters"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">]</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get parameters for the selected production well.&quot;&quot;&quot;</span>
-    <span class="n">well_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;well_name&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">"""Get parameters for the selected production well."""</span>
+    <span class="n">well_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"well_name"</span><span class="p">]</span>
     <span class="n">app_instance</span><span class="o">.</span><span class="n">select_unit</span><span class="p">(</span><span class="n">well_name</span><span class="p">)</span>
 
     <span class="n">res_par</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">from_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">esp_par</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">well_par</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span>
 
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;res_par&quot;</span><span class="p">:</span> <span class="n">res_par</span><span class="p">,</span> <span class="s2">&quot;well_par&quot;</span><span class="p">:</span> <span class="n">well_par</span><span class="p">,</span> <span class="s2">&quot;esp_par&quot;</span><span class="p">:</span> <span class="n">esp_par</span><span class="p">}</span></div>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"res_par"</span><span class="p">:</span> <span class="n">res_par</span><span class="p">,</span> <span class="s2">"well_par"</span><span class="p">:</span> <span class="n">well_par</span><span class="p">,</span> <span class="s2">"esp_par"</span><span class="p">:</span> <span class="n">esp_par</span><span class="p">}</span></div>
 
 </pre></div>
 

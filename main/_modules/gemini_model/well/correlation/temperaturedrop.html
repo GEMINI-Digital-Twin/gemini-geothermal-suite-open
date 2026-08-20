@@ -79,19 +79,19 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_model.well.correlation.temperaturedrop</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Simple temperature drop model using an overall heat transfer coefficient.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Simple temperature drop model using an overall heat transfer coefficient."""</span>
 
 
 <div class="viewcode-block" id="TemperatureDrop">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.well.correlation.temperaturedrop.html#gemini_model.well.correlation.temperaturedrop.TemperatureDrop">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TemperatureDrop</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate temperature change from heat loss to ambient.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Calculate temperature change from heat loss to ambient."""</span>
 
 <div class="viewcode-block" id="TemperatureDrop.calculate_dt">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.well.correlation.temperaturedrop.html#gemini_model.well.correlation.temperaturedrop.TemperatureDrop.calculate_dt">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_dt</span><span class="p">(</span><span class="n">t_in</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">ml</span><span class="p">,</span> <span class="n">mg</span><span class="p">,</span> <span class="n">cp_l</span><span class="p">,</span> <span class="n">cp_g</span><span class="p">,</span> <span class="n">Atube</span><span class="p">,</span> <span class="n">t_ambient</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate temperature change from heat loss to ambient.</span>
+<span class="w">        </span><span class="sd">"""Calculate temperature change from heat loss to ambient.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -116,7 +116,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        dT: float</span>
 <span class="sd">            delta pipe temperature (K)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># get the heat flux from ambient to well</span>
         <span class="n">mtot</span> <span class="o">=</span> <span class="n">ml</span> <span class="o">+</span> <span class="n">mg</span>
         <span class="n">mlfrac</span> <span class="o">=</span> <span class="n">ml</span> <span class="o">/</span> <span class="n">mtot</span>

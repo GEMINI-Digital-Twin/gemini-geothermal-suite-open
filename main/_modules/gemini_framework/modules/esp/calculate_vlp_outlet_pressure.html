@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.modules.esp.calculate_vlp_outlet_pressure</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Calculate ESP outlet pressure via VLP from wellhead conditions to ESP depth.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Calculate ESP outlet pressure via VLP from wellhead conditions to ESP depth."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
 
@@ -94,10 +94,10 @@
 <div class="viewcode-block" id="CalculateVLPOutletPressure">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.esp.calculate_vlp_outlet_pressure.html#gemini_framework.modules.esp.calculate_vlp_outlet_pressure.CalculateVLPOutletPressure">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CalculateVLPOutletPressure</span><span class="p">(</span><span class="n">UnitModuleAbstract</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute ESP outlet pressure using VLP and wellhead measurements.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Compute ESP outlet pressure using VLP and wellhead measurements."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize VLP outlet pressure calculation module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize VLP outlet pressure calculation module."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ESP</span><span class="p">()</span>
@@ -107,30 +107,30 @@
 <div class="viewcode-block" id="CalculateVLPOutletPressure.link">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.esp.calculate_vlp_outlet_pressure.html#gemini_framework.modules.esp.calculate_vlp_outlet_pressure.CalculateVLPOutletPressure.link">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">link</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Link module inputs and outputs.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Link module inputs and outputs."""</span>
         <span class="n">well_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">from_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;esp_flow&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;productionwell_wellhead_pressure&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">&quot;measured&quot;</span><span class="p">,</span> <span class="s2">&quot;productionwell_wellhead_temperature&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;calculated&quot;</span><span class="p">,</span> <span class="s2">&quot;esp_vlp_outlet_pressure&quot;</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"esp_flow"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"productionwell_wellhead_pressure"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"productionwell_wellhead_temperature"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"calculated"</span><span class="p">,</span> <span class="s2">"esp_vlp_outlet_pressure"</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CalculateVLPOutletPressure.step">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.esp.calculate_vlp_outlet_pressure.html#gemini_framework.modules.esp.calculate_vlp_outlet_pressure.CalculateVLPOutletPressure.step">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loop</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute module step calculation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Execute module step calculation."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">loop</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_last_data_time</span><span class="p">(</span><span class="s2">&quot;esp_vlp_outlet_pressure&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_last_data_time</span><span class="p">(</span><span class="s2">"esp_vlp_outlet_pressure"</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">compute_n_simulation</span><span class="p">()</span>
 
             <span class="c1"># Get well data</span>
-            <span class="n">time</span><span class="p">,</span> <span class="n">wellhead_pressure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">&quot;productionwell_wellhead_pressure&quot;</span><span class="p">)</span>
-            <span class="n">time</span><span class="p">,</span> <span class="n">wellhead_temperature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">&quot;productionwell_wellhead_temperature&quot;</span><span class="p">)</span>
-            <span class="n">time</span><span class="p">,</span> <span class="n">well_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">&quot;esp_flow&quot;</span><span class="p">)</span>
+            <span class="n">time</span><span class="p">,</span> <span class="n">wellhead_pressure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">"productionwell_wellhead_pressure"</span><span class="p">)</span>
+            <span class="n">time</span><span class="p">,</span> <span class="n">wellhead_temperature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">"productionwell_wellhead_temperature"</span><span class="p">)</span>
+            <span class="n">time</span><span class="p">,</span> <span class="n">well_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_data</span><span class="p">(</span><span class="s2">"esp_flow"</span><span class="p">)</span>
 
-<span class="w">            </span><span class="sd">&quot;&quot;&quot;Calculate discharge pressure via the pressure dop from wellhead to ESP&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">"""Calculate discharge pressure via the pressure dop from wellhead to ESP"""</span>
             <span class="n">u</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
             <span class="n">discharge_pressure</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">time_calc</span> <span class="o">=</span> <span class="p">[]</span>
@@ -138,11 +138,11 @@
                 <span class="n">time_calc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">update_model_parameter</span><span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
 
-                <span class="n">esp_correction_factor_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-                    <span class="s2">&quot;esp_correction_factor&quot;</span>
+                <span class="n">esp_correction_factor_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+                    <span class="s2">"esp_correction_factor"</span>
                 <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">esp_correction_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                    <span class="n">esp_correction_factor_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+                    <span class="n">esp_correction_factor_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">";"</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
                 <span class="p">)</span>  <span class="c1"># esp_correction_factor a * x + b</span>
 
                 <span class="k">if</span> <span class="p">(</span>
@@ -153,13 +153,13 @@
                     <span class="n">discharge_pressure</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                     <span class="k">continue</span>
 
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wellhead_pressure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e5</span>  <span class="c1"># bar to Pa</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wellhead_temperature</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>  <span class="c1"># C to K</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;flowrate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_flow</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3600</span>  <span class="c1"># m3/hr to m3/s</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature_ambient&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">VLP1</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;soil_temperature&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">wellhead_pressure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e5</span>  <span class="c1"># bar to Pa</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span> <span class="o">=</span> <span class="n">wellhead_temperature</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>  <span class="c1"># C to K</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"flowrate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_flow</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3600</span>  <span class="c1"># m3/hr to m3/s</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"temperature_ambient"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">VLP1</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"soil_temperature"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>
                 <span class="p">)</span>  <span class="c1"># C to K</span>
-                <span class="n">u</span><span class="p">[</span><span class="s2">&quot;direction&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;down&quot;</span>
+                <span class="n">u</span><span class="p">[</span><span class="s2">"direction"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"down"</span>
 
                 <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">VLP1</span><span class="o">.</span><span class="n">calculate_output</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
@@ -168,22 +168,22 @@
                 <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">VLP1</span><span class="o">.</span><span class="n">get_output</span><span class="p">()</span>
 
                 <span class="n">discharge_pressure</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">esp_correction_factor</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="s2">&quot;pressure_output&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e5</span><span class="p">)</span>
+                    <span class="n">esp_correction_factor</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="s2">"pressure_output"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e5</span><span class="p">)</span>
                     <span class="o">+</span> <span class="n">esp_correction_factor</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
                 <span class="p">)</span>  <span class="c1"># Pa to bar</span>
 
             <span class="k">if</span> <span class="n">time_calc</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">write_output_data</span><span class="p">(</span><span class="s2">&quot;esp_vlp_outlet_pressure&quot;</span><span class="p">,</span> <span class="n">time_calc</span><span class="p">,</span> <span class="n">discharge_pressure</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_output_data</span><span class="p">(</span><span class="s2">"esp_vlp_outlet_pressure"</span><span class="p">,</span> <span class="n">time_calc</span><span class="p">,</span> <span class="n">discharge_pressure</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;ERROR in module &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+                <span class="s2">"ERROR in module "</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">" : "</span> <span class="o">+</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
             <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CalculateVLPOutletPressure.update_model_parameter">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.esp.calculate_vlp_outlet_pressure.html#gemini_framework.modules.esp.calculate_vlp_outlet_pressure.CalculateVLPOutletPressure.update_model_parameter">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_model_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model parameters for given timestamp.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update model parameters for given timestamp."""</span>
         <span class="n">esp_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span>
         <span class="n">well_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">from_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">reservoir_unit</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">from_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -193,34 +193,34 @@
         <span class="n">reservoir_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_index</span><span class="p">(</span><span class="n">reservoir_unit</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
 
         <span class="n">well_param</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;soil_temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;productionwell_soil_temperature&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"soil_temperature"</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"productionwell_soil_temperature"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
 
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;diameter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">esp_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;esp_tubing&quot;</span><span class="p">][</span><span class="n">esp_index</span><span class="p">]]</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"diameter"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">esp_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"esp_tubing"</span><span class="p">][</span><span class="n">esp_index</span><span class="p">]]</span>
         <span class="p">)</span>  <span class="c1"># well diameter in [m]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">esp_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;esp_depth&quot;</span><span class="p">][</span><span class="n">esp_index</span><span class="p">]]</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"length"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">esp_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"esp_depth"</span><span class="p">][</span><span class="n">esp_index</span><span class="p">]]</span>
         <span class="p">)</span>  <span class="c1"># well depth in [m]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;angle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">90</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">])</span>  <span class="c1"># well angle in [degree]</span>
-        <span class="n">well_traj</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;productionwell_trajectory_table&quot;</span><span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;roughness&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">well_traj</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;roughness&quot;</span><span class="p">]])</span>  <span class="c1"># roughness of cells [m]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;friction_correlation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;productionwell_friction_correlation&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"angle"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">90</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">])</span>  <span class="c1"># well angle in [degree]</span>
+        <span class="n">well_traj</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"productionwell_trajectory_table"</span><span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"roughness"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">well_traj</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s2">"roughness"</span><span class="p">]])</span>  <span class="c1"># roughness of cells [m]</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"friction_correlation"</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"productionwell_friction_correlation"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;friction_correlation_2p&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;productionwell_friction_correlation_2p&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"friction_correlation_2p"</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"productionwell_friction_correlation_2p"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
-        <span class="n">well_param</span><span class="p">[</span><span class="s2">&quot;correction_factors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span>
-            <span class="s2">&quot;productionwell_friction_correction_factors&quot;</span>
+        <span class="n">well_param</span><span class="p">[</span><span class="s2">"correction_factors"</span><span class="p">]</span> <span class="o">=</span> <span class="n">well_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span>
+            <span class="s2">"productionwell_friction_correction_factors"</span>
         <span class="p">][</span><span class="n">well_index</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">VLP1</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">well_param</span><span class="p">)</span>
 
         <span class="n">pvt_param</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">&quot;RHOL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;liquid_density&quot;</span><span class="p">][</span><span class="n">reservoir_index</span><span class="p">]</span>
-        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">&quot;VISL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;property&quot;</span><span class="p">][</span><span class="s2">&quot;liquid_viscosity&quot;</span><span class="p">][</span>
+        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">"RHOL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"liquid_density"</span><span class="p">][</span><span class="n">reservoir_index</span><span class="p">]</span>
+        <span class="n">pvt_param</span><span class="p">[</span><span class="s2">"VISL"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservoir_unit</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">][</span><span class="s2">"liquid_viscosity"</span><span class="p">][</span>
             <span class="n">reservoir_index</span>
         <span class="p">]</span>
 

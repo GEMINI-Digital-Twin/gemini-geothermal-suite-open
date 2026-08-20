@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_model.erosion.erosion_model</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Erosion rate meta-model dispatching to industry correlations.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Erosion rate meta-model dispatching to industry correlations."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_model.erosion.correlation.API</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErosionAPI</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_model.erosion.correlation.DNV</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErosionDNV</span>
@@ -88,20 +88,20 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_model.model_abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticModel</span>
 
 <span class="c1"># -- canonical model names ------------------------------------------------</span>
-<span class="n">MODEL_DNVGL</span> <span class="o">=</span> <span class="s2">&quot;DNVGL&quot;</span>
-<span class="n">MODEL_OKA</span> <span class="o">=</span> <span class="s2">&quot;OKA&quot;</span>
-<span class="n">MODEL_API</span> <span class="o">=</span> <span class="s2">&quot;API&quot;</span>
-<span class="n">MODEL_TULSA</span> <span class="o">=</span> <span class="s2">&quot;E/CRC Tulsa&quot;</span>
+<span class="n">MODEL_DNVGL</span> <span class="o">=</span> <span class="s2">"DNVGL"</span>
+<span class="n">MODEL_OKA</span> <span class="o">=</span> <span class="s2">"OKA"</span>
+<span class="n">MODEL_API</span> <span class="o">=</span> <span class="s2">"API"</span>
+<span class="n">MODEL_TULSA</span> <span class="o">=</span> <span class="s2">"E/CRC Tulsa"</span>
 
 <span class="c1"># Map user-facing spellings (upper-cased) to canonical names.</span>
 <span class="n">_ALIASES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;DNVGL&quot;</span><span class="p">:</span> <span class="n">MODEL_DNVGL</span><span class="p">,</span>
-    <span class="s2">&quot;DNV&quot;</span><span class="p">:</span> <span class="n">MODEL_DNVGL</span><span class="p">,</span>
-    <span class="s2">&quot;OKA&quot;</span><span class="p">:</span> <span class="n">MODEL_OKA</span><span class="p">,</span>
-    <span class="s2">&quot;API&quot;</span><span class="p">:</span> <span class="n">MODEL_API</span><span class="p">,</span>
-    <span class="s2">&quot;E/CRC TULSA&quot;</span><span class="p">:</span> <span class="n">MODEL_TULSA</span><span class="p">,</span>
-    <span class="s2">&quot;TULSA&quot;</span><span class="p">:</span> <span class="n">MODEL_TULSA</span><span class="p">,</span>
-    <span class="s2">&quot;ECRC&quot;</span><span class="p">:</span> <span class="n">MODEL_TULSA</span><span class="p">,</span>
+    <span class="s2">"DNVGL"</span><span class="p">:</span> <span class="n">MODEL_DNVGL</span><span class="p">,</span>
+    <span class="s2">"DNV"</span><span class="p">:</span> <span class="n">MODEL_DNVGL</span><span class="p">,</span>
+    <span class="s2">"OKA"</span><span class="p">:</span> <span class="n">MODEL_OKA</span><span class="p">,</span>
+    <span class="s2">"API"</span><span class="p">:</span> <span class="n">MODEL_API</span><span class="p">,</span>
+    <span class="s2">"E/CRC TULSA"</span><span class="p">:</span> <span class="n">MODEL_TULSA</span><span class="p">,</span>
+    <span class="s2">"TULSA"</span><span class="p">:</span> <span class="n">MODEL_TULSA</span><span class="p">,</span>
+    <span class="s2">"ECRC"</span><span class="p">:</span> <span class="n">MODEL_TULSA</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="c1"># Canonical name -&gt; correlation class exposing calculate_erosion_rate().</span>
@@ -115,11 +115,11 @@
 <div class="viewcode-block" id="normalize_model_name">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.normalize_model_name">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">normalize_model_name</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve a user-facing erosion model name to its canonical form.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Resolve a user-facing erosion model name to its canonical form."""</span>
     <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
     <span class="n">canonical</span> <span class="o">=</span> <span class="n">_ALIASES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">canonical</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown erosion_model &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown erosion_model '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">'."</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">canonical</span></div>
 
 
@@ -127,7 +127,7 @@
 <div class="viewcode-block" id="is_velocity_model">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.is_velocity_model">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">is_velocity_model</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return whether the model yields a velocity limit (API) rather than a rate.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return whether the model yields a velocity limit (API) rather than a rate."""</span>
     <span class="k">return</span> <span class="n">normalize_model_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="n">MODEL_API</span></div>
 
 
@@ -135,17 +135,17 @@
 <div class="viewcode-block" id="ErosionModel">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.ErosionModel">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ErosionModel</span><span class="p">(</span><span class="n">StaticModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Erosion correlation dispatcher (OKA, DNVGL, API, E/CRC Tulsa).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Erosion correlation dispatcher (OKA, DNVGL, API, E/CRC Tulsa)."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize erosion model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize erosion model."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="ErosionModel.update_parameters">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.ErosionModel.update_parameters">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update model parameters."""</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
@@ -153,50 +153,50 @@
 <div class="viewcode-block" id="ErosionModel.initialize_state">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.ErosionModel.initialize_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initialize_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate an initial state based on user parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Generate an initial state based on user parameters."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ErosionModel.update_state">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.ErosionModel.update_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the state based on input u and state x.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update the state based on input u and state x."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ErosionModel.calculate_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.ErosionModel.calculate_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate erosion output based on input u and state x.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Calculate erosion output based on input u and state x."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate</span><span class="p">(</span><span class="n">u</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ErosionModel.get_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.erosion.erosion_model.html#gemini_model.erosion.erosion_model.ErosionModel.get_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get output of the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get output of the model."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the selected erosion correlation.&quot;&quot;&quot;</span>
-        <span class="n">model_key</span> <span class="o">=</span> <span class="n">normalize_model_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;erosion_model&quot;</span><span class="p">,</span> <span class="n">MODEL_DNVGL</span><span class="p">))</span>
+<span class="w">        </span><span class="sd">"""Run the selected erosion correlation."""</span>
+        <span class="n">model_key</span> <span class="o">=</span> <span class="n">normalize_model_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"erosion_model"</span><span class="p">,</span> <span class="n">MODEL_DNVGL</span><span class="p">))</span>
 
         <span class="n">correlation_input</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;erosion_rate_mm_yr&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s2">&quot;erosion_velocity_ms&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"erosion_rate_mm_yr"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"erosion_velocity_ms"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
 
         <span class="c1"># -- velocity-limit model (API) -------------------------------------</span>
         <span class="k">if</span> <span class="n">model_key</span> <span class="o">==</span> <span class="n">MODEL_API</span><span class="p">:</span>
-            <span class="n">rho_fluid_kgm3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">correlation_input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rho_fluid&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-            <span class="n">out</span><span class="p">[</span><span class="s2">&quot;erosion_velocity_ms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ErosionAPI</span><span class="o">.</span><span class="n">calculate_erosion_velocity</span><span class="p">(</span><span class="n">rho_fluid_kgm3</span><span class="p">)</span>
+            <span class="n">rho_fluid_kgm3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">correlation_input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rho_fluid"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"erosion_velocity_ms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ErosionAPI</span><span class="o">.</span><span class="n">calculate_erosion_velocity</span><span class="p">(</span><span class="n">rho_fluid_kgm3</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">out</span>
 
         <span class="c1"># -- rate models (DNVGL, OKA, E/CRC Tulsa) --------------------------</span>
         <span class="n">correlation</span> <span class="o">=</span> <span class="n">_RATE_CORRELATIONS</span><span class="p">[</span><span class="n">model_key</span><span class="p">]</span>
-        <span class="n">out</span><span class="p">[</span><span class="s2">&quot;erosion_rate_mm_yr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">correlation</span><span class="o">.</span><span class="n">calculate_erosion_rate</span><span class="p">(</span><span class="n">correlation_input</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="s2">"erosion_rate_mm_yr"</span><span class="p">]</span> <span class="o">=</span> <span class="n">correlation</span><span class="o">.</span><span class="n">calculate_erosion_rate</span><span class="p">(</span><span class="n">correlation_input</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
 </pre></div>

@@ -79,16 +79,16 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.app</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Boot and run a Gemini Framework plant.</span>
+<span></span><span class="sd">"""Boot and run a Gemini Framework plant.</span>
 
 <span class="sd">Reads project path and plant name from environment or arguments, boots the</span>
 <span class="sd">plant and executes one processing step.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;src&quot;</span><span class="p">))</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">"src"</span><span class="p">))</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
@@ -98,23 +98,23 @@
 
 <span class="n">gemini_root_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
-<span class="n">load_dotenv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">&quot;.env&quot;</span><span class="p">))</span>
+<span class="n">load_dotenv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">".env"</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="App">
 <a class="viewcode-back" href="../../codedocumentation/gemini_framework.app.html#gemini_framework.app.App">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">App</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Runner that boots a plant and executes one step.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Runner that boots a plant and executes one step."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_path</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize application with project path and plant name.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize application with project path and plant name."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">project_path</span> <span class="o">=</span> <span class="n">project_path</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plant_name</span> <span class="o">=</span> <span class="n">plant_name</span>
 
 <div class="viewcode-block" id="App.boot">
 <a class="viewcode-back" href="../../codedocumentation/gemini_framework.app.html#gemini_framework.app.App.boot">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">boot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize plant and main module from configuration.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize plant and main module from configuration."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plant</span> <span class="o">=</span> <span class="n">setup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant_name</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mainmodule</span> <span class="o">=</span> <span class="n">MainModule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="p">)</span></div>
@@ -123,34 +123,34 @@
 <div class="viewcode-block" id="App.step">
 <a class="viewcode-back" href="../../codedocumentation/gemini_framework.app.html#gemini_framework.app.App.step">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute one processing step across all modules.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Execute one processing step across all modules."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mainmodule</span><span class="o">.</span><span class="n">step</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="App.quit">
 <a class="viewcode-back" href="../../codedocumentation/gemini_framework.app.html#gemini_framework.app.App.quit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">quit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Disconnect from databases and cleanup.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Disconnect from databases and cleanup."""</span>
         <span class="c1"># disconnect database</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span></div>
 </div>
 
 
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
 
     <span class="n">projectpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">&quot;GEMINI_PROJECT_FOLDER&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">&quot;gemini-project&quot;</span><span class="p">)</span>
+        <span class="s2">"GEMINI_PROJECT_FOLDER"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gemini_root_dir</span><span class="p">,</span> <span class="s2">"gemini-project"</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">plantname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;GEMINI_PLANT&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">plantname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"GEMINI_PLANT"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">plantname</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">plantname</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
         <span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="p">(</span><span class="n">projectpath</span><span class="p">,</span> <span class="n">plantname</span><span class="p">)</span>
         <span class="n">app</span><span class="o">.</span><span class="n">boot</span><span class="p">()</span>
         <span class="n">app</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
         <span class="n">app</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;plant name is not defined&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"plant name is not defined"</span><span class="p">)</span>
 </pre></div>
 
            </div>

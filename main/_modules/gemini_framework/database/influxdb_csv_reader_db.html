@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.database.influxdb_csv_reader_db</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Reader to import data from CSV into the internal InfluxDB store.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Reader to import data from CSV into the internal InfluxDB store."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.abstract.database_reader_abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseReaderAbstract</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.database.connector.csv_driver</span><span class="w"> </span><span class="kn">import</span> <span class="n">CSVDriver</span>
@@ -88,10 +88,10 @@
 <div class="viewcode-block" id="InfluxdbCSVReaderDB">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.database.influxdb_csv_reader_db.html#gemini_framework.database.influxdb_csv_reader_db.InfluxdbCSVReaderDB">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">InfluxdbCSVReaderDB</span><span class="p">(</span><span class="n">DatabaseReaderAbstract</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Synchronize CSV data into InfluxDB for a given category.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Synchronize CSV data into InfluxDB for a given category."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize CSV database reader.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize CSV database reader."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">category</span> <span class="o">=</span> <span class="n">category</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">external_db_driver</span> <span class="o">=</span> <span class="n">CSVDriver</span><span class="p">()</span>
@@ -99,8 +99,8 @@
 <div class="viewcode-block" id="InfluxdbCSVReaderDB.set_external_db_parameters">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_framework.database.influxdb_csv_reader_db.html#gemini_framework.database.influxdb_csv_reader_db.InfluxdbCSVReaderDB.set_external_db_parameters">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_external_db_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set external CSV database parameters.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">({</span><span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">})</span></div>
+<span class="w">        </span><span class="sd">"""Set external CSV database parameters."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external_db_driver</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">({</span><span class="s2">"url"</span><span class="p">:</span> <span class="s2">""</span><span class="p">})</span></div>
 </div>
 
 </pre></div>

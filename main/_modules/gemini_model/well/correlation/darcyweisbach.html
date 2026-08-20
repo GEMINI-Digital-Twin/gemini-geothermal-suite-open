@@ -79,12 +79,12 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_model.well.correlation.darcyweisbach</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Darcy–Weisbach single-phase pressure drop with Swamee–Jain friction factor.</span>
+<span></span><span class="sd">"""Darcy–Weisbach single-phase pressure drop with Swamee–Jain friction factor.</span>
 
 <span class="sd">The friction coefficient proposed in the publication:</span>
-<span class="sd">&quot;Swamee, P. K., &amp; Jain, A. K. (1976). Explicit equations for pipe-flow problems.</span>
-<span class="sd">Journal of the hydraulics division, 102(5), 657-664.&quot;</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"Swamee, P. K., &amp; Jain, A. K. (1976). Explicit equations for pipe-flow problems.</span>
+<span class="sd">Journal of the hydraulics division, 102(5), 657-664."</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
@@ -92,13 +92,13 @@
 <div class="viewcode-block" id="DarcyWeisbach">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.well.correlation.darcyweisbach.html#gemini_model.well.correlation.darcyweisbach.DarcyWeisbach">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DarcyWeisbach</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Single-phase dp using Darcy–Weisbach with Swamee–Jain friction factor.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Single-phase dp using Darcy–Weisbach with Swamee–Jain friction factor."""</span>
 
 <div class="viewcode-block" id="DarcyWeisbach.calculate_dp">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.well.correlation.darcyweisbach.html#gemini_model.well.correlation.darcyweisbach.DarcyWeisbach.calculate_dp">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_dp</span><span class="p">(</span><span class="n">us_l</span><span class="p">,</span> <span class="n">rho_l</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">eta_l</span><span class="p">,</span> <span class="n">d_tube</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">l_cel</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Calcuate the pressure drop due friction and gravity based on various parameters.</span>
 
 <span class="sd">        Parameters</span>
@@ -124,7 +124,7 @@
 <span class="sd">            pressure drop due to friction (Pa)</span>
 <span class="sd">        dp_grav: float</span>
 <span class="sd">            pressure drop due to gravity (Pa)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># constants</span>
         <span class="n">g</span> <span class="o">=</span> <span class="mf">9.81</span>  <span class="c1"># acceleration due to gravity (m/s2)</span>
 

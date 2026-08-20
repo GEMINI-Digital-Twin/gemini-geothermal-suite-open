@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_framework.database.connector.influxdb_driver</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;InfluxDB connector used as the framework&#39;s internal time-series store.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""InfluxDB connector used as the framework's internal time-series store."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 
@@ -92,28 +92,28 @@
 <div class="viewcode-block" id="InfluxdbDriver">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">InfluxdbDriver</span><span class="p">(</span><span class="n">DatabaseDriverAbstract</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time-series database connector for InfluxDB.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Time-series database connector for InfluxDB."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Establish connection to InfluxDB internal database.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Establish connection to InfluxDB internal database."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="InfluxdbDriver.connect">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.connect">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to InfluxDB.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Connect to InfluxDB."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">InfluxDBClient</span><span class="p">(</span>
-            <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">],</span>
-            <span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span>
-            <span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">],</span>
-            <span class="n">password</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">],</span>
+            <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"url"</span><span class="p">],</span>
+            <span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span>
+            <span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"username"</span><span class="p">],</span>
+            <span class="n">password</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"password"</span><span class="p">],</span>
         <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="InfluxdbDriver.read_data">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.read_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">read_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">,</span> <span class="n">asset_name</span><span class="p">,</span> <span class="n">tag_name</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">aggregate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read data from internal database.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Read data from internal database."""</span>
         <span class="n">query_api</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">query_api</span><span class="p">()</span>
 
         <span class="n">start_time_unix</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">start_time</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
@@ -121,49 +121,49 @@
 
         <span class="k">if</span> <span class="n">aggregate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s1">&#39;from(bucket: &quot;&#39;</span>
-                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">]</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; range(start:&#39;</span>
+                <span class="s1">'from(bucket: "'</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">]</span>
+                <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; range(start:'</span>
                 <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">start_time_unix</span><span class="p">)</span>
-                <span class="o">+</span> <span class="s2">&quot;,stop:&quot;</span>
+                <span class="o">+</span> <span class="s2">",stop:"</span>
                 <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">end_time_unix</span><span class="p">)</span>
-                <span class="o">+</span> <span class="s1">&#39;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == &quot;&#39;</span>
+                <span class="o">+</span> <span class="s1">')</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == "'</span>
                 <span class="o">+</span> <span class="n">plant_name</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == &quot;&#39;</span>
+                <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == "'</span>
                 <span class="o">+</span> <span class="n">tag_name</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == &quot;&#39;</span>
+                <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == "'</span>
                 <span class="o">+</span> <span class="n">asset_name</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)&#39;</span>
+                <span class="o">+</span> <span class="s1">'")'</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s1">&#39;from(bucket: &quot;&#39;</span>
-                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">]</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; range(start:&#39;</span>
+                <span class="s1">'from(bucket: "'</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">]</span>
+                <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; range(start:'</span>
                 <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">start_time_unix</span><span class="p">)</span>
-                <span class="o">+</span> <span class="s2">&quot;,stop:&quot;</span>
+                <span class="o">+</span> <span class="s2">",stop:"</span>
                 <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">end_time_unix</span><span class="p">)</span>
-                <span class="o">+</span> <span class="s1">&#39;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == &quot;&#39;</span>
+                <span class="o">+</span> <span class="s1">')</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == "'</span>
                 <span class="o">+</span> <span class="n">plant_name</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == &quot;&#39;</span>
+                <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == "'</span>
                 <span class="o">+</span> <span class="n">tag_name</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == &quot;&#39;</span>
+                <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == "'</span>
                 <span class="o">+</span> <span class="n">asset_name</span>
-                <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; aggregateWindow(every:&#39;</span>
+                <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; aggregateWindow(every:'</span>
                 <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">aggregate</span><span class="p">)</span>
-                <span class="o">+</span> <span class="s2">&quot;s, fn: mean)&quot;</span>
+                <span class="o">+</span> <span class="s2">"s, fn: mean)"</span>
             <span class="p">)</span>
 
-        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">timestamps</span> <span class="o">=</span> <span class="p">[]</span>
@@ -171,7 +171,7 @@
         <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">query_result</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">records</span><span class="p">:</span>
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
-                <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_time</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">))</span>
+                <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_time</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">aggregate</span><span class="p">:</span>  <span class="c1"># fixing aggregation timestamps and values</span>
             <span class="n">timestamps</span> <span class="o">=</span> <span class="n">timestamps</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -192,7 +192,7 @@
         <span class="n">write_option</span><span class="o">=</span><span class="n">SYNCHRONOUS</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write data to internal database in batches.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Write data to internal database in batches."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="n">time</span> <span class="o">=</span> <span class="p">[</span><span class="n">time</span><span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -203,42 +203,42 @@
         <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">):</span>
             <span class="n">batch</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="p">{</span>
-                    <span class="s2">&quot;measurement&quot;</span><span class="p">:</span> <span class="n">plant_name</span><span class="p">,</span>
-                    <span class="s2">&quot;tags&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;asset_name&quot;</span><span class="p">:</span> <span class="n">asset_name</span><span class="p">},</span>
-                    <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">tag_name</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">ii</span><span class="p">]},</span>
-                    <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()),</span>
+                    <span class="s2">"measurement"</span><span class="p">:</span> <span class="n">plant_name</span><span class="p">,</span>
+                    <span class="s2">"tags"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"asset_name"</span><span class="p">:</span> <span class="n">asset_name</span><span class="p">},</span>
+                    <span class="s2">"fields"</span><span class="p">:</span> <span class="p">{</span><span class="n">tag_name</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">ii</span><span class="p">]},</span>
+                    <span class="s2">"time"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()),</span>
                 <span class="p">}</span>
                 <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
             <span class="p">]</span>
             <span class="n">write_api</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">,</span> <span class="n">write_precision</span><span class="o">=</span><span class="s2">&quot;s&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span> <span class="n">batch</span><span class="p">,</span> <span class="n">write_precision</span><span class="o">=</span><span class="s2">"s"</span>
             <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="InfluxdbDriver.get_last_data">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.get_last_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_last_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">,</span> <span class="n">asset_name</span><span class="p">,</span> <span class="n">tag_name</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get last data from database.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get last data from database."""</span>
         <span class="n">query_api</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">query_api</span><span class="p">()</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s1">&#39;from(bucket: &quot;&#39;</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">]</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
+            <span class="s1">'from(bucket: "'</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">]</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
 <span class="s1">            |&gt; range(start: 0)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == &quot;&#39;</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == "'</span>
             <span class="o">+</span> <span class="n">plant_name</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == &quot;&#39;</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == "'</span>
             <span class="o">+</span> <span class="n">tag_name</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == &quot;&#39;</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == "'</span>
             <span class="o">+</span> <span class="n">asset_name</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; last()&#39;</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; last()'</span>
         <span class="p">)</span>
 
-        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">timestamps</span> <span class="o">=</span> <span class="p">[]</span>
@@ -246,7 +246,7 @@
         <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">query_result</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">records</span><span class="p">:</span>
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
-                <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_time</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">))</span>
+                <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_time</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">results</span><span class="p">,</span> <span class="n">timestamps</span></div>
 
@@ -254,27 +254,27 @@
 <div class="viewcode-block" id="InfluxdbDriver.get_first_data">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.get_first_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_first_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">,</span> <span class="n">asset_name</span><span class="p">,</span> <span class="n">tag_name</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get first data from database.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get first data from database."""</span>
         <span class="n">query_api</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">query_api</span><span class="p">()</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s1">&#39;from(bucket: &quot;&#39;</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">]</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
+            <span class="s1">'from(bucket: "'</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">]</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
 <span class="s1">            |&gt; range(start: 0)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == &quot;&#39;</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._measurement == "'</span>
             <span class="o">+</span> <span class="n">plant_name</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == &quot;&#39;</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r._field == "'</span>
             <span class="o">+</span> <span class="n">tag_name</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == &quot;&#39;</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; filter(fn: (r) =&gt; r.asset_name == "'</span>
             <span class="o">+</span> <span class="n">asset_name</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;)</span><span class="se">\</span>
-<span class="s1">            |&gt; first()&#39;</span>
+            <span class="o">+</span> <span class="s1">'")</span><span class="se">\</span>
+<span class="s1">            |&gt; first()'</span>
         <span class="p">)</span>
 
-        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">timestamps</span> <span class="o">=</span> <span class="p">[]</span>
@@ -282,7 +282,7 @@
         <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">query_result</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">records</span><span class="p">:</span>
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
-                <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_time</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">))</span>
+                <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get_time</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">results</span><span class="p">,</span> <span class="n">timestamps</span></div>
 
@@ -290,52 +290,52 @@
 <div class="viewcode-block" id="InfluxdbDriver.delete_database">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.delete_database">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">delete_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete measurement from internal database.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Delete measurement from internal database."""</span>
         <span class="n">delete_api</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">delete_api</span><span class="p">()</span>
         <span class="n">delete_api</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span>
             <span class="n">start</span><span class="p">,</span>
             <span class="n">stop</span><span class="p">,</span>
-            <span class="s2">&quot;_measurement=&quot;</span> <span class="o">+</span> <span class="n">plant_name</span><span class="p">,</span>
-            <span class="n">bucket</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">],</span>
-            <span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span>
+            <span class="s2">"_measurement="</span> <span class="o">+</span> <span class="n">plant_name</span><span class="p">,</span>
+            <span class="n">bucket</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">],</span>
+            <span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span>
         <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="InfluxdbDriver.delete_database_all">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.delete_database_all">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">delete_database_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete measurement from internal database.&quot;&quot;&quot;</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="s2">&quot;1970-01-01T00:00:00Z&quot;</span>
-        <span class="n">stop</span> <span class="o">=</span> <span class="s2">&quot;2100-01-01T00:00:00Z&quot;</span>
+<span class="w">        </span><span class="sd">"""Delete measurement from internal database."""</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="s2">"1970-01-01T00:00:00Z"</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="s2">"2100-01-01T00:00:00Z"</span>
         <span class="n">delete_api</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">delete_api</span><span class="p">()</span>
         <span class="n">delete_api</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span>
             <span class="n">start</span><span class="p">,</span>
             <span class="n">stop</span><span class="p">,</span>
-            <span class="s2">&quot;_measurement=&quot;</span> <span class="o">+</span> <span class="n">plant_name</span><span class="p">,</span>
-            <span class="n">bucket</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">],</span>
-            <span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span>
+            <span class="s2">"_measurement="</span> <span class="o">+</span> <span class="n">plant_name</span><span class="p">,</span>
+            <span class="n">bucket</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">],</span>
+            <span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span>
         <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="InfluxdbDriver.get_tagnames">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.get_tagnames">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_tagnames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get unitnames and tagnames from database.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get unitnames and tagnames from database."""</span>
         <span class="n">query_api</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">query_api</span><span class="p">()</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s1">&#39;import &quot;influxdata/influxdb/schema&quot;</span><span class="se">\n\n\</span>
+            <span class="s1">'import "influxdata/influxdb/schema"</span><span class="se">\n\n\</span>
 <span class="s1">        schema.measurementTagValues(</span><span class="se">\</span>
-<span class="s1">        bucket:&quot;&#39;</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;bucket&quot;</span><span class="p">]</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;, </span><span class="se">\</span>
-<span class="s1">        measurement:&quot;&#39;</span>
+<span class="s1">        bucket:"'</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">]</span>
+            <span class="o">+</span> <span class="s1">'", </span><span class="se">\</span>
+<span class="s1">        measurement:"'</span>
             <span class="o">+</span> <span class="n">plant_name</span>
-            <span class="o">+</span> <span class="s1">&#39;&quot;,</span><span class="se">\</span>
-<span class="s1">        tag: &quot;_field&quot;, )&#39;</span>
+            <span class="o">+</span> <span class="s1">'",</span><span class="se">\</span>
+<span class="s1">        tag: "_field", )'</span>
         <span class="p">)</span>
 
-        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;org&quot;</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">query_api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
 
         <span class="n">tagnames</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">tag_desc</span> <span class="o">=</span> <span class="p">[]</span>

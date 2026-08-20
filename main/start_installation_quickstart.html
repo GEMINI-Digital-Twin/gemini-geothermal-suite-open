@@ -52,7 +52,7 @@
 <li class="toctree-l1"><a class="reference internal" href="index_about_gemini.html">1. About GEMINI</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index_getting_started.html">2. Getting started</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">2.1. Quick Start (Beginners)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#what-you-need">2.1.1. What you need</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#minimum-requirements">2.1.1. Minimum requirements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#steps">2.1.2. Steps</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#need-more">2.1.3. Need more?</a></li>
 </ul>
@@ -96,15 +96,18 @@
              
   <section id="quick-start-beginners">
 <span id="quickstart-installation"></span><h1><span class="section-number">2.1. </span>Quick Start (Beginners)<a class="headerlink" href="#quick-start-beginners" title="Link to this heading"></a></h1>
-<p>This page gives you the shortest path to get GEMINI Digital Twin running locally. If you want to
-understand what each supporting service does, configure a custom plant, or run tests/linting, see
-the full <a class="reference internal" href="start_installation.html#gemini-suite-setup"><span class="std std-ref">GEMINI Suite Setup</span></a> and <a class="reference internal" href="start_installation.html#local-development-setup"><span class="std std-ref">Local Development Setup</span></a> guides instead.</p>
-<section id="what-you-need">
-<h2><span class="section-number">2.1.1. </span>What you need<a class="headerlink" href="#what-you-need" title="Link to this heading"></a></h2>
+<p>This page gives you the shortest path to get GEMINI Digital Twin fully running locally: the GUI,
+the framework/models, the Celery-backed analysis tabs, report upload/download, and the AI Chat
+Assistant – see <a class="reference internal" href="start_installation.html#gemini-suite-setup"><span class="std std-ref">GEMINI Suite Setup</span></a> for full detail on every service and environment
+variable.</p>
+<section id="minimum-requirements">
+<h2><span class="section-number">2.1.1. </span>Minimum requirements<a class="headerlink" href="#minimum-requirements" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Docker Desktop installed and running (<a class="reference external" href="https://docs.docker.com/desktop/">https://docs.docker.com/desktop/</a>)</p></li>
-<li><p>Python 3.11</p></li>
-<li><p>Git (<a class="reference external" href="https://git-scm.com/downloads">https://git-scm.com/downloads</a>)</p></li>
+<li><p><strong>Docker Desktop</strong>, running (<a class="reference external" href="https://docs.docker.com/desktop/">https://docs.docker.com/desktop/</a>)</p></li>
+<li><p><strong>Python 3.11</strong></p></li>
+<li><p><strong>Poetry</strong> (<a class="reference external" href="https://python-poetry.org/">https://python-poetry.org/</a>) – installed automatically by the <code class="docutils literal notranslate"><span class="pre">ci</span></code> scripts below,
+or manually with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">poetry</span></code></p></li>
+<li><p><strong>Git</strong> (<a class="reference external" href="https://git-scm.com/downloads">https://git-scm.com/downloads</a>)</p></li>
 </ul>
 </section>
 <section id="steps">
@@ -122,49 +125,121 @@ the full <a class="reference internal" href="start_installation.html#gemini-suit
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cp<span class="w"> </span>.env.template<span class="w"> </span>.env
 </pre></div>
 </div>
-<p>Open <code class="docutils literal notranslate"><span class="pre">.env</span></code> in a text editor and fill in at least these values:</p>
+<p>Open <code class="docutils literal notranslate"><span class="pre">.env</span></code> and fill it in. This is a complete, working example – copy it in and only change
+the passwords:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">GEMINI_PLANT</span><span class="o">=</span><span class="n">geothermal_example</span>
 <span class="n">GEMINI_FRONTEND_PORT</span><span class="o">=</span><span class="mi">5101</span>
-<span class="n">GEMINI_MYSQLDB_URL</span><span class="o">=</span><span class="n">localhost</span>
-<span class="n">MONGODB_HOST</span><span class="o">=</span><span class="n">localhost</span>
-<span class="n">INFLUXDB_URL</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">8086</span>
-<span class="n">CELERY_BROKER_URL</span><span class="o">=</span><span class="n">redis</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">6379</span><span class="o">/</span><span class="mi">0</span>
-<span class="n">CHROMADB_HOST</span><span class="o">=</span><span class="n">localhost</span>
-<span class="n">OLLAMA_HOST</span><span class="o">=</span><span class="n">localhost</span>
 <span class="n">GEMINI_ADMIN_EMAIL</span><span class="o">=</span><span class="n">admin</span><span class="nd">@example</span><span class="o">.</span><span class="n">com</span>
 <span class="n">GEMINI_ADMIN_NAME</span><span class="o">=</span><span class="n">admin</span>
 <span class="n">GEMINI_ADMIN_PASSWORD</span><span class="o">=</span><span class="n">change</span><span class="o">-</span><span class="n">me</span>
+
+<span class="n">GEMINI_MYSQLDB_URL</span><span class="o">=</span><span class="n">localhost</span>
+<span class="n">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="n">root</span>
+<span class="n">MYSQL_DATABASE</span><span class="o">=</span><span class="n">gemini_database</span>
+
+<span class="n">INFLUXDB_URL</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">8086</span>
+<span class="n">INFLUXDB_ORG</span><span class="o">=</span><span class="n">gemini</span>
+<span class="n">INFLUXDB_BUCKET</span><span class="o">=</span><span class="n">gemini</span>
+<span class="n">INFLUXDB_USERNAME</span><span class="o">=</span><span class="n">admin</span>
+<span class="n">INFLUXDB_PASSWORD</span><span class="o">=</span><span class="n">change</span><span class="o">-</span><span class="n">me</span><span class="o">-</span><span class="n">too</span>
+<span class="n">DOCKER_INFLUXDB_INIT_MODE</span><span class="o">=</span><span class="n">setup</span>
+<span class="n">DOCKER_INFLUXDB_INIT_ORG</span><span class="o">=</span><span class="n">gemini</span>
+<span class="n">DOCKER_INFLUXDB_INIT_BUCKET</span><span class="o">=</span><span class="n">gemini</span>
+<span class="n">DOCKER_INFLUXDB_INIT_USERNAME</span><span class="o">=</span><span class="n">admin</span>
+<span class="n">DOCKER_INFLUXDB_INIT_PASSWORD</span><span class="o">=</span><span class="n">change</span><span class="o">-</span><span class="n">me</span><span class="o">-</span><span class="n">too</span>
+
+<span class="n">CELERY_BROKER_URL</span><span class="o">=</span><span class="n">redis</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">6379</span><span class="o">/</span><span class="mi">0</span>
+<span class="n">CELERY_RESULT_BACKEND</span><span class="o">=</span><span class="n">redis</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">6379</span><span class="o">/</span><span class="mi">0</span>
+
+<span class="n">MONGODB_HOST</span><span class="o">=</span><span class="n">localhost</span>
+<span class="n">MONGODB_PORT</span><span class="o">=</span><span class="mi">27017</span>
+<span class="n">MONGODB_USERNAME</span><span class="o">=</span><span class="n">admin</span>
+<span class="n">MONGODB_PASSWORD</span><span class="o">=</span><span class="n">change</span><span class="o">-</span><span class="n">me</span>
+<span class="n">MONGO_INITDB_ROOT_USERNAME</span><span class="o">=</span><span class="n">admin</span>
+<span class="n">MONGO_INITDB_ROOT_PASSWORD</span><span class="o">=</span><span class="n">change</span><span class="o">-</span><span class="n">me</span>
+
+<span class="n">LLM_MODEL_VERSION</span><span class="o">=</span><span class="n">llama3</span><span class="mf">.2</span>
+<span class="n">EMBED_MODEL_VERSION</span><span class="o">=</span><span class="n">snowflake</span><span class="o">-</span><span class="n">arctic</span><span class="o">-</span><span class="n">embed</span>
+<span class="n">TRANSLATION_LLM_MODEL</span><span class="o">=</span><span class="n">zongwei</span><span class="o">/</span><span class="n">gemma3</span><span class="o">-</span><span class="n">translator</span><span class="p">:</span><span class="mi">4</span><span class="n">b</span>
+<span class="n">CHROMADB_GUI_HOST</span><span class="o">=</span><span class="n">localhost</span>
+<span class="n">CHROMADB_GUI_PORT</span><span class="o">=</span><span class="mi">8000</span>
+<span class="n">OLLAMA_GUI_HOST</span><span class="o">=</span><span class="n">localhost</span>
+<span class="n">OLLAMA_GUI_PORT</span><span class="o">=</span><span class="mi">11434</span>
+<span class="n">OLLAMA_HOST</span><span class="o">=</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">11434</span>
+
 <span class="n">GRAFANA_URL</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">3000</span>
+<span class="n">GF_SECURITY_ALLOW_EMBEDDING</span><span class="o">=</span><span class="n">true</span>
+<span class="n">GF_SECURITY_ADMIN_USER</span><span class="o">=</span><span class="n">admin</span>
+<span class="n">GF_SECURITY_ADMIN_EMAIL</span><span class="o">=</span><span class="n">admin</span><span class="nd">@example</span><span class="o">.</span><span class="n">com</span>
+<span class="n">GF_SECURITY_ADMIN_PASSWORD</span><span class="o">=</span><span class="n">change</span><span class="o">-</span><span class="n">me</span>
 </pre></div>
 </div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If you ever start the stack, then change a <code class="docutils literal notranslate"><span class="pre">MYSQL_*</span></code> or <code class="docutils literal notranslate"><span class="pre">DOCKER_INFLUXDB_INIT_*</span></code> value,
+reset the volumes before restarting (<code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">down</span> <span class="pre">-v</span></code> then <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">up</span> <span class="pre">-d</span></code>)
+– these only take effect the first time each container initializes its data. See
+<a class="reference internal" href="start_installation.html#troubleshooting"><span class="std std-ref">Troubleshooting</span></a> for the full explanation and other common errors.</p>
+</div>
 <ol class="arabic simple" start="3">
-<li><p>Start the supporting services (Grafana, MySQL, InfluxDB, Redis, MongoDB, ChromaDB, Ollama):</p></li>
+<li><p>Start the supporting services:</p></li>
 </ol>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
-<li><p>Install Python dependencies and run the app:</p></li>
+<li><p>Install Python dependencies:</p></li>
 </ol>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>poetry
 poetry<span class="w"> </span>install
-poetry<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>src/gemini_interface/app.py
 </pre></div>
 </div>
+<p>or <code class="docutils literal notranslate"><span class="pre">ci\windows\run_installation.bat</span></code> (Windows) / <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">ci/linux/run_installation.sh</span></code>
+(Linux/macOS).</p>
 <ol class="arabic simple" start="5">
-<li><p>Open the app in your browser:</p></li>
+<li><p>Run the web app:</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">5101</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>src/gemini_interface/app.py
 </pre></div>
 </div>
-<p>Log in with the <code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_EMAIL</span></code> / <code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_PASSWORD</span></code> you set in step 2.</p>
+<p>or <code class="docutils literal notranslate"><span class="pre">ci\windows\run_gemini_gui.bat</span></code> on Windows. Open <code class="docutils literal notranslate"><span class="pre">http://localhost:5101</span></code> (or your
+<code class="docutils literal notranslate"><span class="pre">GEMINI_FRONTEND_PORT</span></code>) and log in with <code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_EMAIL</span></code>/<code class="docutils literal notranslate"><span class="pre">GEMINI_ADMIN_PASSWORD</span></code>.</p>
+<ol class="arabic simple" start="6">
+<li><p>Populate time-series data – the Timeseries Viewer stays empty until the <strong>framework</strong> module
+has processed at least one batch of plant data:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>src/gemini_framework/app.py
+</pre></div>
+</div>
+<p>or <code class="docutils literal notranslate"><span class="pre">ci\windows\run_gemini_module.bat</span></code> / <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">ci/linux/run_gemini_module.sh</span></code>. Re-run any time
+you want to process newer data.</p>
+<ol class="arabic simple" start="7">
+<li><p>Start a Celery worker – <strong>required</strong> for most analysis tabs (ESP, production well
+performance, injection well monitoring, well integrity monitoring); those run as Celery tasks
+and will queue but never complete without a worker:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>celery<span class="w"> </span>--app<span class="w"> </span>src.gemini_interface.blueprint.celerytasks.celery<span class="w"> </span>worker<span class="w"> </span>--loglevel<span class="o">=</span>info
+</pre></div>
+</div>
+<p>or <code class="docutils literal notranslate"><span class="pre">ci\windows\run_celery.bat</span></code>. Optionally monitor tasks with Flower
+(<code class="docutils literal notranslate"><span class="pre">ci\windows\run_flower.bat</span></code>).</p>
+<ol class="arabic simple" start="8">
+<li><p>Pull the Ollama models – <strong>required</strong> for the AI Chat Assistant to work; the models
+configured above (<code class="docutils literal notranslate"><span class="pre">LLM_MODEL_VERSION</span></code>, <code class="docutils literal notranslate"><span class="pre">EMBED_MODEL_VERSION</span></code>, <code class="docutils literal notranslate"><span class="pre">TRANSLATION_LLM_MODEL</span></code>)
+must be downloaded into the <code class="docutils literal notranslate"><span class="pre">ollama</span></code> container before first use:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ci<span class="se">\w</span>indows<span class="se">\r</span>un_ollama_models.bat<span class="w">        </span><span class="c1"># Windows</span>
+bash<span class="w"> </span>ci/linux/run_ollama_models.sh<span class="w">       </span><span class="c1"># Linux/macOS</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="start_installation.html#chat-assistant-setup"><span class="std std-ref">Chat Assistant Setup</span></a> for pulling models manually and other model options.</p>
 </section>
 <section id="need-more">
 <h2><span class="section-number">2.1.3. </span>Need more?<a class="headerlink" href="#need-more" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Full explanation of every service, environment variable, and hostname rules: <a class="reference internal" href="start_installation.html#gemini-suite-setup"><span class="std std-ref">GEMINI Suite Setup</span></a></p></li>
-<li><p>Running the app from source with Poetry for development: <a class="reference internal" href="start_installation.html#local-development-setup"><span class="std std-ref">Local Development Setup</span></a></p></li>
-<li><p>Setting up the AI Chat Assistant models: <a class="reference internal" href="start_installation.html#chat-assistant-setup"><span class="std std-ref">Chat Assistant Setup</span></a></p></li>
+<li><p>Every service, environment variable, hostname rules, optional features (reports, AI Chat
+Assistant), and troubleshooting: <a class="reference internal" href="start_installation.html#gemini-suite-setup"><span class="std std-ref">GEMINI Suite Setup</span></a> (see also <a class="reference internal" href="start_installation.html#troubleshooting"><span class="std std-ref">Troubleshooting</span></a>)</p></li>
+<li><p>Local development workflow (tests, linting, docs): <a class="reference internal" href="start_installation.html#local-development-setup"><span class="std std-ref">Local Development Setup</span></a></p></li>
 </ul>
 </section>
 </section>

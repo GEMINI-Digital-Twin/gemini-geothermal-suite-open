@@ -1,4 +1,4 @@
-Installation
+﻿Installation
 ===========================
 
 .. tip::
@@ -13,146 +13,44 @@ GEMINI Suite Setup
 
 GEMINI Digital Twin relies on several supporting services (Grafana, MySQL, InfluxDB, Redis,
 MongoDB, ChromaDB and, optionally, Ollama) that are packaged together in this repository's
-``docker-compose.yml``. It is needed to have a basic knowledge of Docker to install this tool.
-Several tutorial can be found in the internet (`example <https://medium.com/@sayalishewale12/docker-compose-and-essential-commands-the-ultimate-guide-to-streamlining-your-container-workflow-8018ca171300>`_)
-
-Basic Docker knowledge is recommended. For Docker fundamentals, refer to
-official Docker documentation.
+``docker-compose.yml``. Basic Docker knowledge is recommended -- see the official
+`Docker documentation <https://docs.docker.com/>`_ for fundamentals.
 
 Prerequisites:
 
 * Docker Desktop: https://docs.docker.com/engine/install/
 * Docker Compose: https://docs.docker.com/compose/install/
 
-docker-compose.yml
- .. code-block::
-    :linenos:
-
-    networks:
-      gemini:
-
-    services:
-          grafana:
-            image: grafana/grafana:latest
-            ports:
-                - 3000:3000
-            env_file:
-                - .env
-            volumes:
-                - grafana-storage:/var/lib/grafana
-            depends_on:
-                - influxdb
-            restart: unless-stopped
-            networks:
-                - gemini
-
-          mysqldb:
-            image: mysql:8.0
-            ports:
-              - 3306:3306
-            env_file:
-              - .env
-            volumes:
-              - mysqldb_data-storage:/data/db
-              - mysqldb_var_lib-storage:/var/lib/mysql
-            restart: unless-stopped
-            networks:
-              - gemini
-
-          influxdb:
-            image: influxdb:latest
-            ports:
-              - 8086:8086
-              - 8998:8088
-            env_file:
-              - .env
-            volumes:
-              - influxdb-storage:/var/lib/influxdb
-              - influxdb2-storage:/var/lib/influxdb2
-              - influxdb2etc-storage:/etc/influxdb2
-            restart: unless-stopped
-            networks:
-              - gemini
-
-          redis:
-            image: redis:6-alpine
-            ports:
-              - 6379:6379
-            env_file:
-              - .env
-            restart: unless-stopped
-            networks:
-              - gemini
-
-          mongodb:
-            image: mongo:latest
-            ports:
-              - 27017:27017
-            env_file:
-              - .env
-            volumes:
-              - mongo-storage:/data/db
-            restart: unless-stopped
-            networks:
-              - gemini
-
-          chromadb:
-            image: chromadb/chroma
-            ports:
-              - 8000:8000
-            env_file:
-              - .env
-            networks:
-              - gemini
-            volumes:
-              - chroma-data:/data
-            restart: unless-stopped
-
-          ollama:
-            container_name: ollama
-            image: ollama/ollama:latest
-            ports:
-              - 11434:11434
-            environment:
-               - OLLAMA_HOST=0.0.0.0:11434
-            volumes:
-              - ollama_data:/root/.ollama
-            restart: unless-stopped
-            command: serve
-
-    volumes:
-      mysqldb_data-storage:
-      mysqldb_var_lib-storage:
-      grafana-storage:
-      influxdb-storage:
-      influxdb2-storage:
-      influxdb2etc-storage:
-      mongo-storage:
-      chroma-data:
-      ollama_data:
-
-There are several services in this docker-compose.yml file:
+The full service definitions live in ``docker-compose.yml`` at the repo root. Here's what each
+one is for:
 
 #. Grafana
-    Visualization platform for time-series dashboards and alerts.
+    Visualization platform for time-series dashboards and alerts. Embedded in the app's
+    Timeseries Viewer tab.
 
 #. MySQLDB
-    Relational database for user, configuration, and project metadata.
+    Relational database for user, configuration, and project metadata. **Required.**
 
 #. InfluxDB
-    Time-series database used for geothermal operational data.
+    Time-series database used for geothermal operational data, written by the framework module
+    and read by Grafana. **Required.**
 
 #. Redis
-    In-memory broker/backend for asynchronous task queues and task results.
+    In-memory broker/backend for Celery task queues. **Required** for most analysis tabs (ESP,
+    production well performance, injection well monitoring, well integrity monitoring) and the
+    AI Chat Assistant.
 
 #. MongoDB
-    Document database used for uploaded report and document storage.
+    Document database used for uploaded report and document storage. Optional -- only needed for
+    the report upload/download feature.
 
 #. ChromaDB
-    Vector database used by RAG workflows for semantic document retrieval.
+    Vector database used by RAG workflows for semantic document retrieval. Optional -- only
+    needed for the AI Chat Assistant (see :ref:`chat-assistant-setup`).
 
 #. Ollama
-    Runtime for local LLM and embedding model execution.
+    Runtime for local LLM and embedding model execution. Optional -- only needed for the AI Chat
+    Assistant.
 
 Starting the stack
 ~~~~~~~~~~~~~~~~~~
@@ -161,7 +59,7 @@ Run:
 
 .. code-block:: bash
 
-   docker-compose up -d
+   docker compose up -d
 
 After startup, open the GEMINI GUI on the configured frontend port.
 
@@ -219,46 +117,30 @@ On Windows (PowerShell):
 
    Copy-Item .env.template .env
 
-.. warning::
-   Hostnames depend on how you run the app. How you set hostnames like ``GEMINI_MYSQLDB_URL``,
-   ``MONGODB_HOST``, ``INFLUXDB_URL``, ``CELERY_BROKER_URL``, ``CHROMADB_HOST`` and ``OLLAMA_HOST``
-   depends on where the Flask app / Celery worker process runs, not on where the supporting
-   services run:
+``.env.template`` is organized into a **Required** section (needed to run the GUI, framework
+module, and Celery-backed analysis tabs) and an **Optional** section (report upload/download via
+MongoDB; the AI Chat Assistant via ChromaDB/Ollama -- see :ref:`chat-assistant-setup`). Fill in
+the Required section; leave the Optional section blank unless you use those features. See the
+complete, working example (including the Optional section) in the :ref:`quickstart-installation`
+guide.
 
-   * **Running the app locally with** ``poetry run`` (the default/recommended workflow for
-     development) -- your Python process runs outside Docker's network, so these variables must
-     point at ``localhost`` plus the host-published port from ``docker-compose.yml`` (e.g.
-     ``GEMINI_MYSQLDB_URL=localhost``, ``MONGODB_HOST=localhost``,
-     ``INFLUXDB_URL=http://localhost:8086``, ``CELERY_BROKER_URL=redis://localhost:6379/0``,
-     ``CHROMADB_HOST=localhost``, ``OLLAMA_HOST=localhost``).
-   * **Running everything inside Docker** (the ``gemini_gui``/``gemini_module``/``gemini_celery``
-     images described above) -- the app process runs inside the same ``gemini`` Docker network as
-     the other services, so these variables must use the Docker Compose service names instead
-     (e.g. ``GEMINI_MYSQLDB_URL=mysqldb``, ``MONGODB_HOST=mongodb``,
-     ``INFLUXDB_URL=http://influxdb:8086``, ``CELERY_BROKER_URL=redis://redis:6379/0``).
-
-   Mixing these up is the most common setup error -- trying to resolve a Docker service name
-   (e.g. ``mysqldb``) from a locally-run process fails with ``getaddrinfo failed`` (``Can't
-   connect to MySQL server on 'mysqldb'``), since that name doesn't exist in your host's DNS.
-
-Also make sure to set:
-
-.. code-block:: bash
-
-   GRAFANA_URL=http://localhost:3000
-
-This is required for the in-app Timeseries Viewer tab (which embeds Grafana in an iframe) to work
-at all -- without it, that tab shows a "Not Found" page.
-
-Then edit ``.env`` and fill in the required values, including ``GEMINI_PLANT``, the InfluxDB
-connection settings, ``GEMINI_FRONTEND_PORT``, the MySQL/MongoDB/Redis connection settings, the
-default admin credentials (``GEMINI_ADMIN_EMAIL``, ``GEMINI_ADMIN_NAME``, ``GEMINI_ADMIN_PASSWORD``),
-the LLM/embedding model names, the ChromaDB and Ollama connection settings, the Grafana
-configuration, and the MySQL/InfluxDB/MongoDB container initialization variables.
+``MONGODB_USERNAME``/``PASSWORD`` and ``MONGO_INITDB_ROOT_*`` can stay blank for a no-auth Mongo
+setup (fine for local development) -- only fill them in (with matching values on both sides) if
+you want Mongo authentication enabled. See :ref:`chat-assistant-setup` for the Ollama model
+values and how to pull the models into the container.
 
 .. warning::
-   Never commit your ``.env`` file. It contains credentials and secrets and is already excluded
-   via ``.gitignore``.
+   Hostnames (``GEMINI_MYSQLDB_URL``, ``MONGODB_HOST``, ``INFLUXDB_URL``, ``CELERY_BROKER_URL``,
+   ``CHROMADB_HOST``, ``OLLAMA_HOST``) depend on where the app runs: use ``localhost`` (with the
+   host-published port) when running with ``poetry run``, or the Docker Compose service name
+   (e.g. ``mysqldb``, ``influxdb``, ``redis``) when running the app itself inside Docker. Mixing
+   these up is the most common setup error -- see :ref:`troubleshooting`.
+
+   ``GRAFANA_URL`` must also be reachable at that exact URL from your browser, or the Timeseries
+   Viewer tab won't work. Never commit your ``.env`` file -- it's already excluded via
+   ``.gitignore``.
+
+See :ref:`troubleshooting` for common errors after changing ``.env``.
 
 3. Install Python dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -330,11 +212,8 @@ is set) and listens on ``0.0.0.0``. Once running, open your browser at:
    http://localhost:<GEMINI_FRONTEND_PORT>
 
 .. warning::
-   Always use ``http://localhost:<port>``, not ``http://127.0.0.1:<port>``. Even though they
-   point at the same machine, browsers treat ``localhost`` and ``127.0.0.1`` as different
-   origins. Since ``GRAFANA_URL`` is set to ``http://localhost:3000``, accessing the app via
-   ``127.0.0.1`` will break the embedded Grafana session in the Timeseries Viewer tab (it keeps
-   looping back to the login screen).
+   Always use ``http://localhost:<port>``, not ``http://127.0.0.1:<port>``. See "Accessing
+   Grafana from the Timeseries Viewer" below for why this matters.
 
 Log in using the ``GEMINI_ADMIN_EMAIL`` / ``GEMINI_ADMIN_PASSWORD`` configured in your ``.env``
 file.
@@ -365,6 +244,28 @@ heat exchangers, filters, degassers, etc.), plus a ``diagram.json`` describing t
 A ``_template`` folder is provided with blank templates for each asset type to help you set up a
 new plant. Set ``GEMINI_PLANT`` in your ``.env`` to the name of the folder you want to load (e.g.
 ``geothermal_example``).
+
+Running the framework module (populating time-series data)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Flask app (``gemini_interface``) alone lets you log in and browse the UI, but the Timeseries
+Viewer/dashboards stay empty until the **framework** module (``gemini_framework``) has processed
+plant data into InfluxDB. It reads raw data for the configured ``GEMINI_PLANT``, runs the physics
+model modules, and writes the results, then exits (it performs one processing step per run, not a
+continuous loop). Run it any time you want to process the latest data, with the Docker services
+already running:
+
+.. code-block:: bash
+
+   poetry run python src/gemini_framework/app.py
+
+.. code-block:: powershell
+
+   ci\windows\run_gemini_module.bat        # Windows
+
+.. code-block:: bash
+
+   bash ci/linux/run_gemini_module.sh      # Linux/macOS
 
 Running tests, linting and formatting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -397,8 +298,13 @@ Running tests, linting and formatting
 Background workers (Celery/Flower)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some features (e.g. asynchronous reports, translations) run as Celery tasks against the Redis
-broker started via Docker Compose.
+Celery is **required** for most interactive analysis tabs -- ESP analysis, production well
+performance (VLP/IPR), injection well monitoring (Hall integral, skin lines), well integrity
+monitoring (caliper log processing, corrosion prediction/optimization/forecasting), and the AI
+Chat Assistant (RAG response generation). These all queue their work as Celery tasks against the
+Redis broker started via Docker Compose; without a running worker, those actions queue but never
+complete. You can skip this section only if you just want to browse the dashboard, plant
+settings, and Timeseries Viewer without using those analysis features.
 
 Start a Celery worker:
 
@@ -410,7 +316,7 @@ Start a Celery worker:
 
    celery --app src.gemini_interface.blueprint.celerytasks.celery worker --loglevel=info
 
-Start the Flower monitoring dashboard:
+Optionally, start the Flower monitoring dashboard to inspect Celery tasks:
 
 .. code-block:: powershell
 
@@ -419,6 +325,52 @@ Start the Flower monitoring dashboard:
 .. code-block:: bash
 
    poetry run celery -A src.gemini_interface.blueprint.celerytasks.celery flower
+
+.. _troubleshooting:
+
+Troubleshooting
+~~~~~~~~~~~~~~~~
+
+**"Unknown database 'None'" (MySQL / SQLAlchemy) when running the app**
+   ``MYSQL_DATABASE`` is blank in ``.env``. It's read by both the ``mysqldb`` container (to
+   create the database) and the app (to build its connection string). Fill it in, then reset the
+   volume (see below) since the container already initialized without it.
+
+**InfluxDB "401 Unauthorized" when running the framework module**
+   ``INFLUXDB_USERNAME``/``PASSWORD`` don't match what the ``influxdb`` container was actually
+   initialized with (``DOCKER_INFLUXDB_INIT_USERNAME``/``PASSWORD``). This commonly happens after
+   changing a password in ``.env`` without resetting the volume -- see below.
+
+**InfluxDB "could not find bucket" (404) when running the framework module**
+   ``INFLUXDB_BUCKET`` doesn't match ``DOCKER_INFLUXDB_INIT_BUCKET`` -- the app is asking for a
+   bucket name that was never actually created in the container. Set ``INFLUXDB_BUCKET`` to the
+   same value as ``DOCKER_INFLUXDB_INIT_BUCKET`` in ``.env`` (same rule applies to
+   ``INFLUXDB_ORG``/``DOCKER_INFLUXDB_INIT_ORG``).
+
+**MongoDB / report blueprint fails at app startup with** ``ValueError: invalid literal for int()``
+   ``MONGODB_PORT`` was left blank. The report blueprint connects to MongoDB eagerly at import
+   time (even if you never use the report feature), so ``MONGODB_HOST``/``MONGODB_PORT`` must
+   always be filled in -- see the Required section of ``.env.template``.
+
+**Reset Docker volumes after changing container-init variables**
+   ``MYSQL_DATABASE``, ``MYSQL_ROOT_PASSWORD``, ``DOCKER_INFLUXDB_INIT_*`` and
+   ``MONGO_INITDB_ROOT_*`` only take effect the **first** time their container initializes its
+   data volume. If you change one of these after already starting the stack once, the container
+   keeps its old state. Fix by resetting the volumes and restarting:
+
+   .. code-block:: bash
+
+      docker compose down -v
+      docker compose up -d
+
+**``getaddrinfo failed`` / "Can't connect to MySQL server on 'mysqldb'"**
+   You used a Docker Compose service name (e.g. ``mysqldb``) as a hostname from a process running
+   outside Docker. Use ``localhost`` instead when running the app with ``poetry run`` -- see the
+   hostname rules under "Configure environment variables" above.
+
+**Grafana keeps looping back to its login screen inside the Timeseries Viewer**
+   Access the app via ``http://localhost:<port>``, not ``http://127.0.0.1:<port>``. See
+   "Accessing Grafana from the Timeseries Viewer" above for the full explanation.
 
 .. _chat-assistant-setup:
 
@@ -431,7 +383,7 @@ using the RAG pipeline, for example by running:
 
 .. code-block:: bash
 
-   docker-compose up
+   docker compose up -d
 
 The provided compose file starts Ollama together with the other GEMINI
 services. The ``ollama`` service must remain running for the RAG pipeline to be
@@ -439,12 +391,12 @@ functional.
 
 Models must be pulled (downloaded) into the Ollama service before they can be
 used. For a quick start on Windows, run
-``ci\\windows\\run_ollama_models.bat``. A shell script for Linux/macOS is
+``ci\windows\run_ollama_models.bat``. A shell script for Linux/macOS is
 also provided at ``ci/linux/run_ollama_models.sh``. The script checks that Docker is
 reachable and that the ``ollama`` container is running, then pulls all three
 recommended models: ``llama3.2``, ``snowflake-arctic-embed``, and
 ``zongwei/gemma3-translator:4b``. Run this script only after
-``docker-compose up`` completes.
+``docker compose up`` completes.
 
 If you prefer to pull models manually (or are on Linux/macOS), make sure the
 ``ollama`` container is running and then run the pull command inside the

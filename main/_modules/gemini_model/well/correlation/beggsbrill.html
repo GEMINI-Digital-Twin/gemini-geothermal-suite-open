@@ -79,10 +79,10 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_model.well.correlation.beggsbrill</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Beggs–Brill two-phase pressure drop correlation.</span>
+<span></span><span class="sd">"""Beggs–Brill two-phase pressure drop correlation.</span>
 
 <span class="sd">Dukler Flanigan, ref Shoham p 59.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
@@ -90,13 +90,13 @@
 <div class="viewcode-block" id="BeggsBrill">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.well.correlation.beggsbrill.html#gemini_model.well.correlation.beggsbrill.BeggsBrill">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BeggsBrill</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate two-phase dp using Beggs–Brill correlation (per Shoham, p.59).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Calculate two-phase dp using Beggs–Brill correlation (per Shoham, p.59)."""</span>
 
 <div class="viewcode-block" id="BeggsBrill.calculate_dp">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.well.correlation.beggsbrill.html#gemini_model.well.correlation.beggsbrill.BeggsBrill.calculate_dp">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_dp</span><span class="p">(</span><span class="n">us_g</span><span class="p">,</span> <span class="n">us_l</span><span class="p">,</span> <span class="n">rho_g</span><span class="p">,</span> <span class="n">rho_l</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">eta_g</span><span class="p">,</span> <span class="n">eta_l</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">d_tube</span><span class="p">,</span> <span class="n">eps_g</span><span class="p">,</span> <span class="n">l_cel</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the pressure drop due friction and gravity based on various parameters.</span>
+<span class="w">        </span><span class="sd">"""Calculate the pressure drop due friction and gravity based on various parameters.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -129,7 +129,7 @@
 <span class="sd">            pressure drop due to friction (Pa)</span>
 <span class="sd">        dp_grav: float</span>
 <span class="sd">            pressure drop due to gravity (Pa)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Conversion input parameters</span>
         <span class="n">us_g</span> <span class="o">=</span> <span class="n">us_g</span> <span class="o">/</span> <span class="mf">3.048e-1</span>  <span class="c1"># m/s -&gt; ft/s</span>
         <span class="n">us_l</span> <span class="o">=</span> <span class="n">us_l</span> <span class="o">/</span> <span class="mf">3.048e-1</span>  <span class="c1"># m/s -&gt; ft/s</span>

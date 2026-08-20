@@ -79,11 +79,11 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_model.well.pressure_drop</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Well pressure and temperature profile model.</span>
+<span></span><span class="sd">"""Well pressure and temperature profile model.</span>
 
 <span class="sd">Computes pressure drop due to friction and gravity along a multi-section well</span>
 <span class="sd">for single- and two-phase flow, and temperature change due to heat transfer.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -96,10 +96,10 @@
 <div class="viewcode-block" id="DPDT">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.well.pressure_drop.html#gemini_model.well.pressure_drop.DPDT">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DPDT</span><span class="p">(</span><span class="n">StaticModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pressure and temperature along-well calculator (single/two-phase).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Pressure and temperature along-well calculator (single/two-phase)."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize well pressure drop model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize well pressure drop model."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">PVT</span> <span class="o">=</span> <span class="kc">None</span>
@@ -107,13 +107,13 @@
 <div class="viewcode-block" id="DPDT.update_parameters">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.well.pressure_drop.html#gemini_model.well.pressure_drop.DPDT.update_parameters">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model parameters.</span>
+<span class="w">        </span><span class="sd">"""Update model parameters.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        parameters: dict</span>
 <span class="sd">            Parameters dict as defined by the model.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
@@ -121,53 +121,53 @@
 <div class="viewcode-block" id="DPDT.initialize_state">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.well.pressure_drop.html#gemini_model.well.pressure_drop.DPDT.initialize_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initialize_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate an initial state based on user parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Generate an initial state based on user parameters."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="DPDT.update_state">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.well.pressure_drop.html#gemini_model.well.pressure_drop.DPDT.update_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the state based on input u and state x.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update the state based on input u and state x."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="DPDT.calculate_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.well.pressure_drop.html#gemini_model.well.pressure_drop.DPDT.calculate_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate output based on input u and state x.</span>
+<span class="w">        </span><span class="sd">"""Calculate output based on input u and state x.</span>
 
 <span class="sd">        The outputs are pressure drop due to friction and gravity, also the final</span>
 <span class="sd">        pressure and temperature.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># preparing input</span>
-        <span class="n">Ngrid</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">])</span>  <span class="c1"># Number of grid cells (-)</span>
-        <span class="n">theta_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;angle&quot;</span><span class="p">]</span>  <span class="c1"># Inclinations of cells (rad)</span>
-        <span class="n">Lcel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span>  <span class="c1"># Length of 1 cell (m)</span>
-        <span class="n">Dtube</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;diameter&quot;</span><span class="p">]</span>  <span class="c1"># diameter of cells (m)</span>
+        <span class="n">Ngrid</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"length"</span><span class="p">])</span>  <span class="c1"># Number of grid cells (-)</span>
+        <span class="n">theta_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"angle"</span><span class="p">]</span>  <span class="c1"># Inclinations of cells (rad)</span>
+        <span class="n">Lcel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"length"</span><span class="p">]</span>  <span class="c1"># Length of 1 cell (m)</span>
+        <span class="n">Dtube</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"diameter"</span><span class="p">]</span>  <span class="c1"># diameter of cells (m)</span>
         <span class="n">Atube</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">Dtube</span><span class="o">**</span><span class="mi">2</span>  <span class="c1"># area of cells (m2)</span>
-        <span class="n">Krough</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;roughness&quot;</span><span class="p">]</span>  <span class="c1"># roughness of cells (mm)</span>
+        <span class="n">Krough</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"roughness"</span><span class="p">]</span>  <span class="c1"># roughness of cells (mm)</span>
         <span class="n">SAtube</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">Dtube</span> <span class="o">*</span> <span class="n">Lcel</span>  <span class="c1"># surface area of cell (m2)</span>
         <span class="n">Uvalue</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">Ngrid</span><span class="p">)</span>  <span class="c1"># Heat transfer coefficient (W/m2.K)</span>
-        <span class="n">correlation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;friction_correlation&quot;</span><span class="p">]</span>
-        <span class="n">correlation_2p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;friction_correlation_2p&quot;</span><span class="p">]</span>
-        <span class="n">correction_factors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;correction_factors&quot;</span><span class="p">]</span>
+        <span class="n">correlation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"friction_correlation"</span><span class="p">]</span>
+        <span class="n">correlation_2p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"friction_correlation_2p"</span><span class="p">]</span>
+        <span class="n">correction_factors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"correction_factors"</span><span class="p">]</span>
 
-        <span class="n">direction</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="s2">&quot;direction&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>  <span class="c1"># down for injection and up for production</span>
-        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span>  <span class="c1"># Pa</span>
-        <span class="n">temperature</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span>  <span class="c1"># K</span>
-        <span class="n">flowRate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;flowrate&quot;</span><span class="p">]</span>  <span class="c1"># m3/s</span>
-        <span class="n">T_ambient</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature_ambient&quot;</span><span class="p">]</span>  <span class="c1"># K</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="s2">"direction"</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>  <span class="c1"># down for injection and up for production</span>
+        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span>  <span class="c1"># Pa</span>
+        <span class="n">temperature</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span>  <span class="c1"># K</span>
+        <span class="n">flowRate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"flowrate"</span><span class="p">]</span>  <span class="c1"># m3/s</span>
+        <span class="n">T_ambient</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature_ambient"</span><span class="p">]</span>  <span class="c1"># K</span>
 
         <span class="n">section_pressure</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">section_temperature</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">"down"</span><span class="p">:</span>
             <span class="n">krange</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">Ngrid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;up&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">"up"</span><span class="p">:</span>
             <span class="n">krange</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">Ngrid</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported direction &#39;</span><span class="si">{</span><span class="n">u</span><span class="p">[</span><span class="s1">&#39;direction&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;. Use &#39;down&#39; or &#39;up&#39;.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported direction '</span><span class="si">{</span><span class="n">u</span><span class="p">[</span><span class="s1">'direction'</span><span class="p">]</span><span class="si">}</span><span class="s2">'. Use 'down' or 'up'."</span><span class="p">)</span>
 
         <span class="n">pressuredrop_fric</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">pressuredrop_grav</span> <span class="o">=</span> <span class="mi">0</span>
@@ -200,7 +200,7 @@
 
                 <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
 
-                    <span class="k">if</span> <span class="n">correlation</span> <span class="o">==</span> <span class="s2">&quot;darcy_weisbach&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">correlation</span> <span class="o">==</span> <span class="s2">"darcy_weisbach"</span><span class="p">:</span>
 
                         <span class="n">dp_fric</span><span class="p">,</span> <span class="n">dp_grav</span> <span class="o">=</span> <span class="n">DarcyWeisbach</span><span class="o">.</span><span class="n">calculate_dp</span><span class="p">(</span>
                             <span class="n">us_l</span><span class="p">,</span>
@@ -212,10 +212,10 @@
                             <span class="n">Lcel</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
                         <span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The model is not implemented.&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">"The model is not implemented."</span><span class="p">)</span>
 
                 <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">correlation_2p</span> <span class="o">==</span> <span class="s2">&quot;BeggsBrill&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">correlation_2p</span> <span class="o">==</span> <span class="s2">"BeggsBrill"</span><span class="p">:</span>
 
                         <span class="n">dp_fric</span><span class="p">,</span> <span class="n">dp_grav</span> <span class="o">=</span> <span class="n">BeggsBrill</span><span class="o">.</span><span class="n">calculate_dp</span><span class="p">(</span>
                             <span class="n">us_g</span><span class="p">,</span>
@@ -231,7 +231,7 @@
                             <span class="n">Lcel</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
                         <span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The model is not implemented.&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">"The model is not implemented."</span><span class="p">)</span>
                         <span class="n">dp_fric</span> <span class="o">=</span> <span class="mi">0</span>
                         <span class="n">dp_grav</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -243,10 +243,10 @@
                     <span class="n">temperature</span><span class="p">,</span> <span class="n">Uvalue</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">ml</span><span class="p">,</span> <span class="n">mg</span><span class="p">,</span> <span class="n">cp_l</span><span class="p">,</span> <span class="n">cp_g</span><span class="p">,</span> <span class="n">SAtube</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">T_ambient</span>
                 <span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">"down"</span><span class="p">:</span>
                 <span class="n">pressure</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">pressure</span> <span class="o">+</span> <span class="n">dp_fric</span> <span class="o">+</span> <span class="n">dp_grav</span><span class="p">)</span>
                 <span class="n">temperature</span> <span class="o">=</span> <span class="n">temperature</span> <span class="o">+</span> <span class="n">dT</span>
-            <span class="k">elif</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;up&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">"up"</span><span class="p">:</span>
                 <span class="n">pressure</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">pressure</span> <span class="o">-</span> <span class="n">dp_fric</span> <span class="o">-</span> <span class="n">dp_grav</span><span class="p">)</span>
                 <span class="n">temperature</span> <span class="o">=</span> <span class="n">temperature</span> <span class="o">-</span> <span class="n">dT</span>
 
@@ -256,20 +256,20 @@
             <span class="n">pressuredrop_fric</span> <span class="o">=</span> <span class="n">pressuredrop_fric</span> <span class="o">+</span> <span class="n">dp_fric</span>
             <span class="n">pressuredrop_grav</span> <span class="o">=</span> <span class="n">pressuredrop_grav</span> <span class="o">+</span> <span class="n">dp_grav</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;pressure_output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">correction_factors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">pressure</span> <span class="o">+</span> <span class="n">correction_factors</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">correction_factors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">pressure</span> <span class="o">+</span> <span class="n">correction_factors</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="c1"># Pa</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;temperature_output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature</span>  <span class="c1"># K</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;pressuredrop_fric_output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressuredrop_fric</span>  <span class="c1"># Pa</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;pressuredrop_grav_output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressuredrop_grav</span>  <span class="c1"># Pa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature</span>  <span class="c1"># K</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressuredrop_fric_output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressuredrop_fric</span>  <span class="c1"># Pa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressuredrop_grav_output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressuredrop_grav</span>  <span class="c1"># Pa</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;section_pressure_output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">section_pressure</span>  <span class="c1"># Pa</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;section_temperature_output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">section_temperature</span>  <span class="c1"># K</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"section_pressure_output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">section_pressure</span>  <span class="c1"># Pa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"section_temperature_output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">section_temperature</span>  <span class="c1"># K</span></div>
 
 
 <div class="viewcode-block" id="DPDT.get_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.well.pressure_drop.html#gemini_model.well.pressure_drop.DPDT.get_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get output of the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get output of the model."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span></div>
 </div>
 

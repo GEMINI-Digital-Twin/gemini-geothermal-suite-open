@@ -79,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_application.tagbrowser.datamanager</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Tag browser application for browsing external database and CSV uploads.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Tag browser application for browsing external database and CSV uploads."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_application.application_abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApplicationAbstract</span>
 
@@ -87,16 +87,16 @@
 <div class="viewcode-block" id="DataManager">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.tagbrowser.datamanager.html#gemini_application.tagbrowser.datamanager.DataManager">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DataManager</span><span class="p">(</span><span class="n">ApplicationAbstract</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for application data management in tag browser.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Class for application data management in tag browser."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize data manager class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize data manager class."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="DataManager.init_parameters">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.tagbrowser.datamanager.html#gemini_application.tagbrowser.datamanager.DataManager.init_parameters">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">init_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_parameters</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize application-specific parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize application-specific parameters."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">initial_parameters</span> <span class="ow">or</span> <span class="p">{})</span>
         <span class="k">return</span> <span class="kc">None</span></div>
 
@@ -104,7 +104,7 @@
 <div class="viewcode-block" id="DataManager.calculate">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.tagbrowser.datamanager.html#gemini_application.tagbrowser.datamanager.DataManager.calculate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run application computation model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Run application computation model."""</span>
         <span class="k">return</span> <span class="kc">None</span></div>
 </div>
 

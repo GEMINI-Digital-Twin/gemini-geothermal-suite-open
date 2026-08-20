@@ -79,14 +79,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_interface.blueprint.setting_plant.routes</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">Plant Settings Routes.</span>
 
 <span class="sd">=====================</span>
 
 <span class="sd">This module handles plant configuration management and parameter handling</span>
 <span class="sd">functionality including plant loading, parameter file processing, and configuration management.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -97,7 +97,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.framework.plant</span><span class="w"> </span><span class="kn">import</span> <span class="n">Plant</span>
 
 <span class="c1"># Create the plant settings blueprint</span>
-<span class="n">setting_plant</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">&quot;setting_plant&quot;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+<span class="n">setting_plant</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">"setting_plant"</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">plant</span> <span class="o">=</span> <span class="n">Plant</span><span class="p">()</span>
 
@@ -107,42 +107,42 @@
 <span class="c1"># ================================================================</span>
 <div class="viewcode-block" id="load_plant">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.setting_plant.routes.html#gemini_interface.blueprint.setting_plant.routes.load_plant">[docs]</a>
-<span class="nd">@setting_plant</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/setting/plant/load_plant&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@setting_plant</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/setting/plant/load_plant"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_plant</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load plant configuration and setup plant instance.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Load plant configuration and setup plant instance."""</span>
     <span class="k">global</span> <span class="n">plant</span>
 
-    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;field_name&quot;</span><span class="p">]</span>
-    <span class="n">plant</span> <span class="o">=</span> <span class="n">setup</span><span class="p">(</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;GEMINI_PROJECT_FOLDER&quot;</span><span class="p">],</span> <span class="n">project_name</span><span class="p">)</span>
+    <span class="n">project_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"field_name"</span><span class="p">]</span>
+    <span class="n">plant</span> <span class="o">=</span> <span class="n">setup</span><span class="p">(</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">"GEMINI_PROJECT_FOLDER"</span><span class="p">],</span> <span class="n">project_name</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="s2">&quot;plant is loaded&quot;</span></div>
+    <span class="k">return</span> <span class="s2">"plant is loaded"</span></div>
 
 
 
 <div class="viewcode-block" id="get_plant_parameters">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.setting_plant.routes.html#gemini_interface.blueprint.setting_plant.routes.get_plant_parameters">[docs]</a>
-<span class="nd">@setting_plant</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/setting/plant/get_plant_parameters&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="nd">@setting_plant</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/setting/plant/get_plant_parameters"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"GET"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_plant_parameters</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get plant parameters from the loaded plant instance.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Get plant parameters from the loaded plant instance."""</span>
     <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">plant</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="save_plant_parameters">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.setting_plant.routes.html#gemini_interface.blueprint.setting_plant.routes.save_plant_parameters">[docs]</a>
-<span class="nd">@setting_plant</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/setting/plant/save_plant_parameters&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@setting_plant</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/setting/plant/save_plant_parameters"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"POST"</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_plant_parameters</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save updated plant parameters for the current plant instance.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Save updated plant parameters for the current plant instance."""</span>
     <span class="n">project_folder_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plant</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-    <span class="n">plant_conf</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]</span>
+    <span class="n">plant_conf</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"parameters"</span><span class="p">]</span>
 
     <span class="n">plant</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">plant_conf</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder_path</span><span class="p">,</span> <span class="s2">&quot;plant.conf&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_folder_path</span><span class="p">,</span> <span class="s2">"plant.conf"</span><span class="p">),</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">jsonfile</span><span class="p">:</span>
         <span class="n">jsonfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">plant_conf</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 
-    <span class="k">return</span> <span class="s2">&quot;new parameters are saved&quot;</span></div>
+    <span class="k">return</span> <span class="s2">"new parameters are saved"</span></div>
 
 </pre></div>
 

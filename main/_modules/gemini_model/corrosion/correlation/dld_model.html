@@ -79,14 +79,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for gemini_model.corrosion.correlation.dld_model</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;DLD CO2 corrosion correlation (de Waard, Lotz, Dugstad, 1995).</span>
+<span></span><span class="sd">"""DLD CO2 corrosion correlation (de Waard, Lotz, Dugstad, 1995).</span>
 
 <span class="sd">Implements the semi-empirical correlation described in</span>
-<span class="sd">&quot;Influence of liquid flow velocity on CO2 corrosion: A semi-emperical model&quot;</span>
+<span class="sd">"Influence of liquid flow velocity on CO2 corrosion: A semi-emperical model"</span>
 <span class="sd">for predicting corrosion rate as a function of CO2 fugacity, temperature,</span>
 <span class="sd">and hydrodynamics.</span>
 <span class="sd">https://www.osti.gov/biblio/106125</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
@@ -96,23 +96,23 @@
 <div class="viewcode-block" id="DLD">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.corrosion.correlation.dld_model.html#gemini_model.corrosion.correlation.dld_model.DLD">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DLD</span><span class="p">(</span><span class="n">StaticModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;CO2 corrosion rate using the DLD (1995) correlation.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""CO2 corrosion rate using the DLD (1995) correlation."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize DLD corrosion model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Initialize DLD corrosion model."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="DLD.update_parameters">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.corrosion.correlation.dld_model.html#gemini_model.corrosion.correlation.dld_model.DLD.update_parameters">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model parameters.</span>
+<span class="w">        </span><span class="sd">"""Update model parameters.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        parameters: dict</span>
 <span class="sd">            Parameters dict as defined by the model.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
@@ -120,49 +120,49 @@
 <div class="viewcode-block" id="DLD.initialize_state">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.corrosion.correlation.dld_model.html#gemini_model.corrosion.correlation.dld_model.DLD.initialize_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initialize_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate an initial state based on user parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Generate an initial state based on user parameters."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="DLD.update_state">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.corrosion.correlation.dld_model.html#gemini_model.corrosion.correlation.dld_model.DLD.update_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the state based on input u and state x.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Update the state based on input u and state x."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="DLD.calculate_output">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.corrosion.correlation.dld_model.html#gemini_model.corrosion.correlation.dld_model.DLD.calculate_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate output based on input u and state x.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;corrosion_rate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_corrosion_rate</span><span class="p">(</span><span class="n">u</span><span class="p">)</span></div>
+<span class="w">        </span><span class="sd">"""Calculate output based on input u and state x."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"corrosion_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_corrosion_rate</span><span class="p">(</span><span class="n">u</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DLD.get_output">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.corrosion.correlation.dld_model.html#gemini_model.corrosion.correlation.dld_model.DLD.get_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get output of the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get output of the model."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span></div>
 
 
 <div class="viewcode-block" id="DLD.get_corrosion_rate">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_model.corrosion.correlation.dld_model.html#gemini_model.corrosion.correlation.dld_model.DLD.get_corrosion_rate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_corrosion_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Calculate the corrosion rate based on various parameters.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">        parameters (dict): Dictionary containing &#39;co2_fraction&#39; (float),</span>
-<span class="sd">        &#39;pressure&#39; (float), &#39;temp_c&#39; (float), and &#39;flowrate&#39; (float)</span>
+<span class="sd">        parameters (dict): Dictionary containing 'co2_fraction' (float),</span>
+<span class="sd">        'pressure' (float), 'temp_c' (float), and 'flowrate' (float)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">        float: Corrosion rate in mm/year</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">co2_fraction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;co2_fraction&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">co2_partial_pressure</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;co2_partial_pressure&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">co2_fraction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"co2_fraction"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">co2_partial_pressure</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"co2_partial_pressure"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span>  <span class="c1"># bar</span>
-        <span class="n">temperature_celsius</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span>  <span class="c1"># C</span>
+        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span>  <span class="c1"># bar</span>
+        <span class="n">temperature_celsius</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span>  <span class="c1"># C</span>
 
         <span class="n">co2_fugacity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_co2_fugacity</span><span class="p">(</span>
             <span class="n">pressure</span><span class="o">=</span><span class="n">pressure</span><span class="p">,</span>
@@ -180,21 +180,21 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_reaction_controlled_corrosion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Calculate reaction-controlled corrosion rate.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">        parameters (dict): Dictionary containing &#39;co2_fraction&#39; (float),</span>
-<span class="sd">        &#39;pressure&#39; (float), and &#39;temp_c&#39; (float)</span>
+<span class="sd">        parameters (dict): Dictionary containing 'co2_fraction' (float),</span>
+<span class="sd">        'pressure' (float), and 'temp_c' (float)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">        float: Reaction-controlled corrosion rate</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">co2_fraction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;co2_fraction&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">co2_partial_pressure</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;co2_partial_pressure&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">co2_fraction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"co2_fraction"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">co2_partial_pressure</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"co2_partial_pressure"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span>
-        <span class="n">temperature_celsius</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span>
+        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span>
+        <span class="n">temperature_celsius</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span>
 
         <span class="n">co2_fugacity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_co2_fugacity</span><span class="p">(</span>
             <span class="n">pressure</span><span class="o">=</span><span class="n">pressure</span><span class="p">,</span>
@@ -208,24 +208,24 @@
         <span class="k">return</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mf">4.93</span> <span class="o">-</span> <span class="mi">1119</span> <span class="o">/</span> <span class="n">temperature_kelvin</span> <span class="o">+</span> <span class="mf">0.58</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">co2_fugacity</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_mass_transfer_controlled_corrosion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Calculate mass transfer-controlled corrosion rate.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">        parameters (dict): Dictionary containing &#39;co2_fraction&#39; (float),</span>
-<span class="sd">        &#39;pressure&#39; (float), &#39;temp_c&#39; (float), and &#39;flowrate&#39; (float)</span>
+<span class="sd">        parameters (dict): Dictionary containing 'co2_fraction' (float),</span>
+<span class="sd">        'pressure' (float), 'temp_c' (float), and 'flowrate' (float)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">        float: Mass transfer-controlled corrosion rate</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">co2_fraction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;co2_fraction&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">co2_partial_pressure</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;co2_partial_pressure&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">co2_fraction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"co2_fraction"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">co2_partial_pressure</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"co2_partial_pressure"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span>
-        <span class="n">temperature_celsius</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span>
+        <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span>
+        <span class="n">temperature_celsius</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span>
 
-        <span class="n">flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">&quot;flow_rate&quot;</span><span class="p">]</span>
-        <span class="n">pipe_diameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;diameter&quot;</span><span class="p">]</span>
+        <span class="n">flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"flow_rate"</span><span class="p">]</span>
+        <span class="n">pipe_diameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"diameter"</span><span class="p">]</span>
 
         <span class="c1"># Cross-sectional area of the pipe (A = π * D^2 / 4)</span>
         <span class="n">cross_section_area</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">pipe_diameter</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.0</span>
@@ -245,7 +245,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_co2_fugacity</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pressure</span><span class="p">,</span> <span class="n">temperature_celsius</span><span class="p">,</span> <span class="n">co2_fraction</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">co2_partial_pressure</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Calculate the fugacity of CO2.</span>
 
 <span class="sd">        Parameters:</span>
@@ -263,7 +263,7 @@
 <span class="sd">        --------</span>
 <span class="sd">        float</span>
 <span class="sd">            Fugacity of CO2 in [bar].</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Convert temperature from Celsius to Kelvin</span>
         <span class="n">temperature_kelvin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_celsius_to_kelvin</span><span class="p">(</span><span class="n">temperature_celsius</span><span class="p">)</span>
 
@@ -276,14 +276,14 @@
         <span class="c1"># If CO2 partial pressure is not given, calculate it from the fraction and total pressure</span>
         <span class="k">if</span> <span class="n">co2_partial_pressure</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">co2_fraction</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either co2_fraction or co2_partial_pressure must be provided.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Either co2_fraction or co2_partial_pressure must be provided."</span><span class="p">)</span>
             <span class="n">co2_partial_pressure</span> <span class="o">=</span> <span class="n">co2_fraction</span> <span class="o">*</span> <span class="n">pressure</span>
 
         <span class="c1"># Compute fugacity</span>
         <span class="k">return</span> <span class="n">fugacity_coefficient</span> <span class="o">*</span> <span class="n">co2_partial_pressure</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_scaling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temperature_celsius</span><span class="p">,</span> <span class="n">co2_fugacity</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Calculate the scaling correction factor.</span>
 
 <span class="sd">        Parameters:</span>
@@ -292,7 +292,7 @@
 
 <span class="sd">        Returns:</span>
 <span class="sd">        float: Scaling correction factor</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">temperature_kelvin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_celsius_to_kelvin</span><span class="p">(</span><span class="n">temperature_celsius</span><span class="p">)</span>
         <span class="n">scaling_temperature_threshold</span> <span class="o">=</span> <span class="mi">2400</span> <span class="o">/</span> <span class="p">(</span><span class="mf">6.7</span> <span class="o">+</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">co2_fugacity</span><span class="p">))</span>
         <span class="n">scaling_factor</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2400</span> <span class="o">/</span> <span class="n">temperature_kelvin</span> <span class="o">-</span> <span class="mf">0.44</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">co2_fugacity</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.7</span><span class="p">)</span>
@@ -301,7 +301,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_convert_celsius_to_kelvin</span><span class="p">(</span><span class="n">temperature_celsius</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Convert temperature from Celsius to Kelvin.</span>
 
 <span class="sd">        Parameters:</span>
@@ -309,7 +309,7 @@
 
 <span class="sd">        Returns:</span>
 <span class="sd">        float: Temperature in Kelvin</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">temperature_celsius</span> <span class="o">+</span> <span class="mf">273.15</span></div>
 
 </pre></div>
