@@ -156,12 +156,8 @@
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_llm_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
         <span class="s2">"LLM_MODEL_VERSION"</span>
     <span class="p">)</span>  <span class="c1"># Fast--&gt;llama3.2, Accurate--&gt;mistral-nemo</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_translation_llm"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">"TRANSLATION_LLM_MODEL"</span>
-    <span class="p">)</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_embeddings_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">"EMBED_MODEL_VERSION"</span>
-    <span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_translation_llm"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"TRANSLATION_LLM_MODEL"</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_embeddings_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"EMBED_MODEL_VERSION"</span><span class="p">)</span>
 
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"chunk_size"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"collection_name"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"gemini_rag_collection_"</span> <span class="o">+</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span>
