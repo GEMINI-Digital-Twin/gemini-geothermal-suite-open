@@ -61,35 +61,21 @@ def get_parameters():
         return jsonify({"error": "Plant not loaded. Call /load_plant first."}), 400
 
     parameters = dict()
-    parameters["langchain_api_key"] = os.getenv("LANGCHAIN_API_KEY")
     parameters["docs_dir"] = os.path.join(
         app_instance.plant.project_path, app_instance.plant.name, "rag_data"
     )
     parameters["ollama_llm_model"] = os.getenv(
-        "LLM_MODEL_VERSION", "llama3.2"
+        "LLM_MODEL_VERSION"
     )  # Fast-->llama3.2, Accurate-->mistral-nemo
     parameters["ollama_translation_llm"] = os.getenv(
-        "TRANSLATION_LLM_MODEL", "zongwei/gemma3-translator:4b"
+        "TRANSLATION_LLM_MODEL"
     )
     parameters["ollama_embeddings_model"] = os.getenv(
         "EMBED_MODEL_VERSION", "snowflake-arctic-embed"
     )
-    parameters["azure_openai"] = env_bool("AZURE_OPENAI", False)
-    parameters["azure_openai_key"] = os.getenv("AZURE_OPENAI_KEY")
-    parameters["azure_openai_host"] = os.getenv(
-        "AZURE_OPENAI_HOST", "https://geminidigitaltwinazureopenai.openai.azure.com/"
-    )
 
-    if parameters["azure_openai"] and not parameters["azure_openai_key"]:
-        raise RuntimeError("AZURE_OPENAI_KEY must be set when AZURE_OPENAI=true")
-
-    # RAG parameters
-    if parameters["azure_openai"]:
-        parameters["chunk_size"] = 512
-        parameters["collection_name"] = "gemini_rag_collection_openai_" + app_instance.plant.name
-    else:
-        parameters["chunk_size"] = 200
-        parameters["collection_name"] = "gemini_rag_collection_" + app_instance.plant.name
+    parameters["chunk_size"] = 200
+    parameters["collection_name"] = "gemini_rag_collection_" + app_instance.plant.name
 
     parameters["chunk_overlap"] = 40
     parameters["retrieve_candidates"] = 60
