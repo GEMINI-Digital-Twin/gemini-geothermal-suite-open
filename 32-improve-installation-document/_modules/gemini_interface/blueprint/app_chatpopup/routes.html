@@ -160,7 +160,7 @@
         <span class="s2">"TRANSLATION_LLM_MODEL"</span>
     <span class="p">)</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_embeddings_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">"EMBED_MODEL_VERSION"</span><span class="p">,</span> <span class="s2">"snowflake-arctic-embed"</span>
+        <span class="s2">"EMBED_MODEL_VERSION"</span>
     <span class="p">)</span>
 
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"chunk_size"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
@@ -181,11 +181,11 @@
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"similarity_threshold"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
 
     <span class="c1"># Connection to docker containers</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_PORT"</span><span class="p">))</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_HOST"</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_GUI_PORT"</span><span class="p">))</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_GUI_HOST"</span><span class="p">)</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_use_http"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_PORT"</span><span class="p">))</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_HOST"</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_GUI_PORT"</span><span class="p">))</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_GUI_HOST"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">parameters</span></div>
 
 
