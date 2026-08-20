@@ -207,9 +207,6 @@
         <span class="c1"># Enable extra debug logging</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="c1"># Optional LangChain API key (only needed for LangSmith tracing etc.)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">langchain_api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-
         <span class="c1"># Manifest filename used to track ingested files</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">manifest_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">".rag_manifest.json"</span>
 
@@ -233,9 +230,6 @@
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.chatpopup.chatpopup.html#gemini_application.chatpopup.chatpopup.ChatPopup.initialize_model">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initialize_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create LLM/embedding clients and open the Chroma collection."""</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langchain_api_key</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"LANGCHAIN_API_KEY"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">langchain_api_key</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">ollama_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_ollama_client</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">chroma_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_chroma_client</span><span class="p">()</span>

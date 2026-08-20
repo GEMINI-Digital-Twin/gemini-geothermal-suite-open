@@ -150,35 +150,17 @@
         <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="s2">"Plant not loaded. Call /load_plant first."</span><span class="p">}),</span> <span class="mi">400</span>
 
     <span class="n">parameters</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"langchain_api_key"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"LANGCHAIN_API_KEY"</span><span class="p">)</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"docs_dir"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">project_path</span><span class="p">,</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"rag_data"</span>
     <span class="p">)</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_llm_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">"LLM_MODEL_VERSION"</span><span class="p">,</span> <span class="s2">"llama3.2"</span>
+        <span class="s2">"LLM_MODEL_VERSION"</span>
     <span class="p">)</span>  <span class="c1"># Fast--&gt;llama3.2, Accurate--&gt;mistral-nemo</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_translation_llm"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">"TRANSLATION_LLM_MODEL"</span><span class="p">,</span> <span class="s2">"zongwei/gemma3-translator:4b"</span>
-    <span class="p">)</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_embeddings_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">"EMBED_MODEL_VERSION"</span><span class="p">,</span> <span class="s2">"snowflake-arctic-embed"</span>
-    <span class="p">)</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"azure_openai"</span><span class="p">]</span> <span class="o">=</span> <span class="n">env_bool</span><span class="p">(</span><span class="s2">"AZURE_OPENAI"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"azure_openai_key"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"AZURE_OPENAI_KEY"</span><span class="p">)</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"azure_openai_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-        <span class="s2">"AZURE_OPENAI_HOST"</span><span class="p">,</span> <span class="s2">"https://geminidigitaltwinazureopenai.openai.azure.com/"</span>
-    <span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_translation_llm"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"TRANSLATION_LLM_MODEL"</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_embeddings_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"EMBED_MODEL_VERSION"</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"azure_openai"</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"azure_openai_key"</span><span class="p">]:</span>
-        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"AZURE_OPENAI_KEY must be set when AZURE_OPENAI=true"</span><span class="p">)</span>
-
-    <span class="c1"># RAG parameters</span>
-    <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"azure_openai"</span><span class="p">]:</span>
-        <span class="n">parameters</span><span class="p">[</span><span class="s2">"chunk_size"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">512</span>
-        <span class="n">parameters</span><span class="p">[</span><span class="s2">"collection_name"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"gemini_rag_collection_openai_"</span> <span class="o">+</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">parameters</span><span class="p">[</span><span class="s2">"chunk_size"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
-        <span class="n">parameters</span><span class="p">[</span><span class="s2">"collection_name"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"gemini_rag_collection_"</span> <span class="o">+</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chunk_size"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"collection_name"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"gemini_rag_collection_"</span> <span class="o">+</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span>
 
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"chunk_overlap"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">40</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"retrieve_candidates"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">60</span>
@@ -195,11 +177,11 @@
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"similarity_threshold"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
 
     <span class="c1"># Connection to docker containers</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_PORT"</span><span class="p">))</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_HOST"</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_GUI_PORT"</span><span class="p">))</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CHROMADB_GUI_HOST"</span><span class="p">)</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s2">"chromadb_use_http"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_PORT"</span><span class="p">))</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_HOST"</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_port"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_GUI_PORT"</span><span class="p">))</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">"ollama_host"</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OLLAMA_GUI_HOST"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">parameters</span></div>
 
 

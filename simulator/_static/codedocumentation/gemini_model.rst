@@ -13,6 +13,7 @@
    corrosion
    erosion
    fluid
+   heatpump
    model_abstract
    pump
    reservoir
