@@ -349,8 +349,6 @@
         <span class="n">COP</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">Ts_out</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="n">Ts_out</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="n">Ts_out</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"Ts_in_minimum"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">:</span>
             <span class="n">x0</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"COP_0"</span><span class="p">],</span> <span class="n">Th_out</span><span class="p">]</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"mode"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"carnot"</span><span class="p">:</span>
@@ -392,31 +390,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span></div>
 </div>
 
-
-
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
-    <span class="c1"># Example usage</span>
-    <span class="n">heatpump</span> <span class="o">=</span> <span class="n">HeatpumpBasic</span><span class="p">()</span>
-    <span class="n">heatpump</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span>
-        <span class="p">{</span>
-            <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"carnot"</span><span class="p">,</span>
-            <span class="s2">"eta_carnot"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
-            <span class="s2">"eta_lorenz"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
-            <span class="s2">"COP_0"</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span>
-            <span class="s2">"Cp_h"</span><span class="p">:</span> <span class="mi">4181</span><span class="p">,</span>  <span class="c1"># J/kg.K</span>
-            <span class="s2">"Cp_s"</span><span class="p">:</span> <span class="mi">4181</span><span class="p">,</span>  <span class="c1"># J/kg.K</span>
-            <span class="s2">"rho_h"</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>  <span class="c1"># kg/m3</span>
-            <span class="s2">"rho_s"</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>  <span class="c1"># kg/m3</span>
-            <span class="s2">"Th_out_target"</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>  <span class="c1"># °C</span>
-            <span class="s2">"Ts_in_minimum"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># °C</span>
-        <span class="p">}</span>
-    <span class="p">)</span>
-
-    <span class="n">u</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Th_in"</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span> <span class="s2">"Ts_in"</span><span class="p">:</span> <span class="mi">40</span><span class="p">,</span> <span class="s2">"qh"</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s2">"qs"</span><span class="p">:</span> <span class="mf">20.0</span><span class="p">}</span>  <span class="c1"># °C  # °C  # m3/h  # m3/h</span>
-
-    <span class="n">heatpump</span><span class="o">.</span><span class="n">calculate_output</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">heatpump</span><span class="o">.</span><span class="n">get_output</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
 </pre></div>
 
            </div>
