@@ -254,8 +254,6 @@ class HeatpumpBasic(StaticModel):
         COP = result.x[0]
         Ts_out = result.x[1]
 
-        print(Ts_out)
-
         if Ts_out < self.parameters["Ts_in_minimum"] + 273.15:
             x0 = [self.parameters["COP_0"], Th_out]
             if self.parameters["mode"] == "carnot":
@@ -293,28 +291,3 @@ class HeatpumpBasic(StaticModel):
             as populated by `calculate_output`.
         """
         return self.output
-
-
-if __name__ == "__main__":
-    # Example usage
-    heatpump = HeatpumpBasic()
-    heatpump.update_parameters(
-        {
-            "mode": "carnot",
-            "eta_carnot": 0.5,
-            "eta_lorenz": 0.5,
-            "COP_0": 4.0,
-            "Cp_h": 4181,  # J/kg.K
-            "Cp_s": 4181,  # J/kg.K
-            "rho_h": 1000,  # kg/m3
-            "rho_s": 1000,  # kg/m3
-            "Th_out_target": 80,  # °C
-            "Ts_in_minimum": 5,  # °C
-        }
-    )
-
-    u = {"Th_in": 30, "Ts_in": 40, "qh": 10.0, "qs": 20.0}  # °C  # °C  # m3/h  # m3/h
-
-    heatpump.calculate_output(u, None)
-    output = heatpump.get_output()
-    print(output)
