@@ -1,0 +1,540 @@
+Surface Equipment
+==============================================
+
+Description
+---------------------------
+
+The surface-equipment models describe the above-ground assets of a
+geothermal doublet: separators, filters, heat exchangers, pumps, and
+gas-fired heat/power units.
+All models are **static models** (``gemini_model.model_abstract.StaticModel``):
+outputs are computed directly from the current inputs, with no internal
+state.
+
+Each model exposes a common output pattern where relevant -- ``power_el``
+(electrical power, W), ``power_th`` (thermal power, W), and ``emission``
+(CO2 emissions, kg/s) -- so surface-equipment outputs can be aggregated
+consistently across a project diagram, alongside the equipment-specific
+pressure/temperature outputs.
+
+Separator
+---------------------------
+
+``gemini_model.separator.separator.Separator`` estimates the pressure and
+temperature drop across a surface separator vessel, using a linear
+flow-dependent pressure resistance and a fixed temperature drop.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``flow_resistance``
+     - Linear pressure-resistance coefficient :math:`R_1` (Pa/(m³/s))
+   * - ``temperature_drop``
+     - Fixed temperature drop across the vessel :math:`\Delta T` (K)
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``pressure``
+     - Known inlet (or outlet) pressure :math:`P_{in}` (Pa)
+   * - ``temperature``
+     - Known inlet (or outlet) temperature :math:`T_{in}` (K)
+   * - ``flow_rate``
+     - Volumetric flow rate through the vessel :math:`Q` (m³/s)
+   * - ``direction``
+     - ``"forward"``/``"backward"``: whether the inlet or outlet state
+       is the known input
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``pressure``
+     - Computed outlet (or inlet) pressure :math:`P_{out}` (Pa)
+   * - ``temperature``
+     - Computed outlet (or inlet) temperature :math:`T_{out}` (K)
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    P_{out} = P_{in} - Q \cdot R_1 \qquad T_{out} = T_{in} - \Delta T
+
+Filter
+---------------------------
+
+``gemini_model.filter.filter.Filter`` behaves like the Separator, but its
+flow resistance increases with flow rate to approximate fouling/clogging of
+the filter element.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``base_resistance``
+     - Baseline flow resistance at zero flow :math:`R_0` (Pa/(m³/s))
+   * - ``fouling_coeff_a``
+     - Fouling resistance asymptote :math:`a` (Pa/(m³/s))
+   * - ``fouling_coeff_b``
+     - Fouling growth rate coefficient :math:`b` (s/m³)
+   * - ``temperature_drop``
+     - Fixed temperature drop across the filter :math:`\Delta T` (K)
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Same as the Separator model above: ``pressure``, ``temperature``,
+``flow_rate``, ``direction``.
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Same as the Separator model above: ``pressure``, ``temperature``.
+
+Correlations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    R_1 = a \left(1 - e^{-bQ}\right) + R_0 \qquad
+    P_{out} = P_{in} - Q \cdot R_1
+
+Heat Exchanger
+---------------------------
+
+``gemini_model.heat_exchanger.heat_exchanger.HeatExchanger`` models a plate
+heat exchanger: a linear pressure drop on the primary side, and outlet
+temperatures on both sides computed with the NTU-effectiveness method for a
+parallel- or counter-flow configuration.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``flow_resistance``
+     - Primary-side pressure-drop coefficient (Pa/(m³/s))
+   * - ``heat_transfer_coefficient``
+     - Overall heat-transfer conductance :math:`UA` (W/K)
+   * - ``flow_configuration``
+     - ``"parallel"`` or ``"counter"`` flow arrangement
+   * - ``fluid_density``, ``specific_heat``
+     - *(optional)* fluid properties :math:`\rho`, :math:`c_p`, default to
+       water at STP
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``pressure_in``
+     - Primary-side inlet pressure :math:`P_{in}` (Pa)
+   * - ``primary_temperature_in``
+     - Primary-side inlet temperature :math:`T_{p,in}` (K)
+   * - ``secondary_temperature_in``
+     - Secondary-side inlet temperature :math:`T_{s,in}` (K)
+   * - ``primary_flow_rate``
+     - Primary-side volumetric flow rate :math:`\dot{V}_p` (m³/s)
+   * - ``secondary_flow_rate``
+     - Secondary-side volumetric flow rate :math:`\dot{V}_s` (m³/s)
+   * - ``secondary_valve_position``
+     - Fraction (0-1) of secondary flow routed through the exchanger
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``pressure_out``
+     - Primary-side outlet pressure (Pa)
+   * - ``primary_temperature_out``
+     - Primary-side outlet temperature :math:`T_{p,out}` (K)
+   * - ``secondary_temperature_out``
+     - Secondary-side outlet temperature :math:`T_{s,out}` (K)
+   * - ``heat_duty`` / ``power_th``
+     - Heat transferred between the two sides (W)
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Primary-side pressure drop:
+
+.. math::
+
+    P_{out} = P_{in} - \dot{V}_p \cdot R_1
+
+Heat capacity rates on the primary and (valve-throttled) secondary side:
+
+.. math::
+
+    C_p = \dot{V}_p \rho c_p \qquad
+    C_s = v \cdot \dot{V}_s \rho c_p \qquad
+    C_{min} = \min(C_p, C_s) \qquad C_{max} = \max(C_p, C_s)
+
+Number of transfer units, capacity ratio, and maximum possible heat duty:
+
+.. math::
+
+    NTU = \frac{UA}{C_{min}} \qquad C_r = \frac{C_{min}}{C_{max}} \qquad
+    \dot{Q}_{max} = C_{min} \left|T_{s,in} - T_{p,in}\right|
+
+Outlet temperatures and heat duty, once the effectiveness :math:`\varepsilon`
+is known (see Correlations below):
+
+.. math::
+
+    \dot{Q} = \varepsilon \, \dot{Q}_{max} \qquad
+    T_{p,out} = T_{p,in} - \frac{\dot{Q}}{C_p} \qquad
+    T_{s,out} = T_{s,in} + \frac{\dot{Q}}{C_s}
+
+Correlations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Effectiveness-NTU correlations (Kays & London), selected by
+``flow_configuration``.
+
+Parallel-flow:
+
+.. math::
+
+    \varepsilon = \frac{1 - e^{-NTU(1+C_r)}}{1+C_r}
+
+Counter-flow:
+
+.. math::
+
+    \varepsilon = \begin{cases}
+        \dfrac{NTU}{1+NTU} & C_r = 1 \\[6pt]
+        1 - e^{-NTU} & C_r < 0.01 \\[6pt]
+        \dfrac{1 - e^{-NTU(1+C_r)}}{1 - C_r e^{-NTU(1+C_r)}} & \text{otherwise}
+    \end{cases}
+
+Booster Pump
+---------------------------
+
+``gemini_model.booster_pump.booster_pump.BoosterPump`` estimates the
+pressure change and temperature drop across a surface booster pump using a
+linear flow-dependent characteristic curve, in either flow direction.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``flow_resistance``
+     - Linear pressure-resistance coefficient :math:`R_1` (Pa/(m³/s))
+   * - ``temperature_drop``
+     - Fixed temperature drop across the pump :math:`\Delta T` (K)
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``pressure``
+     - Known inlet (or outlet) pressure :math:`P_{in}` (Pa)
+   * - ``temperature``
+     - Known inlet (or outlet) temperature :math:`T_{in}` (K)
+   * - ``flow_rate``
+     - Volumetric flow rate through the pump :math:`Q` (m³/s)
+   * - ``direction``
+     - ``"forward"``/``"backward"``: whether the inlet or outlet state
+       is the known input
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``pressure``
+     - Computed outlet (or inlet) pressure :math:`P_{out}` (Pa)
+   * - ``temperature``
+     - Computed outlet (or inlet) temperature :math:`T_{out}` (K)
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    P_{out} = P_{in} - Q \cdot R_1 \qquad T_{out} = T_{in} - \Delta T
+
+Injector Pump
+---------------------------
+
+``gemini_model.injector_pump.injector_pump.InjectorPump`` computes the
+electrical power and CO2 emissions of an injection pump boosting flow from
+an inlet to a (higher) outlet pressure.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``efficiency_factor``
+     - Pump efficiency :math:`\eta`, 0-1 (-)
+   * - ``electricity_emission_factor``
+     - Grid-electricity CO2 emission factor :math:`f_{emission}` (kg CO2/kWh)
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``pressure_in``
+     - Inlet pressure :math:`P_{in}` (Pa)
+   * - ``pressure_out``
+     - Outlet pressure :math:`P_{out}` (Pa)
+   * - ``flow_rate``
+     - Volumetric flow rate :math:`Q` (m³/s)
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``power_el``
+     - Electrical power consumed :math:`P_{el}` (W)
+   * - ``emission``
+     - CO2 emission rate :math:`\dot{m}_{CO2}` (kg/s)
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    P_{el} = \frac{Q \cdot \max(0,\, P_{out} - P_{in})}{\eta} \qquad
+    \dot{m}_{CO2} = \frac{f_{emission}}{3.6 \times 10^6} \cdot P_{el}
+
+Boiler
+---------------------------
+
+``gemini_model.boiler.boiler.Boiler`` computes the heat output and CO2
+emissions of a gas-fired boiler burning a mixture of gas co-produced with
+the doublet's flow and gas supplied from the grid. The fraction :math:`u`
+of available gas the boiler burns is set by ``burner_modulation``; the
+remainder can supply a co-located CHP unit (see below).
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``gas_water_ratio``
+     - Co-produced gas-to-water volume ratio :math:`r_{gw}` (-)
+   * - ``efficiency_factor``
+     - Boiler thermal efficiency :math:`\eta` (-)
+   * - ``caloric_value``
+     - Higher heating value of the gas :math:`HHV` (J/Nm³)
+   * - ``gas_emission_factor``
+     - CO2 emission factor of the gas (kg CO2/GJ)
+   * - ``gas_density``, ``fluid_density``, ``specific_heat``
+     - *(optional)* fluid/gas properties :math:`\rho_{gas}`, :math:`\rho`,
+       :math:`c_p`
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``temperature_in``
+     - Inlet fluid temperature :math:`T_{in}` (K)
+   * - ``primary_flow_rate``
+     - Primary volumetric flow rate :math:`Q_p` (m³/s)
+   * - ``secondary_flow_rate``
+     - Secondary volumetric flow rate :math:`Q_s` (m³/s)
+   * - ``burner_modulation``
+     - Fraction (0-1) of available gas burned :math:`u`
+   * - ``secondary_valve_position``
+     - Fraction (0-1) of secondary flow routed through the boiler
+   * - ``grid_gas_flow_rate``
+     - Supplementary grid gas flow rate :math:`Q_{grid}` (m³/s)
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``power_th``
+     - Heat output of the boiler :math:`P_{th}` (W)
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    \dot{Q}_{gas} = \left(r_{gw} \cdot Q_p + Q_{grid}\right) \cdot \rho_{gas}
+    \qquad
+    P_{th} = \eta \cdot HHV \cdot u \cdot \dot{Q}_{gas}
+
+Combined Heat and Power (CHP)
+---------------------------------
+
+``gemini_model.chp.chp.CHP`` shares the Boiler's fuel/flow accounting, but
+burns the complementary gas fraction (:math:`1-u`) and secondary flow
+fraction (:math:`1-v`), splitting the resulting fuel power into a fixed 1/3
+electrical and 2/3 thermal share. Parameters and inputs mirror the Boiler
+model above; a Boiler and a CHP unit are typically operated together on the
+same gas and secondary-flow streams, using complementary
+``burner_modulation``/``secondary_valve_position`` fractions.
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``power_el``
+     - Electrical power generated, 1/3 of fuel power :math:`P_{el}` (W)
+   * - ``power_th``
+     - Heat output, 2/3 of fuel power :math:`P_{th}` (W)
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    P_{fuel} = \eta \cdot HHV \cdot (1-u) \cdot \dot{Q}_{gas} \qquad
+    P_{el} = \tfrac{1}{3} P_{fuel} \qquad P_{th} = \tfrac{2}{3} P_{fuel}
+
+Compressor
+---------------------------
+
+``gemini_model.compressor.compressor.Compressor`` estimates the shaft power
+of a multi-stage gas compressor, assuming ideal intercooling (gas cooled
+back to inlet temperature between stages) and an equal pressure ratio per
+stage.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``specific_heat_ratio``
+     - Gas specific heat ratio, cp/cv :math:`k` (-)
+   * - ``inlet_temperature``
+     - Compressor inlet temperature :math:`T_1` (K)
+   * - ``inlet_pressure``
+     - Inlet pressure :math:`P_1` (Pa)
+   * - ``outlet_pressure``
+     - Outlet pressure :math:`P_2` (Pa)
+   * - ``gas_constant``
+     - Specific gas constant :math:`R` (J/(kg.K))
+   * - ``mechanical_efficiency``
+     - Mechanical efficiency :math:`\eta_m` (-)
+   * - ``compressor_efficiency``
+     - Isentropic compressor efficiency :math:`\eta_c` (-)
+   * - ``number_of_stages``
+     - Number of compression stages :math:`n` (-)
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``mass_flow``
+     - Gas mass flow rate :math:`\dot{m}` (kg/s)
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``compressor_power``
+     - Total shaft power over all stages :math:`P_{shaft}` (W)
+   * - ``mass_flow``
+     - Gas mass flow rate (pass-through, kg/s)
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    r = \left(\frac{P_2}{P_1}\right)^{1/n} \qquad
+    P_{shaft} = \frac{n \, \dot{m} \, R \, T_1}{(k-1) \, \eta_m \, \eta_c}
+    \left(r^{\frac{k-1}{k}} - 1\right)

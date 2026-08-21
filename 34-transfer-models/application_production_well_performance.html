@@ -71,8 +71,9 @@
 <li class="toctree-l2"><a class="reference internal" href="application_report_generator.html">4.9. Report Generator</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="index_sourcecode.html">5. Source code documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="glossary.html">6. Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index_models.html">5. Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index_sourcecode.html">6. Source code documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="glossary.html">7. Glossary</a></li>
 </ul>
 
         </div>
@@ -157,16 +158,19 @@ components.</p>
 <li><p><span class="math notranslate nohighlight">\(\rho_l\)</span> is the liquid local density</p></li>
 <li><p><span class="math notranslate nohighlight">\(D\)</span> is the pipe diameter</p></li>
 </ul>
-<p>In turbulent flow, the friction factor <span class="math notranslate nohighlight">\(\lambda\)</span> depends on Reynolds number
-<span class="math notranslate nohighlight">\(Re\)</span> and can be solved iteratively or approximated by:</p>
+<p>The friction factor <span class="math notranslate nohighlight">\(\lambda\)</span> depends on the Reynolds number
+<span class="math notranslate nohighlight">\(Re\)</span> and is computed directly (no iteration) with the explicit
+Swamee-Jain approximation of the Colebrook-White equation:</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\lambda = \left[0.86859 \ln\left(\frac{Re}{1.964 \ln(Re) - 3.8215}\right)\right]^{-2}\\Re = \frac{uD}{v}\end{aligned}\end{align} \]</div>
+\[ \begin{align}\begin{aligned}\lambda = \frac{0.25}{\left[\log_{10}\left(\dfrac{K}{3.7 D} +
+    \dfrac{5.74}{Re^{0.9}}\right)\right]^2}\\Re = \frac{u D \rho_l}{\eta_l}\end{aligned}\end{align} \]</div>
 <p>where:</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(Re\)</span> is the Reynolds number</p></li>
 <li><p><span class="math notranslate nohighlight">\(u\)</span> is the mean velocity</p></li>
 <li><p><span class="math notranslate nohighlight">\(D\)</span> is the pipe diameter</p></li>
-<li><p><span class="math notranslate nohighlight">\(v\)</span> is the kinematic viscosity</p></li>
+<li><p><span class="math notranslate nohighlight">\(K\)</span> is the pipe roughness</p></li>
+<li><p><span class="math notranslate nohighlight">\(\eta_l\)</span> is the liquid dynamic viscosity</p></li>
 </ul>
 <p>Thus, total pressure loss is calculated by:</p>
 <div class="math notranslate nohighlight">
