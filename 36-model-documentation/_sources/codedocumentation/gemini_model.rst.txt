@@ -10,11 +10,19 @@
    :toctree:
    :recursive:
 
+   boiler
+   booster_pump
+   chp
+   compressor
    corrosion
    erosion
+   filter
    fluid
+   heat_exchanger
    heatpump
+   injector_pump
    model_abstract
    pump
    reservoir
+   separator
    well
