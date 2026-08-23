@@ -13,6 +13,7 @@ including operators, engineers, and project administrators. It provides:
 * first-time usage guidance (:numref:`getting-started`)
 * project configuration instructions (:numref:`system-setup`)
 * detailed application manuals (:numref:`applications-section`)
+* computational model reference (:numref:`models-section`)
 * key definitions in the glossary (:numref:`gemini-glossary`)
 
 .. toctree::
@@ -24,6 +25,7 @@ including operators, engineers, and project administrators. It provides:
     index_getting_started
     index_setup
     index_applications
+    index_models
     index_sourcecode
     glossary
 
