@@ -5,8 +5,9 @@ Description
 ---------------------------
 
 The surface-equipment models describe the above-ground assets of a
-geothermal doublet: separators, filters, heat exchangers, pumps, and
-gas-fired heat/power units.
+geothermal doublet: separators, filters, heat exchangers, pumps,
+gas-fired heat/power units, and the adder/splitter network junctions
+used to merge or divide flows between them.
 All models are **static models** (``gemini_model.model_abstract.StaticModel``):
 outputs are computed directly from the current inputs, with no internal
 state.
@@ -659,3 +660,112 @@ exchange (Lorenz, 1894):
     \bar{T}_h = \frac{T_{h,in} - T_{h,out}}{\ln\left(T_{h,in}/T_{h,out}\right)}
     \qquad
     \bar{T}_s = \frac{T_{s,in} - T_{s,out}}{\ln\left(T_{s,in}/T_{s,out}\right)}
+
+Adder
+---------------------------
+
+``gemini_model.adder.adder.Adder`` sums an arbitrary number of numbered
+inputs into a single output, representing a physical merge point such as
+several production wells joining a shared header. It applies to any
+extensive (conserved) quantity -- e.g. flow rate, mass flow, or power --
+where the combined total is simply the sum of its parts; it is not
+applicable to intensive quantities such as temperature or pressure, which
+do not add linearly.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``num_inputs``
+     - Number of numbered inputs to sum, :math:`N` (-)
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``input_0`` .. ``input_{N-1}``
+     - The :math:`N` numbered input values to sum :math:`x_0, ..., x_{N-1}`
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``output``
+     - Sum of all :math:`N` inputs :math:`y`
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    y = \sum_{i=0}^{N-1} x_i
+
+Splitter
+---------------------------
+
+``gemini_model.splitter.splitter.Splitter`` splits a single input into an
+arbitrary number of numbered outputs by fixed fractions, representing a
+physical split point such as a control valve dividing secondary flow
+between a Boiler and a CHP. As with the Adder, it applies to extensive
+(conserved) quantities such as flow rate, mass flow, or power; a split
+quantity's temperature or pressure is unaffected by the split and is not
+computed by this model.
+
+Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``split_fractions``
+     - List of :math:`N` fractions :math:`f_0, ..., f_{N-1}`, summing to 1
+       (-)
+
+Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Input
+     - Description
+   * - ``input``
+     - The value to split :math:`x`
+
+Outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Output
+     - Description
+   * - ``output_0`` .. ``output_{N-1}``
+     - The :math:`N` split output values :math:`y_0, ..., y_{N-1}`
+
+Equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+    y_i = f_i \cdot x \qquad \text{for } i = 0, ..., N-1

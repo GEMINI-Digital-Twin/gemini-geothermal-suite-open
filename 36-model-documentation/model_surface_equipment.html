@@ -126,6 +126,20 @@
 <li class="toctree-l4"><a class="reference internal" href="#id31">5.7.10.5. Correlations</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#adder">5.7.11. Adder</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id32">5.7.11.1. Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id33">5.7.11.2. Inputs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id34">5.7.11.3. Outputs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id35">5.7.11.4. Equations</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#splitter">5.7.12. Splitter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id36">5.7.12.1. Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id37">5.7.12.2. Inputs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id38">5.7.12.3. Outputs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id39">5.7.12.4. Equations</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -164,8 +178,9 @@
 <section id="description">
 <h2><span class="section-number">5.7.1. </span>Description<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
 <p>The surface-equipment models describe the above-ground assets of a
-geothermal doublet: separators, filters, heat exchangers, pumps, and
-gas-fired heat/power units.
+geothermal doublet: separators, filters, heat exchangers, pumps,
+gas-fired heat/power units, and the adder/splitter network junctions
+used to merge or divide flows between them.
 All models are <strong>static models</strong> (<code class="docutils literal notranslate"><span class="pre">gemini_model.model_abstract.StaticModel</span></code>):
 outputs are computed directly from the current inputs, with no internal
 state.</p>
@@ -980,6 +995,151 @@ exchange (Lorenz, 1894):</p>
 \bar{T}_h = \frac{T_{h,in} - T_{h,out}}{\ln\left(T_{h,in}/T_{h,out}\right)}
 \qquad
 \bar{T}_s = \frac{T_{s,in} - T_{s,out}}{\ln\left(T_{s,in}/T_{s,out}\right)}\]</div>
+</section>
+</section>
+<section id="adder">
+<h2><span class="section-number">5.7.11. </span>Adder<a class="headerlink" href="#adder" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">gemini_model.adder.adder.Adder</span></code> sums an arbitrary number of numbered
+inputs into a single output, representing a physical merge point such as
+several production wells joining a shared header. It applies to any
+extensive (conserved) quantity – e.g. flow rate, mass flow, or power –
+where the combined total is simply the sum of its parts; it is not
+applicable to intensive quantities such as temperature or pressure, which
+do not add linearly.</p>
+<section id="id32">
+<h3><span class="section-number">5.7.11.1. </span>Parameters<a class="headerlink" href="#id32" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_inputs</span></code></p></td>
+<td><p>Number of numbered inputs to sum, <span class="math notranslate nohighlight">\(N\)</span> (-)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id33">
+<h3><span class="section-number">5.7.11.2. </span>Inputs<a class="headerlink" href="#id33" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Input</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">input_0</span></code> .. <code class="docutils literal notranslate"><span class="pre">input_{N-1}</span></code></p></td>
+<td><p>The <span class="math notranslate nohighlight">\(N\)</span> numbered input values to sum <span class="math notranslate nohighlight">\(x_0, ..., x_{N-1}\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id34">
+<h3><span class="section-number">5.7.11.3. </span>Outputs<a class="headerlink" href="#id34" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Output</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output</span></code></p></td>
+<td><p>Sum of all <span class="math notranslate nohighlight">\(N\)</span> inputs <span class="math notranslate nohighlight">\(y\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id35">
+<h3><span class="section-number">5.7.11.4. </span>Equations<a class="headerlink" href="#id35" title="Link to this heading"></a></h3>
+<div class="math notranslate nohighlight">
+\[y = \sum_{i=0}^{N-1} x_i\]</div>
+</section>
+</section>
+<section id="splitter">
+<h2><span class="section-number">5.7.12. </span>Splitter<a class="headerlink" href="#splitter" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">gemini_model.splitter.splitter.Splitter</span></code> splits a single input into an
+arbitrary number of numbered outputs by fixed fractions, representing a
+physical split point such as a control valve dividing secondary flow
+between a Boiler and a CHP. As with the Adder, it applies to extensive
+(conserved) quantities such as flow rate, mass flow, or power; a split
+quantity’s temperature or pressure is unaffected by the split and is not
+computed by this model.</p>
+<section id="id36">
+<h3><span class="section-number">5.7.12.1. </span>Parameters<a class="headerlink" href="#id36" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">split_fractions</span></code></p></td>
+<td><p>List of <span class="math notranslate nohighlight">\(N\)</span> fractions <span class="math notranslate nohighlight">\(f_0, ..., f_{N-1}\)</span>, summing to 1
+(-)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id37">
+<h3><span class="section-number">5.7.12.2. </span>Inputs<a class="headerlink" href="#id37" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Input</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">input</span></code></p></td>
+<td><p>The value to split <span class="math notranslate nohighlight">\(x\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id38">
+<h3><span class="section-number">5.7.12.3. </span>Outputs<a class="headerlink" href="#id38" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Output</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_0</span></code> .. <code class="docutils literal notranslate"><span class="pre">output_{N-1}</span></code></p></td>
+<td><p>The <span class="math notranslate nohighlight">\(N\)</span> split output values <span class="math notranslate nohighlight">\(y_0, ..., y_{N-1}\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id39">
+<h3><span class="section-number">5.7.12.4. </span>Equations<a class="headerlink" href="#id39" title="Link to this heading"></a></h3>
+<div class="math notranslate nohighlight">
+\[y_i = f_i \cdot x \qquad \text{for } i = 0, ..., N-1\]</div>
 </section>
 </section>
 </section>
