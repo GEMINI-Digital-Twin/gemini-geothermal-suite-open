@@ -10,6 +10,7 @@
    :toctree:
    :recursive:
 
+   adder
    boiler
    booster_pump
    chp
@@ -25,4 +26,5 @@
    pump
    reservoir
    separator
+   splitter
    well
