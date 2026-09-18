@@ -180,18 +180,23 @@
 
 <div class="viewcode-block" id="HeatpumpBasic.calculate_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.heatpump.heatpump_basic.html#gemini_model.heatpump.heatpump_basic.HeatpumpBasic.calculate_output">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Calculate output based on input u and state x.</span>
 
-<span class="sd">        Converts inputs (temperatures in °C, volumetric flows in m3/h) to SI</span>
-<span class="sd">        units (K, kg/s), solves for the operating point via `_calculate`, and</span>
-<span class="sd">        stores the results (COP, outlet temperatures, thermal production and</span>
-<span class="sd">        electrical consumption) in `self.output`.</span>
+<span class="sd">        Converts inputs (temperatures in degC, volumetric flows in m3/s) to</span>
+<span class="sd">        SI units (K, kg/s), solves for the operating point via `_calculate`,</span>
+<span class="sd">        and stores the results (COP, outlet temperatures, thermal production</span>
+<span class="sd">        and electrical consumption) in `self.output`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        u: dict</span>
-<span class="sd">            Model inputs: "Th_in" (°C), "Ts_in" (°C), "qh" (m3/h), "qs" (m3/h).</span>
+<span class="sd">            Model inputs: "Th_in" (degC), "Ts_in" (degC), "hot_flow_rate"</span>
+<span class="sd">            (m3/s, hot/sink side), "source_flow_rate" (m3/s, source side).</span>
+<span class="sd">            Optional "hot_pressure_in"/"source_pressure_in" (bar) are echoed</span>
+<span class="sd">            back unchanged as "hot_pressure_out"/"source_pressure_out" (this</span>
+<span class="sd">            model does not compute a pressure drop), so a downstream</span>
+<span class="sd">            pressure chain is not broken when connecting through a heat pump.</span>
 <span class="sd">        x: state</span>
 <span class="sd">            Model state (unused, model is static).</span>
 <span class="sd">        """</span>
@@ -199,8 +204,10 @@
         <span class="n">Th_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"Th_out_target"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>  <span class="c1"># Convert to Kelvin</span>
         <span class="n">Th_in</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"Th_in"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>  <span class="c1"># Convert to Kelvin</span>
         <span class="n">Ts_in</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"Ts_in"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span>  <span class="c1"># Convert to Kelvin</span>
-        <span class="n">mh</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"qh"</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"rho_h"</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3600</span>  <span class="c1"># Convert m3/h to kg/s</span>
-        <span class="n">ms</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"qs"</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"rho_s"</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3600</span>  <span class="c1"># Convert m3/h to kg/s</span>
+        <span class="n">hot_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"hot_flow_rate"</span><span class="p">]</span>  <span class="c1"># m3/s</span>
+        <span class="n">source_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"source_flow_rate"</span><span class="p">]</span>  <span class="c1"># m3/s</span>
+        <span class="n">mh</span> <span class="o">=</span> <span class="n">hot_flow_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"rho_h"</span><span class="p">]</span>  <span class="c1"># kg/s</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="n">source_flow_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"rho_s"</span><span class="p">]</span>  <span class="c1"># kg/s</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate</span><span class="p">(</span><span class="n">Th_out</span><span class="p">,</span> <span class="n">Th_in</span><span class="p">,</span> <span class="n">Ts_in</span><span class="p">,</span> <span class="n">mh</span><span class="p">,</span> <span class="n">ms</span><span class="p">)</span>
 
@@ -208,12 +215,28 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"Th_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span>  <span class="c1"># Convert back to Celsius</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"Ts_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span>  <span class="c1"># Convert back to Celsius</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"Thermal_production"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"electrical_consumption"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"electrical_consumption"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"hot_flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">hot_flow_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"hot_flow_rate_m3h"</span><span class="p">]</span> <span class="o">=</span> <span class="n">hot_flow_rate</span> <span class="o">*</span> <span class="mf">3600.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"source_flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_flow_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"source_flow_rate_m3h"</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_flow_rate</span> <span class="o">*</span> <span class="mf">3600.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_th"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_el"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"emission"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">if</span> <span class="s2">"hot_pressure_in"</span> <span class="ow">in</span> <span class="n">u</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"hot_pressure_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"hot_pressure_in"</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"hot_pressure_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"hot_pressure_in"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">"source_pressure_in"</span> <span class="ow">in</span> <span class="n">u</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"source_pressure_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"source_pressure_in"</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"source_pressure_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"source_pressure_in"</span><span class="p">]</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Th_out</span><span class="p">,</span> <span class="n">Th_in</span><span class="p">,</span> <span class="n">Ts_in</span><span class="p">,</span> <span class="n">mh</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Solve for the heat pump operating point (COP, outlet temperatures,</span>
-<span class="sd">        thermal production and electrical consumption).</span>
+<span class="w">        </span><span class="sd">"""Solve for the heat pump operating point.</span>
+
+<span class="sd">        (COP, outlet temperatures, thermal production and electrical</span>
+<span class="sd">        consumption).</span>
 
 <span class="sd">        Uses `scipy.optimize.minimize` (Nelder-Mead) to jointly solve the</span>
 <span class="sd">        thermodynamic efficiency equation (Carnot or Lorenz, selected via</span>
@@ -245,8 +268,9 @@
 <span class="sd">        """</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">lorenz_model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Th_out</span><span class="p">,</span> <span class="n">Th_in</span><span class="p">,</span> <span class="n">Ts_in</span><span class="p">,</span> <span class="n">mh</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
-<span class="w">            </span><span class="sd">"""Residual function for the Lorenz-efficiency model, solving for</span>
-<span class="sd">            (COP, Ts_out) given a fixed target Th_out.</span>
+<span class="w">            </span><span class="sd">"""Residual function for the Lorenz-efficiency model.</span>
+
+<span class="sd">            Solves for (COP, Ts_out) given a fixed target Th_out.</span>
 
 <span class="sd">            Combines two residuals: J1 enforces the Lorenz COP equation</span>
 <span class="sd">            COP = eta_lorenz * (Th / (Th - Ts)), where Th and Ts are the</span>
@@ -269,10 +293,12 @@
             <span class="k">return</span> <span class="n">J</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">lorenz_model2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Ts_out</span><span class="p">,</span> <span class="n">Th_in</span><span class="p">,</span> <span class="n">Ts_in</span><span class="p">,</span> <span class="n">mh</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
-<span class="w">            </span><span class="sd">"""Residual function for the Lorenz-efficiency model, solving for</span>
-<span class="sd">            (COP, Th_out) given a fixed minimum source outlet temperature</span>
-<span class="sd">            Ts_out (used when the unconstrained solution violates</span>
-<span class="sd">            Ts_in_minimum). See `lorenz_model` for the underlying equations.</span>
+<span class="w">            </span><span class="sd">"""Residual function for the Lorenz-efficiency model.</span>
+
+<span class="sd">            Solves for (COP, Th_out) given a fixed minimum source outlet</span>
+<span class="sd">            temperature Ts_out (used when the unconstrained solution</span>
+<span class="sd">            violates Ts_in_minimum). See `lorenz_model` for the underlying</span>
+<span class="sd">            equations.</span>
 <span class="sd">            """</span>
             <span class="n">COP</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">Th_out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -289,8 +315,9 @@
             <span class="k">return</span> <span class="n">J</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">carnot_model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Th_out</span><span class="p">,</span> <span class="n">Th_in</span><span class="p">,</span> <span class="n">Ts_in</span><span class="p">,</span> <span class="n">mh</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
-<span class="w">            </span><span class="sd">"""Residual function for the Carnot-efficiency model, solving for</span>
-<span class="sd">            (COP, Ts_out) given a fixed target Th_out.</span>
+<span class="w">            </span><span class="sd">"""Residual function for the Carnot-efficiency model.</span>
+
+<span class="sd">            Solves for (COP, Ts_out) given a fixed target Th_out.</span>
 
 <span class="sd">            Combines two residuals: J1 enforces the Carnot COP equation</span>
 <span class="sd">            COP = eta_carnot * (Th / (Th - Ts)), where Th = Th_out and</span>
@@ -315,10 +342,12 @@
             <span class="k">return</span> <span class="n">J</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">carnot_model2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Ts_out</span><span class="p">,</span> <span class="n">Th_in</span><span class="p">,</span> <span class="n">Ts_in</span><span class="p">,</span> <span class="n">mh</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
-<span class="w">            </span><span class="sd">"""Residual function for the Carnot-efficiency model, solving for</span>
-<span class="sd">            (COP, Th_out) given a fixed minimum source outlet temperature</span>
-<span class="sd">            Ts_out (used when the unconstrained solution violates</span>
-<span class="sd">            Ts_in_minimum). See `carnot_model` for the underlying equations.</span>
+<span class="w">            </span><span class="sd">"""Residual function for the Carnot-efficiency model.</span>
+
+<span class="sd">            Solves for (COP, Th_out) given a fixed minimum source outlet</span>
+<span class="sd">            temperature Ts_out (used when the unconstrained solution</span>
+<span class="sd">            violates Ts_in_minimum). See `carnot_model` for the underlying</span>
+<span class="sd">            equations.</span>
 <span class="sd">            """</span>
             <span class="n">COP</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">Th_out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
