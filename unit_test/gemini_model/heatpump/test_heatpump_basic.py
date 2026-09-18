@@ -50,8 +50,8 @@ class TestHeatpumpBasic(unittest.TestCase):
         u = {
             "Th_in": 30,  # °C
             "Ts_in": 40,  # °C
-            "qh": 10.0,  # m3/h
-            "qs": 20.0,  # m3/h
+            "hot_flow_rate": 10.0 / 3600.0,  # m3/s
+            "source_flow_rate": 20.0 / 3600.0,  # m3/s
         }
 
         heatpump.calculate_output(u, None)
@@ -69,8 +69,8 @@ class TestHeatpumpBasic(unittest.TestCase):
         u = {
             "Th_in": 30,  # °C
             "Ts_in": 40,  # °C
-            "qh": 10.0,  # m3/h
-            "qs": 20.0,  # m3/h
+            "hot_flow_rate": 10.0 / 3600.0,  # m3/s
+            "source_flow_rate": 20.0 / 3600.0,  # m3/s
         }
 
         heatpump.calculate_output(u, None)
@@ -81,6 +81,32 @@ class TestHeatpumpBasic(unittest.TestCase):
         self.assertAlmostEqual(output["Ts_out"], 18.8279, delta=1e-3)
         self.assertAlmostEqual(output["Thermal_production"], 580694.44, delta=0.1)
         self.assertAlmostEqual(output["electrical_consumption"], 88913.32, delta=0.1)
+
+    def test_flow_and_pressure_passthrough(self):
+        """Test that flow rates and pressures are echoed back as outputs."""
+        heatpump = self._create_carnot_model()
+        u = {
+            "Th_in": 30,  # °C
+            "Ts_in": 40,  # °C
+            "hot_flow_rate": 10.0 / 3600.0,  # m3/s
+            "source_flow_rate": 20.0 / 3600.0,  # m3/s
+            "hot_pressure_in": 5.0,  # bar
+            "source_pressure_in": 3.0,  # bar
+        }
+
+        heatpump.calculate_output(u, None)
+        output = heatpump.get_output()
+
+        self.assertAlmostEqual(output["hot_flow_rate"], 10.0 / 3600.0)
+        self.assertAlmostEqual(output["hot_flow_rate_m3h"], 10.0)
+        self.assertAlmostEqual(output["source_flow_rate"], 20.0 / 3600.0)
+        self.assertAlmostEqual(output["source_flow_rate_m3h"], 20.0)
+        self.assertAlmostEqual(output["hot_pressure_in"], 5.0)
+        self.assertAlmostEqual(output["hot_pressure_out"], 5.0)
+        self.assertAlmostEqual(output["source_pressure_in"], 3.0)
+        self.assertAlmostEqual(output["source_pressure_out"], 3.0)
+        self.assertAlmostEqual(output["power_th"], output["Thermal_production"])
+        self.assertAlmostEqual(output["power_el"], output["electrical_consumption"])
 
 
 if __name__ == "__main__":
