@@ -71,12 +71,13 @@
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.heat_exchanger.html">6.1.10. gemini_model.heat_exchanger</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.heatpump.html">6.1.11. gemini_model.heatpump</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.injector_pump.html">6.1.12. gemini_model.injector_pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.13. gemini_model.model_abstract</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.14. gemini_model.pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.15. gemini_model.reservoir</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.16. gemini_model.separator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.17. gemini_model.splitter</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.18. gemini_model.well</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.mixer.html">6.1.13. gemini_model.mixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.14. gemini_model.model_abstract</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.15. gemini_model.pump</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.16. gemini_model.reservoir</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.17. gemini_model.separator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.18. gemini_model.splitter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.19. gemini_model.well</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="gemini_framework.html">6.2. gemini_framework</a></li>
@@ -137,7 +138,8 @@ booster pump using a linear flow-dependent characteristic curve.</p>
 <dt class="sig sig-object py" id="gemini_model.booster_pump.booster_pump.BoosterPump.calculate_output">
 <span class="sig-name descname"><span class="pre">calculate_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gemini_model/booster_pump/booster_pump.html#BoosterPump.calculate_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gemini_model.booster_pump.booster_pump.BoosterPump.calculate_output" title="Link to this definition"></a></dt>
 <dd><p>Calculate output based on input u.</p>
-<p><code class="docutils literal notranslate"><span class="pre">u[&quot;direction&quot;]</span></code> selects the calculation direction: <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code>
+<p><code class="docutils literal notranslate"><span class="pre">u[&quot;direction&quot;]</span></code> selects the calculation direction (defaults to
+<code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code> if not provided): <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code>
 computes the outlet state from the inlet state, <code class="docutils literal notranslate"><span class="pre">&quot;backward&quot;</span></code>
 computes the inlet state from the outlet state.</p>
 </dd></dl>

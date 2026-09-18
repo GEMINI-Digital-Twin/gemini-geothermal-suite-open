@@ -132,14 +132,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Calculate output based on input u.</span>
 
-<span class="sd">        ``u["direction"]`` selects the calculation direction: ``"forward"``</span>
+<span class="sd">        ``u["direction"]`` selects the calculation direction (defaults to</span>
+<span class="sd">        ``"forward"`` if not provided): ``"forward"``</span>
 <span class="sd">        computes the outlet state from the inlet state, ``"backward"``</span>
 <span class="sd">        computes the inlet state from the outlet state.</span>
 <span class="sd">        """</span>
         <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span>
         <span class="n">temperature</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span>
         <span class="n">flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"flow_rate"</span><span class="p">]</span>
-        <span class="n">direction</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"direction"</span><span class="p">]</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"direction"</span><span class="p">,</span> <span class="s2">"forward"</span><span class="p">)</span>
 
         <span class="n">flow_resistance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"flow_resistance"</span><span class="p">]</span>
         <span class="n">temperature_drop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"temperature_drop"</span><span class="p">]</span>
@@ -161,6 +162,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_out</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">flow_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_el"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_th"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"emission"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span></div>

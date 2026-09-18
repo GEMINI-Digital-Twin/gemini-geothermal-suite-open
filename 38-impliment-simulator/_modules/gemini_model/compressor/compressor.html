@@ -132,15 +132,32 @@
 <div class="viewcode-block" id="Compressor.calculate_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.compressor.compressor.html#gemini_model.compressor.compressor.Compressor.calculate_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Calculate output based on input u."""</span>
+<span class="w">        </span><span class="sd">"""Calculate output based on input u.</span>
+
+<span class="sd">        ``pressure_in``/``pressure_out`` (bar) and ``temperature_in`` (degC)</span>
+<span class="sd">        are runtime inputs so the compressor can be wired inline in a gas</span>
+<span class="sd">        flow chain. ``pressure_in``/``pressure_out``/``mass_flow`` are</span>
+<span class="sd">        echoed back unchanged as outputs (this model does not itself alter</span>
+<span class="sd">        the flow or pressures, it only reports the power required to</span>
+<span class="sd">        achieve them) so a downstream component can chain off them.</span>
+<span class="sd">        """</span>
         <span class="n">mass_flow</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"mass_flow"</span><span class="p">]</span>  <span class="c1"># kg/s</span>
-        <span class="n">compressor_power</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_power_calculation</span><span class="p">(</span><span class="n">mass_flow</span><span class="p">)</span>
+        <span class="n">pressure_in</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure_in"</span><span class="p">]</span>  <span class="c1"># bar</span>
+        <span class="n">pressure_out</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure_out"</span><span class="p">]</span>  <span class="c1"># bar</span>
+        <span class="n">temperature_in</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature_in"</span><span class="p">]</span>  <span class="c1"># degC</span>
+
+        <span class="n">compressor_power</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_power_calculation</span><span class="p">(</span>
+            <span class="n">mass_flow</span><span class="p">,</span> <span class="n">pressure_in</span><span class="p">,</span> <span class="n">pressure_out</span><span class="p">,</span> <span class="n">temperature_in</span>
+        <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"compressor_power"</span><span class="p">]</span> <span class="o">=</span> <span class="n">compressor_power</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"mass_flow"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mass_flow</span>  <span class="c1"># mass_flow is not altered</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"mass_flow"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mass_flow</span>  <span class="c1"># mass_flow is not altered</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_in</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_in</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_power_calculation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mass_flow</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_power_calculation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mass_flow</span><span class="p">,</span> <span class="n">pressure_in</span><span class="p">,</span> <span class="n">pressure_out</span><span class="p">,</span> <span class="n">temperature_in</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Compute compressor shaft power assuming ideal intercooling.</span>
 
 <span class="sd">        Assumptions:</span>
@@ -153,9 +170,9 @@
         <span class="n">e_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"compressor_efficiency"</span><span class="p">]</span>
         <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"specific_heat_ratio"</span><span class="p">]</span>
         <span class="n">gas_constant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"gas_constant"</span><span class="p">]</span>
-        <span class="n">t1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"inlet_temperature"</span><span class="p">]</span>
-        <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"inlet_pressure"</span><span class="p">]</span>
-        <span class="n">p2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"outlet_pressure"</span><span class="p">]</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">temperature_in</span> <span class="o">+</span> <span class="mf">273.15</span>  <span class="c1"># Convert to Kelvin</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">pressure_in</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">pressure_out</span>
         <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"number_of_stages"</span><span class="p">]</span>
         <span class="n">stage_pressure_ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">p2</span> <span class="o">/</span> <span class="n">p1</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
 

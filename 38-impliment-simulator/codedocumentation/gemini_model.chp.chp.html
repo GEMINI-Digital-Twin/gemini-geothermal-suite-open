@@ -71,12 +71,13 @@
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.heat_exchanger.html">6.1.10. gemini_model.heat_exchanger</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.heatpump.html">6.1.11. gemini_model.heatpump</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.injector_pump.html">6.1.12. gemini_model.injector_pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.13. gemini_model.model_abstract</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.14. gemini_model.pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.15. gemini_model.reservoir</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.16. gemini_model.separator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.17. gemini_model.splitter</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.18. gemini_model.well</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.mixer.html">6.1.13. gemini_model.mixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.14. gemini_model.model_abstract</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.15. gemini_model.pump</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.16. gemini_model.reservoir</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.17. gemini_model.separator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.18. gemini_model.splitter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.19. gemini_model.well</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="gemini_framework.html">6.2. gemini_framework</a></li>
@@ -118,10 +119,9 @@
 <span id="gemini-model-chp-chp"></span><h1><span class="section-number">6.1.4.1. </span>gemini_model.chp.chp<a class="headerlink" href="#module-gemini_model.chp.chp" title="Link to this heading"></a></h1>
 <p>Gas-fired combined heat and power (CHP) model.</p>
 <p>Estimates the electrical power, heat output and CO2 emissions of a
-gas-fired CHP unit that burns a mixture of gas co-produced with a
-doublet’s flow and gas supplied from the grid. Typically operated
-alongside a <code class="docutils literal notranslate"><span class="pre">Boiler</span></code> (see <a class="reference internal" href="gemini_model.boiler.boiler.html#module-gemini_model.boiler.boiler" title="gemini_model.boiler.boiler"><code class="xref py py-mod docutils literal notranslate"><span class="pre">gemini_model.boiler.boiler</span></code></a>), sharing
-the same gas and secondary flow streams via complementary fractions.</p>
+gas-fired CHP unit burning a given gas flow. If the gas or water
+flow is shared with other consumers (e.g. a co-located <code class="docutils literal notranslate"><span class="pre">Boiler</span></code>), the
+allocation between them should be handled by a <code class="docutils literal notranslate"><span class="pre">Splitter</span></code> component.</p>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -165,12 +165,17 @@ the same gas and secondary flow streams via complementary fractions.</p>
 <dt class="sig sig-object py" id="gemini_model.chp.chp.CHP.calculate_output">
 <span class="sig-name descname"><span class="pre">calculate_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gemini_model/chp/chp.html#CHP.calculate_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gemini_model.chp.chp.CHP.calculate_output" title="Link to this definition"></a></dt>
 <dd><p>Calculate output based on input u.</p>
-<p><code class="docutils literal notranslate"><span class="pre">u[&quot;burner_modulation&quot;]</span></code> is the fraction (0-1) of the available
-gas burned by a co-located boiler; the CHP unit burns the
-remainder, <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">burner_modulation</span></code>. Similarly,
-<code class="docutils literal notranslate"><span class="pre">u[&quot;secondary_valve_position&quot;]</span></code> is the fraction (0-1) of the
-secondary-side flow routed through the boiler; the CHP unit
-receives the remainder, <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">secondary_valve_position</span></code>.</p>
+<p>The gas flow burned by this CHP unit can be given either as a
+mass flow, <code class="docutils literal notranslate"><span class="pre">u[&quot;gas_flow_rate&quot;]</span></code> (kg/s), or as a volumetric
+flow, <code class="docutils literal notranslate"><span class="pre">u[&quot;gas_volumetric_flow_rate&quot;]</span></code> (m3/s), which is
+converted to a mass flow using the <code class="docutils literal notranslate"><span class="pre">gas_density</span></code> parameter
+(default 0.7 kg/Nm3). Provide exactly one of the two.
+<code class="docutils literal notranslate"><span class="pre">u[&quot;water_flow_rate&quot;]</span></code> is the water-side flow through this CHP
+unit. If either flow is shared with other consumers (e.g. a
+co-located Boiler), use a <code class="docutils literal notranslate"><span class="pre">Splitter</span></code> component to allocate it
+before feeding it into this model. <code class="docutils literal notranslate"><span class="pre">water_flow_rate</span></code> is echoed
+back as an output so it can be passed on, in series, to a
+downstream component on the same water flow path.</p>
 </dd></dl>
 
 <dl class="py method">

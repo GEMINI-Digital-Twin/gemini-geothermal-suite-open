@@ -71,12 +71,13 @@
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.heat_exchanger.html">6.1.10. gemini_model.heat_exchanger</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.heatpump.html">6.1.11. gemini_model.heatpump</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.injector_pump.html">6.1.12. gemini_model.injector_pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.13. gemini_model.model_abstract</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.14. gemini_model.pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.15. gemini_model.reservoir</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.16. gemini_model.separator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.17. gemini_model.splitter</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.18. gemini_model.well</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.mixer.html">6.1.13. gemini_model.mixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.14. gemini_model.model_abstract</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.15. gemini_model.pump</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.16. gemini_model.reservoir</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.17. gemini_model.separator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.18. gemini_model.splitter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.19. gemini_model.well</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="gemini_framework.html">6.2. gemini_framework</a></li>
@@ -138,11 +139,18 @@ fouling/clogging behaviour.</p>
 <dt class="sig sig-object py" id="gemini_model.filter.filter.Filter.calculate_output">
 <span class="sig-name descname"><span class="pre">calculate_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gemini_model/filter/filter.html#Filter.calculate_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gemini_model.filter.filter.Filter.calculate_output" title="Link to this definition"></a></dt>
 <dd><p>Calculate output based on input u.</p>
-<p><code class="docutils literal notranslate"><span class="pre">u[&quot;direction&quot;]</span></code> selects the calculation direction: <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code>
+<p><code class="docutils literal notranslate"><span class="pre">u[&quot;direction&quot;]</span></code> selects the calculation direction (defaults to
+<code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code> if not provided): <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code>
 computes the outlet state from the inlet state, <code class="docutils literal notranslate"><span class="pre">&quot;backward&quot;</span></code>
 computes the inlet state from the outlet state. The flow resistance
 increases with flow rate as R = a*(1 - exp(-b*Q)) + R0, approximating
-fouling/clogging of the filter element.</p>
+fouling/clogging of the filter element. <code class="docutils literal notranslate"><span class="pre">flow_rate</span></code> is in SI units
+(m3/s), it is echoed back as an output so it can be passed on unchanged to a
+downstream component. A further output, <code class="docutils literal notranslate"><span class="pre">flow_rate_m3h</span></code>, echoes
+the same flow converted to m3/h, for downstream components that
+expect that convention (e.g. a well model). <code class="docutils literal notranslate"><span class="pre">pressure_out_pa</span></code>
+echoes the outlet pressure converted to Pa, for downstream
+components that work in Pa (e.g. an injector pump).</p>
 </dd></dl>
 
 <dl class="py method">

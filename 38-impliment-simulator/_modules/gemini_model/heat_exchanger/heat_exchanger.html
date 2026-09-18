@@ -137,11 +137,21 @@
 <div class="viewcode-block" id="HeatExchanger.calculate_output">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_model.heat_exchanger.heat_exchanger.html#gemini_model.heat_exchanger.heat_exchanger.HeatExchanger.calculate_output">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Calculate output based on input u."""</span>
+<span class="w">        </span><span class="sd">"""Calculate output based on input u.</span>
+
+<span class="sd">        ``secondary_flow_rate`` is the secondary-side flow through this</span>
+<span class="sd">        heat exchanger. If the secondary network's flow is shared with</span>
+<span class="sd">        other consumers (e.g. a co-located CHP), use a ``Splitter``</span>
+<span class="sd">        component to allocate it before feeding it into this model. Both</span>
+<span class="sd">        the primary and secondary flow rates are conserved across the</span>
+<span class="sd">        heat exchanger (no mass is added or removed) and are echoed back</span>
+<span class="sd">        as outputs so they can be passed on, in series, to downstream</span>
+<span class="sd">        components on the same flow path (e.g. a Boiler fed by this same,</span>
+<span class="sd">        now-heated, secondary flow).</span>
+<span class="sd">        """</span>
         <span class="n">pressure_in</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure_in"</span><span class="p">]</span>
         <span class="n">primary_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"primary_flow_rate"</span><span class="p">]</span>
         <span class="n">secondary_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"secondary_flow_rate"</span><span class="p">]</span>
-        <span class="n">valve_position</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"secondary_valve_position"</span><span class="p">]</span>
 
         <span class="n">flow_resistance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"flow_resistance"</span><span class="p">]</span>
         <span class="n">pressure_out</span> <span class="o">=</span> <span class="n">pressure_in</span> <span class="o">-</span> <span class="n">primary_flow_rate</span> <span class="o">*</span> <span class="n">flow_resistance</span>
@@ -151,13 +161,14 @@
             <span class="n">u</span><span class="p">[</span><span class="s2">"secondary_temperature_in"</span><span class="p">],</span>
             <span class="n">primary_flow_rate</span><span class="p">,</span>
             <span class="n">secondary_flow_rate</span><span class="p">,</span>
-            <span class="n">valve_position</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_out</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"primary_temperature_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">primary_temperature_out</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"secondary_temperature_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">secondary_temperature_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"primary_flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">primary_flow_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"secondary_flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">secondary_flow_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"heat_duty"</span><span class="p">]</span> <span class="o">=</span> <span class="n">heat_duty</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_el"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_th"</span><span class="p">]</span> <span class="o">=</span> <span class="n">heat_duty</span>
@@ -170,15 +181,13 @@
         <span class="n">secondary_temperature_in</span><span class="p">,</span>
         <span class="n">primary_flow_rate</span><span class="p">,</span>
         <span class="n">secondary_flow_rate</span><span class="p">,</span>
-        <span class="n">valve_position</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Compute heat duty and outlet temperatures with the NTU-effectiveness method."""</span>
         <span class="n">rho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"fluid_density"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_FLUID_DENSITY</span><span class="p">)</span>
         <span class="n">cw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"specific_heat"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_SPECIFIC_HEAT</span><span class="p">)</span>
 
         <span class="n">mass_flow_primary</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">primary_flow_rate</span>  <span class="c1"># kg/s</span>
-        <span class="c1"># only the fraction let through by the secondary valve exchanges heat</span>
-        <span class="n">mass_flow_secondary</span> <span class="o">=</span> <span class="n">valve_position</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">secondary_flow_rate</span>  <span class="c1"># kg/s</span>
+        <span class="n">mass_flow_secondary</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">secondary_flow_rate</span>  <span class="c1"># kg/s</span>
 
         <span class="n">capacity_primary</span> <span class="o">=</span> <span class="n">mass_flow_primary</span> <span class="o">*</span> <span class="n">cw</span>  <span class="c1"># W/K</span>
         <span class="n">capacity_secondary</span> <span class="o">=</span> <span class="n">mass_flow_secondary</span> <span class="o">*</span> <span class="n">cw</span>  <span class="c1"># W/K</span>
@@ -202,8 +211,10 @@
             <span class="k">elif</span> <span class="n">capacity_ratio</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">:</span>
                 <span class="n">effectiveness</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ntu</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">effectiveness</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ntu</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">capacity_ratio</span><span class="p">)))</span> <span class="o">/</span> <span class="p">(</span>
-                    <span class="mi">1</span> <span class="o">-</span> <span class="n">capacity_ratio</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ntu</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">capacity_ratio</span><span class="p">))</span>
+                <span class="c1"># Counter-flow, Cr &lt; 1 (standard e-NTU formula, continuous with the</span>
+                <span class="c1"># Cr == 1 special case above as Cr -&gt; 1).</span>
+                <span class="n">effectiveness</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ntu</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">capacity_ratio</span><span class="p">)))</span> <span class="o">/</span> <span class="p">(</span>
+                    <span class="mi">1</span> <span class="o">-</span> <span class="n">capacity_ratio</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ntu</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">capacity_ratio</span><span class="p">))</span>
                 <span class="p">)</span>
 
         <span class="n">heat_duty</span> <span class="o">=</span> <span class="n">effectiveness</span> <span class="o">*</span> <span class="n">heat_duty_max</span>

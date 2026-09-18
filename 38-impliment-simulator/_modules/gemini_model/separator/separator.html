@@ -133,17 +133,31 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Calculate output based on input u.</span>
 
-<span class="sd">        ``u["direction"]`` selects the calculation direction: ``"forward"``</span>
+<span class="sd">        ``u["direction"]`` selects the calculation direction (defaults to</span>
+<span class="sd">        ``"forward"`` if not provided): ``"forward"``</span>
 <span class="sd">        computes the outlet state from the inlet state, ``"backward"``</span>
-<span class="sd">        computes the inlet state from the outlet state.</span>
+<span class="sd">        computes the inlet state from the outlet state. All flow rates</span>
+<span class="sd">        (``flow_rate``, ``gas_flow_rate``) are in SI units (m3/s). In addition to the</span>
+<span class="sd">        liquid-phase pressure/temperature calculation, this also reports the</span>
+<span class="sd">        co-produced gas phase separated out of the flow: ``gas_flow_rate``</span>
+<span class="sd">        (volumetric, m3/s) and ``gas_mass_flow_rate`` (kg/s), using the</span>
+<span class="sd">        ``gas_water_ratio``/``gas_density`` parameters (both default to 0,</span>
+<span class="sd">        so existing configurations without a gas phase are unaffected). The</span>
+<span class="sd">        liquid-phase ``flow_rate`` itself is echoed back as an output so</span>
+<span class="sd">        it can be passed on unchanged to a downstream component; a further</span>
+<span class="sd">        output, ``flow_rate_m3h``, echoes the same liquid flow converted</span>
+<span class="sd">        to m3/h, for downstream components that expect that convention</span>
+<span class="sd">        (e.g. a well model).</span>
 <span class="sd">        """</span>
         <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span>
         <span class="n">temperature</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span>
         <span class="n">flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"flow_rate"</span><span class="p">]</span>
-        <span class="n">direction</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"direction"</span><span class="p">]</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"direction"</span><span class="p">,</span> <span class="s2">"forward"</span><span class="p">)</span>
 
         <span class="n">flow_resistance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"flow_resistance"</span><span class="p">]</span>
         <span class="n">temperature_drop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"temperature_drop"</span><span class="p">]</span>
+        <span class="n">gas_water_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"gas_water_ratio"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">gas_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"gas_density"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">"forward"</span><span class="p">:</span>
             <span class="n">pressure_in</span> <span class="o">=</span> <span class="n">pressure</span>
@@ -158,10 +172,17 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported direction '</span><span class="si">{</span><span class="n">direction</span><span class="si">}</span><span class="s2">'. Use 'forward' or 'backward'."</span><span class="p">)</span>
 
+        <span class="n">gas_flow_rate</span> <span class="o">=</span> <span class="n">gas_water_ratio</span> <span class="o">*</span> <span class="n">flow_rate</span>
+        <span class="n">gas_mass_flow_rate</span> <span class="o">=</span> <span class="n">gas_flow_rate</span> <span class="o">*</span> <span class="n">gas_density</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_out</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">flow_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"flow_rate_m3h"</span><span class="p">]</span> <span class="o">=</span> <span class="n">flow_rate</span> <span class="o">*</span> <span class="mf">3600.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"gas_flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">gas_flow_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"gas_mass_flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">gas_mass_flow_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_el"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_th"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"emission"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span></div>
