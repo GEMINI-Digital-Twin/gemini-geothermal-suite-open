@@ -42,7 +42,6 @@ class TestHeatExchanger(unittest.TestCase):
             "secondary_temperature_in": 300.0,
             "primary_flow_rate": FLOW_RATE,
             "secondary_flow_rate": FLOW_RATE,
-            "secondary_valve_position": 1.0,
         }
         model.calculate_output(u)
         y = model.get_output()
@@ -70,14 +69,13 @@ class TestHeatExchanger(unittest.TestCase):
             "secondary_temperature_in": 300.0,
             "primary_flow_rate": FLOW_RATE,
             "secondary_flow_rate": FLOW_RATE,
-            "secondary_valve_position": 1.0,
         }
         model.calculate_output(u)
         y = model.get_output()
         self.assertAlmostEqual(y["heat_duty"], 953292.85, delta=1e-1)
 
-    def test_zero_secondary_valve_position_no_heat_transfer(self):
-        """Test closed secondary valve results in no heat exchange."""
+    def test_zero_secondary_flow_rate_no_heat_transfer(self):
+        """Test zero (already-split) secondary flow results in no heat exchange."""
         model = HeatExchanger()
         model.update_parameters(
             {
@@ -91,8 +89,7 @@ class TestHeatExchanger(unittest.TestCase):
             "primary_temperature_in": 350.0,
             "secondary_temperature_in": 300.0,
             "primary_flow_rate": FLOW_RATE,
-            "secondary_flow_rate": FLOW_RATE,
-            "secondary_valve_position": 0.0,
+            "secondary_flow_rate": 0.0,
         }
         model.calculate_output(u)
         y = model.get_output()
@@ -115,15 +112,16 @@ class TestHeatExchanger(unittest.TestCase):
             "primary_temperature_in": REAL_PRIMARY_TEMPERATURE_IN,
             "secondary_temperature_in": REAL_SECONDARY_TEMPERATURE_IN,
             "primary_flow_rate": REAL_FLOW_RATE,
-            "secondary_flow_rate": REAL_FLOW_RATE,
-            "secondary_valve_position": REAL_VALVE_POSITION,
+            # already-split secondary flow (formerly REAL_FLOW_RATE * REAL_VALVE_POSITION,
+            # with the split now performed upstream by a Splitter)
+            "secondary_flow_rate": REAL_FLOW_RATE * REAL_VALVE_POSITION,
         }
         model.calculate_output(u)
         y = model.get_output()
 
-        self.assertAlmostEqual(y["heat_duty"], 8909264.998475632, delta=1e-2)
-        self.assertAlmostEqual(y["primary_temperature_out"], 299.2009329534948, delta=1e-6)
-        self.assertAlmostEqual(y["secondary_temperature_out"], 350.8711856072279, delta=1e-6)
+        self.assertAlmostEqual(y["heat_duty"], 5706648.486879343, delta=1e-2)
+        self.assertAlmostEqual(y["primary_temperature_out"], 317.87508170915834, delta=1e-6)
+        self.assertAlmostEqual(y["secondary_temperature_out"], 330.12213143426845, delta=1e-6)
 
     def test_calculate_output_requires_required_inputs(self):
         """Test required HeatExchanger runtime inputs are validated."""

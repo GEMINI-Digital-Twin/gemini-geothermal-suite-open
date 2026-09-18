@@ -1,8 +1,9 @@
 """Gas-fired boiler model.
 
 Estimates the heat output and CO2 emissions of a gas-fired boiler
-that burns a mixture of gas co-produced with a doublet's flow and
-gas supplied from the grid.
+burning a given gas flow. If the gas or water flow is shared with
+other consumers (e.g. a co-located CHP), the allocation between them
+should be handled by a ``Splitter`` component.
 """
 
 from gemini_model.model_abstract import StaticModel
@@ -11,7 +12,7 @@ from gemini_model.model_abstract import StaticModel
 class Boiler(StaticModel):
     """Gas-fired boiler heat output and emission model."""
 
-    DEFAULT_GAS_DENSITY = 0.7  # kg/Nm3
+    DEFAULT_GAS_DENSITY = 0.7  # kg/Nm3, used only if gas_volumetric_flow_rate is given
     DEFAULT_FLUID_DENSITY = 1050.0  # kg/m3
     DEFAULT_SPECIFIC_HEAT = 4200.0  # J/(kg.K)
     JOULE_PER_GJ = 1e9
@@ -44,40 +45,44 @@ class Boiler(StaticModel):
     def calculate_output(self, u, x=None):
         """Calculate output based on input u.
 
-        ``u["burner_modulation"]`` is the fraction (0-1) of the available
-        gas burned by this boiler (the remainder, ``1 - burner_modulation``,
-        is available e.g. to a co-located CHP unit). Similarly,
-        ``u["secondary_valve_position"]`` is the fraction (0-1) of the
-        secondary-side flow routed through this boiler.
+        The gas flow burned by this boiler can be given either as a mass
+        flow, ``u["gas_flow_rate"]`` (kg/s), or as a volumetric flow,
+        ``u["gas_volumetric_flow_rate"]`` (m3/s), which is converted to a
+        mass flow using the ``gas_density`` parameter (default 0.7
+        kg/Nm3). Provide exactly one of the two. ``u["water_flow_rate"]``
+        is the water-side flow through this boiler. If either flow is
+        shared with other consumers (e.g. a co-located CHP), use a
+        ``Splitter`` component to allocate it before feeding it into this
+        model. ``water_flow_rate`` is echoed back as an output so it can
+        be passed on, in series, to a downstream component on the same
+        water flow path.
         """
         temperature_in = u["temperature_in"]
-        primary_flow_rate = u["primary_flow_rate"]
-        secondary_flow_rate = u["secondary_flow_rate"]
-        burner_modulation = u["burner_modulation"]
-        valve_position = u["secondary_valve_position"]
-        grid_gas_flow_rate = u["grid_gas_flow_rate"]
+        water_flow_rate = u["water_flow_rate"]
 
-        gas_density = self.parameters.get("gas_density", self.DEFAULT_GAS_DENSITY)
+        if "gas_flow_rate" in u:
+            gas_mass_flow_rate = u["gas_flow_rate"]  # kg/s
+        else:
+            gas_density = self.parameters.get("gas_density", self.DEFAULT_GAS_DENSITY)
+            gas_mass_flow_rate = u["gas_volumetric_flow_rate"] * gas_density  # kg/s
+
         fluid_density = self.parameters.get("fluid_density", self.DEFAULT_FLUID_DENSITY)
         cw = self.parameters.get("specific_heat", self.DEFAULT_SPECIFIC_HEAT)
 
-        # gas flow co-produced with the doublet flow, plus grid-supplied gas
-        co_produced_gas = self.parameters["gas_water_ratio"] * primary_flow_rate
-        total_gas_flow = (co_produced_gas + grid_gas_flow_rate) * gas_density  # kg/s
-
-        gas_energy_flow = self.parameters["caloric_value"] * burner_modulation * total_gas_flow  # W
+        gas_energy_flow = self.parameters["caloric_value"] * gas_mass_flow_rate  # W
         power_th = self.parameters["efficiency_factor"] * gas_energy_flow
 
-        mass_flow_secondary = valve_position * fluid_density * secondary_flow_rate  # kg/s
-        if mass_flow_secondary < self._MIN_MASS_FLOW:
+        mass_flow_water = fluid_density * water_flow_rate  # kg/s
+        if mass_flow_water < self._MIN_MASS_FLOW:
             temperature_out = temperature_in
         else:
-            temperature_out = temperature_in + power_th / (cw * mass_flow_secondary)
+            temperature_out = temperature_in + power_th / (cw * mass_flow_water)
 
         emission = self.parameters["gas_emission_factor"] / self.JOULE_PER_GJ * gas_energy_flow
 
         self.output["temperature_in"] = temperature_in
         self.output["temperature_out"] = temperature_out
+        self.output["water_flow_rate"] = water_flow_rate
         self.output["power_el"] = 0.0
         self.output["power_th"] = power_th
         self.output["emission"] = emission

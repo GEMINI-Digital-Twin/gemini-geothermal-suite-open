@@ -45,6 +45,7 @@ class TestInjectorPump(unittest.TestCase):
         self.assertAlmostEqual(y["power_el"], expected_power)
         self.assertAlmostEqual(y["emission"], expected_emission)
         self.assertEqual(y["power_th"], 0.0)
+        self.assertEqual(y["flow_rate"], FLOW_RATE)
 
     def test_negative_pressure_difference_clamped_to_zero(self):
         """Test power is clamped to zero when outlet pressure is below inlet."""
