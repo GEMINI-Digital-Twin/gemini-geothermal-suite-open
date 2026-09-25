@@ -51,6 +51,7 @@ class InjectorPump(StaticModel):
 
         self.output["pressure_in"] = pressure_in
         self.output["pressure_out"] = pressure_out
+        self.output["flow_rate"] = flow_rate
         self.output["power_el"] = power_el
         self.output["power_th"] = 0.0
         self.output["emission"] = emission

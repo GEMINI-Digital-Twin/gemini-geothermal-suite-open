@@ -42,11 +42,21 @@ class HeatExchanger(StaticModel):
         pass
 
     def calculate_output(self, u, x=None):
-        """Calculate output based on input u."""
+        """Calculate output based on input u.
+
+        ``secondary_flow_rate`` is the secondary-side flow through this
+        heat exchanger. If the secondary network's flow is shared with
+        other consumers (e.g. a co-located CHP), use a ``Splitter``
+        component to allocate it before feeding it into this model. Both
+        the primary and secondary flow rates are conserved across the
+        heat exchanger (no mass is added or removed) and are echoed back
+        as outputs so they can be passed on, in series, to downstream
+        components on the same flow path (e.g. a Boiler fed by this same,
+        now-heated, secondary flow).
+        """
         pressure_in = u["pressure_in"]
         primary_flow_rate = u["primary_flow_rate"]
         secondary_flow_rate = u["secondary_flow_rate"]
-        valve_position = u["secondary_valve_position"]
 
         flow_resistance = self.parameters["flow_resistance"]
         pressure_out = pressure_in - primary_flow_rate * flow_resistance
@@ -56,13 +66,14 @@ class HeatExchanger(StaticModel):
             u["secondary_temperature_in"],
             primary_flow_rate,
             secondary_flow_rate,
-            valve_position,
         )
 
         self.output["pressure_in"] = pressure_in
         self.output["pressure_out"] = pressure_out
         self.output["primary_temperature_out"] = primary_temperature_out
         self.output["secondary_temperature_out"] = secondary_temperature_out
+        self.output["primary_flow_rate"] = primary_flow_rate
+        self.output["secondary_flow_rate"] = secondary_flow_rate
         self.output["heat_duty"] = heat_duty
         self.output["power_el"] = 0.0
         self.output["power_th"] = heat_duty
@@ -74,15 +85,13 @@ class HeatExchanger(StaticModel):
         secondary_temperature_in,
         primary_flow_rate,
         secondary_flow_rate,
-        valve_position,
     ):
         """Compute heat duty and outlet temperatures with the NTU-effectiveness method."""
         rho = self.parameters.get("fluid_density", self.DEFAULT_FLUID_DENSITY)
         cw = self.parameters.get("specific_heat", self.DEFAULT_SPECIFIC_HEAT)
 
         mass_flow_primary = rho * primary_flow_rate  # kg/s
-        # only the fraction let through by the secondary valve exchanges heat
-        mass_flow_secondary = valve_position * rho * secondary_flow_rate  # kg/s
+        mass_flow_secondary = rho * secondary_flow_rate  # kg/s
 
         capacity_primary = mass_flow_primary * cw  # W/K
         capacity_secondary = mass_flow_secondary * cw  # W/K
@@ -106,8 +115,10 @@ class HeatExchanger(StaticModel):
             elif capacity_ratio < 0.01:
                 effectiveness = 1 - math.exp(-ntu)
             else:
-                effectiveness = (1 - math.exp(-ntu * (1 + capacity_ratio))) / (
-                    1 - capacity_ratio * math.exp(-ntu * (1 + capacity_ratio))
+                # Counter-flow, Cr < 1 (standard e-NTU formula, continuous with the
+                # Cr == 1 special case above as Cr -> 1).
+                effectiveness = (1 - math.exp(-ntu * (1 - capacity_ratio))) / (
+                    1 - capacity_ratio * math.exp(-ntu * (1 - capacity_ratio))
                 )
 
         heat_duty = effectiveness * heat_duty_max

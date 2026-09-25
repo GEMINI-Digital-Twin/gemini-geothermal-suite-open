@@ -38,17 +38,31 @@ class Separator(StaticModel):
     def calculate_output(self, u, x=None):
         """Calculate output based on input u.
 
-        ``u["direction"]`` selects the calculation direction: ``"forward"``
+        ``u["direction"]`` selects the calculation direction (defaults to
+        ``"forward"`` if not provided): ``"forward"``
         computes the outlet state from the inlet state, ``"backward"``
-        computes the inlet state from the outlet state.
+        computes the inlet state from the outlet state. All flow rates
+        (``flow_rate``, ``gas_flow_rate``) are in SI units (m3/s). In addition to the
+        liquid-phase pressure/temperature calculation, this also reports the
+        co-produced gas phase separated out of the flow: ``gas_flow_rate``
+        (volumetric, m3/s) and ``gas_mass_flow_rate`` (kg/s), using the
+        ``gas_water_ratio``/``gas_density`` parameters (both default to 0,
+        so existing configurations without a gas phase are unaffected). The
+        liquid-phase ``flow_rate`` itself is echoed back as an output so
+        it can be passed on unchanged to a downstream component; a further
+        output, ``flow_rate_m3h``, echoes the same liquid flow converted
+        to m3/h, for downstream components that expect that convention
+        (e.g. a well model).
         """
         pressure = u["pressure"]
         temperature = u["temperature"]
         flow_rate = u["flow_rate"]
-        direction = u["direction"]
+        direction = u.get("direction", "forward")
 
         flow_resistance = self.parameters["flow_resistance"]
         temperature_drop = self.parameters["temperature_drop"]
+        gas_water_ratio = self.parameters.get("gas_water_ratio", 0.0)
+        gas_density = self.parameters.get("gas_density", 0.0)
 
         if direction == "forward":
             pressure_in = pressure
@@ -63,10 +77,17 @@ class Separator(StaticModel):
         else:
             raise ValueError(f"Unsupported direction '{direction}'. Use 'forward' or 'backward'.")
 
+        gas_flow_rate = gas_water_ratio * flow_rate
+        gas_mass_flow_rate = gas_flow_rate * gas_density
+
         self.output["pressure_in"] = pressure_in
         self.output["pressure_out"] = pressure_out
         self.output["temperature_in"] = temperature_in
         self.output["temperature_out"] = temperature_out
+        self.output["flow_rate"] = flow_rate
+        self.output["flow_rate_m3h"] = flow_rate * 3600.0
+        self.output["gas_flow_rate"] = gas_flow_rate
+        self.output["gas_mass_flow_rate"] = gas_mass_flow_rate
         self.output["power_el"] = 0.0
         self.output["power_th"] = 0.0
         self.output["emission"] = 0.0

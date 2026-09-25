@@ -86,18 +86,23 @@ class HeatpumpBasic(StaticModel):
         """
         pass
 
-    def calculate_output(self, u, x):
+    def calculate_output(self, u, x=None):
         """Calculate output based on input u and state x.
 
-        Converts inputs (temperatures in °C, volumetric flows in m3/h) to SI
-        units (K, kg/s), solves for the operating point via `_calculate`, and
-        stores the results (COP, outlet temperatures, thermal production and
-        electrical consumption) in `self.output`.
+        Converts inputs (temperatures in degC, volumetric flows in m3/s) to
+        SI units (K, kg/s), solves for the operating point via `_calculate`,
+        and stores the results (COP, outlet temperatures, thermal production
+        and electrical consumption) in `self.output`.
 
         Parameters
         ----------
         u: dict
-            Model inputs: "Th_in" (°C), "Ts_in" (°C), "qh" (m3/h), "qs" (m3/h).
+            Model inputs: "Th_in" (degC), "Ts_in" (degC), "hot_flow_rate"
+            (m3/s, hot/sink side), "source_flow_rate" (m3/s, source side).
+            Optional "hot_pressure_in"/"source_pressure_in" (bar) are echoed
+            back unchanged as "hot_pressure_out"/"source_pressure_out" (this
+            model does not compute a pressure drop), so a downstream
+            pressure chain is not broken when connecting through a heat pump.
         x: state
             Model state (unused, model is static).
         """
@@ -105,8 +110,10 @@ class HeatpumpBasic(StaticModel):
         Th_out = self.parameters["Th_out_target"] + 273.15  # Convert to Kelvin
         Th_in = u["Th_in"] + 273.15  # Convert to Kelvin
         Ts_in = u["Ts_in"] + 273.15  # Convert to Kelvin
-        mh = u["qh"] * self.parameters["rho_h"] / 3600  # Convert m3/h to kg/s
-        ms = u["qs"] * self.parameters["rho_s"] / 3600  # Convert m3/h to kg/s
+        hot_flow_rate = u["hot_flow_rate"]  # m3/s
+        source_flow_rate = u["source_flow_rate"]  # m3/s
+        mh = hot_flow_rate * self.parameters["rho_h"]  # kg/s
+        ms = source_flow_rate * self.parameters["rho_s"]  # kg/s
 
         result = self._calculate(Th_out, Th_in, Ts_in, mh, ms)
 
@@ -115,10 +122,26 @@ class HeatpumpBasic(StaticModel):
         self.output["Ts_out"] = result[2] - 273.15  # Convert back to Celsius
         self.output["Thermal_production"] = result[3]
         self.output["electrical_consumption"] = result[4]
+        self.output["hot_flow_rate"] = hot_flow_rate
+        self.output["hot_flow_rate_m3h"] = hot_flow_rate * 3600.0
+        self.output["source_flow_rate"] = source_flow_rate
+        self.output["source_flow_rate_m3h"] = source_flow_rate * 3600.0
+        self.output["power_th"] = result[3]
+        self.output["power_el"] = result[4]
+        self.output["emission"] = 0.0
+
+        if "hot_pressure_in" in u:
+            self.output["hot_pressure_in"] = u["hot_pressure_in"]
+            self.output["hot_pressure_out"] = u["hot_pressure_in"]
+        if "source_pressure_in" in u:
+            self.output["source_pressure_in"] = u["source_pressure_in"]
+            self.output["source_pressure_out"] = u["source_pressure_in"]
 
     def _calculate(self, Th_out, Th_in, Ts_in, mh, ms):
-        """Solve for the heat pump operating point (COP, outlet temperatures,
-        thermal production and electrical consumption).
+        """Solve for the heat pump operating point.
+
+        (COP, outlet temperatures, thermal production and electrical
+        consumption).
 
         Uses `scipy.optimize.minimize` (Nelder-Mead) to jointly solve the
         thermodynamic efficiency equation (Carnot or Lorenz, selected via
@@ -150,8 +173,9 @@ class HeatpumpBasic(StaticModel):
         """
 
         def lorenz_model(x, Th_out, Th_in, Ts_in, mh, ms):
-            """Residual function for the Lorenz-efficiency model, solving for
-            (COP, Ts_out) given a fixed target Th_out.
+            """Residual function for the Lorenz-efficiency model.
+
+            Solves for (COP, Ts_out) given a fixed target Th_out.
 
             Combines two residuals: J1 enforces the Lorenz COP equation
             COP = eta_lorenz * (Th / (Th - Ts)), where Th and Ts are the
@@ -174,10 +198,12 @@ class HeatpumpBasic(StaticModel):
             return J
 
         def lorenz_model2(x, Ts_out, Th_in, Ts_in, mh, ms):
-            """Residual function for the Lorenz-efficiency model, solving for
-            (COP, Th_out) given a fixed minimum source outlet temperature
-            Ts_out (used when the unconstrained solution violates
-            Ts_in_minimum). See `lorenz_model` for the underlying equations.
+            """Residual function for the Lorenz-efficiency model.
+
+            Solves for (COP, Th_out) given a fixed minimum source outlet
+            temperature Ts_out (used when the unconstrained solution
+            violates Ts_in_minimum). See `lorenz_model` for the underlying
+            equations.
             """
             COP = x[0]
             Th_out = x[1]
@@ -194,8 +220,9 @@ class HeatpumpBasic(StaticModel):
             return J
 
         def carnot_model(x, Th_out, Th_in, Ts_in, mh, ms):
-            """Residual function for the Carnot-efficiency model, solving for
-            (COP, Ts_out) given a fixed target Th_out.
+            """Residual function for the Carnot-efficiency model.
+
+            Solves for (COP, Ts_out) given a fixed target Th_out.
 
             Combines two residuals: J1 enforces the Carnot COP equation
             COP = eta_carnot * (Th / (Th - Ts)), where Th = Th_out and
@@ -220,10 +247,12 @@ class HeatpumpBasic(StaticModel):
             return J
 
         def carnot_model2(x, Ts_out, Th_in, Ts_in, mh, ms):
-            """Residual function for the Carnot-efficiency model, solving for
-            (COP, Th_out) given a fixed minimum source outlet temperature
-            Ts_out (used when the unconstrained solution violates
-            Ts_in_minimum). See `carnot_model` for the underlying equations.
+            """Residual function for the Carnot-efficiency model.
+
+            Solves for (COP, Th_out) given a fixed minimum source outlet
+            temperature Ts_out (used when the unconstrained solution
+            violates Ts_in_minimum). See `carnot_model` for the underlying
+            equations.
             """
             COP = x[0]
             Th_out = x[1]

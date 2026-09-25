@@ -1,0 +1,131 @@
+{
+  "_description": "Native gemini_simulator project file for a geothermal doublet's surface + secondary network (Separator -> FilterA -> HeatExchanger -> FilterB, with Boiler/CHP on the secondary side). Every value here is already in the units gemini_model's components expect (see '_units' below); edit this file directly to describe your own plant.",
+  "_units": {
+    "all components": "flow rates in SI [m3/s], pressure [bar] (surface network) or [Pa] (heat exchanger/boiler/chp inputs are still bar for pressure -- see each component's own docstring), temperature [C], caloric_value [J/kg]. The only components still working in m3/h are producer_well/injector_well (well/reservoir models, unchanged); the surface chain converts to/from m3/h exactly once at each of those two boundaries."
+  },
+  "components": {
+    "producer_well": {
+      "type": "producer_well",
+      "_description": "Producer-side reservoir/well/ESP, nodal-solved for its primary flow rate from the fixed wellhead pressure/temperature boundary inputs below. See gemini_simulator.well_components.ProducerWell.",
+      "parameters": {
+        "reservoir_pressure_bar": 250,
+        "productivity_index_m3h_per_bar": 10,
+        "ambient_temperature_c": 20,
+        "_trajectory_table_description": "Cumulative MD (measured depth)/TVD (true vertical depth)/ID (inner diameter) survey stations, station 0 = wellhead (MD=TVD=0); this well is fully vertical, so TVD tracks MD exactly at every station.",
+        "trajectory_table": [
+          {"MD": 0, "TVD": 0, "ID": 0.15},
+          {"MD": 300, "TVD": 300, "ID": 0.15},
+          {"MD": 400, "TVD": 400, "ID": 0.15},
+          {"MD": 600, "TVD": 600, "ID": 0.15},
+          {"MD": 2400, "TVD": 2400, "ID": 0.15}
+        ],
+        "esp_depth_m": 650,
+        "esp": {
+          "no_stages": 10,
+          "head_coeff": [83.08389282, -0.000460444, -1.19e-07, 1.69e-11, -6.36e-16, 6.69e-21],
+          "power_coeff": [10.02089977, -0.000160233, 6.52e-08, -2.13e-12, 1.71e-17, 1.38e-23],
+          "electricity_emission_factor": 0.3
+        },
+        "esp_freq_hz": 65
+      }
+    },
+    "injector_well": {
+      "type": "injector_well",
+      "_description": "Injector-side reservoir/well, nodal-solved for the wellhead (surface) pressure needed to inject the producer well's (already-solved) flow rate back into the reservoir, plus the injector pump that boosts the surface network's return water up to that pressure. See gemini_simulator.well_components.InjectorWell.",
+      "parameters": {
+        "reservoir_pressure_bar": 240,
+        "productivity_index_m3h_per_bar": 10,
+        "_trajectory_table_description": "Cumulative MD/TVD/ID survey stations, station 0 = wellhead (MD=TVD=0); this well is fully vertical, so TVD tracks MD exactly at every station.",
+        "trajectory_table": [
+          {"MD": 0, "TVD": 0, "ID": 0.15},
+          {"MD": 300, "TVD": 300, "ID": 0.15},
+          {"MD": 400, "TVD": 400, "ID": 0.15},
+          {"MD": 600, "TVD": 600, "ID": 0.15},
+          {"MD": 3100, "TVD": 3100, "ID": 0.15}
+        ],
+        "injector_pump": {
+          "efficiency_factor": 0.8,
+          "electricity_emission_factor": 0.3
+        }
+      }
+    },
+    "separator": {
+      "type": "separator",
+      "parameters": {"flow_resistance": 3.6, "temperature_drop": 1, "gas_water_ratio": 0.5, "gas_density": 0.7}
+    },
+    "filter_a": {
+      "type": "filter",
+      "parameters": {"base_resistance": 36.0, "fouling_coeff_a": 18.0, "fouling_coeff_b": 0.036, "temperature_drop": 1}
+    },
+    "heat_exchanger": {
+      "type": "heat_exchanger",
+      "parameters": {"flow_resistance": 0, "flow_configuration": "counter", "heat_transfer_coefficient": 250000}
+    },
+    "filter_b": {
+      "type": "filter",
+      "parameters": {"base_resistance": 3.6, "fouling_coeff_a": 18.0, "fouling_coeff_b": 0.036, "temperature_drop": 1}
+    },
+    "boiler": {
+      "type": "boiler",
+      "parameters": {"caloric_value": 50000000, "efficiency_factor": 0.8, "gas_emission_factor": 56.6}
+    },
+    "chp": {
+      "type": "chp",
+      "parameters": {"caloric_value": 50000000, "efficiency_factor": 0.8, "gas_emission_factor": 56.6}
+    },
+    "secondary_splitter": {
+      "type": "splitter",
+      "_description": "Splits the secondary network's total flow between the HEX+Boiler branch (output_0, fraction 'v', which continues in series through heat_exchanger into boiler) and the CHP branch (output_1, fraction '1-v', which bypasses heat_exchanger entirely and feeds chp directly).",
+      "parameters": {"split_fractions": [0.8, 0.2]}
+    },
+    "gas_splitter": {
+      "type": "splitter",
+      "_description": "Splits the separator's co-produced gas mass flow (gas_mass_flow_rate) between Boiler (output_0, fraction 'u' = burner_modulation) and CHP (output_1, fraction '1-u').",
+      "parameters": {"split_fractions": [0.8, 0.2]}
+    },
+    "water_mixer": {
+      "type": "mixer",
+      "_description": "Recombines boiler's and chp's water outlets (flow + temperature) into a single water flow/temperature, using a flow-weighted average of the two outlet temperatures.",
+      "parameters": {"num_inputs": 2}
+    }
+  },
+  "boundary_inputs": [
+    {"component": "producer_well", "key": "wellhead_pressure", "value": 3.0},
+    {"component": "producer_well", "key": "wellhead_temperature", "value": 80.0},
+
+    {"component": "secondary_splitter", "key": "input", "_description": "Total secondary network flow rate, 140 m3/h converted to m3/s (140/3600).", "value": 0.0388888888888889},
+    {"component": "heat_exchanger", "key": "secondary_temperature_in", "value": 20.0},
+    {"component": "chp", "key": "temperature_in", "value": 20.0}
+  ],
+  "connections": [
+    {"predecessor": "producer_well", "successor": "separator",
+     "ports": [["flow_rate_m3s", "flow_rate"], ["pressure_out", "pressure"], ["temperature_out", "temperature"]]},
+
+    {"predecessor": "separator", "successor": "filter_a",
+     "ports": [["pressure_out", "pressure"], ["temperature_out", "temperature"], ["flow_rate", "flow_rate"]]},
+
+    {"predecessor": "separator", "successor": "gas_splitter", "predecessor_output": "gas_mass_flow_rate", "successor_input": "input"},
+
+    {"predecessor": "filter_a", "successor": "heat_exchanger",
+     "ports": [["pressure_out", "pressure_in"], ["temperature_out", "primary_temperature_in"], ["flow_rate", "primary_flow_rate"]]},
+    {"predecessor": "secondary_splitter", "successor": "heat_exchanger", "predecessor_output": "output_0", "successor_input": "secondary_flow_rate"},
+
+    {"predecessor": "heat_exchanger", "successor": "filter_b",
+     "ports": [["pressure_out", "pressure"], ["primary_temperature_out", "temperature"], ["primary_flow_rate", "flow_rate"]]},
+
+    {"predecessor": "heat_exchanger", "successor": "boiler",
+     "ports": [["secondary_temperature_out", "temperature_in"], ["secondary_flow_rate", "water_flow_rate"]]},
+    {"predecessor": "gas_splitter", "successor": "boiler", "predecessor_output": "output_0", "successor_input": "gas_flow_rate"},
+
+    {"predecessor": "secondary_splitter", "successor": "chp", "predecessor_output": "output_1", "successor_input": "water_flow_rate"},
+    {"predecessor": "gas_splitter", "successor": "chp", "predecessor_output": "output_1", "successor_input": "gas_flow_rate"},
+
+    {"predecessor": "boiler", "successor": "water_mixer",
+     "ports": [["water_flow_rate", "input_0_flow"], ["temperature_out", "input_0_temperature"]]},
+    {"predecessor": "chp", "successor": "water_mixer",
+     "ports": [["water_flow_rate", "input_1_flow"], ["temperature_out", "input_1_temperature"]]},
+
+    {"predecessor": "filter_b", "successor": "injector_well",
+     "ports": [["flow_rate_m3h", "flow_rate"], ["temperature_out", "wellhead_temperature"], ["pressure_out_pa", "pressure_in"]]}
+  ]
+}

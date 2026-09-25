@@ -37,14 +37,31 @@ class Compressor(StaticModel):
         pass
 
     def calculate_output(self, u, x=None):
-        """Calculate output based on input u."""
+        """Calculate output based on input u.
+
+        ``pressure_in``/``pressure_out`` (bar) and ``temperature_in`` (degC)
+        are runtime inputs so the compressor can be wired inline in a gas
+        flow chain. ``pressure_in``/``pressure_out``/``mass_flow`` are
+        echoed back unchanged as outputs (this model does not itself alter
+        the flow or pressures, it only reports the power required to
+        achieve them) so a downstream component can chain off them.
+        """
         mass_flow = u["mass_flow"]  # kg/s
-        compressor_power = self._power_calculation(mass_flow)
+        pressure_in = u["pressure_in"]  # bar
+        pressure_out = u["pressure_out"]  # bar
+        temperature_in = u["temperature_in"]  # degC
+
+        compressor_power = self._power_calculation(
+            mass_flow, pressure_in, pressure_out, temperature_in
+        )
 
         self.output["compressor_power"] = compressor_power
         self.output["mass_flow"] = mass_flow  # mass_flow is not altered
+        self.output["pressure_in"] = pressure_in
+        self.output["pressure_out"] = pressure_out
+        self.output["temperature_in"] = temperature_in
 
-    def _power_calculation(self, mass_flow):
+    def _power_calculation(self, mass_flow, pressure_in, pressure_out, temperature_in):
         """Compute compressor shaft power assuming ideal intercooling.
 
         Assumptions:
@@ -57,9 +74,9 @@ class Compressor(StaticModel):
         e_c = self.parameters["compressor_efficiency"]
         k = self.parameters["specific_heat_ratio"]
         gas_constant = self.parameters["gas_constant"]
-        t1 = self.parameters["inlet_temperature"]
-        p1 = self.parameters["inlet_pressure"]
-        p2 = self.parameters["outlet_pressure"]
+        t1 = temperature_in + 273.15  # Convert to Kelvin
+        p1 = pressure_in
+        p2 = pressure_out
         n = self.parameters["number_of_stages"]
         stage_pressure_ratio = (p2 / p1) ** (1 / n)
 

@@ -1,12 +1,13 @@
 """Unit tests for CHP model.
 
 Reference values use realistic data for a geothermal doublet surface
-network (~10 MW doublet): gas_water_ratio=0.5 Nm3/m3,
-efficiency_factor=0.8, caloric_value=50 MJ/kg, gas_emission_factor=56.6
-kg/GJ. Flow rates, burner modulation (``u``) and secondary valve position
-(``v``) are Q_p=Q_s=140 m3/h, u=80%, v=90%, matching the co-located Boiler
-(see test_boiler.py), sharing the same gas/flow streams via the
-complementary (1 - u)/(1 - v) fractions.
+network (~10 MW doublet): efficiency_factor=0.8, caloric_value=50 MJ/kg,
+gas_emission_factor=56.6 kg/GJ. The gas mass flow rate and water flow
+rate below are the already-allocated (post-Splitter) values, derived from
+Q_p=Q_s=140 m3/h, gas_water_ratio=0.5 Nm3/m3, gas_density=0.7 kg/Nm3,
+matching the co-located Boiler (see test_boiler.py), where the boiler
+takes an 80% gas fraction / 90% water fraction and this CHP unit takes
+the complementary 20% gas fraction / 10% water fraction.
 """
 
 import unittest
@@ -14,21 +15,25 @@ import unittest
 from gemini_model.chp.chp import CHP
 
 CHP_PARAMS = {
-    "gas_water_ratio": 0.5,  # Nm3/m3
     "efficiency_factor": 0.8,
-    "caloric_value": 50e6,  # J/Nm3
+    "caloric_value": 50e6,  # J/kg
     "gas_emission_factor": 56.6,  # kg CO2 / GJ
 }
 
 FLOW_RATE = 140.0 / 3600.0  # m3/s, realistic doublet flow of 140 m3/h
+GAS_WATER_RATIO = 0.5  # Nm3/m3
+GAS_DENSITY = 0.7  # kg/Nm3
+CHP_GAS_FRACTION = 0.2  # complementary to boiler's 80% gas fraction
+CHP_WATER_FRACTION = 0.1  # complementary to boiler's 90% water fraction
+
+# already-allocated (post-Splitter) gas mass flow and water flow rate
+GAS_FLOW_RATE = CHP_GAS_FRACTION * GAS_WATER_RATIO * FLOW_RATE * GAS_DENSITY  # kg/s
+WATER_FLOW_RATE = CHP_WATER_FRACTION * FLOW_RATE  # m3/s
 
 CHP_INPUT = {
     "temperature_in": 350.8711856072279,  # K, HeatExchanger secondary outlet
-    "primary_flow_rate": FLOW_RATE,
-    "secondary_flow_rate": FLOW_RATE,
-    "burner_modulation": 0.8,  # boiler takes 80%, CHP takes remaining 20%
-    "secondary_valve_position": 0.9,  # boiler takes 90%, CHP takes remaining 10%
-    "grid_gas_flow_rate": 0.0,
+    "water_flow_rate": WATER_FLOW_RATE,
+    "gas_flow_rate": GAS_FLOW_RATE,
 }
 
 
@@ -56,10 +61,10 @@ class TestCHP(unittest.TestCase):
         y = self.chp.get_output()
         self.assertAlmostEqual(y["power_el"], y["power_th"] / 2)
 
-    def test_zero_chp_flow_fraction_no_temperature_rise(self):
-        """Test secondary_valve_position == 1 (all flow to boiler) leaves temperature unchanged."""
+    def test_zero_water_flow_no_temperature_rise(self):
+        """Test zero (already-split) water flow leaves temperature unchanged."""
         u = dict(CHP_INPUT)
-        u["secondary_valve_position"] = 1.0
+        u["water_flow_rate"] = 0.0
         self.chp.calculate_output(u)
         y = self.chp.get_output()
         self.assertAlmostEqual(y["temperature_out"], CHP_INPUT["temperature_in"])
@@ -68,3 +73,24 @@ class TestCHP(unittest.TestCase):
         """Test required CHP runtime inputs are validated."""
         with self.assertRaises(KeyError):
             self.chp.calculate_output({"temperature_in": 333.0})
+
+    def test_volumetric_gas_flow_rate_matches_mass_flow_rate(self):
+        """Test gas_volumetric_flow_rate (via gas_density) matches an equivalent mass flow."""
+        u = dict(CHP_INPUT)
+        del u["gas_flow_rate"]
+        u["gas_volumetric_flow_rate"] = GAS_FLOW_RATE / GAS_DENSITY
+
+        chp_params_with_density = dict(CHP_PARAMS)
+        chp_params_with_density["gas_density"] = GAS_DENSITY
+        self.chp.update_parameters(chp_params_with_density)
+
+        self.chp.calculate_output(u)
+        y = self.chp.get_output()
+
+        self.chp.calculate_output(dict(CHP_INPUT))
+        y_reference = self.chp.get_output()
+
+        self.assertAlmostEqual(y["power_el"], y_reference["power_el"], delta=1e-6)
+        self.assertAlmostEqual(y["power_th"], y_reference["power_th"], delta=1e-6)
+        self.assertAlmostEqual(y["temperature_out"], y_reference["temperature_out"], delta=1e-9)
+        self.assertAlmostEqual(y["emission"], y_reference["emission"], delta=1e-9)

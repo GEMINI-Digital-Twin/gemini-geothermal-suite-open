@@ -37,14 +37,15 @@ class BoosterPump(StaticModel):
     def calculate_output(self, u, x=None):
         """Calculate output based on input u.
 
-        ``u["direction"]`` selects the calculation direction: ``"forward"``
+        ``u["direction"]`` selects the calculation direction (defaults to
+        ``"forward"`` if not provided): ``"forward"``
         computes the outlet state from the inlet state, ``"backward"``
         computes the inlet state from the outlet state.
         """
         pressure = u["pressure"]
         temperature = u["temperature"]
         flow_rate = u["flow_rate"]
-        direction = u["direction"]
+        direction = u.get("direction", "forward")
 
         flow_resistance = self.parameters["flow_resistance"]
         temperature_drop = self.parameters["temperature_drop"]
@@ -66,6 +67,7 @@ class BoosterPump(StaticModel):
         self.output["pressure_out"] = pressure_out
         self.output["temperature_in"] = temperature_in
         self.output["temperature_out"] = temperature_out
+        self.output["flow_rate"] = flow_rate
         self.output["power_el"] = 0.0
         self.output["power_th"] = 0.0
         self.output["emission"] = 0.0
