@@ -40,16 +40,23 @@ class Filter(StaticModel):
     def calculate_output(self, u, x=None):
         """Calculate output based on input u.
 
-        ``u["direction"]`` selects the calculation direction: ``"forward"``
+        ``u["direction"]`` selects the calculation direction (defaults to
+        ``"forward"`` if not provided): ``"forward"``
         computes the outlet state from the inlet state, ``"backward"``
         computes the inlet state from the outlet state. The flow resistance
         increases with flow rate as R = a*(1 - exp(-b*Q)) + R0, approximating
-        fouling/clogging of the filter element.
+        fouling/clogging of the filter element. ``flow_rate`` is in SI units
+        (m3/s), it is echoed back as an output so it can be passed on unchanged to a
+        downstream component. A further output, ``flow_rate_m3h``, echoes
+        the same flow converted to m3/h, for downstream components that
+        expect that convention (e.g. a well model). ``pressure_out_pa``
+        echoes the outlet pressure converted to Pa, for downstream
+        components that work in Pa (e.g. an injector pump).
         """
         pressure = u["pressure"]
         temperature = u["temperature"]
         flow_rate = u["flow_rate"]
-        direction = u["direction"]
+        direction = u.get("direction", "forward")
 
         base_resistance = self.parameters["base_resistance"]
         fouling_coeff_a = self.parameters["fouling_coeff_a"]
@@ -75,8 +82,11 @@ class Filter(StaticModel):
 
         self.output["pressure_in"] = pressure_in
         self.output["pressure_out"] = pressure_out
+        self.output["pressure_out_pa"] = pressure_out * 1e5
         self.output["temperature_in"] = temperature_in
         self.output["temperature_out"] = temperature_out
+        self.output["flow_rate"] = flow_rate
+        self.output["flow_rate_m3h"] = flow_rate * 3600.0
         self.output["flow_resistance"] = flow_resistance
         self.output["power_el"] = 0.0
         self.output["power_th"] = 0.0
