@@ -71,12 +71,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="gemini_model.injector_pump.html">6.1.12. gemini_model.injector_pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.13. gemini_model.model_abstract</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.14. gemini_model.pump</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.15. gemini_model.reservoir</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.16. gemini_model.separator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.17. gemini_model.splitter</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.18. gemini_model.well</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.mixer.html">6.1.13. gemini_model.mixer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.model_abstract.html">6.1.14. gemini_model.model_abstract</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.pump.html">6.1.15. gemini_model.pump</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.reservoir.html">6.1.16. gemini_model.reservoir</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.separator.html">6.1.17. gemini_model.separator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.splitter.html">6.1.18. gemini_model.splitter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gemini_model.well.html">6.1.19. gemini_model.well</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="gemini_framework.html">6.2. gemini_framework</a></li>
@@ -162,16 +163,21 @@ hot/sink and source loops), the target hot side outlet temperature,
 and the minimum allowed source side outlet temperature.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="gemini_model.heatpump.heatpump_basic.HeatpumpBasic.calculate_output">
-<span class="sig-name descname"><span class="pre">calculate_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gemini_model/heatpump/heatpump_basic.html#HeatpumpBasic.calculate_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gemini_model.heatpump.heatpump_basic.HeatpumpBasic.calculate_output" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">calculate_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gemini_model/heatpump/heatpump_basic.html#HeatpumpBasic.calculate_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gemini_model.heatpump.heatpump_basic.HeatpumpBasic.calculate_output" title="Link to this definition"></a></dt>
 <dd><p>Calculate output based on input u and state x.</p>
-<p>Converts inputs (temperatures in °C, volumetric flows in m3/h) to SI
-units (K, kg/s), solves for the operating point via <cite>_calculate</cite>, and
-stores the results (COP, outlet temperatures, thermal production and
-electrical consumption) in <cite>self.output</cite>.</p>
+<p>Converts inputs (temperatures in degC, volumetric flows in m3/s) to
+SI units (K, kg/s), solves for the operating point via <cite>_calculate</cite>,
+and stores the results (COP, outlet temperatures, thermal production
+and electrical consumption) in <cite>self.output</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>u</strong> (<em>dict</em>) – Model inputs: “Th_in” (°C), “Ts_in” (°C), “qh” (m3/h), “qs” (m3/h).</p></li>
+<li><p><strong>u</strong> (<em>dict</em>) – Model inputs: “Th_in” (degC), “Ts_in” (degC), “hot_flow_rate”
+(m3/s, hot/sink side), “source_flow_rate” (m3/s, source side).
+Optional “hot_pressure_in”/”source_pressure_in” (bar) are echoed
+back unchanged as “hot_pressure_out”/”source_pressure_out” (this
+model does not compute a pressure drop), so a downstream
+pressure chain is not broken when connecting through a heat pump.</p></li>
 <li><p><strong>x</strong> (<em>state</em>) – Model state (unused, model is static).</p></li>
 </ul>
 </dd>

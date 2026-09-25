@@ -135,16 +135,23 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Calculate output based on input u.</span>
 
-<span class="sd">        ``u["direction"]`` selects the calculation direction: ``"forward"``</span>
+<span class="sd">        ``u["direction"]`` selects the calculation direction (defaults to</span>
+<span class="sd">        ``"forward"`` if not provided): ``"forward"``</span>
 <span class="sd">        computes the outlet state from the inlet state, ``"backward"``</span>
 <span class="sd">        computes the inlet state from the outlet state. The flow resistance</span>
 <span class="sd">        increases with flow rate as R = a*(1 - exp(-b*Q)) + R0, approximating</span>
-<span class="sd">        fouling/clogging of the filter element.</span>
+<span class="sd">        fouling/clogging of the filter element. ``flow_rate`` is in SI units</span>
+<span class="sd">        (m3/s), it is echoed back as an output so it can be passed on unchanged to a</span>
+<span class="sd">        downstream component. A further output, ``flow_rate_m3h``, echoes</span>
+<span class="sd">        the same flow converted to m3/h, for downstream components that</span>
+<span class="sd">        expect that convention (e.g. a well model). ``pressure_out_pa``</span>
+<span class="sd">        echoes the outlet pressure converted to Pa, for downstream</span>
+<span class="sd">        components that work in Pa (e.g. an injector pump).</span>
 <span class="sd">        """</span>
         <span class="n">pressure</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span>
         <span class="n">temperature</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span>
         <span class="n">flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"flow_rate"</span><span class="p">]</span>
-        <span class="n">direction</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"direction"</span><span class="p">]</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"direction"</span><span class="p">,</span> <span class="s2">"forward"</span><span class="p">)</span>
 
         <span class="n">base_resistance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"base_resistance"</span><span class="p">]</span>
         <span class="n">fouling_coeff_a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"fouling_coeff_a"</span><span class="p">]</span>
@@ -170,8 +177,11 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"pressure_out_pa"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pressure_out</span> <span class="o">*</span> <span class="mf">1e5</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">flow_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"flow_rate_m3h"</span><span class="p">]</span> <span class="o">=</span> <span class="n">flow_rate</span> <span class="o">*</span> <span class="mf">3600.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"flow_resistance"</span><span class="p">]</span> <span class="o">=</span> <span class="n">flow_resistance</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_el"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_th"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>

@@ -83,8 +83,9 @@
 <span></span><span class="sd">"""Gas-fired boiler model.</span>
 
 <span class="sd">Estimates the heat output and CO2 emissions of a gas-fired boiler</span>
-<span class="sd">that burns a mixture of gas co-produced with a doublet's flow and</span>
-<span class="sd">gas supplied from the grid.</span>
+<span class="sd">burning a given gas flow. If the gas or water flow is shared with</span>
+<span class="sd">other consumers (e.g. a co-located CHP), the allocation between them</span>
+<span class="sd">should be handled by a ``Splitter`` component.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_model.model_abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticModel</span>
@@ -95,7 +96,7 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">Boiler</span><span class="p">(</span><span class="n">StaticModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Gas-fired boiler heat output and emission model."""</span>
 
-    <span class="n">DEFAULT_GAS_DENSITY</span> <span class="o">=</span> <span class="mf">0.7</span>  <span class="c1"># kg/Nm3</span>
+    <span class="n">DEFAULT_GAS_DENSITY</span> <span class="o">=</span> <span class="mf">0.7</span>  <span class="c1"># kg/Nm3, used only if gas_volumetric_flow_rate is given</span>
     <span class="n">DEFAULT_FLUID_DENSITY</span> <span class="o">=</span> <span class="mf">1050.0</span>  <span class="c1"># kg/m3</span>
     <span class="n">DEFAULT_SPECIFIC_HEAT</span> <span class="o">=</span> <span class="mf">4200.0</span>  <span class="c1"># J/(kg.K)</span>
     <span class="n">JOULE_PER_GJ</span> <span class="o">=</span> <span class="mf">1e9</span>
@@ -139,40 +140,44 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Calculate output based on input u.</span>
 
-<span class="sd">        ``u["burner_modulation"]`` is the fraction (0-1) of the available</span>
-<span class="sd">        gas burned by this boiler (the remainder, ``1 - burner_modulation``,</span>
-<span class="sd">        is available e.g. to a co-located CHP unit). Similarly,</span>
-<span class="sd">        ``u["secondary_valve_position"]`` is the fraction (0-1) of the</span>
-<span class="sd">        secondary-side flow routed through this boiler.</span>
+<span class="sd">        The gas flow burned by this boiler can be given either as a mass</span>
+<span class="sd">        flow, ``u["gas_flow_rate"]`` (kg/s), or as a volumetric flow,</span>
+<span class="sd">        ``u["gas_volumetric_flow_rate"]`` (m3/s), which is converted to a</span>
+<span class="sd">        mass flow using the ``gas_density`` parameter (default 0.7</span>
+<span class="sd">        kg/Nm3). Provide exactly one of the two. ``u["water_flow_rate"]``</span>
+<span class="sd">        is the water-side flow through this boiler. If either flow is</span>
+<span class="sd">        shared with other consumers (e.g. a co-located CHP), use a</span>
+<span class="sd">        ``Splitter`` component to allocate it before feeding it into this</span>
+<span class="sd">        model. ``water_flow_rate`` is echoed back as an output so it can</span>
+<span class="sd">        be passed on, in series, to a downstream component on the same</span>
+<span class="sd">        water flow path.</span>
 <span class="sd">        """</span>
         <span class="n">temperature_in</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"temperature_in"</span><span class="p">]</span>
-        <span class="n">primary_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"primary_flow_rate"</span><span class="p">]</span>
-        <span class="n">secondary_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"secondary_flow_rate"</span><span class="p">]</span>
-        <span class="n">burner_modulation</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"burner_modulation"</span><span class="p">]</span>
-        <span class="n">valve_position</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"secondary_valve_position"</span><span class="p">]</span>
-        <span class="n">grid_gas_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"grid_gas_flow_rate"</span><span class="p">]</span>
+        <span class="n">water_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"water_flow_rate"</span><span class="p">]</span>
 
-        <span class="n">gas_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"gas_density"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_GAS_DENSITY</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">"gas_flow_rate"</span> <span class="ow">in</span> <span class="n">u</span><span class="p">:</span>
+            <span class="n">gas_mass_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"gas_flow_rate"</span><span class="p">]</span>  <span class="c1"># kg/s</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gas_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"gas_density"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_GAS_DENSITY</span><span class="p">)</span>
+            <span class="n">gas_mass_flow_rate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="s2">"gas_volumetric_flow_rate"</span><span class="p">]</span> <span class="o">*</span> <span class="n">gas_density</span>  <span class="c1"># kg/s</span>
+
         <span class="n">fluid_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"fluid_density"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_FLUID_DENSITY</span><span class="p">)</span>
         <span class="n">cw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"specific_heat"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_SPECIFIC_HEAT</span><span class="p">)</span>
 
-        <span class="c1"># gas flow co-produced with the doublet flow, plus grid-supplied gas</span>
-        <span class="n">co_produced_gas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"gas_water_ratio"</span><span class="p">]</span> <span class="o">*</span> <span class="n">primary_flow_rate</span>
-        <span class="n">total_gas_flow</span> <span class="o">=</span> <span class="p">(</span><span class="n">co_produced_gas</span> <span class="o">+</span> <span class="n">grid_gas_flow_rate</span><span class="p">)</span> <span class="o">*</span> <span class="n">gas_density</span>  <span class="c1"># kg/s</span>
-
-        <span class="n">gas_energy_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"caloric_value"</span><span class="p">]</span> <span class="o">*</span> <span class="n">burner_modulation</span> <span class="o">*</span> <span class="n">total_gas_flow</span>  <span class="c1"># W</span>
+        <span class="n">gas_energy_flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"caloric_value"</span><span class="p">]</span> <span class="o">*</span> <span class="n">gas_mass_flow_rate</span>  <span class="c1"># W</span>
         <span class="n">power_th</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"efficiency_factor"</span><span class="p">]</span> <span class="o">*</span> <span class="n">gas_energy_flow</span>
 
-        <span class="n">mass_flow_secondary</span> <span class="o">=</span> <span class="n">valve_position</span> <span class="o">*</span> <span class="n">fluid_density</span> <span class="o">*</span> <span class="n">secondary_flow_rate</span>  <span class="c1"># kg/s</span>
-        <span class="k">if</span> <span class="n">mass_flow_secondary</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MIN_MASS_FLOW</span><span class="p">:</span>
+        <span class="n">mass_flow_water</span> <span class="o">=</span> <span class="n">fluid_density</span> <span class="o">*</span> <span class="n">water_flow_rate</span>  <span class="c1"># kg/s</span>
+        <span class="k">if</span> <span class="n">mass_flow_water</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MIN_MASS_FLOW</span><span class="p">:</span>
             <span class="n">temperature_out</span> <span class="o">=</span> <span class="n">temperature_in</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">temperature_out</span> <span class="o">=</span> <span class="n">temperature_in</span> <span class="o">+</span> <span class="n">power_th</span> <span class="o">/</span> <span class="p">(</span><span class="n">cw</span> <span class="o">*</span> <span class="n">mass_flow_secondary</span><span class="p">)</span>
+            <span class="n">temperature_out</span> <span class="o">=</span> <span class="n">temperature_in</span> <span class="o">+</span> <span class="n">power_th</span> <span class="o">/</span> <span class="p">(</span><span class="n">cw</span> <span class="o">*</span> <span class="n">mass_flow_water</span><span class="p">)</span>
 
         <span class="n">emission</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"gas_emission_factor"</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">JOULE_PER_GJ</span> <span class="o">*</span> <span class="n">gas_energy_flow</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_in"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"temperature_out"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"water_flow_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">water_flow_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_el"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"power_th"</span><span class="p">]</span> <span class="o">=</span> <span class="n">power_th</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">"emission"</span><span class="p">]</span> <span class="o">=</span> <span class="n">emission</span></div>

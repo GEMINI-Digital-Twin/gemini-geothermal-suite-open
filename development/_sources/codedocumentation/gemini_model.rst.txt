@@ -22,6 +22,7 @@
    heat_exchanger
    heatpump
    injector_pump
+   mixer
    model_abstract
    pump
    reservoir
