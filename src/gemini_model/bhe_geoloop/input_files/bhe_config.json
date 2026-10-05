@@ -1,0 +1,48 @@
+{
+  "base_dir": "output",
+  "type": "UTUBE",
+
+  "H": 100,
+  "D": 5,
+  "r_b": 0.07,
+  "pos": [ [-0.042, 0], [0.042,0] ],
+  "r_out": [ 0.02, 0.02 ],
+  "SDR": 11,
+  "nInlets": 1,
+  "k_p": 0.4,
+
+  "insu_dr": 0.02,
+  "insu_k": 0.03,
+  "insu_z": 0,
+
+  "k_g": [0.844],
+  "z_k_g": [100],
+
+  "epsilon": 1e-6,
+  "fluid_str": "water",
+  "fluid_percent" : 100,
+  "m_flow": 0.45,
+
+  "Tg": 10,
+  "Tgrad": 2,
+  "z_Tg": 100,
+  "k_s": [2.5],
+  "z_k_s": [100],
+  "k_s_scale": 1,
+  "alfa": 1e-6,
+
+  "model_type": "ANALYTICAL",
+  "run_type": "TIN",
+  "nyear": 1,
+  "nled": 100,
+  "nsegments": 15,
+
+  "dooptimize": false,
+  "copcrit": 20,
+  "optimize_keys": ["m_flow"],
+  "optimize_keys_bounds": [[0.1, 10]],
+
+  "Q": 25000,
+  "Tin": 5
+
+}
