@@ -10,7 +10,8 @@ as the central hub for the web interface.
 
 import os
 
-from flask import Blueprint, current_app, redirect, render_template, send_from_directory
+import requests
+from flask import Blueprint, Response, current_app, render_template, request, send_from_directory
 from flask_login import current_user, login_required
 
 # Create the main blueprint instance
@@ -24,11 +25,53 @@ def index():
     return render_template("index.html")
 
 
-@main.route("/grafana")
+@main.route("/grafana/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@main.route("/grafana/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 @login_required
-def grafana():
-    """Navigate to the application timeseries viewer."""
-    return redirect(os.getenv("GRAFANA_URL"))
+def grafana(path):
+    """Navigate to the application Grafana interface."""
+
+    grafana_url = os.getenv("GRAFANA_URL").rstrip("/")
+    url = f"{grafana_url}/grafana/{path}"
+
+    headers = {
+        k: v
+        for k, v in request.headers
+        if k.lower() not in ("host", "cookie", "connection", "content-length", "accept-encoding")
+    }
+
+    headers["Host"] = request.host
+    headers["X-Forwarded-Host"] = request.host
+    headers["X-Forwarded-Proto"] = request.scheme
+    headers["Accept-Encoding"] = "identity"
+
+    cookies = {k: v for k, v in request.cookies.items() if k.startswith("grafana_")}
+
+    r = requests.request(
+        method=request.method,
+        url=url,
+        headers=headers,
+        cookies=cookies,
+        params=request.args,
+        data=request.get_data(),
+        allow_redirects=False,
+        timeout=30,
+    )
+
+    excluded = {
+        "content-encoding",
+        "content-length",
+        "transfer-encoding",
+        "connection",
+        "set-cookie",
+    }
+
+    response_headers = [(k, v) for k, v in r.headers.items() if k.lower() not in excluded]
+
+    for cookie in r.raw.headers.getlist("Set-Cookie"):
+        response_headers.append(("Set-Cookie", cookie))
+
+    return Response(r.content, status=r.status_code, headers=response_headers)
 
 
 @main.route("/app/diagram")
