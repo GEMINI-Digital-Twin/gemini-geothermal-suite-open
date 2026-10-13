@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gemini-geothermal-suite-open"
-version = "1.0.2"
+version = "1.0.3"
 description = "Open Source suite of the GEMINI Geothermal Digital Twin"
 authors = [ "Ryvo Octaviano <ryvo.octaviano@tno.nl>",
     "Leila Hashemi <leila.hashemi@tno.nl>",
