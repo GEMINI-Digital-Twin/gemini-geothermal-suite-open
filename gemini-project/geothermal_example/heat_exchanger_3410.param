@@ -57,34 +57,34 @@
         },
         "measured": {
             "hex_primary_flow": [
-                ""
+                "Qp"
             ],
             "hex_primary_inlet_pressure": [
-                ""
+                "HEX_Pin"
             ],
             "hex_primary_inlet_temperature": [
-                ""
+                "T_p_in"
             ],
             "hex_primary_outlet_pressure": [
-                ""
+                "HEX_Pout"
             ],
             "hex_primary_outlet_temperature": [
-                ""
+                "T_p_out"
             ],
             "hex_secondary_flow": [
-                ""
+                "Qs"
             ],
             "hex_secondary_inlet_pressure": [
                 ""
             ],
             "hex_secondary_inlet_temperature": [
-                ""
+                "T_s_in"
             ],
             "hex_secondary_outlet_pressure": [
                 ""
             ],
             "hex_secondary_outlet_temperature": [
-                ""
+                "T_s_out"
             ]
         },
         "timestamps": [

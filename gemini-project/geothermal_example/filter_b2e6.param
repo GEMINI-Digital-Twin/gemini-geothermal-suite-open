@@ -28,19 +28,19 @@
         },
         "measured": {
             "filter_flow": [
-                ""
+                "Qp"
             ],
             "filter_inlet_pressure": [
-                ""
+                "FilterA_Pin"
             ],
             "filter_inlet_temperature": [
-                ""
+                "T_p_in"
             ],
             "filter_outlet_pressure": [
-                ""
+                "FilterA_Pout"
             ],
             "filter_outlet_temperature": [
-                ""
+                "T_p_in"
             ]
         },
         "timestamps": [

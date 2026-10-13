@@ -108,31 +108,31 @@
                 ""
             ],
             "esp_flow": [
-                ""
+                "Qp"
             ],
             "esp_frequency": [
                 "ESP_freq"
             ],
             "esp_head": [
-                ""
+                "ESP_Head"
             ],
             "esp_inlet_pressure": [
-                ""
+                "ESP_Pin"
             ],
             "esp_inlet_temperature": [
-                ""
+                "T_p_in"
             ],
             "esp_motor_temperature": [
                 ""
             ],
             "esp_outlet_pressure": [
-                ""
+                "ESP_Pout"
             ],
             "esp_outlet_temperature": [
-                ""
+                "T_p_in"
             ],
             "esp_power_consumption": [
-                ""
+                "ESP_PowerDraw"
             ],
             "esp_vibration_x": [
                 ""
