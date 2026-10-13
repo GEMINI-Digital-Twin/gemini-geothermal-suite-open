@@ -114,7 +114,7 @@ class InfluxdbDriver(DatabaseDriverAbstract):
                 {
                     "measurement": plant_name,
                     "tags": {"asset_name": asset_name},
-                    "fields": {tag_name: value[ii]},
+                    "fields": {tag_name: float(value[ii]) if value[ii] is not None else None},
                     "time": int(datetime.fromisoformat(time[ii]).timestamp()),
                 }
                 for ii in range(start, min(start + batch_size, len(value)))
