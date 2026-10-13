@@ -79,6 +79,8 @@ the passwords:
    OLLAMA_HOST=0.0.0.0:11434
 
    GRAFANA_URL=http://localhost:3000
+   GF_SERVER_ROOT_URL=http://localhost:5101/grafana/
+   GF_SERVER_SERVE_FROM_SUB_PATH=true
    GF_SECURITY_ALLOW_EMBEDDING=true
    GF_SECURITY_ADMIN_USER=admin
    GF_SECURITY_ADMIN_EMAIL=admin@example.com
