@@ -82,6 +82,7 @@
 <span></span><span class="sd">"""Injection pump unit (placeholder for injection pump modules)."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.abstract.unit_abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnitAbstract</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.framework.data_filtering</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFiltering</span>
 
 
 <div class="viewcode-block" id="InjectionPumpUnit">
@@ -91,7 +92,8 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_id</span><span class="p">,</span> <span class="n">unit_name</span><span class="p">,</span> <span class="n">plant</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize injection pump unit."""</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">unit_id</span><span class="o">=</span><span class="n">unit_id</span><span class="p">,</span> <span class="n">unit_name</span><span class="o">=</span><span class="n">unit_name</span><span class="p">,</span> <span class="n">plant</span><span class="o">=</span><span class="n">plant</span><span class="p">)</span></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">unit_id</span><span class="o">=</span><span class="n">unit_id</span><span class="p">,</span> <span class="n">unit_name</span><span class="o">=</span><span class="n">unit_name</span><span class="p">,</span> <span class="n">plant</span><span class="o">=</span><span class="n">plant</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s2">"preprocessor"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DataFiltering</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
 
 </pre></div>
 

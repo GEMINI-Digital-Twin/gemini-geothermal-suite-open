@@ -11,6 +11,7 @@ gemini\_framework.framework
    :recursive:
 
    boot_plant
+   data_filtering
    loop
    mainmodule
    plant

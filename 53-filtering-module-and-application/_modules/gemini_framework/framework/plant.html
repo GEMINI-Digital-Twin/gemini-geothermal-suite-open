@@ -203,7 +203,9 @@
 <span class="w">        </span><span class="sd">"""Find modules of specified category."""</span>
         <span class="n">modules</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
-            <span class="n">modules</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">unit</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">category</span><span class="p">])</span>
+            <span class="n">modules</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">module</span> <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">unit</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">"enabled"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">modules</span></div>
 </div>

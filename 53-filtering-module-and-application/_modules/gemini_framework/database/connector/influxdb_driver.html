@@ -251,6 +251,22 @@
         <span class="k">return</span> <span class="n">results</span><span class="p">,</span> <span class="n">timestamps</span></div>
 
 
+<div class="viewcode-block" id="InfluxdbDriver.get_recent_data">
+<a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.get_recent_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_recent_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">,</span> <span class="n">asset_name</span><span class="p">,</span> <span class="n">tag_name</span><span class="p">,</span> <span class="n">before_time</span><span class="p">,</span> <span class="n">count</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Read the most recent values strictly before a timestamp."""</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s1">'from(bucket: "</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"bucket"</span><span class="p">]</span><span class="si">}</span><span class="s1">")'</span>
+            <span class="sa">f</span><span class="s2">" |&gt; range(start: 0, stop: </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">before_time</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="sa">f</span><span class="s1">' |&gt; filter(fn: (r) =&gt; r._measurement == "</span><span class="si">{</span><span class="n">plant_name</span><span class="si">}</span><span class="s1">")'</span>
+            <span class="sa">f</span><span class="s1">' |&gt; filter(fn: (r) =&gt; r._field == "</span><span class="si">{</span><span class="n">tag_name</span><span class="si">}</span><span class="s1">")'</span>
+            <span class="sa">f</span><span class="s1">' |&gt; filter(fn: (r) =&gt; r.asset_name == "</span><span class="si">{</span><span class="n">asset_name</span><span class="si">}</span><span class="s1">")'</span>
+            <span class="sa">f</span><span class="s1">' |&gt; sort(columns: ["_time"]) |&gt; tail(n: </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s1">)'</span>
+        <span class="p">)</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">query_api</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">org</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"org"</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">get_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">records</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="InfluxdbDriver.get_first_data">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.database.connector.influxdb_driver.html#gemini_framework.database.connector.influxdb_driver.InfluxdbDriver.get_first_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_first_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant_name</span><span class="p">,</span> <span class="n">asset_name</span><span class="p">,</span> <span class="n">tag_name</span><span class="p">):</span>

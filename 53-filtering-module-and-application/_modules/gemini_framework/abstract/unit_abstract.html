@@ -99,7 +99,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">unit_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">unit_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plant</span> <span class="o">=</span> <span class="n">plant</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"timestamps"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"property"</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"timestamps"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"property"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"filtering"</span><span class="p">:</span> <span class="p">{}}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"timestamps"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"measured"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"filtered"</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">"calculated"</span><span class="p">:</span> <span class="p">{}}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">modules</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"preprocessor"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"model"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"postprocessor"</span><span class="p">:</span> <span class="p">[]}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">from_units</span> <span class="o">=</span> <span class="p">[]</span>
@@ -124,7 +124,8 @@
 <span class="sd">        :param dict parameters: dict of parameters property.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"timestamps"</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"timestamps"</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"filtering"</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"filtering"</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="UnitAbstract.set_tagnames">
