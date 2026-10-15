@@ -66,7 +66,7 @@
                 ""
             ],
             "injectionpump_flow": [
-                ""
+                "Qp"
             ],
             "injectionpump_frequency": [
                 ""
@@ -75,22 +75,22 @@
                 ""
             ],
             "injectionpump_inlet_pressure": [
-                ""
+                "InjectorPump_Pin"
             ],
             "injectionpump_inlet_temperature": [
-                ""
+                "T_p_out"
             ],
             "injectionpump_motor_temperature": [
                 ""
             ],
             "injectionpump_outlet_pressure": [
-                ""
+                "InjectorPump_Pout"
             ],
             "injectionpump_outlet_temperature": [
-                ""
+                "T_p_out"
             ],
             "injectionpump_power_consumption": [
-                ""
+                "InjectorPump_PowerDraw"
             ],
             "injectionpump_voltage": [
                 ""

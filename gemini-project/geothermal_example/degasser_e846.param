@@ -32,7 +32,7 @@
         },
         "measured": {
             "degasser_inlet_flow": [
-                ""
+                "Qp"
             ],
             "degasser_level": [
                 ""
@@ -41,10 +41,10 @@
                 ""
             ],
             "degasser_outlet_liquid_flow": [
-                ""
+                "Qp"
             ],
             "degasser_pressure": [
-                ""
+                "Sep_Pin"
             ]
         },
         "timestamps": [

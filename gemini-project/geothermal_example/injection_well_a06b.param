@@ -28,7 +28,40 @@
                 ""
             ],
             "injectionwell_trajectory_table": [
-                []
+                [
+                    {
+                        "DT_RowId": 0,
+                        "ID": 0.1778,
+                        "MD": 0,
+                        "TVD": 0,
+                        "material": "ST",
+                        "roughness": 2e-05
+                    },
+                    {
+                        "DT_RowId": 1,
+                        "ID": 0.1778,
+                        "MD": 500,
+                        "TVD": 500,
+                        "material": "ST",
+                        "roughness": 2e-05
+                    },
+                    {
+                        "DT_RowId": 2,
+                        "ID": 0.1778,
+                        "MD": 1000,
+                        "TVD": 1000,
+                        "material": "ST",
+                        "roughness": 2e-05
+                    },
+                    {
+                        "DT_RowId": 3,
+                        "ID": 0.1778,
+                        "MD": 2000,
+                        "TVD": 2000,
+                        "material": "ST",
+                        "roughness": 2e-05
+                    }
+                ]
             ],
             "wellbore_radius": [
                 0.0765
@@ -90,13 +123,13 @@
                 ""
             ],
             "injectionwell_flow": [
-                ""
+                "Qp"
             ],
             "injectionwell_wellhead_pressure": [
-                ""
+                "InjectorPump_Pout"
             ],
             "injectionwell_wellhead_temperature": [
-                ""
+                "T_p_out"
             ]
         },
         "timestamps": [

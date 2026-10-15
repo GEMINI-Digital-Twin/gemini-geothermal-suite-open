@@ -267,7 +267,104 @@
                             ""
                         ],
                         "productionwell_trajectory_table": [
-                            []
+                            [
+                                {
+                                    "DT_RowId": 0,
+                                    "ID": 0.1778,
+                                    "MD": 0,
+                                    "TVD": 0,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 1,
+                                    "ID": 0.1778,
+                                    "MD": 400,
+                                    "TVD": 400,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 2,
+                                    "ID": 0.1778,
+                                    "MD": 550,
+                                    "TVD": 550,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 3,
+                                    "ID": 0.273,
+                                    "MD": 700,
+                                    "TVD": 700,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 4,
+                                    "ID": 0.273,
+                                    "MD": 1062,
+                                    "TVD": 1050,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 5,
+                                    "ID": 0.273,
+                                    "MD": 1250,
+                                    "TVD": 1200,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 6,
+                                    "ID": 0.273,
+                                    "MD": 1350,
+                                    "TVD": 1300,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 7,
+                                    "ID": 0.273,
+                                    "MD": 1600,
+                                    "TVD": 1500,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 8,
+                                    "ID": 0.273,
+                                    "MD": 2150,
+                                    "TVD": 1900,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 9,
+                                    "ID": 0.273,
+                                    "MD": 2400,
+                                    "TVD": 2100,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 10,
+                                    "ID": 0.1778,
+                                    "MD": 2500,
+                                    "TVD": 2150,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 11,
+                                    "ID": 0.1778,
+                                    "MD": 2800,
+                                    "TVD": 2300,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                }
+                            ]
                         ],
                         "wellbore_radius": [
                             0.0765
@@ -326,13 +423,13 @@
                             ""
                         ],
                         "productionwell_flow": [
-                            ""
+                            "Qp"
                         ],
                         "productionwell_wellhead_pressure": [
                             "Pwh_prod"
                         ],
                         "productionwell_wellhead_temperature": [
-                            ""
+                            "T_p_in"
                         ]
                     },
                     "timestamps": [
@@ -463,7 +560,7 @@
                             82
                         ],
                         "esp_no_stage": [
-                            20
+                            15
                         ],
                         "esp_power_coeff": [
                             "0;0;0;0;0;0"
@@ -549,31 +646,31 @@
                             ""
                         ],
                         "esp_flow": [
-                            ""
+                            "Qp"
                         ],
                         "esp_frequency": [
                             "ESP_freq"
                         ],
                         "esp_head": [
-                            ""
+                            "ESP_Head"
                         ],
                         "esp_inlet_pressure": [
-                            ""
+                            "ESP_Pin"
                         ],
                         "esp_inlet_temperature": [
-                            ""
+                            "T_p_in"
                         ],
                         "esp_motor_temperature": [
                             ""
                         ],
                         "esp_outlet_pressure": [
-                            ""
+                            "ESP_Pout"
                         ],
                         "esp_outlet_temperature": [
-                            ""
+                            "T_p_in"
                         ],
                         "esp_power_consumption": [
-                            ""
+                            "ESP_PowerDraw"
                         ],
                         "esp_vibration_x": [
                             ""
@@ -755,19 +852,19 @@
                     },
                     "measured": {
                         "filter_flow": [
-                            ""
+                            "Qp"
                         ],
                         "filter_inlet_pressure": [
-                            ""
+                            "FilterA_Pin"
                         ],
                         "filter_inlet_temperature": [
-                            ""
+                            "T_p_in"
                         ],
                         "filter_outlet_pressure": [
-                            ""
+                            "FilterA_Pout"
                         ],
                         "filter_outlet_temperature": [
-                            ""
+                            "T_p_in"
                         ]
                     },
                     "timestamps": [
@@ -953,34 +1050,34 @@
                     },
                     "measured": {
                         "hex_primary_flow": [
-                            ""
+                            "Qp"
                         ],
                         "hex_primary_inlet_pressure": [
-                            ""
+                            "HEX_Pin"
                         ],
                         "hex_primary_inlet_temperature": [
-                            ""
+                            "T_p_in"
                         ],
                         "hex_primary_outlet_pressure": [
-                            ""
+                            "HEX_Pout"
                         ],
                         "hex_primary_outlet_temperature": [
-                            ""
+                            "T_p_out"
                         ],
                         "hex_secondary_flow": [
-                            ""
+                            "Qs"
                         ],
                         "hex_secondary_inlet_pressure": [
                             ""
                         ],
                         "hex_secondary_inlet_temperature": [
-                            ""
+                            "T_s_in"
                         ],
                         "hex_secondary_outlet_pressure": [
                             ""
                         ],
                         "hex_secondary_outlet_temperature": [
-                            ""
+                            "T_s_out"
                         ]
                     },
                     "timestamps": [
@@ -1135,19 +1232,19 @@
                     },
                     "measured": {
                         "filter_flow": [
-                            ""
+                            "Qp"
                         ],
                         "filter_inlet_pressure": [
-                            ""
+                            "FilterB_Pin"
                         ],
                         "filter_inlet_temperature": [
-                            ""
+                            "T_p_out"
                         ],
                         "filter_outlet_pressure": [
-                            ""
+                            "FilterB_Pout"
                         ],
                         "filter_outlet_temperature": [
-                            ""
+                            "T_p_out"
                         ]
                     },
                     "timestamps": [
@@ -1340,7 +1437,7 @@
                             ""
                         ],
                         "injectionpump_flow": [
-                            ""
+                            "Qp"
                         ],
                         "injectionpump_frequency": [
                             ""
@@ -1349,22 +1446,22 @@
                             ""
                         ],
                         "injectionpump_inlet_pressure": [
-                            ""
+                            "InjectorPump_Pin"
                         ],
                         "injectionpump_inlet_temperature": [
-                            ""
+                            "T_p_out"
                         ],
                         "injectionpump_motor_temperature": [
                             ""
                         ],
                         "injectionpump_outlet_pressure": [
-                            ""
+                            "InjectorPump_Pout"
                         ],
                         "injectionpump_outlet_temperature": [
-                            ""
+                            "T_p_out"
                         ],
                         "injectionpump_power_consumption": [
-                            ""
+                            "InjectorPump_PowerDraw"
                         ],
                         "injectionpump_voltage": [
                             ""
@@ -1522,7 +1619,40 @@
                             ""
                         ],
                         "injectionwell_trajectory_table": [
-                            []
+                            [
+                                {
+                                    "DT_RowId": 0,
+                                    "ID": 0.1778,
+                                    "MD": 0,
+                                    "TVD": 0,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 1,
+                                    "ID": 0.1778,
+                                    "MD": 500,
+                                    "TVD": 500,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 2,
+                                    "ID": 0.1778,
+                                    "MD": 1000,
+                                    "TVD": 1000,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                },
+                                {
+                                    "DT_RowId": 3,
+                                    "ID": 0.1778,
+                                    "MD": 2000,
+                                    "TVD": 2000,
+                                    "material": "ST",
+                                    "roughness": 2e-05
+                                }
+                            ]
                         ],
                         "wellbore_radius": [
                             0.0765
@@ -1584,13 +1714,13 @@
                             ""
                         ],
                         "injectionwell_flow": [
-                            ""
+                            "Qp"
                         ],
                         "injectionwell_wellhead_pressure": [
-                            ""
+                            "InjectorPump_Pout"
                         ],
                         "injectionwell_wellhead_temperature": [
-                            ""
+                            "T_p_out"
                         ]
                     },
                     "timestamps": [
@@ -1703,25 +1833,25 @@
                 "parameters": {
                     "property": {
                         "liquid_density": [
-                            0
+                            1068
                         ],
                         "liquid_viscosity": [
-                            0
+                            0.00065
                         ],
                         "reservoir_permeability": [
-                            0
+                            10000
                         ],
                         "reservoir_pressure": [
-                            0
+                            220
                         ],
                         "reservoir_radius": [
                             0
                         ],
                         "reservoir_temperature": [
-                            0
+                            80
                         ],
                         "reservoir_thickness": [
-                            0
+                            45
                         ],
                         "reservoir_top": [
                             0
@@ -1923,7 +2053,7 @@
                     },
                     "measured": {
                         "degasser_inlet_flow": [
-                            ""
+                            "Qp"
                         ],
                         "degasser_level": [
                             ""
@@ -1932,10 +2062,10 @@
                             ""
                         ],
                         "degasser_outlet_liquid_flow": [
-                            ""
+                            "Qp"
                         ],
                         "degasser_pressure": [
-                            ""
+                            "Sep_Pin"
                         ]
                     },
                     "timestamps": [
