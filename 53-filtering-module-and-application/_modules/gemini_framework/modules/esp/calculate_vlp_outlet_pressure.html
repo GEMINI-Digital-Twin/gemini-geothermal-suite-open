@@ -94,7 +94,7 @@
 <div class="viewcode-block" id="CalculateVLPOutletPressure">
 <a class="viewcode-back" href="../../../../codedocumentation/gemini_framework.modules.esp.calculate_vlp_outlet_pressure.html#gemini_framework.modules.esp.calculate_vlp_outlet_pressure.CalculateVLPOutletPressure">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CalculateVLPOutletPressure</span><span class="p">(</span><span class="n">UnitModuleAbstract</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Compute ESP outlet pressure using VLP and wellhead measurements."""</span>
+<span class="w">    </span><span class="sd">"""Compute ESP outlet pressure using VLP and filtered wellhead data."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize VLP outlet pressure calculation module."""</span>
@@ -110,9 +110,9 @@
 <span class="w">        </span><span class="sd">"""Link module inputs and outputs."""</span>
         <span class="n">well_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">from_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"esp_flow"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"productionwell_wellhead_pressure"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">,</span> <span class="s2">"productionwell_wellhead_temperature"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">,</span> <span class="s2">"esp_flow"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">,</span> <span class="s2">"productionwell_wellhead_pressure"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_input</span><span class="p">(</span><span class="n">well_unit</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">,</span> <span class="s2">"productionwell_wellhead_temperature"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">link_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"calculated"</span><span class="p">,</span> <span class="s2">"esp_vlp_outlet_pressure"</span><span class="p">)</span></div>
 
 

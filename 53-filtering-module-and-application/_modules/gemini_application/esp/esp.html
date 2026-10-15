@@ -136,7 +136,7 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_read_series</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tagname</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Read a measured/calculated series from the internal database."""</span>
+<span class="w">        </span><span class="sd">"""Read a filtered/calculated series from the internal database."""</span>
         <span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="s2">"start_time"</span><span class="p">],</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S"</span><span class="p">)</span>
         <span class="n">start_time</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">tzobject</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span><span class="n">start_time</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
@@ -162,10 +162,10 @@
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.esp.esp.html#gemini_application.esp.esp.ESPApp.get_data">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Get ESP data."""</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"flow_measured"</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_series</span><span class="p">(</span><span class="s2">"esp_flow.measured"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"frequency_measured"</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_series</span><span class="p">(</span><span class="s2">"esp_frequency.measured"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"flow_measured"</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_series</span><span class="p">(</span><span class="s2">"esp_flow.filtered"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"frequency_measured"</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_series</span><span class="p">(</span><span class="s2">"esp_frequency.filtered"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"inlet_pressure_measured"</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_series</span><span class="p">(</span>
-            <span class="s2">"esp_inlet_pressure.measured"</span>
+            <span class="s2">"esp_inlet_pressure.filtered"</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"esp_vlp_head_calculated"</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_series</span><span class="p">(</span><span class="s2">"esp_vlp_head.calculated"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"esp_theoretical_head_calculated"</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_series</span><span class="p">(</span>
@@ -374,11 +374,11 @@
         <span class="n">time_array</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">result</span><span class="p">,</span> <span class="n">time_array</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">read_internal_database</span><span class="p">(</span>
-                <span class="n">plant_name</span><span class="p">,</span> <span class="n">unit_name</span><span class="p">,</span> <span class="s2">"esp_flow.measured"</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">timestep</span>
+                <span class="n">plant_name</span><span class="p">,</span> <span class="n">unit_name</span><span class="p">,</span> <span class="s2">"esp_flow.filtered"</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">timestep</span>
             <span class="p">)</span>
             <span class="n">sensor_data</span><span class="p">[</span><span class="s2">"Brine flow rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Warning: Could not read esp_flow.measured: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Warning: Could not read esp_flow.filtered: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="n">start_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
             <span class="n">end_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">end_time</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
             <span class="n">time_array</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start_dt</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">timestep</span><span class="si">}</span><span class="s2">S"</span><span class="p">)</span>
@@ -386,11 +386,11 @@
         <span class="n">data_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_array</span><span class="p">)</span>
 
         <span class="n">tags_mapping</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"intake pressure ESP"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_inlet_pressure"</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">),</span>
-            <span class="s2">"discharge pressure ESP"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_outlet_pressure"</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">),</span>
-            <span class="s2">"ESP Motor temperature"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_motor_temperature"</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">),</span>
-            <span class="s2">"Vibration (Vx)"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_vibration_x"</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">),</span>
-            <span class="s2">"Vibration (Vy, Vz)"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_vibration_y"</span><span class="p">,</span> <span class="s2">"measured"</span><span class="p">),</span>
+            <span class="s2">"intake pressure ESP"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_inlet_pressure"</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">),</span>
+            <span class="s2">"discharge pressure ESP"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_outlet_pressure"</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">),</span>
+            <span class="s2">"ESP Motor temperature"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_motor_temperature"</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">),</span>
+            <span class="s2">"Vibration (Vx)"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_vibration_x"</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">),</span>
+            <span class="s2">"Vibration (Vy, Vz)"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"esp_vibration_y"</span><span class="p">,</span> <span class="s2">"filtered"</span><span class="p">),</span>
         <span class="p">}</span>
 
         <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="p">(</span><span class="n">tag_base</span><span class="p">,</span> <span class="n">tag_type</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tags_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -409,7 +409,7 @@
                 <span class="n">result</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">read_internal_database</span><span class="p">(</span>
                     <span class="n">plant_name</span><span class="p">,</span>
                     <span class="n">well_unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                    <span class="s2">"productionwell_wellhead_pressure.measured"</span><span class="p">,</span>
+                    <span class="s2">"productionwell_wellhead_pressure.filtered"</span><span class="p">,</span>
                     <span class="n">start_time</span><span class="p">,</span>
                     <span class="n">end_time</span><span class="p">,</span>
                     <span class="n">timestep</span><span class="p">,</span>
@@ -423,7 +423,7 @@
                 <span class="n">result</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">read_internal_database</span><span class="p">(</span>
                     <span class="n">plant_name</span><span class="p">,</span>
                     <span class="n">well_unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                    <span class="s2">"productionwell_wellhead_temperature.measured"</span><span class="p">,</span>
+                    <span class="s2">"productionwell_wellhead_temperature.filtered"</span><span class="p">,</span>
                     <span class="n">start_time</span><span class="p">,</span>
                     <span class="n">end_time</span><span class="p">,</span>
                     <span class="n">timestep</span><span class="p">,</span>
@@ -665,7 +665,7 @@
 <div class="viewcode-block" id="ESPApp.plot">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.esp.esp.html#gemini_application.esp.esp.ESPApp.plot">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Plot pump curves and the measured data."""</span>
+<span class="w">        </span><span class="sd">"""Plot pump curves and the filtered data."""</span>
         <span class="n">bar_to_meters</span> <span class="o">=</span> <span class="mf">10.1972</span>  <span class="c1"># 1 bar ≈ 10.1972 meters of water head</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">format_func</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ti</span><span class="p">):</span>
@@ -690,7 +690,7 @@
 
         <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
 
-        <span class="c1"># Plot measured data with a color map representing time</span>
+        <span class="c1"># Plot filtered data with a color map representing time</span>
         <span class="n">scatter</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">time_x</span><span class="p">,</span> <span class="n">head_corrected_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">time_measured</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int64"</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"jet"</span><span class="p">)</span>
         <span class="n">colorbar</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">scatter</span><span class="p">)</span>
         <span class="n">colorbar</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">FuncFormatter</span><span class="p">(</span><span class="n">format_func</span><span class="p">))</span>
@@ -1009,7 +1009,7 @@
 <div class="viewcode-block" id="ESPApp.plot_comparison">
 <a class="viewcode-back" href="../../../codedocumentation/gemini_application.esp.esp.html#gemini_application.esp.esp.ESPApp.plot_comparison">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">plot_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Plot the measured and calculated tags."""</span>
+<span class="w">        </span><span class="sd">"""Plot the filtered and calculated tags."""</span>
         <span class="n">time_measured</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
         <span class="n">flow_measured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"flow_measured"</span><span class="p">]</span>
         <span class="n">frequency_measured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"frequency_measured"</span><span class="p">]</span>
@@ -1089,7 +1089,7 @@
             <span class="s2">"Calculated Outlet Pressure via VLP - Theoretical Outlet Pressure vs Time"</span>
         <span class="p">)</span>
 
-        <span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_measured</span><span class="p">,</span> <span class="n">intake_pressure_measured</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Measured Inlet Pressure"</span><span class="p">)</span>
+        <span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_measured</span><span class="p">,</span> <span class="n">intake_pressure_measured</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Filtered Inlet Pressure"</span><span class="p">)</span>
         <span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
             <span class="n">time_measured</span><span class="p">,</span>
             <span class="n">esp_vlp_ipr_inlet_pressure_calculated</span><span class="p">,</span>
@@ -1107,7 +1107,7 @@
         <span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
         <span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
-            <span class="s2">"Measured Inlet Pressure - Calculated Inlet Pressure via VLP-IPR vs Time"</span>
+            <span class="s2">"Filtered Inlet Pressure - Calculated Inlet Pressure via VLP-IPR vs Time"</span>
         <span class="p">)</span>
 
         <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>

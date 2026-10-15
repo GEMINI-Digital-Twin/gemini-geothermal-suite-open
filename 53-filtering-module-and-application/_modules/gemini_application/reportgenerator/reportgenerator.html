@@ -448,13 +448,13 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">add_stats_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inj_wells</span><span class="p">,</span> <span class="n">prod_wells</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Add statistics plot to PDF."""</span>
         <span class="n">inj_well_tagnames</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">"injectionwell_flow.measured"</span><span class="p">,</span>
-            <span class="s2">"injectionwell_wellhead_pressure.measured"</span><span class="p">,</span>
-            <span class="s2">"injectionwell_annulus_a_pressure.measured"</span><span class="p">,</span>
+            <span class="s2">"injectionwell_flow.filtered"</span><span class="p">,</span>
+            <span class="s2">"injectionwell_wellhead_pressure.filtered"</span><span class="p">,</span>
+            <span class="s2">"injectionwell_annulus_a_pressure.filtered"</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="n">prod_well_tagnames</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">"productionwell_annulus_a_pressure.measured"</span><span class="p">,</span>
-            <span class="s2">"productionwell_annulus_b_pressure.measured"</span><span class="p">,</span>
+            <span class="s2">"productionwell_annulus_a_pressure.filtered"</span><span class="p">,</span>
+            <span class="s2">"productionwell_annulus_b_pressure.filtered"</span><span class="p">,</span>
         <span class="p">]</span>
 
         <span class="n">all_wells</span> <span class="o">=</span> <span class="n">inj_wells</span> <span class="o">+</span> <span class="n">prod_wells</span>
@@ -890,11 +890,11 @@
 
         <span class="c1"># Tagnames for values to be added in the stats table</span>
         <span class="n">inj_well_tagnames</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">"injectionwell_flow.measured"</span><span class="p">,</span>
-            <span class="s2">"injectionwell_wellhead_pressure.measured"</span><span class="p">,</span>
-            <span class="s2">"injectionwell_annulus_pressure.measured"</span><span class="p">,</span>
+            <span class="s2">"injectionwell_flow.filtered"</span><span class="p">,</span>
+            <span class="s2">"injectionwell_wellhead_pressure.filtered"</span><span class="p">,</span>
+            <span class="s2">"injectionwell_annulus_a_pressure.filtered"</span><span class="p">,</span>
         <span class="p">]</span>
-        <span class="n">prod_well_tagnames</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"productionwell_annulus_a_pressure.measured"</span><span class="p">]</span>
+        <span class="n">prod_well_tagnames</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"productionwell_annulus_a_pressure.filtered"</span><span class="p">]</span>
 
         <span class="c1"># First add injection well stats, then production well stats</span>
         <span class="n">all_stats_data</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gather_stats</span><span class="p">(</span><span class="n">inj_wells</span><span class="p">,</span> <span class="n">inj_well_tagnames</span><span class="p">)</span>

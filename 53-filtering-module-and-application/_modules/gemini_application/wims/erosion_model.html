@@ -210,14 +210,14 @@
         <span class="k">if</span> <span class="n">well_type</span> <span class="o">==</span> <span class="s2">"productionwell"</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s2">"to_units"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_units</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Production well has no linked ESP unit."</span><span class="p">)</span>
-            <span class="n">flow_tag</span> <span class="o">=</span> <span class="s2">"esp_flow.measured"</span>
-            <span class="n">pressure_tag</span> <span class="o">=</span> <span class="s2">"esp_inlet_pressure.measured"</span>
-            <span class="n">temperature_tag</span> <span class="o">=</span> <span class="s2">"esp_inlet_temperature.measured"</span>
+            <span class="n">flow_tag</span> <span class="o">=</span> <span class="s2">"esp_flow.filtered"</span>
+            <span class="n">pressure_tag</span> <span class="o">=</span> <span class="s2">"esp_inlet_pressure.filtered"</span>
+            <span class="n">temperature_tag</span> <span class="o">=</span> <span class="s2">"esp_inlet_temperature.filtered"</span>
             <span class="n">asset_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_units</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">flow_tag</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_flow.measured"</span>
-            <span class="n">pressure_tag</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_wellhead_pressure.measured"</span>
-            <span class="n">temperature_tag</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_wellhead_temperature.measured"</span>
+            <span class="n">flow_tag</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_flow.filtered"</span>
+            <span class="n">pressure_tag</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_wellhead_pressure.filtered"</span>
+            <span class="n">temperature_tag</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">well_type</span><span class="si">}</span><span class="s2">_wellhead_temperature.filtered"</span>
             <span class="n">asset_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">name</span>
 
         <span class="k">try</span><span class="p">:</span>
