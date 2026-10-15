@@ -5,12 +5,12 @@
         "filtering": {
             "enabled": true,
             "tags": {
-                "eboiler_heat_pipe_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "eboiler_heat_pipe_inlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "eboiler_heat_pipe_outlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "eboiler_input_current": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "eboiler_input_power": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "eboiler_input_voltage": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4}
+                "eboiler_heat_pipe_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "eboiler_heat_pipe_inlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "eboiler_heat_pipe_outlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "eboiler_input_current": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "eboiler_input_power": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "eboiler_input_voltage": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
             }
         },
         "property": {

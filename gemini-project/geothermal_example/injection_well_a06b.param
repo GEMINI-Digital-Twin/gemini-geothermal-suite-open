@@ -5,13 +5,13 @@
         "filtering": {
             "enabled": true,
             "tags": {
-                "injectionwell_annulus_a_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "injectionwell_annulus_b_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "injectionwell_bottomhole_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "injectionwell_bottomhole_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "injectionwell_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "injectionwell_wellhead_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
-                "injectionwell_wellhead_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4}
+                "injectionwell_annulus_a_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_annulus_b_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_bottomhole_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_bottomhole_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_wellhead_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_wellhead_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
             }
         },
         "property": {

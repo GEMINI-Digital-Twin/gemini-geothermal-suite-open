@@ -84,7 +84,7 @@ def get_tagnames():
     if database == "geminidb":
         for unit in app_instance.plant.units:
             if unit.name == unit_name:
-                categories = ["measured", "calculated"]
+                categories = ["measured", "filtered", "calculated"]
                 for category in categories:
                     for tagname in unit.tags[category].keys():
                         tagnames.append(tagname + "." + category)
@@ -189,7 +189,7 @@ def status_unit_tagnames():
 
     status = {}
 
-    categories = ["measured", "calculated"]
+    categories = ["measured", "filtered", "calculated"]
     for category in categories:
         for key, value in app_instance.unit.tags[category].items():
             tagname = key + "." + category
