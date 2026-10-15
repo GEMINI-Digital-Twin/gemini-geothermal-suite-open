@@ -45,7 +45,12 @@
         <div class="builder-palette-group"><h4>Network</h4>
             <button type="button" class="builder-item network" data-component="node" draggable="true"><i class="fa fa-circle-o" aria-hidden="true"></i> Mixing Node</button>
         </div>
-        <div class="builder-legend"><strong>Legend</strong><span class="production">Production</span><span class="injection">Injection</span><span class="surface">Surface</span><span class="heat">Heat</span></div>
+        <div class="builder-legend">
+            <strong>Pipe circuits</strong>
+            <span class="builder-legend-line">Unassigned</span>
+            <span class="builder-legend-line primary">Primary loop</span>
+            <span class="builder-legend-line secondary">Secondary loop</span>
+        </div>
     </aside>
     <main class="builder-canvas-panel">
         <div class="builder-canvas-toolbar" role="toolbar" aria-label="Canvas controls">
@@ -59,14 +64,24 @@
             <button type="button" id="builder-delete" class="btn btn-default btn-sm" disabled>Delete selected</button>
         </div>
         <div id="mybuilder" class="builder-canvas" aria-label="Diagram canvas" tabindex="0"></div>
-        <p class="builder-help">Connect an output port to an input port. Click a component to edit it; drag it to move. Drag empty canvas to pan or scroll over it to zoom.</p>
+        <p class="builder-help">Connect an output port to an input port. Click a pipe to assign its circuit. Drag empty canvas to pan or scroll over it to zoom.</p>
         <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
             <button type="button" class="dropdown-item" onclick="show_parameter_modal()">Edit parameters</button>
             <button type="button" class="dropdown-item" onclick="delete_element()">Delete</button>
         </div>
     </main>
-<aside id="componentModal" class="builder-inspector" aria-label="Selected component">
-    <div class="builder-inspector-empty">Select a component to view its properties and tagnames.</div>
+<aside id="componentModal" class="builder-inspector" aria-label="Selected diagram item">
+    <div class="builder-inspector-empty">Select a component to edit it or a pipe to assign its circuit.</div>
+    <div class="builder-link-editor" hidden>
+        <h3>Pipe circuit</h3>
+        <label for="builder-link-loop">Loop</label>
+        <select id="builder-link-loop" class="form-control">
+            <option value="">Unassigned (neutral)</option>
+            <option value="primary">Primary loop (blue)</option>
+            <option value="secondary">Secondary loop (orange)</option>
+        </select>
+        <p class="builder-help">Choose a circuit for this pipe, then save the diagram.</p>
+    </div>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
