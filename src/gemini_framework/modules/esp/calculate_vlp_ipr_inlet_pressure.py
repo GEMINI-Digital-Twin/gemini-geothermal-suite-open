@@ -25,7 +25,7 @@ class CalculateVLPIPRInletPressure(UnitModuleAbstract):
 
     def link(self):
         """Link module inputs and outputs."""
-        self.link_input(self.unit, "measured", "esp_flow")
+        self.link_input(self.unit, "filtered", "esp_flow")
         self.link_output(self.unit, "calculated", "esp_vlp_ipr_inlet_pressure")
 
     def step(self, loop):

@@ -452,7 +452,117 @@ function open_element_parameter(element) {
 
 
     read_parameters()
+    read_filtering_parameters(element)
 
+}
+
+function read_filtering_parameters(element) {
+    var properties = element.attributes.properties;
+    var filtering = properties.parameters.filtering || {};
+    var rules = filtering.tags || filtering;
+    $('#filtering-enabled').prop('checked', filtering.enabled !== false);
+
+    var container = $('#filtering-rules').empty();
+    var tags = Object.keys(properties.tagnames.measured || {});
+    if (tags.length === 0) {
+        container.append($('<p>').addClass('text-muted').text('This asset has no measured tags.'));
+    }
+
+    tags.forEach(function (tag) {
+        var rule = rules[tag] || {};
+        var table = $('<table>').addClass('table filtering-rule').data('tag', tag);
+        table.append($('<tr>').append($('<td colspan="2">')
+            .append($('<strong>').css('color', 'black').text(tag))));
+
+        function addRow(label, field) {
+            var row = $('<tr>');
+            row.append($('<td>').append($('<span>').css('color', 'black').text(label)));
+            row.append($('<td>').append(field));
+            table.append(row);
+            return row;
+        }
+
+        [
+            ['Minimum', 'filter-min', rule.min],
+            ['Maximum', 'filter-max', rule.max]
+        ].forEach(function (field) {
+            addRow(field[0], $('<input type="number" step="any" style="width:200px; height:30px">')
+                .addClass(field[1]).val(field[2] == null ? '' : field[2]));
+        });
+        addRow('No missing values', $('<input type="checkbox">').addClass('filter-no-missing')
+            .prop('checked', rule.no_missing !== false));
+        var method = $('<select style="width:200px; height:30px">').addClass('filter-correction');
+        ['last_value', 'moving_average', 'replacement'].forEach(function (choice) {
+            method.append($('<option>').val(choice).text(choice.replace('_', ' ')));
+        });
+        method.val(rule.correction || 'last_value');
+        addRow('Correction', method);
+        addRow('Window (samples)', $('<input type="number" min="1" step="1" style="width:200px; height:30px">')
+            .addClass('filter-window').val(rule.window == null ? 4 : rule.window));
+        var replacement = addRow('Replacement value',
+            $('<input type="number" step="any" style="width:200px; height:30px">')
+                .addClass('filter-replacement').val(rule.replacement == null ? '' : rule.replacement));
+        method.on('change', function () {
+            replacement.toggle(method.val() === 'replacement');
+        }).trigger('change');
+        container.append(table);
+    });
+}
+
+function save_filtering_parameters(element) {
+    var rules = {};
+    var valid = true;
+    $('#filtering-rules .filtering-rule').each(function () {
+        var row = $(this);
+        var tag = row.data('tag');
+        var minimum = row.find('.filter-min').val().trim();
+        var maximum = row.find('.filter-max').val().trim();
+        var window = row.find('.filter-window').val().trim();
+        var replacement = row.find('.filter-replacement').val().trim();
+        var method = row.find('.filter-correction').val();
+        var minValue = minimum === '' ? null : Number(minimum);
+        var maxValue = maximum === '' ? null : Number(maximum);
+        var windowValue = Number(window);
+        var replacementValue = Number(replacement);
+        if (row.find('input').toArray().some(function (input) { return input.validity.badInput; }) ||
+            (minValue !== null && !Number.isFinite(minValue)) ||
+            (maxValue !== null && !Number.isFinite(maxValue)) ||
+            (minValue !== null && maxValue !== null && minValue > maxValue) ||
+            !Number.isInteger(windowValue) || windowValue < 1 ||
+            !['last_value', 'moving_average', 'replacement'].includes(method) ||
+            (method === 'replacement' && (replacement === '' || !Number.isFinite(replacementValue) ||
+                (minValue !== null && replacementValue < minValue) ||
+                (maxValue !== null && replacementValue > maxValue)))) {
+            alert('Invalid filtering settings for ' + tag);
+            valid = false;
+            return false;
+        }
+        rules[tag] = {
+            min: minValue,
+            max: maxValue,
+            no_missing: row.find('.filter-no-missing').prop('checked'),
+            correction: method,
+            window: windowValue
+        };
+        if (method === 'replacement') {
+            rules[tag].replacement = replacementValue;
+        }
+    });
+    if (!valid) {
+        return false;
+    }
+    var tagnames = element.attributes.properties.tagnames;
+    tagnames.filtered = tagnames.filtered || {};
+    Object.keys(rules).forEach(function (tag) {
+        if (!Object.prototype.hasOwnProperty.call(tagnames.filtered, tag)) {
+            tagnames.filtered[tag] = (tagnames.timestamps || []).map(function () { return ''; });
+        }
+    });
+    element.attributes.properties.parameters.filtering = {
+        enabled: $('#filtering-enabled').prop('checked'),
+        tags: rules
+    };
+    return true;
 }
 
 function read_parameters() {
@@ -627,6 +737,10 @@ function hide_all_parameter_table() {
 function save_parameters() {
     console.log("saving parameter")
     element = selected_cell
+
+    if (!save_filtering_parameters(element)) {
+        return;
+    }
 
     if (element.attributes.properties.name == '') {
         element.attributes.properties.name = document.getElementById("component_type").value + '_' + element.id.substr(0, 4)

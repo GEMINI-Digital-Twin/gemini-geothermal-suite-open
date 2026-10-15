@@ -19,8 +19,8 @@ class CalculateTheoreticalHead(UnitModuleAbstract):
 
     def link(self):
         """Link module inputs and outputs."""
-        self.link_input(self.unit, "measured", "esp_flow")
-        self.link_input(self.unit, "measured", "esp_frequency")
+        self.link_input(self.unit, "filtered", "esp_flow")
+        self.link_input(self.unit, "filtered", "esp_frequency")
         self.link_output(self.unit, "calculated", "esp_theoretical_head")
 
     def step(self, loop):

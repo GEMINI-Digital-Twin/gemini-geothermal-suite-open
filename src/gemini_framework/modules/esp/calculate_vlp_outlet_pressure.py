@@ -11,7 +11,7 @@ from gemini_model.well.pressure_drop import DPDT
 
 
 class CalculateVLPOutletPressure(UnitModuleAbstract):
-    """Compute ESP outlet pressure using VLP and wellhead measurements."""
+    """Compute ESP outlet pressure using VLP and filtered wellhead data."""
 
     def __init__(self, unit):
         """Initialize VLP outlet pressure calculation module."""
@@ -25,9 +25,9 @@ class CalculateVLPOutletPressure(UnitModuleAbstract):
         """Link module inputs and outputs."""
         well_unit = self.unit.from_units[0]
 
-        self.link_input(self.unit, "measured", "esp_flow")
-        self.link_input(well_unit, "measured", "productionwell_wellhead_pressure")
-        self.link_input(well_unit, "measured", "productionwell_wellhead_temperature")
+        self.link_input(self.unit, "filtered", "esp_flow")
+        self.link_input(well_unit, "filtered", "productionwell_wellhead_pressure")
+        self.link_input(well_unit, "filtered", "productionwell_wellhead_temperature")
         self.link_output(self.unit, "calculated", "esp_vlp_outlet_pressure")
 
     def step(self, loop):

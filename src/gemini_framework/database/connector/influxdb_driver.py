@@ -156,6 +156,19 @@ class InfluxdbDriver(DatabaseDriverAbstract):
 
         return results, timestamps
 
+    def get_recent_data(self, plant_name, asset_name, tag_name, before_time, count):
+        """Read the most recent values strictly before a timestamp."""
+        query = (
+            f'from(bucket: "{self.parameters["bucket"]}")'
+            f" |> range(start: 0, stop: {int(datetime.fromisoformat(before_time).timestamp())})"
+            f' |> filter(fn: (r) => r._measurement == "{plant_name}")'
+            f' |> filter(fn: (r) => r._field == "{tag_name}")'
+            f' |> filter(fn: (r) => r.asset_name == "{asset_name}")'
+            f' |> sort(columns: ["_time"]) |> tail(n: {count})'
+        )
+        tables = self.conn.query_api().query(org=self.parameters["org"], query=query)
+        return [record.get_value() for table in tables for record in table.records]
+
     def get_first_data(self, plant_name, asset_name, tag_name):
         """Get first data from database."""
         query_api = self.conn.query_api()

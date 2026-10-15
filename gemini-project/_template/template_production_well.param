@@ -2,6 +2,18 @@
     "id": "",
     "name": "",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "productionwell_annulus_a_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "productionwell_annulus_b_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "productionwell_bottomhole_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "productionwell_bottomhole_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "productionwell_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "productionwell_wellhead_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "productionwell_wellhead_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "productionwell_friction_correction_factors": [
                 [
@@ -57,6 +69,8 @@
             ]
         },
         "filtered": {
+            "productionwell_annulus_a_pressure": [""],
+            "productionwell_annulus_b_pressure": [""],
             "productionwell_bottomhole_pressure": [
                 ""
             ],

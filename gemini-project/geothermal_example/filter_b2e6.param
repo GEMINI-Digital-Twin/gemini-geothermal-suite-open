@@ -2,6 +2,16 @@
     "id": "b2e6ce90-f5d2-4b2d-8404-f588231de74e",
     "name": "filter_b2e6",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "filter_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "filter_inlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "filter_inlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "filter_outlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "filter_outlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {},
         "timestamps": [
             "2020-01-01 00:00:00"

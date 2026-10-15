@@ -2,6 +2,18 @@
     "id": "a06b8724-bb49-499c-8ad2-d3c0bfdd3a8a",
     "name": "injection_well_a06b",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "injectionwell_annulus_a_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_annulus_b_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_bottomhole_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_bottomhole_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_wellhead_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionwell_wellhead_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "injectionwell_friction_correction_factors": [
                 [
@@ -93,6 +105,8 @@
             ]
         },
         "filtered": {
+            "injectionwell_annulus_a_pressure": [""],
+            "injectionwell_annulus_b_pressure": [""],
             "injectionwell_bottomhole_pressure": [
                 ""
             ],

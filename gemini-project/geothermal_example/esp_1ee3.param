@@ -2,6 +2,24 @@
     "id": "1ee3802a-99d1-49fb-86fc-6955f79935c7",
     "name": "esp_1ee3",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "esp_flow": {"min": null,"max": null,"no_missing": false,"correction": "moving_average","window": 4},
+                "esp_current": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_frequency": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_head": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_inlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_inlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_motor_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_outlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_outlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_power_consumption": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_vibration_x": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_vibration_y": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "esp_voltage": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "esp_bep_flow": [
                 129.98

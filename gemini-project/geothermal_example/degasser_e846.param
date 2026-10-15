@@ -2,6 +2,16 @@
     "id": "e8469de8-5f11-47d2-9b58-c0cb694528d9",
     "name": "degasser_e846",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "degasser_inlet_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "degasser_level": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "degasser_outlet_gas_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "degasser_outlet_liquid_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "degasser_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "heat_transfer_coeff": [
                 100000

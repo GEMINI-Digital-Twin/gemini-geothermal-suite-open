@@ -2,6 +2,22 @@
     "id": "",
     "name": "",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "injectionpump_current": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_frequency": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_head": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_inlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_inlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_motor_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_outlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_outlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_power_consumption": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "injectionpump_voltage": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "injectionpump_no_stage": [
                 0

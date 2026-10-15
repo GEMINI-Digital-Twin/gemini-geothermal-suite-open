@@ -16,7 +16,7 @@ class UnitAbstract(ABC):
         self.id = unit_id
         self.name = unit_name
         self.plant = plant
-        self.parameters = {"timestamps": [], "property": []}
+        self.parameters = {"timestamps": [], "property": [], "filtering": {}}
         self.tags = {"timestamps": [], "measured": {}, "filtered": {}, "calculated": {}}
         self.modules = {"preprocessor": [], "model": [], "postprocessor": []}
         self.from_units = []
@@ -37,6 +37,7 @@ class UnitAbstract(ABC):
         """
         self.parameters["timestamps"] = parameters["timestamps"]
         self.parameters["property"] = parameters["property"]
+        self.parameters["filtering"] = parameters["filtering"]
 
     def set_tagnames(self, tagnames):
         """Set unit tagnames.

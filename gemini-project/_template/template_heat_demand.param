@@ -2,6 +2,16 @@
     "id": "",
     "name": "",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "heatdemand_flow": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "heatdemand_inlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "heatdemand_inlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "heatdemand_outlet_pressure": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4},
+                "heatdemand_outlet_temperature": {"min": null, "max": null, "no_missing": false, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {},
         "timestamps": [
             "2020-01-01 00:00:00"
