@@ -1,11 +1,14 @@
 function save_diagram() {
 
+    if (inspectorDirty && !save_parameters()) return;
+    recordDiagramChange();
     commit_message = prompt("Please enter the message", "");
     if (commit_message == null || commit_message == "") {
         return;
     }
 
     var jsonObject = graph.toJSON();
+    var snapshot = JSON.stringify(jsonObject);
 
     var fieldID = $('#select_project').val();
     if (fieldID) {
@@ -15,18 +18,28 @@ function save_diagram() {
             contentType: 'application/json',
             data: JSON.stringify({ field_name: fieldID, diagram: jsonObject, commit_message: commit_message }),
             success: function (data) {
-                alert('diagram is saved')
+                markDiagramSaved(snapshot);
+                setBuilderStatus(hasUnsavedDiagram() ? 'Unsaved changes' : 'Saved', hasUnsavedDiagram());
+            },
+            error: function (xhr) {
+                alert('Could not save diagram: ' + (xhr.responseText || 'Server error'));
             }
         })
+    } else {
+        alert('Open a project before saving the diagram.');
     }
 
 }
 
-function load_diagram() {
+function load_diagram(confirmReplace) {
 
     var fieldID = $('#select_project').val();
+    if (confirmReplace && hasUnsavedDiagram() &&
+        !confirm('Reload the saved diagram? Unsaved changes will be lost.')) return;
 
     if (fieldID) {
+        document.getElementById('save').disabled = true;
+        setBuilderStatus('Loading diagram...', false);
         $.ajax({
             type: 'POST',
             url: '/app/builder/load_diagram',
@@ -35,12 +48,14 @@ function load_diagram() {
             success: function (data) {
 
                 graph.fromJSON(data)
-
-
+                resetEditorHistory(true)
+                document.getElementById('save').disabled = false;
 
             },
-            error: function () {
-                graph.fromJSON({ "cells": [] })
+            error: function (xhr) {
+                document.getElementById('save').disabled = false;
+                setBuilderStatus('Load failed', true);
+                alert('Could not load diagram: ' + (xhr.responseText || 'Server error'));
             }
         })
     }
@@ -64,7 +79,7 @@ function log_status() {
                 update_log_status_table(data)
             },
             error: function () {
-
+                alert('Could not load project history.');
             }
         })
     }
@@ -108,7 +123,7 @@ function update_log_status_table(table_data_json) {
 }
 
 $('#select_project').on('change', function () {
-    load_diagram()
+    load_diagram(true)
 })
 
 
@@ -124,6 +139,10 @@ function print_all_cells() {
 
 function load_template() {
 
+    if (hasUnsavedDiagram() &&
+        !confirm('Replace this diagram with the example? Unsaved changes will be lost.')) return;
+    if (!hasUnsavedDiagram() &&
+        !confirm('Replace the current diagram with the example? You can reload the saved version.')) return;
 
     $.ajax({
         type: 'GET',
@@ -131,10 +150,12 @@ function load_template() {
         contentType: 'application/json',
         success: function (data) {
 
+            recordDiagramChange()
             graph.fromJSON(data)
+            recordDiagramChange()
         },
         error: function () {
-
+            alert('Could not load the example diagram.');
         }
     })
 }
