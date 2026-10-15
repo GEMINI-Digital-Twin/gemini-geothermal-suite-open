@@ -121,6 +121,7 @@ function clearBuilderSelection(force) {
     selected_cell = null;
     inspectorDirty = false;
     document.getElementById('componentModal').classList.remove('has-selection');
+    document.querySelector('.builder-link-editor').hidden = true;
     document.getElementById('builder-delete').disabled = true;
     $('#context-menu').removeClass('show').hide();
     if (!restoringDiagram && historyIndex >= 0) updateHistoryButtons();
@@ -142,8 +143,12 @@ function selectBuilderCell(cell) {
         document.getElementById('componentModal').classList.add('has-selection');
     } else {
         document.querySelector('.builder-inspector-empty').textContent =
-            cell.isLink() ? 'Connection selected. Press Delete to remove it.' :
+            cell.isLink() ? 'Pipe selected. Choose its circuit below.' :
                 'Mixing node selected. Press Delete to remove it.';
+        if (cell.isLink()) {
+            document.getElementById('builder-link-loop').value = cell.get('loop') || '';
+            document.querySelector('.builder-link-editor').hidden = false;
+        }
     }
     return true;
 }
@@ -259,9 +264,18 @@ function styleDiagramElement(cell) {
     symbol.textContent = symbols[type];
     (view.el.querySelector('.rotatable') || view.el).appendChild(symbol);
 }
-graph.on('add', styleDiagramElement);
+function styleDiagramCell(cell) {
+    if (cell.isLink()) {
+        var view = paper.findViewByModel(cell);
+        if (view) view.el.setAttribute('data-loop', cell.get('loop') || '');
+    } else {
+        styleDiagramElement(cell);
+    }
+}
+graph.on('add', styleDiagramCell);
+graph.on('change:loop', styleDiagramCell);
 graph.on('reset', function () {
-    graph.getElements().forEach(styleDiagramElement);
+    graph.getCells().forEach(styleDiagramCell);
 });
 
 document.getElementById('builder-undo').addEventListener('click', function () {
@@ -349,14 +363,24 @@ document.getElementById('builder-field-search').addEventListener('input', functi
     });
 });
 document.getElementById('componentModal').addEventListener('input', function (evt) {
-    if (evt.target.id === 'builder-field-search') return;
+    if (evt.target.id === 'builder-field-search' || evt.target.id === 'builder-link-loop') return;
     inspectorDirty = true;
     setBuilderStatus('Unsaved inspector changes', true);
 });
 document.getElementById('componentModal').addEventListener('change', function (evt) {
-    if (evt.target.tagName === 'SELECT' && evt.target.id.indexOf('select_') === 0) return;
+    if (evt.target.id === 'builder-link-loop' ||
+        (evt.target.tagName === 'SELECT' && evt.target.id.indexOf('select_') === 0)) return;
     inspectorDirty = true;
     setBuilderStatus('Unsaved inspector changes', true);
+});
+document.getElementById('builder-link-loop').addEventListener('change', function (evt) {
+    if (!selected_cell || !selected_cell.isLink()) return;
+    if (evt.target.value) {
+        selected_cell.set('loop', evt.target.value);
+    } else {
+        selected_cell.unset('loop');
+    }
+    recordDiagramChange();
 });
 document.querySelectorAll('.builder-inspector .table tr').forEach(function (row) {
     var label = row.querySelector('td:first-child');
@@ -376,11 +400,24 @@ document.querySelectorAll('.builder-inspector .table tr').forEach(function (row)
     suffix.textContent = unit[1];
     wrapper.appendChild(suffix);
 });
-if (window.ResizeObserver) {
-    new ResizeObserver(function () { paper.setDimensions(canvas.clientWidth, canvas.clientHeight); }).observe(canvas);
-} else {
-    window.addEventListener('resize', function () { paper.setDimensions(canvas.clientWidth, canvas.clientHeight); });
+var canvasPanel = document.querySelector('.builder-canvas-panel');
+function resizeBuilderCanvas() {
+    var panelStyle = window.getComputedStyle(canvasPanel);
+    var canvasStyle = window.getComputedStyle(canvas);
+    var width = Math.floor(canvasPanel.clientWidth -
+        parseFloat(panelStyle.paddingLeft) - parseFloat(panelStyle.paddingRight) -
+        parseFloat(canvasStyle.borderLeftWidth) - parseFloat(canvasStyle.borderRightWidth));
+    if (width <= 0) return;
+    var height = Math.round(Math.max(480, Math.min(window.innerHeight * 0.7, 760)));
+    if (canvas.clientWidth !== width || canvas.clientHeight !== height) {
+        paper.setDimensions(width, height);
+    }
 }
+if (window.ResizeObserver) {
+    new ResizeObserver(resizeBuilderCanvas).observe(canvasPanel);
+}
+window.addEventListener('resize', resizeBuilderCanvas);
+resizeBuilderCanvas();
 window.addEventListener('beforeunload', function (evt) {
     if (!hasUnsavedDiagram()) return;
     evt.preventDefault();
