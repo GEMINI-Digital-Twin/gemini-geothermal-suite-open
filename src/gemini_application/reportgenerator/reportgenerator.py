@@ -315,13 +315,13 @@ class ReportGenerator(ApplicationAbstract):
     def add_stats_plot(self, inj_wells, prod_wells):
         """Add statistics plot to PDF."""
         inj_well_tagnames = [
-            "injectionwell_flow.measured",
-            "injectionwell_wellhead_pressure.measured",
-            "injectionwell_annulus_a_pressure.measured",
+            "injectionwell_flow.filtered",
+            "injectionwell_wellhead_pressure.filtered",
+            "injectionwell_annulus_a_pressure.filtered",
         ]
         prod_well_tagnames = [
-            "productionwell_annulus_a_pressure.measured",
-            "productionwell_annulus_b_pressure.measured",
+            "productionwell_annulus_a_pressure.filtered",
+            "productionwell_annulus_b_pressure.filtered",
         ]
 
         all_wells = inj_wells + prod_wells
@@ -742,11 +742,11 @@ class ReportGenerator(ApplicationAbstract):
 
         # Tagnames for values to be added in the stats table
         inj_well_tagnames = [
-            "injectionwell_flow.measured",
-            "injectionwell_wellhead_pressure.measured",
-            "injectionwell_annulus_pressure.measured",
+            "injectionwell_flow.filtered",
+            "injectionwell_wellhead_pressure.filtered",
+            "injectionwell_annulus_a_pressure.filtered",
         ]
-        prod_well_tagnames = ["productionwell_annulus_a_pressure.measured"]
+        prod_well_tagnames = ["productionwell_annulus_a_pressure.filtered"]
 
         # First add injection well stats, then production well stats
         all_stats_data += self.gather_stats(inj_wells, inj_well_tagnames)

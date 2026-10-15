@@ -97,7 +97,7 @@ class InjectionWellMonitoring(ApplicationAbstract):
         result, time = self.plant.database.read_internal_database(
             self.unit.plant.name,
             self.unit.name,
-            "injectionwell_flow.measured",
+            "injectionwell_flow.filtered",
             start_time,
             end_time,
             timestep,
@@ -108,7 +108,7 @@ class InjectionWellMonitoring(ApplicationAbstract):
         result, time = self.plant.database.read_internal_database(
             self.unit.plant.name,
             self.unit.name,
-            "injectionwell_wellhead_pressure.measured",
+            "injectionwell_wellhead_pressure.filtered",
             start_time,
             end_time,
             timestep,

@@ -17,7 +17,7 @@ class CalculateTheoreticalOutletPressure(UnitModuleAbstract):
 
     def link(self):
         """Link module inputs and outputs."""
-        self.link_input(self.unit, "measured", "esp_inlet_pressure")
+        self.link_input(self.unit, "filtered", "esp_inlet_pressure")
         self.link_input(self.unit, "calculated", "esp_theoretical_head")
         self.link_output(self.unit, "calculated", "esp_theoretical_outlet_pressure")
 

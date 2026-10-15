@@ -17,7 +17,7 @@ class CalculateInjectivityIndex(UnitModuleAbstract):
 
     def link(self):
         """Link module inputs and outputs."""
-        self.link_input(self.unit, "measured", "injectionwell_flow")
+        self.link_input(self.unit, "filtered", "injectionwell_flow")
         self.link_input(self.unit, "calculated", "injectionwell_bottomhole_pressure")
         self.link_output(self.unit, "calculated", "injectionwell_injectivity_index")
 

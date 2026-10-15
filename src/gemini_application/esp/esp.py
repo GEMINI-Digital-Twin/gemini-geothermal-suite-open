@@ -50,7 +50,7 @@ class ESPApp(ApplicationAbstract):
         ][0]
 
     def _read_series(self, tagname):
-        """Read a measured/calculated series from the internal database."""
+        """Read a filtered/calculated series from the internal database."""
         start_time = datetime.strptime(self.inputs["start_time"], "%Y-%m-%d %H:%M:%S")
         start_time = (
             tzobject.localize(start_time).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -74,10 +74,10 @@ class ESPApp(ApplicationAbstract):
 
     def get_data(self):
         """Get ESP data."""
-        self.outputs["flow_measured"], self.outputs["time"] = self._read_series("esp_flow.measured")
-        self.outputs["frequency_measured"], _ = self._read_series("esp_frequency.measured")
+        self.outputs["flow_measured"], self.outputs["time"] = self._read_series("esp_flow.filtered")
+        self.outputs["frequency_measured"], _ = self._read_series("esp_frequency.filtered")
         self.outputs["inlet_pressure_measured"], _ = self._read_series(
-            "esp_inlet_pressure.measured"
+            "esp_inlet_pressure.filtered"
         )
         self.outputs["esp_vlp_head_calculated"], _ = self._read_series("esp_vlp_head.calculated")
         self.outputs["esp_theoretical_head_calculated"], _ = self._read_series(
@@ -274,11 +274,11 @@ class ESPApp(ApplicationAbstract):
         time_array = None
         try:
             result, time_array = database.read_internal_database(
-                plant_name, unit_name, "esp_flow.measured", start_time, end_time, timestep
+                plant_name, unit_name, "esp_flow.filtered", start_time, end_time, timestep
             )
             sensor_data["Brine flow rate"] = result
         except Exception as e:
-            print(f"Warning: Could not read esp_flow.measured: {e}")
+            print(f"Warning: Could not read esp_flow.filtered: {e}")
             start_dt = datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%SZ")
             end_dt = datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%SZ")
             time_array = pd.date_range(start_dt, end_dt, freq=f"{timestep}S")
@@ -286,11 +286,11 @@ class ESPApp(ApplicationAbstract):
         data_length = len(time_array)
 
         tags_mapping = {
-            "intake pressure ESP": ("esp_inlet_pressure", "measured"),
-            "discharge pressure ESP": ("esp_outlet_pressure", "measured"),
-            "ESP Motor temperature": ("esp_motor_temperature", "measured"),
-            "Vibration (Vx)": ("esp_vibration_x", "measured"),
-            "Vibration (Vy, Vz)": ("esp_vibration_y", "measured"),
+            "intake pressure ESP": ("esp_inlet_pressure", "filtered"),
+            "discharge pressure ESP": ("esp_outlet_pressure", "filtered"),
+            "ESP Motor temperature": ("esp_motor_temperature", "filtered"),
+            "Vibration (Vx)": ("esp_vibration_x", "filtered"),
+            "Vibration (Vy, Vz)": ("esp_vibration_y", "filtered"),
         }
 
         for col_name, (tag_base, tag_type) in tags_mapping.items():
@@ -309,7 +309,7 @@ class ESPApp(ApplicationAbstract):
                 result, _ = database.read_internal_database(
                     plant_name,
                     well_unit.name,
-                    "productionwell_wellhead_pressure.measured",
+                    "productionwell_wellhead_pressure.filtered",
                     start_time,
                     end_time,
                     timestep,
@@ -323,7 +323,7 @@ class ESPApp(ApplicationAbstract):
                 result, _ = database.read_internal_database(
                     plant_name,
                     well_unit.name,
-                    "productionwell_wellhead_temperature.measured",
+                    "productionwell_wellhead_temperature.filtered",
                     start_time,
                     end_time,
                     timestep,
@@ -556,7 +556,7 @@ class ESPApp(ApplicationAbstract):
             self.outputs["failure_times"] = None
 
     def plot(self):
-        """Plot pump curves and the measured data."""
+        """Plot pump curves and the filtered data."""
         bar_to_meters = 10.1972  # 1 bar ≈ 10.1972 meters of water head
 
         def format_func(value, ti):
@@ -581,7 +581,7 @@ class ESPApp(ApplicationAbstract):
 
         plt.figure()
 
-        # Plot measured data with a color map representing time
+        # Plot filtered data with a color map representing time
         scatter = plt.scatter(time_x, head_corrected_m, c=time_measured.astype("int64"), cmap="jet")
         colorbar = plt.colorbar(scatter)
         colorbar.ax.yaxis.set_major_formatter(plt.FuncFormatter(format_func))
@@ -891,7 +891,7 @@ class ESPApp(ApplicationAbstract):
         plt.show()
 
     def plot_comparison(self):
-        """Plot the measured and calculated tags."""
+        """Plot the filtered and calculated tags."""
         time_measured = pd.to_datetime(self.outputs["time"])
         flow_measured = self.outputs["flow_measured"]
         frequency_measured = self.outputs["frequency_measured"]
@@ -971,7 +971,7 @@ class ESPApp(ApplicationAbstract):
             "Calculated Outlet Pressure via VLP - Theoretical Outlet Pressure vs Time"
         )
 
-        axes[3, 0].plot(time_measured, intake_pressure_measured, label="Measured Inlet Pressure")
+        axes[3, 0].plot(time_measured, intake_pressure_measured, label="Filtered Inlet Pressure")
         axes[3, 0].plot(
             time_measured,
             esp_vlp_ipr_inlet_pressure_calculated,
@@ -989,7 +989,7 @@ class ESPApp(ApplicationAbstract):
         axes[3, 1].legend()
         axes[3, 1].grid(True)
         axes[3, 1].set_title(
-            "Measured Inlet Pressure - Calculated Inlet Pressure via VLP-IPR vs Time"
+            "Filtered Inlet Pressure - Calculated Inlet Pressure via VLP-IPR vs Time"
         )
 
         plt.show()

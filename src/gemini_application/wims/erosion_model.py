@@ -107,14 +107,14 @@ class ErosionApplication(ApplicationAbstract):
         if well_type == "productionwell":
             if not getattr(self.unit, "to_units", None) or len(self.unit.to_units) == 0:
                 raise ValueError("Production well has no linked ESP unit.")
-            flow_tag = "esp_flow.measured"
-            pressure_tag = "esp_inlet_pressure.measured"
-            temperature_tag = "esp_inlet_temperature.measured"
+            flow_tag = "esp_flow.filtered"
+            pressure_tag = "esp_inlet_pressure.filtered"
+            temperature_tag = "esp_inlet_temperature.filtered"
             asset_name = self.unit.to_units[0].name
         else:
-            flow_tag = f"{well_type}_flow.measured"
-            pressure_tag = f"{well_type}_wellhead_pressure.measured"
-            temperature_tag = f"{well_type}_wellhead_temperature.measured"
+            flow_tag = f"{well_type}_flow.filtered"
+            pressure_tag = f"{well_type}_wellhead_pressure.filtered"
+            temperature_tag = f"{well_type}_wellhead_temperature.filtered"
             asset_name = self.unit.name
 
         try:

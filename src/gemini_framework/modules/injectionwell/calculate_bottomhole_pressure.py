@@ -21,9 +21,9 @@ class CalculateBottomholePressure(UnitModuleAbstract):
 
     def link(self):
         """Link module inputs and outputs."""
-        self.link_input(self.unit, "measured", "injectionwell_flow")
-        self.link_input(self.unit, "measured", "injectionwell_wellhead_pressure")
-        self.link_input(self.unit, "measured", "injectionwell_wellhead_temperature")
+        self.link_input(self.unit, "filtered", "injectionwell_flow")
+        self.link_input(self.unit, "filtered", "injectionwell_wellhead_pressure")
+        self.link_input(self.unit, "filtered", "injectionwell_wellhead_temperature")
         self.link_output(self.unit, "calculated", "injectionwell_bottomhole_pressure")
 
     def step(self, loop):
