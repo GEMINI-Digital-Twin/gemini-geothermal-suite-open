@@ -87,6 +87,8 @@
                     </li>
                     <li class="nav-item"><a class="nav-link" href="#tagnames" data-toggle="tab">Tagnames</a>
                     </li>
+                    <li class="nav-item"><a class="nav-link" href="#filtering" data-toggle="tab">Filtering</a>
+                    </li>
                 </ul>
                 <div class="tab-content">
                     <div class="tab-pane fade show active" id="properties">
@@ -371,6 +373,19 @@
                                 </td>
                             </tr>
                         </table>
+                    </div>
+                    <div class="tab-pane fade" id="filtering">
+                        <table class="table" id="table-component-filtering">
+                            <tr>
+                                <td><span style="color: black">Enable filtering</span></td>
+                                <td><input type="checkbox" id="filtering-enabled"></td>
+                            </tr>
+                        </table>
+                        <p class="text-muted">Limits are inclusive; leave them blank for no limit. The window is the
+                            number of previous filtered samples used by moving average. Save these parameters, then
+                            save the diagram to write the asset's .param file.</p>
+                        <label>Measured tags:</label>
+                        <div id="filtering-rules"></div>
                     </div>
                     <div class="tab-pane fade" id="tagnames">
                         <label>Timestamps</label>

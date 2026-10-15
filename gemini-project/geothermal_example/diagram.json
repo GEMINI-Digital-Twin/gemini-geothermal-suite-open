@@ -95,6 +95,10 @@
                 "id": "c1b5a7e3-ac6c-460b-b76c-877d39d0381a",
                 "name": "reservoir_c1b5",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {}
+                    },
                     "property": {
                         "liquid_density": [
                             1068
@@ -241,6 +245,60 @@
                 "id": "c774641e-30c6-474c-9bc4-9b69afb10fc1",
                 "name": "production_well_c774",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "productionwell_annulus_a_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "productionwell_annulus_b_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "productionwell_bottomhole_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "productionwell_bottomhole_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "productionwell_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "productionwell_wellhead_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "productionwell_wellhead_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {
                         "productionwell_friction_correction_factors": [
                             [
@@ -393,6 +451,12 @@
                         ]
                     },
                     "filtered": {
+                        "productionwell_annulus_a_pressure": [
+                            ""
+                        ],
+                        "productionwell_annulus_b_pressure": [
+                            ""
+                        ],
                         "productionwell_bottomhole_pressure": [
                             ""
                         ],
@@ -540,6 +604,102 @@
                 "id": "1ee3802a-99d1-49fb-86fc-6955f79935c7",
                 "name": "esp_1ee3",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "esp_current": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_flow": {
+                                "correction": "moving_average",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_frequency": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_head": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_inlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_inlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_motor_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_outlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_outlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_power_consumption": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_vibration_x": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_vibration_y": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "esp_voltage": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {
                         "esp_bep_flow": [
                             129.98
@@ -826,6 +986,46 @@
                 "id": "b2e6ce90-f5d2-4b2d-8404-f588231de74e",
                 "name": "filter_b2e6",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "filter_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_inlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_inlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_outlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_outlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {},
                     "timestamps": [
                         "2020-01-01 00:00:00"
@@ -995,6 +1195,81 @@
                 "id": "34107596-d1ab-4beb-a402-b79ca142469a",
                 "name": "heat_exchanger_3410",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "hex_primary_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_primary_inlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_primary_inlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_primary_outlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_primary_outlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_secondary_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_secondary_inlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_secondary_inlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_secondary_outlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "hex_secondary_outlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {
                         "heat_transfer_coeff": [
                             100000
@@ -1206,6 +1481,46 @@
                 "id": "b1ed9e73-ef7c-44ad-a73e-9a3c2209f6f2",
                 "name": "filter_b1ed",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "filter_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_inlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_inlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_outlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "filter_outlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {},
                     "timestamps": [
                         "2020-01-01 00:00:00"
@@ -1373,6 +1688,88 @@
                 "id": "380806d5-f794-4be7-acac-73691f363fd6",
                 "name": "injection_pump_3808",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "injectionpump_current": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_frequency": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_head": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_inlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_inlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_motor_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_outlet_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_outlet_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_power_consumption": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionpump_voltage": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {
                         "injectionpump_no_stage": [
                             10
@@ -1593,6 +1990,60 @@
                 "id": "a06b8724-bb49-499c-8ad2-d3c0bfdd3a8a",
                 "name": "injection_well_a06b",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "injectionwell_annulus_a_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionwell_annulus_b_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionwell_bottomhole_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionwell_bottomhole_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionwell_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionwell_wellhead_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "injectionwell_wellhead_temperature": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {
                         "injectionwell_friction_correction_factors": [
                             [
@@ -1684,6 +2135,12 @@
                         ]
                     },
                     "filtered": {
+                        "injectionwell_annulus_a_pressure": [
+                            ""
+                        ],
+                        "injectionwell_annulus_b_pressure": [
+                            ""
+                        ],
                         "injectionwell_bottomhole_pressure": [
                             ""
                         ],
@@ -1831,6 +2288,10 @@
                 "id": "28fc284b-25fd-425b-be22-d5627939b573",
                 "name": "reservoir_28fc",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {}
+                    },
                     "property": {
                         "liquid_density": [
                             1068
@@ -2023,6 +2484,46 @@
                 "id": "e8469de8-5f11-47d2-9b58-c0cb694528d9",
                 "name": "degasser_e846",
                 "parameters": {
+                    "filtering": {
+                        "enabled": true,
+                        "tags": {
+                            "degasser_inlet_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "degasser_level": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "degasser_outlet_gas_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "degasser_outlet_liquid_flow": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            },
+                            "degasser_pressure": {
+                                "correction": "last_value",
+                                "max": null,
+                                "min": null,
+                                "no_missing": true,
+                                "window": 4
+                            }
+                        }
+                    },
                     "property": {
                         "heat_transfer_coeff": [
                             100000
