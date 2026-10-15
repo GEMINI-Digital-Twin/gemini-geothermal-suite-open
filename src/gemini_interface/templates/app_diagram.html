@@ -9,77 +9,70 @@
 {% endblock %}
 
 {% block content %}
-<div class="col-lg-12">
-    <input type="button" id="save" value="Save" onclick="save_diagram();" class="btn btn-info btn-sm"
-        style="width:100px">
-    <input type="button" id="load" value="Reset" onclick="load_diagram();" class="btn btn-warning btn-sm"
-        style="width:100px">
-    <input type="button" id="log" value="Log" onclick="log_status();" class="btn btn-default btn-sm"
-        style="width:100px;float:right">
-    <input type="button" id="template" value="Template" onclick="load_template();" class="btn btn-default btn-sm"
-        style="width:100px;float:right">
+<div class="builder-toolbar" role="toolbar" aria-label="Diagram actions">
+    <strong>Geothermal schematic</strong>
+    <span id="builder-save-status" role="status" aria-live="polite">Saved</span>
+    <button type="button" id="save" onclick="save_diagram();" class="btn btn-info btn-sm">Save</button>
+    <button type="button" id="load" onclick="load_diagram(true);" class="btn btn-default btn-sm">Reload saved</button>
+    <button type="button" id="template" onclick="load_template();" class="btn btn-default btn-sm">Replace with example</button>
+    <button type="button" id="log" onclick="log_status();" class="btn btn-default btn-sm">History</button>
 </div>
-<div class="col-lg-12">
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <div id="mybuilder" class="jumbotron"></div>
+<div class="builder-workspace">
+    <aside class="builder-palette" aria-label="Component palette">
+        <label for="builder-component-search">Components</label>
+        <input id="builder-component-search" type="search" class="form-control" placeholder="Search components">
+        <p class="builder-help">Drag onto the canvas or click to add.</p>
+        <div class="builder-palette-group"><h4>Wells &amp; reservoir</h4>
+            <button type="button" class="builder-item production" data-component="production_well" draggable="true"><i class="fa fa-arrow-up" aria-hidden="true"></i> Production Well</button>
+            <button type="button" class="builder-item injection" data-component="injection_well" draggable="true"><i class="fa fa-arrow-down" aria-hidden="true"></i> Injection Well</button>
+            <button type="button" class="builder-item reservoir" data-component="reservoir" draggable="true"><i class="fa fa-database" aria-hidden="true"></i> Reservoir</button>
         </div>
-    </div>
-</div>
-<div class="col-lg-12">
-    <input type="button" id="esp" value="ESP" onclick="addESP();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="injection_pump" value="Injection Pump" onclick="addInjectionPump();"
-        class="btn btn-default btn-sm" style="width:150px; height:100px">
-    <input type="button" id="booster_pump" value="Booster Pump" onclick="addBoosterPump();"
-        class="btn btn-default btn-sm" style="width:150px; height:100px">
-    <input type="button" id="production_well" value="Production Well" onclick="addProductionWell();"
-        class="btn btn-default btn-sm" style="width:150px; height:100px">
-    <input type="button" id="injection_well" value="Injection Well" onclick="addInjectionWell();"
-        class="btn btn-default btn-sm" style="width:150px; height:100px">
-    <input type="button" id="reservoir" value="Reservoir" onclick="addReservoir();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="filter" value="Filter" onclick="addFilter();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="heat_exchanger" value="Heat Exchanger" onclick="addHeatExchanger();"
-        class="btn btn-default btn-sm" style="width:150px; height:100px">
-    <input type="button" id="degasser" value="Degasser" onclick="addDegasser();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="gas_boiler" value="Gas Boiler" onclick="addGasBoiler();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="electric_boiler" value="Electric Boiler" onclick="addElectricBoiler();"
-        class="btn btn-default btn-sm" style="width:150px; height:100px">
-    <input type="button" id="heatpump" value="Heat Pump" onclick="addHeatpump();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="heatdemand" value="Heat Demand" onclick="addHeatDemand();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="chp" value="CHP" onclick="addCHP();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-    <input type="button" id="node" value="Mixing Node" onclick="addNode();" class="btn btn-default btn-sm"
-        style="width:150px; height:100px">
-
-
-</div>
-
-<div class="container">
-    <div class="row my-3">
-        <div class="col">
-            <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
-
-                <a class="dropdown-item" onclick="show_parameter_modal()">Open Parameter</a>
-                <a class="dropdown-item" onclick="delete_element()">Delete</a>
-            </div>
+        <div class="builder-palette-group"><h4>Pumps</h4>
+            <button type="button" class="builder-item production" data-component="esp" draggable="true"><i class="fa fa-tint" aria-hidden="true"></i> ESP</button>
+            <button type="button" class="builder-item injection" data-component="injection_pump" draggable="true"><i class="fa fa-tint" aria-hidden="true"></i> Injection Pump</button>
+            <button type="button" class="builder-item surface" data-component="booster_pump" draggable="true"><i class="fa fa-tint" aria-hidden="true"></i> Booster Pump</button>
         </div>
-    </div>
-</div>
-
-
-<div class="modal right fade" id="componentModal" role="dialog">
+        <div class="builder-palette-group"><h4>Surface equipment</h4>
+            <button type="button" class="builder-item surface" data-component="filter" draggable="true"><i class="fa fa-filter" aria-hidden="true"></i> Filter</button>
+            <button type="button" class="builder-item surface" data-component="heat_exchanger" draggable="true"><i class="fa fa-exchange" aria-hidden="true"></i> Heat Exchanger</button>
+            <button type="button" class="builder-item surface" data-component="degasser" draggable="true"><i class="fa fa-flask" aria-hidden="true"></i> Degasser</button>
+            <button type="button" class="builder-item heat" data-component="gas_boiler" draggable="true"><i class="fa fa-fire" aria-hidden="true"></i> Gas Boiler</button>
+            <button type="button" class="builder-item heat" data-component="electric_boiler" draggable="true"><i class="fa fa-bolt" aria-hidden="true"></i> Electric Boiler</button>
+            <button type="button" class="builder-item heat" data-component="heatpump" draggable="true"><i class="fa fa-thermometer-half" aria-hidden="true"></i> Heat Pump</button>
+            <button type="button" class="builder-item heat" data-component="heatdemand" draggable="true"><i class="fa fa-home" aria-hidden="true"></i> Heat Demand</button>
+            <button type="button" class="builder-item heat" data-component="chp" draggable="true"><i class="fa fa-cogs" aria-hidden="true"></i> CHP</button>
+        </div>
+        <div class="builder-palette-group"><h4>Network</h4>
+            <button type="button" class="builder-item network" data-component="node" draggable="true"><i class="fa fa-circle-o" aria-hidden="true"></i> Mixing Node</button>
+        </div>
+        <div class="builder-legend"><strong>Legend</strong><span class="production">Production</span><span class="injection">Injection</span><span class="surface">Surface</span><span class="heat">Heat</span></div>
+    </aside>
+    <main class="builder-canvas-panel">
+        <div class="builder-canvas-toolbar" role="toolbar" aria-label="Canvas controls">
+            <button type="button" id="builder-undo" class="btn btn-default btn-sm" title="Undo (Ctrl+Z)" aria-label="Undo">Undo</button>
+            <button type="button" id="builder-redo" class="btn btn-default btn-sm" title="Redo (Ctrl+Y)" aria-label="Redo">Redo</button>
+            <button type="button" id="builder-zoom-out" class="btn btn-default btn-sm" aria-label="Zoom out">−</button>
+            <span id="builder-zoom-level" aria-live="polite">100%</span>
+            <button type="button" id="builder-zoom-in" class="btn btn-default btn-sm" aria-label="Zoom in">+</button>
+            <button type="button" id="builder-fit" class="btn btn-default btn-sm">Fit diagram</button>
+            <button type="button" id="builder-reset-view" class="btn btn-default btn-sm">Reset view</button>
+            <button type="button" id="builder-delete" class="btn btn-default btn-sm" disabled>Delete selected</button>
+        </div>
+        <div id="mybuilder" class="builder-canvas" aria-label="Diagram canvas" tabindex="0"></div>
+        <p class="builder-help">Connect an output port to an input port. Click a component to edit it; drag it to move. Drag empty canvas to pan or scroll over it to zoom.</p>
+        <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+            <button type="button" class="dropdown-item" onclick="show_parameter_modal()">Edit parameters</button>
+            <button type="button" class="dropdown-item" onclick="delete_element()">Delete</button>
+        </div>
+    </main>
+<aside id="componentModal" class="builder-inspector" aria-label="Selected component">
+    <div class="builder-inspector-empty">Select a component to view its properties and tagnames.</div>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times</button>
-                <h3 id="myModalLabel1" style="color: black">Component Parameters</h3>
+                <button type="button" class="close" onclick="clearBuilderSelection();" aria-label="Close inspector">&times;</button>
+                <h3 style="color: black">Component Parameters</h3>
+                <input id="builder-field-search" type="search" class="form-control" placeholder="Search fields" aria-label="Search parameter fields">
             </div>
             <div class="modal-body">
                 <ul class="nav nav-tabs">
@@ -271,7 +264,7 @@
                         <table class="table" id="table-component-properties-injectionpump">
                             <tr>
                                 <td><span style="color: black">Pump type</span></td>
-                                <td><select style="width:300px; height:30px" id="injectionpump_type" value=""></td>
+                                <td><select style="width:300px; height:30px" id="injectionpump_type"><option value="">Select pump type</option></select></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">No. stages</span></td>
@@ -281,7 +274,7 @@
                         <table class="table" id="table-component-properties-boosterpump">
                             <tr>
                                 <td><span style="color: black">Pump type</span></td>
-                                <td><select style="width:300px; height:30px" id="boosterpump_type" value=""></td>
+                                <td><select style="width:300px; height:30px" id="boosterpump_type"><option value="">Select pump type</option></select></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">No. stages</span></td>
@@ -291,7 +284,7 @@
                         <table class="table" id="table-component-properties-esp">
                             <tr>
                                 <td><span style="color: black">Pump type</span></td>
-                                <td><select style="width:300px; height:30px" id="esp_type" value=""></td>
+                                <td><select style="width:300px; height:30px" id="esp_type"><option value="">Select pump type</option></select></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">No. stages</span></td>
@@ -459,7 +452,7 @@
                                 <td><input style="width:300px" id="injectionpump_outlet_pressure" value=""></td>
                             </tr>
                             <tr>
-                                <td><span style="color: black">Outlet temperature [T]</span></td>
+                                <td><span style="color: black">Outlet temperature [C]</span></td>
                                 <td><input style="width:300px" id="injectionpump_outlet_temperature" value=""></td>
                             </tr>
                             <tr>
@@ -505,7 +498,7 @@
                                 <td><input style="width:300px" id="boosterpump_outlet_pressure" value=""></td>
                             </tr>
                             <tr>
-                                <td><span style="color: black">Outlet temperature [T]</span></td>
+                                <td><span style="color: black">Outlet temperature [C]</span></td>
                                 <td><input style="width:300px" id="boosterpump_outlet_temperature" value=""></td>
                             </tr>
                             <tr>
@@ -551,7 +544,7 @@
                                 <td><input style="width:300px" id="esp_outlet_pressure" value=""></td>
                             </tr>
                             <tr>
-                                <td><span style="color: black">Outlet temperature [T]</span></td>
+                                <td><span style="color: black">Outlet temperature [C]</span></td>
                                 <td><input style="width:300px" id="esp_outlet_temperature" value=""></td>
                             </tr>
                             <tr>
@@ -605,7 +598,7 @@
                                 <td><input style="width:300px" id="filter_outlet_pressure" value=""></td>
                             </tr>
                             <tr>
-                                <td><span style="color: black">Outlet temperature [T]</span></td>
+                                <td><span style="color: black">Outlet temperature [C]</span></td>
                                 <td><input style="width:300px" id="filter_outlet_temperature" value=""></td>
                             </tr>
                         </table>
@@ -636,39 +629,39 @@
                         <table class="table" id="table-tagnames-measured-heatpump">
                             <tr>
                                 <td><span style="color: black">Primary inlet temperature [C]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_primary_inlet_t" value=""></td>
+                                <td><input style="width:300px" id="heatpump_primary_inlet_temperature" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Primary outlet temperature [C]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_primary_outlet_t" value=""></td>
+                                <td><input style="width:300px" id="heatpump_primary_outlet_temperature" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Primary flowrate [m3/h]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_primary_flow" value=""></td>
+                                <td><input style="width:300px" id="heatpump_primary_flow" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Secondary inlet temperature [C]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_secondary_inlet_t" value=""></td>
+                                <td><input style="width:300px" id="heatpump_secondary_inlet_temperature" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Secondary outlet temperature [C]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_secondary_outlet_t" value=""></td>
+                                <td><input style="width:300px" id="heatpump_secondary_outlet_temperature" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Secondary flowrate [m3/h]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_secondary_flow" value=""></td>
+                                <td><input style="width:300px" id="heatpump_secondary_flow" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Electricity voltage [V]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_electricity_voltage" value=""></td>
+                                <td><input style="width:300px" id="heatpump_eletricity_voltage" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Electricity current [A]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_electricity_current" value=""></td>
+                                <td><input style="width:300px" id="heatpump_eletricity_current" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Electricity power [kW]</span></td>
-                                <td><input style="width:300px" id="tag_meas_hp_electricity_power" value=""></td>
+                                <td><input style="width:300px" id="heatpump_eletricity_power" value=""></td>
                             </tr>
                         </table>
                         <table class="table" id="table-tagnames-measured-heatexchanger">
@@ -716,23 +709,23 @@
                         <table class="table" id="table-tagnames-measured-heatdemand">
                             <tr>
                                 <td><span style="color: black">Input Temperature [C]</span></td>
-                                <td><input style="width:300px" id="demand_inlet_temperature" value=""></td>
+                                <td><input style="width:300px" id="heatdemand_inlet_temperature" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Output Temperature [C]</span></td>
-                                <td><input style="width:300px" id="demand_outlet_temperature" value=""></td>
+                                <td><input style="width:300px" id="heatdemand_outlet_temperature" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Input Pressure [Bar]</span></td>
-                                <td><input style="width:300px" id="demand_inlet_pressure" value=""></td>
+                                <td><input style="width:300px" id="heatdemand_inlet_pressure" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Output Pressure [Bar]</span></td>
-                                <td><input style="width:300px" id="demand_outlet_pressure" value=""></td>
+                                <td><input style="width:300px" id="heatdemand_outlet_pressure" value=""></td>
                             </tr>
                             <tr>
                                 <td><span style="color: black">Flowrate [m3/h]</span></td>
-                                <td><input style="width:300px" id="demand_flow" value=""></td>
+                                <td><input style="width:300px" id="heatdemand_flow" value=""></td>
                             </tr>
                         </table>
                         <table class="table" id="table-tagnames-measured-chp">
@@ -814,11 +807,12 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+                <button type="button" class="btn" onclick="clearBuilderSelection();">Close</button>
                 <input type="button" value="Save" class="btn btn-info" onclick="save_parameters();" />
             </div>
+            </div>
         </div>
-    </div>
+    </aside>
 </div>
 
 <div class="modal fade" id="myParametersTimestampsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
@@ -891,39 +885,7 @@
 
 
 {% block script %}
-<style>
-    .modal.right .modal-dialog {
-        position: fixed;
-        margin: auto;
-        width: 500px;
-        height: 100%;
-        -webkit-transform: translate3d(0%, 0, 0);
-        -ms-transform: translate3d(0%, 0, 0);
-        -o-transform: translate3d(0%, 0, 0);
-        transform: translate3d(0%, 0, 0);
-    }
-
-    .modal.right .modal-content {
-        height: 100%;
-        overflow-y: auto;
-    }
-
-    .modal.right .modal-body {
-        padding: 15px 15px 80px;
-    }
-
-    .modal.right.fade .modal-dialog {
-        right: 0px;
-        -webkit-transition: opacity 0.3s linear, right 0.3s ease-out;
-        -moz-transition: opacity 0.3s linear, right 0.3s ease-out;
-        -o-transition: opacity 0.3s linear, right 0.3s ease-out;
-        transition: opacity 0.3s linear, right 0.3s ease-out;
-    }
-
-    .modal.right.fade.in .modal-dialog {
-        right: 0;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='page/app_builder/builder.css') }}">
 
 <script>
     $('input[name="parameters_timestamps"]').daterangepicker({

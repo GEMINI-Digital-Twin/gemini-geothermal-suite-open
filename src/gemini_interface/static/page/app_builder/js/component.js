@@ -328,9 +328,51 @@ function addHeatDemand() {
     })
 }
 
-function addComponent(styling, inports, outports, properties) {
-    element = new joint.shapes.devs.Model({
-        position: { x: 100, y: 100 },
+var paletteComponents = {
+    esp: { template: 'esp', label: 'ESP', inPorts: ['in'], outPorts: ['out'] },
+    injection_pump: { template: 'injection_pump', label: 'Injection Pump', inPorts: ['in'], outPorts: ['out'] },
+    booster_pump: { template: 'booster_pump', label: 'Booster Pump', inPorts: ['in'], outPorts: ['out'] },
+    production_well: { template: 'production_well', label: 'Production Well', inPorts: ['in'], outPorts: ['out'] },
+    injection_well: { template: 'injection_well', label: 'Injection Well', inPorts: ['in'], outPorts: ['out'] },
+    reservoir: { template: 'reservoir', label: 'Reservoir', inPorts: ['in'], outPorts: ['out'] },
+    filter: { template: 'filter', label: 'Filter', inPorts: ['in'], outPorts: ['out'] },
+    degasser: { template: 'degasser', label: 'Degasser', inPorts: ['in'], outPorts: ['out1', 'out2'] },
+    heat_exchanger: { template: 'heat_exchanger', label: 'Heat Exchanger', inPorts: ['PrimIn', 'SecIn'], outPorts: ['PrimOut', 'SecOut'] },
+    gas_boiler: { template: 'gas_boiler', label: 'Gas Boiler', inPorts: ['In', 'HeatIn'], outPorts: ['HeatOut'] },
+    electric_boiler: { template: 'elec_boiler', label: 'Electric Boiler', inPorts: ['In', 'HeatIn'], outPorts: ['HeatOut'] },
+    heatpump: { template: 'heat_pump', label: 'Heat Pump', inPorts: ['PrimIn', 'SecIn'], outPorts: ['PrimOut', 'SecOut'] },
+    heatdemand: { template: 'heat_demand', label: 'Heat Demand', inPorts: ['In'], outPorts: ['Out'] },
+    chp: { template: 'chp', label: 'CHP', inPorts: ['GasIn', 'SecIn'], outPorts: ['SecOut', 'ElecOut'] }
+};
+
+function addComponentFromPalette(type, position) {
+    if (type === 'node') {
+        addNode(position);
+        return;
+    }
+    var component = paletteComponents[type];
+    if (!component) {
+        alert('Unknown component type: ' + type);
+        return;
+    }
+    $.ajax({
+        type: 'POST',
+        url: '/app/builder/get_template_component',
+        contentType: 'application/json',
+        data: JSON.stringify({ component: component.template }),
+        success: function (data) {
+            addComponent({ '.label': { text: component.label, fontSize: 12 } },
+                component.inPorts, component.outPorts, data, position);
+        },
+        error: function (xhr) {
+            alert('Could not add component: ' + (xhr.responseText || 'Server error'));
+        }
+    });
+}
+
+function addComponent(styling, inports, outports, properties, position) {
+    var element = new joint.shapes.devs.Model({
+        position: position || { x: 100, y: 100 },
         size: { width: 100, height: 50 },
         inPorts: inports,
         outPorts: outports,
@@ -364,7 +406,7 @@ function addComponent(styling, inports, outports, properties) {
     element.addTo(graph);
 }
 
-function addNode() {
+function addNode(position) {
 
 
     var portsIn = {
@@ -403,7 +445,7 @@ function addNode() {
 
 
     var model = new joint.shapes.standard.Circle({
-        position: { x: 100, y: 100 },
+        position: position || { x: 100, y: 100 },
         size: { width: 20, height: 20 },
         ports: {
             groups: {
@@ -580,6 +622,8 @@ function read_parameters() {
     for (let i = 0; i < tag_names.length; i++) {
         document.getElementById(tag_names[i]).value = eval('element.attributes.properties.tagnames.measured.' + tag_names[i] + '[' + tagnamestimestampsIndex + ']')
     }
+    activeParameterIndex = parameterstimestampsIndex;
+    activeTagIndex = tagnamestimestampsIndex;
 }
 
 
@@ -624,17 +668,43 @@ function hide_all_parameter_table() {
 }
 
 
-function save_parameters() {
+var activeParameterIndex = 0;
+var activeTagIndex = 0;
+
+function save_parameters(parameterIndex, tagIndex) {
     console.log("saving parameter")
     element = selected_cell
-
-    if (element.attributes.properties.name == '') {
-        element.attributes.properties.name = document.getElementById("component_type").value + '_' + element.id.substr(0, 4)
-    } else {
-        element.attributes.properties.name = document.getElementById('component_name').value
+    if (!element || !element.attributes.properties) return false;
+    var name = document.getElementById('component_name').value.trim();
+    if (!name || /[\\/:*?"<>|]/.test(name)) {
+        alert('Enter a component name without path or filename characters.');
+        return false;
+    }
+    if (graph.getElements().some(function (cell) {
+        return cell.id !== element.id && cell.get('properties') &&
+            String(cell.get('properties').name).toLowerCase() === name.toLowerCase();
+    })) {
+        alert('Component names must be unique.');
+        return false;
+    }
+    var invalid = Array.from(document.querySelectorAll(
+        '#componentModal table[id^="table-component-properties"] input:not([readonly]):not([type="file"])'
+    )).find(function (input) {
+        var value = input.value.trim();
+        return input.closest('table').style.display !== 'none' &&
+            input.id !== 'component_name' && !/coeff$/.test(input.id) &&
+            (value === '' || !Number.isFinite(Number(value)));
+    });
+    if (invalid) {
+        alert('Enter a valid number for ' + invalid.closest('tr').querySelector('td').textContent.trim() + '.');
+        invalid.focus();
+        return false;
     }
 
-    parameterstimestampsIndex = document.getElementById('select_parameters_timestamps').selectedIndex
+    element.attributes.properties.name = name
+
+    parameterstimestampsIndex = parameterIndex == null ?
+        document.getElementById('select_parameters_timestamps').selectedIndex : parameterIndex
 
 
     if (element.attributes.properties.type == 'reservoir') {
@@ -693,7 +763,7 @@ function save_parameters() {
         element.attributes.properties.parameters.property.gasboiler_efficiency[parameterstimestampsIndex] = parseFloat(document.getElementById("gasboiler_efficiency").value)
     }
     if (element.attributes.properties.type == 'electric_boiler') {
-        element.attributes.properties.parameters.property.gasboiler_efficiency[parameterstimestampsIndex] = parseFloat(document.getElementById("eboiler_efficiency").value)
+        element.attributes.properties.parameters.property.eboiler_efficiency[parameterstimestampsIndex] = parseFloat(document.getElementById("eboiler_efficiency").value)
     }
     if (element.attributes.properties.type == 'chp') {
         element.attributes.properties.parameters.property.chp_system_efficiency[parameterstimestampsIndex] = parseFloat(document.getElementById("chp_system_efficiency").value)
@@ -715,13 +785,18 @@ function save_parameters() {
 
     }
 
-    tagnamestimestampsIndex = document.getElementById('select_tagnames_timestamps').selectedIndex
+    tagnamestimestampsIndex = tagIndex == null ?
+        document.getElementById('select_tagnames_timestamps').selectedIndex : tagIndex
 
     tag_names = Object.keys(element.attributes.properties.tagnames.measured)
     for (let i = 0; i < tag_names.length; i++) {
         eval('element.attributes.properties.tagnames.measured.' + tag_names[i] + '[' + tagnamestimestampsIndex + '] = document.getElementById("' + tag_names[i] + '").value')
     }
 
+    element.attr('.label/text', name);
+    inspectorDirty = false;
+    recordDiagramChange();
+    return true;
 }
 
 
@@ -781,17 +856,24 @@ $('#esp_type').on('change', function () {
 
 });
 
-$('#select_timestamps').on('change', function () {
-    read_parameters()
-})
+function isCurrentUploadTarget(cellId, timestampIndex) {
+    if (selected_cell && selected_cell.id === cellId && activeParameterIndex === timestampIndex) {
+        return true;
+    }
+    alert('The selected well or timestamp changed during upload. Select it again and retry.');
+    return false;
+}
 
 function upload_production_well_trajectory() {
 
     var fileInput = document.getElementById('production_well_trajectory_csv');
+    var targetId = selected_cell.id;
+    var targetTimestamp = activeParameterIndex;
 
     // Check if a file is selected
     if (fileInput.files.length === 0) {
-        return; // Exit the function if no file is selected
+        alert('Choose a trajectory CSV file first.');
+        return;
     }
 
     var form_data = new FormData()
@@ -806,8 +888,13 @@ function upload_production_well_trajectory() {
         processData: false,
         data: form_data,
         success: function (data) {
-
+            if (!isCurrentUploadTarget(targetId, targetTimestamp)) return;
             update_productionwell_trajectory_table(data)
+            inspectorDirty = true;
+            setBuilderStatus('Imported trajectory · save inspector to keep it', true);
+        },
+        error: function (xhr) {
+            alert('Could not import trajectory: ' + (xhr.responseText || 'Server error'));
         }
     })
 }
@@ -816,10 +903,13 @@ function upload_production_well_trajectory() {
 function upload_injection_well_trajectory() {
 
     var fileInput = document.getElementById('injection_well_trajectory_csv');
+    var targetId = selected_cell.id;
+    var targetTimestamp = activeParameterIndex;
 
     // Check if a file is selected
     if (fileInput.files.length === 0) {
-        return; // Exit the function if no file is selected
+        alert('Choose a trajectory CSV file first.');
+        return;
     }
 
     var form_data = new FormData()
@@ -834,14 +924,23 @@ function upload_injection_well_trajectory() {
         processData: false,
         data: form_data,
         success: function (data) {
+            if (!isCurrentUploadTarget(targetId, targetTimestamp)) return;
             update_injectionwell_trajectory_table(data)
+            inspectorDirty = true;
+            setBuilderStatus('Imported trajectory · save inspector to keep it', true);
+        },
+        error: function (xhr) {
+            alert('Could not import trajectory: ' + (xhr.responseText || 'Server error'));
         }
     })
 }
 
 function upload_production_well_tally() {
     var fileInput = document.getElementById('production_well_tally_csv');
+    var targetId = selected_cell.id;
+    var targetTimestamp = activeParameterIndex;
     if (fileInput.files.length === 0) {
+        alert('Choose a well tally CSV file first.');
         return;
     }
     var form_data = new FormData();
@@ -855,7 +954,10 @@ function upload_production_well_tally() {
         processData: false,
         data: form_data,
         success: function (data) {
+            if (!isCurrentUploadTarget(targetId, targetTimestamp)) return;
             update_productionwell_tally_table(data);
+            inspectorDirty = true;
+            setBuilderStatus('Imported tally · save inspector to keep it', true);
         },
         error: function (xhr) {
             var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : xhr.responseText || 'Upload failed';
@@ -866,7 +968,10 @@ function upload_production_well_tally() {
 
 function upload_injection_well_tally() {
     var fileInput = document.getElementById('injection_well_tally_csv');
+    var targetId = selected_cell.id;
+    var targetTimestamp = activeParameterIndex;
     if (fileInput.files.length === 0) {
+        alert('Choose a well tally CSV file first.');
         return;
     }
     var form_data = new FormData();
@@ -880,7 +985,10 @@ function upload_injection_well_tally() {
         processData: false,
         data: form_data,
         success: function (data) {
+            if (!isCurrentUploadTarget(targetId, targetTimestamp)) return;
             update_injectionwell_tally_table(data);
+            inspectorDirty = true;
+            setBuilderStatus('Imported tally · save inspector to keep it', true);
         },
         error: function (xhr) {
             var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : xhr.responseText || 'Upload failed';
@@ -1028,8 +1136,13 @@ function update_injectionwell_trajectory_table(table_data_json) {
 function add_parameters_timestamps() {
 
     element = selected_cell
+    if (inspectorDirty && !save_parameters(activeParameterIndex, activeTagIndex)) return;
 
     timestamps = document.getElementById("parameters_timestamps").value;
+    if (!timestamps) {
+        alert('Choose a parameter timestamp.');
+        return;
+    }
 
     if (element.attributes.properties.parameters.timestamps.includes(timestamps)) {
         alert("Timestamp already exists")
@@ -1043,18 +1156,20 @@ function add_parameters_timestamps() {
 
     prop_names = Object.keys(element.attributes.properties.parameters.property)
     for (var ii = 0; ii < prop_names.length; ii++) {
-        eval('element.attributes.properties.parameters.property.' + prop_names[ii] + '.push(element.attributes.properties.parameters.property. ' + prop_names[ii] + '.slice(-1)[0])')
+        var values = element.attributes.properties.parameters.property[prop_names[ii]];
+        values.push(JSON.parse(JSON.stringify(values[values.length - 1])));
     }
     fieldselect.value = timestamps
 
     $('#myParametersTimestampsModal').modal('hide');
-
-    alert('parameters at : ' + timestamps + " is added")
+    read_parameters();
+    recordDiagramChange();
 }
 
 function delete_parameters_timestamps() {
 
     element = selected_cell
+    if (inspectorDirty && !save_parameters(activeParameterIndex, activeTagIndex)) return;
 
     timestamps = document.getElementById("select_parameters_timestamps").value;
 
@@ -1069,20 +1184,26 @@ function delete_parameters_timestamps() {
 
     prop_names = Object.keys(element.attributes.properties.parameters.property)
     for (var ii = 0; ii < prop_names.length; ii++) {
-        eval('element.attributes.properties.parameters.property.' + prop_names[ii] + '.splice(' + index + ',1)')
+        element.attributes.properties.parameters.property[prop_names[ii]].splice(index, 1);
     }
 
     fieldselect = document.getElementById('select_parameters_timestamps');
     fieldselect.options.remove(index)
 
-    alert('parameters at : ' + timestamps + " is deleted")
+    read_parameters();
+    recordDiagramChange();
 }
 
 function add_tagnames_timestamps() {
 
     element = selected_cell
+    if (inspectorDirty && !save_parameters(activeParameterIndex, activeTagIndex)) return;
 
     timestamps = document.getElementById("tagnames_timestamps").value;
+    if (!timestamps || element.attributes.properties.tagnames.timestamps.includes(timestamps)) {
+        alert('Choose a new tagnames timestamp.');
+        return;
+    }
 
     fieldselect = document.getElementById('select_tagnames_timestamps');
     fieldselect.options[fieldselect.options.length] = new Option(timestamps, timestamps);
@@ -1091,23 +1212,26 @@ function add_tagnames_timestamps() {
 
     category = ['measured', 'filtered', 'calculated']
     for (var j = 0; j < category.length; j++) {
-        prop_names = eval('Object.keys(element.attributes.properties.tagnames.' + category[j] + ')')
+        var tagCategory = element.attributes.properties.tagnames[category[j]];
+        prop_names = Object.keys(tagCategory);
         for (var i = 0; i < prop_names.length; i++) {
-            eval('element.attributes.properties.tagnames.' + category[j] + '.' + prop_names[i] + '.push(element.attributes.properties.tagnames.' + category[j] + '.' + prop_names[i] + '.slice(-1)[0])')
+            var values = tagCategory[prop_names[i]];
+            values.push(JSON.parse(JSON.stringify(values[values.length - 1])));
         }
     }
 
 
     fieldselect.value = timestamps
 
-    $('#myParametersTimestampsModal').modal('hide');
-
-    alert('tagnames at : ' + timestamps + " is added")
+    $('#myTagnamesTimestampsModal').modal('hide');
+    read_parameters();
+    recordDiagramChange();
 }
 
 function delete_tagnames_timestamps() {
 
     element = selected_cell
+    if (inspectorDirty && !save_parameters(activeParameterIndex, activeTagIndex)) return;
 
     timestamps = document.getElementById("select_tagnames_timestamps").value;
 
@@ -1122,22 +1246,27 @@ function delete_tagnames_timestamps() {
 
     category = ['measured', 'filtered', 'calculated']
     for (var j = 0; j < category.length; j++) {
-        prop_names = eval('Object.keys(element.attributes.properties.tagnames.' + category[j] + ')')
+        var tagCategory = element.attributes.properties.tagnames[category[j]];
+        prop_names = Object.keys(tagCategory);
         for (var i = 0; i < prop_names.length; i++) {
-            eval('element.attributes.properties.tagnames.' + category[j] + '.' + prop_names[i] + '.splice(' + index + ',1)')
+            tagCategory[prop_names[i]].splice(index, 1);
         }
     }
 
     fieldselect = document.getElementById('select_tagnames_timestamps');
     fieldselect.options.remove(index)
 
-    alert('tagnames at : ' + timestamps + " is deleted")
+    read_parameters();
+    recordDiagramChange();
 }
 
 
-$('#select_parameters_timestamps').change(function () {
+function changeBuilderTimestamp() {
+    if (inspectorDirty && !save_parameters(activeParameterIndex, activeTagIndex)) {
+        document.getElementById('select_parameters_timestamps').selectedIndex = activeParameterIndex;
+        document.getElementById('select_tagnames_timestamps').selectedIndex = activeTagIndex;
+        return;
+    }
     read_parameters()
-})
-$('#select_tagnames_timestamps').change(function () {
-    read_parameters()
-})
+}
+$('#select_parameters_timestamps, #select_tagnames_timestamps').change(changeBuilderTimestamp);
