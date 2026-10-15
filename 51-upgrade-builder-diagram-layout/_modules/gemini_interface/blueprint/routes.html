@@ -116,7 +116,6 @@
 <span class="nd">@login_required</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">grafana</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Navigate to the application Grafana interface."""</span>
-
     <span class="n">grafana_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"GRAFANA_URL"</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
     <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">grafana_url</span><span class="si">}</span><span class="s2">/grafana/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span>
 
