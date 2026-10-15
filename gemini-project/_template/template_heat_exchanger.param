@@ -2,6 +2,21 @@
     "id": "",
     "name": "",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "hex_primary_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_primary_inlet_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_primary_inlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_primary_outlet_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_primary_outlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_secondary_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_secondary_inlet_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_secondary_inlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_secondary_outlet_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "hex_secondary_outlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "heat_transfer_coeff": [
                 100000

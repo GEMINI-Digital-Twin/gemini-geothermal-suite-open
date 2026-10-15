@@ -2,6 +2,20 @@
     "id": "",
     "name": "",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "heatpump_eletricity_current": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_eletricity_power": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_eletricity_voltage": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_primary_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_primary_inlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_primary_outlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_secondary_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_secondary_inlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "heatpump_secondary_outlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "heatpump_efficiency": [
                 70

@@ -2,6 +2,7 @@
     "id": "c1b5a7e3-ac6c-460b-b76c-877d39d0381a",
     "name": "reservoir_c1b5",
     "parameters": {
+        "filtering": {"enabled": true, "tags": {}},
         "property": {
             "liquid_density": [
                 1068

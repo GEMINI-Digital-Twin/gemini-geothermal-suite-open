@@ -2,6 +2,15 @@
     "id": "",
     "name": "",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "gasboiler_heat_pipe_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "gasboiler_heat_pipe_inlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "gasboiler_heat_pipe_outlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "gasboiler_inlet_gas_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {
             "gasboiler_efficiency": [
                 0

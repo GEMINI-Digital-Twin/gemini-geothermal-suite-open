@@ -1,6 +1,7 @@
 """ESP unit: ESP-related calculation modules."""
 
 from gemini_framework.abstract.unit_abstract import UnitAbstract
+from gemini_framework.framework.data_filtering import DataFiltering
 from gemini_framework.modules.esp.calculate_theoretical_head import CalculateTheoreticalHead
 from gemini_framework.modules.esp.calculate_theoretical_outlet_pressure import (
     CalculateTheoreticalOutletPressure,
@@ -21,7 +22,7 @@ class ESPUnit(UnitAbstract):
         super().__init__(unit_id=unit_id, unit_name=unit_name, plant=plant)
 
         # define unit modules
-        self.modules["preprocessor"] = []
+        self.modules["preprocessor"].append(DataFiltering(self))
         self.modules["model"].append(CalculateTheoreticalHead(self))
         self.modules["model"].append(CalculateTheoreticalPower(self))
         self.modules["model"].append(CalculateTheoreticalOutletPressure(self))

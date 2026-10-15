@@ -2,6 +2,16 @@
     "id": "b1ed9e73-ef7c-44ad-a73e-9a3c2209f6f2",
     "name": "filter_b1ed",
     "parameters": {
+        "filtering": {
+            "enabled": true,
+            "tags": {
+                "filter_flow": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "filter_inlet_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "filter_inlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "filter_outlet_pressure": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4},
+                "filter_outlet_temperature": {"min": null, "max": null, "no_missing": true, "correction": "last_value", "window": 4}
+            }
+        },
         "property": {},
         "timestamps": [
             "2020-01-01 00:00:00"

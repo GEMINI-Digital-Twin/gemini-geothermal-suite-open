@@ -2,6 +2,7 @@
     "id": "28fc284b-25fd-425b-be22-d5627939b573",
     "name": "reservoir_28fc",
     "parameters": {
+        "filtering": {"enabled": true, "tags": {}},
         "property": {
             "liquid_density": [
                 1068

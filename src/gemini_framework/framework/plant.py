@@ -91,6 +91,8 @@ class Plant:
         """Find modules of specified category."""
         modules = []
         for unit in self.units:
-            modules.extend(unit.modules[category])
+            modules.extend(
+                module for module in unit.modules[category] if getattr(module, "enabled", True)
+            )
 
         return modules

@@ -2,6 +2,7 @@
     "id": "",
     "name": "",
     "parameters": {
+        "filtering": {"enabled": true, "tags": {}},
         "property": {
             "liquid_density": [
                 0
