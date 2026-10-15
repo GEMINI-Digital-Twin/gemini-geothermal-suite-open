@@ -10,6 +10,13 @@
     margin: 12px 0;
 }
 
+.builder-toolbar,
+.builder-workspace {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+}
+
 .builder-toolbar strong {
     margin-right: auto;
     font-size: 17px;
@@ -144,8 +151,8 @@
 
 .builder-canvas {
     box-sizing: content-box;
-    height: min(70vh, 760px);
-    min-height: 480px;
+    height: 60vh;
+    min-height: 160px;
     overflow: hidden;
     border: 1px solid #777;
     border-radius: 5px;

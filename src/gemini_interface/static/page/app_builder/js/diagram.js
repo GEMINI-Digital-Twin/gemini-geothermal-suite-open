@@ -401,14 +401,21 @@ document.querySelectorAll('.builder-inspector .table tr').forEach(function (row)
     wrapper.appendChild(suffix);
 });
 var canvasPanel = document.querySelector('.builder-canvas-panel');
+var canvasHelp = canvas.nextElementSibling;
 function resizeBuilderCanvas() {
     var panelStyle = window.getComputedStyle(canvasPanel);
     var canvasStyle = window.getComputedStyle(canvas);
+    var helpStyle = window.getComputedStyle(canvasHelp);
     var width = Math.floor(canvasPanel.clientWidth -
         parseFloat(panelStyle.paddingLeft) - parseFloat(panelStyle.paddingRight) -
         parseFloat(canvasStyle.borderLeftWidth) - parseFloat(canvasStyle.borderRightWidth));
     if (width <= 0) return;
-    var height = Math.round(Math.max(480, Math.min(window.innerHeight * 0.7, 760)));
+    var spaceBelow = canvasHelp.offsetHeight +
+        parseFloat(helpStyle.marginTop) + parseFloat(helpStyle.marginBottom) +
+        parseFloat(panelStyle.paddingBottom) + parseFloat(canvasStyle.borderBottomWidth) + 12;
+    var height = Math.max(160, Math.floor(
+        window.innerHeight - Math.max(0, canvas.getBoundingClientRect().top) - spaceBelow
+    ));
     if (canvas.clientWidth !== width || canvas.clientHeight !== height) {
         paper.setDimensions(width, height);
     }
@@ -416,7 +423,12 @@ function resizeBuilderCanvas() {
 if (window.ResizeObserver) {
     new ResizeObserver(resizeBuilderCanvas).observe(canvasPanel);
 }
-window.addEventListener('resize', resizeBuilderCanvas);
+var resizeCanvasTimer;
+window.addEventListener('resize', function () {
+    resizeBuilderCanvas();
+    clearTimeout(resizeCanvasTimer);
+    resizeCanvasTimer = setTimeout(resizeBuilderCanvas, 50);
+});
 resizeBuilderCanvas();
 window.addEventListener('beforeunload', function (evt) {
     if (!hasUnsavedDiagram()) return;
