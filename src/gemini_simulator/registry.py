@@ -11,10 +11,13 @@ gives a single place to extend when new gemini_model components are added.
 from gemini_model.adder.adder import Adder
 from gemini_model.boiler.boiler import Boiler
 from gemini_model.booster_pump.booster_pump import BoosterPump
+from gemini_model.chiller.absorption_chiller import AbsorptionChiller
+from gemini_model.chiller.electric_chiller import ElectricChiller
 from gemini_model.chp.chp import CHP
 from gemini_model.filter.filter import Filter
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP
 from gemini_model.heat_exchanger.heat_exchanger import HeatExchanger
+from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
 from gemini_model.injector_pump.injector_pump import InjectorPump
 from gemini_model.mixer.mixer import Mixer
 from gemini_model.pump.esp import ESP
@@ -34,6 +37,9 @@ COMPONENT_REGISTRY = {
     "heat_exchanger": HeatExchanger,
     "boiler": Boiler,
     "chp": CHP,
+    "heat_pump": HeatpumpBasic,
+    "absorption_chiller": AbsorptionChiller,
+    "electric_chiller": ElectricChiller,
     "injector_pump": InjectorPump,
     "booster_pump": BoosterPump,
     "well": DPDT,

@@ -10,3 +10,5 @@ poetry.lock
 codedocumentation
 build
 .env
+# gemini_design example outputs
+simulator_examples/outputs/
