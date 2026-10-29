@@ -87,6 +87,8 @@ def load_diagram():
     if os.path.exists(os.path.join(project_folder_path, "diagram.json")):
         with open(os.path.join(project_folder_path, "diagram.json"), "r") as jsonfile:
             diagram = json.load(jsonfile)
+    else:
+        return jsonify({"cells": []})
 
     for component in diagram["cells"]:
         if (component["type"] == "devs.Link") or (component["type"] == "standard.Circle"):

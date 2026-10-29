@@ -30,7 +30,6 @@ def index():
 @login_required
 def grafana(path):
     """Navigate to the application Grafana interface."""
-
     grafana_url = os.getenv("GRAFANA_URL").rstrip("/")
     url = f"{grafana_url}/grafana/{path}"
 

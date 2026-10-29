@@ -1,0 +1,338 @@
+.builder-toolbar,
+.builder-canvas-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.builder-toolbar {
+    margin: 12px 0;
+}
+
+.builder-toolbar,
+.builder-workspace {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+}
+
+.builder-toolbar strong {
+    margin-right: auto;
+    font-size: 17px;
+}
+
+#builder-save-status {
+    color: #94a3b8;
+    min-width: 80px;
+}
+
+#builder-save-status.is-dirty {
+    color: #ffc857;
+}
+
+.builder-workspace {
+    display: grid;
+    grid-template-columns: minmax(175px, 210px) minmax(360px, 1fr) minmax(280px, 330px);
+    gap: 12px;
+    align-items: start;
+}
+
+.builder-palette,
+.builder-canvas-panel,
+.builder-inspector {
+    min-width: 0;
+    border: 1px solid #34455c;
+    border-radius: 8px;
+    background: #202b3d;
+}
+
+.builder-palette,
+.builder-inspector {
+    padding: 14px;
+    max-height: calc(100vh - 190px);
+    overflow-y: auto;
+}
+
+.builder-palette > label {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.builder-help {
+    margin: 10px 0;
+    font-size: 12px;
+    color: #aebdce;
+}
+
+.builder-palette-group {
+    margin-top: 18px;
+}
+
+.builder-palette-group h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #b4c3d6;
+}
+
+.builder-item {
+    display: block;
+    width: 100%;
+    margin: 5px 0;
+    padding: 9px;
+    border: 1px solid #54677d;
+    border-left: 4px solid #6a6a6a;
+    border-radius: 5px;
+    text-align: left;
+    background: #29384b;
+    color: #fff;
+    cursor: grab;
+}
+
+.builder-item:hover,
+.builder-item:focus {
+    background: #38516c;
+    outline: 2px solid #a9d5ff;
+}
+
+.builder-item i {
+    width: 22px;
+    text-align: center;
+}
+
+.builder-palette [hidden],
+.builder-inspector [hidden] {
+    display: none !important;
+}
+
+.builder-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 24px;
+    font-size: 12px;
+}
+
+.builder-legend-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.builder-legend-line::before {
+    content: "";
+    width: 30px;
+    border-top: 3px solid #777;
+}
+
+.builder-legend-line.primary::before {
+    border-color: #2165a3;
+}
+
+.builder-legend-line.secondary::before {
+    border-color: #b66321;
+    border-top-style: dashed;
+}
+
+.builder-canvas-panel {
+    position: relative;
+    padding: 10px;
+}
+
+.builder-canvas-toolbar {
+    margin-bottom: 8px;
+}
+
+.builder-canvas-toolbar .btn {
+    padding: 6px 9px;
+}
+
+.builder-canvas {
+    box-sizing: content-box;
+    height: 60vh;
+    min-height: 160px;
+    overflow: hidden;
+    border: 1px solid #777;
+    border-radius: 5px;
+    background: #f6f9fc;
+}
+
+.builder-canvas.drag-over {
+    outline: 3px solid #55a9ed;
+}
+
+.builder-canvas .joint-element .body {
+    fill: #fff;
+    stroke: #333;
+}
+
+.builder-canvas .joint-link .connection {
+    stroke: #666;
+}
+
+.builder-canvas .joint-link .marker-target {
+    fill: #666;
+    stroke: #666;
+}
+
+.builder-canvas .joint-link[data-loop="primary"] .connection,
+.builder-canvas .joint-link[data-loop="primary"] .marker-target {
+    stroke: #2165a3;
+}
+
+.builder-canvas .joint-link[data-loop="primary"] .marker-target {
+    fill: #2165a3;
+}
+
+.builder-canvas .joint-link[data-loop="secondary"] .connection,
+.builder-canvas .joint-link[data-loop="secondary"] .marker-target {
+    stroke: #b66321;
+}
+
+.builder-canvas .joint-link[data-loop="secondary"] .connection {
+    stroke-dasharray: 8 4;
+}
+
+.builder-canvas .joint-link[data-loop="secondary"] .marker-target {
+    fill: #b66321;
+}
+
+.builder-canvas .joint-element.builder-selected .body,
+.builder-canvas .joint-element.builder-selected .scalable * {
+    stroke: #111;
+    stroke-width: 3;
+}
+
+.builder-canvas .joint-link.builder-selected .connection {
+    stroke-width: 3;
+}
+
+.builder-canvas .joint-element .label {
+    fill: #222;
+    font-weight: 600;
+}
+
+.builder-canvas .builder-symbol {
+    fill: #283e55;
+    font: 14px FontAwesome;
+    pointer-events: none;
+}
+
+.builder-inspector-empty {
+    color: #b4c3d6;
+}
+
+.builder-inspector.has-selection .builder-inspector-empty,
+.builder-inspector:not(.has-selection) .modal-dialog {
+    display: none;
+}
+
+.builder-inspector .modal-dialog {
+    width: auto;
+    max-width: none;
+    margin: 0;
+}
+
+.builder-inspector .modal-content {
+    box-shadow: none;
+    border: 0;
+}
+
+.builder-inspector .modal-header,
+.builder-inspector .modal-body,
+.builder-inspector .modal-footer {
+    padding: 10px;
+}
+
+.builder-inspector h3 {
+    font-size: 16px;
+}
+
+.builder-inspector .table {
+    width: 100%;
+}
+
+.builder-inspector .table td {
+    display: block;
+    border: 0;
+    padding: 3px 0;
+}
+
+.builder-inspector .table td input,
+.builder-inspector .table td select,
+.builder-inspector .tab-pane > select {
+    max-width: 100%;
+    width: 100% !important;
+    color: #222;
+}
+
+.builder-inspector .table td input[type="file"] {
+    width: 100%;
+}
+
+.builder-input-unit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.builder-input-unit input {
+    min-width: 0;
+}
+
+.builder-field-unit {
+    flex: none;
+    color: #34455c;
+    font-size: 11px;
+}
+
+.builder-inspector .table tr {
+    display: block;
+    padding: 5px 0;
+}
+
+.builder-inspector .table tr[hidden] {
+    display: none;
+}
+
+.builder-inspector .nav-tabs {
+    display: flex;
+}
+
+.builder-inspector .nav-tabs a {
+    padding: 8px;
+}
+
+#context-menu {
+    position: absolute;
+    z-index: 30;
+}
+
+@media (max-width: 1150px) {
+    .builder-workspace {
+        grid-template-columns: minmax(175px, 210px) minmax(300px, 1fr);
+    }
+
+    .builder-inspector {
+        grid-column: 1 / -1;
+        max-height: 600px;
+    }
+}
+
+@media (max-width: 700px) {
+    .builder-workspace {
+        display: block;
+    }
+
+    .builder-palette,
+    .builder-canvas-panel,
+    .builder-inspector {
+        margin-bottom: 12px;
+    }
+
+    .builder-palette {
+        max-height: 250px;
+    }
+}
