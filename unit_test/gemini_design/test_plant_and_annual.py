@@ -15,8 +15,9 @@ DESIGNS = [
     Design(2, 2500.0, "heat_pump", "absorption", heat_pump_capacity_mw=10, electric_backup_mw=5),
     Design(2, 3100.0, "boiler", "electric"),
     Design(2, 2500.0, "boiler", "electric", chp_capacity_mw_el=1.1),
+    Design(2, 3100.0, "boiler", "electric", chp_capacity_mw_el=1.1),
 ]
-DAYS = [(30e6, 0.0), (3e6, 10e6), (15e6, 3e6)]
+DAYS = [(30e6, 0.0), (24.31e6, 0.0), (3e6, 10e6), (15e6, 3e6)]
 
 
 @pytest.fixture(autouse=True)
@@ -41,6 +42,7 @@ def test_dispatch_meets_demand_within_hard_caps(design):
         # district heating energy balance: CHP + HEX + heat pump + boiler = delivered heat
         supplied = r["chp_heat_w"] + r["hex_heat_w"] + r["heat_pump_heat_w"] + r["boiler_heat_w"]
         assert supplied == pytest.approx(r["heat_delivered_w"], rel=1e-3)
+        assert r["heat_delivered_w"] == pytest.approx(heating, rel=1e-6)
 
 
 @pytest.mark.parametrize("design", DESIGNS, ids=lambda d: d.name)
@@ -48,9 +50,10 @@ def test_gemini_solver_cross_check(design):
     """The dispatched peak day, rebuilt as project JSON and run by GEMINI's Solver, agrees."""
     hydraulics = DoubletHydraulics(design.depth_m)
     plant = Plant(design, hydraulics)
-    r = dispatch_day(plant, 30e6, 0.0, design.n_doublets)
-    _, check = cross_check(design, hydraulics, r)
-    assert check["agrees"], check
+    for heating in (30e6, 24.31e6):
+        r = dispatch_day(plant, heating, 0.0, design.n_doublets)
+        _, check = cross_check(design, hydraulics, r)
+        assert check["agrees"], check
 
 
 def test_outages_respect_330_days_and_do_not_overlap():

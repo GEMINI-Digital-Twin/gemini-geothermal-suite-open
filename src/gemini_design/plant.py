@@ -291,6 +291,7 @@ class Plant:
         boiler_gas_mass = gas_mass - chp_gas
 
         # ---- district heating: HEX with bypass so the brine stays within the 40 K cap
+        # and the mixed secondary outlet never overshoots the 100 degC supply setpoint
         t_secondary = t_after_chp
         hex_duty = 0.0
         t_inj = t_brine
@@ -298,12 +299,16 @@ class Plant:
             fraction = 1.0
             hex_args = (t_brine, q_brine, secondary_flow, n_active)
             t_b, t_s, duty = self._run_hex(*hex_args, fraction, t_after_chp)
-            if t_b < t_inj_min:
-                lo, hi = 0.0, 1.0
-                for _ in range(40):
+
+            def within_limits(f):
+                t_b_f, t_s_f, _ = self._run_hex(*hex_args, f, t_after_chp)
+                return t_b_f >= t_inj_min and t_s_f <= t_supply + 1e-9
+
+            if t_b < t_inj_min or t_s > t_supply + 1e-9:
+                lo, hi = 0.0, 1.0  # both limits tighten monotonically as more water passes the HEX
+                for _ in range(50):
                     mid = 0.5 * (lo + hi)
-                    t_b_mid, _, _ = self._run_hex(*hex_args, mid, t_after_chp)
-                    lo, hi = (mid, hi) if t_b_mid >= t_inj_min else (lo, mid)
+                    lo, hi = (mid, hi) if within_limits(mid) else (lo, mid)
                 fraction = lo
                 t_b, t_s, duty = self._run_hex(*hex_args, fraction, t_after_chp)
             r["hex_bypass_fraction"] = 1.0 - fraction
