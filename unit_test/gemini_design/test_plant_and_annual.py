@@ -100,3 +100,18 @@ def test_chp_uses_associated_gas_before_boiler_and_offsets_grid():
     assert r1["cost_eur_s"] < r0["cost_eur_s"]
     fuel = r1["chp_fuel_w"]
     assert r1["chp_power_el_w"] + r1["chp_heat_w"] == pytest.approx(0.85 * fuel)
+
+
+@pytest.mark.parametrize("depth", [2800.0, 3100.0])
+def test_brine_energy_balance_closes_with_heat_pump(depth):
+    """Brine heat = HEX + absorption drive + HP source heat + separator loss, on low-load days."""
+    design = Design(1, depth, "heat_pump", "electric", heat_pump_capacity_mw=10)
+    plant = Plant(design, DoubletHydraulics(depth))
+    for heating in (3.85e6, 5e6, 8e6, 12e6):
+        for q in (60.0, 106.0, 200.0):
+            r = plant.evaluate(heating, 0.0, 1, q)
+            separator_loss = q / 3600 * 1030 * 4180 * 0.5
+            source = r["heat_pump_heat_w"] - r["heat_pump_power_w"]
+            brine = r["hex_heat_w"] + r["absorption_heat_w"] + source + separator_loss
+            assert brine == pytest.approx(r["geothermal_heat_w"], rel=1e-6, abs=1.0)
+            assert r["brine_cooling_k"] <= 40.0 + 1e-6

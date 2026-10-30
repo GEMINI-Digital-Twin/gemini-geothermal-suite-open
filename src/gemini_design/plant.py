@@ -339,16 +339,18 @@ class Plant:
                 )
                 hp = self.heat_pump.output
                 if hp["COP"] > 1.0 and hp["Th_out"] > t_secondary:
-                    hp_heat, hp_el = hp["power_th"], hp["power_el"]
-                    t_hp_out, t_src_out = hp["Th_out"], hp["Ts_out"]
-                    if t_hp_out > t_target + 0.05:
-                        # HeatpumpBasic's fallback solve (source pinned at its minimum) can
-                        # overshoot the target when the source is rich; a real unit
-                        # modulates down to the setpoint at the same COP instead.
-                        hp_heat = cap_secondary * (t_target - t_secondary)
-                        hp_el = hp_heat / hp["COP"]
-                        t_hp_out = t_target
-                        t_src_out = t_inj - (hp_heat - hp_el) / (rho_cp * q_brine)
+                    # Take only the COP from HeatpumpBasic and rebuild both outlet
+                    # temperatures from the energy balance (Qh = Qs + W). Its fallback
+                    # solve (source pinned at Ts_in_minimum) can overshoot the setpoint
+                    # or report a source outlet inconsistent with the heat it delivers.
+                    cop = hp["COP"]
+                    source_share = 1.0 - 1.0 / cop
+                    hp_heat = min(hp["power_th"], cap_secondary * (t_target - t_secondary))
+                    source_max = rho_cp * q_brine * (t_inj - t_inj_min)
+                    hp_heat = max(0.0, min(hp_heat, source_max / source_share))
+                    hp_el = hp_heat / cop
+                    t_hp_out = t_secondary + hp_heat / cap_secondary
+                    t_src_out = t_inj - hp_heat * source_share / (rho_cp * q_brine)
                     t_secondary, t_inj = t_hp_out, t_src_out
                     r["heat_pump_cop"] = hp["COP"]
 

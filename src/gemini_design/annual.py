@@ -19,7 +19,7 @@ from gemini_design.doublet import DoubletHydraulics
 from gemini_design.economics import levelised_cost
 from gemini_design.plant import Plant
 
-UNMET_PENALTY_EUR_PER_MWH = 10000.0
+UNMET_PENALTY_EUR_PER_MWH = 1.0e6  # demand comes first; cost only breaks ties
 HOURS_PER_DAY = 24.0
 
 
