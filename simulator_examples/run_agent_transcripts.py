@@ -105,7 +105,7 @@ def _write_index(workspace, backend, config, rows):
     )
     if backend == "scripted":
         lines += ["", "Token counts are estimated at ~4 characters per token."]
-    (workspace / "transcripts" / "index.md").write_text("\n".join(lines) + "\n")
+    (workspace / "transcripts" / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main(argv=None):

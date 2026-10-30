@@ -67,7 +67,7 @@ class AgentConfig:
         env = os.environ if env is None else env
         values = {}
         if path is not None and Path(path).exists():
-            values.update(json.loads(Path(path).read_text()))
+            values.update(json.loads(Path(path).read_text(encoding="utf-8")))
         provider = overrides.get("provider") or env.get("GEMINI_AGENT_PROVIDER")
         if provider is None:
             provider = values.get("provider")

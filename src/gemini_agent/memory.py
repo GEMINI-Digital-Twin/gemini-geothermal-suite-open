@@ -58,7 +58,7 @@ class RunLedger:
         self._daily = {}
         self._summaries = {}
         if self.path.exists():
-            for line in self.path.read_text().splitlines():
+            for line in self.path.read_text(encoding="utf-8").splitlines():
                 if line.strip():
                     e = json.loads(line)
                     self.entries[e["run_id"]] = e
@@ -96,11 +96,13 @@ class RunLedger:
         run_dir.mkdir(exist_ok=True)
         if summary is not None:
             self._summaries[run_id] = summary
-            (run_dir / "summary.json").write_text(json.dumps(summary, indent=1, default=float))
+            (run_dir / "summary.json").write_text(
+                json.dumps(summary, indent=1, default=float), encoding="utf-8"
+            )
         if daily is not None:
             self._daily[run_id] = daily
             daily.to_csv(run_dir / "daily.csv", index=False)
-        with self.path.open("a") as f:
+        with self.path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, default=float) + "\n")
         return run_id
 
@@ -112,7 +114,9 @@ class RunLedger:
         """Return the full summary dict of a run (from memory or disk)."""
         if run_id not in self._summaries:
             path = self.runs_dir / run_id / "summary.json"
-            self._summaries[run_id] = json.loads(path.read_text()) if path.exists() else None
+            self._summaries[run_id] = (
+                json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+            )
         return self._summaries[run_id]
 
     def daily(self, run_id):
@@ -147,7 +151,7 @@ class ProjectNotes:
         self.dir = Path(workspace)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.path = self.dir / "project_notes.json"
-        self.notes = json.loads(self.path.read_text()) if self.path.exists() else []
+        self.notes = json.loads(self.path.read_text(encoding="utf-8")) if self.path.exists() else []
 
     def add(self, kind, text, source="agent"):
         """Append a note and save JSON + Markdown."""
@@ -155,8 +159,8 @@ class ProjectNotes:
             raise ValueError(f"kind must be one of {self.KINDS}")
         note = {"time": _now(), "kind": kind, "text": text.strip(), "source": source}
         self.notes.append(note)
-        self.path.write_text(json.dumps(self.notes, indent=1))
-        (self.dir / "project_notes.md").write_text(self.markdown())
+        self.path.write_text(json.dumps(self.notes, indent=1), encoding="utf-8")
+        (self.dir / "project_notes.md").write_text(self.markdown(), encoding="utf-8")
         return note
 
     def search(self, query=""):

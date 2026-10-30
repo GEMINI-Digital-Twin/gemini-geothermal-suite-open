@@ -232,7 +232,7 @@ def main(argv=None):
     rows = []
     results_json = OUT / "results.json"
     if args.keep and results_json.exists():
-        rows = json.loads(results_json.read_text())
+        rows = json.loads(results_json.read_text(encoding="utf-8"))
     reference = reference_run()
     for label, provider, model in backends:
         if not args.keep:
@@ -253,7 +253,7 @@ def main(argv=None):
 
 
 def _write(rows, reference):
-    (OUT / "results.json").write_text(json.dumps(rows, indent=1, default=str))
+    (OUT / "results.json").write_text(json.dumps(rows, indent=1, default=str), encoding="utf-8")
     with (OUT / "results.csv").open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
         writer.writeheader()

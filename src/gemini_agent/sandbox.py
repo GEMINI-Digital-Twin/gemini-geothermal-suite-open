@@ -82,8 +82,8 @@ def write_model(name, code, test_code, register_as, workspace, timeout_s=60):
     folder.mkdir(parents=True, exist_ok=True)
     model_path = folder / f"{name}.py"
     test_path = folder / f"test_{name}.py"
-    model_path.write_text(code)
-    test_path.write_text(test_code)
+    model_path.write_text(code, encoding="utf-8")
+    test_path.write_text(test_code, encoding="utf-8")
 
     env = {
         "PATH": os.environ.get("PATH", ""),
