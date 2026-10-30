@@ -1,0 +1,5 @@
+# Same versions as GEMINI's pyproject.toml (development branch); only these are needed here.
+numpy==2.2.6
+scipy==1.13.1
+pandas==2.3.3
+pytest==8.4.2
