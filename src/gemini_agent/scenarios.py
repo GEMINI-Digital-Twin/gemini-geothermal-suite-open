@@ -298,6 +298,7 @@ def scripted_steps(scenario):
                 depths_m=[2800, 3100],
                 upgrades=["boiler", "heat_pump"],
                 coolings=["electric", "absorption"],
+                chp=[False, True],
             ),
             lambda m: _call("cross_check", run_id=_last(m, "screen")["best_by_lcoe"][0]["run_id"]),
             _design_answer,
