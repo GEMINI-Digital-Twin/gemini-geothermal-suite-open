@@ -14,6 +14,8 @@ def test_default_is_local_open_weight_model_with_placeholder_key():
     assert cfg.base_url == "http://localhost:11434/v1"
     assert cfg.model.startswith("qwen")
     assert cfg.api_key == PLACEHOLDER_API_KEY
+    # the Ollama preset applies even when no provider is named (Qwen3 needs room to think)
+    assert cfg.max_tokens == 4096
 
 
 def test_env_and_preset_overrides(tmp_path):
@@ -88,6 +90,12 @@ def test_openai_client_native_tool_calls_and_usage():
     assert session.sent["json"]["tools"]
     assert resp.tool_calls[0].name == "describe_inputs"
     assert (resp.prompt_tokens, resp.completion_tokens, resp.estimated_tokens) == (1234, 12, False)
+
+
+def test_reply_cut_off_at_token_limit_is_flagged():
+    data = {"choices": [{"message": {"content": "<think>long..."}, "finish_reason": "length"}]}
+    llm = OpenAICompatibleLLM(AgentConfig.load(env={}), session=_FakeSession(data))
+    assert llm.chat([{"role": "user", "content": "hi"}], []).truncated
 
 
 def test_openai_client_text_fallback_estimates_tokens():

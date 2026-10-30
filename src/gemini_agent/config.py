@@ -70,7 +70,7 @@ class AgentConfig:
             values.update(json.loads(Path(path).read_text(encoding="utf-8")))
         provider = overrides.get("provider") or env.get("GEMINI_AGENT_PROVIDER")
         if provider is None:
-            provider = values.get("provider")
+            provider = values.get("provider", cls.provider)
         if provider in PRESETS:
             for key, value in PRESETS[provider].items():
                 values.setdefault(key, value)

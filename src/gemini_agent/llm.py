@@ -51,6 +51,7 @@ class LLMResponse:
     latency_s: float = 0.0
     model: str = ""
     reasoning: str = ""  # hidden reasoning ("thinking") text, logged but not sent back
+    truncated: bool = False  # the reply hit the completion token limit
     reasoning_tokens: int = 0  # part of completion_tokens, when the endpoint reports it
 
     def as_message(self):
@@ -204,7 +205,8 @@ class OpenAICompatibleLLM:
         if resp.status_code != 200:
             raise RuntimeError(f"LLM endpoint returned {resp.status_code}: {resp.text[:500]}")
         data = resp.json()
-        msg = data["choices"][0]["message"]
+        choice = data["choices"][0]
+        msg = choice["message"]
         reasoning, content = split_thinking(msg.get("content") or "")
         reasoning = msg.get("reasoning_content") or msg.get("reasoning") or reasoning
         tool_names = {t["function"]["name"] for t in tools or []}
@@ -236,6 +238,7 @@ class OpenAICompatibleLLM:
             reasoning_tokens=(usage.get("completion_tokens_details") or {}).get(
                 "reasoning_tokens", 0
             ),
+            truncated=choice.get("finish_reason") == "length",
         )
 
 

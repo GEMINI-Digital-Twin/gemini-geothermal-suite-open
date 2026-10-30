@@ -139,6 +139,7 @@ class DesignAgent:
                 reasoning_tokens=resp.reasoning_tokens,
                 estimated=resp.estimated_tokens,
                 latency_s=round(resp.latency_s, 2),
+                truncated=resp.truncated,
             )
             self.episode.append(resp.as_message())
 
@@ -178,9 +179,13 @@ class DesignAgent:
 
             answer = resp.content.strip()
             if not answer:
-                self.episode.append(
-                    {"role": "user", "content": "[agent loop] Empty reply. Answer or call a tool."}
-                )
+                nudge = "[agent loop] Empty reply. Answer or call a tool."
+                if resp.truncated:
+                    nudge = (
+                        "[agent loop] Your reply was cut off at the token limit while "
+                        "thinking. Think in a few sentences, then call a tool."
+                    )
+                self.episode.append({"role": "user", "content": nudge})
                 continue
             errors = check_answer(
                 answer, self._evidence(answer), self._brief_sources(), self.ledger
