@@ -30,6 +30,8 @@ PRESETS = {
     "llamacpp": {"base_url": "http://localhost:8080/v1", "model": "qwen3-8b"},
     "vllm": {"base_url": "http://localhost:8000/v1", "model": "Qwen/Qwen3-8B"},
     "openrouter": {"base_url": "https://openrouter.ai/api/v1", "model": "qwen/qwen3-235b-a22b"},
+    # GPT-6 Luna through the Codex CLI and a ChatGPT plan (no API key): `codex login` first.
+    "codex": {"base_url": "codex-cli", "model": "gpt-6-luna", "request_timeout_s": 900.0},
     # Commercial comparison backend. Check the exact model id on your OpenAI account
     # (GET /v1/models) and override with --model if it differs.
     "openai": {
@@ -65,10 +67,10 @@ class AgentConfig:
         env = os.environ if env is None else env
         values = {}
         if path is not None and Path(path).exists():
-            values.update(json.loads(Path(path).read_text()))
+            values.update(json.loads(Path(path).read_text(encoding="utf-8")))
         provider = overrides.get("provider") or env.get("GEMINI_AGENT_PROVIDER")
         if provider is None:
-            provider = values.get("provider")
+            provider = values.get("provider", cls.provider)
         if provider in PRESETS:
             for key, value in PRESETS[provider].items():
                 values.setdefault(key, value)

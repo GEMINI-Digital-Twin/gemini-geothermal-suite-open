@@ -22,7 +22,7 @@ from pathlib import Path
 
 from gemini_agent.config import AgentConfig
 from gemini_agent.knowledge import assumptions_ledger, brief_summary, system_prompt
-from gemini_agent.llm import OpenAICompatibleLLM, estimate_tokens
+from gemini_agent.llm import estimate_tokens, make_llm
 from gemini_agent.memory import ProjectNotes, RunLedger, Scratchpad
 from gemini_agent.physics_gate import check_answer
 from gemini_agent.tools import ToolBox, compact_json, openai_tool_schemas
@@ -54,7 +54,7 @@ class DesignAgent:
     def __init__(self, config=None, llm=None, inputs_dir=None, session_name=None, meta=None):
         """Set up memory, tools and the transcript; ``llm`` defaults to the configured endpoint."""
         self.config = config or AgentConfig()
-        self.llm = llm or OpenAICompatibleLLM(self.config)
+        self.llm = llm or make_llm(self.config)
         self.workspace = Path(self.config.workspace)
         self.workspace.mkdir(parents=True, exist_ok=True)
         self.demand = load_demand(inputs_dir or DEFAULT_INPUTS)
@@ -139,6 +139,7 @@ class DesignAgent:
                 reasoning_tokens=resp.reasoning_tokens,
                 estimated=resp.estimated_tokens,
                 latency_s=round(resp.latency_s, 2),
+                truncated=resp.truncated,
             )
             self.episode.append(resp.as_message())
 
@@ -178,9 +179,13 @@ class DesignAgent:
 
             answer = resp.content.strip()
             if not answer:
-                self.episode.append(
-                    {"role": "user", "content": "[agent loop] Empty reply. Answer or call a tool."}
-                )
+                nudge = "[agent loop] Empty reply. Answer or call a tool."
+                if resp.truncated:
+                    nudge = (
+                        "[agent loop] Your reply was cut off at the token limit while "
+                        "thinking. Think in a few sentences, then call a tool."
+                    )
+                self.episode.append({"role": "user", "content": nudge})
                 continue
             errors = check_answer(
                 answer, self._evidence(answer), self._brief_sources(), self.ledger

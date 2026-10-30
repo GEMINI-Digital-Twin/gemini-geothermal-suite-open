@@ -73,6 +73,16 @@ python simulator_examples/compare_agent_models.py `
     --repeats 3
 ```
 
+**GPT-6 Luna without an API key (Codex CLI).** With a ChatGPT plan, install the Codex CLI
+(`npm install -g @openai/codex`), run `codex login` once, and use the `codex` provider:
+`--backend gpt-6-luna=codex:gpt-6-luna` in the comparison, or `--provider codex` in the
+CLI. Use the model name `default` to keep Codex's configured model. Each agent step runs
+one ephemeral, read-only `codex exec` in an empty temporary folder. The conversation and
+tools go in as text, and tool requests come back as `<tool_call>` JSON, so the same tools
+and gate apply. Token counts come from Codex's `--json` events and include Codex's own
+system prompt, so they overstate what a bare API call would use. Cost is covered by the
+plan (leave `--price` out).
+
 Other endpoints: `--provider llamacpp|vllm|openrouter|openai`, or `--base-url` / `--model`.
 The `openai` preset treats the model as a reasoning model: it sends no temperature and
 uses `max_completion_tokens`. Any endpoint that rejects `max_tokens` is switched to

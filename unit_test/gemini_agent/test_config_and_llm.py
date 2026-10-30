@@ -14,6 +14,8 @@ def test_default_is_local_open_weight_model_with_placeholder_key():
     assert cfg.base_url == "http://localhost:11434/v1"
     assert cfg.model.startswith("qwen")
     assert cfg.api_key == PLACEHOLDER_API_KEY
+    # the Ollama preset applies even when no provider is named (Qwen3 needs room to think)
+    assert cfg.max_tokens == 4096
 
 
 def test_env_and_preset_overrides(tmp_path):
@@ -90,6 +92,12 @@ def test_openai_client_native_tool_calls_and_usage():
     assert (resp.prompt_tokens, resp.completion_tokens, resp.estimated_tokens) == (1234, 12, False)
 
 
+def test_reply_cut_off_at_token_limit_is_flagged():
+    data = {"choices": [{"message": {"content": "<think>long..."}, "finish_reason": "length"}]}
+    llm = OpenAICompatibleLLM(AgentConfig.load(env={}), session=_FakeSession(data))
+    assert llm.chat([{"role": "user", "content": "hi"}], []).truncated
+
+
 def test_openai_client_text_fallback_estimates_tokens():
     content = '<tool_call>{"name": "list_models", "arguments": {}}</tool_call>'
     session = _FakeSession({"choices": [{"message": {"content": content}}]})
@@ -157,3 +165,27 @@ def test_reasoning_model_parameters_and_tokens():
     session = _RejectingSession(data)
     resp = OpenAICompatibleLLM(plain, session=session).chat([{"role": "user", "content": "q"}], [])
     assert resp.content == "done" and plain.reasoning_model
+
+
+def test_codex_cli_backend_round_trip(tmp_path):
+    from gemini_agent.llm import CodexCLILLM, make_llm
+
+    seen = {}
+
+    def runner(cmd, prompt, timeout):
+        seen["cmd"], seen["prompt"] = cmd, prompt
+        out = cmd[cmd.index("--output-last-message") + 1]
+        with open(out, "w", encoding="utf-8") as f:
+            f.write('<tool_call>{"name": "describe_inputs", "arguments": {}}</tool_call>')
+        usage = {"input_tokens": 900, "output_tokens": 40, "reasoning_output_tokens": 25}
+        return 0, json.dumps({"type": "turn.completed", "usage": usage}) + "\n", ""
+
+    cfg = AgentConfig.load(env={}, provider="codex")
+    assert isinstance(make_llm(cfg), CodexCLILLM)
+    llm = CodexCLILLM(cfg, runner=runner)
+    resp = llm.chat([{"role": "user", "content": "design it"}], openai_tool_schemas())
+    assert "--sandbox" in seen["cmd"] and "read-only" in seen["cmd"]
+    assert "- run_design(" in seen["prompt"] and "design it" in seen["prompt"]
+    assert resp.tool_calls[0].name == "describe_inputs"
+    assert (resp.prompt_tokens, resp.completion_tokens, resp.reasoning_tokens) == (900, 40, 25)
+    assert not resp.estimated_tokens

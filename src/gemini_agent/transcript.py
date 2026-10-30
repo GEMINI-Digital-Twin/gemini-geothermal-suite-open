@@ -20,14 +20,14 @@ class Transcript:
         self.events = []
         self.meta = meta or {}
         self.jsonl = self.folder / f"{session_name}.jsonl"
-        self.jsonl.write_text("")
+        self.jsonl.write_text("", encoding="utf-8")
         self.log("session_start", **self.meta)
 
     def log(self, kind, **data):
         """Append one event."""
         event = {"t": time.strftime("%H:%M:%S"), "kind": kind, **data}
         self.events.append(event)
-        with self.jsonl.open("a") as f:
+        with self.jsonl.open("a", encoding="utf-8") as f:
             f.write(json.dumps(event, default=str) + "\n")
         return event
 
@@ -154,5 +154,5 @@ class Transcript:
     def save(self):
         """Write the Markdown rendering next to the JSONL; return both paths."""
         md = self.folder / f"{self.name}.md"
-        md.write_text(self.markdown())
+        md.write_text(self.markdown(), encoding="utf-8")
         return self.jsonl, md

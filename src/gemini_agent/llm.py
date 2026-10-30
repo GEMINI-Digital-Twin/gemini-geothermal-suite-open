@@ -51,6 +51,7 @@ class LLMResponse:
     latency_s: float = 0.0
     model: str = ""
     reasoning: str = ""  # hidden reasoning ("thinking") text, logged but not sent back
+    truncated: bool = False  # the reply hit the completion token limit
     reasoning_tokens: int = 0  # part of completion_tokens, when the endpoint reports it
 
     def as_message(self):
@@ -204,7 +205,8 @@ class OpenAICompatibleLLM:
         if resp.status_code != 200:
             raise RuntimeError(f"LLM endpoint returned {resp.status_code}: {resp.text[:500]}")
         data = resp.json()
-        msg = data["choices"][0]["message"]
+        choice = data["choices"][0]
+        msg = choice["message"]
         reasoning, content = split_thinking(msg.get("content") or "")
         reasoning = msg.get("reasoning_content") or msg.get("reasoning") or reasoning
         tool_names = {t["function"]["name"] for t in tools or []}
@@ -236,6 +238,7 @@ class OpenAICompatibleLLM:
             reasoning_tokens=(usage.get("completion_tokens_details") or {}).get(
                 "reasoning_tokens", 0
             ),
+            truncated=choice.get("finish_reason") == "length",
         )
 
 
@@ -279,6 +282,146 @@ class ScriptedLLM:
         )
 
 
+CODEX_PROTOCOL = """You are the language model inside the GEMINI design agent. Do NOT run shell
+commands, read files or edit anything yourself: the only way to act is to request one of
+the tools below, which the agent runs for you. Reply in exactly one of two ways:
+1. One or more tool requests, each on its own line, exactly like
+   <tool_call>{"name": "run_design", "arguments": {"n_doublets": 2}}</tool_call>
+2. Your final answer to the user as plain text (no tool_call tags).
+
+Tools:
+{tools}
+
+Conversation so far (system instructions first, then user, assistant and tool results):
+{conversation}
+
+Your reply:"""
+
+
+def _tool_list(tools):
+    lines = []
+    for t in tools or []:
+        f = t["function"]
+        props = f.get("parameters", {}).get("properties", {})
+        args = ", ".join(f"{k}: {v.get('type', 'any')}" for k, v in props.items())
+        lines.append(f"- {f['name']}({args}): {f['description']}")
+    return "\n".join(lines)
+
+
+def _find_usage(obj):
+    """Return the last ``usage``-like dict (input/output tokens) found in a JSON event."""
+    found = None
+    if isinstance(obj, dict):
+        if "input_tokens" in obj or "output_tokens" in obj:
+            found = obj
+        for v in obj.values():
+            found = _find_usage(v) or found
+    elif isinstance(obj, list):
+        for v in obj:
+            found = _find_usage(v) or found
+    return found
+
+
+class CodexCLILLM:
+    """Use the Codex CLI (``codex exec``, signed in with a ChatGPT plan) as the LLM.
+
+    Each agent step runs one non-interactive, ephemeral, read-only ``codex exec`` in an
+    empty folder. The conversation and tool list go in as text; tool requests come back
+    as ``<tool_call>`` JSON (the same path as ``native_tool_calling = False``). Token
+    counts are read from Codex's ``--json`` events; they include Codex's own system
+    prompt, so they are not directly comparable with a bare API call.
+    """
+
+    def __init__(self, config, runner=None):
+        """``runner(cmd, prompt, timeout) -> (returncode, stdout, stderr)`` can be injected."""
+        import shutil
+        import tempfile
+
+        self.config = config
+        self.model = config.model
+        self.executable = shutil.which("codex") or "codex"
+        self.workdir = tempfile.mkdtemp(prefix="gemini_codex_")
+        self.runner = runner or self._run
+
+    @staticmethod
+    def _run(cmd, prompt, timeout):
+        import subprocess
+
+        proc = subprocess.run(
+            cmd, input=prompt, capture_output=True, text=True, timeout=timeout, encoding="utf-8"
+        )
+        return proc.returncode, proc.stdout, proc.stderr
+
+    def chat(self, messages, tools):
+        """Run one ``codex exec`` turn and return an :class:`LLMResponse`."""
+        import os
+
+        conversation = "\n\n".join(
+            f"[{m['role']}]\n{m['content']}" for m in _to_plain_messages(messages)
+        )
+        prompt = CODEX_PROTOCOL.replace("{tools}", _tool_list(tools)).replace(
+            "{conversation}", conversation
+        )
+        out_file = os.path.join(self.workdir, "last_message.txt")
+        if os.path.exists(out_file):
+            os.remove(out_file)
+        cmd = [
+            self.executable,
+            "exec",
+            "--json",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "--cd",
+            self.workdir,
+            "--output-last-message",
+            out_file,
+        ]
+        if self.model and self.model != "default":
+            cmd += ["--model", self.model]
+        cmd.append("-")
+        t0 = time.time()
+        code, stdout, stderr = self.runner(cmd, prompt, self.config.request_timeout_s)
+        latency = time.time() - t0
+        if code != 0:
+            raise RuntimeError(f"codex exec failed ({code}): {(stderr or stdout)[-500:]}")
+        content = ""
+        if os.path.exists(out_file):
+            with open(out_file, encoding="utf-8") as f:
+                content = f.read()
+        usage, reasoning = None, []
+        for line in stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            usage = _find_usage(event) or usage
+            item = event.get("item") if isinstance(event, dict) else None
+            if isinstance(item, dict) and item.get("type") == "reasoning" and item.get("text"):
+                reasoning.append(item["text"])
+            if not content and isinstance(item, dict) and item.get("type") == "agent_message":
+                content = item.get("text", "")
+        thought, content = split_thinking(content)
+        calls, content = parse_text_tool_calls(content, {t["function"]["name"] for t in tools})
+        details = (usage or {}).get("output_tokens_details") or {}
+        return LLMResponse(
+            content=content.strip(),
+            tool_calls=calls,
+            prompt_tokens=int((usage or {}).get("input_tokens", estimate_tokens(prompt))),
+            completion_tokens=int((usage or {}).get("output_tokens", estimate_tokens(content))),
+            estimated_tokens=usage is None,
+            latency_s=latency,
+            model=f"codex-cli:{self.model}",
+            reasoning="\n".join(reasoning) or thought,
+            reasoning_tokens=int(
+                (usage or {}).get("reasoning_output_tokens", details.get("reasoning_tokens", 0))
+            ),
+        )
+
+
 def make_llm(config):
     """Return the backend for a config (``provider == "scripted"`` is not built here)."""
+    if config.provider == "codex":
+        return CodexCLILLM(config)
     return OpenAICompatibleLLM(config)
