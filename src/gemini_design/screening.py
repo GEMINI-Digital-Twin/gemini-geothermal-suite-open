@@ -29,7 +29,11 @@ def chp_size_mw_el(n_doublets, challenge=CHALLENGE, assumptions=ASSUMPTIONS):
 
 
 def candidate_designs(
-    depths_m=DEFAULT_DEPTHS_M, peak_heating_mw=30.0, peak_cooling_mw=10.0, include_chp=True
+    depths_m=DEFAULT_DEPTHS_M,
+    peak_heating_mw=30.0,
+    peak_cooling_mw=10.0,
+    include_chp=True,
+    chiller_margin=1.0,
 ):
     """Return the default candidate grid with rule-based equipment sizing.
 
@@ -41,6 +45,9 @@ def candidate_designs(
     a half-size electric backup for days with too little brine. With
     ``include_chp`` every combination is also tried with a CHP sized to
     burn all associated gas at full flow (about 0.54 MW_el per doublet).
+    ``chiller_margin`` scales the chiller above the cooling peak; the
+    uncertainty study found about 1.2 is needed once cooling demand is
+    uncertain (an exact-peak chiller misses cooling in about half the samples).
     """
     designs = []
     chp_options = (False, True) if include_chp else (False,)
@@ -55,7 +62,7 @@ def candidate_designs(
                 cooling=cooling,
                 heat_pump_capacity_mw=peak_heating_mw / 3 if upgrade == "heat_pump" else 0.0,
                 boiler_capacity_mw=peak_heating_mw,
-                chiller_capacity_mw=peak_cooling_mw,
+                chiller_capacity_mw=peak_cooling_mw * chiller_margin,
                 electric_backup_mw=peak_cooling_mw / 2 if cooling == "absorption" else 0.0,
                 chp_capacity_mw_el=chp_size_mw_el(n) if chp else 0.0,
             )
