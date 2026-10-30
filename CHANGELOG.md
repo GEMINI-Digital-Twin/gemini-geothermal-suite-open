@@ -29,6 +29,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `gemini_design`: optional CHP on associated gas (ahead of the boiler), with grid
   import/export, flaring accounting and CHP CAPEX; screening tries every design with and
   without it.
+- `gemini_uncertainty`: Latin-hypercube Monte Carlo, P10/P90 tornado and paired design
+  comparison over 14 sourced subsurface, demand, price and cost parameters; ThermoGIS well-cost
+  model; report figures; agent tool `assess_design_uncertainty`
+  (`simulator_examples/run_uncertainty_study.py`).
 ### Fixed
 - Injection wellhead pressure: friction now opposes downward injection flow instead of
   adding to the bottomhole pressure, which made deep injectors look like they need no pump.
