@@ -203,7 +203,34 @@ class Plant:
         """Simulate one steady day; return energy flows, temperatures and checks.
 
         ``flow_m3h`` is the production (= injection) rate of each active doublet.
+
+        With a CHP, associated gas can go to the CHP first (its power is worth
+        more) or to the boiler first, up to the boiler's top-up need (on the
+        return line the CHP heat only displaces free HEX heat, so a boiler that
+        would otherwise buy natural gas values the gas more). Both allocations
+        are simulated and the cheaper one, after unmet demand, is kept.
         """
+        chp_first = self._evaluate(heating_w, cooling_w, n_active, flow_m3h)
+        if self.chp_gas_capacity <= 0 or n_active == 0 or chp_first["purchased_gas_w"] <= 0:
+            return chp_first
+        no_chp = self._evaluate(heating_w, cooling_w, n_active, flow_m3h, chp_gas_limit=0.0)
+        gas_mass = no_chp["associated_gas_fuel_w"] / self.gas["lhv"]
+        boiler_gas = no_chp["associated_gas_heat_w"] / (
+            self.a["boiler_efficiency"] * self.gas["lhv"]
+        )
+        boiler_first = self._evaluate(
+            heating_w, cooling_w, n_active, flow_m3h, chp_gas_limit=max(0.0, gas_mass - boiler_gas)
+        )
+
+        def key(r):
+            return (round(r["unmet_heat_w"] + r["unmet_cooling_w"]), r["cost_eur_s"])
+
+        best = min((chp_first, boiler_first), key=key)
+        best["gas_priority"] = "chp" if best is chp_first else "boiler"
+        return best
+
+    def _evaluate(self, heating_w, cooling_w, n_active, flow_m3h, chp_gas_limit=None):
+        """Run the flowsheet; ``chp_gas_limit`` (kg/s) caps the associated gas the CHP may burn."""
         d, a, c = self.design, self.a, self.c
         rho_cp = self.rho * self.cp
         t_supply = c["heating_supply_c"]
@@ -275,10 +302,17 @@ class Plant:
         cap_secondary = rho_cp * secondary_flow
         chp_gas, chp_el, chp_heat = 0.0, 0.0, 0.0
         t_after_chp = t_return
-        if self.chp_gas_capacity > 0 and gas_mass > 0 and secondary_flow > 0:
+        if (
+            self.chp_gas_capacity > 0
+            and gas_mass > 0
+            and secondary_flow > 0
+            and (chp_gas_limit is None or chp_gas_limit > 0)
+        ):
             heat_room = cap_secondary * (t_supply - t_return)
             th_per_kg = self.gas["lhv"] * a["chp_efficiency"] * (1 - CHP.ELECTRICAL_POWER_FRACTION)
             chp_gas = min(gas_mass, self.chp_gas_capacity, heat_room / th_per_kg)
+            if chp_gas_limit is not None:
+                chp_gas = min(chp_gas, chp_gas_limit)
             self.chp.calculate_output(
                 {
                     "temperature_in": t_return,

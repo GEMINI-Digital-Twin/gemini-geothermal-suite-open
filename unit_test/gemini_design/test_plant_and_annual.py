@@ -115,3 +115,21 @@ def test_brine_energy_balance_closes_with_heat_pump(depth):
             brine = r["hex_heat_w"] + r["absorption_heat_w"] + source + separator_loss
             assert brine == pytest.approx(r["geothermal_heat_w"], rel=1e-6, abs=1.0)
             assert r["brine_cooling_k"] <= 40.0 + 1e-6
+
+
+def test_associated_gas_feeds_boiler_before_chp():
+    """At 3.1 km with a cooler reservoir the boiler top-up is fed by associated gas, not bought."""
+    from dataclasses import replace
+
+    from gemini_design.challenge import ASSUMPTIONS, CHALLENGE
+
+    cool = dict(CHALLENGE, geothermal_gradient_c_per_km=28.1)  # P10 gradient: ~99 degC at 3.1 km
+    base = Design(2, 3100.0, "boiler", "electric")
+    chp = replace(base, chp_capacity_mw_el=1.1, name="")
+    p0 = Plant(base, DoubletHydraulics(3100.0, cool, ASSUMPTIONS), cool, ASSUMPTIONS)
+    p1 = Plant(chp, DoubletHydraulics(3100.0, cool, ASSUMPTIONS), cool, ASSUMPTIONS)
+    r0 = p0.evaluate(24e6, 0.0, 2, 280.0)
+    r1 = p1.evaluate(24e6, 0.0, 2, 280.0)
+    assert r0["boiler_heat_w"] > 0
+    assert r1["purchased_gas_w"] == pytest.approx(r0["purchased_gas_w"], abs=1e3)
+    assert r1["cost_eur_s"] <= r0["cost_eur_s"] + 1e-9
