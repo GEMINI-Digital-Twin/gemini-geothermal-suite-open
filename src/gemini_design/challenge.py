@@ -65,12 +65,17 @@ ASSUMPTIONS = {
     "heat_pump_eta_lorenz": 0.5,
     "absorption_eta_rev": 0.2,
     "absorption_cop_max": 0.8,
-    "electric_chiller_eta_carnot": 0.5,
+    "electric_chiller_eta_carnot": 0.40,
     "electric_chiller_cop_max": 7.0,
+    "electric_chiller_evaporator_approach_k": 4.0,
+    "electric_chiller_condenser_approach_k": 8.0,  # above cooling water, incl. its rise
+    "electric_chiller_units": 3,  # staged modules
+    "chp_efficiency": 0.85,  # fuel to heat + power (GEMINI CHP splits 1/3 power, 2/3 heat)
     "chiller_aux_power_fraction": 0.02,
     "absorption_hot_dt_max_k": 20.0,  # max brine cooling across the generator (low-temp design)
     # energy prices and emission factors (NL-type 2027 values)
     "electricity_price_eur_per_mwh": 120.0,
+    "electricity_export_price_eur_per_mwh": 60.0,  # CHP surplus sold to the grid
     "gas_price_eur_per_mwh": 40.0,  # purchased natural gas, LHV basis
     "co2_price_eur_per_t": 80.0,
     "electricity_emission_kg_per_kwh": 0.30,  # same as GEMINI examples
@@ -81,6 +86,7 @@ ASSUMPTIONS = {
     "surface_cost_per_doublet_eur": 3.0e6,  # ESP, separator, filters, HEX, injection pump
     "heat_pump_cost_eur_per_mw": 7.0e5,
     "boiler_cost_eur_per_mw": 1.0e5,
+    "chp_cost_eur_per_mw_el": 1.0e6,  # gas engine on low-CV associated gas
     "absorption_chiller_cost_eur_per_mw": 4.0e5,
     "electric_chiller_cost_eur_per_mw": 2.5e5,
     "fixed_om_fraction": 0.02,  # of CAPEX per year

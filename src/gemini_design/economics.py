@@ -17,6 +17,7 @@ def capital_cost_eur(design, assumptions=ASSUMPTIONS):
         "doublet_surface": design.n_doublets * a["surface_cost_per_doublet_eur"],
         "heat_pump": design.heat_pump_capacity_mw * a["heat_pump_cost_eur_per_mw"],
         "boiler": design.boiler_capacity_mw * a["boiler_cost_eur_per_mw"],
+        "chp": getattr(design, "chp_capacity_mw_el", 0.0) * a["chp_cost_eur_per_mw_el"],
         "chiller": design.chiller_capacity_mw * chiller_unit,
         "electric_backup_chiller": design.electric_backup_mw
         * a["electric_chiller_cost_eur_per_mw"],

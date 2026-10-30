@@ -237,6 +237,20 @@ def build_operating_point_project(
             },
         ]
 
+    chp_gas_kg_s = day_result.get("chp_fuel_w", 0.0) / n / gas["lhv"]
+    if chp_gas_kg_s > 0:
+        _add_chp(
+            components,
+            boundary_inputs,
+            connections,
+            secondary_flow,
+            bypass,
+            chp_gas_kg_s,
+            gas,
+            challenge,
+            assumptions,
+        )
+
     return {
         "_description": (
             f"GeoHackathon design '{design.name}', one of {n} active doublet(s) at "
@@ -251,6 +265,82 @@ def build_operating_point_project(
         "boundary_inputs": boundary_inputs,
         "connections": connections,
     }
+
+
+def _add_chp(
+    components,
+    boundary_inputs,
+    connections,
+    secondary_flow,
+    bypass,
+    chp_gas_kg_s,
+    gas,
+    challenge,
+    assumptions,
+):
+    """Put a CHP on the district return line ahead of the HEX and its bypass (in place)."""
+    a = assumptions
+    components["chp"] = {
+        "type": "chp",
+        "parameters": {
+            "caloric_value": gas["lhv"],
+            "efficiency_factor": a["chp_efficiency"],
+            "gas_emission_factor": a["natural_gas_emission_kg_per_gj"],
+            "fluid_density": challenge["brine_density"],
+            "specific_heat": a["brine_cp"],
+        },
+    }
+    components["secondary_splitter"] = {
+        "type": "splitter",
+        "parameters": {"split_fractions": [1 - bypass, bypass]},
+    }
+    replaced = {
+        ("heat_exchanger", "secondary_temperature_in"),
+        ("heat_exchanger", "secondary_flow_rate"),
+        ("bypass_mixer", "input_1_flow"),
+        ("bypass_mixer", "input_1_temperature"),
+    }
+    boundary_inputs[:] = [b for b in boundary_inputs if (b["component"], b["key"]) not in replaced]
+    boundary_inputs += [
+        {"component": "chp", "key": "temperature_in", "value": a["heating_return_c"]},
+        {"component": "chp", "key": "water_flow_rate", "value": secondary_flow},
+        {"component": "chp", "key": "gas_flow_rate", "value": chp_gas_kg_s},
+    ]
+    to_chp_splitter = {
+        "predecessor": "chp",
+        "successor": "secondary_splitter",
+        "ports": [["water_flow_rate", "input"]],
+    }
+    to_hex = [
+        {
+            "predecessor": "secondary_splitter",
+            "successor": "heat_exchanger",
+            "ports": [["output_0", "secondary_flow_rate"]],
+        },
+        {
+            "predecessor": "chp",
+            "successor": "heat_exchanger",
+            "ports": [["temperature_out", "secondary_temperature_in"]],
+        },
+    ]
+    to_mixer = [
+        {
+            "predecessor": "secondary_splitter",
+            "successor": "bypass_mixer",
+            "ports": [["output_1", "input_1_flow"]],
+        },
+        {
+            "predecessor": "chp",
+            "successor": "bypass_mixer",
+            "ports": [["temperature_out", "input_1_temperature"]],
+        },
+    ]
+    # successor inputs must be wired consecutively (see Solver.connect)
+    last_hex = max(i for i, c in enumerate(connections) if c["successor"] == "heat_exchanger")
+    connections[last_hex + 1 : last_hex + 1] = to_hex
+    last_mixer = max(i for i, c in enumerate(connections) if c["successor"] == "bypass_mixer")
+    connections[last_mixer + 1 : last_mixer + 1] = to_mixer
+    connections.insert(0, to_chp_splitter)
 
 
 def run_operating_point_project(project):

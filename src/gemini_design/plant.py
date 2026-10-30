@@ -7,7 +7,13 @@ Primary (brine) path, per active doublet sharing the load equally::
 
 Secondary (district heating) path::
 
-    return 40 degC -> HEX (with bypass) -> [heat pump condenser] -> [gas boiler] -> 100 degC supply
+    return 40 degC -> [CHP heat recovery] -> HEX (with bypass) -> [heat pump condenser]
+        -> [gas boiler] -> 100 degC supply
+
+Co-produced (associated) gas from the separator fuels the CHP first (its
+electricity offsets the pumps, heat pump and chillers; any surplus is
+exported), then the boiler; the boiler buys natural gas for the rest.
+Associated gas that neither burns is flared, and its CO2 is counted either way.
 
 Cooling path (20 degC supply): absorption chiller driven by brine, or an
 electric chiller, plus an optional electric backup chiller.
@@ -23,6 +29,7 @@ from gemini_design.challenge import ASSUMPTIONS, CHALLENGE, associated_gas_prope
 from gemini_model.boiler.boiler import Boiler
 from gemini_model.chiller.absorption_chiller import AbsorptionChiller
 from gemini_model.chiller.electric_chiller import ElectricChiller
+from gemini_model.chp.chp import CHP
 from gemini_model.heat_exchanger.heat_exchanger import HeatExchanger
 from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
 from gemini_model.separator.separator import Separator
@@ -43,6 +50,7 @@ class Design:
     boiler_capacity_mw: float = 30.0
     chiller_capacity_mw: float = 10.0
     electric_backup_mw: float = 0.0  # electric chiller backing an absorption chiller
+    chp_capacity_mw_el: float = 0.0  # gas engine on associated gas (0 = none)
     name: str = ""
     notes: list = field(default_factory=list)
 
@@ -54,6 +62,8 @@ class Design:
             raise ValueError(f"cooling must be one of {COOLING}, got '{self.cooling}'")
         if not self.name:
             self.name = f"{self.n_doublets}D-{int(self.depth_m)}m-{self.upgrade}-{self.cooling}"
+            if self.chp_capacity_mw_el > 0:
+                self.name += "-chp"
 
     def as_dict(self):
         """Return the design as a plain dict (for JSON reports and agent context)."""
@@ -137,8 +147,28 @@ class Plant:
                 "capacity_nominal": electric_capacity * 1e6,
                 "eta_carnot": assumptions["electric_chiller_eta_carnot"],
                 "cop_max": assumptions["electric_chiller_cop_max"],
+                "evaporator_approach": assumptions["electric_chiller_evaporator_approach_k"],
+                "condenser_approach": assumptions["electric_chiller_condenser_approach_k"],
+                "units": assumptions["electric_chiller_units"],
+                "aux_power_fraction": assumptions["chiller_aux_power_fraction"],
                 "chilled_temperature_out_target": challenge["cooling_supply_c"],
             }
+        )
+        self.chp = CHP()
+        self.chp.update_parameters(
+            {
+                "caloric_value": self.gas["lhv"],
+                "efficiency_factor": assumptions["chp_efficiency"],
+                "gas_emission_factor": 0.0,  # associated-gas CO2 is booked separately
+                "fluid_density": self.rho,
+                "specific_heat": self.cp,
+            }
+        )
+        # associated gas (kg/s) the CHP burns at its rated electrical output
+        self.chp_gas_capacity = (
+            design.chp_capacity_mw_el
+            * 1e6
+            / (self.gas["lhv"] * assumptions["chp_efficiency"] * CHP.ELECTRICAL_POWER_FRACTION)
         )
 
     # ------------------------------------------------------------------ helpers
@@ -146,9 +176,12 @@ class Plant:
         dt = self.a["cooling_return_c"] - self.c["cooling_supply_c"]
         return cooling_w / (self.a["water_density"] * self.a["water_cp"] * dt)
 
-    def _run_hex(self, t_primary_in, primary_flow, secondary_flow, n_active, fraction):
-        """Run the HEX with a share ``fraction`` of the secondary flow; return mixed outlet."""
-        t_return = self.a["heating_return_c"]
+    def _run_hex(self, t_primary_in, primary_flow, secondary_flow, n_active, fraction, t_in=None):
+        """Run the HEX with a share ``fraction`` of the secondary flow; return mixed outlet.
+
+        ``t_in`` is the secondary inlet temperature (defaults to the network return).
+        """
+        t_return = self.a["heating_return_c"] if t_in is None else t_in
         self.hex.update_parameters(
             {"heat_transfer_coefficient": n_active * self.a["hex_ua_per_doublet_w_per_k"]}
         )
@@ -238,27 +271,46 @@ class Plant:
             chiller_el += self.electric.output["power_el"]
             r["electric_chiller_cop"] = self.electric.output["COP"]
 
+        # ---- CHP on associated gas, heat recovered into the district return line
+        cap_secondary = rho_cp * secondary_flow
+        chp_gas, chp_el, chp_heat = 0.0, 0.0, 0.0
+        t_after_chp = t_return
+        if self.chp_gas_capacity > 0 and gas_mass > 0 and secondary_flow > 0:
+            heat_room = cap_secondary * (t_supply - t_return)
+            th_per_kg = self.gas["lhv"] * a["chp_efficiency"] * (1 - CHP.ELECTRICAL_POWER_FRACTION)
+            chp_gas = min(gas_mass, self.chp_gas_capacity, heat_room / th_per_kg)
+            self.chp.calculate_output(
+                {
+                    "temperature_in": t_return,
+                    "water_flow_rate": secondary_flow,
+                    "gas_flow_rate": chp_gas,
+                }
+            )
+            chp_el, chp_heat = self.chp.output["power_el"], self.chp.output["power_th"]
+            t_after_chp = self.chp.output["temperature_out"]
+        boiler_gas_mass = gas_mass - chp_gas
+
         # ---- district heating: HEX with bypass so the brine stays within the 40 K cap
-        t_secondary = t_return
+        t_secondary = t_after_chp
         hex_duty = 0.0
         t_inj = t_brine
         if n_active > 0 and secondary_flow > 0:
             fraction = 1.0
-            t_b, t_s, duty = self._run_hex(t_brine, q_brine, secondary_flow, n_active, fraction)
+            hex_args = (t_brine, q_brine, secondary_flow, n_active)
+            t_b, t_s, duty = self._run_hex(*hex_args, fraction, t_after_chp)
             if t_b < t_inj_min:
                 lo, hi = 0.0, 1.0
                 for _ in range(40):
                     mid = 0.5 * (lo + hi)
-                    t_b_mid, _, _ = self._run_hex(t_brine, q_brine, secondary_flow, n_active, mid)
+                    t_b_mid, _, _ = self._run_hex(*hex_args, mid, t_after_chp)
                     lo, hi = (mid, hi) if t_b_mid >= t_inj_min else (lo, mid)
                 fraction = lo
-                t_b, t_s, duty = self._run_hex(t_brine, q_brine, secondary_flow, n_active, fraction)
+                t_b, t_s, duty = self._run_hex(*hex_args, fraction, t_after_chp)
             r["hex_bypass_fraction"] = 1.0 - fraction
             t_secondary, hex_duty, t_inj = t_s, duty, t_b
 
         # ---- heat pump on the remaining brine (source floor = 40 K cap)
         hp_heat, hp_el = 0.0, 0.0
-        cap_secondary = rho_cp * secondary_flow
         if (
             d.upgrade == "heat_pump"
             and n_active > 0
@@ -306,8 +358,11 @@ class Plant:
                 "gas_flow_rate": gas_mass,
             }
         )
-        assoc_heat_available = self.boiler.output["power_th"]
-        assoc_used = min(assoc_heat_available, boiler_heat)
+        assoc_heat_available = self.boiler.output["power_th"]  # if all gas went to the boiler
+        boiler_assoc_capacity = assoc_heat_available * (
+            boiler_gas_mass / gas_mass if gas_mass > 0 else 0.0
+        )
+        assoc_used = min(boiler_assoc_capacity, boiler_heat)
         purchased_gas_w = (boiler_heat - assoc_used) / eff  # fuel energy, LHV
         unmet_heat = boiler_needed - boiler_heat
 
@@ -335,6 +390,12 @@ class Plant:
 
         geo_heat = q_brine * rho_cp * (t_wh - t_inj) if n_active else 0.0
         electricity = esp_el + inj_el + hp_el + chiller_el
+        grid_import = max(0.0, electricity - chp_el)
+        grid_export = max(0.0, chp_el - electricity)
+        assoc_fuel = gas_mass * self.gas["lhv"]
+        flared_fuel = max(
+            0.0, assoc_fuel - chp_gas * self.gas["lhv"] - assoc_used / a["boiler_efficiency"]
+        )
 
         # ---- emissions (kg/s) and cost (EUR/s)
         gas_props = self.gas
@@ -342,10 +403,11 @@ class Plant:
             gas_props["co2_mass_fraction"] + gas_props["ch4_mass_fraction"] * 44.01 / 16.04
         )  # all associated gas is burned (boiler or flare)
         purchased_co2 = purchased_gas_w * a["natural_gas_emission_kg_per_gj"] / 1e9
-        electric_co2 = electricity * a["electricity_emission_kg_per_kwh"] / 3.6e6
+        electric_co2 = grid_import * a["electricity_emission_kg_per_kwh"] / 3.6e6
         co2 = assoc_co2 + purchased_co2 + electric_co2
         cost = (
-            electricity / 3.6e9 * a["electricity_price_eur_per_mwh"]
+            grid_import / 3.6e9 * a["electricity_price_eur_per_mwh"]
+            - grid_export / 3.6e9 * a["electricity_export_price_eur_per_mwh"]
             + purchased_gas_w / 3.6e9 * a["gas_price_eur_per_mwh"]
             + co2 / 1000.0 * a["co2_price_eur_per_t"]
         )
@@ -363,6 +425,13 @@ class Plant:
                 "boiler_heat_w": boiler_heat,
                 "associated_gas_heat_w": assoc_used,
                 "associated_gas_available_w": assoc_heat_available,
+                "associated_gas_fuel_w": assoc_fuel,
+                "associated_gas_flared_w": flared_fuel,
+                "chp_fuel_w": chp_gas * self.gas["lhv"],
+                "chp_heat_w": chp_heat,
+                "chp_power_el_w": chp_el,
+                "grid_import_w": grid_import,
+                "grid_export_w": grid_export,
                 "purchased_gas_w": purchased_gas_w,
                 "esp_power_w": esp_el,
                 "injection_pump_power_w": inj_el,

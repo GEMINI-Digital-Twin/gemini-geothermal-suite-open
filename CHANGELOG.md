@@ -16,6 +16,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   hackathon demand profiles in `simulator_examples/hackathon_inputs/`.
 - Simulator registry entries for `heat_pump`, `absorption_chiller` and `electric_chiller`.
 - Optional `pvt` overrides in well configs so wells can use a brine density/viscosity.
+- `ElectricChiller`: refrigerant approach temperatures, DOE-2 part-load curve, staged
+  modules and heat-rejection auxiliaries (system COP about 4-5 for 20 degC supply).
+- `gemini_design`: optional CHP on associated gas (ahead of the boiler), with grid
+  import/export, flaring accounting and CHP CAPEX; screening tries every design with and
+  without it.
 ### Fixed
 - Injection wellhead pressure: friction now opposes downward injection flow instead of
   adding to the bottomhole pressure, which made deep injectors look like they need no pump.

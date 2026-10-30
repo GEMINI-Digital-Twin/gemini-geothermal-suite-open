@@ -176,14 +176,19 @@ def summarise(
             "purchased_gas_fuel": mwh("purchased_gas_w"),
             "absorption_drive_heat": mwh("absorption_heat_w"),
             "electricity": mwh("electricity_w"),
+            "chp_heat": mwh("chp_heat_w"),
+            "chp_electricity": mwh("chp_power_el_w"),
+            "grid_import": mwh("grid_import_w"),
+            "grid_export": mwh("grid_export_w"),
+            "associated_gas_fuel": mwh("associated_gas_fuel_w"),
+            "associated_gas_flared": mwh("associated_gas_flared_w"),
         },
         "kpi": {
             "geothermal_share_of_heat": mwh("geothermal_heat_w")
             / max(heat_delivered + mwh("absorption_heat_w"), 1e-9),
             "gas_boiler_share_of_heat": mwh("boiler_heat_w")
             / max(heat_delivered + mwh("absorption_heat_w"), 1e-9),
-            "associated_gas_unused_mwh": mwh("associated_gas_available_w")
-            - mwh("associated_gas_heat_w"),
+            "associated_gas_unused_mwh": mwh("associated_gas_flared_w"),  # fuel (LHV), flared
             "co2_t_per_year": co2_t,
             "co2_kg_per_mwh_delivered": co2_t * 1000.0 / max(heat_delivered + cool_delivered, 1e-9),
             "max_unmet_heat_mw": float(daily["unmet_heat_w"].max()) / 1e6,

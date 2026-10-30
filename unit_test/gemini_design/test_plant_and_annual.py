@@ -14,6 +14,7 @@ DESIGNS = [
     Design(2, 2500.0, "boiler", "absorption", boiler_capacity_mw=30, electric_backup_mw=5),
     Design(2, 2500.0, "heat_pump", "absorption", heat_pump_capacity_mw=10, electric_backup_mw=5),
     Design(2, 3100.0, "boiler", "electric"),
+    Design(2, 2500.0, "boiler", "electric", chp_capacity_mw_el=1.1),
 ]
 DAYS = [(30e6, 0.0), (3e6, 10e6), (15e6, 3e6)]
 
@@ -37,8 +38,8 @@ def test_dispatch_meets_demand_within_hard_caps(design):
         if r["n_active"]:
             assert 50.0 <= r["flow_per_doublet_m3h"] <= 300.0
             assert r["brine_cooling_k"] <= 40.0 + 1e-6
-        # district heating energy balance: HEX + heat pump + boiler = delivered heat
-        supplied = r["hex_heat_w"] + r["heat_pump_heat_w"] + r["boiler_heat_w"]
+        # district heating energy balance: CHP + HEX + heat pump + boiler = delivered heat
+        supplied = r["chp_heat_w"] + r["hex_heat_w"] + r["heat_pump_heat_w"] + r["boiler_heat_w"]
         assert supplied == pytest.approx(r["heat_delivered_w"], rel=1e-3)
 
 
@@ -80,3 +81,19 @@ def test_short_year_runs_and_reports_checks():
     assert len(daily) == 365
     assert summary["all_hard_constraints_met"], summary["checks"]
     assert summary["kpi"]["doublet_operating_days"] == [330, 330]
+
+
+def test_chp_uses_associated_gas_before_boiler_and_offsets_grid():
+    """With a CHP, associated gas makes power first; flaring and grid import both fall."""
+    base = Plant(Design(2, 3100.0, "boiler", "electric"), DoubletHydraulics(3100.0))
+    chp = Plant(
+        Design(2, 3100.0, "boiler", "electric", chp_capacity_mw_el=1.1), DoubletHydraulics(3100.0)
+    )
+    r0 = base.evaluate(10e6, 5e6, 2, 200.0)
+    r1 = chp.evaluate(10e6, 5e6, 2, 200.0)
+    assert r1["chp_power_el_w"] > 0
+    assert r1["associated_gas_flared_w"] < r0["associated_gas_flared_w"]
+    assert r1["grid_import_w"] < r0["grid_import_w"]
+    assert r1["cost_eur_s"] < r0["cost_eur_s"]
+    fuel = r1["chp_fuel_w"]
+    assert r1["chp_power_el_w"] + r1["chp_heat_w"] == pytest.approx(0.85 * fuel)
