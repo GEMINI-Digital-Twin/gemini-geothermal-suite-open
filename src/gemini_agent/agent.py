@@ -22,7 +22,7 @@ from pathlib import Path
 
 from gemini_agent.config import AgentConfig
 from gemini_agent.knowledge import assumptions_ledger, brief_summary, system_prompt
-from gemini_agent.llm import OpenAICompatibleLLM, estimate_tokens
+from gemini_agent.llm import estimate_tokens, make_llm
 from gemini_agent.memory import ProjectNotes, RunLedger, Scratchpad
 from gemini_agent.physics_gate import check_answer
 from gemini_agent.tools import ToolBox, compact_json, openai_tool_schemas
@@ -54,7 +54,7 @@ class DesignAgent:
     def __init__(self, config=None, llm=None, inputs_dir=None, session_name=None, meta=None):
         """Set up memory, tools and the transcript; ``llm`` defaults to the configured endpoint."""
         self.config = config or AgentConfig()
-        self.llm = llm or OpenAICompatibleLLM(self.config)
+        self.llm = llm or make_llm(self.config)
         self.workspace = Path(self.config.workspace)
         self.workspace.mkdir(parents=True, exist_ok=True)
         self.demand = load_demand(inputs_dir or DEFAULT_INPUTS)
