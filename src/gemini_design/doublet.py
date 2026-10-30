@@ -46,12 +46,25 @@ class DoubletHydraulics:
         self.reservoir_temperature_c, self.reservoir_pressure_bar = reservoir_at_depth(
             depth_m, challenge
         )
-        self.pi_m3h_per_bar = productivity_index_m3h_per_bar(challenge, assumptions)
+        # Brine temperature entering the producer: the formation temperature
+        # less any thermal-breakthrough drop (e.g. from gemini_design.fimbul).
+        self.production_temperature_c = self.reservoir_temperature_c - assumptions.get(
+            "production_temperature_drop_c", 0.0
+        )
+        # Steady-state Darcy PI, optionally corrected by reservoir simulation
+        # (gemini_design.fimbul): the producer sees ``productivity_ratio`` x PI
+        # and the injector, pushing cold viscous brine, ``injectivity_ratio`` x PI.
+        self.pi_m3h_per_bar = productivity_index_m3h_per_bar(
+            challenge, assumptions
+        ) * assumptions.get("productivity_ratio", 1.0)
+        self.ii_m3h_per_bar = productivity_index_m3h_per_bar(
+            challenge, assumptions
+        ) * assumptions.get("injectivity_ratio", 1.0)
         self.trajectory_table = vertical_trajectory(depth_m, assumptions["well_inner_diameter_m"])
         self.pvt = {"RHOL": challenge["brine_density"], "VISL": challenge["brine_viscosity"]}
         self.well_config = {
             "reservoir_pressure_bar": self.reservoir_pressure_bar,
-            "productivity_index_m3h_per_bar": self.pi_m3h_per_bar,
+            "productivity_index_m3h_per_bar": self.ii_m3h_per_bar,
             "trajectory_table": self.trajectory_table,
             "pvt": self.pvt,
             "roughness_m": assumptions["well_roughness_m"],
@@ -84,7 +97,7 @@ class DoubletHydraulics:
         p_bh_res = ipr.get_output()["bottomhole_pressure"]
 
         segments = _trajectory_table_to_segments(self.trajectory_table)
-        t_res_k = self.reservoir_temperature_c + CELSIUS_TO_KELVIN
+        t_res_k = self.production_temperature_c + CELSIUS_TO_KELVIN
         t_ambient_k = 0.5 * (self.challenge["surface_temperature_c"] + self.reservoir_temperature_c)
         t_ambient_k += CELSIUS_TO_KELVIN
 
@@ -161,7 +174,7 @@ class DoubletHydraulics:
             "wellhead_pressure_bar": wellhead_pressure_bar,
             "pump_dp_bar": dp,
             "pump_power_w": power,
-            "bottomhole_pressure_bar": self.reservoir_pressure_bar + flow_m3h / self.pi_m3h_per_bar,
+            "bottomhole_pressure_bar": self.reservoir_pressure_bar + flow_m3h / self.ii_m3h_per_bar,
         }
 
     def curve(self, flows_m3h=None):
