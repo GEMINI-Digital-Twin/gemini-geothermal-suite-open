@@ -87,6 +87,11 @@ def test_no_heat_when_air_is_hotter():
 SCENARIOS = {
     "01_design_brief_incomplete": {
         "title": "Open design request with missing inputs (agent asks first)",
+        "expect": {
+            "first_reply": "question",
+            "tools_any": ["screen", "run_design"],
+            "final": "answer",
+        },
         "turns": [
             "Design me a heating and cooling system for the district.",
             "I don't know the real return temperatures, go ahead with your defaults.",
@@ -94,10 +99,16 @@ SCENARIOS = {
     },
     "02_offtopic_weather": {
         "title": "Irrelevant question",
+        "expect": {"no_tools": True, "final": "answer"},
         "turns": ["What's the weather in Delft tomorrow?"],
     },
     "03_incomplete_whatif": {
         "title": "Incomplete what-if question (which value?)",
+        "expect": {
+            "first_reply": "question",
+            "tools_any": ["sensitivity", "run_design"],
+            "final": "answer",
+        },
         "turns": [
             "What happens to the cost if the heating return temperature is different?",
             "Try 50 degC.",
@@ -105,27 +116,56 @@ SCENARIOS = {
     },
     "04_hallucination_caught": {
         "title": "Physics gate rejects an invented number, agent corrects itself",
+        "expect": {"tools_any": ["run_design", "screen"], "final": "answer"},
         "turns": ["Is the two-doublet boiler design cheaper than heating with gas only?"],
     },
     "05_uncertainty_permeability": {
         "title": "Subsurface uncertainty (bonus)",
+        "expect": {"tools_any": ["sensitivity"], "final": "answer"},
         "turns": ["How robust is the two-doublet 3.1 km design if permeability is lower?"],
     },
     "06_write_missing_model": {
         "title": "Agent writes a missing model (dry cooler) with tests",
+        "expect": {"model_written": True, "final": "answer"},
         "turns": [
             "GEMINI has no dry cooler model. Add one so we can check chiller heat rejection."
         ],
     },
     "07_invalid_tool_call": {
         "title": "Out-of-range request caught by gate 1",
+        "expect": {"final": "answer"},
         "turns": ["Run four doublets at 3.1 km with a boiler and electric chillers."],
     },
     "08_memory_recall": {
         "title": "Memory across questions",
+        "expect": {"tools_any": ["memory_read"], "final": "answer"},
         "turns": ["What have we decided so far, and which runs back it up?"],
     },
 }
+
+
+def check_behaviour(scenario, replies, events):
+    """Return a list of failed expectations for a finished scenario (empty = pass).
+
+    ``replies`` are the AgentReply objects in order; ``events`` the transcript events.
+    """
+    expect = SCENARIOS[scenario].get("expect", {})
+    tools = [e for e in events if e["kind"] == "tool"]
+    names = {e["name"] for e in tools}
+    failed = []
+    if "first_reply" in expect and replies and replies[0].kind != expect["first_reply"]:
+        failed.append(f"first reply should be a {expect['first_reply']}, was {replies[0].kind}")
+    if "final" in expect and replies and replies[-1].kind != expect["final"]:
+        failed.append(f"final reply should be an {expect['final']}, was {replies[-1].kind}")
+    if expect.get("no_tools") and tools:
+        failed.append(f"should not call tools, called {sorted(names)}")
+    if "tools_any" in expect and not names & set(expect["tools_any"]):
+        failed.append(f"should call one of {expect['tools_any']}")
+    if expect.get("model_written") and not any(
+        e["name"] == "write_model" and '"ok":true' in e["result_preview"] for e in tools
+    ):
+        failed.append("no model passed its tests and was registered")
+    return failed
 
 
 # ------------------------------------------------------------ scripted policy helpers

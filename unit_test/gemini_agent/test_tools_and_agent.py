@@ -158,3 +158,14 @@ def test_notes_persist_across_sessions(tmp_path):
     ProjectNotes(tmp_path).add("decision", "Pick 2 doublets at 3.1 km")
     agent = _agent(tmp_path, [{"content": "ok"}])
     assert "Pick 2 doublets" in agent._messages()[0]["content"]
+
+
+def test_behaviour_checks_flag_missing_question(tmp_path):
+    from gemini_agent.agent import AgentReply
+    from gemini_agent.scenarios import check_behaviour
+
+    replies = [AgentReply(kind="answer", text="Here is a design.")]
+    events = [{"kind": "tool", "name": "run_design", "result_preview": "{}"}]
+    failed = check_behaviour("01_design_brief_incomplete", replies, events)
+    assert failed == ["first reply should be a question, was answer"]
+    assert check_behaviour("02_offtopic_weather", replies, events)

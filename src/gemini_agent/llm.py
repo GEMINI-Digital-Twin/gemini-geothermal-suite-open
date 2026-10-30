@@ -50,6 +50,8 @@ class LLMResponse:
     estimated_tokens: bool = False
     latency_s: float = 0.0
     model: str = ""
+    reasoning: str = ""  # hidden reasoning ("thinking") text, logged but not sent back
+    reasoning_tokens: int = 0  # part of completion_tokens, when the endpoint reports it
 
     def as_message(self):
         """Return the OpenAI-format assistant message for the conversation history."""
@@ -64,6 +66,15 @@ class LLMResponse:
                 for c in self.tool_calls
             ]
         return msg
+
+
+_THINK = re.compile(r"<think>(.*?)</think>", re.S)
+
+
+def split_thinking(content):
+    """Split ``<think>...</think>`` blocks (Qwen3, DeepSeek-R1) off the visible text."""
+    thoughts = [t.strip() for t in _THINK.findall(content or "")]
+    return "\n".join(t for t in thoughts if t), _THINK.sub("", content or "").strip()
 
 
 _TOOL_TAG = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.S)
@@ -144,6 +155,13 @@ def _to_plain_messages(messages):
     return out
 
 
+def _unsupported(text):
+    text = text.lower()
+    return ("temperature" in text or "max_tokens" in text) and (
+        "unsupported" in text or "not supported" in text
+    )
+
+
 class OpenAICompatibleLLM:
     """Chat-completions client for any OpenAI-compatible server."""
 
@@ -159,28 +177,36 @@ class OpenAICompatibleLLM:
         payload = {
             "model": cfg.model,
             "messages": messages if native else _to_plain_messages(messages),
-            "temperature": cfg.temperature,
-            "max_tokens": cfg.max_tokens,
         }
+        if cfg.reasoning_model:
+            payload["max_completion_tokens"] = cfg.max_tokens
+        else:
+            payload["temperature"] = cfg.temperature
+            payload["max_tokens"] = cfg.max_tokens
         if native and tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
         headers = {"Content-Type": "application/json"}
         if cfg.api_key:
             headers["Authorization"] = f"Bearer {cfg.api_key}"
+        url = cfg.base_url.rstrip("/") + "/chat/completions"
         t0 = time.time()
-        resp = self.session.post(
-            cfg.base_url.rstrip("/") + "/chat/completions",
-            json=payload,
-            headers=headers,
-            timeout=cfg.request_timeout_s,
-        )
+        resp = self.session.post(url, json=payload, headers=headers, timeout=cfg.request_timeout_s)
+        if resp.status_code == 400 and "max_tokens" in payload and _unsupported(resp.text):
+            # reasoning models reject temperature / max_tokens: retry once, remember it
+            cfg.reasoning_model = True
+            payload.pop("temperature", None)
+            payload["max_completion_tokens"] = payload.pop("max_tokens")
+            resp = self.session.post(
+                url, json=payload, headers=headers, timeout=cfg.request_timeout_s
+            )
         latency = time.time() - t0
         if resp.status_code != 200:
             raise RuntimeError(f"LLM endpoint returned {resp.status_code}: {resp.text[:500]}")
         data = resp.json()
         msg = data["choices"][0]["message"]
-        content = msg.get("content") or ""
+        reasoning, content = split_thinking(msg.get("content") or "")
+        reasoning = msg.get("reasoning_content") or msg.get("reasoning") or reasoning
         tool_names = {t["function"]["name"] for t in tools or []}
         calls = []
         for c in msg.get("tool_calls") or []:
@@ -206,6 +232,10 @@ class OpenAICompatibleLLM:
             estimated_tokens=estimated,
             latency_s=latency,
             model=data.get("model", cfg.model),
+            reasoning=reasoning if isinstance(reasoning, str) else json.dumps(reasoning),
+            reasoning_tokens=(usage.get("completion_tokens_details") or {}).get(
+                "reasoning_tokens", 0
+            ),
         )
 
 

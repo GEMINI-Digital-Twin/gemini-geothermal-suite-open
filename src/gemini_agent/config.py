@@ -19,12 +19,24 @@ PLACEHOLDER_API_KEY = "YOUR_API_KEY_HERE"
 
 # Ready-made endpoint presets (all OpenAI-compatible chat/completions).
 PRESETS = {
-    "ollama": {"base_url": "http://localhost:11434/v1", "model": "qwen2.5:7b-instruct"},
-    "llamacpp": {"base_url": "http://localhost:8080/v1", "model": "qwen2.5-7b-instruct"},
-    "vllm": {"base_url": "http://localhost:8000/v1", "model": "Qwen/Qwen2.5-7B-Instruct"},
-    "openrouter": {
-        "base_url": "https://openrouter.ai/api/v1",
-        "model": "qwen/qwen-2.5-72b-instruct",
+    # Local open-weight default: Qwen3 8B (Q4_K_M, ~5.2 GB) fits an 8 GB GPU with a 16k
+    # context. Qwen3 "thinks" before answering, so it needs a larger completion budget.
+    "ollama": {
+        "base_url": "http://localhost:11434/v1",
+        "model": "qwen3:8b",
+        "max_tokens": 4096,
+        "request_timeout_s": 600.0,
+    },
+    "llamacpp": {"base_url": "http://localhost:8080/v1", "model": "qwen3-8b"},
+    "vllm": {"base_url": "http://localhost:8000/v1", "model": "Qwen/Qwen3-8B"},
+    "openrouter": {"base_url": "https://openrouter.ai/api/v1", "model": "qwen/qwen3-235b-a22b"},
+    # Commercial comparison backend. Check the exact model id on your OpenAI account
+    # (GET /v1/models) and override with --model if it differs.
+    "openai": {
+        "base_url": "https://api.openai.com/v1",
+        "model": "gpt-6-luna",
+        "reasoning_model": True,
+        "max_tokens": 8000,
     },
 }
 
@@ -40,6 +52,7 @@ class AgentConfig:
     temperature: float = 0.1
     max_tokens: int = 1200
     request_timeout_s: float = 300.0
+    reasoning_model: bool = False  # OpenAI reasoning models: no temperature, max_completion_tokens
     native_tool_calling: bool = True  # False: tools described in the prompt, JSON replies parsed
     max_steps_per_question: int = 14  # LLM calls before the agent gives up on one question
     max_gate_retries: int = 3  # rejected final answers before giving up

@@ -4,7 +4,7 @@ Backends:
     scripted  deterministic stand-in policy (no model server needed; output is
               labelled "scripted" and only demonstrates tools, gate, memory, logs)
     live      the configured OpenAI-compatible endpoint (default: local Ollama,
-              qwen2.5:7b-instruct). Start Ollama and `ollama pull <model>` first.
+              qwen3:8b). Start Ollama and `ollama pull <model>` first.
 
 Run with:
     $env:PYTHONPATH="src"; python simulator_examples/run_agent_transcripts.py --backend live
@@ -28,12 +28,15 @@ from gemini_agent.scenarios import SCENARIOS, scripted_steps
 OUTPUTS = Path(__file__).parent / "outputs"
 
 
-def run(backend, only=None, config_path=None, fresh=True):
-    """Run the scenarios; return the index rows."""
-    workspace = OUTPUTS / f"agent_{backend}"
+def run(backend, only=None, config_path=None, fresh=True, label=None, **overrides):
+    """Run the scenarios; return the index rows.
+
+    ``overrides`` (provider, model, base_url, ...) go to :meth:`AgentConfig.load`.
+    """
+    workspace = OUTPUTS / f"agent_{label or backend}"
     if fresh and workspace.exists():
         shutil.rmtree(workspace)
-    config = AgentConfig.load(config_path, workspace=str(workspace))
+    config = AgentConfig.load(config_path, workspace=str(workspace), **overrides)
     rows = []
     for key, scenario in SCENARIOS.items():
         if only and key not in only:
@@ -112,8 +115,21 @@ def main(argv=None):
     parser.add_argument("--only", nargs="*", help="scenario keys")
     parser.add_argument("--config", help="agent config JSON")
     parser.add_argument("--keep", action="store_true", help="keep the previous workspace")
+    parser.add_argument("--provider", help="ollama, openai, openrouter, ...")
+    parser.add_argument("--model")
+    parser.add_argument("--base-url")
+    parser.add_argument("--label", help="output folder suffix (default: backend name)")
     args = parser.parse_args(argv)
-    run(args.backend, args.only, args.config, fresh=not args.keep)
+    run(
+        args.backend,
+        args.only,
+        args.config,
+        fresh=not args.keep,
+        label=args.label,
+        provider=args.provider,
+        model=args.model,
+        base_url=args.base_url,
+    )
     return 0
 
 

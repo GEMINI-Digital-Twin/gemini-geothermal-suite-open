@@ -44,6 +44,8 @@ class Transcript:
                         "tool_calls": 0,
                         "prompt_tokens": 0,
                         "completion_tokens": 0,
+                        "reasoning_tokens": 0,
+                        "llm_seconds": 0.0,
                         "gate_rejections": 0,
                         "outcome": "",
                         "estimated": False,
@@ -55,6 +57,8 @@ class Transcript:
                 current["llm_calls"] += 1
                 current["prompt_tokens"] += e["prompt_tokens"]
                 current["completion_tokens"] += e["completion_tokens"]
+                current["reasoning_tokens"] += e.get("reasoning_tokens", 0) or 0
+                current["llm_seconds"] += e.get("latency_s", 0.0) or 0.0
                 current["estimated"] = current["estimated"] or e.get("estimated", False)
             elif e["kind"] == "tool":
                 current["tool_calls"] += 1
@@ -76,6 +80,8 @@ class Transcript:
             "tool_calls": sum(r["tool_calls"] for r in rows),
             "prompt_tokens": sum(r["prompt_tokens"] for r in rows),
             "completion_tokens": sum(r["completion_tokens"] for r in rows),
+            "reasoning_tokens": sum(r["reasoning_tokens"] for r in rows),
+            "llm_seconds": round(sum(r["llm_seconds"] for r in rows), 1),
         }
 
     # ------------------------------------------------------------ markdown
@@ -97,6 +103,11 @@ class Transcript:
                 tok = f"{e['prompt_tokens']} in / {e['completion_tokens']} out"
                 if e.get("estimated"):
                     tok += " (estimated)"
+                if e.get("reasoning"):
+                    thought = e["reasoning"].replace("\n", " ")
+                    if len(thought) > 600:
+                        thought = thought[:600] + " ..."
+                    lines += [f"> _model thinking_: {thought}", ""]
                 if e.get("content"):
                     lines += [f"> _agent reasoning_ ({tok}): {e['content']}", ""]
                 else:

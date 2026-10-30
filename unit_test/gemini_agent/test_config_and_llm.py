@@ -117,3 +117,43 @@ def test_scripted_llm_reads_earlier_tool_results():
     assert llm.chat([{"role": "tool", "content": "ok"}], []).content == "OK"
     with pytest.raises(RuntimeError):
         llm.chat([], [])
+
+
+def test_thinking_is_split_from_the_answer():
+    from gemini_agent.llm import split_thinking
+
+    thought, text = split_thinking("<think>check units</think>It costs 33.5 EUR/MWh.")
+    assert thought == "check units" and text == "It costs 33.5 EUR/MWh."
+
+
+class _RejectingSession(_FakeSession):
+    def post(self, url, json, headers, timeout):
+        if "max_tokens" in json:
+            return _FakeResponse(
+                {"error": {"message": "Unsupported parameter: 'max_tokens' is not supported"}},
+                400,
+            )
+        return super().post(url, json, headers, timeout)
+
+
+def test_reasoning_model_parameters_and_tokens():
+    data = {
+        "choices": [{"message": {"content": "<think>x</think>done"}}],
+        "usage": {
+            "prompt_tokens": 50,
+            "completion_tokens": 30,
+            "completion_tokens_details": {"reasoning_tokens": 20},
+        },
+    }
+    cfg = AgentConfig.load(env={}, provider="openai")
+    assert cfg.reasoning_model and cfg.base_url == "https://api.openai.com/v1"
+    session = _FakeSession(data)
+    resp = OpenAICompatibleLLM(cfg, session=session).chat([{"role": "user", "content": "q"}], [])
+    assert "temperature" not in session.sent["json"]
+    assert session.sent["json"]["max_completion_tokens"] == cfg.max_tokens
+    assert (resp.content, resp.reasoning, resp.reasoning_tokens) == ("done", "x", 20)
+    # an endpoint that rejects max_tokens is retried once with reasoning-model parameters
+    plain = AgentConfig.load(env={})
+    session = _RejectingSession(data)
+    resp = OpenAICompatibleLLM(plain, session=session).chat([{"role": "user", "content": "q"}], [])
+    assert resp.content == "done" and plain.reasoning_model

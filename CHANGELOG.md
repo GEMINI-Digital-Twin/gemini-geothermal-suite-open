@@ -15,7 +15,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `simulator_examples/run_heat_cool_design.py` and `run_design_screening.py`, plus the
   hackathon demand profiles in `simulator_examples/hackathon_inputs/`.
 - `gemini_agent`: physics-gated design agent on any OpenAI-compatible LLM endpoint
-  (default: Qwen 2.5 on local Ollama, placeholder API key). Twelve tools over
+  (default: Qwen3 8B on local Ollama, placeholder API key; GPT-6 Luna preset for comparison). Twelve tools over
   `gemini_design` / `gemini_simulator`, a six-step physics gate (schema, hard rules, daily
   energy balances, Solver re-run, Carnot and temperature bounds, no untraceable numbers in
   answers), three memory layers (scratchpad, run ledger, project notes), sandboxed

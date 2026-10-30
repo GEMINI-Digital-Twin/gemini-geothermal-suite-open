@@ -132,9 +132,11 @@ class DesignAgent:
             self.transcript.log(
                 "llm",
                 content=resp.content,
+                reasoning=resp.reasoning,
                 tool_calls=[{"name": c.name, "arguments": c.arguments} for c in resp.tool_calls],
                 prompt_tokens=resp.prompt_tokens,
                 completion_tokens=resp.completion_tokens,
+                reasoning_tokens=resp.reasoning_tokens,
                 estimated=resp.estimated_tokens,
                 latency_s=round(resp.latency_s, 2),
             )

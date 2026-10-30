@@ -2,7 +2,7 @@
 
 Examples::
 
-    # local Ollama (default): ollama pull qwen2.5:7b-instruct
+    # local Ollama (default): ollama pull qwen3:8b
     python -m gemini_agent
 
     # one question, then exit
