@@ -1,0 +1,11 @@
+{
+  "provider": "ollama",
+  "base_url": "http://localhost:11434/v1",
+  "model": "qwen2.5:7b-instruct",
+  "api_key": "YOUR_API_KEY_HERE",
+  "temperature": 0.1,
+  "native_tool_calling": true,
+  "max_steps_per_question": 14,
+  "max_gate_retries": 3,
+  "workspace": "agent_workspace"
+}

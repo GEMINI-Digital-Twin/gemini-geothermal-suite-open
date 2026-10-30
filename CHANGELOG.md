@@ -14,6 +14,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   checks, economics, design screening, and project-JSON export re-run through the Solver).
 - `simulator_examples/run_heat_cool_design.py` and `run_design_screening.py`, plus the
   hackathon demand profiles in `simulator_examples/hackathon_inputs/`.
+- `gemini_agent`: physics-gated design agent on any OpenAI-compatible LLM endpoint
+  (default: Qwen 2.5 on local Ollama, placeholder API key). Twelve tools over
+  `gemini_design` / `gemini_simulator`, a six-step physics gate (schema, hard rules, daily
+  energy balances, Solver re-run, Carnot and temperature bounds, no untraceable numbers in
+  answers), three memory layers (scratchpad, run ledger, project notes), sandboxed
+  model writing, a slot for a Fimbul reservoir provider, and JSONL/Markdown transcripts
+  with token counts. CLI: `python -m gemini_agent`; demo transcripts:
+  `simulator_examples/run_agent_transcripts.py`.
 - Simulator registry entries for `heat_pump`, `absorption_chiller` and `electric_chiller`.
 - Optional `pvt` overrides in well configs so wells can use a brine density/viscosity.
 - `ElectricChiller`: refrigerant approach temperatures, DOE-2 part-load curve, staged

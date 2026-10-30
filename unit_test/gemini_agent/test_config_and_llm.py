@@ -1,0 +1,119 @@
+"""Tests for the agent config and the LLM clients (no model server needed)."""
+
+import json
+
+import pytest
+
+from gemini_agent.config import PLACEHOLDER_API_KEY, AgentConfig
+from gemini_agent.llm import OpenAICompatibleLLM, ScriptedLLM, parse_text_tool_calls
+from gemini_agent.tools import openai_tool_schemas
+
+
+def test_default_is_local_open_weight_model_with_placeholder_key():
+    cfg = AgentConfig.load(env={})
+    assert cfg.base_url == "http://localhost:11434/v1"
+    assert cfg.model.startswith("qwen")
+    assert cfg.api_key == PLACEHOLDER_API_KEY
+
+
+def test_env_and_preset_overrides(tmp_path):
+    path = tmp_path / "cfg.json"
+    path.write_text(json.dumps({"temperature": 0.3}))
+    env = {"GEMINI_AGENT_API_KEY": "sk-secret-123", "GEMINI_AGENT_MAX_GATE_RETRIES": "5"}
+    cfg = AgentConfig.load(path, env=env, provider="openrouter")
+    assert cfg.base_url.startswith("https://openrouter.ai")
+    assert cfg.temperature == 0.3 and cfg.max_gate_retries == 5
+    assert "secret" not in json.dumps(cfg.public_dict())
+
+
+def test_unknown_config_key_is_rejected(tmp_path):
+    path = tmp_path / "cfg.json"
+    path.write_text(json.dumps({"modle": "typo"}))
+    with pytest.raises(ValueError):
+        AgentConfig.load(path, env={})
+
+
+def test_text_tool_calls_are_parsed():
+    names = {"run_design", "screen"}
+    call = '{"name": "run_design", "arguments": {"n_doublets": 2}}'
+    text = f"Let me run it.\n<tool_call>{call}</tool_call>"
+    calls, rest = parse_text_tool_calls(text, names)
+    assert calls[0].name == "run_design" and calls[0].arguments == {"n_doublets": 2}
+    assert rest == "Let me run it."
+    calls, _ = parse_text_tool_calls('{"tool": "screen", "args": {"top": 3}}', names)
+    assert calls[0].name == "screen" and calls[0].arguments == {"top": 3}
+    calls, _ = parse_text_tool_calls('{"tool": "rm_rf", "args": {}}', names)
+    assert calls == []
+
+
+class _FakeResponse:
+    def __init__(self, data, status=200):
+        self.data, self.status_code, self.text = data, status, json.dumps(data)
+
+    def json(self):
+        return self.data
+
+
+class _FakeSession:
+    def __init__(self, data):
+        self.data, self.sent = data, None
+
+    def post(self, url, json, headers, timeout):
+        self.sent = {"url": url, "json": json, "headers": headers}
+        return _FakeResponse(self.data)
+
+
+def test_openai_client_native_tool_calls_and_usage():
+    data = {
+        "model": "qwen2.5:7b-instruct",
+        "choices": [
+            {
+                "message": {
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": "c1",
+                            "function": {"name": "describe_inputs", "arguments": "{}"},
+                        }
+                    ],
+                }
+            }
+        ],
+        "usage": {"prompt_tokens": 1234, "completion_tokens": 12},
+    }
+    session = _FakeSession(data)
+    llm = OpenAICompatibleLLM(AgentConfig.load(env={}), session=session)
+    resp = llm.chat([{"role": "user", "content": "hi"}], openai_tool_schemas())
+    assert session.sent["url"] == "http://localhost:11434/v1/chat/completions"
+    assert session.sent["json"]["tools"]
+    assert resp.tool_calls[0].name == "describe_inputs"
+    assert (resp.prompt_tokens, resp.completion_tokens, resp.estimated_tokens) == (1234, 12, False)
+
+
+def test_openai_client_text_fallback_estimates_tokens():
+    content = '<tool_call>{"name": "list_models", "arguments": {}}</tool_call>'
+    session = _FakeSession({"choices": [{"message": {"content": content}}]})
+    cfg = AgentConfig.load(env={}, native_tool_calling=False)
+    llm = OpenAICompatibleLLM(cfg, session=session)
+    msgs = [
+        {"role": "user", "content": "q"},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [{"id": "a", "function": {"name": "describe_inputs", "arguments": "{}"}}],
+        },
+        {"role": "tool", "tool_call_id": "a", "name": "describe_inputs", "content": "{}"},
+    ]
+    resp = llm.chat(msgs, openai_tool_schemas())
+    assert "tools" not in session.sent["json"]
+    assert all(m["role"] in ("user", "assistant") for m in session.sent["json"]["messages"])
+    assert resp.tool_calls[0].name == "list_models"
+    assert resp.estimated_tokens and resp.prompt_tokens > 0
+
+
+def test_scripted_llm_reads_earlier_tool_results():
+    llm = ScriptedLLM([{"content": "a"}, lambda m: {"content": m[-1]["content"].upper()}])
+    assert llm.chat([{"role": "user", "content": "x"}], []).content == "a"
+    assert llm.chat([{"role": "tool", "content": "ok"}], []).content == "OK"
+    with pytest.raises(RuntimeError):
+        llm.chat([], [])

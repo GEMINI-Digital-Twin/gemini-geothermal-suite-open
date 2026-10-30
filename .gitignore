@@ -12,3 +12,5 @@ build
 .env
 # gemini_design example outputs
 simulator_examples/outputs/
+# gemini_agent workspace (run ledger, transcripts, generated models)
+agent_workspace/
