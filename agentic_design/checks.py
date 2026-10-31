@@ -60,7 +60,8 @@ def check(daily, kpis, design, a: Assumptions):
                         "'330 daily steps' interpreted as max 330 operating days per doublet "
                         f"({a.maintenance_days_per_doublet}-day maintenance window each). Confirm with organisers."))
     # C7 heating demand met at 100 degC
-    supplied = daily["heat_geothermal_mw"] + daily["heat_assoc_gas_boiler_mw"] + daily["heat_ng_boiler_mw"]
+    supplied = (daily["heat_geothermal_mw"] + daily["heat_pump_mw"] + daily["heat_assoc_gas_boiler_mw"]
+                + daily["heat_ng_boiler_mw"])
     short = daily["heating_mw"] - supplied > a.demand_tolerance_mw
     if short.any():
         out.append(_finding("C7_HEATING_UNMET", "violation",
@@ -68,9 +69,12 @@ def check(daily, kpis, design, a: Assumptions):
     # C8 cooling demand met at 20 degC
     cshort = daily["cooling_mw"] - daily["cooling_supplied_mw"] > a.demand_tolerance_mw
     if cshort.any():
+        cause = ("the design has NO cooling technology; add absorption and/or electric chillers - more doublets or "
+                 "deeper wells alone cannot fix this" if design.cooling == "none" else
+                 f"cooling capacity ({design.cooling}) too small on peak days or absorption lacks drive heat; "
+                 f"peak cooling demand is {daily['cooling_mw'].max():.1f} MW")
         out.append(_finding("C8_COOLING_UNMET", "violation",
-                            f"cooling short by {kpis['cooling_unmet_gwh']:.2f} GWh/yr "
-                            f"(design cooling='{design.cooling}').", dates[cshort]))
+                            f"cooling short by {kpis['cooling_unmet_gwh']:.2f} GWh/yr: {cause}.", dates[cshort]))
     # P1 energy balance closes
     over = supplied - daily["heating_mw"] > a.demand_tolerance_mw
     if over.any():
@@ -79,10 +83,10 @@ def check(daily, kpis, design, a: Assumptions):
     t_sup = CHALLENGE["heating_supply_temperature_c"]
     # A fixed-size HX may run below its design approach at part load (that is
     # physical); only a temperature CROSS (negative approach) is impossible.
-    t_brine_in = daily["t_wellhead_c"] - a.surface_temperature_loss_c
-    hot_end = t_brine_in - daily["t_network_after_hx_c"]
-    cold_end = daily["t_injection_c"] - a.heating_return_temperature_c
-    bad_hx = active & ((hot_end < -1e-6) | (cold_end < -1e-6))
+    hot_end = daily["t_hx_brine_in_c"] - daily["t_network_after_hx_c"]
+    cold_end = daily["t_hx_brine_out_c"] - a.heating_return_temperature_c
+    has_heat = daily["heat_geothermal_mw"] > 1e-9
+    bad_hx = active & has_heat & ((hot_end < -1e-6) | (cold_end < -1e-6))
     if bad_hx.any():
         out.append(_finding("P2_HX_TEMPERATURE_CROSS", "violation",
                             "heat exchanger temperature cross (heat flowing cold to hot).", dates[bad_hx]))
@@ -104,6 +108,17 @@ def check(daily, kpis, design, a: Assumptions):
     if kpis["assoc_gas_unused_share"] > 0.01:
         out.append(_finding("P5_ASSOC_GAS_UNUSED", "warning",
                             f"{kpis['assoc_gas_unused_share']:.0%} of associated gas is not used (would be flared)."))
+    # P7 heat pump and chillers within physical bounds
+    hp = daily["heat_pump_mw"] > 1e-9
+    if hp.any() and ((daily.loc[hp, "heat_pump_cop"] < 1) | (daily.loc[hp, "heat_pump_cop"] > 10)).any():
+        out.append(_finding("P7_HEAT_PUMP_COP", "violation", "heat pump COP outside 1-10."))
+    ab = daily["cooling_absorption_mw"] > 1e-9
+    if ab.any() and ((daily.loc[ab, "absorption_cop"] <= 0) | (daily.loc[ab, "absorption_cop"] >= 1)).any():
+        out.append(_finding("P7_ABSORPTION_COP", "violation", "absorption chiller COP outside 0-1."))
+    cool_bal = (daily["cooling_absorption_mw"] + daily["cooling_electric_mw"] + daily["cooling_unmet_mw"]
+                - daily["cooling_mw"]).abs() > a.demand_tolerance_mw
+    if cool_bal.any():
+        out.append(_finding("P1_ENERGY_BALANCE", "violation", "cooling balance does not close.", dates[cool_bal]))
     # P6 temperatures within physical bounds
     t_res = daily["t_wellhead_c"].max()
     if active.any() and (daily.loc[active, "t_injection_c"] > daily.loc[active, "t_wellhead_c"] + 1e-6).any():

@@ -32,6 +32,23 @@ No `PYTHONPATH` needed. Results are written to `agentic_design/results/<design>/
 
 Speed: one full year ≈ 0.05 s per design, so the agent can compare hundreds of designs.
 
+## The agent (`agent/`)
+
+```
+ollama pull qwen3:8b
+python -m agentic_design.agent            # chat
+python -m agentic_design.agent --demo     # scripted questions -> agentic_design/transcripts/demo_*.md
+```
+
+| File | Role |
+|---|---|
+| `agent/tools.py` | 10 tools: challenge inputs, demand, assumptions (list/set), model inventory, evaluate design, sweep designs, compare, one day's operation, record decision. Outputs are compact and already in report units |
+| `agent/guard.py` | Argument checks (types, bounds, enums; coerces "1500" -> 1500); provenance (a "user-given" value must appear in what the user wrote); claim check (every number in an answer must trace to a tool result or the user, else one correction round, then a visible warning) |
+| `agent/memory.py` | Long-term memory: designs evaluated, assumption changes, decisions; persisted to JSON and summarised into the system prompt next session |
+| `agent/core.py` | Loop: LLM -> tool calls -> guards -> tools -> answer -> claim check; records a transcript with tokens per turn |
+| `agent/llm.py` | Ollama backend (qwen3:8b, thinking off: 7/7 tool-calling tasks at 1.6 s/task in our test) and a scripted stand-in for tests |
+| `tests/test_agent.py` | 11 scenarios: invented number caught and corrected, 4 doublets rejected, string arguments coerced, fake "user-given" value refused, irrelevant question answered without tools, memory carried to a new session |
+
 ## Issues found in GEMINI (report these; they are fixed/avoided here)
 
 1. **Injection friction sign.** `DPDT` with `direction="down"` always adds friction. For a producer walked
@@ -46,6 +63,17 @@ Speed: one full year ≈ 0.05 s per design, so the agent can compare hundreds of
    65 Hz). Pump power here follows the challenge rule: Δp × Q / 0.70.
 5. **Silent pressure clamp**: `DPDT` floors pressure at 0.001 Pa without warning; detected and reported here.
 6. **Bootcamp figure**: reservoir temperature at 2,500 m is 12 + 30 × 2.5 = **87 °C**, not ~75 °C.
+7. **Heat exchanger moves heat from cold to hot.** `HeatExchanger._effectiveness_ntu` uses `abs(T_secondary_in - T_primary_in)`,
+   so with 47 °C brine and a 55 °C network it cools the brine further (to 45.2 °C) and heats the network (to 63 °C):
+   a second-law violation. A real plant bypasses the exchanger; we do the same.
+8. **HeatpumpBasic constrained branch returns nonsense.** When the source would fall below `Ts_in_minimum`, the
+   fallback optimiser returns COP ≈ 1.0, an outlet of ~780–810 °C and ~45 MW of electricity.
+9. **HeatpumpBasic optimiser is fragile.** It solves two equations with an unbounded Nelder-Mead from a fixed start
+   (COP 3, Ts_in − 10). A 0.005 % change in an input can flip it into the broken branch of issue 8. Where this happens,
+   `verify.py` checks our heat pump directly against GEMINI's two equations and says so in the report.
+10. **HeatpumpBasic is not registered in the simulator** (`registry.py`), so project files could not use it; registered here.
+
+Issues 7–9 have tests in `tests/test_components.py` that assert the faulty behaviour; they will fail once GEMINI is fixed.
 
 ## Assumptions (not given by the challenge; all in `config.Assumptions`)
 
@@ -56,7 +84,31 @@ day · boiler efficiency 0.90 · associated gas: 80/20 CH₄/CO₂, all combuste
 electricity 0.30 kg CO₂/kWh · "330 daily steps" read as max 330 operating days per doublet (35-day
 maintenance each, placed automatically in the lowest-load window).
 
-## First results (heating only; cooling not yet modelled)
+## New components (contributed to GEMINI: `src/gemini_model/chiller/`)
+
+| Model | Basis | Notes |
+|---|---|---|
+| `AbsorptionChiller` | Characteristic equation (Kühn & Ziegler 2005), ΔΔt = t_G − 2.5 t_AC + 1.5 t_E | COP ≈ 0.7–0.75; with 20 °C chilled water it runs on ~60 °C drive water |
+| `ElectricChiller` | Carnot fraction (η = 0.45), like GEMINI's heat pump | COP 7.3 at 20 °C supply vs 4.0 at 7 °C |
+| Heat pump (annual model) | GEMINI `HeatpumpBasic` Lorenz equations, solved by fixed-point iteration | Verified against GEMINI's class (COP identical to 4 digits) |
+
+The daily dispatch chooses, per day, the brine order (absorption first or heating first) and the absorption
+load share (0, 50, 100 %), within the 40 °C brine-cooling cap shared by absorption, heat exchanger and heat pump.
+
+## Results (heating and cooling, all designs below meet every constraint)
+
+| Design | Geothermal share | Purchased gas | Electricity | CO₂ base | CO₂ grid 0.10 kg/kWh |
+|---|---|---|---|---|---|
+| 2 × 2,500 m + electric chiller 10 MW | 64% | 25.7 GWh | 8.4 GWh | 12.1 kt | 10.3 kt |
+| 2 × 2,500 m + heat pump 12 MW + electric chiller 10 MW | 83% | 0.1 GWh | 14.4 GWh | 7.6 kt | 4.7 kt |
+| 2 × 3,000 m + electric chiller 10 MW | 89% | 0 | 7.3 GWh | 5.8 kt | 4.3 kt |
+| 3 × 3,000 m + absorption 6 MW + electric chiller 10 MW | 88% | 0 | 6.0 GWh | 5.4 kt | 4.2 kt |
+
+Findings: deeper wells beat the heat pump on CO₂ in every sensitivity case, but costs (drilling) are not modelled;
+heat pumps above ~12 MW add nothing (limited by the 40 °C brine cap); absorption only helps when the brine budget
+is not already used by heating; the associated gas (burned whether used or flared) sets a CO₂ floor of ~4–5 kt/yr.
+
+## Earlier results (heating only, before cooling models)
 
 | Design | Geothermal share | Purchased gas | CO₂ |
 |---|---|---|---|

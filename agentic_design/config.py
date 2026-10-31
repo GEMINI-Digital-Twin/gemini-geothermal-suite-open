@@ -99,6 +99,15 @@ class Assumptions:
     natural_gas_density_kg_nm3: float = 0.833  # Dutch H-gas
     electricity_co2_kg_kwh: float = 0.30  # same factor as the GEMINI doublet example
 
+    # --- Heat pump and cooling (new models; none of these are given by the challenge) ---
+    heat_pump_eta_lorenz: float = 0.5  # GEMINI HeatpumpBasic default
+    cooling_return_temperature_c: float = 26.0  # cooling network return (supply fixed at 20 degC)
+    cooling_water_temperature_c: float = 30.0  # dry-cooler water for chiller heat rejection, NL summer design
+    absorption_cop_nominal: float = 0.75  # single-effect LiBr/water, typical 0.65-0.80
+    electric_chiller_eta_carnot: float = 0.45
+    chiller_aux_fraction: float = 0.02  # pumps/fans per unit of rejected heat
+    unmet_demand_penalty_kg_co2_per_mwh: float = 10000.0  # dispatch strongly prefers meeting demand
+
     # --- Annual operation ("330 daily steps" interpreted as max 330 days/doublet) ---
     maintenance_days_per_doublet: int = 35
     maintenance_start_doy: list = field(default_factory=list)  # 0-based day of year per doublet

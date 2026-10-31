@@ -163,4 +163,4 @@ def test_validator_catches_typos_and_missing_inputs(base):
 def test_fast_model_matches_full_gemini_simulator(base):
     d, daily, k = base
     v = verify_days(d, daily, A, ua_mw_k=k["hx_ua_mw_k"])
-    assert len(v) == 3 and v["pass"].all()
+    assert len(v) == 4 and v["pass"].all()  # peak heating, median, minimum, peak cooling

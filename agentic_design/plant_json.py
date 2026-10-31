@@ -26,6 +26,9 @@ Two components are added to GEMINI's registry at import (no core files edited):
 import copy
 import json
 
+from gemini_model.chiller.absorption_chiller import AbsorptionChiller
+from gemini_model.chiller.electric_chiller import ElectricChiller
+from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
 from gemini_model.model_abstract import StaticModel
 from gemini_simulator.project_loader import build_project
 from gemini_simulator.registry import COMPONENT_REGISTRY
@@ -97,6 +100,10 @@ class InjectorWellCorrected(ProducerWellFixedRate):
 
 COMPONENT_REGISTRY.setdefault("producer_well_fixed_rate", ProducerWellFixedRate)
 COMPONENT_REGISTRY.setdefault("injector_well_corrected", InjectorWellCorrected)
+# GEMINI's own heat pump (exists in gemini_model but is not registered in the simulator) and our new chillers
+COMPONENT_REGISTRY.setdefault("heat_pump", HeatpumpBasic)
+COMPONENT_REGISTRY.setdefault("absorption_chiller", AbsorptionChiller)
+COMPONENT_REGISTRY.setdefault("electric_chiller", ElectricChiller)
 
 
 def _vertical_table(depth_m, d_m):
@@ -148,7 +155,7 @@ def build_project_dict(design, op: dict, a: Assumptions = None, hx_ua_w_k: float
             "base_resistance": r_unit, "fouling_coeff_a": 0.0, "fouling_coeff_b": 0.0, "temperature_drop": 0.0}}
     comp["heat_exchanger"] = {"type": "heat_exchanger", "parameters": {
         "flow_resistance": r_unit, "flow_configuration": "counter",
-        "heat_transfer_coefficient": hx_ua_w_k, "fluid_density": rho, "specific_heat": cp}}
+        "heat_transfer_coefficient": 0.0 if op.get("hx_bypassed") else hx_ua_w_k, "fluid_density": rho, "specific_heat": cp}}
     comp["injection_splitter"] = {"type": "splitter", "parameters": {"split_fractions": [1.0 / n] * n}}
     used = op.get("assoc_gas_used_fraction", 1.0)
     comp["gas_splitter"] = {"type": "splitter", "parameters": {"split_fractions": [used, 1.0 - used]}}
@@ -159,6 +166,24 @@ def build_project_dict(design, op: dict, a: Assumptions = None, hx_ua_w_k: float
     comp["boiler_ng"] = {"type": "boiler", "parameters": {
         **boiler_common, "caloric_value": a.natural_gas_lhv_mj_nm3 / ng_density * 1e6,
         "gas_emission_factor": a.natural_gas_co2_kg_nm3 / a.natural_gas_lhv_mj_nm3 * 1e3}}
+
+    order = op.get("order", "-")
+    has_abs = op.get("abs_cooling_w", 0.0) > 0 and design.absorption_mw > 0
+    has_hp = op.get("hp_heat_w", 0.0) > 0 and design.heat_pump_mw > 0
+    has_ec = op.get("ec_load_w", 0.0) > 0 and design.electric_chiller_mw > 0
+    if has_abs:
+        comp["absorption_chiller"] = {"type": "absorption_chiller", "parameters": {
+            "capacity_w": design.absorption_mw * 1e6, "cop_nom": a.absorption_cop_nominal,
+            "aux_fraction": a.chiller_aux_fraction, "fluid_density": rho, "specific_heat": cp,
+            "max_drive_dt": op["abs_max_drive_dt"]}}
+    if has_hp:
+        comp["heat_pump"] = {"type": "heat_pump", "parameters": {
+            "mode": "lorenz", "eta_lorenz": a.heat_pump_eta_lorenz, "Th_out_target": op["hp_target_c"],
+            "Ts_in_minimum": op["hp_ts_min_c"], "Cp_h": cp, "Cp_s": cp, "rho_h": rho, "rho_s": rho}}
+    if has_ec:
+        comp["electric_chiller"] = {"type": "electric_chiller", "parameters": {
+            "capacity_w": design.electric_chiller_mw * 1e6, "eta_carnot": a.electric_chiller_eta_carnot,
+            "aux_fraction": a.chiller_aux_fraction}}
 
     if use_gemini_injector:
         from agentic_design.config import reservoir_pressure_bar
@@ -175,6 +200,15 @@ def build_project_dict(design, op: dict, a: Assumptions = None, hx_ua_w_k: float
         {"component": "heat_exchanger", "key": "secondary_temperature_in", "value": op["t_return_c"]},
         {"component": "boiler_ng", "key": "gas_flow_rate", "value": op["ng_fuel_w"] / (a.natural_gas_lhv_mj_nm3 / ng_density * 1e6)},
     ]
+    chill = [("cooling_water_temperature", a.cooling_water_temperature_c),
+             ("chilled_water_supply_temperature", CHALLENGE["cooling_supply_temperature_c"]),
+             ("chilled_water_return_temperature", a.cooling_return_temperature_c)]
+    if has_abs:
+        boundary += [{"component": "absorption_chiller", "key": "cooling_load", "value": op["abs_cooling_w"]}]
+        boundary += [{"component": "absorption_chiller", "key": k, "value": v} for k, v in chill]
+    if has_ec:
+        boundary += [{"component": "electric_chiller", "key": "cooling_load", "value": op["ec_load_w"]}]
+        boundary += [{"component": "electric_chiller", "key": k, "value": v} for k, v in chill[:2]]
     conn = []
     for i in range(1, n + 1):
         conn.append({"predecessor": f"producer_well_{i}", "successor": "production_mixer",
@@ -186,12 +220,31 @@ def build_project_dict(design, op: dict, a: Assumptions = None, hx_ua_w_k: float
         {"predecessor": "separator", "successor": "filter_a",
          "ports": [["pressure_out", "pressure"], ["temperature_out", "temperature"], ["flow_rate", "flow_rate"]]},
         {"predecessor": "separator", "successor": "gas_splitter", "ports": [["gas_mass_flow_rate", "input"]]},
-        {"predecessor": "filter_a", "successor": "heat_exchanger",
-         "ports": [["pressure_out", "pressure_in"], ["temperature_out", "primary_temperature_in"],
-                   ["flow_rate", "primary_flow_rate"]]},
-        {"predecessor": "heat_exchanger", "successor": "filter_b",
-         "ports": [["pressure_out", "pressure"], ["primary_temperature_out", "temperature"],
-                   ["primary_flow_rate", "flow_rate"]]},
+    ]
+    # ---- brine chain: filter_a -> [absorption] -> HX -> [absorption] -> [heat pump source] -> filter_b
+    node = {"c": "filter_a", "t": "temperature_out", "f": "flow_rate", "p": "pressure_out"}
+
+    def absorber_from(nd):
+        conn.append({"predecessor": nd["c"], "successor": "absorption_chiller",
+                     "ports": [[nd["t"], "drive_temperature_in"], [nd["f"], "drive_flow_rate"], [nd["p"], "pressure_in"]]})
+        return {"c": "absorption_chiller", "t": "drive_temperature_out", "f": "drive_flow_rate", "p": "pressure_out"}
+
+    if has_abs and order == "abs_first":
+        node = absorber_from(node)
+    conn.append({"predecessor": node["c"], "successor": "heat_exchanger",
+                 "ports": [[node["p"], "pressure_in"], [node["t"], "primary_temperature_in"], [node["f"], "primary_flow_rate"]]})
+    node = {"c": "heat_exchanger", "t": "primary_temperature_out", "f": "primary_flow_rate", "p": "pressure_out"}
+    if has_abs and order != "abs_first":
+        node = absorber_from(node)
+    if has_hp:
+        conn.append({"predecessor": node["c"], "successor": "heat_pump",
+                     "ports": [[node["t"], "Ts_in"], [node["f"], "source_flow_rate"], [node["p"], "source_pressure_in"]]})
+        conn.append({"predecessor": "heat_exchanger", "successor": "heat_pump",
+                     "ports": [["secondary_temperature_out", "Th_in"], ["secondary_flow_rate", "hot_flow_rate"]]})
+        node = {"c": "heat_pump", "t": "Ts_out", "f": "source_flow_rate", "p": "source_pressure_out"}
+    conn += [
+        {"predecessor": node["c"], "successor": "filter_b",
+         "ports": [[node["p"], "pressure"], [node["t"], "temperature"], [node["f"], "flow_rate"]]},
         {"predecessor": "filter_b", "successor": "injection_splitter", "ports": [["flow_rate_m3h", "input"]]},
     ]
     for i in range(1, n + 1):
@@ -199,9 +252,11 @@ def build_project_dict(design, op: dict, a: Assumptions = None, hx_ua_w_k: float
                      "ports": [[f"output_{i - 1}", "flow_rate"]]})
         conn.append({"predecessor": "filter_b", "successor": f"injector_well_{i}",
                      "ports": [["temperature_out", "wellhead_temperature"], ["pressure_out_pa", "pressure_in"]]})
+    sec = ("heat_pump", "Th_out", "hot_flow_rate") if has_hp else ("heat_exchanger", "secondary_temperature_out",
+                                                                      "secondary_flow_rate")
     conn += [
-        {"predecessor": "heat_exchanger", "successor": "boiler_assoc",
-         "ports": [["secondary_temperature_out", "temperature_in"], ["secondary_flow_rate", "water_flow_rate"]]},
+        {"predecessor": sec[0], "successor": "boiler_assoc",
+         "ports": [[sec[1], "temperature_in"], [sec[2], "water_flow_rate"]]},
         {"predecessor": "gas_splitter", "successor": "boiler_assoc", "ports": [["output_0", "gas_flow_rate"]]},
         {"predecessor": "boiler_assoc", "successor": "boiler_ng",
          "ports": [["temperature_out", "temperature_in"], ["water_flow_rate", "water_flow_rate"]]},
@@ -226,6 +281,10 @@ REQUIRED_INPUTS = {
                        "primary_temperature_in", "secondary_temperature_in"},
     "boiler": {"temperature_in", "water_flow_rate"},
     "splitter": {"input"},
+    "heat_pump": {"Th_in", "Ts_in", "hot_flow_rate", "source_flow_rate"},
+    "absorption_chiller": {"cooling_load", "drive_temperature_in", "cooling_water_temperature",
+                           "chilled_water_supply_temperature", "chilled_water_return_temperature"},
+    "electric_chiller": {"cooling_load", "chilled_water_supply_temperature", "cooling_water_temperature"},
 }
 
 
