@@ -5,6 +5,7 @@ import pytest
 import gemini as gm
 from gemini.errors import ValidationError
 from gemini.plants._utils.schema import schema
+from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.heating_cooling import days_case
@@ -49,7 +50,7 @@ def test_an_input_without_a_value_reads_none():
     """A declared input nobody set has no value, and a set one on the module is read too."""
     plant = boiler_plant()
     assert plant.input_value("pump_heater.temperature_setpoint") is None
-    plant.pump_heater.temperature_setpoint = 350.0
+    si.assign(plant.pump_heater, "temperature_setpoint", 350.0)
     assert plant.input_value("pump_heater.temperature_setpoint") == 350.0
 
 

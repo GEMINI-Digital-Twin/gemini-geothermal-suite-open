@@ -286,7 +286,7 @@ def test_the_volume_imbalance_of_a_balanced_doublet_is_zero():
         gas_composition={"CH4": 0.8, "CO2": 0.2},
     )
     doublet.set_params("", DESIGN | PUMP)
-    doublet.reservoir.production_rate = 80.0
+    si.assign(doublet.reservoir, "production_rate", 80.0)
     doublet.esp.frequency = {"value": 60, "unit": "Hz"}
     liquid = doublet.fluid.with_gas_fraction(0.0)
     produced = doublet.fluid.properties(0, 0)
@@ -307,7 +307,7 @@ def test_the_volume_imbalance_is_produced_less_injected():
         density=gm.units.Quantity(1030, "kg/m3"), viscosity={"value": 0.4, "unit": "mPa*s"}
     )
     doublet.set_params("", DESIGN | PUMP)
-    doublet.reservoir.production_rate = 80.0
+    si.assign(doublet.reservoir, "production_rate", 80.0)
     doublet.esp.frequency = {"value": 60, "unit": "Hz"}
     injected = gm.Stream(
         m_dot=gm.units.Quantity(70.0, "kg/s"),

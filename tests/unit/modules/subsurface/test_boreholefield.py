@@ -125,11 +125,11 @@ def test_two_steps_follow_the_exact_ground_response():
 def test_heat_rejection_recovery_and_zero_flow():
     """Warm inlets reject heat as heat_loss; without flow the ground recovers on its own."""
     module = field()
-    result = module(fluid_in=BRINE.with_(T=303.15))
+    result = module(fluid_in=BRINE._with_si(T=303.15))
     assert reading(result).heat_extraction_rate < 0 and reading(result).heat_absorbed == 0
     assert reading(result).heat_loss == -reading(result).heat_extraction_rate
     assert energy_balance(module, result)["relative_residual"] < 1e-12
-    still = BRINE.with_(m_dot=0)
+    still = BRINE._with_si(m_dot=0)
     state, result = module.step({"ground_temperature_change": -2.0}, 365 * DAY, {"fluid_in": still})
     decay = math.exp(-surroundings() * 365 * DAY / (2.2e6 * 360 * 150))
     assert state["ground_temperature_change"] == pytest.approx(-2.0 * decay)
@@ -139,7 +139,7 @@ def test_heat_rejection_recovery_and_zero_flow():
 def test_invalid_flow_and_geometry():
     """Reverse flow and geometries outside the cell and shape-factor ranges are rejected."""
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        field()(fluid_in=BRINE.with_(m_dot=-1))
+        field()(fluid_in=BRINE._with_si(m_dot=-1))
     with raises(gm.errors.ValidationError, "invalid_design", match="field geometry rejected"):
         field().set_params("", {"borehole_spacing": gm.units.Quantity(0.1, "m")})(fluid_in=BRINE)
     shallow = field().set_params(
@@ -184,6 +184,6 @@ def test_zero_flow_does_not_evaluate_the_cell_geometry():
     """A cell no wider than the borehole is bad design data only where the loop flows."""
     module = field().set_params("", {"borehole_spacing": gm.units.Quantity(0.1, "m")})
     conductance = ops.physics(module._effective_conductance)
-    assert conductance(BRINE.with_(m_dot=0)) == 0
+    assert conductance(BRINE._with_si(m_dot=0)) == 0
     with raises(gm.errors.ValidationError, "invalid_design", match="field geometry rejected"):
         conductance(BRINE)

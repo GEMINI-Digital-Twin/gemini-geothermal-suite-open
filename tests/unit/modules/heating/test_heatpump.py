@@ -104,8 +104,8 @@ def test_machine_off_without_demand_flow_or_part_load():
     ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     cases = [
         dict(source_in=source, sink_in=sink, temperature_setpoint=310),
-        dict(source_in=source.with_(m_dot=0), sink_in=sink, temperature_setpoint=340),
-        dict(source_in=source, sink_in=sink.with_(m_dot=0), temperature_setpoint=340),
+        dict(source_in=source._with_si(m_dot=0), sink_in=sink, temperature_setpoint=340),
+        dict(source_in=source, sink_in=sink._with_si(m_dot=0), temperature_setpoint=340),
         dict(source_in=source, sink_in=sink, temperature_setpoint=321),
     ]
     for case in cases:
@@ -124,11 +124,11 @@ def test_invalid_operating_points_raise():
     ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     with pytest.raises(PhysicsError, match="source_in.m_dot = -1"):
         heat_pump("heating")(
-            source_in=source.with_(m_dot=-1), sink_in=sink, temperature_setpoint=340
+            source_in=source._with_si(m_dot=-1), sink_in=sink, temperature_setpoint=340
         )
     with pytest.raises(PhysicsError, match="heating COP above 1"):
         heat_pump("heating", carnot_fraction=0.2)(
-            source_in=source.with_(T=270), sink_in=sink, temperature_setpoint=340
+            source_in=source._with_si(T=270), sink_in=sink, temperature_setpoint=340
         )
     with pytest.raises(PhysicsError, match="to reject the cooling duty"):
         heat_pump("cooling")(
@@ -190,7 +190,7 @@ def test_lorenz_mode_limits():
         )
     with pytest.raises(PhysicsError, match="heating COP above 1"):
         heat_pump("heating", cop_model="lorenz", lorenz_fraction=0.1)(
-            source_in=source.with_(T=250), sink_in=sink, temperature_setpoint=340
+            source_in=source._with_si(T=250), sink_in=sink, temperature_setpoint=340
         )
 
 

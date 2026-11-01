@@ -75,12 +75,12 @@ def test_large_demand_is_capped_at_the_return_floor(plants):
 def test_stopped_or_cold_network_delivers_nothing(plants):
     """No network flow, or a supply below the return floor, leaves the demand unmet."""
     substation = plants["heating_substation"](with_values(HeatingSubstation()))
-    result = substation(supply_in=NETWORK.with_(m_dot=0.0))
+    result = substation(supply_in=NETWORK._with_si(m_dot=0.0))
     stopped = reading(result)
     assert stopped.heat_supplied == 0
     assert result.children["consumer"].outputs.unmet_demand == 1.5e5
     assert result.children["valve"].outputs.pressure_drop == 0 and stopped.return_out_T == 348.15
-    result = substation(supply_in=NETWORK.with_(T=300.15))
+    result = substation(supply_in=NETWORK._with_si(T=300.15))
     assert reading(result).heat_supplied == 0
     assert result.children["consumer"].outlets.return_out.T == 300.15
 
@@ -93,6 +93,6 @@ def test_invalid_inputs_raise(plants):
         substation(supply_in=NETWORK)
     substation.valve.opening = 0.8
     with pytest.raises(gm.errors.PhysicsError):
-        substation(supply_in=NETWORK.with_(m_dot=-1.0))
+        substation(supply_in=NETWORK._with_si(m_dot=-1.0))
     with raises(gm.errors.ValidationError, "missing_value", match="pump.flow"):
         with_values(HeatingSubstation())(supply_in=NETWORK)

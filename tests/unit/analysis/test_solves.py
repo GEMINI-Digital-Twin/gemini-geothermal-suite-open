@@ -126,7 +126,7 @@ def injector():
 def solve(producer, frequency):
     """Return the production rate [kg/s] at 3 bar wellhead pressure and an ESP frequency."""
     reservoir, well, esp, riser = producer
-    esp.frequency = frequency
+    si.assign(esp, "frequency", frequency)
     return nodal.solve_production_rate(reservoir, well, 3e5, (5, 60), esp=esp, riser=riser)
 
 
@@ -187,7 +187,7 @@ def test_injection_rate_balances_well_and_aquifer(injector):
     well, sink = injector
     wellhead = Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(293.15, "K"), p=Quantity(1e5, "Pa"))
     rate = nodal.solve_injection_rate(well, sink, wellhead, (1, 200))
-    bottom = well(wellhead_in=wellhead.with_(m_dot=rate)).outlets.bottom_out
+    bottom = well(wellhead_in=wellhead._with_si(m_dot=rate)).outlets.bottom_out
     assert bottom.p == pytest.approx(sink.required_pressure(bottom), abs=1e-3)
 
 
@@ -213,7 +213,7 @@ def test_injection_pressure_balances_a_shallow_injector():
     )
     pressure = nodal.solve_injection_pressure(well, sink, wellhead, (2e5, 1e8))
     assert pressure > 2e5
-    bottom = well(wellhead_in=wellhead.with_(p=pressure)).outlets.bottom_out
+    bottom = well(wellhead_in=wellhead._with_si(p=pressure)).outlets.bottom_out
     assert bottom.p == pytest.approx(sink.required_pressure(bottom), abs=1e-3)
 
 
@@ -236,7 +236,7 @@ def test_deep_injector_needs_no_pump_and_draws_no_power(injector):
 def test_invalid_requests_raise(producer):
     """A lone ESP, a bracket without a sign change and a trial outside the model's domain."""
     reservoir, well, esp, riser = producer
-    esp.frequency = 65
+    si.assign(esp, "frequency", 65)
     with raises(ValidationError, "invalid_design", match="expected both or neither"):
         nodal.solve_production_rate(reservoir, well, 3e5, (5, 60), esp=esp)
     with pytest.raises(PhysicsError, match="expected opposite signs"):
@@ -289,7 +289,7 @@ def test_injection_pressure_gap_to_upstream_is_the_friction_sign():
         flow={"value": 125.1, "unit": "m3/h"}, T=Quantity(343.15, "K"), p=Quantity(1e5, "Pa")
     )
     pressure = nodal.solve_injection_pressure(well, sink, wellhead, (1e5, 1e8))
-    out = reading(well(wellhead_in=wellhead.with_(p=pressure)))
+    out = reading(well(wellhead_in=wellhead._with_si(p=pressure)))
     assert out.friction_pressure_drop == pytest.approx(-5.197358519692272e5, rel=1e-9)
     assert out.gravity_pressure_drop - UPSTREAM_GRAVITY == pytest.approx(0.0085e5, abs=10)
     gap = -2 * out.friction_pressure_drop - (out.gravity_pressure_drop - UPSTREAM_GRAVITY)

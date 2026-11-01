@@ -111,7 +111,7 @@ class BoreholeField(Module):
         capacity_rate = self._capacity_rate(inlet)
         rate = self._extraction_rate(inlet)
         fluid_out_T = inlet.T + heat_transfer.temperature_change(rate, capacity_rate)
-        outlet = inlet.with_(T=fluid_out_T)
+        outlet = inlet._with_si(T=fluid_out_T)
 
         # Outputs
         self.fluid_mean_temperature = heat_transfer.mean_temperature(inlet.T, outlet.T)

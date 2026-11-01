@@ -55,9 +55,9 @@ class Relaxer(Module):
 
         # Outlets
         inlet = inlets.fluid_in
-        outlet = inlet.with_(T=self.slope * inlet.T + (1 - self.slope) * self.target)
+        outlet = inlet._with_si(T=self.slope * inlet.T + (1 - self.slope) * self.target)
         if self.flow is not None:
-            outlet = outlet.with_(m_dot=self.flow)
+            outlet = outlet._with_si(m_dot=self.flow)
 
         # Outputs
         self.drop = inlet.T - outlet.T
@@ -152,7 +152,7 @@ def test_a_loop_that_does_not_converge_names_its_tear():
 
 def _drifting(self, inlets):
     """Warm the stream by 1 K on every pass, so no temperature maps to itself."""
-    outlet = inlets.fluid_in.with_(T=inlets.fluid_in.T + 1.0)
+    outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + 1.0)
     self.drop = -1.0
     return dict(fluid_out=outlet)
 
@@ -255,9 +255,9 @@ class Curved(Relaxer):
         """Move towards the target along a ``tanh``, ``slope`` times as far."""
         inlet = inlets.fluid_in
         step = np.tanh((inlet.T - self.target) / self.scale) * self.scale
-        outlet = inlet.with_(T=self.target + self.slope * step * 1.9)
+        outlet = inlet._with_si(T=self.target + self.slope * step * 1.9)
         if self.flow is not None:
-            outlet = outlet.with_(m_dot=self.flow)
+            outlet = outlet._with_si(m_dot=self.flow)
         self.drop = inlet.T - outlet.T
         return dict(fluid_out=outlet)
 
@@ -314,7 +314,7 @@ class Guarded(Relaxer):
 
     def forward(self, inlets):
         """Move half way to the target."""
-        outlet = inlets.fluid_in.with_(T=_cooled(inlets.fluid_in.T, self.target))
+        outlet = inlets.fluid_in._with_si(T=_cooled(inlets.fluid_in.T, self.target))
         self.drop = inlets.fluid_in.T - outlet.T
         return dict(fluid_out=outlet)
 
@@ -371,7 +371,7 @@ def test_a_row_that_does_not_converge_is_marked_with_its_own_temperature():
 
 def _drifting_by(self, inlets):
     """Warm the stream by ``drift`` kelvin on every pass."""
-    outlet = inlets.fluid_in.with_(T=inlets.fluid_in.T + self.drift)
+    outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + self.drift)
     self.drop = -self.drift
     return dict(fluid_out=outlet)
 
@@ -402,7 +402,7 @@ class Probed(Relaxer):
     def forward(self, inlets):
         """Relax as the base class does and probe the entering temperature on the side."""
         outlets = super().forward(inlets)
-        outlets["return_out"] = inlets.fluid_in.with_(T=_watched(inlets.fluid_in.T))
+        outlets["return_out"] = inlets.fluid_in._with_si(T=_watched(inlets.fluid_in.T))
         return outlets
 
 
@@ -464,7 +464,7 @@ class DoubleProbed(Probed):
         """Probe the window, then the bound."""
         outlets = super().forward(inlets)
         bound = _bounded(inlets.fluid_in.T)
-        outlets["return_out"] = outlets["return_out"].with_(p=bound * 1e3)
+        outlets["return_out"] = outlets["return_out"]._with_si(p=bound * 1e3)
         return outlets
 
 

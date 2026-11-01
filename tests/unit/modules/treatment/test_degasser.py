@@ -34,8 +34,8 @@ def test_default_reproduces_the_liquid_only_model_for_any_fluid():
         m_dot=Quantity(40, "kg/s"), T=Quantity(350, "K"), p=Quantity(1e6, "Pa"), fluid=GASSY
     )
     result = with_values(Degasser())(fluid_in=inlet)
-    assert result.outlets.liquid_out == inlet.with_(p=1e6 - 14900)
-    assert result.outlets.gas_out == inlet.with_(p=1e6 - 14900, m_dot=0)
+    assert result.outlets.liquid_out == inlet._with_si(p=1e6 - 14900)
+    assert result.outlets.gas_out == inlet._with_si(p=1e6 - 14900, m_dot=0)
     assert reading(result).gas_mass_flow == 0
     assert result.outputs.pressure_drop == 14900
 

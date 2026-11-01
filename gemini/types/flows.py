@@ -138,7 +138,23 @@ class Stream:
         )
 
     def with_(self, **changes) -> "Stream":
-        """Return a copy with updated SI stream fields; an author-level tool, so bare SI numbers.
+        """Return a copy with updated stream fields given in public units.
+
+        ``m_dot``, ``T`` and ``p`` are quantities, a bare number with a dimension is
+        ``invalid_value``; ``fluid`` is a ``Fluid`` or a mapping of its fields. Solvers and modules
+        use ``_with_si``.
+        """
+        unknown = [name for name in changes if name not in _FIELDS]
+        if unknown:
+            raise _unknown_field(unknown[0])
+        converted = {
+            name: value if name == "fluid" else _si_field(value, name)
+            for name, value in changes.items()
+        }
+        return self._with_si(**converted)
+
+    def _with_si(self, **changes) -> "Stream":
+        """Return a copy with updated SI stream fields, for ``gemini``.
 
         The copy skips the constructor: it reuses the same ``Fluid`` and checks only the changed
         fields against the physical limits, which raise ``PhysicsError`` (``analysis.solves``
@@ -146,11 +162,7 @@ class Stream:
         """
         unknown = [name for name in changes if name not in _FIELDS]
         if unknown:
-            raise ValidationError(
-                f"Stream.with_: unknown field {unknown[0]!r}; valid names: "
-                f"{join_names(_FIELDS)}{did_you_mean(unknown[0], _FIELDS)}",
-                code="invalid_call",
-            )
+            raise _unknown_field(unknown[0])
         if "fluid" in changes:
             changes["fluid"] = _as_fluid(changes["fluid"])
         changes |= _validated(**{name: value for name, value in changes.items() if name != "fluid"})
@@ -199,6 +211,15 @@ def _si_field(value, name):
     unit, quantity = FIELD_SI[name]
     bare.refuse(path, value, unit, quantity)
     return units.value_in_si(value, unit, path, quantity)
+
+
+def _unknown_field(name):
+    """Return the error for an unknown stream field ``name`` of ``with_``."""
+    return ValidationError(
+        f"Stream.with_: unknown field {name!r}; valid names: "
+        f"{join_names(_FIELDS)}{did_you_mean(name, _FIELDS)}",
+        code="invalid_call",
+    )
 
 
 def _as_fluid(value):

@@ -83,10 +83,10 @@ def test_heat_pump_mode_delivers_heat_on_the_cooling_circuit():
 @pytest.mark.parametrize(
     "streams",
     [
-        dict(generator_in=GENERATOR.with_(T=350)),
-        dict(generator_in=GENERATOR.with_(m_dot=0)),
-        dict(cooling_in=COOLING.with_(m_dot=0)),
-        dict(cooling_in=COOLING.with_(T=320)),
+        dict(generator_in=GENERATOR._with_si(T=350)),
+        dict(generator_in=GENERATOR._with_si(m_dot=0)),
+        dict(cooling_in=COOLING._with_si(m_dot=0)),
+        dict(cooling_in=COOLING._with_si(T=320)),
     ],
 )
 def test_no_cold_without_driving_heat_or_flow(streams):
@@ -102,7 +102,7 @@ def test_no_cold_without_driving_heat_or_flow(streams):
 def test_negative_flow_raises():
     """A reversed circuit flow is outside the model."""
     with pytest.raises(PhysicsError, match="chilled_in.m_dot = -1"):
-        call(unit(), 280, chilled_in=CHILLED.with_(m_dot=-1))
+        call(unit(), 280, chilled_in=CHILLED._with_si(m_dot=-1))
 
 
 @pytest.mark.parametrize(
@@ -114,8 +114,8 @@ def test_traced_call_matches_one_call_per_row(mode, setpoints):
     machine = unit(mode)
     rows = [
         dict(
-            generator_in=GENERATOR.with_(T=generator_T, m_dot=generator_flow),
-            chilled_in=CHILLED.with_(m_dot=chilled_flow),
+            generator_in=GENERATOR._with_si(T=generator_T, m_dot=generator_flow),
+            chilled_in=CHILLED._with_si(m_dot=chilled_flow),
             cooling_in=COOLING,
             temperature_setpoint=setpoint,
         )

@@ -80,8 +80,8 @@ class Desander(Module):
         inlet = inlets.fluid_in
         removed, residual = self._sand(inlet)
         drop = self._pressure_drop(inlet)
-        outlet = inlet.with_(m_dot=inlet.m_dot - removed, p=inlet.p - drop)
-        waste_out = inlet.with_(m_dot=removed)
+        outlet = inlet._with_si(m_dot=inlet.m_dot - removed, p=inlet.p - drop)
+        waste_out = inlet._with_si(m_dot=removed)
 
         # Outputs
         self.pressure_drop = drop

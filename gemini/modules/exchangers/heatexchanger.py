@@ -127,8 +127,10 @@ class HeatExchanger(Equipment, Module):
         cold_in = inlets.cold_in
         values = self._performance(hot_in, cold_in)
 
-        hot_out = hot_in.with_(T=values["hot_out_T"], p=hot_in.p - values["hot_pressure_drop"])
-        cold_out = cold_in.with_(T=values["cold_out_T"], p=cold_in.p - values["cold_pressure_drop"])
+        hot_out = hot_in._with_si(T=values["hot_out_T"], p=hot_in.p - values["hot_pressure_drop"])
+        cold_out = cold_in._with_si(
+            T=values["cold_out_T"], p=cold_in.p - values["cold_pressure_drop"]
+        )
 
         # Outputs
         for name, value in values.items():

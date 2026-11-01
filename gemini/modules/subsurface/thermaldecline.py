@@ -100,7 +100,7 @@ class ThermalDecline(Module):
         # Outlets
         inlet = inlets.fluid_in
         drop = self._temperature_drop(inlet)
-        outlet = inlet.with_(T=inlet.T - drop)
+        outlet = inlet._with_si(T=inlet.T - drop)
 
         # Outputs
         flow = self._liquid_flow(inlet)

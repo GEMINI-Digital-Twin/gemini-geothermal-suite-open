@@ -130,8 +130,8 @@ class ThermalStorage(Equipment, Module):
         charge_in, discharge_in = inlets.charge_in, inlets.discharge_in
         charge_T = self._outlet_temperature(charge_in, self.charge_effectiveness)
         fluid_out_T = self._outlet_temperature(discharge_in, self.discharge_effectiveness)
-        charge_out = charge_in.with_(T=charge_T)
-        discharge_out = discharge_in.with_(T=fluid_out_T)
+        charge_out = charge_in._with_si(T=charge_T)
+        discharge_out = discharge_in._with_si(T=fluid_out_T)
 
         loss_out = heat_transfer.heat_rate(
             self.heat_loss_conductance, self.temperature - inlets.air_in.T

@@ -54,7 +54,7 @@ class InjectionWell(_Well):
         result = self.traverse(stream, 0, self.total_length, "down")
         slope, offset = self.correction_factors
 
-        bottom = stream.with_(
+        bottom = stream._with_si(
             p=hydraulics.affine_correction(result.p_out, slope, offset),
             T=result.T_out,
             m_dot=wellhead.m_dot,
@@ -78,4 +78,4 @@ class InjectionWell(_Well):
 
     def _traversal_stream(self, stream):
         """Return the stream with the negative flow the legacy injection DPDT expects."""
-        return stream.with_(m_dot=-ops.abs(stream.m_dot))
+        return stream._with_si(m_dot=-ops.abs(stream.m_dot))

@@ -11,9 +11,12 @@ import pytest
 
 import gemini as gm
 from gemini import ops, runtime
+from gemini.errors import ValidationError
 from gemini.modules import Module, ModuleDict
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter
 from gemini.types import Electricity, Frequency, Ports, Stream
+from gemini.units import Quantity
+from tests.fixtures import si
 from tests.fixtures.errors import raises
 
 
@@ -292,7 +295,7 @@ def test_input_resolution_units_bounds_and_metadata():
     )
     module = RequiredInputs()
     module.frequency = {"value": 40, "unit": "Hz"}
-    module.grid_frequency = 50
+    si.assign(module, "grid_frequency", 50)
     assert module.get("frequency").unit == "Hz"
     assert module.get("grid_frequency").unit == "Hz"
     assert module(fluid_in=stream).outputs.total == 90
@@ -314,7 +317,7 @@ def test_missing_input_and_unknown_keyword_errors_are_complete():
         gm.errors.ValidationError, "missing_value", match="required_inputs.frequency.*control.*Hz"
     ):
         module(fluid_in=stream)
-    module.frequency = 50
+    si.assign(module, "frequency", 50)
     with raises(
         gm.errors.ValidationError,
         "missing_value",
@@ -376,7 +379,7 @@ def test_hooks_are_ordered_removable_and_observe_named_ports():
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
     )
-    replacement = stream.with_(p=2e5)
+    replacement = stream._with_si(p=2e5)
     module = PassThrough().set_params("", {"value": 2})
     calls = []
 
@@ -668,7 +671,7 @@ class Quotient(Module):
         stream = inlets.fluid_in
         self.kinds = (type(stream.m_dot), type(self.numerator), type(self.divisor))
         self.quotient = stream.m_dot / self.divisor
-        outlets = dict(fluid_out=stream.with_(p=stream.p + 1.0))
+        outlets = dict(fluid_out=stream._with_si(p=stream.p + 1.0))
         self.ratio = self.numerator / self.divisor
         self.finite = self.ratio < 1e300
         self.seen = [coefficient / self.divisor for coefficient in self.coefficients]
@@ -807,3 +810,16 @@ def test_the_public_methods_of_a_module_are_the_listed_ones():
         if not name.startswith("_") and callable(value)
     }
     assert public == PUBLIC_METHODS
+
+
+def test_assignment_outside_a_call_refuses_bare_dimensioned_numbers():
+    """A bare dimensioned number is refused outside a call; a quantity is converted."""
+    from gemini.modules.pumps.esp import ESP
+
+    esp = ESP()
+    with raises(ValidationError, "invalid_value", match="frequency.*accepted units"):
+        esp.frequency = 50
+    esp.frequency = Quantity(50, "Hz")
+    assert esp.frequency == 50.0
+    esp._assign_si("frequency", 60.0)
+    assert esp.frequency == 60.0

@@ -119,12 +119,12 @@ def test_first_law_equal_capacity_and_limits(arrangement):
     assert (out.cold_out_T - cold.T) * 10 * 4217.4 == pytest.approx(out.duty)
     assert streams["hot_out"].m_dot == hot.m_dot and streams["cold_out"].m_dot == cold.m_dot
     assert streams["hot_out"].p == hot.p - 1000
-    out = c(hot_in=hot.with_(m_dot=0), cold_in=cold).outputs
+    out = c(hot_in=hot._with_si(m_dot=0), cold_in=cold).outputs
     assert out.duty == 0
     c.set_params("", {"thermal_conductance": gm.units.Quantity(0, "W/K")})
     out = c(hot_in=hot, cold_in=cold).outputs
     assert out.duty == 0 and out.hot_out_T == hot.T
-    out = c(hot_in=hot, cold_in=cold.with_(T=350)).outputs
+    out = c(hot_in=hot, cold_in=cold._with_si(T=350)).outputs
     assert out.duty == 0 and out.log_mean_temperature_difference == 0
 
 

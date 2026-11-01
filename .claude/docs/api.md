@@ -210,8 +210,9 @@ specific heat and thermal conductivity, the `parameters`, `controls` and inlet f
 `ValidationError` `invalid_value`, with the path, the quantity and the accepted units, and zero is
 refused too: `set_params("", {"length": 1500.0})` fails and `{"length": Quantity(1.5, "km")}` is
 stored as 1500 m. `gemini` itself passes SI through the private `_set_si_params`, `_set_si_inputs`,
-`Stream._si` and `Fluid._si`, which are not public. Two author-level doors stay in SI and are not
-for users: attribute assignment on a module (`esp.frequency = 50`) and `Stream.with_`.
+`Stream._si` and `Fluid._si`, which are not public. Attribute assignment on a module outside a call
+(`esp.frequency = 50`) and `Stream.with_(T=300.0)` are refused the same way; `gemini` uses
+`Module._assign_si` and `Stream._with_si`.
 
 A `Doublet` has `volume_imbalance`, a `HeatingGrid` and a `CoolingGrid` have `surplus`: see
 [equipment.md](equipment.md).

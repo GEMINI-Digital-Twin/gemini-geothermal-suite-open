@@ -43,7 +43,7 @@ def test_corrosion_profile_uses_injection_flow_sign():
     stream = Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(300, "K"), p=Quantity(5e6, "Pa"))
     chemistry = {"co2_fraction": 0.1}
     assert well.corrosion_profile(stream, chemistry, "DLM") == well.corrosion_profile(
-        stream.with_(m_dot=-40), chemistry, "DLM"
+        stream._with_si(m_dot=-40), chemistry, "DLM"
     )
 
 

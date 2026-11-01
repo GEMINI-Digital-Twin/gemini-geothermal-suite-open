@@ -33,7 +33,7 @@ COLD = Stream(
     p=gm.units.Quantity(3e5, "Pa"),
     fluid=GLYCOL_30,
 )
-WARM = COLD.with_(T=285.15)
+WARM = COLD._with_si(T=285.15)
 
 
 def _store():
@@ -110,7 +110,7 @@ def test_stopped_glycol_leaves_the_store_unchanged():
     """Zero flow transfers no heat and keeps the state."""
     store = _store()
     start = {"ice_fraction": 0.3, "temperature": FREEZING}
-    state, result = store.step(start, 3600, {"fluid_in": COLD.with_(m_dot=0)})
+    state, result = store.step(start, 3600, {"fluid_in": COLD._with_si(m_dot=0)})
     assert state == start and reading(result).signed_duty == 0
     assert result.outlets.fluid_out.T == COLD.T
 
@@ -125,7 +125,7 @@ def test_invalid_states_and_flows_raise():
     with raises(gm.errors.ValidationError, "invalid_design", match="with ice_fraction = 0"):
         store.step({"ice_fraction": 0, "temperature": 270.0}, 60, {"fluid_in": COLD})
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        store(fluid_in=COLD.with_(m_dot=-1))
+        store(fluid_in=COLD._with_si(m_dot=-1))
     with pytest.raises(gm.errors.ValidationError):
         store.step({"ice_fraction": 1.5, "temperature": FREEZING}, 60, {"fluid_in": COLD})
 
@@ -186,13 +186,13 @@ STORE_STATES = [
     (1.0, 265.15, WARM),
     (1.0, 265.15, COLD),
     (0.0, 273.15, WARM),
-    (0.0, 278.15, COLD.with_(m_dot=0)),
+    (0.0, 278.15, COLD._with_si(m_dot=0)),
 ]
 
 
 def test_ice_storage_matches_per_row():
     """Outputs and outlet of the initial store equal one call per row; the states are a break."""
-    rows = [dict(fluid_in=glycol) for glycol in (COLD, WARM, COLD.with_(m_dot=0))]
+    rows = [dict(fluid_in=glycol) for glycol in (COLD, WARM, COLD._with_si(m_dot=0))]
     assert_module_matches(_store(), rows, breaks=True)
 
 

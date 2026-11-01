@@ -40,7 +40,7 @@ class Radiator(Module):
         """Cool the stream by 10 K."""
 
         # Outlets
-        return_out = inlets.supply_in.with_(T=inlets.supply_in.T - 10)
+        return_out = inlets.supply_in._with_si(T=inlets.supply_in.T - 10)
 
         loss_out = inlets.supply_in.m_dot * 4217.4 * 10
 

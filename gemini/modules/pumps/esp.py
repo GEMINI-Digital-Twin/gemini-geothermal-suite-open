@@ -173,7 +173,7 @@ class ESP(Module):
         gas = self._gas_volume_fraction(suction)
         self._check_inside_curve(flow, head, power, scale, suction.p, gas)
 
-        discharge = suction.with_(p=suction.p + head)
+        discharge = suction._with_si(p=suction.p + head)
         power_in = energy.input_power(power, self.motor_efficiency)
 
         # Outputs

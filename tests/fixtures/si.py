@@ -1,6 +1,7 @@
 """Wrap SI numbers into quantities through the public API, for tests that hold values in SI.
 
-A public boundary takes a ``gm.units.Quantity`` for every value with a dimension. A test that
+A public boundary takes a ``gm.units.Quantity`` for every value with a dimension, attribute
+assignment on a module outside a call included (``assign``). A test that
 builds its values in a dict, or computes them, passes them here and gets the dict the boundary
 takes, each value in the SI unit of its declaration, so the numbers are unchanged.
 """
@@ -61,3 +62,12 @@ def add(plant, type, name=None, values=None):
 
     probe, _ = make_module(type)
     return plant.add(type, name, params(probe, values or {}))
+
+
+def assign(module, name, value):
+    """Assign ``value`` to the declared ``name`` of ``module`` with a bare number as a quantity."""
+    declared = (
+        module._parameters.get(name) or module._controls.get(name) or module._boundaries.get(name)
+    )
+    unit = declared.unit if declared is not None else None
+    setattr(module, name, _wrapped(value, unit))

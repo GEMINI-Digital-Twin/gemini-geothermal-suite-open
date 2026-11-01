@@ -140,8 +140,8 @@ class HeatPump(Equipment, Module):
 
         # Outlets
         values = self._performance(inlets.source_in, inlets.sink_in)
-        source_out = inlets.source_in.with_(T=values["source_out_T"])
-        sink_out = inlets.sink_in.with_(T=values["sink_out_T"])
+        source_out = inlets.source_in._with_si(T=values["source_out_T"])
+        sink_out = inlets.sink_in._with_si(T=values["sink_out_T"])
 
         # Outputs
         self.cop = values["cop"]

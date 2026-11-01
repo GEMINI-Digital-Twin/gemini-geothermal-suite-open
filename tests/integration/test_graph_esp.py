@@ -174,7 +174,7 @@ def test_no_outputs_traces_the_fluid_step_only(esp, week, plain_week):
 def test_reverse_flow_raises_the_untraced_error_at_the_physics_line(esp, week):
     """A negative flow row raises ``PhysicsError`` with the untraced message and line."""
     suction = _suction(esp, week[:3])
-    reversed_flow = suction.with_(m_dot=suction.m_dot * np.array([1, -1, -1]))
+    reversed_flow = suction._with_si(m_dot=suction.m_dot * np.array([1, -1, -1]))
     with pytest.raises(PhysicsError) as untraced:
         esp(
             fluid_in=gm.Stream(

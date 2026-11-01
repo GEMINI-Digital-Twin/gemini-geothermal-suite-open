@@ -133,7 +133,7 @@ def test_chilled_tank_in_a_warm_room_absorbs_heat():
 def test_stopped_circuits_leave_only_ambient_cooling():
     """Zero flows keep inlet temperatures and the tank cools by Newton's law exactly."""
     tank = _tank()
-    stopped = _inlets(CHARGE.with_(m_dot=0), DISCHARGE.with_(m_dot=0))
+    stopped = _inlets(CHARGE._with_si(m_dot=0), DISCHARGE._with_si(m_dot=0))
     state, result = tank.step({"temperature": 353.15}, 3600, stopped)
     assert result.outlets.charge_out.T == CHARGE.T
     assert reading(result).charge_duty == 0 and reading(result).discharge_duty == 0
@@ -147,7 +147,7 @@ def test_invalid_inputs_raise():
     """Reverse flow is outside the model; missing air is a wrong call."""
     tank = _tank()
     with pytest.raises(gm.errors.PhysicsError, match="thermal_storage: circuit m_dot = -1"):
-        tank(charge_in=CHARGE.with_(m_dot=-1), discharge_in=DISCHARGE, air_in=air(290))
+        tank(charge_in=CHARGE._with_si(m_dot=-1), discharge_in=DISCHARGE, air_in=air(290))
     with raises(gm.errors.ValidationError, "invalid_call"):
         tank(charge_in=CHARGE, discharge_in=DISCHARGE)
     with pytest.raises(gm.errors.ValidationError):
@@ -198,7 +198,7 @@ class BoilerCharging(Module):
 def test_composite_step_charges_the_tank():
     """A composite steps the tank through its forward; the audit residual is the accumulation."""
     plant = BoilerCharging()
-    plant.boiler.temperature_setpoint = 363.15
+    si.assign(plant.boiler, "temperature_setpoint", 363.15)
     assert plant.initial_state() == {"storage": {"temperature": 293.15}}
     cold = Stream(
         m_dot=gm.units.Quantity(0.5, "kg/s"),

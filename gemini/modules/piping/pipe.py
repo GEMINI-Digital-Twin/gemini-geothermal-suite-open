@@ -105,7 +105,7 @@ class Pipe(Equipment, Module):
             outlet_p=outlet_p,
             inlet_p=inlet.p,
         )
-        outlet = inlet.with_(T=self._outlet_temperature(inlet, inlets.air_in), p=outlet_p)
+        outlet = inlet._with_si(T=self._outlet_temperature(inlet, inlets.air_in), p=outlet_p)
         loss_out = heat_transfer.heat_rate(inlet.heat_capacity_rate(), inlet.T - outlet.T)
 
         # Outputs
