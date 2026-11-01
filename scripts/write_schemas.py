@@ -1,10 +1,11 @@
 """Write the generated schemas and every sample file of ``docs/schemas/``.
 
 Run from the repository root after a change to a shape: ``python scripts/write_schemas.py``. The
-schemas of the plant data and the profile come from ``gm.plants.schema()`` and
-``gm.data.profile_schema()`` and those of the three return shapes from
-``gemini.types.shapes``; the others are written by hand. The samples come from the example plant,
-so other repositories can build against real documents.
+schemas of the case, the economics, the plant data and the profile come from ``gm.Case.schema()``,
+``gm.case.Economics.schema()``, ``gm.plants.schema()`` and ``gm.data.profile_schema()`` and those
+of the three return shapes from ``gemini.types.shapes``; the others are written by hand. The
+samples come from the example plant and from the case of a project of ``inputs/examples``, so
+other repositories can build against real documents.
 """
 
 import json
@@ -16,7 +17,7 @@ import gemini as gm
 from gemini._utils import paths
 from gemini._utils.jsonable import to_plain
 from gemini.types import shapes
-from tests.fixtures.sample_cases import example_plant
+from tests.fixtures.sample_cases import example_plant, shallow_case
 
 ROOT = Path(__file__).parents[1]
 SCHEMAS = ROOT / "docs" / "schemas"
@@ -34,8 +35,18 @@ def _results(plant):
 
 def _case():
     """Return a case with the time of the made-up heating profile."""
-    time = gm.case.Time(start="2030-01-01", end="2030-01-01T04:00", step=gm.units.Quantity(1, "h"))
-    return gm.Case(time=time)
+    return gm.Case.from_dict(
+        {
+            "format": 1,
+            "kind": "case",
+            "name": "schema_sample",
+            "time": {
+                "start": "2030-01-01",
+                "end": "2030-01-01T04:00",
+                "step": gm.units.Quantity(1, "h"),
+            },
+        }
+    )
 
 
 def _profile_sample():
@@ -64,14 +75,19 @@ def _problem_sample():
 
 def documents():
     """Return ``{file name: document}`` of everything this script writes."""
+    sample = shallow_case()
     plant = example_plant("DoubletHeatPlant")
     data = plant.to_dict(structure=True)
     results = _results(plant)
     return {
+        "case.schema.json": gm.Case.schema(),
+        "economics.schema.json": gm.case.Economics.schema(),
         "plant_dict.schema.json": gm.plants.schema(),
         "profile.schema.json": gm.data.profile_schema(),
         **{f"{name}.schema.json": schema for name, schema in shapes.SCHEMAS.items()},
         "module_description.sample.json": example_plant("Doublet").describe(),
+        "case.sample.json": sample.to_dict(),
+        "economics.sample.json": sample.economics.to_dict(),
         "plant_dict.sample.json": data,
         "results_summary.sample.json": results.summary(),
         "profile.sample.json": _profile_sample(),

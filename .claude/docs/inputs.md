@@ -546,6 +546,35 @@ a dimensionless value or a choice a `missing` issue. A `Leaf` keeps the value an
 derives SI, so `to_json` returns exactly what was read (a series in kW keeps kW values in its CSV).
 An older file without `kind` is an issue of code `old_format`, a wrong `kind` of `invalid_format`.
 
+**7.41 The key of a demand series** (rule: P6, section 3). Appendix A lists the series among the
+fields of `demand.heating` and `demand.cooling` without a key. The key is `power`: it says what the
+series is, it has the dimension `power`, and `case.demand.heating.power` is the array in W on
+`time.index`. The old `file`, `time_column`, `column` and `unit` of the demand are refused with code
+`old_format` and the new form.
+
+**7.42 The form of a requirement** (rule: P6, section 4). `over` is stated for a per-step quantity
+and is absent for a window quantity or a property of the plant (`pump_efficiency`, `count`,
+`unmet_share`): a missing `over` on the first and a given one on the second are issues. `when` is
+optional and absent means every step; a quantity read over the whole period takes none. The role
+table (`gm.case.roles()`) says for each quantity its dimension and whether it takes `over`.
+`reinjection_ratio` of `doublet` is the plant output `Doublet.reinjection_ratio` (injected over
+produced liquid volume flow, none without production); `volume_imbalance` stays a `Doublet` output
+for gemini's own balance check and leaves the role table. `count` (the number of doublets) and
+`unmet_share` (unmet energy over the demanded energy of the service) are in the table; their
+evaluation belongs to `gm.evaluate`.
+
+**7.43 Initial state without a dimension** (rule: 7.19). `case.initial_state` is read before the
+plant is known, so its leaves are `{"value", "unit"}` whose unit must exist in the unit table; the
+dimension is the declaration of the state, which `gm.check` compares. `Leaf.si` converts as a plain
+unit, the right reading for the absolute quantities a state holds.
+
+**7.44 Text and map leaves** (rule: P6). A label is a leaf with a text value (`currency`,
+`gwp.standard`: `{"value": "EUR"}`), a composition (`site.fluid.dissolved_gas`,
+`utilities.gas.composition`) a map of dimensionless leaves per species that adds up to 1, and
+`opex.fixed` a map of leaves per equipment kind; each is stored as a dict in SI. Bounds that were
+strict (`> 0`) are inclusive (`>= 0`) because the shared reader checks `min` and `max`. A price
+series in a stand-alone `Economics` needs `time=`; the case passes its own.
+
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is
 built for `case.initial_state` and its check in `gm.check`; the removal of the `State` defaults and

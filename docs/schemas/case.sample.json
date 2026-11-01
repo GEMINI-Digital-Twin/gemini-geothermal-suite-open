@@ -1,0 +1,191 @@
+{
+  "choices": {
+    "depth": {
+      "max": {
+        "unit": "m",
+        "value": 1800
+      },
+      "min": {
+        "unit": "m",
+        "value": 1000
+      }
+    },
+    "doublets": {
+      "max": 2,
+      "min": 1
+    }
+  },
+  "demand": {
+    "cooling": {
+      "power": {
+        "column": "cool_kw",
+        "file": "data/demand.csv",
+        "unit": "kW"
+      },
+      "return_temperature": {
+        "unit": "degC",
+        "value": 22
+      },
+      "supply_temperature": {
+        "unit": "degC",
+        "value": 16
+      }
+    },
+    "heating": {
+      "power": {
+        "column": "heat_kw",
+        "file": "data/demand.csv",
+        "unit": "kW"
+      },
+      "return_temperature": {
+        "unit": "degC",
+        "value": 38
+      },
+      "supply_temperature": {
+        "unit": "degC",
+        "value": 65
+      }
+    }
+  },
+  "economics": "economics.json",
+  "format": 1,
+  "kind": "case",
+  "name": "shallow_district",
+  "requirements": [
+    {
+      "max": 180,
+      "min": 35,
+      "name": "production_flow_range",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "production_flow",
+      "unit": "m3/h",
+      "when": "running"
+    },
+    {
+      "max": 22,
+      "name": "brine_cooling_limit",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "brine_cooling",
+      "unit": "K",
+      "when": "running"
+    },
+    {
+      "max": 450,
+      "name": "running_time_limit",
+      "on": "doublet",
+      "over": "duration",
+      "quantity": "production_flow",
+      "unit": "h",
+      "when": "running"
+    },
+    {
+      "max": 0.68,
+      "min": 0.6,
+      "name": "pump_efficiency",
+      "on": "doublet",
+      "quantity": "pump_efficiency"
+    },
+    {
+      "min": 5,
+      "name": "esp_intake_pressure_minimum",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "intake_pressure",
+      "unit": "bar",
+      "when": "running"
+    },
+    {
+      "max": 0.1875,
+      "name": "esp_intake_gas_fraction_maximum",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "intake_gas_fraction",
+      "when": "running"
+    },
+    {
+      "max": 1.00001,
+      "min": 0.99999,
+      "name": "full_reinjection",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "reinjection_ratio",
+      "when": "running"
+    }
+  ],
+  "site": {
+    "air": {
+      "temperature": {
+        "unit": "degC",
+        "value": 6
+      }
+    },
+    "fluid": {
+      "density": {
+        "unit": "kg/m3",
+        "value": 1012
+      },
+      "dissolved_gas": {
+        "CH4": {
+          "value": 0.92
+        },
+        "CO2": {
+          "value": 0.08
+        }
+      },
+      "gas_liquid_ratio": {
+        "unit": "Nm3/m3",
+        "value": 0.15
+      },
+      "viscosity": {
+        "unit": "mPa.s",
+        "value": 0.55
+      }
+    },
+    "ground": {
+      "gradient": {
+        "unit": "K/km",
+        "value": 36
+      },
+      "surface_temperature": {
+        "unit": "degC",
+        "value": 9
+      }
+    },
+    "reservoir": {
+      "permeability": {
+        "unit": "mD",
+        "value": 450
+      },
+      "pressure": {
+        "unit": "barg",
+        "value": 120
+      },
+      "reference_depth": {
+        "unit": "m",
+        "value": 1300
+      },
+      "thickness": {
+        "unit": "m",
+        "value": 60
+      }
+    }
+  },
+  "time": {
+    "end": "2026-02-02",
+    "start": "2026-01-12",
+    "step": {
+      "unit": "h",
+      "value": 1
+    }
+  },
+  "utilities": {
+    "electricity": {
+      "co2_intensity": {
+        "unit": "g/kWh",
+        "value": 360
+      }
+    }
+  }
+}

@@ -39,7 +39,7 @@ Before adding or moving an input, apply the placement test of [inputs](.claude/d
 one owner, one file, and the reason is written there.
 
 One `gm.Case` carries what a plant is asked to do, for every call: the sections `time`,
-`environment`, `demand`, `choices`, `constraints` and `assumptions`, strict and typed, read from a
+`site`, `demand`, `utilities`, `economics`, `requirements` and `choices`, strict and typed, read from a
 `case.json` with `gm.Case.from_json` ([case](.claude/docs/data.md#the-case)). A plant dict holds only the
 plant. Run a plant with `gm.simulate(plant, case)`, `gm.replay`, `gm.live` and `gm.resume`; keep
 `gm.Engine` for complex tasks ([functions or engine](.claude/docs/engine.md#functions-or-engine)).
@@ -73,8 +73,7 @@ print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value
 - *No defaults.* Nothing a user must decide has a default value in gemini: not a price, a
   temperature, a limit, a factor or an efficiency. Such a field is required, or absent (`None`),
   and a call that needs an absent value raises `missing_value` (`missing_assumption` below
-  `assumptions`) naming its path. The only defaults of `gm.case` are `over="each"` and
-  `when="always"` of `Constraint`, and a module or plant declaration keeps a default only if it is
+  `economics`) naming its path. `gm.case` has no default at all, and a module or plant declaration keeps a default only if it is
   in `DECLARED_DEFAULTS` (a sourced constant or the zero of an accumulator);
   `tests/unit/test_code_quality.py` checks this
   ([no defaults](.claude/docs/conventions.md#no-defaults)).
@@ -156,7 +155,7 @@ gemini/
 ├── runtime/          # context-local backend, precision, display units and default fluid
 ├── modules/          # module.py, declarations.py, container.py, call.py, check.py, _utils/; one folder per category with its _physics.py
 ├── plants/           # plant.py (Plant) and the plant classes, one file each; _utils/ holds the plant tools
-├── case/             # Case and its sections (time, environment, demand, choices, constraints, assumptions), roles; _utils/ (demand frame, fields, profiles, access)
+├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements, choices), roles; _utils/ (node: the one reader of a section, schema, access, kinds)
 ├── engine/           # Engine, Clock, executor.py, eager.py, rows.py, loader, runner, chunks, checkpoint, callbacks
 ├── run/              # schedule, simulate, replay, live, resume, call, Results, Dataset; _utils/ (apply: the case on a plant copy, roles, limits, sources)
 ├── compiler/         # graph/ (Tracer, Graph, passes, cache), executor.py, gm.compiler.compile; optional, registers itself

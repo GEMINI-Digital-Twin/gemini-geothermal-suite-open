@@ -6,7 +6,7 @@ DataFrame with a UTC index called ``time`` at a constant step and one column per
 W, ready for ``gm.schedule``. ``profile_schema()`` is the JSON Schema of the profile document.
 """
 
-from gemini.case._utils.demand import from_csv, from_values
+from gemini.data._utils.demand import from_csv, from_values
 
 from .schema import profile_schema
 

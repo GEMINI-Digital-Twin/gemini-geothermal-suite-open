@@ -1,4 +1,7 @@
 {
+  "format": 1,
+  "kind": "case",
+  "name": "shallow_district",
   "time": {
     "start": "2026-01-12",
     "end": "2026-02-02",
@@ -7,7 +10,7 @@
       "unit": "h"
     }
   },
-  "environment": {
+  "site": {
     "ground": {
       "surface_temperature": {
         "value": 9,
@@ -49,9 +52,13 @@
         "value": 0.15,
         "unit": "Nm3/m3"
       },
-      "gas": {
-        "CH4": 0.92,
-        "CO2": 0.08
+      "dissolved_gas": {
+        "CH4": {
+          "value": 0.92
+        },
+        "CO2": {
+          "value": 0.08
+        }
       }
     },
     "air": {
@@ -62,11 +69,12 @@
     }
   },
   "demand": {
-    "file": "demand.csv",
-    "time_column": "timestamp",
     "heating": {
-      "column": "heat_kw",
-      "unit": "kW",
+      "power": {
+        "file": "data/demand.csv",
+        "column": "heat_kw",
+        "unit": "kW"
+      },
       "supply_temperature": {
         "value": 65,
         "unit": "degC"
@@ -77,8 +85,11 @@
       }
     },
     "cooling": {
-      "column": "cool_kw",
-      "unit": "kW",
+      "power": {
+        "file": "data/demand.csv",
+        "column": "cool_kw",
+        "unit": "kW"
+      },
       "supply_temperature": {
         "value": 16,
         "unit": "degC"
@@ -89,6 +100,78 @@
       }
     }
   },
+  "utilities": {
+    "electricity": {
+      "co2_intensity": {
+        "value": 360,
+        "unit": "g/kWh"
+      }
+    }
+  },
+  "economics": "economics.json",
+  "requirements": [
+    {
+      "name": "production_flow_range",
+      "on": "doublet",
+      "quantity": "production_flow",
+      "unit": "m3/h",
+      "over": "each",
+      "when": "running",
+      "min": 35,
+      "max": 180
+    },
+    {
+      "name": "brine_cooling_limit",
+      "on": "doublet",
+      "quantity": "brine_cooling",
+      "unit": "K",
+      "over": "each",
+      "when": "running",
+      "max": 22
+    },
+    {
+      "name": "running_time_limit",
+      "on": "doublet",
+      "quantity": "production_flow",
+      "unit": "h",
+      "over": "duration",
+      "when": "running",
+      "max": 450
+    },
+    {
+      "name": "pump_efficiency",
+      "on": "doublet",
+      "quantity": "pump_efficiency",
+      "min": 0.6,
+      "max": 0.68
+    },
+    {
+      "name": "esp_intake_pressure_minimum",
+      "on": "doublet",
+      "quantity": "intake_pressure",
+      "unit": "bar",
+      "over": "each",
+      "when": "running",
+      "min": 5
+    },
+    {
+      "name": "esp_intake_gas_fraction_maximum",
+      "on": "doublet",
+      "quantity": "intake_gas_fraction",
+      "over": "each",
+      "when": "running",
+      "max": 0.1875
+    },
+    {
+      "name": "full_reinjection",
+      "on": "doublet",
+      "quantity": "reinjection_ratio",
+      "over": "each",
+      "when": "running",
+      "min": 0.99999,
+      "max": 1.00001
+    }
+  ],
   "choices": {
     "doublets": {
       "min": 1,
@@ -102,222 +185,6 @@
       "max": {
         "value": 1800,
         "unit": "m"
-      }
-    }
-  },
-  "constraints": [
-    {
-      "on": "doublet",
-      "quantity": "production_flow",
-      "over": "each",
-      "when": "running",
-      "min": {
-        "value": 35,
-        "unit": "m3/h"
-      },
-      "max": {
-        "value": 180,
-        "unit": "m3/h"
-      }
-    },
-    {
-      "on": "doublet",
-      "quantity": "brine_cooling",
-      "over": "each",
-      "when": "running",
-      "max": {
-        "value": 22,
-        "unit": "K"
-      }
-    },
-    {
-      "on": "doublet",
-      "quantity": "production_flow",
-      "over": "duration",
-      "when": "running",
-      "max": {
-        "value": 450,
-        "unit": "h"
-      }
-    },
-    {
-      "on": "doublet",
-      "quantity": "pump_efficiency",
-      "min": 0.6,
-      "max": 0.68
-    },
-    {
-      "on": "doublet",
-      "quantity": "intake_pressure",
-      "over": "each",
-      "when": "running",
-      "min": {
-        "value": 5,
-        "unit": "bar"
-      }
-    },
-    {
-      "on": "doublet",
-      "quantity": "intake_gas_fraction",
-      "over": "each",
-      "when": "running",
-      "max": 0.1875
-    },
-    {
-      "on": "doublet",
-      "quantity": "volume_imbalance",
-      "over": "each",
-      "when": "running",
-      "min": {
-        "value": -1e-05,
-        "unit": "m3/s"
-      },
-      "max": {
-        "value": 1e-05,
-        "unit": "m3/s"
-      }
-    }
-  ],
-  "assumptions": {
-    "finance": {
-      "currency": "EUR",
-      "discount_rate": 0.04,
-      "lifetime": {
-        "value": 30,
-        "unit": "yr"
-      },
-      "price_year": 2015,
-      "capex": {
-        "drilling": {
-          "value": 1239.1304347826087,
-          "unit": "EUR/m"
-        },
-        "heat_pump": {
-          "value": 0.73786,
-          "unit": "EUR/W"
-        },
-        "boiler": {
-          "value": 0.06073,
-          "unit": "EUR/W"
-        },
-        "chp": {
-          "value": 0.96155,
-          "unit": "EUR/W"
-        },
-        "degasser": {
-          "value": 1000000.0,
-          "unit": "EUR"
-        },
-        "compression_chiller": {
-          "value": 0.73786,
-          "unit": "EUR/W"
-        },
-        "production_pump": {
-          "value": 0.5,
-          "unit": "EUR/W"
-        },
-        "injection_pump": {
-          "value": 0.5,
-          "unit": "EUR/W"
-        },
-        "heat_exchanger": {
-          "value": 0.5,
-          "unit": "EUR/(W/K)"
-        },
-        "cooler": {
-          "value": 0.1,
-          "unit": "EUR/W"
-        },
-        "pipe": {
-          "value": 500,
-          "unit": "EUR/m"
-        },
-        "flare": {
-          "value": 100000,
-          "unit": "EUR"
-        },
-        "gas_makeup": {
-          "value": 50000,
-          "unit": "EUR"
-        }
-      },
-      "opex": {
-        "fixed": {
-          "heat_pump": {
-            "value": 0.2239,
-            "unit": "%/yr"
-          },
-          "boiler": {
-            "value": 3.25,
-            "unit": "%/yr"
-          },
-          "chp": {
-            "value": 1.0263,
-            "unit": "%/yr"
-          },
-          "degasser": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "compression_chiller": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "production_pump": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "injection_pump": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "heat_exchanger": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "cooler": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "pipe": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "flare": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "gas_makeup": {
-            "value": 1.5,
-            "unit": "%/yr"
-          },
-          "drilling": {
-            "value": 1,
-            "unit": "%/yr"
-          }
-        },
-        "electricity": {
-          "value": 120,
-          "unit": "EUR/MWh"
-        },
-        "gas": {
-          "value": 55,
-          "unit": "EUR/MWh"
-        }
-      },
-      "allocation": {
-        "heat_cost_share": 0.8
-      }
-    },
-    "emissions": {
-      "CO2": {
-        "electricity": {
-          "value": 360,
-          "unit": "g/kWh"
-        }
-      },
-      "CH4": {
-        "gwp": 29.8
       }
     }
   }

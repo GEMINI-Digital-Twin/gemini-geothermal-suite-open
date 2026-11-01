@@ -9,14 +9,14 @@ def require(root, path, prefix=""):
     """Return the value at ``path`` below ``root``, or raise saying the case must give it.
 
     ``prefix`` is the path of ``root`` in the case, so that an error names the whole path. A value
-    that is absent raises ``missing_value``, or ``missing_assumption`` below ``assumptions``.
+    that is absent raises ``missing_value``, or ``missing_assumption`` below ``economics``.
     """
     value = root
     for name in path.split("."):
         value = value.get(name) if isinstance(value, dict) else getattr(value, name, None)
         if value is None:
             full = f"{prefix}.{path}" if prefix else path
-            code = "missing_assumption" if full.split(".")[0] == "assumptions" else "missing_value"
+            code = "missing_assumption" if full.split(".")[0] == "economics" else "missing_value"
             raise ValidationError(
                 f"{full} is missing; expected a value in the case (it has no default)",
                 path=full,

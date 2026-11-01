@@ -42,7 +42,8 @@ class Doublet(Equipment, Plant):
       depth, the shallowest that keeps that pressure at the intake, and a one-stage ESP of constant
       head that reaches the wellhead pressure at the nominal flow, with that hydraulic efficiency.
 
-    ``volume_imbalance`` is the produced less the injected liquid volume flow. Both sides are the
+    ``volume_imbalance`` is the produced less the injected liquid volume flow and
+    ``reinjection_ratio`` the injected over the produced one. Both sides are the
     liquid at the density of the brine, which is constant, so it reads the same at standard and at
     reservoir conditions: the gas a stream carries, or a degasser takes out, does not count.
 
@@ -163,6 +164,11 @@ class Doublet(Equipment, Plant):
             "reservoir.liquid_flow",
             "sink.liquid_flow",
             description="Production minus injection liquid volume flow",
+        )
+        self.reinjection_ratio = Output.ratio(
+            "sink.liquid_flow",
+            "reservoir.liquid_flow",
+            description="Injected over produced liquid volume flow; none without production",
         )
 
     def _set_si_params(self, path, params, valid_from=None):

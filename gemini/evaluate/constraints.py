@@ -3,8 +3,8 @@
 import numpy as np
 
 from gemini._utils.strings import join_path
-from gemini.case import Constraint
-from gemini.case._utils.fields import si_unit_of
+from gemini.case import Requirement as Constraint
+from gemini.case._utils.node import si_unit_of
 from gemini.case.roletable import reads
 from gemini.errors import ValidationError
 from gemini.evaluate._utils.co2_steps import emitted_steps

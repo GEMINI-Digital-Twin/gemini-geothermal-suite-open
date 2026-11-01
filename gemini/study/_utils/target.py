@@ -2,7 +2,7 @@
 
 from gemini import units
 from gemini._utils.strings import close_matches, did_you_mean, join_names
-from gemini.case._utils.fields import Q, QMap, si_unit_of, to_si
+from gemini.case._utils.node import si_unit_of
 from gemini.errors import ValidationError
 from gemini.modules.declarations import Parameter
 

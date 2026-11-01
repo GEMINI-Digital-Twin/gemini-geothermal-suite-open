@@ -1,78 +1,13 @@
 """The choices of a case: what a study may vary, each as a range."""
 
-from typing import Annotated, Any
+from gemini._utils.strings import join_path
+from gemini.case._utils.node import Frozen, issue
+from gemini.types import inputs
 
-from pydantic import Field, field_validator, model_validator
-
-from gemini import units
-from gemini.case._utils.fields import Shape, is_number, quantity_schema, to_si
-from gemini.case._utils.section import Section
-from gemini.errors import ValidationError
-
-_END = Shape({"anyOf": [{"type": "number"}, quantity_schema("length")]})
+KEYS = ("doublets", "depth")
 
 
-class Range(Section):
-    """A closed range ``min <= max`` of counts or of lengths.
-
-    ``Range(1, 3)`` is a range of counts; ``Range(Quantity(2000, "m"), Quantity(3500, "m"))`` is a
-    range of lengths, stored in SI.
-
-    Attributes
-    ----------
-    min, max : float
-        The ends; metres when the range is of lengths.
-    unit : str or None
-        ``"m"`` for a range of lengths, ``None`` for a range of counts.
-    """
-
-    where = "choices"
-    min: Annotated[Any, _END]
-    max: Annotated[Any, _END]
-    unit: str | None = Field(default=None, json_schema_extra={"hidden": True})
-
-    def __init__(self, min=None, max=None, **data):
-        """Take the two ends as positional arguments or keywords."""
-        super().__init__(min=min, max=max, **data)
-
-    @model_validator(mode="before")
-    @classmethod
-    def _ends(cls, data):
-        """Turn the ends to SI and record their unit."""
-        if not isinstance(data, dict) or data.get("unit") is not None:
-            return data
-        low, high = _end(data.get("min"), "min"), _end(data.get("max"), "max")
-        if low[1] != high[1]:
-            raise ValidationError(
-                "min and max differ in kind; expected two counts or two lengths",
-                code="invalid_unit",
-            )
-        if low[0] > high[0]:
-            raise ValidationError(
-                f"min = {low[0]} is above max = {high[0]}; expected min <= max",
-                code="out_of_bounds",
-            )
-        return {"min": low[0], "max": high[0], "unit": low[1]}
-
-    def to_dict(self):
-        """Return the range as plain data, the ends as lengths when it has a unit."""
-        if self.unit is None:
-            return {"min": self.min, "max": self.max}
-        return {name: {"value": getattr(self, name), "unit": self.unit} for name in ("min", "max")}
-
-
-def _end(value, name):
-    """Return ``(number, "m" or None)`` of one end: a length in SI, or a plain number."""
-    if isinstance(value, (dict, units.Quantity)):
-        return to_si(value, "length"), "m"
-    if not is_number(value):
-        raise ValidationError(
-            f"{name} = {value!r}; expected a number or {units.QUANTITY_FORM}", code="invalid_value"
-        )
-    return value, None
-
-
-class Choices(Section):
+class Choices(Frozen):
     """What a study may vary: the number of doublets and their depth.
 
     Attributes
@@ -80,37 +15,89 @@ class Choices(Section):
     doublets : Range or None
         Whole numbers of doublets, at least 1.
     depth : Range or None
-        Depths [m] of the doublets, 0 or more.
+        Depths [m] of the doublets, 0 or more, in SI.
     """
 
     where = "choices"
-    doublets: Range | None = None
-    depth: Range | None = None
 
-    @field_validator("doublets")
-    @classmethod
-    def _counts(cls, doublets):
-        """Refuse a range that is not of whole numbers from 1."""
-        if doublets is None:
-            return doublets
-        ends = (doublets.min, doublets.max)
-        if doublets.unit is not None or any(end != int(end) or end < 1 for end in ends):
-            raise ValidationError(
-                f"range = {ends}; expected whole numbers of at least 1, without a unit",
-                code="out_of_bounds",
-            )
-        return doublets
+    def __init__(self, given, doublets, depth):
+        """Build from what ``read`` found; use ``Case.from_dict`` to build from data."""
+        self._set(_given=given, doublets=doublets, depth=depth)
 
-    @field_validator("depth")
     @classmethod
-    def _lengths(cls, depth):
-        """Refuse a range that is not of lengths of 0 or more."""
-        if depth is None:
-            return depth
-        if depth.unit != "m" or depth.min < 0:
-            raise ValidationError(
-                "range is not of lengths from 0; expected Quantity ends such as "
-                "{'value': 2000, 'unit': 'm'}",
-                code="invalid_unit",
+    def read(cls, data, path, issues):
+        """Return the choices of ``data`` or ``None`` with issues appended."""
+        if not isinstance(data, dict):
+            issue(issues, path, "incompatible", f"{path} = {data!r}; expected an object")
+            return None
+        before = len(issues)
+        inputs.check_keys(data, KEYS, path, issues)
+        counts = (
+            _counts(data["doublets"], join_path(path, "doublets"), issues)
+            if "doublets" in data
+            else None
+        )
+        depth = _depth(data["depth"], join_path(path, "depth"), issues) if "depth" in data else None
+        if len(issues) > before:
+            return None
+        given = {key: data[key] for key in KEYS if key in data}
+        return cls(given, counts, None if depth is None else inputs.Range(*depth))
+
+    def to_dict(self):
+        """Return the choices as they were read."""
+        return {key: value for key, value in self._given.items()}
+
+    def __eq__(self, other):
+        """Equal when written alike."""
+        if not isinstance(other, Choices):
+            return NotImplemented
+        return self.to_dict() == other.to_dict()
+
+    __hash__ = None
+
+
+def _counts(data, path, issues):
+    """Return the ``Range`` of whole numbers from 1, or ``None`` with issues."""
+    if not isinstance(data, dict):
+        issue(issues, path, "incompatible", f"{path} = {data!r}; expected {{'min': 1, 'max': 3}}")
+        return None
+    inputs.check_keys(data, ("min", "max"), path, issues)
+    ends = [data.get(side) for side in ("min", "max")]
+    for side, end in zip(("min", "max"), ends):
+        whole = isinstance(end, int) and not isinstance(end, bool) and end >= 1
+        if not whole:
+            issue(
+                issues,
+                join_path(path, side),
+                "out_of_bounds",
+                f"{path}.{side} = {end!r}; expected a whole number of at least 1",
             )
-        return depth
+    if all(isinstance(end, int) for end in ends) and ends[0] > ends[1]:
+        issue(issues, path, "incompatible", f"{path}: min = {ends[0]} is above max = {ends[1]}")
+    return inputs.Range(*ends)
+
+
+def _depth(data, path, issues):
+    """Return ``(min, max)`` in metres of a range of lengths, or ``None`` with issues."""
+    if not isinstance(data, dict):
+        issue(issues, path, "incompatible", f"{path} = {data!r}; expected min and max lengths")
+        return None
+    before = len(issues)
+    inputs.check_keys(data, ("min", "max"), path, issues)
+    leaves = [
+        inputs.from_leaf(
+            data.get(side),
+            join_path(path, side),
+            issues,
+            quantity="length",
+            bounds=inputs.Range(min=0.0),
+        )
+        for side in ("min", "max")
+    ]
+    if len(issues) > before:
+        return None
+    low, high = leaves[0].si, leaves[1].si
+    if low > high:
+        issue(issues, path, "incompatible", f"{path}: min = {low} is above max = {high}")
+        return None
+    return low, high

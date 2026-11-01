@@ -96,61 +96,72 @@ flow in m3/s (their bindings declare `"unit": "m3/s"`), and the unbound status c
 
 ## The case
 
-`gm.Case` is the strict, typed entry boundary of every run: fixed sections in a `case.json`, with
-CSV files next to it. Every class is a frozen pydantic model that refuses unknown keys
-(`additionalProperties: false` at every level of `gm.Case.schema()`); every value is stored in SI;
-nothing has a default, so an absent value is `None` and the call that needs it raises
-`missing_value` (`missing_assumption` below `assumptions`) naming its path. Only `time` is required.
-`Case.from_json(path)` reads the file and the CSVs named in it; `case.to_json(path)` writes both
-back, so that `Case.from_json(path) == case`; `Case.from_dict(data, folder)` and `case.to_dict()`
-are the plain forms.
+`gm.Case` is the strict entry boundary of every run: the outside conditions over one period and the
+rules of third parties, in a `case.json` with CSV files and an `economics.json` next to it. The
+rule of each field is [inputs.md](inputs.md); this page says how the code reads and holds them.
+Every file starts with the header `{"format": 1, "kind": "case", "name": "..."}`. Every leaf is read
+by `gemini/types/inputs.py` (the one reader), every value is stored in SI as a plain number or an
+array on `case.time.index`, and the case keeps each leaf as it was given, so `to_dict`/`to_json`
+write the unit and the numbers back unchanged (a series in kW stays kW in its CSV). Objects are
+immutable (`case.with_value("site.ground.gradient", 0.03)` returns a copy with an SI value).
+Nothing has a default: an absent value is `None` and the call that needs it raises `missing_value`
+(`missing_assumption` below `economics`) naming its path.
+
+`Case.from_json(path)` reads the file, its CSV files and the economics file it names;
+`Case.from_dict(data, files={name: bytes}, folder=None)` reads a dict and takes the files from the
+mapping, then from the folder. Both raise one `ValidationError` carrying every issue
+(`error.issues`). `case.check()` and `economics.check()` return the same issues for an object and
+never raise. `case.to_json(path)` writes the file and its files back, so that `Case.from_json(path)
+== case`. A key of an older shape (`environment`, `constraints`, `assumptions`, `time_column`,
+`equals`, a demand `file`/`column`) is refused with code `old_format`, naming the new form.
 
 **The unit format.** A value with a unit is `{"value": 150, "unit": "m3/h"}` in the file and a
-`gm.units.Quantity` in Python, with a unit of the `gm.units.Unit` enum ([units](conventions.md#units)).
-Text such as `"150 m3/h"` raises `invalid_value`; a unit of another dimension raises `invalid_unit`
-listing the units of the field. A dimensionless value (a share, a rate, a count, the GWP) is a
-plain number. The case stores SI and `to_json` writes the SI unit (`degC` becomes kelvin, money is
-`currency/...`; the currency is the label `finance.currency`, and nothing converts between
-currencies). A number that a call needs but a user stated in a unit is read back with `.to(unit)`.
+`gm.units.Quantity` in Python (a `Quantity` in the data given to `from_dict` is turned into that
+object). A dimensionless value is `{"value": 0.7}`; a bare number or text such as `"150 m3/h"` is an
+issue. A time series is `{"file": "data/demand.csv", "column": "heat_mw", "unit": "MW"}` in place of
+`value`; the first column of every CSV is `time`, ISO 8601 with an offset or `Z`. A series that does
+not cover `time` is a `coverage` issue naming file, column, covered and requested window; a coarser
+`time.step` averages the samples, a finer one is an issue.
 
-Sections of `case.json`, in order:
+Sections of `case.json`:
 
 | Section | Holds |
 | --- | --- |
-| `time` | `start`, `end` (excluded) and `step`: the steps every profile lies on; `case.time.index` is the UTC `DatetimeIndex` |
-| `environment` | `ground` (`surface_temperature`, `gradient`), `reservoir` (`reference_depth`, `thickness`, `permeability`, `pressure`, optional `temperature`), `fluid` (`density`, `viscosity`, `gas_liquid_ratio`, `gas` as mole fractions of `CH4`, `CO2`, `N2`, `H2S`), `air` (`temperature`, a number or a profile). `temperature_at(depth)` and `pressure_at(depth)` apply the two rules of `gemini/physics/ground.py`, and raise `missing_value` for what they need |
-| `demand` | `file`, `time_column` (the first column when absent), and `heating`, `cooling`: each `{column, unit, supply_temperature, return_temperature}`. The CSV is read into `case.demand.frame`, in W on `time.index`, columns `heating_demand` and `cooling_demand` |
+| `time` | `start`, `end` (excluded), `step`; `case.time.index` is the UTC `DatetimeIndex` |
+| `initial_state` | `{module path: {state: {value, unit}}}`; `case.initial_state[module][state].si` |
+| `site` | `ground` (`surface_temperature`, `gradient`), `reservoir` (`reference_depth`, `thickness`, `permeability`, `pressure`, `temperature`), `fluid` (`density`, `viscosity`, `gas_liquid_ratio`, `dissolved_gas` as a leaf per species, `sand_concentration`), `air` (`temperature`, `relative_humidity`, `pressure`). `temperature_at(depth)` and `pressure_at(depth)` apply the two rules of `gemini/physics/ground.py` |
+| `demand` | `heating` and `cooling`: `power` (a series or a quantity), `supply_temperature`, `return_temperature`, `minimum_return_temperature`, `maximum_return_temperature`, `return_pressure`; cooling also `indoor_temperature`, `indoor_relative_humidity`, `dew_point_margin`. `case.demand.frame` is the demand in W on `time.index`, columns `heating_demand` and `cooling_demand` |
+| `utilities` | `electricity` (`co2_intensity`, `import_limit`, `export_limit`), `gas` (`composition`, `heating_value`) |
+| `economics` | an object or the path of an `economics.json`, see below |
+| `requirements` | a list of `{name, on, quantity, unit?, over?, when?, min?, max?}` |
 | `choices` | what a study may vary: `doublets` and `depth`, each `{min, max}` |
-| `constraints` | a list of `{on, quantity, min, max, equals, over, when}`: a limit on a **role** and a **quantity** of it, from the closed table `gm.case.roles()` (`doublet`: `production_flow`, `brine_cooling`, `pump_efficiency`, `intake_pressure`, `intake_gas_fraction`, `volume_imbalance`, ...; `heat_pump`, `boiler` and `chp` with `heat_output`; `chiller` with `cold_output`; `heat_exchanger`, `heating_supply`, `cooling_supply`; and `plant`, the plant as a whole, with `electricity_bought`, `gas_bought`, `heat_surplus` (powers) and `co2` (the mass of one step in kg)). It applies to every unit of its role on its own; `plant` has one, with the unit path `""`. `over` is `each`, `sum`, `mean`, `max`, `min` or `duration`; `when` is `always` or `running`; these two are the only defaults of the case |
-| `assumptions` | `finance` (`currency`, `discount_rate`, `lifetime`, `price_year`, `capex.<kind>`, `opex.fixed.<kind>` as `%/yr`, `opex.electricity`, `gas`, `chemical`, `waste_disposal`, `co2`, `revenue.heat`, `revenue.cold`, `allocation.heat_cost_share`) and `emissions` (`CO2.electricity`, `CH4.gwp`) |
 
-**Uncertainty.** Any number under `environment` or `assumptions` may carry an `uncertainty` next to
-its value, in the value's unit: `{"value": 105.75, "unit": "EUR/MWh", "uncertainty": {"kind":
-"uniform", "min": 80, "max": 140}}`; a dimensionless value is `{"value": 0.05, "uncertainty": {...}}`.
-`kind` is required: `uniform` and `triangular` (mode = value) need `min` and `max`; `normal` (mean =
-value) needs `std` and may be cut by `min` and `max`. The value lies inside `[min, max]`, and `min`
-and `max` respect the bounds of the field. An unknown or missing key raises with its path
-(`assumptions.finance.opex.electricity.uncertainty.max`); `time`, `demand`, `choices` and
-`constraints` cannot carry one, nor can a profile. The case stores each as a frozen
-`gm.case.Uncertainty` in SI in `case.uncertainty`, by dotted path, and `to_dict` writes it back next
-to the value. A run, `size` and `minimize` use only `value`; `gm.study.sample` and
-`gm.study.sensitivity` read the declarations and nothing else.
+**Requirements.** `on` is a role and `quantity` one of it, from the closed table `gm.case.roles()`,
+which gives for each quantity its dimension and whether it takes `over`. A per-step quantity states
+`over` (`each`, `sum`, `mean`, `max`, `min`, `duration`) and may state `when` (`always`, `running`;
+absent is every step); a window quantity or a property (`pump_efficiency`, `count`, `unmet_share`)
+takes neither. `unit` is present if and only if the bounds have a dimension, and `min`, `max` are
+numbers in it; `equals` is `min` = `max`. `name` is required, snake_case and unique.
 
-The kinds of `capex` and `opex.fixed` are the 19 of `gm.case.Capex` (the list is in
-[economics.md](economics.md#costs)); a plant needs a factor and a share for each kind it contains.
+**Economics.** `gm.case.Economics` is its own class (`from_json`, `to_json`, `check`, `schema`)
+and the case holds it as `case.economics`, `None` for a pure physics case. Fields: `currency` and
+`price_year`, `discount_rate`, `analysis_period`, `capex.<kind>` (the 19 kinds of
+[economics.md](economics.md#costs)), `opex.fixed.<kind>`, `opex.variable.chemical` and
+`waste_disposal`, `energy.electricity` and `gas`, `carbon.price`, `revenue.heat`, `cold` and
+`subsidy` (`amount` per year, `duration`), `accounting.allocation.heat_cost_share` and
+`accounting.gwp` (`standard` text, `CH4`). `capex.drilling` is a quantity per metre or a depth table
+`{"depth": {"value": [...], "unit": "m"}, "cost_per_metre": {"value": [...], "unit": "EUR/m"}}`;
+`economics.drilling_cost_per_metre(length)` interpolates it linearly and a length outside the table
+raises `out_of_bounds`. A price series needs the time of a case: `Economics.from_json(path,
+time=case.time)`.
+
+**Uncertainty.** Any leaf that is a number may carry `uncertainty` (`uniform`, `triangular`,
+`normal`) in the leaf's unit. `case.uncertainty` is the index `{dotted path: Uncertainty}` in SI
+(`site.ground.gradient`, `economics.energy.electricity`), derived from the leaves; `gm.study.sample`
+and `gm.study.sensitivity` read it, a run uses only the value.
+
 `inputs/examples/hackathon_2026/case.json` is the complete example, with the sources of the cited
 values in [economics.md](economics.md#the-values-of-the-assumptions).
-
-**CSV profiles.** The demand is one CSV (`demand.file`) with a time column and a column for each
-service, on the steps of `time`: the same start, step and number of rows, else `invalid_value`
-naming the first row that differs. Any other value that varies in time (the air temperature, an
-opex price, a revenue, the CO2 intensity of electricity) is a number or a profile
-`{"file": "air.csv", "column": "temperature", "unit": "degC"}`: the first column of the file holds
-the timestamps, which must be the steps of `time`, and a missing value in the column raises
-`missing_value`. In Python a profile is a `Quantity` with an array value. `to_json` writes
-`demand.csv` in W under the services' column names and one file for each profile, named from the
-file and the path (`case_environment_air_temperature.csv`) with the unit in SI, and names it in the
-JSON. A price along the demand is integrated step by step.
 
 ## Where data lives
 
@@ -172,8 +183,9 @@ only folder the code reads.
 `inputs/examples/<sample>/` holds one folder per sample case, a whole case in the shapes of gemini.
 Each has:
 
-- `case.json`: a `gm.Case` (`gm.Case.from_json`), see [the case](#the-case). It names the demand CSV;
-- the demand CSV, read through `case.json` (`demand.file`);
+- `case.json`: a `gm.Case` (`gm.Case.from_json`), see [the case](#the-case). It names `economics.json` and the demand CSV;
+- `economics.json`: a `gm.case.Economics`, given by path from the case;
+- `data/demand.csv`, read through `case.json` (`demand.heating.power`), first column `time`;
 - the plant dicts (`gm.Plant.from_json`): `plant.json` for `shallow_district/`, and one file for
   each candidate in `plants/` for `hackathon_2026/`; a design without the world;
 - `README.md`: the source of the files and what the case asks.
