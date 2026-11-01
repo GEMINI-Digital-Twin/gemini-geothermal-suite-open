@@ -55,7 +55,7 @@ class _BoilerBody(Equipment, Module):
     def _heated(self, inlet, duty):
         """Return the inlet stream heated by ``duty``."""
         rate = inlet.heat_capacity_rate()
-        return inlet.with_(T=inlet.T + heat_transfer.temperature_change(duty, rate))
+        return inlet._with_si(T=inlet.T + heat_transfer.temperature_change(duty, rate))
 
 
 class Boiler(_BoilerBody):

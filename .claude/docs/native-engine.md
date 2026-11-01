@@ -265,7 +265,7 @@ Where the implementation differs from sections 1 to 11, and why:
   inputs are gone. Validation happens at the boundary and raises
   `gm.errors`: numbers become `float`; `m_dot` must be finite, `T > 0`, `p >= 0`
   (`PhysicsError`). When a field is an array or a traced value the same limits are
-  `ops.check` calls, so an invalid row raises the same class. `with_` is a trusted copy
+  `ops.check` calls, so an invalid row raises the same class. `_with_si` is a trusted copy
   (`object.__new__`, same `Fluid`, only changed fields checked), about 5 us against 25 us before.
   A traced inlet is a `Stream` of `Proxy` fields with the concrete `Fluid`: **a `Fluid` is static
   during a trace**, its property values are plain floats in the graph, not named inputs, and the

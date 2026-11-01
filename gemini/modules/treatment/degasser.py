@@ -102,10 +102,10 @@ class Degasser(Equipment, Module):
         liquid_flow, gas_flow, remaining = _physics.degasser_split(
             inlet.m_dot, inlet.fluid.gas_mass_fraction, self.separation_efficiency
         )
-        liquid = inlet.with_(
+        liquid = inlet._with_si(
             m_dot=liquid_flow, p=pressure, fluid=inlet.fluid.with_gas_fraction(remaining)
         )
-        gas = liquid.with_(m_dot=gas_flow, fluid=inlet.fluid.free_gas())
+        gas = liquid._with_si(m_dot=gas_flow, fluid=inlet.fluid.free_gas())
 
         # Outputs
         self.pressure_drop = inlet.p - liquid.p

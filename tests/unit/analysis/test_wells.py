@@ -32,8 +32,8 @@ def test_the_operating_point_reproduces_the_wellhead_pressure_in_the_plant_call(
     """Commanding the solved rate and frequency, the doublet delivers the 4.6 bar asked for."""
     point = doublet_curves["cases"][0]["operating_point"]
     doublet = copy.deepcopy(shared_plant).get_submodule("doublet")
-    doublet.get_submodule("esp").frequency = CASE["frequency"]
-    doublet.get_submodule("reservoir").production_rate = point["rate"]["value"]
+    si.assign(doublet.get_submodule("esp"), "frequency", CASE["frequency"])
+    si.assign(doublet.get_submodule("reservoir"), "production_rate", point["rate"]["value"])
     fluid = doublet.get_submodule("reservoir").fluid
     supply = doublet(
         return_in=Stream(

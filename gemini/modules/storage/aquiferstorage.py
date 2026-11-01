@@ -172,9 +172,9 @@ class AquiferStorage(Module):
         # Outlets
         injection_in = inlets.injection_in
         self._volume_flow(injection_in)
-        production_out = injection_in.with_(T=self.production_temperature())
+        production_out = injection_in._with_si(T=self.production_temperature())
         if self.groundwater_pressure is not None:
-            production_out = production_out.with_(p=self.groundwater_pressure)
+            production_out = production_out._with_si(p=self.groundwater_pressure)
 
         losses = self._store_losses(injection_in)
         loss_out = energy.total_power(losses)

@@ -27,7 +27,7 @@ def test_hand_computed_dose_in_ppm():
     result = dosing(fluid_in=INLET, chemical_in=PRODUCT, dose={"value": 20, "unit": "ppm"})
     assert reading(result).product_mass_flow == pytest.approx(1e-3)
     assert result.outputs.active_mass_flow == pytest.approx(4e-4)
-    assert result.outlets.fluid_out == INLET.with_(m_dot=INLET.m_dot + 1e-3)
+    assert result.outlets.fluid_out == INLET._with_si(m_dot=INLET.m_dot + 1e-3)
     assert mass_balance(dosing, result)["residual"] == 0
     assert energy_balance(dosing, result)["relative_residual"] < 1e-12
 
@@ -37,12 +37,12 @@ def test_limits():
     dosing = InhibitorDosing().set_params("", {"product_concentration": 0.4})
     assert (
         reading(
-            dosing(fluid_in=INLET.with_(m_dot=0), chemical_in=PRODUCT, dose=2e-5)
+            dosing(fluid_in=INLET._with_si(m_dot=0), chemical_in=PRODUCT, dose=2e-5)
         ).product_mass_flow
         == 0
     )
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot"):
-        dosing(fluid_in=INLET.with_(m_dot=-1), chemical_in=PRODUCT, dose=2e-5)
+        dosing(fluid_in=INLET._with_si(m_dot=-1), chemical_in=PRODUCT, dose=2e-5)
     with raises(gm.errors.ValidationError, "missing_value"):
         dosing(fluid_in=INLET, chemical_in=PRODUCT)
     with pytest.raises(gm.errors.ValidationError):

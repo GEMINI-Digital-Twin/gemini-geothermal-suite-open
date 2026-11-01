@@ -5,6 +5,7 @@ import pytest
 import gemini as gm
 from gemini.modules import energy_balance, mass_balance
 from gemini.types import Stream
+from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
@@ -18,8 +19,8 @@ def _field(doublet, producers=2, injectors=1, rates=(40.0, 30.0)):
     for limb, rate in zip(field.producers, rates):
         for name in LIMB:
             getattr(limb, name).set_state_dict(getattr(doublet, name).state_dict())
-        limb.reservoir.production_rate = rate
-        limb.esp.frequency = 50.0
+        si.assign(limb.reservoir, "production_rate", rate)
+        si.assign(limb.esp, "frequency", 50.0)
     for limb in field.injectors:
         limb.well.set_state_dict(doublet.injector.state_dict())
         limb.sink.set_state_dict(doublet.sink.state_dict())

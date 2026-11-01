@@ -87,11 +87,11 @@ def test_with_revalidates_the_copy():
     stream = Stream(
         m_dot=Quantity(-1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"), fluid=WATER
     )
-    assert stream.with_(p=2e5) == Stream(
+    assert stream._with_si(p=2e5) == Stream(
         m_dot=Quantity(-1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e5, "Pa"), fluid=WATER
     )
     with pytest.raises(PhysicsError):
-        stream.with_(T=-1)
+        stream._with_si(T=-1)
 
 
 def test_stream_carries_array_values_and_keeps_the_physical_limits():
@@ -104,11 +104,11 @@ def test_stream_carries_array_values_and_keeps_the_physical_limits():
         fluid=fluid,
     )
     assert stream.volumetric_flow().tolist() == pytest.approx([0.01, 0.02], rel=1e-15)
-    assert stream.with_(p=np.array([2e5, 3e5])).p.tolist() == [2e5, 3e5]
+    assert stream._with_si(p=np.array([2e5, 3e5])).p.tolist() == [2e5, 3e5]
     with pytest.raises(PhysicsError, match="p = -1.0 Pa"):
-        stream.with_(p=np.array([1e5, -1.0]))
+        stream._with_si(p=np.array([1e5, -1.0]))
     with pytest.raises(PhysicsError, match="T = 0.0 K"):
-        stream.with_(T=0.0)
+        stream._with_si(T=0.0)
     with pytest.raises(PhysicsError, match="T = -5.0 K"):
         Stream(
             m_dot=Quantity(1, "kg/s"),
@@ -125,7 +125,7 @@ def test_numbers_become_python_floats_and_limits_include_non_finite_values():
         p=Quantity(np.int64(100000), "Pa"),
     )
     assert [type(value) for value in (stream.m_dot, stream.T, stream.p)] == [float] * 3
-    assert type(stream.with_(p=np.float32(2e5)).p) is float
+    assert type(stream._with_si(p=np.float32(2e5)).p) is float
     for field in (
         {"m_dot": Quantity(float("nan"), "kg/s")},
         {"T": Quantity(float("inf"), "K")},
@@ -153,7 +153,7 @@ def test_unknown_and_missing_arguments_are_call_errors():
     with raises(ValidationError, "invalid_call", match="missing argument p"):
         Stream(m_dot=1, T=300)
     with raises(ValidationError, "invalid_call", match="did you mean 'fluid'"):
-        Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa")).with_(
+        Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))._with_si(
             fluids=WATER
         )
 
@@ -171,14 +171,14 @@ def test_fluids_are_validated():
     )
     assert (
         Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
-        .with_(fluid={"kind": "water"})
+        ._with_si(fluid={"kind": "water"})
         .fluid
         == WATER
     )
     with raises(ValidationError, "invalid_call", match="expected a Fluid"):
         Stream(m_dot=1, T=300, p=1e5, fluid="brine")
     with raises(ValidationError, "invalid_call", match="expected a Fluid"):
-        Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa")).with_(
+        Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))._with_si(
             fluid="brine"
         )
 
@@ -188,7 +188,7 @@ def test_with_reuses_the_fluid_and_is_frozen():
     stream = Stream(
         m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"), fluid=WATER
     )
-    assert stream.with_(T=310).fluid is stream.fluid
+    assert stream._with_si(T=310).fluid is stream.fluid
     with pytest.raises(FrozenInstanceError):
         stream.T = 310
 
@@ -201,7 +201,7 @@ def test_value_semantics_and_copies():
     same = Stream(
         m_dot=Quantity(1.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(1e5, "Pa"), fluid=WATER
     )
-    assert stream == same and hash(stream) == hash(same) and stream != stream.with_(T=301)
+    assert stream == same and hash(stream) == hash(same) and stream != stream._with_si(T=301)
     assert "m_dot=1.0" in repr(stream)
     for clone in (pickle.loads(pickle.dumps(stream)), copy.copy(stream), copy.deepcopy(stream)):
         assert clone == stream
@@ -256,3 +256,12 @@ def test_stream_flows_use_the_stream_fluid():
     properties = stream.fluid.properties(1e5, 300.0)
     assert stream.volumetric_flow() == -10.0 / properties.density
     assert stream.heat_capacity_rate() == -10.0 * properties.cp_l
+
+
+def test_with_refuses_bare_dimensioned_numbers():
+    """``with_`` takes quantities; ``_with_si`` takes SI."""
+    stream = Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
+    with raises(ValidationError, "invalid_value", match="Stream.T.*temperature.*accepted units"):
+        stream.with_(T=300.0)
+    assert stream.with_(T=Quantity(25, "degC")).T == pytest.approx(298.15)
+    assert stream._with_si(T=310.0).T == 310.0

@@ -89,7 +89,7 @@ def test_esp_split_needs_a_configured_depth():
 def test_esp_split_needs_the_depth_inside_the_path():
     """An ESP below the bottom of the path is a configuration error that names the depth."""
     well = production_well()
-    well.esp_depth = well.total_length + 1
+    si.assign(well, "esp_depth", well.total_length + 1)
     with raises(gm.errors.ValidationError, "invalid_design", match="esp_depth"):
         well.intake_conditions(
             Stream(

@@ -143,8 +143,8 @@ builds it back. The public constructor takes quantities and converts them; `Stre
 constructor of SI values that `gemini` itself uses (no unit lookup). The constructor validates at the boundary: numbers become Python `float`,
 `m_dot` must be finite, `T > 0` and finite, `p >= 0` and finite, else `PhysicsError`. When a
 field is an array over time or a traced value it is kept as given and the limits become
-`gemini.ops.check` calls, so an invalid row raises the same class. `stream.with_(**changes)` is
-a trusted fast copy, author-level and in SI: it reuses the `Fluid`, checks only the changed fields against the same
+`gemini.ops.check` calls, so an invalid row raises the same class. `stream._with_si(**changes)` is
+a trusted fast copy in SI (public `with_` takes quantities and calls it): it reuses the `Fluid`, checks only the changed fields against the same
 limits and raises `ValidationError` for an unknown field. A traced inlet is a `Stream` of graph
 inputs with the concrete `Fluid`, so `volumetric_flow()` divides by a plain float density.
 `Ports` hold a `Stream`, a power (a number, an array or a traced value) or the list of a `many` port.

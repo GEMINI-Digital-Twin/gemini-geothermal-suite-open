@@ -114,7 +114,7 @@ class CentrifugalPump(Equipment, Module):
         losses = performance["shaft_power"] - performance["hydraulic_power"]
         rise = heat_transfer.temperature_change(losses, suction.heat_capacity_rate())
 
-        discharge = suction.with_(p=suction.p + performance["head"], T=suction.T + rise)
+        discharge = suction._with_si(p=suction.p + performance["head"], T=suction.T + rise)
         power_in = energy.input_power(performance["shaft_power"], self.motor_efficiency)
         loss_out = power_in - performance["shaft_power"]
 

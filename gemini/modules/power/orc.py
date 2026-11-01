@@ -109,7 +109,7 @@ class ORC(Module):
             fluid_in.T, design.processed_share, design.outlet_temperature
         )
 
-        fluid_out = fluid_in.with_(T=fluid_out_T)
+        fluid_out = fluid_in._with_si(T=fluid_out_T)
         balance = self._balance(fluid_in, fluid_out, design)
 
         # Outputs

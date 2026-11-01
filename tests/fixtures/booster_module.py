@@ -31,7 +31,7 @@ class Booster(Module):
         """Return the suction stream at a pressure raised by the gain."""
 
         # Outlets
-        discharge = inlets.fluid_in.with_(p=inlets.fluid_in.p + self.gain)
+        discharge = inlets.fluid_in._with_si(p=inlets.fluid_in.p + self.gain)
 
         outlets = dict(fluid_out=discharge)
         self.head = self.gain

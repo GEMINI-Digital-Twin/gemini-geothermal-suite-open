@@ -74,11 +74,11 @@ def test_supply_above_the_dew_point_margin_leaves_the_latent_load_unmet():
     """A supply warmer than T_dew - margin does not dehumidify; the sensible load is still met."""
     consumer = _consumer()
     threshold = psychrometrics.dew_point(297.15, 0.5) - 3
-    out = reading(_call(consumer, supply=SUPPLY.with_(T=threshold + 0.01), sensible=3e4))
+    out = reading(_call(consumer, supply=SUPPLY._with_si(T=threshold + 0.01), sensible=3e4))
     assert out.unmet_latent == 1e4 and out.unmet_sensible == 0
     assert out.heat_absorbed == pytest.approx(3e4)
     assert out.is_unmet
-    out = reading(_call(consumer, supply=SUPPLY.with_(T=threshold - 0.01), sensible=3e4))
+    out = reading(_call(consumer, supply=SUPPLY._with_si(T=threshold - 0.01), sensible=3e4))
     assert out.unmet_latent == 0 and not out.is_unmet
     assert out.heat_absorbed == pytest.approx(4e4)
 
@@ -88,14 +88,14 @@ def test_indoor_temperature_limits_the_return():
     consumer = _consumer()
     out = reading(_call(consumer, sensible=1e6, indoor_temperature={"value": 12, "unit": "C"}))
     assert out.return_out_T == 285.15 and out.heat_absorbed == pytest.approx(2 * CP * 5)
-    out = reading(_call(consumer, supply=SUPPLY.with_(T=300.0)))
+    out = reading(_call(consumer, supply=SUPPLY._with_si(T=300.0)))
     assert out.heat_absorbed == 0 and out.return_out_T == 300.0 and out.unmet_sensible == 5e4
 
 
 def test_zero_flow_and_zero_demand():
     """No flow absorbs nothing; no demand leaves the stream unchanged and nothing unmet."""
     consumer = _consumer()
-    result = _call(consumer, supply=SUPPLY.with_(m_dot=0))
+    result = _call(consumer, supply=SUPPLY._with_si(m_dot=0))
     assert reading(result).heat_absorbed == 0 and result.outlets.return_out.T == SUPPLY.T
     assert result.outputs.unmet_sensible == 5e4 and result.outputs.unmet_latent == 1e4
     assert energy_balance(consumer, result)["relative_residual"] < 1e-12
@@ -107,7 +107,7 @@ def test_invalid_inputs_raise():
     """Reverse flow, dry air, negative loads and missing values are rejected."""
     consumer = _consumer()
     with pytest.raises(PhysicsError, match="supply_in.m_dot = -1"):
-        _call(consumer, supply=SUPPLY.with_(m_dot=-1))
+        _call(consumer, supply=SUPPLY._with_si(m_dot=-1))
     with pytest.raises(ValidationError):
         _call(consumer, indoor_relative_humidity=0)
     with pytest.raises(ValidationError):

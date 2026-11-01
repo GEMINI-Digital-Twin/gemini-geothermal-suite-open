@@ -65,7 +65,7 @@ class CirculationPump(Equipment, Module):
         """Set the flow and the pressure of the circuit and draw the electricity."""
 
         # Outlets
-        discharge = inlets.fluid_in.with_(m_dot=self.flow, p=self.loop_pressure)
+        discharge = inlets.fluid_in._with_si(m_dot=self.flow, p=self.loop_pressure)
         hydraulic = pumps.hydraulic_power(discharge.volumetric_flow(), self.pressure_rise)
         power_in = energy.input_power(hydraulic, self.efficiency)
 

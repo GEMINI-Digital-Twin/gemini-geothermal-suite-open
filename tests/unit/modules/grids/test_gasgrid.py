@@ -24,7 +24,7 @@ def test_the_composition_is_a_parameter():
 
 def test_what_the_taker_drew_reaches_the_grid():
     """A plant passes what its taker drew; a direct call takes the offer."""
-    result = with_values(GasGrid())(gas_out=GRID.with_(m_dot=0.2))
+    result = with_values(GasGrid())(gas_out=GRID._with_si(m_dot=0.2))
     assert result.outlets.gas_out.m_dot == 0.2
     assert with_values(GasGrid())().outlets.gas_out.m_dot == 0
 

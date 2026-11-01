@@ -81,14 +81,14 @@ def test_hot_ambient_raises_condensing_and_outlet_temperatures():
 
 def test_idle_zero_flow_and_reverse_flow():
     """Brine below the outlet limit or no flow gives no power; reverse flow raises."""
-    cold = BRINE.with_(T=340)
+    cold = BRINE._with_si(T=340)
     result = orc()(fluid_in=cold, air_in=air(288.15))
     assert reading(result).electricity_generated == 0 and result.outputs.thermal_efficiency is None
     assert result.outlets.fluid_out.T == 340
-    stopped = reading(orc()(fluid_in=BRINE.with_(m_dot=0), air_in=air(288.15)))
+    stopped = reading(orc()(fluid_in=BRINE._with_si(m_dot=0), air_in=air(288.15)))
     assert stopped.heat_input == 0 and stopped.gross_power == 0 and not stopped.is_capped
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        orc()(fluid_in=BRINE.with_(m_dot=-1), air_in=air(288.15))
+        orc()(fluid_in=BRINE._with_si(m_dot=-1), air_in=air(288.15))
 
 
 def test_traced_call_matches_one_call_per_row():

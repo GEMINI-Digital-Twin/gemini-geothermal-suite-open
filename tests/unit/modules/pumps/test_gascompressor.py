@@ -67,7 +67,7 @@ def test_sensible_audit_differs_by_the_liquid_heat_capacity():
 
 def test_zero_flow_unit_ratio_and_invalid_setpoints():
     """No flow or no lift draws no power; expansion and reverse flow raise."""
-    out = reading(compressor()(fluid_in=GAS.with_(m_dot=0), pressure_setpoint=8e5))
+    out = reading(compressor()(fluid_in=GAS._with_si(m_dot=0), pressure_setpoint=8e5))
     assert out.shaft_power == 0 and out.electricity == 0 and out.heat_loss == 0
     assert out.fluid_out_T > 300
     out = reading(compressor()(fluid_in=GAS, pressure_setpoint=1e5))
@@ -75,7 +75,7 @@ def test_zero_flow_unit_ratio_and_invalid_setpoints():
     with pytest.raises(PhysicsError, match="pressure_setpoint = 50000"):
         compressor()(fluid_in=GAS, pressure_setpoint=5e4)
     with pytest.raises(PhysicsError, match="reverse flow"):
-        compressor()(fluid_in=GAS.with_(m_dot=-0.1), pressure_setpoint=8e5)
+        compressor()(fluid_in=GAS._with_si(m_dot=-0.1), pressure_setpoint=8e5)
 
 
 def test_traced_call_matches_one_call_per_row():

@@ -216,7 +216,7 @@ class Pump(Module):
         suction = inlets.fluid_in
         flow = suction.volumetric_flow()
         head = pumps.head(flow, self.frequency, self.stage_count, self.head_coefficients)
-        discharge = suction.with_(p=suction.p + head)
+        discharge = suction._with_si(p=suction.p + head)
 
         # Outputs
         self.flow = flow
@@ -501,7 +501,7 @@ class Tank(Module):
         """Leave at the tank temperature of the start of the step."""
 
         # Outlets
-        outlet = inlets.fluid_in.with_(T=self.temperature)
+        outlet = inlets.fluid_in._with_si(T=self.temperature)
 
         # Outputs
         self.duty = self._duty(inlets.fluid_in)

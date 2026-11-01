@@ -66,7 +66,7 @@ def test_heating_network_serves_both_substations(plants):
 def test_nested_substations_show_what_their_consumers_take(plants):
     """The consumers inside the substations are read once, on their ports, not by the network."""
     network = plants["network"](_network(consumers=3), plants["heating_substation"])
-    result = network(supply_in=HOT.with_(m_dot=4.5), air_in=air(283.15))
+    result = network(supply_in=HOT._with_si(m_dot=4.5), air_in=air(283.15))
     substation_sums = [
         reading(result.children[f"substations.{index}"]).heat_supplied for index in range(3)
     ]
@@ -77,7 +77,7 @@ def test_nested_substations_show_what_their_consumers_take(plants):
 def test_three_way_split_and_mix(plants):
     """The cascades give every substation a third and mix three returns."""
     network = plants["network"](_network(consumers=3), plants["heating_substation"])
-    result = network(supply_in=HOT.with_(m_dot=4.5), air_in=air(283.15))
+    result = network(supply_in=HOT._with_si(m_dot=4.5), air_in=air(283.15))
     feeds = [result.children[f"substations.{index}"].inlets.supply_in.m_dot for index in range(3)]
     assert feeds == pytest.approx([1.5] * 3, rel=1e-15)
     assert len(network.splitters) == len(network.mixers) == 2
@@ -102,7 +102,7 @@ def test_single_consumer_and_invalid_structure(plants):
     """One substation needs no tees; bad structural arguments raise."""
     network = plants["network"](_network(consumers=1), plants["heating_substation"])
     assert isinstance(network.substations[0], HeatingSubstation)
-    result = network(supply_in=HOT.with_(m_dot=2.0), air_in=air(283.15))
+    result = network(supply_in=HOT._with_si(m_dot=2.0), air_in=air(283.15))
     assert _leaf_sum(result, "heat_supplied") == pytest.approx(1.5e5, rel=1e-12)
     with raises(gm.errors.ValidationError, "invalid_design", match="service"):
         gm.plants.DistrictNetwork(service="steam")

@@ -47,7 +47,7 @@ def test_values_may_arrive_one_call_at_a_time():
     "assign",
     [
         lambda column: column.set_params("", {"height": gm.units.Quantity(HEIGHT * 2, "m")}),
-        lambda column: setattr(column, "height", HEIGHT * 2),
+        lambda column: si.assign(column, "height", HEIGHT * 2),
     ],
     ids=["update_params", "attribute"],
 )

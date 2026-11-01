@@ -61,13 +61,13 @@ def test_part_load_willans_line():
 
 def test_heat_dumping_and_engine_off():
     """Heat above the outlet limit or without flow is dumped; zero load burns nothing."""
-    small = WATER.with_(m_dot=2)
+    small = WATER._with_si(m_dot=2)
     out = reading(engine()(fluid_in=small, fuel_in=GRID_GAS, load_fraction=1))
     assert out.fluid_out_T == pytest.approx(363.15)
     assert out.heat_recovered == pytest.approx(2 * CP * 30)
     assert out.dumped_heat == pytest.approx(1.125e6 - 2 * CP * 30)
     unit = engine()
-    result = unit(fluid_in=WATER.with_(m_dot=0), fuel_in=GRID_GAS, load_fraction=1)
+    result = unit(fluid_in=WATER._with_si(m_dot=0), fuel_in=GRID_GAS, load_fraction=1)
     assert reading(result).heat_recovered == 0 and reading(result).heat_loss == pytest.approx(1.5e6)
     assert energy_balance(unit, result)["relative_residual"] < 1e-12
     off = reading(engine()(fluid_in=WATER, fuel_in=GRID_GAS, load_fraction=0))
@@ -82,7 +82,7 @@ def test_invalid_design_and_flow_raise():
     ):
         engine(thermal_efficiency=0.7)(fluid_in=WATER, fuel_in=GRID_GAS, load_fraction=1)
     with pytest.raises(PhysicsError, match="fluid_in.m_dot = -1"):
-        engine()(fluid_in=WATER.with_(m_dot=-1), fuel_in=GRID_GAS, load_fraction=1)
+        engine()(fluid_in=WATER._with_si(m_dot=-1), fuel_in=GRID_GAS, load_fraction=1)
 
 
 def test_traced_call_matches_one_call_per_row():

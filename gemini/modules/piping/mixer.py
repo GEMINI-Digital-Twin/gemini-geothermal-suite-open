@@ -50,7 +50,7 @@ class Mixer(Module):
         branch1_in = inlets.branch1_in
         branch2_in = inlets.branch2_in
         self._check(branch1_in, branch2_in)
-        fluid_out = branch1_in.with_(
+        fluid_out = branch1_in._with_si(
             m_dot=branch1_in.m_dot + branch2_in.m_dot,
             T=heat_transfer.mixed_temperature(
                 branch1_in.heat_capacity_rate(),

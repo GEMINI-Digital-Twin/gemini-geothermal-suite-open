@@ -56,8 +56,8 @@ class InhibitorDosing(Module):
         inlet = inlets.fluid_in
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
         product, _ = _physics.dosing_flows(self.dose, inlet.m_dot, self.product_concentration)
-        outlet = inlet.with_(m_dot=inlet.m_dot + product)
-        chemical_in = inlets.chemical_in.with_(m_dot=product, T=inlet.T)
+        outlet = inlet._with_si(m_dot=inlet.m_dot + product)
+        chemical_in = inlets.chemical_in._with_si(m_dot=product, T=inlet.T)
 
         # Outputs
         product, active = _physics.dosing_flows(

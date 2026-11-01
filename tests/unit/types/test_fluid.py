@@ -34,7 +34,7 @@ def test_fluid_properties_and_identity():
         fluid=brine,
     )
     assert stream.volumetric_flow() == pytest.approx(0.1)
-    assert stream.with_(T=310).fluid == brine
+    assert stream._with_si(T=310).fluid == brine
     assert brine.properties(1e5, 300) is brine.properties(2e5, 350)
     assert WATER != BRINE
     assert GLYCOL_30.properties(1e5, 313.15) == FluidProperties(

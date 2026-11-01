@@ -54,6 +54,7 @@ from gemini.modules.declarations import (
     State,
 )
 from gemini.ops import kernels
+from gemini.types import bare
 from gemini.types.bindings import DatedParams
 from gemini.types.flows import Stream
 from gemini.types.fluid import Fluid
@@ -397,9 +398,10 @@ class Module:
     def __setattr__(self, name, value):
         """Register declarations and children, or assign declared values.
 
-        Assigning a declared value, ``esp.frequency = 50``, is an author-level tool and stays SI:
-        a number is in the SI unit of the declaration. Users set values with ``set_params``,
-        ``set_inputs`` or a control of a call, which take quantities.
+        Assigning a declared value from outside a call, ``esp.frequency = Quantity(50, "Hz")``,
+        takes a quantity or its dict: a bare number for a value with a dimension is
+        ``invalid_value``. Inside a call the value is SI, as in ``forward``; ``gemini`` assigns SI
+        values outside a call with ``_assign_si``.
         """
         if name.startswith("_"):
             object.__setattr__(self, name, value)
@@ -438,6 +440,15 @@ class Module:
         return next((path for path, item in self.named_modules() if item is module), None)
 
     def _assign_value(self, name, value):
+        declaration = (
+            self._parameters.get(name) or self._controls.get(name) or self._boundaries.get(name)
+        )
+        if declaration is not None and _active_call(self) is None:
+            bare.refuse(f"{self.path}.{name}", value, declaration.unit, declaration.quantity)
+        self._assign_si(name, value)
+
+    def _assign_si(self, name, value):
+        """Assign ``value`` to the declaration or attribute ``name``; a number is SI."""
         if name in self._parameters:
             self._parameters[name].owner._set_parameter(name, value)
             return

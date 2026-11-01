@@ -65,7 +65,7 @@ def test_capacity_cap_and_no_cooling():
     )
     assert out.is_capped and out.duty == pytest.approx(5e5)
     assert out.fluid_out_T == pytest.approx(HOT.T - 5e5 / (20 * CP))
-    for stream, ambient in ((HOT, 310), (HOT.with_(m_dot=0), 280)):
+    for stream, ambient in ((HOT, 310), (HOT._with_si(m_dot=0), 280)):
         result = cooler("dry")(fluid_in=stream, temperature_setpoint=280, air_in=air(ambient))
         assert reading(result).duty == reading(result).electricity == 0
         assert result.outlets.fluid_out.T == HOT.T
@@ -74,9 +74,9 @@ def test_capacity_cap_and_no_cooling():
 def test_invalid_inputs_raise():
     """Flow must not be reversed, and a closed loop needs its pressure and flow."""
     with pytest.raises(PhysicsError, match="fluid_in.m_dot = -1"):
-        cooler("dry")(fluid_in=HOT.with_(m_dot=-1), temperature_setpoint=290, air_in=air(300))
+        cooler("dry")(fluid_in=HOT._with_si(m_dot=-1), temperature_setpoint=290, air_in=air(300))
     unit = cooler("dry")
-    unit.temperature_setpoint = 290
+    si.assign(unit, "temperature_setpoint", 290)
     with raises(ValidationError, "invalid_design", match="loop_pressure"):
         unit._offered()
 
@@ -84,8 +84,8 @@ def test_invalid_inputs_raise():
 def test_a_closed_loop_offers_the_water_at_the_setpoint():
     """The chiller's cooling water exists before the chiller runs; the cooler cools it back."""
     unit = cooler("dry", loop_pressure=3e5)
-    unit.flow = 20.0
-    unit.temperature_setpoint = 303.15
+    si.assign(unit, "flow", 20.0)
+    si.assign(unit, "temperature_setpoint", 303.15)
     offered = unit._offered()["fluid_out"]
     assert (offered.m_dot, offered.T, offered.p) == (20.0, 303.15, 3e5)
     assert unit(fluid_in=HOT, air_in=air(288.15)).outlets.fluid_out == offered

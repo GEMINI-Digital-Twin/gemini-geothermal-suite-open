@@ -109,7 +109,7 @@ class HeatingGrid(Module):
         supply_in = inlets.supply_in
         if self.return_temperature is None:
             delivered = self._delivered_heat(supply_in)
-            return_out = supply_in.with_(T=self._cooled_temperature(supply_in, delivered))
+            return_out = supply_in._with_si(T=self._cooled_temperature(supply_in, delivered))
         else:
             return_out = self._offer(inlets)["return_out"]
             delivered = heat_transfer.heat_rate(

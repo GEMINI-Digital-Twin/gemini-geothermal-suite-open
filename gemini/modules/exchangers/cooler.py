@@ -137,7 +137,7 @@ class Cooler(Equipment, Module):
         # Outlets
         inlet, air = inlets.fluid_in, inlets.air_in
         duty, rate, requested = self._duty(inlet, air)
-        cooled = inlet.with_(T=inlet.T - heat_transfer.temperature_change(duty, rate))
+        cooled = inlet._with_si(T=inlet.T - heat_transfer.temperature_change(duty, rate))
         outlet = cooled if self.loop_pressure is None else self._offer(inlets)["fluid_out"]
         power_in = heat_transfer.fan_power(duty, self.specific_fan_power)
         air_in, air_out = self._air(air, cooled.T, duty + power_in)
@@ -166,7 +166,7 @@ class Cooler(Equipment, Module):
         rise = ops.maximum(water_T - air.T, self.approach)
         specific_heat = air.fluid.properties(air.p, air.T).cp_l
         flow = ops.where(heat > 0, dispatch.circuit_flow(heat, specific_heat, rise), 0.0)
-        return air.with_(m_dot=flow), air.with_(m_dot=flow, T=air.T + rise)
+        return air._with_si(m_dot=flow), air._with_si(m_dot=flow, T=air.T + rise)
 
     def _duty(self, inlet, air):
         """Return the rejected duty [W], heat capacity rate [W/K] and uncapped request [W]."""

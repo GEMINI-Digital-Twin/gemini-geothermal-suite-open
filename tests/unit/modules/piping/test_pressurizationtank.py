@@ -90,7 +90,7 @@ def test_outlet_leaves_at_the_setpoint():
         PressurizationTank()(fluid_in=RETURN, pressure_setpoint={"value": 1, "unit": "bar"})
     )
     assert relieved.pressure_correction == pytest.approx(-0.2e5)
-    reverse = PressurizationTank()(fluid_in=RETURN.with_(m_dot=-1), pressure_setpoint=2e5)
+    reverse = PressurizationTank()(fluid_in=RETURN._with_si(m_dot=-1), pressure_setpoint=2e5)
     assert reverse.outlets.fluid_out.m_dot == -1
     assert energy_balance(PressurizationTank(), result)["residual"] == 0
     assert mass_balance(PressurizationTank(), result)["residual"] == 0
@@ -107,7 +107,7 @@ def test_invalid_setpoint_and_missing_command_raise():
 def test_piping_network_closes_mass_and_energy():
     """A split, pipe, valve, mixer and tank network conserves mass and sensible energy."""
     network = Network()
-    result = network(fluid_in=RETURN.with_(p=4e5), air_in=air(283.15))
+    result = network(fluid_in=RETURN._with_si(p=4e5), air_in=air(283.15))
     outlet = result.outlets.fluid_out
     assert outlet.m_dot == pytest.approx(10, rel=1e-15) and outlet.p == 3e5
     assert outlet.T < RETURN.T and reading(result.children["pipe"]).heat_loss > 0

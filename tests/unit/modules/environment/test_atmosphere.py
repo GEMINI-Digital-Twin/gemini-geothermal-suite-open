@@ -6,6 +6,7 @@ import gemini as gm
 from gemini.errors import PhysicsError
 from gemini.modules import Atmosphere
 from gemini.physics import gas
+from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
 
 FLUE = gm.Stream(
@@ -25,7 +26,7 @@ RELEASED = gm.Stream(
 def atmosphere(**boundaries):
     """Return the air at 15 degC, or with the given boundaries."""
     air = Atmosphere()
-    air.temperature = 288.15
+    si.assign(air, "temperature", 288.15)
     air._set_inputs(boundaries)
     return air
 

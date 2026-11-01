@@ -11,6 +11,7 @@ from gemini.modules.heating import ElectricBoiler
 from gemini.modules.subsurface import ThermalDecline
 from gemini.types import Stream
 from gemini.types.fluid import BRINE as DEFAULT_FLUID
+from tests.fixtures import si
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
 from tests.fixtures.reading import reading
 
@@ -35,7 +36,7 @@ def decline():
             "rock_volumetric_heat_capacity": gm.units.Quantity(2.5e6, "J/m3/K"),
         },
     )
-    module.injection_temperature = 313.15
+    si.assign(module, "injection_temperature", 313.15)
     return module
 
 
@@ -127,10 +128,12 @@ def test_balances_show_the_boundary_correction():
 def test_zero_and_reverse_flow():
     """Zero flow keeps the state and has no breakthrough time; reverse flow is rejected."""
     module = decline()
-    state, result = module.step({"injected_volume": 1e7}, 3600, {"fluid_in": STREAM.with_(m_dot=0)})
+    state, result = module.step(
+        {"injected_volume": 1e7}, 3600, {"fluid_in": STREAM._with_si(m_dot=0)}
+    )
     assert state == {"injected_volume": 1e7} and result.outputs.breakthrough_time is None
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        module(fluid_in=STREAM.with_(m_dot=-1))
+        module(fluid_in=STREAM._with_si(m_dot=-1))
     with pytest.raises(gm.errors.ValidationError):
         module.set_params("", {"porosity": 1})
 

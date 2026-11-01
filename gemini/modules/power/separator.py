@@ -65,10 +65,10 @@ class Separator(Module):
         inlet = inlets.fluid_in
         state = self._flash(inlet)
 
-        liquid = inlet.with_(
+        liquid = inlet._with_si(
             m_dot=state.liquid_flow, T=state.liquid_temperature, p=self.pressure_setpoint
         )
-        gas = inlet.with_(
+        gas = inlet._with_si(
             m_dot=state.steam_flow,
             T=state.saturation_temperature,
             p=self.pressure_setpoint,

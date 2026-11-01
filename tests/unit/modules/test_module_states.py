@@ -44,7 +44,7 @@ class Tank(Module):
         """Leave at the tank temperature of the start of the step."""
 
         # Outlets
-        outlet = inlets.fluid_in.with_(T=self.temperature)
+        outlet = inlets.fluid_in._with_si(T=self.temperature)
 
         outlets = dict(fluid_out=outlet)
         self.duty = self._duty(inlets.fluid_in)
