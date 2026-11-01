@@ -27,7 +27,7 @@ def sample_json(name):
 
 
 def sample_case(name="case.json"):
-    """Return case ``name`` of the hackathon sample: environment, demand, constraints, prices."""
+    """Return case ``name`` of the hackathon sample: site, demand, requirements, prices."""
     return gm.Case.from_json(HACKATHON_2026 / name)
 
 

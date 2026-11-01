@@ -109,9 +109,9 @@ Shared conventions, stated once here and not repeated per module:
 ## Cost kinds and the Equipment mixin
 
 A module that is equipment subclasses the mixin `Equipment` (`gemini/modules/_utils/cost.py`), sets
-`equipment_kind` to one of the 19 kinds of `gm.case.Capex` and defines `capex(finance)`; its
-`fixed_opex(finance)` is the share of the kind times that capex. The factor is read from
-`case.assumptions.finance`; one the case lacks raises `missing_assumption` naming its path. These
+`equipment_kind` to one of the 19 kinds of `gm.case.Capex` and defines `capex(economics)`; its
+`fixed_opex(economics)` is the share of the kind times that capex. The factor is read from
+`case.economics`; one the case lacks raises `missing_assumption` naming its path. These
 modules are equipment, with the size the factor multiplies ([economics.md](economics.md#costs)):
 
 | Kind | Module |
@@ -1653,7 +1653,7 @@ Electricity exchange of a plant with the public grid.
 - **Outputs**: `net_import`, `net_export`, `unserved_consumption`, `curtailed_generation`,
   `is_import_limited`, `is_export_limited`.
 - **Model**: import `max(0, consumption - generation)` and export `max(0, generation -
-  consumption)`, each capped by its limit. Prices are in `assumptions.finance.opex` of the case.
+  consumption)`, each capped by its limit. Prices are in `economics.energy` of the case.
 - **Physics**: `modules/grids/_physics.net_exchange`
 - **Energy audit**: open boundary.
 
@@ -1769,7 +1769,7 @@ The air around a plant.
 The rock around a doublet's wells; `Doublet` creates it.
 
 - **Parameters**: `geothermal_gradient`, `surface_temperature` (`... | None`): set by a run from
-  `environment.ground` of the case and refused in a plant dict.
+  `site.ground` of the case and refused in a plant dict.
 - **Ports**: `heat_in` (power) -> none.
 - **Energy audit**: open boundary. `Doublet.well`, `riser` and `injector` connect `loss_out` here.
 
@@ -1807,8 +1807,9 @@ assert gm.modules.mass_balance(doublet, result)["residual"] == 0
 ```
 
 `brine_cooling` is the production minus the injection temperature, `reservoir.liquid_flow` the
-liquid volume flow, and `volume_imbalance` the produced less the injected liquid volume flow
-(`reservoir.liquid_flow` less `sink.liquid_flow`): what a limit of a doublet reads. Both sides of the
+liquid volume flow, `volume_imbalance` the produced less the injected liquid volume flow
+(`reservoir.liquid_flow` less `sink.liquid_flow`) and `reinjection_ratio` the injected over the
+produced one (none without production): what a requirement of a doublet reads (`reinjection_ratio`). Both sides of the
 imbalance are the liquid at the constant density of the brine, so it reads the same at standard and
 at reservoir conditions.
 
@@ -1834,9 +1835,9 @@ plant.d0.fluid = gm.Fluid(density={"value": 1030, "unit": "kg/m3"}, viscosity={"
 | and `nominal_flow`, `pump_efficiency`, `nominal_wellhead_pressure` | `esp.setting_depth`, `esp_depth` and `segment` of `well` and `riser` (`hydraulics.pump_setting_depth`), and a one-stage ESP of constant head (`hydraulics.design_pump_head`, `pumps.constant_head_curves`) |
 
 A run that starts without them raises `missing_value` naming the path. A `depth` without `gradient` and `surface_temperature` derives nothing yet: the doublet waits for
-them, so a plant holds the design and the `gm.Case` gives the rest: `environment.ground.gradient`
-and `surface_temperature`, the `thickness` and `permeability` of `environment.reservoir`, and the
-brine of `environment.fluid`, set on a copy of the plant at the start of a run, with the
+them, so a plant holds the design and the `gm.Case` gives the rest: `site.ground.gradient`
+and `surface_temperature`, the `thickness` and `permeability` of `site.reservoir`, and the
+brine of `site.fluid`, set on a copy of the plant at the start of a run, with the
 temperature and pressure at the doublet's own depth from the two rules of `gemini/physics/ground.py`
 ([engine.md](engine.md#how-the-case-reaches-the-modules)). A plant dict that states one of these
 is refused (`invalid_value`, naming the case path).

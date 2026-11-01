@@ -220,7 +220,7 @@ temperature): a plant dict that states one is refused with `invalid_value` namin
 
 - `fluids` remains in the plant dict, for a module whose fluid differs from its class default. A
   plant with no case (a measured or replayed plant such as `DoubletHeatPlant`) carries its own
-  brine there; with a case, a `Doublet` takes its fluid from `environment.fluid`.
+  brine there; with a case, a `Doublet` takes its fluid from `site.fluid`.
 - The pressure of the water a consumer returns stays a design parameter of the plant: the case
   has no field for it.
 

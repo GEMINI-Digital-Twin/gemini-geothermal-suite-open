@@ -8,7 +8,7 @@ import pytest
 import gemini as gm
 from gemini._utils.jsonable import to_plain
 from tests.fixtures.booster_module import EXAMPLE, Booster
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case
 from tests.fixtures.costed_plants import day, heating_plant
 
 CASE = {"wellhead_pressure": {"value": 4.6, "unit": "bar"}, "rates": [20, 45], "frequency": 55.484}
@@ -26,11 +26,11 @@ CORROSION = {
     "start": "2024-01-01T00:00:00Z",
 }
 PRICED = make_case(
-    finance=costed_finance(
-        opex={"electricity": gm.units.Quantity(2e-8, "currency/J")},
+    economics=costed_economics(
+        energy={"electricity": gm.units.Quantity(2e-8, "currency/J")},
         revenue={"heat": gm.units.Quantity(5e-8, "currency/J")},
     ),
-    emissions={"CO2": gm.case.CO2(electricity=gm.units.Quantity(1e-7, "kg/J"))},
+    utilities={"electricity": {"co2_intensity": gm.units.Quantity(1e-7, "kg/J")}},
 )
 
 

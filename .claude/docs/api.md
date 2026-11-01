@@ -38,7 +38,7 @@ that plain JSON. A result of `gm.evaluate` and `gm.study` is a `gm.units.Quantit
    as more keys, each a value or a text. In Python a result of `gm.evaluate` or `gm.study` is a
    `Value`, a `Quantity` with a `reason` and the `parts` of the result: `lcts(...).value`,
    `.unit`, `.to("EUR/MWh")`, `.parts["heat"]`. Money is in the unit `currency` (`currency/J`,
-   `currency/yr`), whatever `assumptions.finance.currency` of the case labels, and a year is `yr`.
+   `currency/yr`), whatever `economics.currency` of the case labels, and a year is `yr`.
 2. **Problem** `{path, code, message, suggestions}`, for every error, validation result and failed
    run row. A run row adds `time`. There is no `class` key: `code` is the stable key for machines.
 3. **Check** `{name, passed, value, limit}`, where `value` and `limit` are values. A failed check is
@@ -174,7 +174,7 @@ are in `gm.plants`, not in `gm.modules`; `gm.modules` never imports `gm.plants`.
 
 A `Doublet` with a `depth` and no geotherm waits for it, and a run that starts without it raises code
 `missing_value` with the path: a plant holds the design, and the geotherm comes from the case
-(`environment.ground`).
+(`site.ground`).
 
 On any plant, `path` being a dotted module path (`""` is the root):
 
@@ -349,15 +349,15 @@ Every `gm.evaluate` function takes `(plant, case, results, ...)`; only `capex` h
 The cost functions return a value with the parts of the result as more keys. A value the inputs
 cannot give raises `ValidationError` (code `no_value`, or `missing_assumption` for an assumption
 nobody gave); with `on_error="record"` it is a `Value` whose `value` is `None` and whose `reason`
-says why. Prices, rates and cost factors are those of `case.assumptions`; gemini holds none.
-Equipment declares `capex(finance)` and `fixed_opex(finance)` from its design values and the cost
+says why. Prices, rates and cost factors are those of `case.economics`; gemini holds none.
+Equipment declares `capex(economics)` and `fixed_opex(economics)` from its design values and the cost
 factor of its kind, see [economics.md](economics.md#costs). A violated constraint is a check, never an
 error.
 
 | Name | Status |
 | --- | --- |
 | `gm.evaluate.totals(plant, case, results)` | real: `{name: value}` of what crossed the plant's edge over the run, each read from the ports of the edge modules, heat and cold as delivered, useful (at most the demand) and surplus; `None` with a reason when no edge module shows it. It also gives the KPIs `heating_coverage`, `cooling_coverage`, `cop`, `peak_heat`, `peak_cold` |
-| `gm.evaluate.constraints(plant, case, results)` | real: a list of checks `{name, role, unit_path, quantity, passed, value, limit, worst_step}`, one per unit of the role of each constraint of the case, plus the supply temperatures of the services; `value` the worst of the run; `passed` is `null` with a reason `no_value` when there is nothing to judge (a role with no unit in the plant gives one such check); a role or quantity not in `gm.case.roles()` raises `unknown_name` |
+| `gm.evaluate.constraints(plant, case, results)` | real: a list of checks `{name, role, unit_path, quantity, passed, value, limit, worst_step}`, one per unit of the role of each requirement of the case (`name` that of the requirement), plus the supply temperatures of the services; `value` the worst of the run; `passed` is `null` with a reason `no_value` when there is nothing to judge (a role with no unit in the plant gives one such check); a role or quantity not in `gm.case.roles()` raises `unknown_name` |
 | `gm.evaluate.plant_balance(plant, case, results)` | real, a list of checks: mass and energy of every module within 1e-9 and of the root within 1e-6. The root's in and out are the ports of the grids and environment modules, the aquifers and the plant ports of a building block run alone; a replay does not close at the root |
 | `gm.evaluate.energy_balance(plant, case, results)`, `mass_balance(plant, case, results)`, `bounds(plant, case, results)` | real, each a check; they are ledger checks, see [economics.md](economics.md) |
 | `gm.evaluate.run_all(plant, case, results)` | real: `{passed, checks: [check]}` of the ledgers, the bounds and the constraints |

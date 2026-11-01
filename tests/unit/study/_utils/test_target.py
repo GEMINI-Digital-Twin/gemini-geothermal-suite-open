@@ -7,35 +7,33 @@ from gemini.study._utils import target
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
-PRICE = "case.assumptions.finance.opex.electricity"
+PRICE = "case.economics.energy.electricity"
 
 
 def test_a_number_of_the_case_is_set_in_si_on_a_copy():
     """The change is in the copy only, and other values stay."""
     case = shallow_case()
-    changed = target.with_case_values(
-        case, {PRICE: 2e-8, "case.assumptions.finance.discount_rate": 0.1}
-    )
-    assert changed.assumptions.finance.opex.electricity == 2e-8
-    assert changed.assumptions.finance.discount_rate == 0.1
-    assert changed.assumptions.finance.opex.gas == case.assumptions.finance.opex.gas
-    assert case.assumptions.finance.opex.electricity != 2e-8
+    changed = target.with_case_values(case, {PRICE: 2e-8, "case.economics.discount_rate": 0.1})
+    assert changed.economics.energy.electricity == 2e-8
+    assert changed.economics.discount_rate == 0.1
+    assert changed.economics.energy.gas == case.economics.energy.gas
+    assert case.economics.energy.electricity != 2e-8
 
 
 def test_a_bound_of_the_field_is_kept():
     """A negative discount rate is refused."""
     with raises(gm.errors.ValidationError, "out_of_bounds"):
-        target.with_case_values(shallow_case(), {"case.assumptions.finance.discount_rate": -1})
+        target.with_case_values(shallow_case(), {"case.economics.discount_rate": -1})
 
 
 @pytest.mark.parametrize(
     ("name", "code"),
     [
-        ("case.constraints", "invalid_value"),
-        ("case.time.start", "invalid_value"),
-        ("case.assumptions.finance.currency", "invalid_value"),
-        ("case.assumptions.finance.opexx", "unknown_name"),
-        ("case.assumptions.finance.revenue.heat", "missing_value"),
+        ("case.requirements", "unknown_name"),
+        ("case.time.start", "unknown_name"),
+        ("case.economics.currency", "invalid_value"),
+        ("case.economics.opexx", "unknown_name"),
+        ("case.economics.revenue.heat", "missing_value"),
     ],
 )
 def test_a_name_that_is_no_number_of_the_case_is_refused(name, code):
@@ -62,7 +60,7 @@ def test_a_bound_is_read_in_the_unit_of_its_value():
 def test_a_spread_ignores_the_offset_of_a_unit():
     """A standard deviation of 2 degC is 2 K."""
     case = shallow_case()
-    name = "case.environment.air.temperature"
+    name = "case.site.air.temperature"
     spread = target.value_si(
         shallow_plant(), case, name, gm.units.Quantity(2, "degC"), difference=True
     )

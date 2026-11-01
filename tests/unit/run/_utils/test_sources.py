@@ -6,22 +6,26 @@ import numpy as np
 import pytest
 
 import gemini as gm
-from gemini.case import CO2, Assumptions, Case, Emissions, Finance, Opex, Time
 from gemini.physics import refrigeration
 from gemini.run._utils import sources
 from gemini.units import Quantity
+from tests.fixtures.cases import make_case
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 
 
 def costs(steps=2, prices=None, co2=None, factor=None):
     """Return the prices of a case of ``steps`` days, in SI: per joule, per kg of CO2."""
-    per_joule = {name: Quantity(price, "currency/J") for name, price in (prices or {}).items()}
-    opex = Opex(co2=None if co2 is None else Quantity(co2, "currency/kg"), **per_joule)
-    emissions = None if factor is None else Emissions(CO2=CO2(electricity=Quantity(factor, "kg/J")))
-    time = Time(start="2027-01-01", end=f"2027-01-{steps + 1:02d}", step=Quantity(1, "d"))
-    assumptions = Assumptions(finance=Finance(opex=opex), emissions=emissions)
-    return sources.Costs(Case(time=time, assumptions=assumptions))
+    energy = {name: Quantity(price, "currency/J") for name, price in (prices or {}).items()}
+    economics = {"energy": energy} if energy else {}
+    if co2 is not None:
+        economics["carbon"] = {"price": Quantity(co2, "currency/kg")}
+    utilities = None
+    if factor is not None:
+        utilities = {"electricity": {"co2_intensity": Quantity(factor, "kg/J")}}
+    return sources.Costs(
+        make_case(count=steps, step=86400.0, economics=economics, utilities=utilities)
+    )
 
 
 def test_a_cost_is_the_price_over_the_efficiency():
@@ -45,7 +49,7 @@ def test_the_carbon_price_adds_the_emission_of_the_carrier():
 
 
 def test_a_case_without_a_carbon_price_has_no_carbon_cost():
-    """No ``opex.co2``, no emission term, whatever the factor."""
+    """No ``carbon.price``, no emission term, whatever the factor."""
     assert costs(prices={"gas": 1e-8}).gas("boiler", 1.0).tolist() == pytest.approx([1e-8, 1e-8])
 
 
@@ -53,7 +57,7 @@ def test_a_missing_price_is_a_missing_assumption_with_its_path():
     """The price is a part of the case: ``missing_assumption`` names where it belongs."""
     with raises(gm.errors.ValidationError, "missing_assumption") as refused:
         costs().gas("boiler", 0.9)
-    assert refused.value.path == "assumptions.finance.opex.gas"
+    assert refused.value.path == "economics.energy.gas"
 
 
 def _heat_pump(**params):

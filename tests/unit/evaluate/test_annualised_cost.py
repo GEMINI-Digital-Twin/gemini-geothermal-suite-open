@@ -5,11 +5,11 @@ import pytest
 import gemini as gm
 from gemini._utils.jsonable import to_plain
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case
 from tests.fixtures.costed_plants import day, heating_plant
 from tests.fixtures.errors import raises
 
-PRICES = make_case(finance=costed_finance(opex={"electricity": Quantity(2e-8, "currency/J")}))
+PRICES = make_case(economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")}))
 HEAT = 1000.0 * SECONDS_PER_YEAR
 OPEX = 10.0 + 2e-8 * 100.0 * SECONDS_PER_YEAR
 """Yearly cost of the heating plant under ``PRICES``: the fixed opex and the electricity."""

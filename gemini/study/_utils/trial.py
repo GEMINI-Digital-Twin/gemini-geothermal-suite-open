@@ -115,7 +115,7 @@ def _excess(check):
 
 
 def judged(plant, case, results):
-    """Return ``(reason, violation)`` of a finished run against the constraints of the case.
+    """Return ``(reason, violation)`` of a finished run against the requirements of the case.
 
     The checks are those of ``gm.evaluate.constraints``, the supply temperatures of the services
     included. A run with a failed step is infeasible with ``LARGEST_VIOLATION``. Otherwise the

@@ -41,9 +41,9 @@ class _BoilerBody(Equipment, Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="hot_water")
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the boiler from its capacity."""
-        return self.capex_of(finance, self.capacity)
+        return self.capex_of(economics, self.capacity)
 
     def _requested_duty(self, inlet):
         """Return the duty [W] that reaches the setpoint, refusing reverse flow."""

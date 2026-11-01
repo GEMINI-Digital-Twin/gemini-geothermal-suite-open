@@ -9,7 +9,7 @@ from gemini.evaluate._utils.display import shown as displayed
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.target import quantities
 from gemini.study._utils.trial import checked_metric, drawn_trial
-from gemini.study._utils.uncertain import declared
+from gemini.study._utils.uncertain import declared, tried_ends
 from gemini.study.sample import value_of
 from gemini.types.shapes import measure
 
@@ -143,7 +143,7 @@ def sensitivity(plant, case, metrics, *, plan=None):
         first, the failed last. ``to_frame()`` gives the table and ``to_dict()`` plain JSON.
     """
     names = [checked_metric(name) for name in metrics]
-    limits = [(name, un.limits(value)) for name, un, value in declared(case, "sensitivity")]
+    limits = [(name, tried_ends(un, value)) for name, un, value in declared(case, "sensitivity")]
     jobs = [{name: end} for name, ends in limits for end in ends]
     runs = mapped(drawn_trial, (plant, case, plan, names), jobs)
     rows = []

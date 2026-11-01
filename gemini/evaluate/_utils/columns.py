@@ -110,7 +110,10 @@ def _combined(key, values):
     """Return the arrays of a combination, as a plant computes it on one tick."""
     if key == "sum":
         return np.sum(values, axis=0)
-    return values[0] - values[1] if key == "difference" else values[0] / values[1]
+    if key == "difference":
+        return values[0] - values[1]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return values[0] / values[1]
 
 
 def _path_series(plant, frame, path, item):

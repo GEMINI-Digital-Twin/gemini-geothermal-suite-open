@@ -127,12 +127,12 @@ class CentrifugalPump(Equipment, Module):
         outlets = dict(fluid_out=discharge, loss_out=loss_out, power_in=power_in)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the pump from its shaft power at the best-efficiency flow."""
         flow = self.best_efficiency_flow
         head = pumps.centrifugal_head(flow, 1.0, self.head_coefficients)
         hydraulic = pumps.hydraulic_power(flow, head)
-        return self.capex_of(finance, energy.input_power(hydraulic, self.best_efficiency))
+        return self.capex_of(economics, energy.input_power(hydraulic, self.best_efficiency))
 
     def _performance(self, suction):
         """Return flow [m3/s], head [Pa], hydraulic and shaft power [W] and efficiency [-]."""

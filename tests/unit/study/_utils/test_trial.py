@@ -6,7 +6,7 @@ from tests.fixtures.errors import raises
 from tests.fixtures.result_tables import make_results
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
-PRICE = "case.assumptions.finance.opex.electricity"
+PRICE = "case.economics.energy.electricity"
 
 
 def test_a_metric_is_a_kpi_or_an_economic_figure():
@@ -32,9 +32,9 @@ def test_a_trial_sets_the_values_on_copies_and_runs_them(monkeypatch):
     metrics, reason = trial.run_trial(plant, case, None, values, ["peak_heat"])
     assert reason is None and metrics == {"peak_heat": "peak_heat"}
     assert seen[0][0].get_submodule("peak_boiler").capacity == 1e6
-    assert seen[0][1].assumptions.finance.opex.electricity == 2e-8
+    assert seen[0][1].economics.energy.electricity == 2e-8
     assert plant.get_submodule("peak_boiler").capacity == 3.5e6
-    assert case.assumptions.finance.opex.electricity != 2e-8
+    assert case.economics.energy.electricity != 2e-8
 
 
 def test_a_trial_that_fails_gives_its_reason(monkeypatch):

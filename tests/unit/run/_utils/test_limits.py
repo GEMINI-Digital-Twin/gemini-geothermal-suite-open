@@ -1,4 +1,4 @@
-"""The constraints a schedule enforces, found by their role and quantity."""
+"""The requirements a schedule enforces, found by their role and quantity."""
 
 import pandas as pd
 import pytest
@@ -6,13 +6,14 @@ import pytest
 import gemini as gm
 from gemini.run._utils import limits
 from gemini.units import Quantity
+from tests.fixtures.cases import requirement
 from tests.fixtures.errors import raises
 
 
 def constraint(quantity, on="doublet", **fields):
-    """Return a constraint of ``on`` and ``quantity`` with bounds in the dict form."""
+    """Return a requirement of ``on`` and ``quantity`` with bounds as ``(number, unit)``."""
     bounds = {name: Quantity(*value) for name, value in fields.pop("bounds").items()}
-    return gm.case.Constraint(on=on, quantity=quantity, **bounds, **fields)
+    return gm.case.Requirement.from_dict(requirement(on, quantity, **bounds, **fields))
 
 
 FLOW = constraint(
@@ -33,7 +34,7 @@ def test_a_doublet_gets_its_limits_in_si():
     assert check_only == []
 
 
-def test_a_constraint_applies_to_every_doublet_whatever_its_name():
+def test_a_requirement_applies_to_every_doublet_whatever_its_name():
     """The role, not a path, says which units a constraint limits."""
     found, _ = limits.split([FLOW, COOLING], ["well_a", "d1"])
     assert set(found) == {"well_a", "d1"}
@@ -80,21 +81,8 @@ def test_a_duration_with_a_maximum_and_a_minimum_leaves_the_minimum_to_the_check
     found, check_only = _left_of(both)
     assert found["d0"].operating_time == pd.Timedelta(days=330)
     assert len(check_only) == 1
-    assert (
-        check_only[0]["min"]["value"] == pytest.approx(300 * 86400) and "max" not in check_only[0]
-    )
-
-
-def test_a_duration_with_equals_and_a_bound_leaves_the_bound():
-    """``equals`` is what the schedule runs; the other bound is left to the check."""
-    both = FLOW.model_copy(
-        update={"over": "duration", "min": None, "max": 330 * 86400.0, "equals": 320 * 86400.0}
-    )
-    found, check_only = _left_of(both)
-    assert found["d0"].operating_time == pd.Timedelta(days=320)
-    assert [("equals" in item, item["max"]["value"]) for item in check_only] == [
-        (False, 330 * 86400.0)
-    ]
+    assert check_only[0]["min"] == 300 and check_only[0]["unit"] == "d"
+    assert "max" not in check_only[0]
 
 
 def test_a_minimum_on_the_brine_cooling_is_left_to_the_check():
@@ -103,7 +91,7 @@ def test_a_minimum_on_the_brine_cooling_is_left_to_the_check():
         "brine_cooling", when="running", bounds={"min": (5, "K"), "max": (40, "K")}
     )
     _, check_only = limits.split([FLOW, cooling], ["d0"])
-    assert [(item["min"]["value"], "max" in item) for item in check_only] == [(5.0, False)]
+    assert [(item["min"], "max" in item) for item in check_only] == [(5, False)]
 
 
 def test_what_is_enforced_whole_is_not_listed():

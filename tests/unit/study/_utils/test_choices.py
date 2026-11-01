@@ -30,7 +30,7 @@ def test_without_the_count_the_plant_keeps_its_doublets():
 
 def test_a_case_without_choices_has_none():
     """``missing_value`` naming ``choices``."""
-    case = shallow_case().model_copy(update={"choices": None})
+    case = shallow_case(choices=None)
     with raises(gm.errors.ValidationError, "missing_value") as refused:
         from_choices(case)
     assert refused.value.path == "choices"

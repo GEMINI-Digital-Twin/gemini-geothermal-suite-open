@@ -9,8 +9,9 @@ def co2(plant, case, results, on_error="raise"):
     """Return the CO2-equivalent emitted over the run [kg].
 
     The sum over the leaves of ``co2_emission``, plus ``methane_emission`` times
-    ``emissions.CH4.gwp``, plus grid electricity energy times ``emissions.CO2.electricity``, step
-    by step, so that a factor that is a profile follows the run. Emissions come from what each
+    ``economics.accounting.gwp.CH4``, plus grid electricity energy times
+    ``utilities.electricity.co2_intensity``, step by step, so that a factor that is a profile
+    follows the run. Emissions come from what each
     module burns or releases, so they follow the gas composition. On-site generation offsets
     consumption before grid electricity is counted and a surplus earns no credit.
 
@@ -19,8 +20,9 @@ def co2(plant, case, results, on_error="raise"):
     plant : Module
         The plant of the run.
     case : Case
-        Its assumptions give ``emissions.CH4.gwp`` and ``emissions.CO2.electricity`` [kg/J]; a
-        factor is needed only when the run releases methane or draws grid electricity.
+        Its economics give ``economics.accounting.gwp.CH4`` and its utilities
+        ``utilities.electricity.co2_intensity`` [kg/J]; a factor is needed only when the run
+        releases methane or draws grid electricity.
     results : Results
         A finished run; the emissions of ``Atmosphere`` and ``net_import`` of the
         ``ElectricityGrid`` are integrated, and the ``fuel`` of the burners.

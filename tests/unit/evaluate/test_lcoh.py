@@ -7,11 +7,11 @@ from gemini._utils.jsonable import to_plain
 from gemini.evaluate._utils import cost
 from gemini.modules import CoolingGrid
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case
 from tests.fixtures.costed_plants import day, heating_plant
 from tests.fixtures.errors import raises
 
-PRICES = make_case(finance=costed_finance(opex={"electricity": Quantity(2e-8, "currency/J")}))
+PRICES = make_case(economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")}))
 HEAT = 1000.0 * SECONDS_PER_YEAR
 OPEX = 10.0 + 2e-8 * 100.0 * SECONDS_PER_YEAR
 """Yearly cost of the heating plant under ``PRICES``: the fixed opex and the electricity."""
@@ -36,10 +36,10 @@ def test_lcoh_at_zero_rate_spreads_the_cost_over_the_years():
 def test_the_rate_and_lifetime_come_from_the_finance():
     """Given in the finance of the case, they give the same value as passed explicitly."""
     both = make_case(
-        finance=costed_finance(
-            opex={"electricity": Quantity(2e-8, "currency/J")},
+        economics=costed_economics(
+            energy={"electricity": Quantity(2e-8, "currency/J")},
             discount_rate=0.05,
-            lifetime=Quantity(20, "yr"),
+            analysis_period=Quantity(20, "yr"),
         )
     )
     explicit = gm.evaluate.lcoh(heating_plant(), PRICES, day(), 0.05, 20)
@@ -51,7 +51,7 @@ def test_a_missing_rate_is_asked_for():
     with raises(
         gm.errors.ValidationError,
         "missing_assumption",
-        match=r"assumptions\.finance\.discount_rate",
+        match=r"economics\.discount_rate",
     ):
         gm.evaluate.lcoh(heating_plant(), PRICES, day(), None, 20)
 

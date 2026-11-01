@@ -70,11 +70,11 @@ def _outside(path, doublets):
 
 
 def _fluid(case):
-    """Return the ``Fluid`` of the reservoir brine from ``environment.fluid``."""
-    fluid = case.environment.fluid if case.environment else None
-    density = require(fluid, "density", "environment.fluid")
-    viscosity = require(fluid, "viscosity", "environment.fluid")
-    given = {"gas_liquid_ratio": fluid.gas_liquid_ratio, "gas_composition": fluid.gas}
+    """Return the ``Fluid`` of the reservoir brine from ``site.fluid``."""
+    fluid = case.site.fluid if case.site else None
+    density = require(fluid, "density", "site.fluid")
+    viscosity = require(fluid, "viscosity", "site.fluid")
+    given = {"gas_liquid_ratio": fluid.gas_liquid_ratio, "gas_composition": fluid.dissolved_gas}
     return Fluid._si(
         kind="brine",
         density=density,
@@ -90,8 +90,8 @@ def _formations(plant, case, doublets):
             plant._set_si_params(
                 path,
                 {
-                    "geothermal_gradient": require(case, "environment.ground.gradient"),
-                    "surface_temperature": require(case, "environment.ground.surface_temperature"),
+                    "geothermal_gradient": require(case, "site.ground.gradient"),
+                    "surface_temperature": require(case, "site.ground.surface_temperature"),
                 },
             )
 
@@ -100,14 +100,14 @@ def _reservoirs(plant, case, doublets):
     """Set the permeability, thickness, pressure and fluid on every reservoir outside a doublet."""
     for path, module in plant.named_modules():
         if isinstance(module, RESERVOIRS) and _outside(path, doublets):
-            reference = require(case, "environment.reservoir.reference_depth")
+            reference = require(case, "site.reservoir.reference_depth")
             module.fluid = _fluid(case)
             plant._set_si_params(
                 path,
                 {
-                    "permeability": require(case, "environment.reservoir.permeability"),
-                    "aquifer_thickness": require(case, "environment.reservoir.thickness"),
-                    "pressure": case.environment.pressure_at(reference),
+                    "permeability": require(case, "site.reservoir.permeability"),
+                    "aquifer_thickness": require(case, "site.reservoir.thickness"),
+                    "pressure": case.site.pressure_at(reference),
                 },
             )
 
@@ -118,14 +118,14 @@ def _doublets(plant, case, doublets):
         doublet = plant.get_submodule(path)
         doublet.fluid = _fluid(case)
         values = {
-            "gradient": require(case, "environment.ground.gradient"),
-            "surface_temperature": require(case, "environment.ground.surface_temperature"),
-            "thickness": require(case, "environment.reservoir.thickness"),
-            "permeability": require(case, "environment.reservoir.permeability"),
+            "gradient": require(case, "site.ground.gradient"),
+            "surface_temperature": require(case, "site.ground.surface_temperature"),
+            "thickness": require(case, "site.reservoir.thickness"),
+            "permeability": require(case, "site.reservoir.permeability"),
         }
         if doublet.depth is not None:
-            temperature = case.environment.temperature_at(doublet.depth)
-            pressure = case.environment.pressure_at(doublet.depth)
+            temperature = case.site.temperature_at(doublet.depth)
+            pressure = case.site.pressure_at(doublet.depth)
             for limb in ("reservoir", "sink"):
                 values[f"{limb}.temperature"] = temperature
                 values[f"{limb}.pressure"] = pressure
@@ -137,7 +137,7 @@ def _air(plant, case):
     paths = [path for path, module in plant.named_modules() if isinstance(module, Atmosphere)]
     if not paths:
         return
-    air = require(case, "environment.air.temperature")
+    air = require(case, "site.air.temperature")
     if isinstance(air, np.ndarray):
         return
     plant._set_si_inputs({join_path(path, "temperature"): air for path in paths})

@@ -50,6 +50,6 @@ class GasMakeup(Equipment, Module):
         outlets = dict(excess_out=excess_out, grid_in=grid_in)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the grid connection, a fixed item."""
-        return self.capex_of(finance, 1)
+        return self.capex_of(economics, 1)

@@ -113,6 +113,6 @@ class Degasser(Equipment, Module):
         outlets = dict(liquid_out=liquid, gas_out=gas)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the degasser, a fixed item."""
-        return self.capex_of(finance, 1)
+        return self.capex_of(economics, 1)

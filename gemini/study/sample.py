@@ -107,7 +107,7 @@ def sample(plant, case, metrics, count, seed, *, plan=None):
     """Return the spread of metrics when the uncertain values of the case are drawn at random.
 
     The distributions are only those the case declares (``uncertainty`` next to a number of
-    ``environment`` or ``assumptions`` in ``case.json``); a case with none raises
+    ``site``, ``demand``, ``utilities`` or ``economics`` in ``case.json``); a case with none raises
     ``missing_value``. Plant parameters are design decisions and are never drawn. Each draw copies
     the plant and the case, sets the drawn values on the copy of the case, simulates the copy
     (``gm.simulate`` plans the demand on that design) and reads the metrics. The plant and the

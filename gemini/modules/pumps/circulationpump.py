@@ -75,8 +75,8 @@ class CirculationPump(Equipment, Module):
         outlets = dict(fluid_out=discharge, loss_out=power_in, power_in=power_in)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the pump from its shaft power at the nominal flow."""
         volume_flow = fluid.volume_flow(self.flow, self.fluid.properties(0, 0).rho_l)
         hydraulic = pumps.hydraulic_power(volume_flow, self.pressure_rise)
-        return self.capex_of(finance, energy.input_power(hydraulic, self.efficiency))
+        return self.capex_of(economics, energy.input_power(hydraulic, self.efficiency))

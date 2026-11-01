@@ -9,9 +9,9 @@ def capex(plant, case, on_error="raise"):
     """Return the investment of a plant: the sum of the capex of its equipment, per module.
 
     A module that is equipment declares a kind (``gemini.case._utils.kinds.EQUIPMENT_KINDS``) and
-    a ``capex(finance)``: the capex factor of its kind in ``case.assumptions.finance.capex`` times
+    a ``capex(economics)``: the capex factor of its kind in ``case.economics.capex`` times
     its own size. A factor the case lacks for a kind the plant uses raises ``ValidationError``
-    (code ``missing_assumption``) naming ``assumptions.finance.capex.<kind>``; nothing is
+    (code ``missing_assumption``) naming ``economics.capex.<kind>``; nothing is
     estimated. The design values are those of the plant with the case applied.
 
     Parameters
@@ -19,7 +19,7 @@ def capex(plant, case, on_error="raise"):
     plant : Module
         The plant whose modules declare costs.
     case : Case
-        Its finance gives the capex factors, the currency label and the price year.
+        Its economics gives the capex factors, the currency label and the price year.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
 

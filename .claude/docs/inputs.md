@@ -332,15 +332,15 @@ constraint on role `doublet`, quantity `volume_imbalance` (produced less injecte
 flow, a plant output), `over: each`, `when: running`, band -1e-6 / +1e-6 m3/s (hackathon_2026) and
 -1e-5 / +1e-5 m3/s (shallow_district). New: quantity `reinjection_ratio` of role `doublet`,
 dimensionless, the injected over the produced liquid volume flow, `over: each`, `when: running`,
-`min` and `max` around 1. The samples carry the old numbers over as a relative band, `min` 0.999999
-and `max` 1.000001 (hackathon_2026), `min` 0.99999 and `max` 1.00001 (shallow_district). Why the
-verdict of every sample is unchanged: both sides are the liquid at the constant brine density, so
-the imbalance is a rounding residual; measured on the shipped plants it is 1.4e-17 m3/s against 1e-6
-and 6.9e-18 m3/s against 1e-5, a relative residual of about 2e-16 against 1e-6 and 1e-5. A band is
-therefore not met or missed by any number the samples produce; a run with `when: running` never
-divides by a zero flow. The band is not the brief's: the brief's tolerance for full reinjection is
-not in the repository, and gemini invents none (P5), so the sample states the band it had and the
-open list says it must be replaced by the brief's. A scheduled run is unaffected: `gm.schedule`
+`min` and `max` around 1. Both samples carry the relative band `min` 0.99999 and `max` 1.00001. The
+band is not the old one converted: the old band was absolute (1e-6 m3/s hackathon_2026, 1e-5 m3/s
+shallow_district), a ratio band is relative to the flow. The first conversion (0.999999 to 1.000001
+for hackathon_2026) failed the check of `HackathonPlant` sized with `backup="peak"`, whose worst
+imbalance is 2.2e-3 m3/h at about 300 m3/h (a ratio of 0.9999925, 6.2e-7 m3/s, inside the old
+1e-6 m3/s), so the verdict changed; 0.99999 to 1.00001 keeps the verdict of every sample plant.
+The band is not the brief's: the brief's tolerance for full reinjection is not in the repository,
+and gemini invents none (P5), so the sample states a band that keeps the old verdicts and the open
+list says it must be replaced by the brief's. `when: running` never divides by a zero flow. A scheduled run is unaffected: `gm.schedule`
 reads no `volume_imbalance` limit.
 
 **7.14 Setpoints, plant `inputs` and the margin over the supply temperature** (rule: 7.9, P1, test
@@ -574,6 +574,23 @@ unit, the right reading for the absolute quantities a state holds.
 `opex.fixed` a map of leaves per equipment kind; each is stored as a dict in SI. Bounds that were
 strict (`> 0`) are inclusive (`>= 0`) because the shared reader checks `min` and `max`. A price
 series in a stand-alone `Economics` needs `time=`; the case passes its own.
+
+**7.45 The callers on the new case** (rule: P1, P6). The package reads `case.site`,
+`case.utilities`, `case.economics` and `case.requirements`; nothing reads an old name. Four
+placements the code needed: (a) the name of a check of `gm.evaluate.constraints` is the name of its
+requirement, one row per unit of the role (`unit_path` tells them apart), and the supply temperatures
+of the services are the requirements `heating_supply_temperature` and `cooling_supply_temperature`;
+(b) `count` is one check of the plant (`unit_path` `""`, the number of units of the role found in the
+plant, with no slack) and `unmet_share` one figure per supply unit, the unmet energy over the energy
+its own demand column holds, `passed` `None` when nothing was demanded; (c) a subsidy
+(`economics.revenue.subsidy`, amount per year for a duration) adds to `npv` the amount discounted
+over the shorter of its duration and the analysis period, and to `payback` the amount per year for its
+duration only, so the payback is the time at which the cash flows add up to the capex; without a
+subsidy, or with only one of its two figures, nothing changes; (d) a value of the case that a study
+varies or draws around is the mean of the steps when the case holds a series, and the ends of a
+one-at-a-time sensitivity are `min` and `max` of the uncertainty, else the value minus and plus
+`std`. `Well.capex` is the length times `economics.drilling_cost_per_metre(length)`, the constant or
+the depth table. The module glossary has the word `reinjection`, for `Doublet.reinjection_ratio`.
 
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is

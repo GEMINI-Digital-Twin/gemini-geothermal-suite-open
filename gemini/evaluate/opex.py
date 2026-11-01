@@ -13,14 +13,14 @@ def opex(plant, case, results, on_error="raise"):
     fuel, the waste and the chemicals, and the CO2 emitted per year at ``opex.co2`` when the case
     gives it. The run is scaled to a year. A price along the demand is integrated over the run:
     the power of each step times its price. A share the case lacks for a kind the plant uses
-    raises ``missing_assumption`` naming ``assumptions.finance.opex.fixed.<kind>``.
+    raises ``missing_assumption`` naming ``economics.opex.fixed.<kind>``.
 
     Parameters
     ----------
     plant : Module
         The plant whose modules declare costs; its design values are those with the case applied.
     case : Case
-        Its finance gives the prices, needed only for an energy that the run buys; a missing
+        Its economics gives the prices, needed only for an energy that the run buys; a missing
         needed price raises ``ValidationError`` (code ``missing_assumption``). Co-produced gas
         costs nothing.
     results : Results

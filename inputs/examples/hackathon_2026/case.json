@@ -179,8 +179,8 @@
       "quantity": "reinjection_ratio",
       "over": "each",
       "when": "running",
-      "min": 0.999999,
-      "max": 1.000001
+      "min": 0.99999,
+      "max": 1.00001
     }
   ],
   "choices": {

@@ -30,7 +30,7 @@ class Doublet(Equipment, Plant):
     derives, through ``gemini/physics/doublet.py``:
 
     - from ``depth``, ``gradient`` and ``surface_temperature``: a depth waits for the other two,
-      which the case holds (``environment.ground``) and sets for a run on a copy; a run that
+      which the case holds (``site.ground``) and sets for a run on a copy; a run that
       starts without them raises ``missing_value`` naming the path. They give the reservoir
       temperature at the midpoint, the reservoir pressure of the case at that depth, the top
       depth and the soil temperature of the wells, the geotherm at half the depth;
@@ -85,7 +85,7 @@ class Doublet(Equipment, Plant):
         self.gradient = Parameter(
             TemperatureGradient | None,
             default=None,
-            case="environment.ground.gradient",
+            case="site.ground.gradient",
             description=(
                 "Increase of undisturbed rock temperature with depth; empty takes it from the case"
             ),
@@ -93,19 +93,19 @@ class Doublet(Equipment, Plant):
         self.surface_temperature = Parameter(
             Temperature | None,
             default=None,
-            case="environment.ground.surface_temperature",
+            case="site.ground.surface_temperature",
             description="Ground temperature at the surface; empty takes it from the case",
         )
         self.permeability = Parameter(
             Permeability | None,
             default=None,
-            case="environment.reservoir.permeability",
+            case="site.reservoir.permeability",
             description="Permeability of the reservoir rock; empty takes it from the case",
         )
         self.thickness = Parameter(
             Length | None,
             default=None,
-            case="environment.reservoir.thickness",
+            case="site.reservoir.thickness",
             description="Gross thickness of the reservoir; empty takes it from the case",
         )
         self.well_diameter = Parameter(
@@ -214,7 +214,7 @@ class Doublet(Equipment, Plant):
             self.reservoir.pressure if "reservoir.pressure" in self._stated_child_params else None
         )
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the production pump from its shaft power at the nominal flow.
 
         The doublet is equipment of the kind ``production_pump`` because it alone knows the flow
@@ -233,4 +233,4 @@ class Doublet(Equipment, Plant):
             self.esp.stage_count,
             self.esp.power_coefficients,
         )
-        return self.capex_of(finance, power)
+        return self.capex_of(economics, power)

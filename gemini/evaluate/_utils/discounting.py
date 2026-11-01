@@ -13,10 +13,10 @@ def discounting(case, discount_rate, lifetime):
     """
     rate = discount_rate
     if rate is None:
-        rate = require(case, "assumptions.finance.discount_rate")
+        rate = require(case, "economics.discount_rate")
     years = lifetime
     if years is None:
-        years = require(case, "assumptions.finance.lifetime") / units.Quantity(1, "yr").si
+        years = require(case, "economics.analysis_period") / units.Quantity(1, "yr").si
     if rate < 0:
         raise ValidationError(
             f"discount_rate = {rate}; expected a rate of 0 or more", path="discount_rate"

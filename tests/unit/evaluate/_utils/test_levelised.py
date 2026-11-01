@@ -4,10 +4,10 @@ import pytest
 
 from gemini.evaluate._utils import levelised
 from gemini.units import Quantity
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case
 from tests.fixtures.costed_plants import day, heating_plant
 
-CASE = make_case(finance=costed_finance(opex={"electricity": Quantity(2e-8, "currency/J")}))
+CASE = make_case(economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")}))
 
 
 def test_the_annualised_cost_is_the_levelised_cost_times_the_energy_over_the_share():

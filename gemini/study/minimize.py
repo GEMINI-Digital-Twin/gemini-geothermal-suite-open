@@ -194,7 +194,7 @@ def minimize(
     and give the same result. The
     plant and the case themselves are not changed.
 
-    A trial is feasible when its run has no failed step and every constraint of the case passes,
+    A trial is feasible when its run has no failed step and every requirement of the case passes,
     the supply temperatures of the services included (``gm.evaluate.constraints``), and every
     limit of ``constraints``. A trial that does not run (a physics error, say at some depth) is
     infeasible with the largest violation. The search sees feasible trials as better than
@@ -208,7 +208,7 @@ def minimize(
         A plant with parameter values.
     case : Case
         What the plant is asked to do: its demand is planned for each trial, so a variable that
-        changes the design changes the plan, and its assumptions give the prices.
+        changes the design changes the plan, and its economics give the prices.
     objective : str
         The metric to minimise, a KPI of ``gm.evaluate.totals`` or ``lcoh``, ``lcoc``, ``lcts``,
         ``annualised_cost`` or ``co2``; a metric to maximise is given with a leading ``"-"``.
@@ -216,7 +216,7 @@ def minimize(
         The decision variables, each ``{path, parameter, lower, upper}`` with closed bounds, each a
         ``Quantity`` or its dict (a plain number only for a value without a dimension). The name
         ``path.parameter`` is a parameter of the plant, a number of the case as ``case.<path>`` (for
-        example ``case.assumptions.finance.opex.electricity``, a profile becoming the constant),
+        example ``case.economics.energy.electricity``, a profile becoming the constant),
         or ``size.doublets``, whose bounds are integers. ``<role>.<parameter>`` (a role of
         ``gm.case.roles()``, with ``path`` the role and ``parameter`` the parameter, for example
         ``{"path": "heat_pump", "parameter": "capacity", "lower": Quantity(1, "MW"), "upper":

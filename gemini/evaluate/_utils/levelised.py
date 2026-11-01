@@ -19,7 +19,8 @@ def levelised(plant, case, results, product, discount, on_error):
 
 def _share(case, product):
     """Return the share of the cost charged to ``product``, or ``None`` when the case lacks it."""
-    allocation = case.assumptions.finance.allocation
+    accounting = case.economics.accounting
+    allocation = None if accounting is None else accounting.allocation
     share = None if allocation is None else allocation.heat_cost_share
     if share is None:
         return None

@@ -7,7 +7,7 @@ import pytest
 import gemini as gm
 from gemini.evaluate.report import Report
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case, requirement
 from tests.fixtures.costed_plants import day, heating_plant
 from tests.fixtures.result_tables import make_results
 from tests.unit.evaluate.test_capacities import boiler_plant, boiler_run
@@ -34,17 +34,17 @@ KEYS = {
 
 
 def case(**parts):
-    """Return a case with the finance of the costed plants and a limit on the unmet demand."""
-    finance = costed_finance(
-        opex={"electricity": Quantity(2e-8, "currency/J")},
+    """Return a case with the economics of the costed plants and a limit on the unmet demand."""
+    economics = costed_economics(
+        energy={"electricity": Quantity(2e-8, "currency/J")},
         discount_rate=0.05,
-        lifetime=Quantity(20, "yr"),
+        analysis_period=Quantity(20, "yr"),
     )
-    limit = gm.case.Constraint(on="heating_supply", quantity="unmet", max=Quantity(5.0, "W"))
+    limit = requirement("heating_supply", "unmet", max=Quantity(5.0, "W"))
     return make_case(
-        finance=finance,
-        constraints=[limit],
-        emissions={"CO2": gm.case.CO2(electricity=Quantity(1e-7, "kg/J"))},
+        economics=economics,
+        requirements=[limit],
+        utilities={"electricity": {"co2_intensity": Quantity(1e-7, "kg/J")}},
         **parts,
     )
 
@@ -61,7 +61,7 @@ def test_the_report_holds_the_energy_the_costs_the_checks_and_the_failed_steps()
     assert report["failed_steps"] == 0
     assert report["failures"].to_dict() == {"total": 0, "groups": []}
     assert report["boiler_heat"].value is None
-    assert [item["name"] for item in report["constraints"]] == ["heat.unmet_demand"]
+    assert [item["name"] for item in report["constraints"]] == ["heating_supply_unmet"]
     assert report["passed"] is True
 
 
@@ -70,7 +70,7 @@ def test_a_cost_the_case_cannot_give_is_a_value_with_a_reason():
     report = gm.evaluate.report(heating_plant(), case(), day())
     assert report["lcoc"].value is None and "no cold" in report["lcoc"].reason
     bare = gm.evaluate.report(heating_plant(), make_case(), day())
-    assert bare["capex"].value is None and "assumptions.finance" in bare["capex"].reason
+    assert bare["capex"].value is None and "economics" in bare["capex"].reason
 
 
 def test_to_dict_is_plain_json():

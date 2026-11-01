@@ -6,11 +6,11 @@ import gemini as gm
 from gemini.study._utils.resize import resized
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
-PRICE = "case.assumptions.finance.opex.electricity"
-GAS = "case.assumptions.finance.opex.gas"
+PRICE = "case.economics.energy.electricity"
+GAS = "case.economics.energy.gas"
 UNCERTAIN = {
-    "assumptions.finance.opex.electricity": {"kind": "uniform", "min": 50, "max": 200},
-    "assumptions.finance.opex.gas": {"kind": "uniform", "min": 54, "max": 56},
+    "economics.energy.electricity": {"kind": "uniform", "min": 50, "max": 200},
+    "economics.energy.gas": {"kind": "uniform", "min": 54, "max": 56},
 }
 COUNTS = [
     {"path": "size", "parameter": "doublets", "lower": 1, "upper": 3},

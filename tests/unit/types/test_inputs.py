@@ -228,6 +228,16 @@ def test_align_returns_the_same_step_and_refuses_a_finer_one():
     assert kinds(issues) == ["incompatible"]
 
 
+def test_align_on_the_same_step_returns_each_sample_with_no_rounding_from_its_neighbours():
+    """A cumulative sum would turn a value after a large one into the difference of two sums."""
+    values = [16.777, 4.017, 4.108, 0.1, 22.984]
+    time = pd.date_range("2030-01-01", periods=5, freq="1h", tz="UTC")
+    held = inputs.Series("d.csv", "v", "MW", time, np.array(values), "power")
+    index = pd.date_range("2030-01-01", periods=5, freq="1h", tz="UTC")
+    got = inputs.align(held, index, pd.Timedelta("1h"), "x", [])
+    assert list(got) == list(np.array(values) * 1e6)
+
+
 def test_align_reports_coverage_naming_file_column_and_both_windows():
     """Align reports coverage naming file column and both windows."""
     issues = []

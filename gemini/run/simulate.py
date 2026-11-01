@@ -55,7 +55,7 @@ def simulate(
     """Run ``Engine.simulate`` once and return its ``Results``.
 
     ``case`` is a ``gm.Case``: its values are set on a copy of ``plant`` for the run, which never
-    changes ``plant`` (a plant without the environment it needs raises ``missing_value``), and
+    changes ``plant`` (a plant without the site it needs raises ``missing_value``), and
     without ``plan`` the run input is ``gm.schedule``'s plan. ``plan`` is the run input, a
     DataFrame or a ``gm.Dataset``, run on the same copy; a ``plan`` that is not from
     ``gm.schedule`` carries the air profile of the case only if it has the column. A building
