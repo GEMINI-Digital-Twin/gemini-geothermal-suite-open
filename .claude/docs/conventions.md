@@ -223,6 +223,15 @@ belongs in gemini, as a registered plant. `GEMINI_EXAMPLE_DATASET` is the one wa
 dataset, the fast month by default. `tests/unit/test_code_quality.py` checks what can be checked.
 Generated output goes under ignored `runs/`.
 
+## Inputs
+
+Every input of a project has one owner and one file, and the rule that says which is the placement
+test of [inputs.md](inputs.md#2-the-placement-test): a new input goes where the placement test says,
+and the reason is written in inputs.md. A value is never written twice (a plant states a margin over
+the demand's supply temperature, not the temperature), a default for anything a user decides is
+refused, and a setting that cannot change a result is runtime and in no file. When a change adds,
+moves or removes an input, update inputs.md in the same commit.
+
 ## Data files
 
 There is no data file inside `gemini/`: a plant is a class. `inputs/` holds everything code reads, is

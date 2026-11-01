@@ -35,6 +35,9 @@ first, then `hackathon.py`. gemini holds no data file: plants are Python classes
 plant dict agents use (`gm.Plant.from_dict`, `plant.to_dict`, `gm.plants.schema`). Data lives in
 `inputs/`, never `examples/`, and is not installed ([data](.claude/docs/data.md#where-data-lives)).
 
+Before adding or moving an input, apply the placement test of [inputs](.claude/docs/inputs.md#2-the-placement-test):
+one owner, one file, and the reason is written there.
+
 One `gm.Case` carries what a plant is asked to do, for every call: the sections `time`,
 `environment`, `demand`, `choices`, `constraints` and `assumptions`, strict and typed, read from a
 `case.json` with `gm.Case.from_json` ([case](.claude/docs/data.md#the-case)). A plant dict holds only the
@@ -109,6 +112,7 @@ Read every file in `.claude/docs/` before changing the repository:
 - [Economics](.claude/docs/economics.md): `gm.evaluate` costs, totals, KPIs, constraints and checks, `gm.study` and well analysis.
 - [Equipment](.claude/docs/equipment.md): every shipped module, its model and energy audit.
 - [Errors](.claude/docs/errors.md): the rule for raising, the seven `gm.errors` error classes and `GeminiWarning`, the codes.
+- [Inputs](.claude/docs/inputs.md): the principles, the placement test and the file formats; where every input lives and why.
 - [Glossary](.claude/docs/glossary.md): one name per concept for parameters, outputs and ports.
 - [Legacy](.claude/docs/legacy.md): the old-format reader kept in `scripts/legacy/` for the tests.
 - [Modules](.claude/docs/modules.md): declarations, listings, calls, outputs, hooks and state.
