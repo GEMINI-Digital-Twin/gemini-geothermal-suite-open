@@ -539,6 +539,13 @@ a result (a test keeps `backend`, `compile` and `processes` true). They are runt
 no file. `discount_rate` and `lifetime` arguments of the `gm.evaluate` costs are removed (P1: the
 economics file owns them).
 
+**7.40 The reader of the shared formats** (rule: P6, section 10). `gemini/types/inputs.py` is the one
+reader and writer of the leaf forms of section 3, below `plants` and `case` and above `units`. A
+leaf is always an object: a bare number or text for a quantity is a `unit` issue, a bare number for
+a dimensionless value or a choice a `missing` issue. A `Leaf` keeps the value and unit as given and
+derives SI, so `to_json` returns exactly what was read (a series in kW keeps kW values in its CSV).
+An older file without `kind` is an issue of code `old_format`, a wrong `kind` of `invalid_format`.
+
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is
 built for `case.initial_state` and its check in `gm.check`; the removal of the `State` defaults and

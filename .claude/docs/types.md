@@ -36,6 +36,16 @@ and this module exports it. `check(name, passed, measured, limit)` takes two val
 call and has `value`, `series` and `statistics` of its own, which take the quantity of the number and
 give the unit actually used.
 
+## Input files
+
+`gemini/types/inputs.py` reads and writes the shared formats of the input files (inputs.md section
+3): `from_header`, `from_leaf` (quantity, dimensionless, choice, `range`, `options`, `uncertainty`,
+series), `from_series`, `from_section` (object or relative path), `check_keys` (unknown keys with
+the closest suggestion), `Source` (a folder and/or an in-memory `{name: bytes}`, one lookup),
+`align` (a series on a target time index) and `to_json`. Every reader appends `Issue`s to a list
+and returns `None` on failure ([errors.md](errors.md)). It is imported as `from gemini.types import
+inputs` and is not exported from `gemini.types`.
+
 ## Quantities and declarations
 
 Use `Parameter`, `Inlet`, `Control`, `Boundary`, `State`, `Output` and `Outlet` in module

@@ -27,6 +27,17 @@ caller sees every problem in one try. A single error has itself as the one item.
 `{path, code, message, suggestions}`, built by `gemini.errors.base.problem`, which
 `gemini.types.shapes` exports with the other return shapes; `code` is the stable key for machines.
 
+**Issues.** The input readers (`gemini/types/inputs.py`) collect `Issue`s, defined in
+`gemini.errors.base`: `path`, `kind` (`missing`, `unknown_key`, `unit`, `out_of_bounds`,
+`not_allowed`, `incompatible`, `coverage`), `message`, `quantity`, `accepted` units, `suggestions`
+and an optional `code` that overrides the code of the kind (`old_format`). An issue is also a
+problem: `issue.problem()` gives `{path, code, message, suggestions}` with the code of its kind
+(`missing_value`, `unknown_name`, `invalid_unit`, `out_of_bounds`, `invalid_value`, `invalid_value`,
+`invalid_data`), so no new code exists. `raise_issues(issues)` raises nothing for an empty list and
+else one `ValidationError` (`ValidationError.from_issues`) whose `problems` are the problems of the
+issues and whose `issues` are the issues themselves. Readers append to the list and return `None`,
+so one load reports everything wrong at once.
+
 **Checks are not errors.** The checks of `gm.evaluate` (`constraints`, `plant_balance`,
 `energy_balance`, `mass_balance`, `bounds`, `run_all`) always return check dicts with `passed`; a
 violated limit never raises. A real failure inside a check (wrong input) still raises.
