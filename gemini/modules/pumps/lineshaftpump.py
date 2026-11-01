@@ -112,7 +112,7 @@ class LineShaftPump(Module):
         flow = suction.volumetric_flow()
         head = self._head(flow)
 
-        discharge = suction.with_(p=suction.p + head)
+        discharge = suction._with_si(p=suction.p + head)
         pump_power, friction = self._powers(flow)
         shaft_power = pump_power + friction
         power_in = energy.input_power(shaft_power, self.motor_efficiency)

@@ -99,7 +99,7 @@ class CHP(Equipment, Module):
         # Outlets
         inlet, fuel = inlets.fluid_in, inlets.fuel_in
         values = self._performance(inlet, fuel)
-        outlet = inlet.with_(T=values["fluid_out_T"])
+        outlet = inlet._with_si(T=values["fluid_out_T"])
         flue_out = _burner.flue_stream(values["fuel"], fuel)
         fuel_in = _burner.burned_stream(values["fuel"], fuel)
 

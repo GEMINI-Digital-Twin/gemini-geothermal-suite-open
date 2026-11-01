@@ -44,7 +44,7 @@ def test_closed_in_if97_enthalpies():
 
 def test_inlet_below_its_saturation_pressure_uses_the_liquid_enthalpy():
     """A wellhead stream already below saturation is the liquid at its temperature."""
-    flashing = GEOFLUID.with_(p=8e5)
+    flashing = GEOFLUID._with_si(p=8e5)
     result = Separator()(fluid_in=flashing, pressure_setpoint=6e5)
     enthalpy = _physics.liquid_enthalpy(_physics.saturation_pressure(523.15), 523.15)
     assert result.outputs.steam_fraction == pytest.approx(_physics.flash_fraction(enthalpy, 6e5))
@@ -60,7 +60,7 @@ def test_subcooled_and_zero_flow():
     result = Separator()(fluid_in=subcooled, pressure_setpoint=6e5)
     assert result.outputs.steam_fraction == 0 and result.outlets.gas_out.m_dot == 0
     assert result.outlets.liquid_out.T == 393.15 and result.outlets.liquid_out.m_dot == 50
-    stopped = Separator()(fluid_in=GEOFLUID.with_(m_dot=0), pressure_setpoint=6e5)
+    stopped = Separator()(fluid_in=GEOFLUID._with_si(m_dot=0), pressure_setpoint=6e5)
     assert reading(stopped).steam_mass_flow == 0 and stopped.outlets.liquid_out.m_dot == 0
     assert stopped.outputs.steam_fraction > 0
 
@@ -69,10 +69,10 @@ def test_invalid_inlets_and_setpoints_raise():
     """Reverse flow, a steam inlet, a setpoint above the inlet and a supercritical feed."""
     separator = Separator()
     cases = [
-        (GEOFLUID.with_(m_dot=-1), 6e5),
-        (GEOFLUID.with_(fluid=STEAM), 6e5),
+        (GEOFLUID._with_si(m_dot=-1), 6e5),
+        (GEOFLUID._with_si(fluid=STEAM), 6e5),
         (GEOFLUID, 50e5),
-        (GEOFLUID.with_(T=650, p=250e5), 6e5),
+        (GEOFLUID._with_si(T=650, p=250e5), 6e5),
     ]
     for inlet, setpoint in cases:
         with pytest.raises(gm.errors.PhysicsError):

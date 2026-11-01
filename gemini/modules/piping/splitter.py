@@ -41,8 +41,8 @@ class Splitter(Module):
         fluid_in = inlets.fluid_in
         require_forward(self.path, "fluid_in.m_dot", fluid_in.m_dot)
         first_flow, second_flow = separation.split_flow(fluid_in.m_dot, self.split_fraction)
-        branch1_out = fluid_in.with_(m_dot=first_flow)
-        branch2_out = fluid_in.with_(m_dot=second_flow)
+        branch1_out = fluid_in._with_si(m_dot=first_flow)
+        branch2_out = fluid_in._with_si(m_dot=second_flow)
 
         outlets = dict(branch1_out=branch1_out, branch2_out=branch2_out)
         return outlets

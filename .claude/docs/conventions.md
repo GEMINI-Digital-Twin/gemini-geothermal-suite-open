@@ -92,7 +92,7 @@ value is SI.
 
 **The public door converts, SI inside.** A bare number with a dimension is refused at every public
 door (`Module.set_params`, `Plant.add`, `validate_params`, `Plant.set_inputs`, `Stream(...)`, `Fluid(...)`,
-`gm.call`, `gm.modules.check`, the plant dict, the case, `gm.study`): `ValidationError` `invalid_value`
+`Module.<name> = ...` outside a call, `Stream.with_`, `gm.call`, `gm.modules.check`, the plant dict, the case, `gm.study`): `ValidationError` `invalid_value`
 with the path, the quantity and the accepted units, zero included (`gemini/types/bare.py` is the one
 rule). `set_params` converts the quantities and calls the private `Module._set_si_params(path,
 params, valid_from=None)`; `Plant.set_inputs` calls `Plant._set_si_inputs`; `Stream._si(m_dot=, T=, p=,
@@ -100,10 +100,13 @@ fluid=)` and `Fluid._si(...)` build from SI. `gemini` itself uses only the priva
 case apply, `gm.study`, the readers of checkpoints. A plant class that derives values for its children
 overrides `_set_si_params`, never `set_params`. Do not add a second public setter.
 
-Two author-level doors stay in SI and are not for users: attribute assignment on a module
-(`esp.frequency = 50`, `module.fluid = {...}`), the way a module author writes inside `forward` and
-`__init__`, and `Stream.with_(...)`, the hot path of the solvers, where a unit lookup per call costs
-more than the run. The stored forms of a plant dict (`fluids`, `param_history`) are quantities;
+Attribute assignment on a module and `Stream.with_` follow the same rule: `esp.frequency = 50` and
+`stream.with_(T=300.0)` raise `invalid_value`; a quantity or its dict is converted. Inside a running
+call (`forward`, hooks) an assigned control or boundary is SI by contract, and `gemini` assigns SI
+outside a call with `Module._assign_si(name, value)` and copies streams with `Stream._with_si(...)`,
+the hot path of the solvers, so a unit lookup is never added to a run. A module author writes
+`inlet._with_si(T=...)` in `forward`. Assignments in a constructor of a declared value go through
+`set_params` or a quantity. The stored forms of a plant dict (`fluids`, `param_history`) are quantities;
 `tree_dict` checkpoints and `state_dict` are SI by design. Tests wrap SI numbers through
 `tests/fixtures/si.py` (`si.set_params`, `si.stream`, `si.fluid`, ...) or use the private path to test
 private behaviour.

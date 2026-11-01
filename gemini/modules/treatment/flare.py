@@ -52,7 +52,7 @@ class Flare(Equipment, Module):
         require_forward(self.path, "gas_in.m_dot", inlets.gas_in.m_dot)
         inlet = inlets.gas_in
         co2, methane = self._released(inlet, inlet.m_dot)
-        flue_out = inlet.with_(m_dot=co2 + methane, fluid=self._flue_fluid(inlet))
+        flue_out = inlet._with_si(m_dot=co2 + methane, fluid=self._flue_fluid(inlet))
 
         loss_out = combustion.released_heat(
             inlet.m_dot, inlet.fluid.heating_value(), self.combustion_efficiency

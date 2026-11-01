@@ -51,8 +51,8 @@ class Blowdown(Module):
         fluid_in = inlets.fluid_in
         require_forward(self.path, "fluid_in.m_dot", fluid_in.m_dot)
         retained, bleed = separation.split_flow(fluid_in.m_dot, self.blowdown_fraction)
-        fluid_out = fluid_in.with_(m_dot=retained)
-        waste_out = fluid_in.with_(m_dot=bleed)
+        fluid_out = fluid_in._with_si(m_dot=retained)
+        waste_out = fluid_in._with_si(m_dot=bleed)
 
         outlets = dict(fluid_out=fluid_out, waste_out=waste_out)
         return outlets

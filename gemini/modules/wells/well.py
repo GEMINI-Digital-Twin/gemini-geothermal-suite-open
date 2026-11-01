@@ -142,7 +142,7 @@ class _Well(Equipment, Module):
         """Return ``stream`` at the traversal outlet, with the affine pressure correction."""
         slope, offset = self.correction_factors
         pressure = hydraulics.affine_correction(result.p_out, slope, offset)
-        return stream.with_(p=pressure, T=result.T_out)
+        return stream._with_si(p=pressure, T=result.T_out)
 
     def corrosion_profile(
         self, stream, chemistry: dict | None = None, model: str = "NORSOK"

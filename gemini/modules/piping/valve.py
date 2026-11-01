@@ -88,7 +88,7 @@ class Valve(Module):
             drop=drop,
             inlet_p=inlet.p,
         )
-        outlet = inlet.with_(p=inlet.p - drop)
+        outlet = inlet._with_si(p=inlet.p - drop)
 
         # Outputs
         self.pressure_drop = inlets.fluid_in.p - outlet.p

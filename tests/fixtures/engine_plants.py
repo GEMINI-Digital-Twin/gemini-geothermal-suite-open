@@ -55,7 +55,7 @@ class Booster(Module):
             path=self.path,
             level=self.level,
         )
-        outlet = inlets.fluid_in.with_(p=inlets.fluid_in.p + self.level * self.gain)
+        outlet = inlets.fluid_in._with_si(p=inlets.fluid_in.p + self.level * self.gain)
         outlets = dict(fluid_out=outlet)
         self.rise = outlets["fluid_out"].p - inlets.fluid_in.p
         self.power = self.rise * inlets.fluid_in.m_dot
@@ -270,7 +270,7 @@ class Warmer(Module):
         """Return the warmed stream, flowing at 2 kg/s, and the change of temperature."""
 
         # Outlets
-        outlet = inlets.fluid_in.with_(T=0.5 * inlets.fluid_in.T + 0.5 * self.target, m_dot=2.0)
+        outlet = inlets.fluid_in._with_si(T=0.5 * inlets.fluid_in.T + 0.5 * self.target, m_dot=2.0)
         self.drop = inlets.fluid_in.T - outlet.T
         return dict(fluid_out=outlet)
 
@@ -293,7 +293,7 @@ class Carrier(Module):
 
     def forward(self, inlets):
         """Return the stream at 2 bar."""
-        return dict(fluid_out=inlets.fluid_in.with_(p=2e5))
+        return dict(fluid_out=inlets.fluid_in._with_si(p=2e5))
 
 
 class Ring(Plant):

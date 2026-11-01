@@ -2131,7 +2131,7 @@ stored = result.children["storage"].outputs.stored_energy
 print(result.outlets.supply_out.T, stored)  # 285.84 K 2.62e9 J
 plant.storage.mode = "discharge"
 plant.source_valve.split_fraction = plant.load_valve.split_fraction = 1.0
-state, result = plant.step(state, 3600, {"return_in": summer.with_(T=303.15)})
+state, result = plant.step(state, 3600, {"return_in": summer._with_si(T=303.15)})
 print(result.outlets.supply_out.T)  # 313.15 K
 ```
 

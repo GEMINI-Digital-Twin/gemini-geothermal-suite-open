@@ -67,9 +67,9 @@ print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value
   `gm.units.Unit` enum, or its dict `{"value": 150, "unit": "m3/h"}`; a string such as
   `"150 m3/h"` is never accepted, and nothing in the package parses unit text. A dimensionless value
   is a number. A bare number with a dimension raises `invalid_value` at every public door
-  (`set_params`, `Plant.set_inputs`, `gm.Stream`, `gm.Fluid`, `gm.call`); `gemini` itself uses the
-  private SI path (`_set_si_params`, `Stream._si`, `Fluid._si`), and only attribute assignment and
-  `Stream.with_` stay in SI for module authors ([units](.claude/docs/conventions.md#units)).
+  (`set_params`, `Plant.set_inputs`, `gm.Stream`, `Stream.with_`, attribute assignment outside a call, `gm.Fluid`, `gm.call`); `gemini` itself uses the
+  private SI path (`_set_si_params`, `Stream._si`, `Fluid._si`, `Stream._with_si`,
+  `Module._assign_si`) ([units](.claude/docs/conventions.md#units)).
 - *No defaults.* Nothing a user must decide has a default value in gemini: not a price, a
   temperature, a limit, a factor or an efficiency. Such a field is required, or absent (`None`),
   and a call that needs an absent value raises `missing_value` (`missing_assumption` below

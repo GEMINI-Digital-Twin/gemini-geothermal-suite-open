@@ -151,7 +151,9 @@ class CoolingGrid(Module):
         supply_in = inlets.supply_in
         if self.return_temperature is None:
             sensible, latent = self._met_loads(supply_in)
-            return_out = supply_in.with_(T=self._warmed_temperature(supply_in, sensible + latent))
+            return_out = supply_in._with_si(
+                T=self._warmed_temperature(supply_in, sensible + latent)
+            )
             surplus = 0.0
         else:
             return_out = self._offer(inlets)["return_out"]

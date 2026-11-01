@@ -11,6 +11,7 @@ import gemini as gm
 from gemini.compiler.graph import graph_cache
 from gemini.engine.callbacks import AutoCheckpoint, Callback
 from gemini.errors import Cancelled, PhysicsError, RunError, ValidationError
+from tests.fixtures import si
 from tests.fixtures.engine_plants import TICKS, pair_frame, pair_plant
 from tests.fixtures.engine_tank import ROW, TIME, tank
 from tests.fixtures.errors import raises
@@ -257,11 +258,11 @@ def test_two_calls_on_one_plant_trace_once_and_match_two_fresh_plants(shared_pla
     graph_cache().clear()
     traces = graph_cache().traces
     first = gm.simulate(plant, plan=data)
-    plant.heat_exchanger.thermal_conductance = 5e6
+    si.assign(plant.heat_exchanger, "thermal_conductance", 5e6)
     second = gm.simulate(plant, plan=data)
     assert graph_cache().traces == traces + 1
     _same(first, gm.simulate(other, plan=data))
-    other.heat_exchanger.thermal_conductance = 5e6
+    si.assign(other.heat_exchanger, "thermal_conductance", 5e6)
     _same(second, gm.simulate(copy.deepcopy(other), plan=data))
     assert (
         first.to_frame()["heat_exchanger.duty"].ne(second.to_frame()["heat_exchanger.duty"]).any()

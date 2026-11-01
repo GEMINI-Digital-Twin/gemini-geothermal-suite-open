@@ -52,7 +52,7 @@ def test_return_floor_caps_the_delivered_heat():
 def test_zero_flow_cold_supply_and_zero_demand_deliver_nothing():
     """No flow, a supply below the floor or no demand leave the stream unchanged."""
     consumer = _consumer()
-    for supply, demand in [(SUPPLY.with_(m_dot=0), 5e4), (SUPPLY.with_(T=303.15), 5e4)]:
+    for supply, demand in [(SUPPLY._with_si(m_dot=0), 5e4), (SUPPLY._with_si(T=303.15), 5e4)]:
         result = consumer(supply_in=supply, heat_demand=demand)
         assert reading(result).heat_supplied == 0 and result.outputs.unmet_demand == demand
         assert result.outputs.is_unmet and result.outlets.return_out.T == supply.T
@@ -65,7 +65,7 @@ def test_invalid_inputs_raise():
     """Reverse flow, negative demand and a missing demand or floor are rejected."""
     consumer = _consumer()
     with pytest.raises(PhysicsError, match="supply_in.m_dot = -1"):
-        consumer(supply_in=SUPPLY.with_(m_dot=-1), heat_demand=1e4)
+        consumer(supply_in=SUPPLY._with_si(m_dot=-1), heat_demand=1e4)
     with pytest.raises(ValidationError):
         consumer(supply_in=SUPPLY, heat_demand=-1)
     with raises(ValidationError, "missing_value"):

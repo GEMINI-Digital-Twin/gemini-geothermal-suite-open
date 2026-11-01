@@ -7,6 +7,7 @@ from gemini.modules import Module, energy_balance, mass_balance
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.plants import ATESPlant
 from gemini.types import Stream
+from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import with_values
 from tests.fixtures.reading import reading
@@ -18,7 +19,7 @@ SUMMER = Stream(
     T=gm.units.Quantity(290.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
 )
-WINTER = SUMMER.with_(T=303.15)
+WINTER = SUMMER._with_si(T=303.15)
 
 
 def _season(plant, mode):
@@ -32,7 +33,7 @@ def _season(plant, mode):
 def _plant(mode="charge"):
     """Return a 30 kg/s ATES plant with a 1 MW/K exchanger and a 2 MW heat pump."""
     plant = with_values(ATESPlant())
-    plant.storage.groundwater_flow = 30.0
+    si.assign(plant.storage, "groundwater_flow", 30.0)
     plant.storage.set_params(
         "",
         {
@@ -55,7 +56,7 @@ def _plant(mode="charge"):
             "motor_efficiency": 0.9,
         },
     )
-    plant.pump.frequency = 50
+    si.assign(plant.pump, "frequency", 50)
     plant.heat_exchanger.set_params(
         "",
         {
@@ -67,7 +68,7 @@ def _plant(mode="charge"):
         },
     )
     plant.heat_pump.set_params("", {"mode": "heating", "capacity": gm.units.Quantity(2e6, "W")})
-    plant.heat_pump.temperature_setpoint = 313.15
+    si.assign(plant.heat_pump, "temperature_setpoint", 313.15)
     return plant
 
 
@@ -143,11 +144,11 @@ def test_discharge_feeds_the_heat_pump_from_the_warm_store():
 def test_idle_moves_no_groundwater_and_flow_is_required_to_stop():
     """Idle passes the building circuit; idle with groundwater flow raises."""
     plant = _plant("idle")
-    plant.storage.groundwater_flow = 0.0
+    si.assign(plant.storage, "groundwater_flow", 0.0)
     result = plant(return_in=SUMMER)
     assert result.outlets.supply_out.T == SUMMER.T
     assert reading(result).electricity == 0
-    plant.storage.groundwater_flow = 30.0
+    si.assign(plant.storage, "groundwater_flow", 30.0)
     with pytest.raises(gm.errors.PhysicsError, match="idle"):
         plant(return_in=SUMMER)
 

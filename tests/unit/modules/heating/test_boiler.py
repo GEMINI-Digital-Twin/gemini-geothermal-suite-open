@@ -35,7 +35,7 @@ def test_capacity_balance_and_no_cooling():
     assert streams["fluid_out"].m_dot == s.m_dot and streams["fluid_out"].p == s.p
     out = reading(c(temperature_setpoint=290, fluid_in=s, fuel_in=GRID_GAS))
     assert out.duty == 0 and out.fluid_out_T == 300
-    out = reading(c(temperature_setpoint=360, fluid_in=s.with_(m_dot=0), fuel_in=GRID_GAS))
+    out = reading(c(temperature_setpoint=360, fluid_in=s._with_si(m_dot=0), fuel_in=GRID_GAS))
     assert out.duty == 0 and out.fluid_out_T == 300
 
 

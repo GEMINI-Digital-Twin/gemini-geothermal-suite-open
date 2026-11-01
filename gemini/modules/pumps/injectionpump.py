@@ -135,7 +135,7 @@ class InjectionPump(Equipment, Module):
             head=head,
         )
 
-        discharge = suction.with_(p=suction.p + head)
+        discharge = suction._with_si(p=suction.p + head)
         power_in = self._power(suction, head)
 
         # Outputs

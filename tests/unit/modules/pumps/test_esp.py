@@ -168,7 +168,7 @@ def test_keyword_mapping_and_positional_calls_agree():
     head = esp(fluid_in=stream, frequency={"value": 50, "unit": "Hz"}).outputs.head
     assert head == esp({"fluid_in": stream}, frequency={"value": 50, "unit": "Hz"}).outputs.head
     assert head == esp(stream, frequency={"value": 50, "unit": "Hz"}).outputs.head
-    esp.frequency = 50.0
+    si.assign(esp, "frequency", 50.0)
     assert head == esp(fluid_in=stream).outputs.head
 
 

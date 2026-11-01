@@ -54,12 +54,12 @@ def test_closed_in_steam_enthalpies_and_condensate():
 
 def test_zero_flow_and_invalid_inlets():
     """Zero steam gives zero power; liquid, reverse flow or a low inlet pressure raise."""
-    out = reading(turbine()(fluid_in=STEAM_FEED.with_(m_dot=0)))
+    out = reading(turbine()(fluid_in=STEAM_FEED._with_si(m_dot=0)))
     assert out.gross_power == out.electricity_generated == out.heat_loss == 0
     for inlet in (
-        STEAM_FEED.with_(fluid=WATER),
-        STEAM_FEED.with_(m_dot=-1),
-        STEAM_FEED.with_(p=1e4),
+        STEAM_FEED._with_si(fluid=WATER),
+        STEAM_FEED._with_si(m_dot=-1),
+        STEAM_FEED._with_si(p=1e4),
     ):
         with pytest.raises(gm.errors.PhysicsError):
             turbine()(fluid_in=inlet)

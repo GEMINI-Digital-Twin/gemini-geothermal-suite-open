@@ -49,7 +49,7 @@ class PressurizationTank(Module):
         """Set the circuit pressure to the setpoint."""
 
         # Outlets
-        outlet = inlets.fluid_in.with_(p=self.pressure_setpoint)
+        outlet = inlets.fluid_in._with_si(p=self.pressure_setpoint)
 
         # Outputs
         self.pressure_correction = outlet.p - inlets.fluid_in.p

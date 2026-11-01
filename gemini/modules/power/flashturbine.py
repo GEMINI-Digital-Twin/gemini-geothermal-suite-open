@@ -77,7 +77,7 @@ class FlashTurbine(Module):
         inlet = inlets.fluid_in
         condenser = _physics.saturation_properties(self.condenser_pressure)
 
-        outlet = inlet.with_(T=condenser.temperature, p=self.condenser_pressure, fluid=WATER)
+        outlet = inlet._with_si(T=condenser.temperature, p=self.condenser_pressure, fluid=WATER)
         expansion = self._expansion(inlet)
         balance = self._balance(inlet, expansion)
 

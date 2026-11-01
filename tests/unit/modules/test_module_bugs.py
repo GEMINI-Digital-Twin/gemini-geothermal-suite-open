@@ -7,6 +7,7 @@ from gemini.modules import Filter, Module, ProductionReservoir
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.plants.plant import Plant
 from gemini.types import Power, Stream
+from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 
@@ -94,7 +95,7 @@ def test_assigned_fluid_survives_parameter_changes_and_is_saved():
     """E-modules-003: ``module.fluid = ...`` is not reverted and ``state_dict`` stores it."""
     module = with_values(Filter())
     module.fluid = gm.WATER
-    module.nominal_pressure_drop = 1000
+    si.assign(module, "nominal_pressure_drop", 1000)
     assert module.fluid == gm.WATER
     assert with_values(Filter()).set_state_dict(module.state_dict()).fluid == gm.WATER
 

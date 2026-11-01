@@ -94,7 +94,7 @@ class GasCompressor(Module):
             suction.T, stage_ratio, self.heat_capacity_ratio, self.isentropic_efficiency
         )
 
-        discharge = suction.with_(p=self.pressure_setpoint, T=fluid_out_T)
+        discharge = suction._with_si(p=self.pressure_setpoint, T=fluid_out_T)
         shaft_power = self._shaft_power(suction)
         power_in = energy.input_power(shaft_power, self.motor_efficiency)
         loss_out = _physics.heat_rejected(power_in, shaft_power, self.stage_count)

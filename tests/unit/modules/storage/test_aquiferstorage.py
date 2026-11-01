@@ -12,6 +12,7 @@ from gemini.modules.heating import ElectricBoiler
 from gemini.modules.storage import AquiferStorage
 from gemini.physics import ground
 from gemini.types import Stream
+from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
 from tests.fixtures.reading import reading
@@ -21,7 +22,7 @@ WARM = Stream(
     T=gm.units.Quantity(291.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
 )
-COLD = WARM.with_(T=279.15)
+COLD = WARM._with_si(T=279.15)
 WATER = 1000 * 4217.4
 AQUIFER = 0.3 * WATER + 0.7 * 2.0e6
 HOUR = 3600.0
@@ -96,7 +97,7 @@ def test_plain_call_uses_the_empty_initial_stores():
     result = module(injection_in=WARM)
     out = reading(result)
     assert module.initial_state()["warm_volume"] == 0
-    assert result.outlets.production_out == WARM.with_(T=284.15)
+    assert result.outlets.production_out == WARM._with_si(T=284.15)
     assert out.stored_energy == 0 and out.heat_loss == 0 == out.heat_absorbed
     assert out.recovery_efficiency is None and out.warm_temperature == 284.15
 
@@ -149,7 +150,7 @@ def test_idle_store_decays_exactly_and_rejects_flow():
     """Idle stores relax exponentially, so two steps equal one double step."""
     module = storage("idle")
     start = storage().initial_state() | {"warm_volume": 2e5, "warm_temperature_change": 5.0}
-    still = WARM.with_(m_dot=0)
+    still = WARM._with_si(m_dot=0)
     half, _ = module.step(start, 86400, {"injection_in": still})
     half, result = module.step(half, 86400, {"injection_in": still})
     full, _ = module.step(start, 2 * 86400, {"injection_in": still})
@@ -162,7 +163,7 @@ def test_idle_store_decays_exactly_and_rejects_flow():
     with pytest.raises(gm.errors.PhysicsError, match="idle mode"):
         module(injection_in=WARM)
     with pytest.raises(gm.errors.PhysicsError, match="m_dot = -1"):
-        storage()(injection_in=WARM.with_(m_dot=-1))
+        storage()(injection_in=WARM._with_si(m_dot=-1))
 
 
 def test_overdrawn_store_empties_to_native_groundwater():
@@ -179,8 +180,8 @@ def test_overdrawn_store_empties_to_native_groundwater():
 def test_composite_step_charges_through_the_plant():
     """A plant composite steps the storage through its forward."""
     plant = Plant()
-    state, _ = plant.step(None, HOUR, {"supply_in": WARM.with_(T=285.15)})
-    state, result = plant.step(state, HOUR, {"supply_in": WARM.with_(T=285.15)})
+    state, _ = plant.step(None, HOUR, {"supply_in": WARM._with_si(T=285.15)})
+    state, result = plant.step(state, HOUR, {"supply_in": WARM._with_si(T=285.15)})
     assert state["storage"]["warm_volume"] == pytest.approx(2 * 30 / 1000 * HOUR)
     assert result.outputs.stored_energy > 0
     assert result.outlets.return_out.T == 284.15
@@ -200,7 +201,7 @@ class Reader(Module):
         self.storage = storage("discharge").set_params(
             "", {"groundwater_pressure": gm.units.Quantity(3e5, "Pa")}
         )
-        self.storage.groundwater_flow = 30.0
+        si.assign(self.storage, "groundwater_flow", 30.0)
 
         # Inlets
         self.supply_in = Inlet(Stream)

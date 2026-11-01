@@ -26,9 +26,9 @@ def outlet_T(stream, rate, duty):
 def outlet_streams(inlets, values):
     """Return the generator, chilled and cooling streams at ``values``."""
     return (
-        inlets.generator_in.with_(T=values["generator_out_T"]),
-        inlets.chilled_in.with_(T=values["chilled_out_T"]),
-        inlets.cooling_in.with_(T=values["cooling_out_T"]),
+        inlets.generator_in._with_si(T=values["generator_out_T"]),
+        inlets.chilled_in._with_si(T=values["chilled_out_T"]),
+        inlets.cooling_in._with_si(T=values["cooling_out_T"]),
     )
 
 

@@ -39,7 +39,7 @@ def configure_heating_substation(substation, demand=1.5e5):
         },
     )
     si.set_params(substation.consumer, "", {"minimum_return_temperature": 303.15})
-    substation.consumer.heat_demand = demand
+    si.assign(substation.consumer, "heat_demand", demand)
     return substation
 
 
@@ -100,7 +100,7 @@ def configure_circulation_pump(pump):
             "motor_efficiency": 0.9,
         },
     )
-    pump.frequency = 50
+    si.assign(pump, "frequency", 50)
     return pump
 
 

@@ -56,7 +56,7 @@ def test_met_loads_close_the_building_loop(plants):
 def test_warm_network_cannot_dehumidify(plants):
     """A supply too warm for the dew-point margin leaves the latent load unmet."""
     substation = plants["cooling_substation"](with_values(CoolingSubstation()))
-    result = substation(supply_in=NETWORK.with_(T=284.15))
+    result = substation(supply_in=NETWORK._with_si(T=284.15))
     assert (
         result.children["consumer"].inlets.supply_in.T
         > result.children["consumer"].outputs.dew_point - 1.0
@@ -86,17 +86,17 @@ def test_large_load_is_capped_at_the_return_limit(plants):
 def test_stopped_network_and_invalid_inputs(plants):
     """No network flow absorbs nothing; reverse flow raises."""
     substation = plants["cooling_substation"](with_values(CoolingSubstation()))
-    result = substation(supply_in=NETWORK.with_(m_dot=0.0))
+    result = substation(supply_in=NETWORK._with_si(m_dot=0.0))
     assert (
         reading(result.children["consumer"]).heat_absorbed == 0
         and result.children["consumer"].outputs.unmet_sensible == 6e4
     )
     with pytest.raises(gm.errors.PhysicsError):
-        substation(supply_in=NETWORK.with_(m_dot=-1.0))
+        substation(supply_in=NETWORK._with_si(m_dot=-1.0))
 
 
 def test_loop_without_a_steady_state_raises(plants):
     """At the dew-point threshold the on/off latent test leaves no fixed point of the loop."""
     substation = plants["cooling_substation"](with_values(CoolingSubstation()), latent=5e4)
     with pytest.raises(gm.errors.PhysicsError, match="did not converge"):
-        substation(supply_in=NETWORK.with_(T=281.15))
+        substation(supply_in=NETWORK._with_si(T=281.15))

@@ -65,19 +65,19 @@ def test_outlet_follows_ramey_and_the_balance_closes():
 def test_flow_limits():
     """Slow flow approaches the bottom-hole rock temperature; zero flow passes unchanged."""
     module = exchanger()
-    slow = reading(module(fluid_in=INLET.with_(m_dot=0.01))).fluid_out_T
+    slow = reading(module(fluid_in=INLET._with_si(m_dot=0.01))).fluid_out_T
     assert slow == pytest.approx(hand_outlet(0.01, 303.15)) and 0 < 283.15 + 75 - slow < 0.5
-    still = module(fluid_in=INLET.with_(m_dot=0))
-    assert still.outlets.fluid_out == INLET.with_(m_dot=0)
+    still = module(fluid_in=INLET._with_si(m_dot=0))
+    assert still.outlets.fluid_out == INLET._with_si(m_dot=0)
     assert reading(still).heat_extraction_rate == 0
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        module(fluid_in=INLET.with_(m_dot=-1))
+        module(fluid_in=INLET._with_si(m_dot=-1))
 
 
 def test_hot_inlet_heats_the_rock():
     """An inlet hotter than the rock everywhere loses heat to it as heat_loss."""
     module = exchanger()
-    result = module(fluid_in=INLET.with_(T=400))
+    result = module(fluid_in=INLET._with_si(T=400))
     assert reading(result).heat_extraction_rate < 0 and reading(result).heat_absorbed == 0
     assert reading(result).heat_loss == -reading(result).heat_extraction_rate
     assert energy_balance(module, result)["relative_residual"] < 1e-12
@@ -93,7 +93,7 @@ def test_short_operating_time_is_bad_design_data():
 def test_exchanger_matches_traced():
     """Extraction, heat loss and zero flow equal one call per row."""
     rows = [
-        dict(fluid_in=INLET.with_(m_dot=m_dot, T=T))
+        dict(fluid_in=INLET._with_si(m_dot=m_dot, T=T))
         for m_dot, T in [(5, 303.15), (0.01, 303.15), (0, 303.15), (20, 400), (1, 283.15)]
     ]
     assert_module_matches(exchanger(), rows)
@@ -102,7 +102,7 @@ def test_exchanger_matches_traced():
 def test_early_operating_time_is_not_evaluated_at_zero_flow():
     """A stopped exchanger needs no rock resistance, so a short operating time does not raise."""
     module = exchanger().set_params("", {"operating_time": gm.units.Quantity(3600, "s")})
-    assert reading(module(fluid_in=INLET.with_(m_dot=0))).heat_extraction_rate == 0
+    assert reading(module(fluid_in=INLET._with_si(m_dot=0))).heat_extraction_rate == 0
 
 
 def test_traced_early_operating_time_raises_only_for_flowing_rows():

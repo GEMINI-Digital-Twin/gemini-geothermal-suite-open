@@ -147,7 +147,7 @@ class Taker(Module):
         """Draw half of the offer."""
 
         # Outlets
-        taken = inlets.fluid_in.with_(m_dot=inlets.fluid_in.m_dot / 2)
+        taken = inlets.fluid_in._with_si(m_dot=inlets.fluid_in.m_dot / 2)
 
         outlets = dict(fluid_out=taken, fluid_in=taken)
         return outlets
