@@ -25,6 +25,9 @@ class HeatingGrid(Module):
     Demand beyond ``Q_available`` is ``unmet_demand``. A supply colder than the minimum return
     temperature delivers nothing and returns unchanged; the consumer never heats the water.
 
+    The return pressure and the return-temperature floor are conditions of the consumer: the case
+    gives them (``demand.heating``), a plant does not.
+
     On a closed loop ``return_temperature``, ``return_pressure`` and the control ``flow`` set the
     return water: ``return_out`` is offered before the other modules run, the heat delivered is the
     fall of the water from ``supply_in`` to ``return_out``, what is short of ``heat_demand`` is
@@ -56,7 +59,11 @@ class HeatingGrid(Module):
         self.minimum_return_temperature = Parameter(
             Temperature | None,
             default=None,
-            description="Lowest temperature the consumer can cool the water to",
+            case="demand.heating.minimum_return_temperature",
+            description=(
+                "Lowest temperature the consumer can cool the water to; empty takes it from the "
+                "case"
+            ),
         )
         self.return_temperature = Parameter(
             Temperature | None,
@@ -77,8 +84,9 @@ class HeatingGrid(Module):
         self.return_pressure = Parameter(
             Pressure | None,
             default=None,
+            case="demand.heating.return_pressure",
             description=(
-                "Pressure of the stream leaving the consumer; empty keeps the supply pressure"
+                "Pressure of the stream leaving the consumer; empty takes it from the case"
             ),
         )
 

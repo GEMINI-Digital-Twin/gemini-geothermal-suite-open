@@ -67,8 +67,8 @@ def setpoint(plant, path):
     value = plant.input_value(name)
     if value is None:
         raise ValidationError(
-            f"schedule: {name} has no value; expected the supply setpoint of the design, set "
-            "with plant.set_inputs",
+            f"schedule: {name} has no value; expected the supply setpoint of the design: "
+            "supply_margin on a unit of a supply line, or the control temperature_setpoint",
             path=name,
             code="invalid_design",
         )

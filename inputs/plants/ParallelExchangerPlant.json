@@ -305,6 +305,10 @@
         },
         "power_coefficients": {
           "value": null
+        },
+        "frequency": {
+          "value": 60,
+          "unit": "Hz"
         }
       },
       "injector": {
@@ -542,12 +546,28 @@
         "unit": "bar"
       }
     },
-    "electricity_grid": {
-      "import_limit": {
-        "value": null
+    "primary_splitters": {
+      "0": {
+        "split_fraction": {
+          "value": 0.5
+        }
       },
-      "export_limit": {
-        "value": null
+      "1": {
+        "split_fraction": {
+          "value": 0.6
+        }
+      }
+    },
+    "secondary_splitters": {
+      "0": {
+        "split_fraction": {
+          "value": 0.5
+        }
+      },
+      "1": {
+        "split_fraction": {
+          "value": 0.6
+        }
       }
     }
   }

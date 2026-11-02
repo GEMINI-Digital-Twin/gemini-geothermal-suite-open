@@ -225,9 +225,16 @@ temperature), the reservoir (permeability, thickness, pressure), the brine of a 
 the return and supply temperatures of the consumers, the prices, the limits or the demand. A
 parameter that the case sets is declared with `Parameter(..., case="<path in the case>")`
 (`Doublet.gradient`, `surface_temperature`, `permeability`, `thickness`; `Formation.geothermal_gradient`,
-`surface_temperature`; `HeatingGrid` and `CoolingGrid` `return_temperature` and the required supply
-temperature): a plant file that states one is refused with `invalid_value` naming the case path, and
-`to_dict` never writes it. A bare number with a dimension is refused. `from_dict` raises every
+`surface_temperature`; `GasGrid.composition`; `Atmosphere.pressure`; the `ElectricityGrid` limits; of
+`HeatingGrid` and `CoolingGrid` the return temperature, pressure and limits and the required supply
+temperature, and for cold the dew point margin) or a boundary with `Boundary(..., case=...)`
+(`CoolingGrid.indoor_temperature` and `indoor_relative_humidity`, `Desander.sand_concentration`): a
+plant file that states one is refused with `invalid_value` naming the case path, and `to_dict`
+never writes it. What the plant states instead is a **margin** over a supply temperature
+(`supply_margin` of a unit on a supply line, K), the operating `frequency` of an injection pump, and
+the operating limits of the equipment (`esp.minimum_intake_pressure`, `esp.maximum_gas_fraction`).
+The limits are values of the plant, so `resize` repeats them on each added doublet; the split
+fractions of `ParallelExchangerPlant` are controls of its splitters in the file. A bare number with a dimension is refused. `from_dict` raises every
 issue at once, except a parameter or size without a value; `plant.check()` returns all of them and
 never raises. `plant.ranges` and `plant.options` give the search space in file order, `plant.size`
 the sizes, `set_range` and `set_options` change them with the checks of a file. Known limits:
@@ -235,8 +242,8 @@ the sizes, `set_range` and `set_options` change them with the checks of a file. 
 - `fluids` remains in the plant dict, for a module whose fluid differs from its class default. A
   plant with no case (a measured or replayed plant such as `DoubletHeatPlant`) carries its own
   brine there; with a case, a `Doublet` takes its fluid from `site.fluid`.
-- The pressure of the water a consumer returns stays a design parameter of the plant: the case
-  has no field for it.
+- The constructor defaults of the class plants (`doublets=1`, `consumers=2`, `service='heating'`,
+  `producers=2`, `injectors=1`, inputs.md 7.12) stay: hundreds of calls use them.
 
 ## Loops
 

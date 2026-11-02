@@ -1496,6 +1496,10 @@
         ],
         "value": 0.8
       },
+      "frequency": {
+        "unit": "Hz",
+        "value": 60
+      },
       "head_coefficients": {
         "history": [
           {

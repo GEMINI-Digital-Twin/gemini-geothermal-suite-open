@@ -93,6 +93,7 @@ def _inputs_section(plant):
         for path, module in plant.named_modules()
         if is_plant(module)
         for name, value in module._inputs.items()
+        if not getattr(inputs.declaration(module, name), "case", None)
     }
     return {"inputs": to_plain(deepcopy(stated))} if stated else {}
 

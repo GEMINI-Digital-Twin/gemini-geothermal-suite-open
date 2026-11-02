@@ -99,11 +99,7 @@ class InjectionPump(Equipment, Module):
         )
         self.frequency = Control(
             Frequency,
-            default=float(constants.ESP_REFERENCE_FREQUENCY),
-            description=(
-                "Operating frequency of the pump motor; the catalogue frequency of the ESP "
-                "curves unless a run sets it"
-            ),
+            description="Operating frequency of the pump motor; the plant states it",
         )
 
         # Outputs

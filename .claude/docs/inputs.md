@@ -626,13 +626,52 @@ of a member in the file order of `plant.ranges` and `plant.options`, `size.doubl
 with a range and one without the same name and role are not tied: only the leaves that state a
 range are variables.
 
+**7.47 The moves between plant and case as built** (rule: the placement test, 7.9, 7.14, 7.17 to
+7.23, 7.29, 7.37). (a) ESP operating limits: `esp.minimum_intake_pressure` and
+`esp.maximum_gas_fraction` are plant parameters (default empty), stated on every `esp` of every sample
+plant (5 bar and 0.1875, the values of the former requirements); `resize` repeats the values of `d0`
+on an added doublet, as it does every value. A limit never fails or alters a step: a breach is a
+`bound` reason of `gm.evaluate.verdict`, and `gm.study.minimize` judges a trial by the same breach
+(`study/_utils/trial.judged` adds `evaluate/_utils/operating.breaches` to the requirement checks,
+with the relative excess as the violation), so a search still rejects the designs the requirements
+rejected. The role quantities `intake_pressure` and `intake_gas_fraction` stay in the role table. (b)
+`GasGrid.composition`, `Atmosphere.pressure`, the `ElectricityGrid` limits, the consumer conditions
+of `HeatingGrid` and `CoolingGrid` and the indoor state are declared with `case=<path>` (a
+`Boundary` takes `case=` too); `apply_case` sets what the case gives, and requires the gas
+composition and the air pressure where their module is present (`missing_value` naming the path). A
+plant leaf on any of them is refused with `invalid_value`. `utilities.gas.composition` takes the
+species of `gemini.physics.gas` (`GRID_GAS_SPECIES`), the natural-gas hydrocarbons that
+`site.fluid.dissolved_gas` does not list. `heating_value` is not an input of any module (the
+heating value is computed from the composition), so no sample states it. `physics.gas.GRID_COMPOSITION`
+is removed: nothing in `gemini/` used it; tests that need a grid gas read
+`tests/fixtures/gas.GRID_COMPOSITION`. (c) `supply_margin` is a parameter of `HeatPump`, the boilers,
+`AbsorptionUnit` and `AdsorptionChiller`; `apply_case` finds the units on a supply line with
+`plant.feeds` (`roles.supply_service`) and sets `temperature_setpoint` = supply temperature plus the
+margin (minus for cold), the same float as the stated setpoint (373.15 + 0.0). A margin on a unit
+on no supply line, or a unit on both grids, is `invalid_design`; a unit without a margin keeps the
+setpoint the plant states (a control, as the coolers' 15, 25 and 18 degC). (d) `InjectionPump.frequency`
+has no default and the plants state 60 Hz; `Atmosphere.pressure` has none and the cases state 101325
+Pa (both rows left `DECLARED_DEFAULTS`). (e) `gm.schedule` raises `missing_value` naming
+`params.control.dispatch` or `params.control.outages` when the plant does not state them; the
+`Literal` of each parameter holds the one implemented value and refuses another. (f)
+`ParallelExchangerPlant.SHARES` is replaced by `EXCHANGERS = 3`; the split fractions 0.5 and 0.6 (a
+50/30/20 split) are the `split_fraction` controls of both splitter cascades in the plant file. (g)
+`technical_life` is not built: gemini models no replacement (`npv` has "no degradation, tax,
+replacement"), so a value would be read by nothing; it stays in section 8. (h) The plant files of
+`inputs/plants/` have no case: the values that moved out of them are in
+`tests/fixtures/plant_case_values.json` and the test fixture `example_plant` sets them on the modules.
+`.tmp/inputs/convert_moves.py` made the moves and checked against the files before that nothing else
+changed.
+
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is
 built for `case.initial_state` and its check in `gm.check`; the removal of the `State` defaults and
-the move of the `initial_*` parameters are not. 7.23 is built only for `GRID_COMPOSITION`. 7.24
-(`study.plan`), 7.25 (time defaults, the `clock` argument), 7.27 (`runtime.default_fluid`) and 7.32
-(a `sized` marker) are not built: `simulate` keeps `plan` and `clock`, and `size` computes what it
-computes today.
+the move of the `initial_*` parameters are not. 7.23 is built for `GRID_COMPOSITION` only. 7.12:
+the constructor defaults of the class plants (`doublets=1`, `consumers=2`, `service='heating'`,
+`producers=2`, `injectors=1`) stay, because hundreds of calls use them; `size` is a leaf of the file.
+7.1: `technical_life` is not built (see 7.47 g). 7.24 (`study.plan`), 7.25 (time defaults, the `clock`
+argument), 7.27 (`runtime.default_fluid`) and 7.32 (a `sized` marker) are not built: `simulate`
+keeps `plan` and `clock`, and `size` computes what it computes today.
 
 ### 7.5 The numerical settings that stay in code
 
@@ -660,9 +699,11 @@ docstring.
   `uncertainty` on a series, a list under `reservoir`) without changing what exists.
 - Operation-loop methods (`replay`, `calibrate`, `live`): they fit the study shape with
   `measurements`; the bindings of 7.15 are designed only in outline.
-- Decisions whose rule stands and whose code does not follow yet: 7.19 (`State` defaults, `initial_*`
-  parameters), 7.23 (fallbacks in physics signatures), 7.24 (`study.plan`), 7.25 (time defaults),
-  7.27 (`runtime.default_fluid`), 7.32 (`sized`).
+- Decisions whose rule stands and whose code does not follow yet: 7.12 (constructor defaults of the
+  class plants), 7.19 (`State` defaults, `initial_*` parameters), 7.23 (fallbacks in physics
+  signatures other than the grid gas), 7.24 (`study.plan`), 7.25 (time defaults), 7.27
+  (`runtime.default_fluid`), 7.32 (`sized`).
+- `technical_life` per equipment kind (7.1): gemini models no replacement, so no module would read it.
 - The tolerance of the brief for full reinjection (7.13): the samples carry the band they had, as a
   ratio. The brief says only "equal liquid volumes" and gives no number, so a
   tolerance needs a statement from the organisers.

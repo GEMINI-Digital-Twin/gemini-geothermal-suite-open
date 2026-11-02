@@ -70,21 +70,29 @@
         "CO2": {
           "value": 0.2
         }
+      },
+      "sand_concentration": {
+        "value": 20,
+        "unit": "mg/l"
       }
     },
     "air": {
       "temperature": {
         "value": 10,
         "unit": "degC"
+      },
+      "pressure": {
+        "value": 101325,
+        "unit": "Pa"
       }
     }
   },
   "demand": {
     "heating": {
       "power": {
+        "unit": "MW",
         "file": "data/demand.csv",
-        "column": "heating_demand_MWth",
-        "unit": "MW"
+        "column": "heating_demand_MWth"
       },
       "supply_temperature": {
         "value": 100,
@@ -93,13 +101,17 @@
       "return_temperature": {
         "value": 60,
         "unit": "degC"
+      },
+      "return_pressure": {
+        "value": 6,
+        "unit": "bar"
       }
     },
     "cooling": {
       "power": {
+        "unit": "MW",
         "file": "data/demand.csv",
-        "column": "cooling_demand_MWcool",
-        "unit": "MW"
+        "column": "cooling_demand_MWcool"
       },
       "supply_temperature": {
         "value": 20,
@@ -108,6 +120,21 @@
       "return_temperature": {
         "value": 25,
         "unit": "degC"
+      },
+      "return_pressure": {
+        "value": 4,
+        "unit": "bar"
+      },
+      "dew_point_margin": {
+        "value": 1,
+        "unit": "K"
+      },
+      "indoor_temperature": {
+        "value": 26,
+        "unit": "degC"
+      },
+      "indoor_relative_humidity": {
+        "value": 0.5
       }
     }
   },
@@ -117,34 +144,53 @@
         "value": 300,
         "unit": "g/kWh"
       }
+    },
+    "gas": {
+      "composition": {
+        "CH4": {
+          "value": 0.8249507401227822
+        },
+        "C2H6": {
+          "value": 0.039549858193534584
+        },
+        "C3H8": {
+          "value": 0.012748086337494389
+        },
+        "CO2": {
+          "value": 0.011912342910726407
+        },
+        "N2": {
+          "value": 0.11083897243546233
+        }
+      }
     }
   },
   "economics": "economics.json",
   "requirements": [
     {
+      "unit": "m3/h",
       "name": "production_flow_range",
       "on": "doublet",
       "quantity": "production_flow",
-      "unit": "m3/h",
       "over": "each",
       "when": "running",
       "min": 50,
       "max": 300
     },
     {
+      "unit": "K",
       "name": "brine_cooling_limit",
       "on": "doublet",
       "quantity": "brine_cooling",
-      "unit": "K",
       "over": "each",
       "when": "running",
       "max": 40
     },
     {
+      "unit": "d",
       "name": "running_time_limit",
       "on": "doublet",
       "quantity": "production_flow",
-      "unit": "d",
       "over": "duration",
       "when": "running",
       "max": 330
@@ -155,23 +201,6 @@
       "quantity": "pump_efficiency",
       "min": 0.7,
       "max": 0.7
-    },
-    {
-      "name": "esp_intake_pressure_minimum",
-      "on": "doublet",
-      "quantity": "intake_pressure",
-      "unit": "bar",
-      "over": "each",
-      "when": "running",
-      "min": 5
-    },
-    {
-      "name": "esp_intake_gas_fraction_maximum",
-      "on": "doublet",
-      "quantity": "intake_gas_fraction",
-      "over": "each",
-      "when": "running",
-      "max": 0.1875
     },
     {
       "name": "full_reinjection",

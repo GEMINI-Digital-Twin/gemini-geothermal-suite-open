@@ -11,9 +11,10 @@ from gemini.plants.nodaldoublet import NodalDoublet
 from gemini.plants.plant import Plant
 from gemini.types import Stream
 
-SHARES = (0.5, 0.3, 0.2)
-"""Shares of the primary and the secondary flow sent to each heat exchanger."""
-TEES = len(SHARES) - 1
+EXCHANGERS = 3
+"""The heat exchangers in parallel; the share of the flow each takes is the ``split_fraction`` of
+the splitters of the plant file."""
+TEES = EXCHANGERS - 1
 """The splitters or mixers of one cascade."""
 
 
@@ -22,12 +23,13 @@ class ParallelExchangerPlant(Plant):
 
     The port of the upstream GEMINI simulator's ``parallel_hex_plant`` example. The producer is
     solved for its rate at the ``doublet.wellhead_pressure`` boundary; the brine passes a degasser
-    and a filter, is divided over the exchangers in ``SHARES``, remixed, filtered again and
-    injected, with the injection pump set to the wellhead pressure the injector needs. The
-    secondary water is divided in the same shares, set as the ``split_fraction`` of the two
-    splitter cascades, and remixed after the exchangers.
-    ``inputs/plants/ParallelExchangerPlant.json`` carries the well, reservoir, ESP and exchanger
-    data of the upstream example.
+    and a filter, is divided over the exchangers, remixed, filtered again and injected, with the
+    injection pump set to the wellhead pressure the injector needs. The secondary water is divided
+    in the same way and remixed after the exchangers. The shares are the designer's: the
+    ``split_fraction`` of the two splitter cascades, stated in the plant file (a splitter sends
+    that share of its feed to its second branch, the last exchanger takes the rest).
+    ``inputs/plants/ParallelExchangerPlant.json`` carries the shares and the well, reservoir, ESP
+    and exchanger data of the upstream example.
 
     Not schedulable: its doublet is a ``NodalDoublet``, and a run sets its splits and setpoints.
     """
@@ -42,7 +44,7 @@ class ParallelExchangerPlant(Plant):
         self.inlet_filter = Filter()
         self.primary_splitters = ModuleList(Splitter() for _ in range(TEES))
         self.secondary_splitters = ModuleList(Splitter() for _ in range(TEES))
-        self.heat_exchangers = ModuleList(HeatExchanger() for _ in SHARES)
+        self.heat_exchangers = ModuleList(HeatExchanger() for _ in range(EXCHANGERS))
         self.primary_mixers = ModuleList(Mixer() for _ in range(TEES))
         self.secondary_mixers = ModuleList(Mixer() for _ in range(TEES))
         self.outlet_filter = Filter()

@@ -229,7 +229,7 @@ def test_deep_injector_needs_no_pump_and_draws_no_power(injector):
     )
     assert nodal.solve_injection_pressure(well, sink, wellhead, (1e3, 1e8)) is None
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.8})
-    result = pump(fluid_in=wellhead, pressure_setpoint=wellhead.p)
+    result = pump(fluid_in=wellhead, pressure_setpoint=wellhead.p, frequency=60)
     assert result.outputs.head == 0 and reading(result).electricity == 0
 
 

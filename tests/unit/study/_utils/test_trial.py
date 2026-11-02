@@ -2,8 +2,11 @@
 
 import gemini as gm
 from gemini.study._utils import trial
+from gemini.units import Quantity
+from tests.fixtures.cases import make_case
 from tests.fixtures.errors import raises
 from tests.fixtures.result_tables import make_results
+from tests.unit.evaluate.test_totals import overflowing
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
 PRICE = "case.economics.energy.electricity"
@@ -46,3 +49,15 @@ def test_a_trial_that_fails_gives_its_reason(monkeypatch):
     monkeypatch.setattr(trial, "simulate", fake)
     metrics, reason = trial.run_trial(shallow_plant(), shallow_case(), None, {}, ["peak_heat"])
     assert metrics == {} and reason == "no run"
+
+
+def test_a_breach_of_an_operating_limit_is_an_infeasible_trial_with_a_bound_reason():
+    """The search sees what the verdict sees: the boiler fuel past its limit, in relative excess."""
+    plant, run = overflowing()
+    plant.boiler.capacity = Quantity(1e6, "W")
+    plant.boiler.operating_limits = (("fuel", "max", "capacity"),)
+    reason, violation = trial.judged(plant, make_case(), run)
+    assert reason["kind"] == "bound" and reason["name"] == "fuel" and reason["passed"] is False
+    assert 0.0 < violation < trial.LARGEST_VIOLATION
+    plant.boiler.capacity = Quantity(20e6, "W")
+    assert trial.judged(plant, make_case(), run) == (None, 0.0)

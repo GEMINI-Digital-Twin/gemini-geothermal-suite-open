@@ -790,19 +790,11 @@ def test_the_case_has_no_default_but_absent():
 
 DEFAULTED = {"Parameter", "Control", "Boundary", "State"}
 DECLARED_DEFAULTS = {
-    (
-        "Atmosphere",
-        "pressure",
-    ): "normal pressure of DIN 1343, a standard state (gas.NORMAL_PRESSURE)",
     ("Cooler", "latent_heat"): "latent heat of vaporisation of water, IAPWS-IF97 tables",
     ("IceStorage", "latent_heat"): "latent heat of fusion of ice, 333.55 kJ/kg (IAPWS R10-06)",
     ("IceStorage", "freezing_temperature"): "normal melting point of ice at 101.325 kPa",
     ("IceStorage", "water_specific_heat"): "liquid water at 0.01 degC (IAPWS-95)",
     ("IceStorage", "ice_specific_heat"): "ice Ih at the triple point (IAPWS R10-06)",
-    (
-        "InjectionPump",
-        "frequency",
-    ): "the catalogue frequency of the curves, ESP_REFERENCE_FREQUENCY",
     ("_Reservoir", "role"): "the identity of the subclass (production or injection), not a choice",
     ("PIDController", "integral"): "the integrator memory starts at zero by definition",
     ("AquiferStorage", "warm_volume"): "accumulator: zero before any charge",

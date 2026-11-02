@@ -13,10 +13,11 @@ class ElectricityGrid(Module):
     Every consumer connects its ``power_in`` to ``power_out`` and every generator its ``power_out``
     to ``power_in``; both ports take any number of connections. Their balance is imported when
     positive and exported when negative, each up to its connection limit (``None`` means unlimited;
-    ``_physics.net_exchange``). Consumption above the import limit is ``unserved_consumption`` (load
-    to shed) and surplus generation above the export limit ``curtailed_generation``. Prices and
-    emission factors live in the case. Assumptions: no reactive power, losses or
-    demand charges.
+    ``_physics.net_exchange``). The limits are the physical property of the grid connection,
+    ``utilities.electricity.import_limit`` and ``export_limit`` of the case. Consumption above the
+    import limit is ``unserved_consumption`` (load to shed) and surplus generation above the export
+    limit ``curtailed_generation``. Prices and emission factors live in the case. Assumptions: no
+    reactive power, losses or demand charges.
     """
 
     def __init__(self):
@@ -28,12 +29,14 @@ class ElectricityGrid(Module):
             Power | None,
             default=None,
             ge=0,
+            case="utilities.electricity.import_limit",
             description="Largest power the connection can import; empty means unlimited",
         )
         self.export_limit = Parameter(
             Power | None,
             default=None,
             ge=0,
+            case="utilities.electricity.export_limit",
             description="Largest power the connection can export; empty means unlimited",
         )
 

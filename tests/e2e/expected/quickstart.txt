@@ -2,8 +2,6 @@ production_flow_range                         ok
 brine_cooling_limit                           ok
 running_time_limit                            ok
 pump_efficiency                               ok
-esp_intake_pressure_minimum                   ok
-esp_intake_gas_fraction_maximum               ok
 full_reinjection                              ok
 heating_supply_temperature                    ok
 cooling_supply_temperature                    ok

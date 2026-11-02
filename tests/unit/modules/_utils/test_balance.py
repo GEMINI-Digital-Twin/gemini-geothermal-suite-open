@@ -80,6 +80,7 @@ def test_unresolved_pump_work():
     result = pump(
         fluid_in=Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
         pressure_setpoint=2e6,
+        frequency=60,
     )
     balance = energy_balance(pump, result)
     assert balance["unresolved_power"] == pytest.approx(result.outputs.power)
@@ -156,7 +157,7 @@ class GasHeatedInjection(Module):
         # Modules
         heated = self.chp(fluid_in=inlets.return_in, fuel_in=GRID_GAS).outlets.fluid_out
         topped = self.boiler(fluid_in=heated, fuel_in=GRID_GAS).outlets.fluid_out
-        pumped = self.pump(fluid_in=topped)
+        pumped = self.pump(fluid_in=topped, frequency=60)
 
         # Outlets
         injected = pumped.outlets.fluid_out

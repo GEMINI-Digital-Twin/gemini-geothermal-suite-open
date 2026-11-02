@@ -4,10 +4,10 @@ import pytest
 
 import gemini as gm
 from gemini.modules import GasGrid, GasMakeup
-from gemini.physics import gas
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
+from tests.fixtures.gas import GRID_COMPOSITION
 
 FLUID = gm.Fluid(kind="gas", gas_composition={"CH4": 0.8, "CO2": 0.2})
 GAS = gm.Stream(
@@ -24,7 +24,7 @@ def test_the_makeup_marks_the_offer_and_moves_no_gas():
     outlet = GasMakeup()._offered({"gas_in": GAS, "grid_in": GRID})["fuel_out"]
     assert (outlet.m_dot, outlet.T, outlet.p) == (GAS.m_dot, GAS.T, GAS.p)
     assert outlet.fluid.gas_composition == FLUID.gas_composition
-    assert outlet.fluid.grid_composition == gas.GRID_COMPOSITION
+    assert outlet.fluid.grid_composition == GRID_COMPOSITION
 
 
 def test_the_surplus_leaves_through_excess_out():

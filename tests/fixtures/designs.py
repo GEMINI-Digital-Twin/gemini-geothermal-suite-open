@@ -5,9 +5,10 @@ values of the tests in one place, for a module or a whole plant, and leaves any 
 or the plant already holds.
 """
 
-from gemini.physics import combustion, gas
+from gemini.physics import combustion
 from tests.fixtures import si
 from tests.fixtures.esp_design import ESP_DESIGN
+from tests.fixtures.gas import GRID_COMPOSITION
 
 WELL = {
     "friction_correlation": "darcy_weisbach",
@@ -24,7 +25,7 @@ VALUES = {
         "maximum_driving_temperature": 363.15,
     },
     "HeatExchanger": {"arrangement": "counterflow", "fouling_threshold": 0.15},
-    "GasGrid": {"composition": dict(gas.GRID_COMPOSITION)},
+    "GasGrid": {"composition": dict(GRID_COMPOSITION)},
     "HeatPump": {
         "cop_model": "carnot",
         "carnot_fraction": 0.5,

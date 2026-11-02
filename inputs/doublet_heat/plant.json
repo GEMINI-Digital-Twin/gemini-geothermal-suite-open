@@ -19,8 +19,8 @@
           "unit": "Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 22000000.0
+              "value": 22000000.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -29,8 +29,8 @@
           "unit": "K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 353.15
+              "value": 353.15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -39,8 +39,8 @@
           "unit": "m2",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 9.869233e-12
+              "value": 9.869233e-12,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -49,8 +49,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 45.0
+              "value": 45.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -59,8 +59,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 1000.0
+              "value": 1000.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -69,8 +69,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 1800.0
+              "value": 1800.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -79,8 +79,8 @@
           "unit": "m3/s/Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 5.833333333333333e-08
+              "value": 5.833333333333333e-08,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -88,8 +88,8 @@
           "value": 0.0,
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.0
+              "value": 0.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -98,8 +98,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.0765
+              "value": 0.0765,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -107,24 +107,24 @@
           "value": 0.15,
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.15
+              "value": 0.15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
         "role": {
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "production"
+              "value": "production",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
         "injectivity_index": {
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": null
+              "value": null,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -147,7 +147,6 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 400.0,
                 150.0,
@@ -160,7 +159,8 @@
                 250.0,
                 100.0,
                 300.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -181,7 +181,6 @@
           "unit": "rad",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 1.5707963267948966,
                 1.5707963267948966,
@@ -194,7 +193,8 @@
                 0.9272934315845873,
                 0.5235987755982988,
                 0.5235987755982988
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -215,7 +215,6 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 0.1778,
                 0.1778,
@@ -228,7 +227,8 @@
                 0.273,
                 0.1778,
                 0.1778
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -249,7 +249,6 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 2e-05,
                 2e-05,
@@ -262,7 +261,8 @@
                 2e-05,
                 2e-05,
                 2e-05
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -270,8 +270,8 @@
           "value": "darcy_weisbach",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "darcy_weisbach"
+              "value": "darcy_weisbach",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -279,8 +279,8 @@
           "value": "BeggsBrill",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "BeggsBrill"
+              "value": "BeggsBrill",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -291,11 +291,11 @@
           ],
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 1.0,
                 0.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -304,8 +304,8 @@
           "unit": "K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 288.15
+              "value": 288.15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -314,8 +314,8 @@
           "unit": "W/m2/K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 10.0
+              "value": 10.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -323,8 +323,8 @@
           "value": "below_esp",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "below_esp"
+              "value": "below_esp",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -333,8 +333,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 600.0
+              "value": 600.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -344,8 +344,8 @@
           "value": 15,
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 15
+              "value": 15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -360,7 +360,6 @@
           ],
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 125.518426,
                 -0.0020852856,
@@ -368,7 +367,8 @@
                 -1.45640214e-11,
                 2.37859645e-16,
                 -1.18258356e-21
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -383,7 +383,6 @@
           ],
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 0.0,
                 0.0,
@@ -391,7 +390,8 @@
                 0.0,
                 0.0,
                 0.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -399,8 +399,8 @@
           "value": "DEFAULT-PUMP",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "DEFAULT-PUMP"
+              "value": "DEFAULT-PUMP",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -409,8 +409,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 600.0
+              "value": 600.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -418,8 +418,8 @@
           "value": 1.0,
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 1.0
+              "value": 1.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -428,8 +428,8 @@
           "unit": "m3/s",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.02277777777777778
+              "value": 0.02277777777777778,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -438,8 +438,8 @@
           "unit": "m3/s",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.049444444444444444
+              "value": 0.049444444444444444,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -448,8 +448,8 @@
           "unit": "m3/s",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.03610555555555555
+              "value": 0.03610555555555555,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -460,11 +460,11 @@
           ],
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 1.0,
                 0.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -473,8 +473,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.1778
+              "value": 0.1778,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -482,8 +482,8 @@
           "value": 0.1,
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.1
+              "value": 0.1,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -506,7 +506,6 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 400.0,
                 150.0,
@@ -519,7 +518,8 @@
                 250.0,
                 100.0,
                 300.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -540,7 +540,6 @@
           "unit": "rad",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 1.5707963267948966,
                 1.5707963267948966,
@@ -553,7 +552,8 @@
                 0.9272934315845873,
                 0.5235987755982988,
                 0.5235987755982988
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -574,7 +574,6 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 0.1778,
                 0.1778,
@@ -587,7 +586,8 @@
                 0.273,
                 0.1778,
                 0.1778
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -608,7 +608,6 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 2e-05,
                 2e-05,
@@ -621,7 +620,8 @@
                 2e-05,
                 2e-05,
                 2e-05
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -629,8 +629,8 @@
           "value": "darcy_weisbach",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "darcy_weisbach"
+              "value": "darcy_weisbach",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -638,8 +638,8 @@
           "value": "BeggsBrill",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "BeggsBrill"
+              "value": "BeggsBrill",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -650,11 +650,11 @@
           ],
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 1.0,
                 0.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -663,8 +663,8 @@
           "unit": "K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 288.15
+              "value": 288.15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -673,8 +673,8 @@
           "unit": "W/m2/K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 10.0
+              "value": 10.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -682,8 +682,8 @@
           "value": "above_esp",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "above_esp"
+              "value": "above_esp",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -692,8 +692,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 600.0
+              "value": 600.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -708,12 +708,12 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 500.0,
                 500.0,
                 1000.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -726,12 +726,12 @@
           "unit": "rad",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 1.5707963267948966,
                 1.5707963267948966,
                 1.5707963267948966
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -744,12 +744,12 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 0.1778,
                 0.1778,
                 0.1778
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -762,12 +762,12 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 2e-05,
                 2e-05,
                 2e-05
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -775,8 +775,8 @@
           "value": "darcy_weisbach",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "darcy_weisbach"
+              "value": "darcy_weisbach",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -784,8 +784,8 @@
           "value": "BeggsBrill",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "BeggsBrill"
+              "value": "BeggsBrill",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -796,11 +796,11 @@
           ],
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
               "value": [
                 1.0,
                 0.0
-              ]
+              ],
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -809,8 +809,8 @@
           "unit": "K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 288.15
+              "value": 288.15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -819,8 +819,8 @@
           "unit": "W/m2/K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 10.0
+              "value": 10.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -831,8 +831,8 @@
           "unit": "Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 22000000.0
+              "value": 22000000.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -841,8 +841,8 @@
           "unit": "K",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 353.15
+              "value": 353.15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -851,8 +851,8 @@
           "unit": "m2",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 9.869233e-12
+              "value": 9.869233e-12,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -861,8 +861,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 45.0
+              "value": 45.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -871,8 +871,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.0
+              "value": 0.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -881,8 +881,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.0
+              "value": 0.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -891,8 +891,8 @@
           "unit": "m3/s/Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 5.5555555555555555e-08
+              "value": 5.5555555555555555e-08,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -900,8 +900,8 @@
           "value": 0.0,
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.0
+              "value": 0.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -910,8 +910,8 @@
           "unit": "m",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.0765
+              "value": 0.0765,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -919,24 +919,24 @@
           "value": 0.15,
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 0.15
+              "value": 0.15,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
         "role": {
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": "injection"
+              "value": "injection",
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
         "productivity_index": {
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": null
+              "value": null,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -948,8 +948,8 @@
         "unit": "Pa",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 14900.0
+            "value": 14900.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -958,8 +958,8 @@
         "unit": "W/K",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 100000.0
+            "value": 100000.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -967,16 +967,16 @@
         "value": 0.0,
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 0.0
+            "value": 0.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
       "outlet_pressure": {
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": null
+            "value": null,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       }
@@ -988,8 +988,8 @@
           "unit": "Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 1600.0
+              "value": 1600.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -998,8 +998,8 @@
           "unit": "kg/s",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 44.20333333333333
+              "value": 44.20333333333333,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -1008,8 +1008,8 @@
           "unit": "Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 50000.0
+              "value": 50000.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -1020,8 +1020,8 @@
           "unit": "Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 1600.0
+              "value": 1600.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -1030,8 +1030,8 @@
           "unit": "kg/s",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 44.20333333333333
+              "value": 44.20333333333333,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         },
@@ -1040,8 +1040,8 @@
           "unit": "Pa",
           "history": [
             {
-              "valid_from": "2020-01-01T00:00:00Z",
-              "value": 50000.0
+              "value": 50000.0,
+              "valid_from": "2020-01-01T00:00:00Z"
             }
           ]
         }
@@ -1053,8 +1053,8 @@
         "unit": "W/K",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 100000.0
+            "value": 100000.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1062,8 +1062,8 @@
         "value": "counterflow",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": "counterflow"
+            "value": "counterflow",
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1072,8 +1072,8 @@
         "unit": "Pa",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 0.0
+            "value": 0.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1082,8 +1082,8 @@
         "unit": "Pa",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 0.0
+            "value": 0.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1092,8 +1092,8 @@
         "unit": "kg/s",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 1.0
+            "value": 1.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1102,8 +1102,8 @@
         "unit": "kg/s",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 1.0
+            "value": 1.0,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1111,8 +1111,8 @@
         "value": 0.15,
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 0.15
+            "value": 0.15,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       }
@@ -1122,8 +1122,8 @@
         "value": 10,
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 10
+            "value": 10,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1131,8 +1131,8 @@
         "value": "DEFAULT-PUMP",
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": "DEFAULT-PUMP"
+            "value": "DEFAULT-PUMP",
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1140,8 +1140,8 @@
         "value": 0.8,
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": 0.8
+            "value": 0.8,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
@@ -1152,34 +1152,38 @@
       "head_coefficients": {
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": null
+            "value": null,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
       "power_coefficients": {
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": null
+            "value": null,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
       "nominal_flow": {
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": null
+            "value": null,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
       },
       "nominal_head": {
         "history": [
           {
-            "valid_from": "2020-01-01T00:00:00Z",
-            "value": null
+            "value": null,
+            "valid_from": "2020-01-01T00:00:00Z"
           }
         ]
+      },
+      "frequency": {
+        "value": 60,
+        "unit": "Hz"
       }
     },
     "return_in": {

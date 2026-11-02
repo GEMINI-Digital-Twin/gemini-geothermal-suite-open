@@ -24,7 +24,7 @@ measured data. Only `examples/` and `tests/` read this folder, and nothing under
 | Heating supply, return | 65 degC, 38 degC |
 | Cooling supply, return | 16 degC, 22 degC |
 | Air | 6 degC |
-| Constraints | 35 to 180 m3/h while running, brine cooling at most 22 K, at most 450 h running of 504, pump efficiency 0.6 to 0.68, pump intake pressure at least 5 bar and free gas at most 18.75 % of the intake volume while running, volume balance within 1e-5 m3/s |
+| Constraints | 35 to 180 m3/h while running, brine cooling at most 22 K, at most 450 h running of 504, pump efficiency 0.6 to 0.68, volume balance within 1e-5 m3/s |
 | Plant | Well 0.216 m, 130 m3/h, 8 bar wellhead, exchanger 250 kW/K, heat pump 1.6 MW with Carnot fraction 0.5 ("close to 50 percent of the Carnot value", H. U. Frutschi, ABB Review 5/1996, pp. 33-34), boiler 3.5 MW at 0.92, compression chiller 0.4 MW, cooler 1 MW |
 
 ## Assumptions and prices
@@ -43,7 +43,7 @@ the plant, not a default of the package.
 
 ## Pump intake limits
 
-The `intake_pressure` and `intake_gas_fraction` constraints limit the ESP intake of a running doublet.
+The plant states two operating limits on the `esp` of its doublet, `minimum_intake_pressure` and `maximum_gas_fraction`, for a running doublet; a breach is a `bound` reason of the verdict, not a failed step.
 
 - Maximum free gas, 0.1875 of the volume at the intake. Source: Baker Hughes, Ace Plus gas handler pumps,
   <https://www.bakerhughes.com/production/artificial-lift/electrical-submersible-pump-systems/pumps/ace-plus-gas-handler-pumps>:

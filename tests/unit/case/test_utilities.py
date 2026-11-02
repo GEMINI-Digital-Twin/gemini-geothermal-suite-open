@@ -28,6 +28,15 @@ def test_the_connection_limits_and_the_gas_grid_are_optional_values(data, files)
     )
 
 
+def test_a_grid_gas_with_hydrocarbons_is_read(data, files):
+    """The grid gas is natural gas: ethane and propane are species of its composition."""
+    data["utilities"]["gas"] = {
+        "composition": {"CH4": {"value": 0.8}, "C2H6": {"value": 0.1}, "C3H8": {"value": 0.1}}
+    }
+    gas = gm.Case.from_dict(data, files=files).utilities.gas
+    assert gas.composition == {"CH4": 0.8, "C2H6": 0.1, "C3H8": 0.1}
+
+
 def test_a_price_series_of_the_grid_is_a_series(data):
     """The intensity may follow the hours."""
     data["utilities"]["electricity"]["co2_intensity"] = {

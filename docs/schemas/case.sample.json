@@ -17,10 +17,25 @@
   },
   "demand": {
     "cooling": {
+      "dew_point_margin": {
+        "unit": "K",
+        "value": 1
+      },
+      "indoor_relative_humidity": {
+        "value": 0.45
+      },
+      "indoor_temperature": {
+        "unit": "degC",
+        "value": 24
+      },
       "power": {
         "column": "cool_kw",
         "file": "data/demand.csv",
         "unit": "kW"
+      },
+      "return_pressure": {
+        "unit": "bar",
+        "value": 3
       },
       "return_temperature": {
         "unit": "degC",
@@ -36,6 +51,10 @@
         "column": "heat_kw",
         "file": "data/demand.csv",
         "unit": "kW"
+      },
+      "return_pressure": {
+        "unit": "bar",
+        "value": 5
       },
       "return_temperature": {
         "unit": "degC",
@@ -88,23 +107,6 @@
       "quantity": "pump_efficiency"
     },
     {
-      "min": 5,
-      "name": "esp_intake_pressure_minimum",
-      "on": "doublet",
-      "over": "each",
-      "quantity": "intake_pressure",
-      "unit": "bar",
-      "when": "running"
-    },
-    {
-      "max": 0.1875,
-      "name": "esp_intake_gas_fraction_maximum",
-      "on": "doublet",
-      "over": "each",
-      "quantity": "intake_gas_fraction",
-      "when": "running"
-    },
-    {
       "max": 1.00001,
       "min": 0.99999,
       "name": "full_reinjection",
@@ -116,6 +118,10 @@
   ],
   "site": {
     "air": {
+      "pressure": {
+        "unit": "Pa",
+        "value": 101325
+      },
       "temperature": {
         "unit": "degC",
         "value": 6
@@ -185,6 +191,25 @@
       "co2_intensity": {
         "unit": "g/kWh",
         "value": 360
+      }
+    },
+    "gas": {
+      "composition": {
+        "C2H6": {
+          "value": 0.039549858193534584
+        },
+        "C3H8": {
+          "value": 0.012748086337494389
+        },
+        "CH4": {
+          "value": 0.8249507401227822
+        },
+        "CO2": {
+          "value": 0.011912342910726407
+        },
+        "N2": {
+          "value": 0.11083897243546233
+        }
       }
     }
   }

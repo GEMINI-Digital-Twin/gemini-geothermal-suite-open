@@ -26,11 +26,12 @@ class Desander(Module):
       law of a fixed-geometry cyclone at constant resistance coefficient (as for ``Filter``).
 
     ``sand_concentration`` is kg of sand per m3 of liquid at the inlet (1 mg/l = 1 g/m3 =
-    1e-3 kg/m3). Streams carry no solids, so the liquid mass flow, temperature and fluid pass
-    unchanged and the stream balances close exactly; the removed sand is reported as
-    ``sand_removal_rate`` only. Pressure loss (of the order of 1 bar at design flow) and
-    efficiency are design specific, so all three design values are required. Valid for forward
-    flow with a loss below the inlet pressure; otherwise ``PhysicsError`` is raised.
+    1e-3 kg/m3); the brine brings it from the reservoir, so a run takes it from
+    ``site.fluid.sand_concentration`` of the case. Streams carry no solids, so the liquid mass
+    flow, temperature and fluid pass unchanged and the stream balances close exactly; the removed
+    sand is reported as ``sand_removal_rate`` only. Pressure loss (of the order of 1 bar at design
+    flow) and efficiency are design specific, so all three design values are required. Valid for
+    forward flow with a loss below the inlet pressure; otherwise ``PhysicsError`` is raised.
     """
 
     def __init__(self):
@@ -55,7 +56,9 @@ class Desander(Module):
 
         # Boundaries
         self.sand_concentration = Boundary(
-            MassConcentration, description="Mass concentration of sand in the produced stream"
+            MassConcentration,
+            case="site.fluid.sand_concentration",
+            description="Mass concentration of sand in the produced stream",
         )
 
         # Outputs

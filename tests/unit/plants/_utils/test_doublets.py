@@ -51,6 +51,7 @@ PIPE = {
 INPUTS = {
     "peak_boiler.temperature_setpoint": {"value": 100, "unit": "degC"},
     "injection_pump.pressure_setpoint": {"value": 60, "unit": "bar"},
+    "injection_pump.frequency": {"value": 60, "unit": "Hz"},
 }
 GEOTHERM = {
     f"d{index}.{name}": value
@@ -62,6 +63,10 @@ GEOTHERM = {
 }
 
 
+RULES = {"dispatch": "least_cost", "outages": "lowest_demand"}
+"""The rules a plant states for the schedule of a run without a plan."""
+
+
 def designed(count):
     """Return a heating plant on ``count`` doublets with the sample problem's values."""
     plant = gm.plants.HeatingPlant(doublets=count)
@@ -70,7 +75,7 @@ def designed(count):
         values |= {f"d{index}.{name}": value for name, value in WELL_DESIGN.items()}
     for pipe in ("heating_return_pipe", "heating_supply_pipe"):
         values |= {f"{pipe}.{name}": value for name, value in PIPE.items()}
-    si.set_params(plant, "", design_values(plant) | values)
+    si.set_params(plant, "", design_values(plant) | values | RULES)
     return plant.set_inputs(INPUTS)
 
 

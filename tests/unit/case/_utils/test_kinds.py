@@ -22,3 +22,10 @@ def test_the_kinds_are_the_list_of_the_task():
 def test_the_gas_species_are_closed():
     """Four species."""
     assert kinds.GAS_SPECIES == ("CH4", "CO2", "N2", "H2S")
+
+
+def test_the_grid_gas_species_are_those_of_the_gas_physics():
+    """``utilities.gas.composition`` takes the species ``gemini.physics.gas`` can burn and carry."""
+    from gemini.physics import gas
+
+    assert kinds.GRID_GAS_SPECIES == tuple(gas.SPECIES)

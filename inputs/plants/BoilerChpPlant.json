@@ -265,6 +265,10 @@
         },
         "power_coefficients": {
           "value": null
+        },
+        "frequency": {
+          "value": 60,
+          "unit": "Hz"
         }
       },
       "injector": {
@@ -444,28 +448,6 @@
         "unit": "bar"
       }
     },
-    "boiler_gas": {
-      "composition": {
-        "value": {
-          "CH4": 0.8249507401227822,
-          "C2H6": 0.039549858193534584,
-          "C3H8": 0.012748086337494389,
-          "CO2": 0.011912342910726407,
-          "N2": 0.11083897243546233
-        }
-      }
-    },
-    "chp_gas": {
-      "composition": {
-        "value": {
-          "CH4": 0.8249507401227822,
-          "C2H6": 0.039549858193534584,
-          "C3H8": 0.012748086337494389,
-          "CO2": 0.011912342910726407,
-          "N2": 0.11083897243546233
-        }
-      }
-    },
     "boiler": {
       "capacity": {
         "value": 3,
@@ -492,20 +474,6 @@
       "maximum_outlet_temperature": {
         "value": 90,
         "unit": "degC"
-      }
-    },
-    "electricity_grid": {
-      "import_limit": {
-        "value": null
-      },
-      "export_limit": {
-        "value": null
-      }
-    },
-    "air": {
-      "pressure": {
-        "value": 1.01325,
-        "unit": "bar"
       }
     }
   }

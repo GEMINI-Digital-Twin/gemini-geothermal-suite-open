@@ -44,16 +44,6 @@
         "value": 0.15
       }
     },
-    "consumer": {
-      "maximum_return_temperature": {
-        "value": 18,
-        "unit": "degC"
-      },
-      "dew_point_margin": {
-        "value": 1,
-        "unit": "K"
-      }
-    },
     "pump": {
       "flow": {
         "value": 4,

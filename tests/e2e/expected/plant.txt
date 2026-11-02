@@ -1,4 +1,4 @@
-Bare class: 112 values missing, the first d0.drainage_radius:
+Bare class: 110 values missing, the first d0.drainage_radius:
   Radius of the drainage area around each well [m]
 Filled: 40 left: the reservoir and well of the case, the sizes
 Problems found by check: 0

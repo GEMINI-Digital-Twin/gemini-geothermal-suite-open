@@ -264,6 +264,10 @@
       },
       "power_coefficients": {
         "value": null
+      },
+      "frequency": {
+        "value": 60,
+        "unit": "Hz"
       }
     },
     "injector": {

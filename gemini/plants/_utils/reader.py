@@ -60,6 +60,17 @@ def _declaration(module, name):
         return None
 
 
+def _refuse_owned(declaration, name):
+    """Raise ``invalid_value`` for a leaf on a value the case gives, naming its case path."""
+    if declaration is not None and getattr(declaration, "case", None) is not None:
+        raise ValidationError(
+            f"{name} is not a design value of the plant; give it in the case, at "
+            f"{declaration.case}",
+            path=name,
+            code="invalid_value",
+        )
+
+
 def _checked_params(module, params, report, prefix):
     """Return the ``params`` that fit, reporting each other as ``invalid_value``.
 
@@ -70,13 +81,7 @@ def _checked_params(module, params, report, prefix):
     for name, value in params.items():
         with report.guard(prefix):
             declaration = _declaration(module, name)
-            if declaration is not None and declaration.case is not None:
-                raise ValidationError(
-                    f"{name} is not a design value of the plant; give it in the case, at "
-                    f"{declaration.case}",
-                    path=name,
-                    code="invalid_value",
-                )
+            _refuse_owned(declaration, name)
             if declaration is not None:
                 design.refuse_bare(declaration, value, name)
             kept[name] = value
@@ -235,6 +240,7 @@ def _set_inputs(plant, values, report):
         if report.skips(path):
             continue
         with report.guard("params"):
+            _refuse_owned(inputs.declaration(plant, path), path)
             inputs.refuse_bare(plant, path, value)
             inputs.refuse_fluid(plant, path, value)
             plant._set_si_inputs({path: value})

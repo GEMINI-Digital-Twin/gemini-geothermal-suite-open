@@ -7,6 +7,7 @@ from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
 from gemini.modules._utils.cost import Equipment
 from gemini.modules._utils.flow import require_forward
+from gemini.modules._utils.supply import supply_margin
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, refrigeration
@@ -30,6 +31,10 @@ class HeatPump(Equipment, Module):
     chilled (source) outlet temperature and the useful duty is the evaporator duty, so a
     cooling-mode heat pump is an electric chiller. The useful duty is
     ``min(requested, capacity)``; below ``minimum_part_load * capacity`` the machine is off.
+
+    On a supply line the setpoint is the supply temperature of the case (``demand.heating``) plus
+    the ``supply_margin`` the plant states, or minus it when the machine cools (``demand.cooling``);
+    see ``gm.run.apply_case``.
 
     COP = carnot_fraction * T_sink_out / max(T_sink_out - T_source_out, minimum_temperature_lift)
     when heating and carnot_fraction * T_source_out / max(...) when cooling, from the outlet
@@ -106,6 +111,8 @@ class HeatPump(Equipment, Module):
             default=None,
             description="Lowest temperature the source circuit may leave at; empty means no limit",
         )
+
+        self.supply_margin = supply_margin()
 
         # Inlets
         self.source_in = Inlet(Stream)

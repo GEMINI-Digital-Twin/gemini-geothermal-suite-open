@@ -21,16 +21,16 @@ TEMPLATE_PLANTS = (
 """The plants whose values are the sample problem's, in ``inputs/examples/``, not an example."""
 FORMER_EXAMPLES = {
     "ATESPlant": "8aa9d46daaa933276799cb86763a972fdf7000693459d6513d275a08fe7d4941",
-    "BoilerChpPlant": "15f32df6b61a5d8c0a45a4366bc624458c316ff01d3f043bd1dc33a569efb8a0",
-    "CoolingSubstation": "5e2b82d31eb5476286a9e1ba56c23043d3dd509e1134f83c4ba24985d1f6f912",
-    "DistrictEnergyPlant": "911708d383cff88412a047e72a2013f5a3a5a43730a93035f3f45b9c008d8ba6",
-    "DistrictNetwork": "4c22d24d66084e76c7a123f5f23ea0cf81abff8bf824841147bf189421e1fd69",
+    "BoilerChpPlant": "f297023560de79d991173e2696a2b4aa2d04ebee14bd389ce7244b6a5c1b6de8",
+    "CoolingSubstation": "c6f91a2b49906b839d249471d2b2b86c940e381d5e2987e27c96006d12e45dad",
+    "DistrictEnergyPlant": "19289496a9c9559639477a74275b4a03ce4c4014dd1594128ef295c6c32d2d79",
+    "DistrictNetwork": "d7d920dff09796c213f63eaff80a3633bda6a5962b5d63e0d37da5a473386df3",
     "Doublet": "2d4e3a0e75760ee1db12a32361b4630e42332f750390d3718cf5aeddd4d70aa9",
-    "DoubletHeatPlant": "b0e9045f1981d87edbf3259c8a41bd62d28e56dfb6019a7877507d62166058b7",
-    "HeatingSubstation": "3eefcd37ca64d8a894252b71a31838a0f3f43118a3144dd8d90dc93621fcad95",
+    "DoubletHeatPlant": "b6019deaed1906d70e148ac41b1f2b1e8679f7fcbc9e39e46544a301220297aa",
+    "HeatingSubstation": "6f6e89af0399cc0a47f83309b5807a42c21a9d592bb1a38d794a0baf086cd43e",
     "MultiWellPlant": "78b05793a3a184381a0d9f00ed1696b57b49efc80afd6015dc4112d4796a2733",
-    "NodalDoublet": "1184ba2953c57dcd6c9c8ff8de660f26be59747cf80e78ac21076189f294e76f",
-    "ParallelExchangerPlant": "65657b9eb43cd9484cd74646ab43685ac1ad6a3a7658b4c90d809afb5a684b8b",
+    "NodalDoublet": "ef0ff9c3ed5b412b454f4727d0ce657dd95cb2401762e3acc47d7f223c3c5c42",
+    "ParallelExchangerPlant": "58bdcff4a2d57026aae2e6659178e135e78daab3b67a087cad149a3dec0c049e",
 }
 """Hash of ``to_dict()`` of the plant built from each whole example file these values replaced.
 
@@ -43,6 +43,13 @@ They were taken again when the files moved to the plant file form (header, neste
 leaf objects, no ``inputs`` and no ``bindings``): the hash is of the new form, and
 ``.tmp/inputs/convert_plants.py`` checked, for every file, that each old param and input equals the
 value read from the new file, as do the fluids, the boundary and the history.
+They were taken again when values moved between the plant and the case: the grid gas composition,
+the consumers' return limits, the dew point margin and the ambient pressure left the plant files
+(the case owns them; ``tests/fixtures/plant_case_values.json`` gives them back to the tests), the
+operating ``frequency`` of an injection pump, the ``split_fraction`` of the parallel exchanger
+plant are stated in them.
+``.tmp/inputs/convert_moves.py`` checked, against the files of the commit before, that no other
+leaf of any plant file was added, removed or changed.
 
 The template plants have no example: their values are in the sample problem. ``Doublet`` is hashed
 without ``outputs``, which its structure file has and its former example file lacked.

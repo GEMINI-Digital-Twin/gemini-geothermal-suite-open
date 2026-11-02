@@ -261,9 +261,9 @@
         "value": 320.15,
         "unit": "K"
       },
-      "temperature_setpoint": {
-        "value": 100,
-        "unit": "degC"
+      "supply_margin": {
+        "value": 0,
+        "unit": "K"
       }
     },
     "chiller": {
@@ -302,9 +302,9 @@
         "value": 353.15,
         "unit": "K"
       },
-      "temperature_setpoint": {
-        "value": 20,
-        "unit": "degC"
+      "supply_margin": {
+        "value": 0,
+        "unit": "K"
       }
     },
     "d0": {
@@ -392,6 +392,13 @@
         },
         "drift_threshold": {
           "value": 0.1
+        },
+        "minimum_intake_pressure": {
+          "value": 5,
+          "unit": "bar"
+        },
+        "maximum_gas_fraction": {
+          "value": 0.1875
         }
       },
       "riser": {
@@ -524,6 +531,13 @@
         },
         "drift_threshold": {
           "value": 0.1
+        },
+        "minimum_intake_pressure": {
+          "value": 5,
+          "unit": "bar"
+        },
+        "maximum_gas_fraction": {
+          "value": 0.1875
         }
       },
       "riser": {
@@ -602,10 +616,6 @@
       "nominal_mass_flow": {
         "value": 170.0,
         "unit": "kg/s"
-      },
-      "sand_concentration": {
-        "value": 20,
-        "unit": "mg/l"
       }
     },
     "dosing": {
@@ -645,17 +655,6 @@
         "value": 0.15
       }
     },
-    "gas_grid": {
-      "composition": {
-        "value": {
-          "CH4": 0.8249507401227822,
-          "C2H6": 0.039549858193534584,
-          "C3H8": 0.012748086337494389,
-          "CO2": 0.011912342910726407,
-          "N2": 0.11083897243546233
-        }
-      }
-    },
     "boiler": {
       "capacity": {
         "value": 30000000.0,
@@ -664,9 +663,9 @@
       "efficiency": {
         "value": 0.9
       },
-      "temperature_setpoint": {
-        "value": 100,
-        "unit": "degC"
+      "supply_margin": {
+        "value": 0,
+        "unit": "K"
       }
     },
     "flare": {
@@ -700,29 +699,6 @@
       "flow": {
         "value": 800,
         "unit": "kg/s"
-      }
-    },
-    "heat_users": {
-      "return_pressure": {
-        "value": 600000.0,
-        "unit": "Pa"
-      }
-    },
-    "cool_users": {
-      "dew_point_margin": {
-        "value": 1.0,
-        "unit": "K"
-      },
-      "return_pressure": {
-        "value": 400000.0,
-        "unit": "Pa"
-      },
-      "indoor_temperature": {
-        "value": 26,
-        "unit": "degC"
-      },
-      "indoor_relative_humidity": {
-        "value": 0.5
       }
     }
   },
