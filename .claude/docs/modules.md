@@ -215,8 +215,9 @@ class Pump(Module):
         # Outlets
         suction = inlets.fluid_in
         flow = suction.volumetric_flow()
-        head = pumps.head(flow, self.frequency, self.stage_count, self.head_coefficients)
-        discharge = suction.with_(p=suction.p + head)
+        curve = sum(c * flow**i for i, c in enumerate(self.head_coefficients))
+        head = self.stage_count * (self.frequency / 60.0) ** 2 * curve
+        discharge = suction._with_si(p=suction.p + head)
 
         # Outputs
         self.flow = flow
@@ -308,8 +309,8 @@ Parameters, controls and boundaries are set by attribute assignment or in bulk:
   time)` returns the values active at an instant.
 - `module.frequency = 50` persists one control or boundary, and `module.stage_count = 12` sets a
   parameter as an override that wins over every date.
-- `missing_parameters()` lists the uninitialized parameters as JSON dicts `{path, type, quantity,
-  unit, units, minimum, maximum, enum, description}` (`units` are the accepted units) and
+- `check()` lists the uninitialized parameters as `missing` issues (path, quantity, accepted units,
+  meaning) and
   `is_initialized` is true when there are none. A run, `size` or a read of an unset value raises
   `missing_value` listing every missing path with its description at once (`problems` holds one
   item per path). Every `Parameter`, `Control`, `Boundary` and `Output` declares a short
@@ -501,7 +502,7 @@ class Tank(Module):
         """Leave at the tank temperature of the start of the step."""
 
         # Outlets
-        outlet = inlets.fluid_in.with_(T=self.temperature)
+        outlet = inlets.fluid_in._with_si(T=self.temperature)
 
         # Outputs
         self.duty = self._duty(inlets.fluid_in)
@@ -526,7 +527,7 @@ assert result.outlets.fluid_out.T == 300 and state["temperature"] > 300
 A module with a diagnostic model overrides `health(self, result, measured)`. It receives the
 call's `ModuleResult` and the measured outputs of that tick and returns a `Health` (`assessed`,
 `score`, `alarm`, `message`, `metrics`); the base method returns `None`, which the engine records
-as `assessed=False`. A module that declares its own cost defines `capex(assumptions)` returning a `Cost`;
+as `assessed=False`. A module that declares its own cost defines `capex(economics)` returning an amount in the currency of the case;
 see [types.md](types.md#profiles-and-costs).
 
 ## Energy flow

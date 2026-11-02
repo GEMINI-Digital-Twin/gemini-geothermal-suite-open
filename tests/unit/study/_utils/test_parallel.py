@@ -6,8 +6,8 @@ import gemini as gm
 from gemini.study._utils import parallel
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
-PRICE = "case.assumptions.finance.opex.electricity"
-DECLARED = {"assumptions.finance.opex.electricity": {"kind": "uniform", "min": 90, "max": 150}}
+PRICE = "case.economics.energy.electricity"
+DECLARED = {"economics.energy.electricity": {"kind": "uniform", "min": 90, "max": 150}}
 
 
 def settings_seen(shared, item):

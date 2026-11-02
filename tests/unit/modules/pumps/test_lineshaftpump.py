@@ -76,7 +76,7 @@ def test_reverse_flow_and_off_curve_raise():
     """Reverse flow, a negative head and a negative pump power raise PhysicsError."""
     suction = Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(340, "K"), p=Quantity(1e6, "Pa"))
     with pytest.raises(PhysicsError, match="reverse flow"):
-        pump()(fluid_in=suction.with_(m_dot=-1), frequency=50)
+        pump()(fluid_in=suction._with_si(m_dot=-1), frequency=50)
     with pytest.raises(PhysicsError, match="head curve"):
         pump(head_coefficients=[-1, 0, 0, 0, 0, 0])(fluid_in=suction, frequency=50)
     with pytest.raises(PhysicsError, match="power curve"):

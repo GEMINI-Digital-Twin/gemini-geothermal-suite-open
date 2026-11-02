@@ -23,8 +23,11 @@ EQUIPMENT_KINDS = {
 }
 """Every equipment kind: ``{kind: (quantity of its capex factor, cost basis)}``.
 
-The keys of ``assumptions.finance.capex`` and ``assumptions.finance.opex.fixed``. A module that is
+The keys of ``economics.capex`` and ``economics.opex.fixed``. A module that is
 equipment declares one of these kinds."""
 
 GAS_SPECIES = ("CH4", "CO2", "N2", "H2S")
-"""The species of ``environment.fluid.gas``, and of the keys of ``assumptions.emissions``."""
+"""The species of ``site.fluid.dissolved_gas``."""
+
+GRID_GAS_SPECIES = ("CH4", "C2H6", "C3H8", "CO2", "N2", "O2")
+"""The species of ``utilities.gas.composition``: ``SPECIES`` of ``gemini.physics.gas``."""

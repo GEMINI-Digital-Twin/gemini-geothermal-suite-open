@@ -1,4 +1,4 @@
-"""The values a constraint reads: the field of a module and its values over a run."""
+"""The values a requirement reads: the field of a module and its values over a run."""
 
 import numpy as np
 
@@ -19,7 +19,7 @@ def split_target(target):
 
 
 def fields(plant, path):
-    """Return ``{name: (unit, quantity)}`` of what a constraint may judge."""
+    """Return ``{name: (unit, quantity)}`` of what a requirement may judge."""
     module = plant.get_submodule(path)
     declared = dict(module.named_parameters(recurse=False)) | module.outputs(recurse=False)
     named = {
@@ -77,7 +77,7 @@ def _parameter_times(plant, frame, path):
 def parameter_values(plant, frame, path, name):
     """Return each value the parameter takes in the run, as an array."""
     times = _parameter_times(plant, frame, path)
-    found = [plant.params_at(path, time)[name] for time in times]
+    found = [plant.params_at(path, time).get(name) for time in times]
     return np.array([np.nan if item is None else item for item in found], dtype=float)
 
 
@@ -110,7 +110,10 @@ def _combined(key, values):
     """Return the arrays of a combination, as a plant computes it on one tick."""
     if key == "sum":
         return np.sum(values, axis=0)
-    return values[0] - values[1] if key == "difference" else values[0] / values[1]
+    if key == "difference":
+        return values[0] - values[1]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return values[0] / values[1]
 
 
 def _path_series(plant, frame, path, item):

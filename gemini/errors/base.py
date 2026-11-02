@@ -1,5 +1,7 @@
 """The seven error classes, the warning, the fixed lists of codes and the shape of a problem."""
 
+from dataclasses import dataclass
+
 CODES = (
     "error",
     "invalid_value",
@@ -65,6 +67,49 @@ def problem(path, code, message, suggestions=(), time=None):
     return shape if time is None else shape | {"time": time}
 
 
+ISSUE_KINDS = {
+    "missing": "missing_value",
+    "unknown_key": "unknown_name",
+    "unit": "invalid_unit",
+    "out_of_bounds": "out_of_bounds",
+    "not_allowed": "invalid_value",
+    "incompatible": "invalid_value",
+    "coverage": "invalid_data",
+}
+"""Every kind of an ``Issue`` with the code its problem carries."""
+
+
+@dataclass(frozen=True)
+class Issue:
+    """One problem found in an input: where, of which kind, what is wrong, and what is accepted.
+
+    ``kind`` is a key of ``ISSUE_KINDS``. ``quantity`` and ``accepted`` name the quantity of a value
+    and the units it accepts, ``suggestions`` the closest valid names. ``code`` overrides the code
+    of the kind (``old_format`` for a file of an older shape). ``problem`` gives the shape
+    ``{path, code, message, suggestions}`` of every error, so an issue is also a problem.
+    """
+
+    path: str
+    kind: str
+    message: str
+    quantity: str | None = None
+    accepted: tuple = ()
+    suggestions: tuple = ()
+    code: str | None = None
+
+    def __post_init__(self):
+        """Refuse a kind or a code that does not exist."""
+        if self.kind not in ISSUE_KINDS:
+            raise GeminiError(f"Issue: kind = {self.kind!r}; expected one of {list(ISSUE_KINDS)}")
+        if self.code is not None and self.code not in CODES:
+            raise GeminiError(f"Issue: code = {self.code!r}; expected one of CODES")
+
+    def problem(self):
+        """Return the problem ``{path, code, message, suggestions}`` of this issue."""
+        code = self.code or ISSUE_KINDS[self.kind]
+        return problem(self.path, code, self.message, self.suggestions)
+
+
 class GeminiError(Exception):
     """Base class of every error GEMINI raises on purpose; catch it to handle them all.
 
@@ -110,6 +155,7 @@ class ValidationError(GeminiError, ValueError):
     """Wrong input: a value, a dict, a binding, a unit or an unknown name."""
 
     code = "invalid_value"
+    issues = ()
 
     @classmethod
     def of(cls, problems):
@@ -126,6 +172,13 @@ class ValidationError(GeminiError, ValueError):
             suggestions=first["suggestions"],
             problems=problems,
         )
+
+    @classmethod
+    def from_issues(cls, issues):
+        """Return the one error of a non-empty list of ``Issue``, which it keeps in ``issues``."""
+        error = cls.of([issue.problem() for issue in issues])
+        error.issues = tuple(issues)
+        return error
 
 
 class DefinitionError(GeminiError):
@@ -172,3 +225,9 @@ def reported(problems, on_error):
     if problems and on_error == "raise":
         raise ValidationError.of(problems)
     return problems
+
+
+def raise_issues(issues):
+    """Raise the ``ValidationError`` that carries every issue of the list, if there are any."""
+    if issues:
+        raise ValidationError.from_issues(issues)

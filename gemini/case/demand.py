@@ -1,132 +1,101 @@
-"""The demand of a case: a CSV file and the heating and cooling services read from it."""
+"""The demand of a case: what the consumers take and the conditions at which they take it."""
 
-from pathlib import Path
-from typing import Annotated, Any
+from functools import cached_property
 
 import pandas as pd
-from pydantic import Field, field_validator, model_validator
 
-from gemini import units
-from gemini._utils.strings import join_names
-from gemini.case._utils import demand as demand_frame
-from gemini.case._utils.fields import Q, Shape
-from gemini.case._utils.section import Section
-from gemini.errors import ValidationError
+from gemini.case._utils.node import Field, Node
+from gemini.case.site import FRACTION, POSITIVE
+from gemini.errors.base import Issue
 
 NAMES = {"heating": "heating_demand", "cooling": "cooling_demand"}
-"""The service names, each with the column of the demand frame it fills."""
+"""The services, each with the column of the demand frame it fills."""
 
 
-class Service(Section):
-    """A heating or cooling service: its column in the file and its temperatures.
+class Service(Node):
+    """A heating service: the ``power`` demanded [W] and the conditions of the consumer.
 
-    Attributes
-    ----------
-    column : str
-        The file column of the demand.
-    unit : Unit
-        The power unit of the column; inside a ``Demand`` it is ``W``, because the demand frame
-        is stored in SI.
-    supply_temperature, return_temperature : float or None
-        What the consumer asks to be supplied at, and the temperature it returns at [K].
+    ``power`` is a series (or a constant) on the steps of ``time``. ``supply_temperature`` is what
+    the consumer asks to be supplied at, ``return_temperature`` what it returns at, the
+    ``minimum_return_temperature`` and ``maximum_return_temperature`` its limits [K], and
+    ``return_pressure`` the pressure it returns at [Pa].
     """
 
-    where = "demand"
-    column: str
-    unit: Annotated[units.Unit, Shape({"enum": units.names("power")})]
-    supply_temperature: Annotated[Any, Q("temperature", minimum=(0.0, True))] = None
-    return_temperature: Annotated[Any, Q("temperature", minimum=(0.0, True))] = None
-
-    @field_validator("unit", mode="before")
-    @classmethod
-    def _power(cls, unit):
-        """Return a power unit, or raise ``invalid_unit``."""
-        if not isinstance(unit, str) or not units.fits(unit, "power"):
-            raise ValidationError(
-                f"unit {unit!r} is not a power; expected one of {join_names(units.names('power'))}",
-                code="invalid_unit",
-            )
-        return units.Unit(unit)
+    where = "demand.heating"
+    old = {
+        "column": '"power": {"file": "data/demand.csv", "column": "...", "unit": "MW"}',
+        "unit": '"power": {"file": "data/demand.csv", "column": "...", "unit": "MW"}',
+    }
+    fields = {
+        "power": Field("power", series=True, bounds=POSITIVE, required=True),
+        "supply_temperature": Field("temperature", bounds=POSITIVE),
+        "return_temperature": Field("temperature", bounds=POSITIVE),
+        "minimum_return_temperature": Field("temperature", bounds=POSITIVE),
+        "maximum_return_temperature": Field("temperature", bounds=POSITIVE),
+        "return_pressure": Field("pressure", bounds=POSITIVE),
+    }
 
 
-class Demand(Section):
-    """The demand file and its services; at least one of ``heating`` and ``cooling``.
+class CoolingService(Service):
+    """A cooling service: a ``Service`` with the state of the building.
 
-    The file is read when the demand is built. ``file`` keeps its name only, because
-    ``Case.to_json`` writes the demand next to the JSON under that name, in W.
+    ``indoor_temperature`` [K], ``indoor_relative_humidity`` [-] and the ``dew_point_margin`` [K]
+    the chilled water must keep above the dew point of the room.
+    """
+
+    where = "demand.cooling"
+    fields = {
+        **Service.fields,
+        "indoor_temperature": Field("temperature", bounds=POSITIVE),
+        "indoor_relative_humidity": Field(bounds=FRACTION),
+        "dew_point_margin": Field("temperature_difference", bounds=POSITIVE),
+    }
+
+
+class Demand(Node):
+    """The heating and the cooling service; at least one.
 
     Attributes
     ----------
-    file : str
-        Name of the CSV file.
-    time_column : str or None
-        The column of the timestamps; the first column when absent.
-    heating, cooling : Service or None
-        The services.
     frame : DataFrame
-        The demand in W on a UTC ``time`` index, columns ``heating_demand`` and ``cooling_demand``
-        for the services given.
+        The demand in W on the UTC ``time`` index of the case, the columns ``heating_demand`` and
+        ``cooling_demand`` for the services given, with ``attrs["units"]`` and
+        ``attrs["quantities"]``.
     """
 
     where = "demand"
-    file: str
-    time_column: str | None = None
-    heating: Service | None = None
-    cooling: Service | None = None
-    frame: Any = Field(default=None, json_schema_extra={"hidden": True})
+    old = {
+        "file": 'a "power" series in "heating" and "cooling"',
+        "time_column": 'a first column named "time" in the CSV file',
+    }
+    sections = {"heating": Service, "cooling": CoolingService}
 
-    @model_validator(mode="before")
     @classmethod
-    def _read(cls, data):
-        """Read the file once; the services then state ``W``, in a frame of SI values."""
-        if not isinstance(data, dict) or data.get("frame") is not None:
-            return data
-        given = {name: data[name] for name in NAMES if data.get(name) is not None}
-        if not given or not isinstance(data.get("file"), str):
-            return data
-        specs = {name: _spec(item) for name, item in given.items()}
-        if None in specs.values():
-            return data
-        path = Path(data["file"])
-        if not path.is_file():
-            raise ValidationError(
-                f"demand.file: {str(path)!r} not found", path="demand.file", code="invalid_format"
+    def read(cls, data, path, ctx, header=()):
+        """Return the demand with the index of the case, or ``None`` with issues."""
+        found = super().read(data, path, ctx, header)
+        if found is not None:
+            found._set(_index=ctx.index)
+        return found
+
+    def _verify(self, path, ctx):
+        """Refuse a demand without a service."""
+        if self.heating is None and self.cooling is None:
+            ctx.issues.append(
+                Issue(path, "missing", f"{path}: heating and cooling are absent; expected one")
             )
-        frames = [
-            demand_frame.from_csv(path, {column: NAMES[name]}, unit, data.get("time_column"))
-            for name, (column, unit) in specs.items()
-        ]
-        frame = pd.concat(frames, axis=1)
+
+    @cached_property
+    def frame(self):
+        """The demand in W on the steps of ``time``, as a DataFrame."""
+        columns = {}
+        for name, column in NAMES.items():
+            service = getattr(self, name)
+            if service is not None:
+                columns[column] = service.power
+        frame = pd.DataFrame(columns, index=self._index)
         frame.attrs = {
             "units": dict.fromkeys(frame, "W"),
             "quantities": dict.fromkeys(frame, "power"),
         }
-        watts = {name: _in_watts(item) for name, item in given.items()}
-        return {**data, "file": path.name, "frame": frame, **watts}
-
-    @model_validator(mode="after")
-    def _served(self):
-        """Refuse a demand without a service."""
-        if self.heating is None and self.cooling is None:
-            raise ValidationError(
-                "heating and cooling are absent; expected at least one", code="missing_value"
-            )
-        return self
-
-
-def _spec(service):
-    """Return ``(column, unit)`` of a service given as a dict or a ``Service``, or ``None``."""
-    column = (
-        service.get("column") if isinstance(service, dict) else getattr(service, "column", None)
-    )
-    unit = service.get("unit") if isinstance(service, dict) else getattr(service, "unit", None)
-    if not isinstance(column, str) or not isinstance(unit, str) or not units.fits(unit, "power"):
-        return None
-    return column, unit
-
-
-def _in_watts(service):
-    """Return the service with the unit ``W``: the frame it reads is in W."""
-    if isinstance(service, dict):
-        return {**service, "unit": "W"}
-    return service.model_copy(update={"unit": units.Unit.W})
+        return frame

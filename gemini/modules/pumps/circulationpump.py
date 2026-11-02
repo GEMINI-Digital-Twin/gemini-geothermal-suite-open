@@ -65,7 +65,7 @@ class CirculationPump(Equipment, Module):
         """Set the flow and the pressure of the circuit and draw the electricity."""
 
         # Outlets
-        discharge = inlets.fluid_in.with_(m_dot=self.flow, p=self.loop_pressure)
+        discharge = inlets.fluid_in._with_si(m_dot=self.flow, p=self.loop_pressure)
         hydraulic = pumps.hydraulic_power(discharge.volumetric_flow(), self.pressure_rise)
         power_in = energy.input_power(hydraulic, self.efficiency)
 
@@ -75,8 +75,8 @@ class CirculationPump(Equipment, Module):
         outlets = dict(fluid_out=discharge, loss_out=power_in, power_in=power_in)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the pump from its shaft power at the nominal flow."""
         volume_flow = fluid.volume_flow(self.flow, self.fluid.properties(0, 0).rho_l)
         hydraulic = pumps.hydraulic_power(volume_flow, self.pressure_rise)
-        return self.capex_of(finance, energy.input_power(hydraulic, self.efficiency))
+        return self.capex_of(economics, energy.input_power(hydraulic, self.efficiency))

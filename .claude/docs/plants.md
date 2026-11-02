@@ -12,9 +12,9 @@ never imports `gemini.plants`. Every tool of the plants (the plan, the run, port
 reader and writer of the plant dict, the schema, the catalogue) is in
 `gemini/plants/_utils/`.
 
-Plants are defined in Python. gemini keeps no JSON file; JSON exists only as the plant dict that
+Plants are defined in Python. gemini keeps no JSON file; JSON exists only as the plant file that
 agents use: `gm.Plant.from_dict`, `plant.to_dict`, `gm.Plant.from_json`, `plant.to_json`,
-`gm.plants.schema`, `gm.plants.validate`.
+`gm.plants.schema`.
 
 ## A plant class
 
@@ -96,7 +96,7 @@ plant.connect("esp", "riser")
 plant.connect("return_in", "injector.wellhead_in")
 plant.connect("riser.wellhead_out", "supply_out")
 print(plant.summary())
-print(gm.plants.validate(plant))
+print(len(plant.check()))
 ```
 
 `add(type, name=None, params=None)` takes a registry name or a class and one dict of parameters,
@@ -109,7 +109,7 @@ call syntax.
 
 Every inlet and outlet of every module is connected to another module or to a named plant port. A
 plant port exists only when it is named; there are no automatic ports. An unconnected port is an
-error with code `unconnected_port` and the port path: `gm.plants.validate` and
+error with code `unconnected_port` and the port path: `plant.check()` and
 `from_dict` report it, and a plant with one does not run. While you build, `add` and `connect` do
 not check it.
 
@@ -118,18 +118,19 @@ the other end of a connection, and `p.feeds("boiler.fluid_out")` the modules an 
 its circuit, through mixers, splitters and the units on it, ending at a grid. `gm.schedule` reads the
 role of a unit from it.
 
-## The plant dict
+## The plant file
 
-The plant dict is the input of an agent's plant-building tool (`gm.plants.schema()` is its schema)
-and what the backend stores. It has two forms.
+The plant file is the input of an agent's plant-building tool (`gm.plants.schema()` is its schema)
+and what the backend stores; `plant.to_dict()` and `gm.Plant.from_dict(data)` are the same form in
+memory. It has two forms, both with the header `{"format": 1, "kind": "plant", "name": ...}`.
 
-**A plant of a class** stores its class and the values that were given, never its structure or a
-derived value. `size` is the one key of every structural argument, next to `type`:
+**A plant of a class** stores its class, its structural size and the values that were given, never
+its structure or a derived value:
 
 ```json
-{"format": 2, "type": "MultiWellPlant", "size": {"producers": 3, "injectors": 2},
- "params": {"producers.0.reservoir.temperature": {"value": 87, "unit": "degC"}},
- "bindings": {}, "param_history": {}}
+{"format": 1, "kind": "plant", "name": "MultiWellPlant", "type": "MultiWellPlant",
+ "size": {"producers": {"value": 3}, "injectors": {"value": 2}},
+ "params": {"producers": {"0": {"reservoir": {"temperature": {"value": 87, "unit": "degC"}}}}}}
 ```
 
 **A plant built with `gm.Plant(name)`** has no class and stores its structure. `to_dict(structure=True)`
@@ -137,45 +138,32 @@ gives the same form of any plant: this is how an agent edits one, and how it rem
 taking the unit out of `modules` and `connections` and joining what it joined.
 
 ```json
-{"format": 2, "name": "Doublet",
- "modules": {"reservoir": {"type": "ProductionReservoir", "params": {}},
-             "well": {"type": "ProductionWell", "params": {}},
-             "esp": {"type": "ESP", "params": {}},
-             "riser": {"type": "ProductionWell", "params": {}},
-             "injector": {"type": "InjectionWell", "params": {}},
-             "sink": {"type": "InjectionReservoir", "params": {}}},
+{"format": 1, "kind": "plant", "name": "Doublet",
+ "modules": {"injector": {"type": "InjectionWell"}, "sink": {"type": "InjectionReservoir"},
+             "reservoir": {"type": "ProductionReservoir"}, "well": {"type": "ProductionWell"},
+             "esp": {"type": "ESP"}, "riser": {"type": "ProductionWell"}},
  "connections": [{"source": "injector.bottom_out", "target": "sink.sandface_in"},
                  {"source": "reservoir.sandface_out", "target": "well.bottom_in"},
                  {"source": "well.wellhead_out", "target": "esp.fluid_in"},
                  {"source": "esp.fluid_out", "target": "riser.bottom_in"}],
  "inlets": {"return_in": "injector.wellhead_in"},
  "outlets": {"supply_out": "riser.wellhead_out"},
- "outputs": {"brine_cooling": {"difference": ["riser.wellhead_out.T", "injector.wellhead_in.T"]}},
- "bindings": {}, "param_history": {}}
-```
-
-```python
-problems = gm.plants.validate(data, on_error="record")   # every problem at once
-plant = gm.Plant.from_dict(data)
-assert plant.to_dict() == data
+ "params": {}}
 ```
 
 | Key | Form | Meaning |
 | --- | --- | --- |
-| `format` | both | 2 |
-| `type`, `size`, `params` | class | the class name, its structural arguments and the flat dotted values that were given |
-| `name` | structure | plant name; `module.name` is the name given |
+| `format`, `kind`, `name` | both | `1`, `"plant"`, the plant name; `about` is free text that no code reads |
+| `type`, `size`, `params` | class | the class name, its structural arguments as leaves and the tree of values that were given |
 | `modules` | structure | `{id: {type, size?, params}}`; a group is `{type: "ModuleDict", modules: {...}}` |
 | `connections` | structure | `[{source, target, type?}]`, ends are `"path.port"` |
 | `inlets`, `outlets` | structure | `{plant port: "path.port"}`, a list when several ends share a power or air port |
 | `outputs` | structure | `{name: {"difference": [a, b]}}`, `{"ratio": [a, b]}` or `{"sum": [a, b, ...]}`; see [outputs](#outputs) |
 | `constraints` | structure | `[{target, equals or at_least, by, bounds}]`; see [constraints](#constraints) |
-| `bindings`, `param_history` | both, always | `{path: {name: column}}`; `{path: [{valid_from, params}]}`, the params as `{"value", "unit"}`; see [bindings](#parameters-by-date-and-bindings) |
-| `fluids`, `boundary` | both | `{path: {...}}`, the fluid (density, viscosity, specific heat and thermal conductivity as `{"value", "unit"}`) and the stored assumptions of a module |
-| `inputs` | both | `{path: value}`, what `plant.set_inputs` was given: controls and boundaries by dotted path, plant inlet fields as `port.field` (`m_dot`, `T`, `p`, `fluid`), quantities for a value with a dimension, numbers for the rest; left out when empty |
+| `fluids`, `boundary` | both | `{path: {...}}`, the fluid of a module and the stored boundary of a module |
 
-- `type` of a module is a registry name. It may name a plant class, whose parameters are then dotted
-  (`"esp.stage_count"`), so a plant can contain plants.
+- `type` of a module is a registry name. It may name a plant class, whose parameters are then below
+  it in the `params` tree, so a plant can contain plants.
 - `ModuleDict` and `ModuleList` are groups: they hold children and have no wiring of their own.
   Connections reach through a group (`filters.hot.fluid_out`) but never into a plant child:
   `doublet.supply_out` is right, `doublet.esp.fluid_out` is an error.
@@ -192,37 +180,60 @@ assert plant.to_dict() == data
   speaks for each. The fluid of a plant set in code passes to every child.
 
 `gm.plants.schema()` is generated from the code: the two forms, the enum of registered types, the
-output forms. `gm.plants.validate(data)` takes the dict or a `Plant` (it checks the plant's own `to_dict(structure=True)`, so a plant and its dict give the same result), and reports `unconnected_port`, `unknown_name` with suggestions and the other
-codes of [errors.md](errors.md) on the paths of the dict, such as `connections[1].target`, and on
-`inputs.<path>`: an unknown path, a path that is not an input (`unknown_name`), a wrong unit
-(`invalid_unit`).
+output forms. `plant.check()` takes no argument and returns the issues of the plant and of its
+file (`unconnected_port`, `unknown_name` with suggestions and the other codes of
+[errors.md](errors.md), on the paths of the dict, such as `connections[1].target`); it never
+raises, and `Plant.from_dict` raises the same issues in one `ValidationError`.
 
-`plant.set_inputs` is the one public way to set inputs that are part of the design, with a quantity for a value with a dimension (a bare number raises `invalid_value`; `_set_si_inputs` is the private SI path of `gemini`): a setpoint of a
-stored heat pump is schedulable as it is read, `from_dict` applies it and `gm.schedule` reads it
-through `plant.input_value`. A column of the run wins over it. A value assigned on a module
-(`plant.pump.frequency = 50`) and the last tick a run leaves on a module are not stored.
-`plant.to_json(path)` and `gm.Plant.from_json(path)` write and read it as JSON. A plant dict of an older
-format raises `ValidationError` with code `old_format`.
+`plant.set_inputs` is the one public way to set an input in memory, with a quantity for a value with
+a dimension (a bare number raises `invalid_value`; `_set_si_inputs` is the private SI path of
+`gemini`). A plant file has no `inputs` key: the setpoint of a stored heat pump is a leaf of its
+`params`, a column of the run wins over it, and `gm.schedule` reads it through `plant.input_value`.
+A value assigned on a module (`plant.pump.frequency = {"value": 50, "unit": "Hz"}`) and the last
+tick a run leaves on a module are not stored. `plant.to_json(path, structure=False)` and
+`gm.Plant.from_json(path)` write and read the file. A plant file of an older format raises
+`ValidationError` with code `old_format`.
 
-## What the plant dict holds
+## What the plant file holds
 
-The plant dict holds only the plant: the class and size, the design values (`params`), the setpoints
-(`inputs`), the bindings and the dated values. It holds nothing that describes the world or the
-request, which is in the `gm.Case`: not the ground (gradient, surface temperature), the reservoir
-(permeability, thickness, pressure), the brine of a `Doublet`, the air, the return and supply
-temperatures of the consumers, the prices, the limits or the demand. A parameter that the case
-sets is declared with `Parameter(..., case="<path in the case>")` (`Doublet.gradient`,
-`surface_temperature`, `permeability`, `thickness`; `Formation.geothermal_gradient`,
-`surface_temperature`; `HeatingGrid` and `CoolingGrid` `return_temperature` and the required supply
-temperature): a plant dict that states one is refused with `invalid_value` naming the case path, and
-`to_dict` never writes it. A value with a unit in `params` or `inputs` is a `{"value", "unit"}` and
-`to_dict` writes it so; a bare number with a dimension is refused, in `params`, `inputs`, `fluids` and `param_history`. Known limits:
+A plant file (`kind: plant`, `format: 1`, header `{"format", "kind", "name"}` and free `about`) holds
+only the plant: `type` (a class from `gm.plants.names()`) or `modules` and `connections` (with
+`inlets`, `outlets`, `outputs`, `constraints`); both given must agree. `size` sits beside `params`,
+one leaf per structural argument (`"doublets": {"value": 2, "range": {"min": 1, "max": 3}}`).
+`params` is one tree that mirrors the module tree (`params.d0.esp.efficiency`); every leaf is an
+object `{"value", "unit", "range", "options", "history"}`: `unit` if and only if the value has a
+dimension, `range` and `options` the search freedom (an option is in the closed list of the
+parameter, a range within its bounds), `history` the dated values `[{valid_from, value}]`. A leaf
+may have no value: a template that `size` completes. A control or a boundary of a module is a leaf
+too (`params.heat_pump.temperature_setpoint`), so there is no `inputs` key. The plant-level
+`dispatch` and `outages` sit under `params.control`, `backup` and `depth` at the top of `params`.
+`fluids` and `boundary` stay as keys by module path. There is no `bindings` key: a file naming
+columns would tie the plant to one dataset; `set_bindings` stays in memory, and a checkpoint stores
+them itself. A file of `format: 2` with no `kind` raises `old_format`. It holds nothing that
+describes the world or the request, which is in the `gm.Case`: not the ground (gradient, surface
+temperature), the reservoir (permeability, thickness, pressure), the brine of a `Doublet`, the air,
+the return and supply temperatures of the consumers, the prices, the limits or the demand. A
+parameter that the case sets is declared with `Parameter(..., case="<path in the case>")`
+(`Doublet.gradient`, `surface_temperature`, `permeability`, `thickness`; `Formation.geothermal_gradient`,
+`surface_temperature`; `GasGrid.composition`; `Atmosphere.pressure`; the `ElectricityGrid` limits; of
+`HeatingGrid` and `CoolingGrid` the return temperature, pressure and limits and the required supply
+temperature, and for cold the dew point margin) or a boundary with `Boundary(..., case=...)`
+(`CoolingGrid.indoor_temperature` and `indoor_relative_humidity`, `Desander.sand_concentration`): a
+plant file that states one is refused with `invalid_value` naming the case path, and `to_dict`
+never writes it. What the plant states instead is a **margin** over a supply temperature
+(`supply_margin` of a unit on a supply line, K), the operating `frequency` of an injection pump, and
+the operating limits of the equipment (`esp.minimum_intake_pressure`, `esp.maximum_gas_fraction`).
+The limits are values of the plant, so `resize` repeats them on each added doublet; the split
+fractions of `ParallelExchangerPlant` are controls of its splitters in the file. A bare number with a dimension is refused. `from_dict` raises every
+issue at once, except a parameter or size without a value; `plant.check()` returns all of them and
+never raises. `plant.ranges` and `plant.options` give the search space in file order, `plant.size`
+the sizes, `set_range` and `set_options` change them with the checks of a file. Known limits:
 
 - `fluids` remains in the plant dict, for a module whose fluid differs from its class default. A
   plant with no case (a measured or replayed plant such as `DoubletHeatPlant`) carries its own
-  brine there; with a case, a `Doublet` takes its fluid from `environment.fluid`.
-- The pressure of the water a consumer returns stays a design parameter of the plant: the case
-  has no field for it.
+  brine there; with a case, a `Doublet` takes its fluid from `site.fluid`.
+- The constructor defaults of the class plants (`doublets=1`, `consumers=2`, `service='heating'`,
+  `producers=2`, `injectors=1`, inputs.md 7.12) stay: hundreds of calls use them.
 
 ## Loops
 
@@ -259,7 +270,7 @@ solved by the parent, and its own outputs are not computed.
 
 ## Constraints
 
-```python
+```text
 self.constrain(
     "riser.wellhead_out.p",
     equals="wellhead_pressure",
@@ -286,7 +297,7 @@ solve; `gm.analysis.nodal` keeps its own curves in `gemini/analysis/solves.py`.
 A plant's outputs are only combinations of paths, computed after its children, traced, the same on
 every backend:
 
-```python
+```text
 self.brine_cooling = Output.difference("riser.wellhead_out.T", "injector.wellhead_in.T")
 self.share = Output.ratio("boiler.fuel", "chp.fuel")
 self.fuel = Output.sum("boiler.fuel", "chp.fuel")
@@ -331,13 +342,12 @@ grid, and its setpoints as `inputs`:
 | `Doublet`, `NodalDoublet`, `HeatingSubstation`, `CoolingSubstation`, `DistrictNetwork`, `MultiWellPlant`, `ATESPlant` | building blocks: a run sets their controls and boundaries |
 | `DistrictEnergyPlant`, `BoilerChpPlant`, `ParallelExchangerPlant` | cases: their examples set their inputs |
 
-Example values live in `inputs/plants/<Name>.json`, in a source checkout only:
-`{"plant": "<Name>", "size": {...}, "params": {"<dotted path>": <value>, ...}}`, numbers as
-quantity dicts where the quantity converts to the same float, plus `fluids`, `boundary`, `bindings`,
-`param_history` and `inputs` under the names of the plant dict. `example_plant(name)` of `tests/fixtures/sample_cases.py` builds the plant of
-that `size`, then `set_params` with `params` and these sections, and `to_dict()` writes the values in
-SI. The five template plants have no values of their own: a design is its plant dict. A plant with no file raises `FileNotFoundError`
-and a missing `inputs/` raises `inputs_missing`.
+Example plants live in `inputs/plants/<Name>.json` and `inputs/examples/*/plants/`, in a source
+checkout only: they are plant files of the form above (`kind: plant`, `format: 1`). The values of
+nature that moved to the case are in `tests/fixtures/plant_case_values.json`, and
+`example_plant(name)` of `tests/fixtures/sample_cases.py` builds the plant from its file and sets
+them on the modules. The five template plants have no values of their own: a design is its plant
+file. A plant with no file raises `FileNotFoundError` and a missing `inputs/` raises `inputs_missing`.
 
 `ATESPlant` has one wiring for both seasons: the `split_fraction` of `source_valve` and `load_valve`
 sends the flow to the exchanger or to the heat pump, and the one that stands still is called at zero
@@ -346,11 +356,11 @@ flow. `AquiferStorage` offers its produced stream, so its loop needs no iteratio
 ## Parameters by date and bindings
 
 ```python
-plant.set_params("doublet.esp", {"stage_count": 14}, valid_from="2025-01-01")
-plant.params_at("doublet.esp", time="2024-06-01")
-plant.param_history("doublet.esp")
-plant.bindable("doublet.esp")
-plant.set_bindings("doublet.esp", {
+plant.set_params("esp", {"stage_count": 14}, valid_from="2025-01-01")
+plant.params_at("esp", time="2024-06-01")
+plant.param_history("esp")
+plant.bindable("esp")
+plant.set_bindings("esp", {
     "frequency": "esp_hz",
     "fluid_in.p": {"column": "p_in", "unit": "bar"},
 })

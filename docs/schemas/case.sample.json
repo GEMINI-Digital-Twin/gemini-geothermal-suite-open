@@ -1,0 +1,219 @@
+{
+  "demand": {
+    "cooling": {
+      "dew_point_margin": {
+        "unit": "K",
+        "value": 1
+      },
+      "indoor_relative_humidity": {
+        "value": 0.45
+      },
+      "indoor_temperature": {
+        "unit": "degC",
+        "value": 24
+      },
+      "power": {
+        "column": "cool_kw",
+        "file": "data/demand.csv",
+        "unit": "kW"
+      },
+      "return_pressure": {
+        "unit": "bar",
+        "value": 3
+      },
+      "return_temperature": {
+        "unit": "degC",
+        "value": 22
+      },
+      "supply_temperature": {
+        "unit": "degC",
+        "value": 16
+      }
+    },
+    "heating": {
+      "power": {
+        "column": "heat_kw",
+        "file": "data/demand.csv",
+        "unit": "kW"
+      },
+      "return_pressure": {
+        "unit": "bar",
+        "value": 5
+      },
+      "return_temperature": {
+        "unit": "degC",
+        "value": 38
+      },
+      "supply_temperature": {
+        "unit": "degC",
+        "value": 65
+      }
+    }
+  },
+  "economics": "economics.json",
+  "format": 1,
+  "kind": "case",
+  "name": "shallow_district",
+  "requirements": [
+    {
+      "max": 180,
+      "min": 35,
+      "name": "production_flow_range",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "production_flow",
+      "unit": "m3/h",
+      "when": "running"
+    },
+    {
+      "max": 22,
+      "name": "brine_cooling_limit",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "brine_cooling",
+      "unit": "K",
+      "when": "running"
+    },
+    {
+      "max": 450,
+      "name": "running_time_limit",
+      "on": "doublet",
+      "over": "duration",
+      "quantity": "production_flow",
+      "unit": "h",
+      "when": "running"
+    },
+    {
+      "max": 0.68,
+      "min": 0.6,
+      "name": "pump_efficiency",
+      "on": "doublet",
+      "quantity": "pump_efficiency"
+    },
+    {
+      "max": 1.00001,
+      "min": 0.99999,
+      "name": "full_reinjection",
+      "on": "doublet",
+      "over": "each",
+      "quantity": "reinjection_ratio",
+      "when": "running"
+    },
+    {
+      "max": 3,
+      "min": 1,
+      "name": "doublet_count",
+      "on": "doublet",
+      "quantity": "count"
+    },
+    {
+      "max": 0.01,
+      "name": "heat_delivered",
+      "on": "heating_supply",
+      "quantity": "unmet_share"
+    },
+    {
+      "max": 0.01,
+      "name": "cold_delivered",
+      "on": "cooling_supply",
+      "quantity": "unmet_share"
+    }
+  ],
+  "site": {
+    "air": {
+      "pressure": {
+        "unit": "Pa",
+        "value": 101325
+      },
+      "temperature": {
+        "unit": "degC",
+        "value": 6
+      }
+    },
+    "fluid": {
+      "density": {
+        "unit": "kg/m3",
+        "value": 1012
+      },
+      "dissolved_gas": {
+        "CH4": {
+          "value": 0.92
+        },
+        "CO2": {
+          "value": 0.08
+        }
+      },
+      "gas_liquid_ratio": {
+        "unit": "Nm3/m3",
+        "value": 0.15
+      },
+      "viscosity": {
+        "unit": "mPa.s",
+        "value": 0.55
+      }
+    },
+    "ground": {
+      "gradient": {
+        "unit": "K/km",
+        "value": 36
+      },
+      "surface_temperature": {
+        "unit": "degC",
+        "value": 9
+      }
+    },
+    "reservoir": {
+      "permeability": {
+        "unit": "mD",
+        "value": 450
+      },
+      "pressure": {
+        "unit": "barg",
+        "value": 120
+      },
+      "reference_depth": {
+        "unit": "m",
+        "value": 1300
+      },
+      "thickness": {
+        "unit": "m",
+        "value": 60
+      }
+    }
+  },
+  "time": {
+    "end": "2026-02-02",
+    "start": "2026-01-12",
+    "step": {
+      "unit": "h",
+      "value": 1
+    }
+  },
+  "utilities": {
+    "electricity": {
+      "co2_intensity": {
+        "unit": "g/kWh",
+        "value": 360
+      }
+    },
+    "gas": {
+      "composition": {
+        "C2H6": {
+          "value": 0.039549858193534584
+        },
+        "C3H8": {
+          "value": 0.012748086337494389
+        },
+        "CH4": {
+          "value": 0.8249507401227822
+        },
+        "CO2": {
+          "value": 0.011912342910726407
+        },
+        "N2": {
+          "value": 0.11083897243546233
+        }
+      }
+    }
+  }
+}

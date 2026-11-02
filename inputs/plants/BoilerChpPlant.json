@@ -1,151 +1,480 @@
 {
-  "plant": "BoilerChpPlant",
+  "format": 1,
+  "kind": "plant",
+  "name": "BoilerChpPlant",
+  "type": "BoilerChpPlant",
   "params": {
-    "doublet.production_rates": [
-      5.0,
-      60.0
-    ],
-    "doublet.maximum_injection_pressure": {"value": 500, "unit": "bar"},
-    "doublet.formation.geothermal_gradient": null,
-    "doublet.formation.surface_temperature": null,
-    "doublet.reservoir.role": "production",
-    "doublet.reservoir.pressure": {"value": 250, "unit": "bar"},
-    "doublet.reservoir.temperature": {"value": 80, "unit": "degC"},
-    "doublet.reservoir.permeability": {"value": 1e-12, "unit": "m2"},
-    "doublet.reservoir.aquifer_thickness": {"value": 100, "unit": "m"},
-    "doublet.reservoir.drainage_radius": {"value": 0, "unit": "m"},
-    "doublet.reservoir.top_depth": {"value": 2400, "unit": "m"},
-    "doublet.reservoir.productivity_index": {"value": 2.7777777777777777e-08, "unit": "m3/s/Pa"},
-    "doublet.reservoir.injectivity_index": null,
-    "doublet.reservoir.skin": 0.0,
-    "doublet.reservoir.wellbore_radius": {"value": 0.1, "unit": "m"},
-    "doublet.reservoir.decline_threshold": 0.15,
-    "doublet.well.section_length": {"value": [300.0, 100.0, 200.0, 1800.0], "unit": "m"},
-    "doublet.well.section_inclination": {"value": [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966], "unit": "rad"},
-    "doublet.well.section_diameter": {"value": [0.15, 0.15, 0.15, 0.15], "unit": "m"},
-    "doublet.well.section_roughness": {"value": [0.01, 0.01, 0.01, 0.01], "unit": "m"},
-    "doublet.well.friction_correlation": "darcy_weisbach",
-    "doublet.well.two_phase_friction_correlation": "BeggsBrill",
-    "doublet.well.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "doublet.well.soil_temperature": {"value": 20, "unit": "degC"},
-    "doublet.well.heat_transfer_coefficient": {"value": 10, "unit": "W/m2/K"},
-    "doublet.well.segment": "below_esp",
-    "doublet.well.esp_depth": {"value": 650, "unit": "m"},
-    "doublet.esp.stage_count": 10,
-    "doublet.esp.head_coefficients": [
-      83.08389282,
-      -0.000460444,
-      -1.19e-07,
-      1.69e-11,
-      -6.36e-16,
-      6.69e-21
-    ],
-    "doublet.esp.power_coefficients": [
-      10.02089977,
-      -0.000160233,
-      6.52e-08,
-      -2.13e-12,
-      1.71e-17,
-      1.38e-23
-    ],
-    "doublet.esp.pump_type": "unspecified",
-    "doublet.esp.setting_depth": {"value": 0, "unit": "m"},
-    "doublet.esp.motor_efficiency": 1.0,
-    "doublet.esp.minimum_flow": {"value": 0, "unit": "m3/h"},
-    "doublet.esp.maximum_flow": {"value": 3600, "unit": "m3/h"},
-    "doublet.esp.best_efficiency_flow": {"value": 144, "unit": "m3/h"},
-    "doublet.esp.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "doublet.esp.tubing": null,
-    "doublet.esp.drift_threshold": 0.1,
-    "doublet.riser.section_length": {"value": [300.0, 100.0, 200.0, 1800.0], "unit": "m"},
-    "doublet.riser.section_inclination": {"value": [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966], "unit": "rad"},
-    "doublet.riser.section_diameter": {"value": [0.15, 0.15, 0.15, 0.15], "unit": "m"},
-    "doublet.riser.section_roughness": {"value": [0.01, 0.01, 0.01, 0.01], "unit": "m"},
-    "doublet.riser.friction_correlation": "darcy_weisbach",
-    "doublet.riser.two_phase_friction_correlation": "BeggsBrill",
-    "doublet.riser.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "doublet.riser.soil_temperature": {"value": 20, "unit": "degC"},
-    "doublet.riser.heat_transfer_coefficient": {"value": 10, "unit": "W/m2/K"},
-    "doublet.riser.segment": "above_esp",
-    "doublet.riser.esp_depth": {"value": 650, "unit": "m"},
-    "doublet.injection_pump.stage_count": null,
-    "doublet.injection_pump.pump_type": "unspecified",
-    "doublet.injection_pump.efficiency": 0.8,
-    "doublet.injection_pump.head_coefficients": null,
-    "doublet.injection_pump.power_coefficients": null,
-    "doublet.injector.section_length": {"value": [300.0, 100.0, 200.0, 2500.0], "unit": "m"},
-    "doublet.injector.section_inclination": {"value": [1.5707963267948966, 1.5707963267948966, 1.5707963267948966, 1.5707963267948966], "unit": "rad"},
-    "doublet.injector.section_diameter": {"value": [0.15, 0.15, 0.15, 0.15], "unit": "m"},
-    "doublet.injector.section_roughness": {"value": [0.01, 0.01, 0.01, 0.01], "unit": "m"},
-    "doublet.injector.friction_correlation": "darcy_weisbach",
-    "doublet.injector.two_phase_friction_correlation": "BeggsBrill",
-    "doublet.injector.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "doublet.injector.soil_temperature": {"value": 20, "unit": "degC"},
-    "doublet.injector.heat_transfer_coefficient": {"value": 10, "unit": "W/m2/K"},
-    "doublet.sink.role": "injection",
-    "doublet.sink.pressure": {"value": 240, "unit": "bar"},
-    "doublet.sink.temperature": {"value": 80, "unit": "degC"},
-    "doublet.sink.permeability": {"value": 1e-12, "unit": "m2"},
-    "doublet.sink.aquifer_thickness": {"value": 100, "unit": "m"},
-    "doublet.sink.drainage_radius": {"value": 0, "unit": "m"},
-    "doublet.sink.top_depth": {"value": 3100, "unit": "m"},
-    "doublet.sink.productivity_index": null,
-    "doublet.sink.injectivity_index": {"value": 2.7777777777777777e-08, "unit": "m3/s/Pa"},
-    "doublet.sink.skin": 0.0,
-    "doublet.sink.wellbore_radius": {"value": 0.1, "unit": "m"},
-    "doublet.sink.decline_threshold": 0.15,
-    "degasser.outlet_pressure": null,
-    "degasser.nominal_pressure_drop": {"value": 0.149, "unit": "bar"},
-    "degasser.heat_transfer_coefficient": {"value": 0.0, "unit": "W/K"},
-    "degasser.separation_efficiency": 0.0,
-    "hot_filter.nominal_pressure_drop": {"value": 0.016, "unit": "bar"},
-    "hot_filter.nominal_mass_flow": {"value": 44.20333333333333, "unit": "kg/s"},
-    "hot_filter.clogging_pressure_drop": {"value": 0.5, "unit": "bar"},
-    "heat_exchanger.thermal_conductance": {"value": 250000, "unit": "W/K"},
-    "heat_exchanger.arrangement": "counterflow",
-    "heat_exchanger.hot_nominal_pressure_drop": {"value": 0, "unit": "bar"},
-    "heat_exchanger.cold_nominal_pressure_drop": {"value": 0, "unit": "bar"},
-    "heat_exchanger.hot_nominal_mass_flow": {"value": 36, "unit": "kg/s"},
-    "heat_exchanger.cold_nominal_mass_flow": {"value": 19.4, "unit": "kg/s"},
-    "heat_exchanger.fouling_threshold": 0.15,
-    "cold_filter.nominal_pressure_drop": {"value": 0.016, "unit": "bar"},
-    "cold_filter.nominal_mass_flow": {"value": 44.20333333333333, "unit": "kg/s"},
-    "cold_filter.clogging_pressure_drop": {"value": 0.5, "unit": "bar"},
-    "boiler_gas.composition": {
-      "CH4": 0.8249507401227822,
-      "C2H6": 0.039549858193534584,
-      "C3H8": 0.012748086337494389,
-      "CO2": 0.011912342910726407,
-      "N2": 0.11083897243546233
+    "doublet": {
+      "production_rates": {
+        "value": [
+          5.0,
+          60.0
+        ]
+      },
+      "maximum_injection_pressure": {
+        "value": 500,
+        "unit": "bar"
+      },
+      "reservoir": {
+        "role": {
+          "value": "production"
+        },
+        "pressure": {
+          "value": 250,
+          "unit": "bar"
+        },
+        "temperature": {
+          "value": 80,
+          "unit": "degC"
+        },
+        "permeability": {
+          "value": 1e-12,
+          "unit": "m2"
+        },
+        "aquifer_thickness": {
+          "value": 100,
+          "unit": "m"
+        },
+        "drainage_radius": {
+          "value": 0,
+          "unit": "m"
+        },
+        "top_depth": {
+          "value": 2400,
+          "unit": "m"
+        },
+        "productivity_index": {
+          "value": 2.7777777777777777e-08,
+          "unit": "m3/s/Pa"
+        },
+        "injectivity_index": {
+          "value": null
+        },
+        "skin": {
+          "value": 0.0
+        },
+        "wellbore_radius": {
+          "value": 0.1,
+          "unit": "m"
+        },
+        "decline_threshold": {
+          "value": 0.15
+        }
+      },
+      "well": {
+        "section_length": {
+          "value": [
+            300.0,
+            100.0,
+            200.0,
+            1800.0
+          ],
+          "unit": "m"
+        },
+        "section_inclination": {
+          "value": [
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966
+          ],
+          "unit": "rad"
+        },
+        "section_diameter": {
+          "value": [
+            0.15,
+            0.15,
+            0.15,
+            0.15
+          ],
+          "unit": "m"
+        },
+        "section_roughness": {
+          "value": [
+            0.01,
+            0.01,
+            0.01,
+            0.01
+          ],
+          "unit": "m"
+        },
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "soil_temperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heat_transfer_coefficient": {
+          "value": 10,
+          "unit": "W/m2/K"
+        },
+        "segment": {
+          "value": "below_esp"
+        },
+        "esp_depth": {
+          "value": 650,
+          "unit": "m"
+        }
+      },
+      "esp": {
+        "stage_count": {
+          "value": 10
+        },
+        "head_coefficients": {
+          "value": [
+            83.08389282,
+            -0.000460444,
+            -1.19e-07,
+            1.69e-11,
+            -6.36e-16,
+            6.69e-21
+          ]
+        },
+        "power_coefficients": {
+          "value": [
+            10.02089977,
+            -0.000160233,
+            6.52e-08,
+            -2.13e-12,
+            1.71e-17,
+            1.38e-23
+          ]
+        },
+        "pump_type": {
+          "value": "unspecified"
+        },
+        "setting_depth": {
+          "value": 0,
+          "unit": "m"
+        },
+        "motor_efficiency": {
+          "value": 1.0
+        },
+        "minimum_flow": {
+          "value": 0,
+          "unit": "m3/h"
+        },
+        "maximum_flow": {
+          "value": 3600,
+          "unit": "m3/h"
+        },
+        "best_efficiency_flow": {
+          "value": 144,
+          "unit": "m3/h"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "tubing": {
+          "value": null
+        },
+        "drift_threshold": {
+          "value": 0.1
+        }
+      },
+      "riser": {
+        "section_length": {
+          "value": [
+            300.0,
+            100.0,
+            200.0,
+            1800.0
+          ],
+          "unit": "m"
+        },
+        "section_inclination": {
+          "value": [
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966
+          ],
+          "unit": "rad"
+        },
+        "section_diameter": {
+          "value": [
+            0.15,
+            0.15,
+            0.15,
+            0.15
+          ],
+          "unit": "m"
+        },
+        "section_roughness": {
+          "value": [
+            0.01,
+            0.01,
+            0.01,
+            0.01
+          ],
+          "unit": "m"
+        },
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "soil_temperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heat_transfer_coefficient": {
+          "value": 10,
+          "unit": "W/m2/K"
+        },
+        "segment": {
+          "value": "above_esp"
+        },
+        "esp_depth": {
+          "value": 650,
+          "unit": "m"
+        }
+      },
+      "injection_pump": {
+        "stage_count": {
+          "value": null
+        },
+        "pump_type": {
+          "value": "unspecified"
+        },
+        "efficiency": {
+          "value": 0.8
+        },
+        "head_coefficients": {
+          "value": null
+        },
+        "power_coefficients": {
+          "value": null
+        },
+        "frequency": {
+          "value": 60,
+          "unit": "Hz"
+        }
+      },
+      "injector": {
+        "section_length": {
+          "value": [
+            300.0,
+            100.0,
+            200.0,
+            2500.0
+          ],
+          "unit": "m"
+        },
+        "section_inclination": {
+          "value": [
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966
+          ],
+          "unit": "rad"
+        },
+        "section_diameter": {
+          "value": [
+            0.15,
+            0.15,
+            0.15,
+            0.15
+          ],
+          "unit": "m"
+        },
+        "section_roughness": {
+          "value": [
+            0.01,
+            0.01,
+            0.01,
+            0.01
+          ],
+          "unit": "m"
+        },
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "soil_temperature": {
+          "value": 20,
+          "unit": "degC"
+        },
+        "heat_transfer_coefficient": {
+          "value": 10,
+          "unit": "W/m2/K"
+        }
+      },
+      "sink": {
+        "role": {
+          "value": "injection"
+        },
+        "pressure": {
+          "value": 240,
+          "unit": "bar"
+        },
+        "temperature": {
+          "value": 80,
+          "unit": "degC"
+        },
+        "permeability": {
+          "value": 1e-12,
+          "unit": "m2"
+        },
+        "aquifer_thickness": {
+          "value": 100,
+          "unit": "m"
+        },
+        "drainage_radius": {
+          "value": 0,
+          "unit": "m"
+        },
+        "top_depth": {
+          "value": 3100,
+          "unit": "m"
+        },
+        "productivity_index": {
+          "value": null
+        },
+        "injectivity_index": {
+          "value": 2.7777777777777777e-08,
+          "unit": "m3/s/Pa"
+        },
+        "skin": {
+          "value": 0.0
+        },
+        "wellbore_radius": {
+          "value": 0.1,
+          "unit": "m"
+        },
+        "decline_threshold": {
+          "value": 0.15
+        }
+      }
     },
-    "chp_gas.composition": {
-      "CH4": 0.8249507401227822,
-      "C2H6": 0.039549858193534584,
-      "C3H8": 0.012748086337494389,
-      "CO2": 0.011912342910726407,
-      "N2": 0.11083897243546233
+    "degasser": {
+      "outlet_pressure": {
+        "value": null
+      },
+      "nominal_pressure_drop": {
+        "value": 0.149,
+        "unit": "bar"
+      },
+      "heat_transfer_coefficient": {
+        "value": 0.0,
+        "unit": "W/K"
+      },
+      "separation_efficiency": {
+        "value": 0.0
+      }
     },
-    "boiler.capacity": {"value": 3, "unit": "MW"},
-    "boiler.efficiency": 0.8,
-    "chp.electric_capacity": {"value": 0.4, "unit": "MW"},
-    "chp.electric_efficiency": 0.4,
-    "chp.thermal_efficiency": 0.45,
-    "chp.no_load_fuel_fraction": 0.0,
-    "chp.maximum_outlet_temperature": {"value": 90, "unit": "degC"},
-    "electricity_grid.import_limit": null,
-    "electricity_grid.export_limit": null,
-    "air.pressure": {"value": 1.01325, "unit": "bar"}
+    "hot_filter": {
+      "nominal_pressure_drop": {
+        "value": 0.016,
+        "unit": "bar"
+      },
+      "nominal_mass_flow": {
+        "value": 44.20333333333333,
+        "unit": "kg/s"
+      },
+      "clogging_pressure_drop": {
+        "value": 0.5,
+        "unit": "bar"
+      }
+    },
+    "heat_exchanger": {
+      "thermal_conductance": {
+        "value": 250000,
+        "unit": "W/K"
+      },
+      "arrangement": {
+        "value": "counterflow"
+      },
+      "hot_nominal_pressure_drop": {
+        "value": 0,
+        "unit": "bar"
+      },
+      "cold_nominal_pressure_drop": {
+        "value": 0,
+        "unit": "bar"
+      },
+      "hot_nominal_mass_flow": {
+        "value": 36,
+        "unit": "kg/s"
+      },
+      "cold_nominal_mass_flow": {
+        "value": 19.4,
+        "unit": "kg/s"
+      },
+      "fouling_threshold": {
+        "value": 0.15
+      }
+    },
+    "cold_filter": {
+      "nominal_pressure_drop": {
+        "value": 0.016,
+        "unit": "bar"
+      },
+      "nominal_mass_flow": {
+        "value": 44.20333333333333,
+        "unit": "kg/s"
+      },
+      "clogging_pressure_drop": {
+        "value": 0.5,
+        "unit": "bar"
+      }
+    },
+    "boiler": {
+      "capacity": {
+        "value": 3,
+        "unit": "MW"
+      },
+      "efficiency": {
+        "value": 0.8
+      }
+    },
+    "chp": {
+      "electric_capacity": {
+        "value": 0.4,
+        "unit": "MW"
+      },
+      "electric_efficiency": {
+        "value": 0.4
+      },
+      "thermal_efficiency": {
+        "value": 0.45
+      },
+      "no_load_fuel_fraction": {
+        "value": 0.0
+      },
+      "maximum_outlet_temperature": {
+        "value": 90,
+        "unit": "degC"
+      }
+    }
   }
 }

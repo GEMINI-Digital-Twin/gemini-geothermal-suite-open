@@ -43,6 +43,7 @@ class CHP(Equipment, Module):
     """
 
     equipment_kind = "chp"
+    plant_role = "chp"
 
     def __init__(self):
         """Declare engine design data, the heated water circuit and energy flows."""
@@ -99,7 +100,7 @@ class CHP(Equipment, Module):
         # Outlets
         inlet, fuel = inlets.fluid_in, inlets.fuel_in
         values = self._performance(inlet, fuel)
-        outlet = inlet.with_(T=values["fluid_out_T"])
+        outlet = inlet._with_si(T=values["fluid_out_T"])
         flue_out = _burner.flue_stream(values["fuel"], fuel)
         fuel_in = _burner.burned_stream(values["fuel"], fuel)
 
@@ -116,9 +117,9 @@ class CHP(Equipment, Module):
         )
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the engine from its electric capacity."""
-        return self.capex_of(finance, self.electric_capacity)
+        return self.capex_of(economics, self.electric_capacity)
 
     def _no_load_fuel_fraction(self):
         """Return the no-load fuel share; zero when the term is left out."""

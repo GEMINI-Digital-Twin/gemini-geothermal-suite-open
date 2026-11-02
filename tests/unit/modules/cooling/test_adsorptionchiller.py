@@ -66,21 +66,21 @@ def test_setpoint_and_capacity():
 
 def test_driving_temperature_range():
     """Below 55 degC the chiller is off; above 90 degC the map is out of range."""
-    result = call(chiller(), 280, generator_in=GENERATOR.with_(T=273.15 + 50))
+    result = call(chiller(), 280, generator_in=GENERATOR._with_si(T=273.15 + 50))
     assert reading(result).evaporator_duty == 0 and result.outputs.cop is None
     assert result.outlets.chilled_out.T == CHILLED.T
     with pytest.raises(PhysicsError, match="generator_in.T = 368.15"):
-        call(chiller(), 280, generator_in=GENERATOR.with_(T=368.15))
+        call(chiller(), 280, generator_in=GENERATOR._with_si(T=368.15))
     with raises(ValidationError, "invalid_design", match="minimum_driving_temperature"):
         call(chiller(minimum_driving_temperature=370), 280)
 
 
 def test_zero_and_negative_flow():
     """A stopped circuit gives no cold; a reversed flow raises."""
-    out = reading(call(chiller(), 280, cooling_in=COOLING.with_(m_dot=0)))
+    out = reading(call(chiller(), 280, cooling_in=COOLING._with_si(m_dot=0)))
     assert out.evaporator_duty == 0 and out.electricity == 0
     with pytest.raises(PhysicsError, match="generator_in.m_dot = -2"):
-        call(chiller(), 280, generator_in=GENERATOR.with_(m_dot=-2))
+        call(chiller(), 280, generator_in=GENERATOR._with_si(m_dot=-2))
 
 
 def test_traced_call_matches_one_call_per_row():
@@ -88,8 +88,8 @@ def test_traced_call_matches_one_call_per_row():
     machine = chiller()
     rows = [
         dict(
-            generator_in=GENERATOR.with_(T=generator_T, m_dot=generator_flow),
-            chilled_in=CHILLED.with_(m_dot=chilled_flow),
+            generator_in=GENERATOR._with_si(T=generator_T, m_dot=generator_flow),
+            chilled_in=CHILLED._with_si(m_dot=chilled_flow),
             cooling_in=COOLING,
             temperature_setpoint=setpoint,
         )

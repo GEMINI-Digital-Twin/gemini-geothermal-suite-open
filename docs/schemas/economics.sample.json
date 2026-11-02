@@ -1,0 +1,153 @@
+{
+  "accounting": {
+    "allocation": {
+      "heat_cost_share": {
+        "value": 0.8
+      }
+    },
+    "gwp": {
+      "CH4": {
+        "value": 29.8
+      },
+      "standard": {
+        "value": "IPCC AR6 WG1 table 7.15, GWP100 of fossil methane"
+      }
+    }
+  },
+  "analysis_period": {
+    "unit": "yr",
+    "value": 30
+  },
+  "capex": {
+    "boiler": {
+      "unit": "EUR/W",
+      "value": 0.06073
+    },
+    "chp": {
+      "unit": "EUR/W",
+      "value": 0.96155
+    },
+    "compression_chiller": {
+      "unit": "EUR/W",
+      "value": 0.73786
+    },
+    "cooler": {
+      "unit": "EUR/W",
+      "value": 0.1
+    },
+    "degasser": {
+      "unit": "EUR",
+      "value": 1000000.0
+    },
+    "drilling": {
+      "unit": "EUR/m",
+      "value": 1239.1304347826087
+    },
+    "flare": {
+      "unit": "EUR",
+      "value": 100000
+    },
+    "gas_makeup": {
+      "unit": "EUR",
+      "value": 50000
+    },
+    "heat_exchanger": {
+      "unit": "EUR/(W/K)",
+      "value": 0.5
+    },
+    "heat_pump": {
+      "unit": "EUR/W",
+      "value": 0.73786
+    },
+    "injection_pump": {
+      "unit": "EUR/W",
+      "value": 0.5
+    },
+    "pipe": {
+      "unit": "EUR/m",
+      "value": 500
+    },
+    "production_pump": {
+      "unit": "EUR/W",
+      "value": 0.5
+    }
+  },
+  "currency": {
+    "value": "EUR"
+  },
+  "discount_rate": {
+    "value": 0.04
+  },
+  "energy": {
+    "electricity": {
+      "unit": "EUR/MWh",
+      "value": 120
+    },
+    "gas": {
+      "unit": "EUR/MWh",
+      "value": 55
+    }
+  },
+  "format": 1,
+  "kind": "economics",
+  "name": "shallow_district",
+  "opex": {
+    "fixed": {
+      "boiler": {
+        "unit": "%/yr",
+        "value": 3.25
+      },
+      "chp": {
+        "unit": "%/yr",
+        "value": 1.0263
+      },
+      "compression_chiller": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "cooler": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "degasser": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "drilling": {
+        "unit": "%/yr",
+        "value": 1
+      },
+      "flare": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "gas_makeup": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "heat_exchanger": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "heat_pump": {
+        "unit": "%/yr",
+        "value": 0.2239
+      },
+      "injection_pump": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "pipe": {
+        "unit": "%/yr",
+        "value": 1.5
+      },
+      "production_pump": {
+        "unit": "%/yr",
+        "value": 1.5
+      }
+    }
+  },
+  "price_year": {
+    "value": 2015
+  }
+}

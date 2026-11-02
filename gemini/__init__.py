@@ -24,12 +24,14 @@ from gemini.run import (
     Dataset,
     Results,
     call,
+    check,
     live,
     replay,
     resume,
     schedule,
     simulate,
 )
+from gemini.study import Study
 from gemini.types import BRINE, WATER, Fluid, Stream
 
 __version__ = package_version()
@@ -45,6 +47,8 @@ __all__ = [
     "BRINE",
     "WATER",
     "Case",
+    "Study",
+    "check",
     "schedule",
     "simulate",
     "replay",

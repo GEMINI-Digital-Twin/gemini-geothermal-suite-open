@@ -213,10 +213,10 @@ Ground and aquifer heat transport: doublet breakthrough, conduction shapes, Rame
 - `reservoir_temperature(surface_temperature, gradient, depth, reference_depth,
   reference_temperature=None)`: the reservoir temperature [K] at a depth, anchored at a measured
   temperature when one is given, else the geotherm from the surface. One of the two rules of
-  `case.environment.temperature_at(depth)`.
+  `case.site.temperature_at(depth)`.
 - `reservoir_pressure(reference_pressure, density, depth, reference_depth)`: the absolute pressure
   [Pa] at a depth from the pressure at a reference depth and a hydrostatic column of the brine; the
-  other rule, `case.environment.pressure_at(depth)`.
+  other rule, `case.site.pressure_at(depth)`.
 - `aquifer_volumetric_heat_capacity(porosity, fluid_heat_capacity, rock_heat_capacity)`: bulk
   volumetric heat capacity [J/m3/K] of a saturated aquifer.
 - `doublet_breakthrough_volume(well_spacing, thickness, aquifer_heat_capacity,
@@ -546,7 +546,7 @@ specific_heat, temperature_difference)` and `flow_share(first, second)`.
 ### `costs.py`
 
 - `scaled(factor, size)`: a cost that scales linearly with a size, `C = f s`: a capex factor of
-  `case.assumptions.finance.capex` times the size of the equipment, or a fixed-opex share [1/yr]
+  `case.economics.capex` times the size of the equipment, or a fixed-opex share [1/yr]
   times the capex. It is the one place a module multiplies a factor by a size (the formula test
   forbids a product in a module).
 

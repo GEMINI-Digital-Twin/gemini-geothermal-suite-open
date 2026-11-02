@@ -9,12 +9,12 @@ import gemini as gm
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
-PRICE = "case.assumptions.finance.opex.electricity"
-PATH = "assumptions.finance.opex.electricity"
+PRICE = "case.economics.energy.electricity"
+PATH = "economics.energy.electricity"
 DECLARED = {
     PATH: {"kind": "normal", "std": 10, "min": 90, "max": 150},
-    "assumptions.finance.opex.gas": {"kind": "triangular", "min": 40, "max": 90},
-    "assumptions.finance.discount_rate": {"kind": "uniform", "min": 0.02, "max": 0.08},
+    "economics.energy.gas": {"kind": "triangular", "min": 40, "max": 90},
+    "economics.discount_rate": {"kind": "uniform", "min": 0.02, "max": 0.08},
 }
 
 
@@ -46,15 +46,15 @@ def test_only_the_declared_values_are_drawn_inside_their_ranges(sampled, runs):
     draws = sampled[0]["samples"]
     assert set(draws[0]["parameters"]) == {
         PRICE,
-        "case.assumptions.finance.opex.gas",
-        "case.assumptions.finance.discount_rate",
+        "case.economics.energy.gas",
+        "case.economics.discount_rate",
     }
     prices = [item["parameters"][PRICE] for item in draws]
     assert {item.unit for item in prices} == {"currency/J"}
     assert all(90 / 3.6e9 <= item.value <= 150 / 3.6e9 for item in prices)
-    rates = [item["parameters"]["case.assumptions.finance.discount_rate"].value for item in draws]
+    rates = [item["parameters"]["case.economics.discount_rate"].value for item in draws]
     assert all(0.02 <= number <= 0.08 for number in rates) and len(set(rates)) > 1
-    seen = {given.assumptions.finance.opex.electricity for _, given, _ in runs[:6]}
+    seen = {given.economics.energy.electricity for _, given, _ in runs[:6]}
     assert seen == {item.value for item in prices}
 
 
@@ -64,7 +64,7 @@ def test_the_case_and_the_plant_are_left_unchanged(runs):
     before = (case.to_dict(), plant.to_dict())
     gm.study.sample(plant, case, ["co2"], 3, 0)
     assert (case.to_dict(), plant.to_dict()) == before
-    assert case.assumptions.finance.opex.electricity == pytest.approx(120 / 3.6e9)
+    assert case.economics.energy.electricity == pytest.approx(120 / 3.6e9)
     assert all(given is not case for _, given, _ in runs)
 
 
@@ -99,11 +99,11 @@ def test_a_case_without_uncertainty_is_refused(runs):
 
 @pytest.mark.parametrize(
     ("arguments", "code"),
-    [({"count": 0}, "invalid_value"), ({"metrics": ["lcox"]}, "unknown_name")],
+    [({"samples": 0}, "invalid_value"), ({"metrics": ["lcox"]}, "unknown_name")],
 )
 def test_a_sample_that_does_not_fit_is_refused(arguments, code, runs):
-    """A wrong count or metric, before any run."""
-    call = dict(metrics=["co2"], count=2, seed=0) | arguments
+    """A wrong sample size or metric, before any run."""
+    call = dict(metrics=["co2"], samples=2, seed=0) | arguments
     with raises(gm.errors.ValidationError, code):
         gm.study.sample(shallow_plant(), declared_case(), **call)
     assert runs == []

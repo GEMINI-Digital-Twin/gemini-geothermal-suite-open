@@ -6,6 +6,7 @@ import gemini as gm
 from gemini.errors import ValidationError
 from gemini.modules.declarations import Output
 from gemini.plants._utils import outputs
+from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 
@@ -85,7 +86,7 @@ def test_a_combination_is_traced_the_same_on_every_backend():
     plant.connect("fluid_in", "tank.fluid_in")
     plant.connect("tank.fluid_out", "fluid_out")
     plant.lift = Output.difference("tank.fluid_out.p", "tank.fluid_in.p")
-    plant.tank.pressure_setpoint = 2e5
+    si.assign(plant.tank, "pressure_setpoint", 2e5)
     rows = [
         {
             "fluid_in": gm.Stream(

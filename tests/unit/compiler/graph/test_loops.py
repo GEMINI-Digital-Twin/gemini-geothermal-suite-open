@@ -65,7 +65,7 @@ class Relaxer(Module):
         # Outlets
         inlet = inlets.fluid_in
         temperature = self.slope * inlet.T + (1 - self.slope) * self.target
-        outlet = inlet.with_(T=temperature, m_dot=self.flow)
+        outlet = inlet._with_si(T=temperature, m_dot=self.flow)
         outlets = dict(fluid_out=outlet)
 
         # Outputs
@@ -133,7 +133,7 @@ class Drifting(Relaxer):
 
     def forward(self, inlets):
         """Warm the stream by ``target`` K per pass."""
-        outlet = inlets.fluid_in.with_(T=inlets.fluid_in.T + self.target)
+        outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + self.target)
         self.drop = -self.target
         return dict(fluid_out=outlet)
 

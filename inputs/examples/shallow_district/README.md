@@ -9,9 +9,11 @@ measured data. Only `examples/` and `tests/` read this folder, and nothing under
 
 | File | Holds |
 | --- | --- |
-| `demand.csv` | 504 hourly rows from 2026-01-12: `timestamp`, `heat_kw`, `cool_kw`, a daily cycle with a morning peak, lower at night and at the weekend; written once from a formula |
-| `case.json` | The case: time, site, brine, demand (kW), choices (1 to 2 doublets, 1000 to 1800 m), constraints and assumptions |
-| `plant.json` | A plant dict of class `HeatingHeatPumpCoolingPlant` on one doublet: design values only |
+| `data/demand.csv` | 504 hourly rows from 2026-01-12: `time`, `heat_kw`, `cool_kw`, a daily cycle with a morning peak, lower at night and at the weekend; written once from a formula |
+| `case.json` | The case: time, site, brine, demand (kW) and requirements; it names `economics.json` |
+| `economics.json` | Prices, factors and finance values |
+| `plants/HeatingHeatPumpCoolingPlant.json` | A plant dict of class `HeatingHeatPumpCoolingPlant` on one doublet: design values and the search ranges (1 to 2 doublets, 1000 to 1800 m) only |
+| `study.json` | The plant run once on the case (`method: run`) |
 
 ## Values
 
@@ -24,7 +26,7 @@ measured data. Only `examples/` and `tests/` read this folder, and nothing under
 | Heating supply, return | 65 degC, 38 degC |
 | Cooling supply, return | 16 degC, 22 degC |
 | Air | 6 degC |
-| Constraints | 35 to 180 m3/h while running, brine cooling at most 22 K, at most 450 h running of 504, pump efficiency 0.6 to 0.68, pump intake pressure at least 5 bar and free gas at most 18.75 % of the intake volume while running, volume balance within 1e-5 m3/s |
+| Requirements | 1 to 3 doublets, heat and cold unmet at most 1 % of the year, 35 to 180 m3/h while running, brine cooling at most 22 K, at most 450 h running of 504, pump efficiency 0.6 to 0.68, reinjection ratio 0.99999 to 1.00001 |
 | Plant | Well 0.216 m, 130 m3/h, 8 bar wellhead, exchanger 250 kW/K, heat pump 1.6 MW with Carnot fraction 0.5 ("close to 50 percent of the Carnot value", H. U. Frutschi, ABB Review 5/1996, pp. 33-34), boiler 3.5 MW at 0.92, compression chiller 0.4 MW, cooler 1 MW |
 
 ## Assumptions and prices
@@ -35,7 +37,7 @@ compression chiller 0.73786 EUR/W, the heat pump row) and, for the heat pump, bo
 (0.5 EUR/(W/K)), cooler (0.1 EUR/W), pipe (500 EUR/m), flare and gas makeup; other fixed opex 1.5 %/yr
 (drilling 1 %/yr).
 
-The injection pump of `plant.json` states its two design values, `nominal_flow` 130 m3/h (its one doublet)
+The injection pump of the plant file states its two design values, `nominal_flow` 130 m3/h (its one doublet)
 and `nominal_head` 14.13 bar. They come from the rule of `gm.study.size` (the flow of the doublets the
 pump serves, and the pressure that the injection well needs at that flow less the 8 bar of the production
 wellhead as best suction, floored at zero) applied to the stored doublet and this case. They are data of
@@ -43,7 +45,7 @@ the plant, not a default of the package.
 
 ## Pump intake limits
 
-The `intake_pressure` and `intake_gas_fraction` constraints limit the ESP intake of a running doublet.
+The plant states two operating limits on the `esp` of its doublet, `minimum_intake_pressure` and `maximum_gas_fraction`, for a running doublet; a breach is a `bound` reason of the verdict, not a failed step.
 
 - Maximum free gas, 0.1875 of the volume at the intake. Source: Baker Hughes, Ace Plus gas handler pumps,
   <https://www.bakerhughes.com/production/artificial-lift/electrical-submersible-pump-systems/pumps/ace-plus-gas-handler-pumps>:
@@ -82,3 +84,11 @@ A module declares no design value: each plant dict of this folder states the val
 | `heat_pump.carnot_fraction`, `compression_chiller.carnot_fraction` | 0.5 | cited: H. U. Frutschi, ABB Review 5/1996 |
 | `heat_pump.lorenz_fraction`, `compression_chiller.lorenz_fraction` | 0.5 | assumption (no source for a Lorenz value of its own) |
 | `heat_pump.minimum_temperature_lift`, `compression_chiller.minimum_temperature_lift` | 10 K | cited: lowest lift of the machines summarised by Arpagaus et al. (2018) |
+
+## Which values are assumptions
+
+All of them: every value in this folder is invented for testing, none is measured data or a market price. The
+requirement bands are assumptions too: the doublet count 1 to 3 is the hackathon rule carried over; the reinjection band
+0.99999 to 1.00001 is the relative band the sample applies for "equal liquid volumes" (carried from the earlier absolute limit of
+1e-5 m3/s). The Carnot fraction 0.5 and the capex and fixed-opex factors that
+the hackathon README cites carry that README's sources (ids of `docs/cost-sources` are given there). `heat_delivered` and `cold_delivered` (the unmet share of the year at most 0.01) are the same assumption as in the hackathon README, which gives the reason.

@@ -52,7 +52,7 @@ def test_hx_apply_and_save(tmp_path, fresh_plant, reference_dataset):
     loaded = gm.Plant.from_json(tmp_path / "plant.json")
     assert loaded.state_dict() == plant.state_dict()
     assert loaded.heat_exchanger._param_history == plant.heat_exchanger._param_history
-    assert loaded.bindings == plant.bindings
+    assert plant.bindings and loaded.bindings == {}
     with pytest.raises(ValueError, match="calibratable"):
         gm.analysis.calibrate(
             plant,

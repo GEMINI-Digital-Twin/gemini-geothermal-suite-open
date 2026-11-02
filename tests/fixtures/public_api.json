@@ -10,19 +10,32 @@
  "classes": {
   "Case": {
    "__init__": [
-    "data"
+    "found"
    ],
+   "check": [],
+   "field": [
+    "path"
+   ],
+   "files": [],
    "from_dict": [
     "data",
+    "files",
     "folder"
    ],
    "from_json": [
+    "path"
+   ],
+   "leaf": [
     "path"
    ],
    "schema": [],
    "to_dict": [],
    "to_json": [
     "path"
+   ],
+   "with_value": [
+    "path",
+    "number"
    ]
   },
   "Engine": {
@@ -107,6 +120,7 @@
     "name",
     "params"
    ],
+   "check": [],
    "connect": [
     "source",
     "target",
@@ -134,6 +148,15 @@
    "set_inputs": [
     "values"
    ],
+   "set_options": [
+    "path",
+    "options"
+   ],
+   "set_range": [
+    "path",
+    "min",
+    "max"
+   ],
    "source_of": [
     "target"
    ],
@@ -145,7 +168,8 @@
     "structure"
    ],
    "to_json": [
-    "path"
+    "path",
+    "structure"
    ]
   },
   "Results": {
@@ -182,6 +206,24 @@
     "table"
    ],
    "to_npz": [
+    "path"
+   ]
+  },
+  "Study": {
+   "check": [],
+   "from_dict": [
+    "data",
+    "files",
+    "folder"
+   ],
+   "from_json": [
+    "path"
+   ],
+   "run": [
+    "plants"
+   ],
+   "to_dict": [],
+   "to_json": [
     "path"
    ]
   }
@@ -338,28 +380,32 @@
    ]
   },
   "case": {
+   "Accounting": "class",
    "Air": "class",
-   "Allocation": "class",
-   "Assumptions": "class",
-   "CH4": "class",
-   "CO2": "class",
    "Capex": "class",
+   "Carbon": "class",
    "Case": "class",
-   "Choices": "class",
-   "Constraint": "class",
+   "CoolingService": "class",
    "Demand": "class",
-   "Emissions": "class",
-   "Environment": "class",
-   "Finance": "class",
+   "DepthTable": "class",
+   "Economics": "class",
+   "Electricity": "class",
+   "Energy": "class",
    "Fluid": "class",
+   "Gas": "class",
    "Ground": "class",
+   "Gwp": "class",
    "Opex": "class",
    "Range": "class",
+   "Requirement": "class",
    "Reservoir": "class",
    "Revenue": "class",
    "Service": "class",
+   "Site": "class",
+   "Subsidy": "class",
    "Time": "class",
    "Uncertainty": "class",
+   "Utilities": "class",
    "roles": []
   },
   "compiler": {
@@ -371,8 +417,7 @@
    "from_csv": [
     "path",
     "columns",
-    "unit",
-    "time_column"
+    "unit"
    ],
    "from_values": [
     "values",
@@ -388,8 +433,6 @@
     "plant",
     "case",
     "results",
-    "discount_rate",
-    "lifetime",
     "on_error"
    ],
    "bounds": [
@@ -417,11 +460,6 @@
     "reports",
     "by"
    ],
-   "constraints": [
-    "plant",
-    "case",
-    "results"
-   ],
    "energy_balance": [
     "plant",
     "case",
@@ -434,24 +472,18 @@
     "plant",
     "case",
     "results",
-    "discount_rate",
-    "lifetime",
     "on_error"
    ],
    "lcoh": [
     "plant",
     "case",
     "results",
-    "discount_rate",
-    "lifetime",
     "on_error"
    ],
    "lcts": [
     "plant",
     "case",
     "results",
-    "discount_rate",
-    "lifetime",
     "on_error"
    ],
    "mass_balance": [
@@ -463,8 +495,6 @@
     "plant",
     "case",
     "results",
-    "discount_rate",
-    "lifetime",
     "on_error"
    ],
    "opex": [
@@ -489,12 +519,22 @@
     "case",
     "results"
    ],
+   "requirements": [
+    "plant",
+    "case",
+    "results"
+   ],
    "run_all": [
     "plant",
     "case",
     "results"
    ],
    "totals": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "verdict": [
     "plant",
     "case",
     "results"
@@ -773,11 +813,7 @@
    "names": [
     "category"
    ],
-   "schema": [],
-   "validate": [
-    "data",
-    "on_error"
-   ]
+   "schema": []
   },
   "runtime": {
    "settings": [
@@ -787,22 +823,24 @@
    "state": []
   },
   "study": {
+   "Run": "class",
    "Sample": "class",
+   "Study": "class",
+   "StudyResult": "class",
    "Tornado": "class",
    "minimize": [
     "plant",
     "case",
     "objective",
-    "variables",
-    "constraints",
     "evaluations",
+    "seed",
     "plan"
    ],
    "sample": [
     "plant",
     "case",
     "metrics",
-    "count",
+    "samples",
     "seed",
     "plan"
    ],
@@ -814,8 +852,7 @@
    ],
    "size": [
     "plant",
-    "case",
-    "backup"
+    "case"
    ]
   },
   "units": {
@@ -845,6 +882,10 @@
   "out_of_range"
  ],
  "run": {
+  "check": [
+   "plant",
+   "case"
+  ],
   "live": [
    "plant",
    "source",
@@ -874,6 +915,10 @@
    "checkpoint",
    "callbacks"
   ],
+  "schedule": [
+   "plant",
+   "case"
+  ],
   "simulate": [
    "plant",
    "case",
@@ -888,12 +933,15 @@
   ]
  },
  "schemas": {
-  "check.schema.json": "db5a41e00bc889fd75ff0a2d40fa353be37e3cadaf7bba07a72b0b0d26cae372",
+  "case.schema.json": "1fe33a97cf09b7e4f0cac8f33f98f1e4f1cf9f62ceac6973a3276689f4667b87",
+  "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
+  "economics.schema.json": "166d294b4733b11a680c50406b41b53e3f0227cf45ceba076a47d7aa1c91e7dd",
   "module_description.schema.json": "f40388d592d69073cba6a90dc83a23e69e7b3a8c7f9e88d48fdd3e19c6d1779e",
-  "plant_dict.schema.json": "432b24e324169da7ae2c117e3ca19ccfe73095c8d7703a14817e7f049f55bfb1",
+  "plant.schema.json": "4c0f2416861812feb5c7eb063a466318019a693243c1bda4c2c38376497fb0c6",
   "problem.schema.json": "98fbbd71c3cdb8b5c55b3cca2d2829999ab8665e4eb7dd1062fcc77d970383b4",
   "profile.schema.json": "a6a417ba35af581a0b082bbf9fc560785303c51dde6bb2466770f499f7440805",
   "results_summary.schema.json": "733213574165c3f2dc0176924aeb6eb350c38a75864b9dd1d146353fa442edf8",
+  "study.schema.json": "06ca9f42d43433e150fd94d4d7bfd6aa3681e78a04ad1786bd81fec422be08b2",
   "value.schema.json": "99da0d9dff87ea775bbd0ebeec60c185376587064f605f9647d7537020d40cc6"
  },
  "streams": [
@@ -922,10 +970,12 @@
   "Plant",
   "Results",
   "Stream",
+  "Study",
   "WATER",
   "analysis",
   "call",
   "case",
+  "check",
   "compiler",
   "data",
   "errors",
@@ -943,5 +993,5 @@
   "study",
   "units"
  ],
- "version": "0.2.0"
+ "version": "0.3.0"
 }

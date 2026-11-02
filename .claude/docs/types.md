@@ -36,6 +36,16 @@ and this module exports it. `check(name, passed, measured, limit)` takes two val
 call and has `value`, `series` and `statistics` of its own, which take the quantity of the number and
 give the unit actually used.
 
+## Input files
+
+`gemini/types/inputs.py` reads and writes the shared formats of the input files (inputs.md section
+3): `from_header`, `from_leaf` (quantity, dimensionless, choice, `range`, `options`, `uncertainty`,
+series), `from_series`, `from_section` (object or relative path), `check_keys` (unknown keys with
+the closest suggestion), `Source` (a folder and/or an in-memory `{name: bytes}`, one lookup),
+`align` (a series on a target time index) and `to_json`. Every reader appends `Issue`s to a list
+and returns `None` on failure ([errors.md](errors.md)). It is imported as `from gemini.types import
+inputs` and is not exported from `gemini.types`.
+
 ## Quantities and declarations
 
 Use `Parameter`, `Inlet`, `Control`, `Boundary`, `State`, `Output` and `Outlet` in module
@@ -133,8 +143,8 @@ builds it back. The public constructor takes quantities and converts them; `Stre
 constructor of SI values that `gemini` itself uses (no unit lookup). The constructor validates at the boundary: numbers become Python `float`,
 `m_dot` must be finite, `T > 0` and finite, `p >= 0` and finite, else `PhysicsError`. When a
 field is an array over time or a traced value it is kept as given and the limits become
-`gemini.ops.check` calls, so an invalid row raises the same class. `stream.with_(**changes)` is
-a trusted fast copy, author-level and in SI: it reuses the `Fluid`, checks only the changed fields against the same
+`gemini.ops.check` calls, so an invalid row raises the same class. `stream._with_si(**changes)` is
+a trusted fast copy in SI (public `with_` takes quantities and calls it): it reuses the `Fluid`, checks only the changed fields against the same
 limits and raises `ValidationError` for an unknown field. A traced inlet is a `Stream` of graph
 inputs with the concrete `Fluid`, so `volumetric_flow()` divides by a plain float density.
 `Ports` hold a `Stream`, a power (a number, an array or a traced value) or the list of a `many` port.
@@ -254,8 +264,8 @@ Simulate profiles by combining them into a dataset keyed by dotted control or bo
 `gm.simulate(plant, plan=gm.Dataset.from_profiles(profiles), clock=clock)`. Profiles combined into a
 dataset must share one index; resample explicitly.
 
-Costs are not a type: equipment declares `capex(finance)` and `fixed_opex(finance)` in amounts of
-the case's currency, from the factors of `case.assumptions.finance`, and `gm.evaluate.capex` sums
+Costs are not a type: equipment declares `capex(economics)` and `fixed_opex(economics)` in amounts of
+the case's currency, from the factors of `case.economics`, and `gm.evaluate.capex` sums
 them ([economics.md](economics.md#costs)). `gemini.physics.costs.scaled(factor, size)` is a factor
 times a design size. A result of `gm.evaluate` is a `Value` (`gemini/types/shapes.py`), a
 `gm.units.Quantity` in SI that also holds `reason` and `parts`.

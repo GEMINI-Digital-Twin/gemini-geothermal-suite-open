@@ -5,6 +5,8 @@ import numpy as np
 from gemini import units
 from gemini._utils.jsonable import to_plain
 from gemini.errors import ValidationError
+from gemini.errors.base import raise_issues
+from gemini.run import check
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.target import quantities
 from gemini.study._utils.trial import checked_metric, drawn_trial
@@ -103,11 +105,12 @@ def _spread(samples, name):
     return {key: measure(number, unit) for key, number in spread.items()} | {"failed": failed}
 
 
-def sample(plant, case, metrics, count, seed, *, plan=None):
+def sample(plant, case, metrics, samples, seed, *, plan=None):
     """Return the spread of metrics when the uncertain values of the case are drawn at random.
 
-    The distributions are only those the case declares (``uncertainty`` next to a number of
-    ``environment`` or ``assumptions`` in ``case.json``); a case with none raises
+    ``gm.check`` runs first and raises its issues. The distributions are only those the case
+    declares (``uncertainty`` next to a number of
+    ``site``, ``demand``, ``utilities`` or ``economics`` in ``case.json``); a case with none raises
     ``missing_value``. Plant parameters are design decisions and are never drawn. Each draw copies
     the plant and the case, sets the drawn values on the copy of the case, simulates the copy
     (``gm.simulate`` plans the demand on that design) and reads the metrics. The plant and the
@@ -126,8 +129,8 @@ def sample(plant, case, metrics, count, seed, *, plan=None):
         has any. A profile of the case becomes the drawn constant.
     metrics : list of str
         The metrics to record, as the ``objective`` of ``minimize`` without a sign.
-    count : int
-        The number of random draws, one simulation each.
+    samples : int
+        The number of random draws, one simulation each. It has no default.
     seed : int
         Seed of ``numpy.random.default_rng``; the same seed gives the same draws. A seed is a
         reproducibility choice, so there is no default.
@@ -145,19 +148,22 @@ def sample(plant, case, metrics, count, seed, *, plan=None):
         their run had failed steps (their ``reason`` names the count and the most frequent
         failure). ``to_dict()`` is plain JSON; ``Sample.from_dict`` reads it back.
     """
-    if count < 1:
-        raise ValidationError(f"study.sample: count = {count}; expected at least 1", path="count")
+    raise_issues(check(plant, case))
+    if samples < 1:
+        raise ValidationError(
+            f"study.sample: samples = {samples}; expected at least 1", path="samples"
+        )
     names = [checked_metric(name) for name in metrics]
     found = declared(case, "sample")
     generator = np.random.default_rng(seed)
     draws = [
         {name: _draw(generator, name, uncertainty, value) for name, uncertainty, value in found}
-        for _ in range(count)
+        for _ in range(samples)
     ]
     runs = mapped(drawn_trial, (plant, case, plan, names), draws)
-    samples = []
+    drawn_runs = []
     for drawn, (run, reason) in zip(draws, runs):
         failed = {"reason": reason} if reason else {}
-        samples.append({"parameters": quantities(plant, case, drawn), "metrics": run, **failed})
-    summary = {name: _spread(samples, name) for name in names}
-    return Sample(samples=samples, summary=summary)
+        drawn_runs.append({"parameters": quantities(plant, case, drawn), "metrics": run, **failed})
+    summary = {name: _spread(drawn_runs, name) for name in names}
+    return Sample(samples=drawn_runs, summary=summary)

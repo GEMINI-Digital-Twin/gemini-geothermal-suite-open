@@ -36,9 +36,9 @@ def test_mixing_matches_hand_calculation():
 
 def test_zero_flows():
     """A stopped branch takes no part; a stopped junction takes the mean temperature."""
-    one = Mixer()(branch1_in=HOT, branch2_in=COLD.with_(m_dot=0)).outlets.fluid_out
+    one = Mixer()(branch1_in=HOT, branch2_in=COLD._with_si(m_dot=0)).outlets.fluid_out
     assert one.T == pytest.approx(HOT.T, rel=1e-15) and one.m_dot == 6
-    none = Mixer()(branch1_in=HOT.with_(m_dot=0), branch2_in=COLD.with_(m_dot=0))
+    none = Mixer()(branch1_in=HOT._with_si(m_dot=0), branch2_in=COLD._with_si(m_dot=0))
     assert none.outlets.fluid_out.T == pytest.approx(343.15) and none.outlets.fluid_out.m_dot == 0
     assert energy_balance(Mixer(), none)["residual"] == 0
 
@@ -46,14 +46,14 @@ def test_zero_flows():
 def test_invalid_inputs_raise():
     """Different fluids and reverse flow are rejected."""
     with raises(gm.errors.ValidationError, "invalid_design", match="expected the same fluid"):
-        Mixer()(branch1_in=HOT, branch2_in=COLD.with_(fluid=WATER))
+        Mixer()(branch1_in=HOT, branch2_in=COLD._with_si(fluid=WATER))
     with raises(gm.errors.ValidationError, "invalid_design"):
         Mixer()(
             branch1_in=HOT,
-            branch2_in=COLD.with_(fluid=Fluid(density=gm.units.Quantity(1050, "kg/m3"))),
+            branch2_in=COLD._with_si(fluid=Fluid(density=gm.units.Quantity(1050, "kg/m3"))),
         )
     with pytest.raises(gm.errors.PhysicsError, match="mixer: branch1_in.m_dot = -1"):
-        Mixer()(branch1_in=HOT.with_(m_dot=-1), branch2_in=COLD)
+        Mixer()(branch1_in=HOT._with_si(m_dot=-1), branch2_in=COLD)
 
 
 def test_mixer_matches_traced():

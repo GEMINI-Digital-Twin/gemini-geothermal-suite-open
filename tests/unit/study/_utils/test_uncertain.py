@@ -7,7 +7,7 @@ from gemini.study._utils.uncertain import declared
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case
 
-PATH = "assumptions.finance.opex.electricity"
+PATH = "economics.energy.electricity"
 
 
 def test_declared_lists_each_value_with_its_case_name_and_si_value():

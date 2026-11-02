@@ -2,12 +2,14 @@
 
 from gemini.modules.call import evaluate as call
 
+from .check import check
 from .dataset import Dataset
 from .results import Results
 from .schedule import schedule
 from .simulate import live, replay, resume, simulate
 
 __all__ = [
+    "check",
     "schedule",
     "simulate",
     "replay",

@@ -114,7 +114,7 @@ class CentrifugalPump(Equipment, Module):
         losses = performance["shaft_power"] - performance["hydraulic_power"]
         rise = heat_transfer.temperature_change(losses, suction.heat_capacity_rate())
 
-        discharge = suction.with_(p=suction.p + performance["head"], T=suction.T + rise)
+        discharge = suction._with_si(p=suction.p + performance["head"], T=suction.T + rise)
         power_in = energy.input_power(performance["shaft_power"], self.motor_efficiency)
         loss_out = power_in - performance["shaft_power"]
 
@@ -127,12 +127,12 @@ class CentrifugalPump(Equipment, Module):
         outlets = dict(fluid_out=discharge, loss_out=loss_out, power_in=power_in)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the pump from its shaft power at the best-efficiency flow."""
         flow = self.best_efficiency_flow
         head = pumps.centrifugal_head(flow, 1.0, self.head_coefficients)
         hydraulic = pumps.hydraulic_power(flow, head)
-        return self.capex_of(finance, energy.input_power(hydraulic, self.best_efficiency))
+        return self.capex_of(economics, energy.input_power(hydraulic, self.best_efficiency))
 
     def _performance(self, suction):
         """Return flow [m3/s], head [Pa], hydraulic and shaft power [W] and efficiency [-]."""

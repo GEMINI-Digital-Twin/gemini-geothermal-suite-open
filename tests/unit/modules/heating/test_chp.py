@@ -6,7 +6,6 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.modules import GasGrid
 from gemini.modules._utils.balance import energy_balance, mass_balance
 from gemini.modules.heating import CHP
-from gemini.physics import gas
 from gemini.types.flows import Stream
 from gemini.types.fluid import Fluid
 from gemini.units import Quantity
@@ -14,6 +13,7 @@ from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
+from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.reading import reading
 
 CP = 4217.4
@@ -61,13 +61,13 @@ def test_part_load_willans_line():
 
 def test_heat_dumping_and_engine_off():
     """Heat above the outlet limit or without flow is dumped; zero load burns nothing."""
-    small = WATER.with_(m_dot=2)
+    small = WATER._with_si(m_dot=2)
     out = reading(engine()(fluid_in=small, fuel_in=GRID_GAS, load_fraction=1))
     assert out.fluid_out_T == pytest.approx(363.15)
     assert out.heat_recovered == pytest.approx(2 * CP * 30)
     assert out.dumped_heat == pytest.approx(1.125e6 - 2 * CP * 30)
     unit = engine()
-    result = unit(fluid_in=WATER.with_(m_dot=0), fuel_in=GRID_GAS, load_fraction=1)
+    result = unit(fluid_in=WATER._with_si(m_dot=0), fuel_in=GRID_GAS, load_fraction=1)
     assert reading(result).heat_recovered == 0 and reading(result).heat_loss == pytest.approx(1.5e6)
     assert energy_balance(unit, result)["relative_residual"] < 1e-12
     off = reading(engine()(fluid_in=WATER, fuel_in=GRID_GAS, load_fraction=0))
@@ -82,7 +82,7 @@ def test_invalid_design_and_flow_raise():
     ):
         engine(thermal_efficiency=0.7)(fluid_in=WATER, fuel_in=GRID_GAS, load_fraction=1)
     with pytest.raises(PhysicsError, match="fluid_in.m_dot = -1"):
-        engine()(fluid_in=WATER.with_(m_dot=-1), fuel_in=GRID_GAS, load_fraction=1)
+        engine()(fluid_in=WATER._with_si(m_dot=-1), fuel_in=GRID_GAS, load_fraction=1)
 
 
 def test_traced_call_matches_one_call_per_row():
@@ -110,7 +110,7 @@ def test_traced_call_matches_one_call_per_row():
 
 def test_an_engine_on_co_produced_gas_buys_what_it_lacks():
     """Co-produced gas comes first, as in a boiler; the rest is purchased."""
-    fluid = Fluid(kind="gas", gas_composition={"CH4": 1.0}).with_grid(gas.GRID_COMPOSITION)
+    fluid = Fluid(kind="gas", gas_composition={"CH4": 1.0}).with_grid(GRID_COMPOSITION)
     fuel = Stream(
         m_dot=Quantity(0.01, "kg/s"), T=Quantity(330, "K"), p=Quantity(2e5, "Pa"), fluid=fluid
     )

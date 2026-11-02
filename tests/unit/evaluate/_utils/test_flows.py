@@ -33,8 +33,8 @@ def test_cold_is_counted_from_the_cooling_consumers():
 
 
 def opex_case(count=24, **prices):
-    """Return a case whose finance holds the opex ``prices``."""
-    return make_case(count=count, finance={"opex": gm.case.Opex(**prices)})
+    """Return a case whose economics holds the energy ``prices``."""
+    return make_case(count=count, economics={"energy": prices})
 
 
 def test_the_gas_price_buys_purchased_gas_only():
@@ -48,10 +48,8 @@ def test_the_gas_price_buys_purchased_gas_only():
     assert flows.energy("fuel") == pytest.approx(1e6 * SECONDS_PER_YEAR)
     assert flows.cost("fuel", case) == pytest.approx(flows.energy("fuel") / 3.6e9 * 40.0)
     assert flows.cost("electricity", make_case()) == 0.0
-    with raises(
-        gm.errors.ValidationError, "missing_assumption", match=r"assumptions\.finance\.opex\.gas"
-    ):
-        flows.cost("fuel", make_case(finance={"currency": "EUR"}))
+    with raises(gm.errors.ValidationError, "missing_assumption", match=r"economics\.energy\.gas"):
+        flows.cost("fuel", make_case(economics={"currency": "EUR"}))
 
 
 def test_a_constant_price_multiplies_the_energy_of_the_year():

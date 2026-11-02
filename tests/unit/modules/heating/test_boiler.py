@@ -9,6 +9,7 @@ from gemini.physics import gas
 from gemini.types.flows import Stream
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
+from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.reading import reading
 
 GRID_GAS = with_values(GasGrid())._offered()["gas_out"]
@@ -35,7 +36,7 @@ def test_capacity_balance_and_no_cooling():
     assert streams["fluid_out"].m_dot == s.m_dot and streams["fluid_out"].p == s.p
     out = reading(c(temperature_setpoint=290, fluid_in=s, fuel_in=GRID_GAS))
     assert out.duty == 0 and out.fluid_out_T == 300
-    out = reading(c(temperature_setpoint=360, fluid_in=s.with_(m_dot=0), fuel_in=GRID_GAS))
+    out = reading(c(temperature_setpoint=360, fluid_in=s._with_si(m_dot=0), fuel_in=GRID_GAS))
     assert out.duty == 0 and out.fluid_out_T == 300
 
 
@@ -75,7 +76,7 @@ def test_traced_call_matches_one_call_per_row():
 
 def gas_stream(flow, marked=True):
     """Return co-produced gas of ``flow`` [kg/s], on a stream with or without a grid connection."""
-    fluid = COPRODUCED.with_grid(gas.GRID_COMPOSITION) if marked else COPRODUCED
+    fluid = COPRODUCED.with_grid(GRID_COMPOSITION) if marked else COPRODUCED
     return Stream(
         m_dot=gm.units.Quantity(flow, "kg/s"),
         T=gm.units.Quantity(330, "K"),
@@ -96,10 +97,10 @@ def test_co_produced_gas_is_burned_first_and_the_grid_covers_the_rest():
     assert out.fuel_coproduced == pytest.approx(available)
     assert out.fuel_purchased == pytest.approx(out.fuel - available)
     assert out.burned_mass_flow == pytest.approx(0.01)
-    bought = out.fuel_purchased / gas.lower_heating_value(gas.GRID_COMPOSITION)
+    bought = out.fuel_purchased / gas.lower_heating_value(GRID_COMPOSITION)
     assert result.inlets.fuel_in.m_dot == pytest.approx(0.01 + bought)
     expected = available * COPRODUCED.emission_factor()
-    expected += out.fuel_purchased * gas.emission_per_energy(gas.GRID_COMPOSITION)
+    expected += out.fuel_purchased * gas.emission_per_energy(GRID_COMPOSITION)
     assert result.outlets.flue_out.m_dot == pytest.approx(expected)
 
 
@@ -120,7 +121,7 @@ def test_no_co_produced_gas_buys_everything():
     out = reading(result, GRID_GAS)
     assert out.fuel_coproduced == 0 and out.fuel_purchased == pytest.approx(out.fuel)
     assert result.outlets.flue_out.m_dot == pytest.approx(
-        out.fuel * gas.emission_per_energy(gas.GRID_COMPOSITION)
+        out.fuel * gas.emission_per_energy(GRID_COMPOSITION)
     )
 
 

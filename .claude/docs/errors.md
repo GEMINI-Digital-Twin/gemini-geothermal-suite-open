@@ -12,7 +12,8 @@ is raised and the problems go to the call's fixed place:
 
 | Call | Under `on_error="record"` |
 | --- | --- |
-| `validate_params`, `p.validate`, `gm.plants.validate` | return the list of problems |
+| `validate_params` | returns the list of problems |
+| `check` of a module, a plant, a case, an economics | return the list of issues and never raise |
 | `gm.call` | returns them under `errors`, with empty `outlets` and `outputs` |
 | `gm.simulate`, `gm.replay`, `gm.live`, `gm.Engine` | record them in `results.errors()` and continue |
 | `gm.evaluate.*` | a value the inputs cannot give is `{value: null, unit, reason}` |
@@ -26,6 +27,17 @@ them in `error.problems`, a list of problem dicts: the same list `on_error="reco
 caller sees every problem in one try. A single error has itself as the one item. A problem is
 `{path, code, message, suggestions}`, built by `gemini.errors.base.problem`, which
 `gemini.types.shapes` exports with the other return shapes; `code` is the stable key for machines.
+
+**Issues.** The input readers (`gemini/types/inputs.py`) collect `Issue`s, defined in
+`gemini.errors.base`: `path`, `kind` (`missing`, `unknown_key`, `unit`, `out_of_bounds`,
+`not_allowed`, `incompatible`, `coverage`), `message`, `quantity`, `accepted` units, `suggestions`
+and an optional `code` that overrides the code of the kind (`old_format`). An issue is also a
+problem: `issue.problem()` gives `{path, code, message, suggestions}` with the code of its kind
+(`missing_value`, `unknown_name`, `invalid_unit`, `out_of_bounds`, `invalid_value`, `invalid_value`,
+`invalid_data`), so no new code exists. `raise_issues(issues)` raises nothing for an empty list and
+else one `ValidationError` (`ValidationError.from_issues`) whose `problems` are the problems of the
+issues and whose `issues` are the issues themselves. Readers append to the list and return `None`,
+so one load reports everything wrong at once.
 
 **Checks are not errors.** The checks of `gm.evaluate` (`constraints`, `plant_balance`,
 `energy_balance`, `mass_balance`, `bounds`, `run_all`) always return check dicts with `passed`; a
@@ -80,16 +92,16 @@ code is never renamed without raising the minor number of `gm.__version__`.
 | `invalid_value` | `ValidationError` | A value has the wrong type or shape |
 | `out_of_bounds` | `ValidationError` | A value is outside its declared bounds |
 | `missing_value` | `ValidationError` | A required value is absent |
-| `missing_assumption` | `ValidationError` | A cost, a price or an emission factor is needed and the case does not give it; the path names it in the case (`assumptions.finance.capex.<kind>`) |
+| `missing_assumption` | `ValidationError` | A cost, a price or an emission factor is needed and the case does not give it; the path names it in the case (`economics.capex.<kind>`) |
 | `no_value` | `ValidationError` | The inputs cannot give this value, such as a plant without equipment that has a cost |
-| `conflicting_value` | `ValidationError` | Two sources give one value: a `Constraint` of the case gives two bounds that exclude each other (`equals` with a `min` or `max`); the path names it |
+| `conflicting_value` | `ValidationError` | Two sources give one value: a `Requirement` of the case gives a `min` above its `max`; the path names it |
 | `duplicate_name` | `ValidationError` | A second class takes the registry name of another class |
 | `invalid_unit` | `ValidationError` | A unit is unknown or does not fit the quantity |
 | `unknown_name` | `ValidationError` | A module type, path, parameter, category, correlation or field does not exist |
 | `unknown_port` | `ValidationError` | A port does not exist on that module |
 | `invalid_call` | `ValidationError` | A module was called with wrong arguments |
 | `invalid_format` | `ValidationError` | A document has the wrong structure |
-| `old_format` | `ValidationError` | A plant dict is older than the current format, a checkpoint was written before 0.2.0, or a results file before 0.1.0 |
+| `old_format` | `ValidationError` | A plant dict is older than the current format, a checkpoint was written before 0.3.0, or a results file before 0.1.0 |
 | `invalid_connection` | `ValidationError` | A connection breaks a wiring rule |
 | `stream_mismatch` | `ValidationError` | The two ends of a connection have different kinds |
 | `ambiguous_port` | `ValidationError` | Automatic port matching found no port or more than one |

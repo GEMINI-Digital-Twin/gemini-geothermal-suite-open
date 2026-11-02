@@ -168,7 +168,7 @@ def test_keyword_mapping_and_positional_calls_agree():
     head = esp(fluid_in=stream, frequency={"value": 50, "unit": "Hz"}).outputs.head
     assert head == esp({"fluid_in": stream}, frequency={"value": 50, "unit": "Hz"}).outputs.head
     assert head == esp(stream, frequency={"value": 50, "unit": "Hz"}).outputs.head
-    esp.frequency = 50.0
+    si.assign(esp, "frequency", 50.0)
     assert head == esp(fluid_in=stream).outputs.head
 
 
@@ -189,10 +189,10 @@ def test_no_outputs_keeps_the_outlet_of_a_full_call():
 def test_a_new_esp_names_what_it_misses():
     """A new pump is not initialized and lists its parameters until they are assigned."""
     esp = ESP()
-    missing = [item["path"] for item in esp.missing_parameters()]
+    missing = [item.path for item in esp.check()]
     assert not esp.is_initialized and "stage_count" in missing
     esp.stage_count = 120
-    missing = [item["path"] for item in esp.missing_parameters()]
+    missing = [item.path for item in esp.check()]
     assert esp.stage_count == 120 and "stage_count" not in missing
 
 

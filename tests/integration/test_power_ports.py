@@ -147,7 +147,7 @@ class Taker(Module):
         """Draw half of the offer."""
 
         # Outlets
-        taken = inlets.fluid_in.with_(m_dot=inlets.fluid_in.m_dot / 2)
+        taken = inlets.fluid_in._with_si(m_dot=inlets.fluid_in.m_dot / 2)
 
         outlets = dict(fluid_out=taken, fluid_in=taken)
         return outlets
@@ -282,7 +282,7 @@ def test_a_many_port_may_stay_empty():
     plant = gm.Plant("Idle")
     plant.add(Bus, "bus")
     assert plant()
-    assert gm.plants.validate(plant, on_error="record") == []
+    assert plant.check() == []
 
 
 def test_an_offered_outlet_closes_a_loop_without_state():

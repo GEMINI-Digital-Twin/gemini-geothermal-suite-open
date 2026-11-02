@@ -46,5 +46,5 @@ def summary(plant):
     lines = [f"Plant: {plant.name}"] + [
         "  ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip() for row in rows
     ]
-    total = sum(len(list(module.parameters())) for _, module in members(plant))
+    total = len(list(plant.parameters()))
     return "\n".join(lines + [f"Total parameters: {total}"])

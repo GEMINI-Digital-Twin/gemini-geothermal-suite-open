@@ -35,34 +35,34 @@ its heat and cold KPIs and levelised costs are `null` with that reason.
 
 Every cost function returns a `Value`, a `gm.units.Quantity` in SI with the parts of its result in
 `.parts`, each a value or a text; `to_plain` gives the JSON, the parts as more keys. `unit` is
-`currency` (a label for the case's currency, `finance.currency`; nothing converts between
+`currency` (a label for the case's currency, `economics.currency`; nothing converts between
 currencies), `currency/yr`, `currency/J`, `yr` or `kg`; `result.to("EUR/MWh")` converts. `A` is the
-annuity factor, the sum over the lifetime years of `1 / (1 + discount_rate) ** t`, in years. Every
+annuity factor, the sum over the years of the analysis period of `1 / (1 + discount_rate) ** t`, in years. Every
 function takes `on_error="raise"`: a value the inputs cannot give raises `ValidationError`, code
-`no_value`, or `missing_assumption`, naming its path in the case (`assumptions.finance.capex.heat_pump`),
+`no_value`, or `missing_assumption`, naming its path in the case (`economics.capex.heat_pump`),
 for an assumption nobody gave. With `on_error="record"` nothing is raised and `value` is `None` with a
-`reason`. Prices, rates and factors are those of `case.assumptions`; gemini holds none of its own.
+`reason`. Prices, rates and factors are those of `case.economics`; gemini holds none of its own.
 
 | Name | Returns |
 |---|---|
 | `gm.evaluate.capex(plant, case)` | the sum of the capex of the equipment, per module in `parts["modules"]`, with the `price_year` of the case |
-| `opex(plant, case, results)` | the fixed opex of each kind of equipment (`parts["fixed_by_kind"]`), plus the yearly bill of grid electricity, purchased gas, waste and chemicals at `opex.*` (a profile price is integrated step by step; co-produced gas costs nothing), plus the CO2 emitted at `opex.co2` when the case gives it; `components` lists the parts. There is no variable opex |
-| `lcoh(plant, case, results, discount_rate=None, lifetime=None)` | `(capex + opex A) / (useful heat A)` in currency/J |
+| `opex(plant, case, results)` | the fixed opex of each kind of equipment (`parts["fixed_by_kind"]`), plus the yearly bill of grid electricity and purchased gas at `economics.energy`, waste and chemicals at `economics.opex.variable` (a profile price is integrated step by step; co-produced gas costs nothing), plus the CO2 emitted at `economics.carbon.price` when the case gives it; `components` lists the parts. There is no variable opex |
+| `lcoh(plant, case, results, on_error="raise")` | `(capex + opex A) / (useful heat A)` in currency/J |
 | `lcoc(...)` (as `lcoh`) | the same with the useful cold |
-| `annualised_cost(plant, case, results, discount_rate=None, lifetime=None)` | `capex / A + opex` in currency/yr, with `capex`, `opex`, `annuity_factor`, `discount_rate`, `lifetime_years` |
+| `annualised_cost(plant, case, results, on_error="raise")` | `capex / A + opex` in currency/yr, with `capex`, `opex`, `annuity_factor`, `discount_rate`, `analysis_period` |
 | `lcts(...)` (as `lcoh`) | levelised cost of thermal supply: `annualised_cost / (heat + cold)` in currency/J; it needs no `heat_cost_share` |
-| `co2(plant, case, results)` | kg of CO2-equivalent over the window, step by step: the leaf `co2_emission`, `methane_emission` times `emissions.CH4.gwp`, grid electricity times `emissions.CO2.electricity`; a factor is asked for only when its source is non-zero |
-| `npv(plant, case, results, discount_rate=None, lifetime=None)` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case |
-| `payback(plant, case, results)` | `capex / (revenue - opex)` in `yr`, undiscounted |
+| `co2(plant, case, results)` | kg of CO2-equivalent over the window, step by step: the leaf `co2_emission`, `methane_emission` times `economics.accounting.gwp.CH4`, grid electricity times `utilities.electricity.co2_intensity`; a factor is asked for only when its source is non-zero |
+| `npv(plant, case, results, on_error="raise")` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case and the discounted subsidy (`economics.revenue.subsidy`: its amount per year for its duration, within the lifetime) |
+| `payback(plant, case, results)` | `capex / (revenue - opex)` in `yr`, undiscounted; a subsidy of the case adds its amount per year to the cash flow for its duration only |
 
-`discount_rate` and `lifetime` are those of `case.assumptions.finance` unless given; `lifetime` is in
-years. There is no `Cost` type and no `total_cost`: a module that is equipment is a subclass of the
+The discount rate and the analysis period are `economics.discount_rate` and `economics.analysis_period` of the case; no function takes
+either as an argument (the economics file owns them) and the analysis period is read in years. There is no `Cost` type and no `total_cost`: a module that is equipment is a subclass of the
 mixin `Equipment` (`gemini/modules/_utils/cost.py`), sets `equipment_kind` to one of the kinds of
-`gm.case.Capex` and defines `capex(finance)`, the factor of its kind times its own size
-(`gemini.physics.costs.scaled(factor, size)`); `fixed_opex(finance)` is the share
+`gm.case.Capex` and defines `capex(economics)`, the factor of its kind times its own size
+(`gemini.physics.costs.scaled(factor, size)`); `fixed_opex(economics)` is the share
 `opex.fixed[kind]` times that capex. A composite adds only its own part. A factor or a share that
 the case lacks for a kind the plant uses raises `missing_assumption` naming
-`assumptions.finance.capex.<kind>` or `assumptions.finance.opex.fixed.<kind>`; nothing is
+`economics.capex.<kind>` or `economics.opex.fixed.<kind>`; nothing is
 estimated. A plant with no equipment has no value.
 
 The kinds, with the size the factor multiplies:
@@ -95,19 +95,19 @@ equipment.
 split of its cost is not defined") unless `heat_cost_share` gives the part charged to heat; `lcoc`
 gets the rest. `lcts` needs no share: with a `heat_cost_share` of 1, `lcts` is `lcoh` times its
 energy over `heat + cold`. It has no value when the run delivers neither. `lcoh` and `lcoc` keep the
-one expression `(capex + opex A) / (energy A)`: `annualised_cost` and they share `lifetime_cost`
+one expression `(capex + opex A) / (energy A)`: `annualised_cost` and they share `period_cost`
 (`capex + opex A`) and not the division, which would move the last bits of their numbers. Levelised
 cost, `npv` and `payback` assume constant yearly energy and cost over the
-lifetime, with no degradation, tax, replacement or residual value.
+analysis period, with no degradation, tax, replacement or residual value.
 
 Missing user inputs raise `ValidationError` with code `missing_assumption` and the path
-`assumptions.<name>`: a discount rate or lifetime given nowhere, an electricity or gas price for an
+`economics.<name>`: a discount rate or analysis period given nowhere, an electricity or gas price for an
 energy the run buys, a heat or cold price for a product it delivers, an electricity emission factor
 for grid electricity drawn. A price is asked for only when its energy is non-zero.
 
 ### The values of the assumptions
 
-gemini gives no value to any of these: each is a field of `case.assumptions` (see
+gemini gives no value to any of these: each is a field of `case.economics` (see
 [data.md](data.md#the-case)) that the user states, and a call that needs an absent one raises
 `missing_assumption`. The sample case `inputs/examples/hackathon_2026/case.json` states them, in
 price year 2015 and with the currency label EUR. Where a value is cited, the source is:
@@ -119,11 +119,11 @@ price year 2015 and with the currency label EUR. Where a value is cited, the sou
 | `capex.heat_pump` | 0.67 EUR/W | Danish Energy Agency, Technology Data for Energy Plants, April 2020, ch. 40, compression heat pump, excess heat, 10 MW, 2020 in 2015 prices |
 | `capex.boiler` | 0.06 EUR/W | same catalogue, ch. 44, district heating boiler, natural gas, 2020 |
 | `capex.chp` | 0.95 EUR/W electric | same catalogue, ch. 06, spark ignition engine, natural gas, 1-10 MWe, 2020 |
-| `emissions.CH4.gwp` | 29.8 | IPCC Sixth Assessment Report, WG I, ch. 7, table 7.15 (Forster et al. 2021): fossil methane over 100 years |
+| `accounting.gwp.CH4` | 29.8 | IPCC Sixth Assessment Report, WG I, ch. 7, table 7.15 (Forster et al. 2021): fossil methane over 100 years |
 
 The other factors of the sample (`production_pump`, `injection_pump`, `compression_chiller`,
 `absorption_chiller`, `adsorption_chiller`, `heat_exchanger`, `flare`, `gas_makeup`, `cooler`,
-`pipe`), the fixed opex shares, the prices, the discount rate, the lifetime and the CO2 intensity
+`pipe`), the fixed opex shares, the prices, the discount rate, the analysis period and the CO2 intensity
 of electricity are placeholders for the test: the organisers gave no source, and they are not a
 recommendation. The shallow district sample states invented placeholders for every factor, as its README says; leave a factor out of a case file and the call that needs it raises `missing_assumption`.
 
@@ -160,10 +160,10 @@ it, and the checks audit what the columns hold:
 | `plant_balance(plant, case, results)` | mass and energy in = out + losses + change of stored energy, per module (1e-9) and for the root (1e-6) | a list of checks, the worst relative residual of each |
 | `mass_balance(plant, case, results)` | the leaf outputs whose unit in `results.units` is kg/s: finite or missing, not negative | smallest flow [kg/s], 1e-12 kg/s |
 | `bounds(plant, case, results)` | every recorded output with a declared limit (`ge`, `gt`, `le`, `lt` of its `Declaration`) | number of values outside, 0 |
-| `constraints(plant, case, results)` | every `gm.case.Constraint` of the case and the supply temperatures of the services, below | one check per matched module and constraint |
-| `run_all(plant, case, results)` | the first three, `bounds` and `constraints` | `{passed, checks}` |
+| `requirements(plant, case, results)` | every `gm.case.Requirement` of the case and the supply temperatures of the services, below | one check per matched module and requirement |
+| `run_all(plant, case, results)` | the first three, `bounds` and `requirements` | `{passed, checks}` |
 
-The limits of a run are the `constraints` of its `gm.Case`: each names a **role** and a
+The limits of a run are the `requirements` of its `gm.Case`: each names a **role** and a
 **quantity** of it, never a module path or a field (`gm.case.roles()` is the closed table):
 
 ```python
@@ -172,13 +172,13 @@ import gemini as gm
 case = gm.Case.from_json("inputs/examples/hackathon_2026/case.json")
 plant = gm.Plant.from_json("inputs/examples/hackathon_2026/plants/HeatingPlant.json")
 results = gm.simulate(plant, case)
-checks = gm.evaluate.constraints(plant, case, results)
-print(case.constraints[0].on, case.constraints[0].quantity, checks[0]["name"])
+checks = gm.evaluate.requirements(plant, case, results)
+print(case.requirements[0].on, case.requirements[0].quantity, checks[0]["name"])
 ```
 
 The units of a role are found in the plant by module class and wiring, never by name: `doublet` is
 every `Doublet`, `heat_pump` a `HeatPump` whose sink reaches a `HeatingGrid`, `chiller` a machine
-whose cold output reaches a `CoolingGrid`, and so on. A constraint applies to each unit of its role
+whose cold output reaches a `CoolingGrid`, and so on. A requirement applies to each unit of its role
 on its own.
 
 `over` says how the run is read: `each` judges every step and reports the worst (`worst_step` gives
@@ -188,23 +188,26 @@ time of the steps that count, `min` and `max` then being durations, passing with
 while a doublet runs. A bound is a `Quantity` or its dict; a value on the limit passes within a
 relative 1e-9.
 
-The role `plant` is the plant as a whole (`unit_path` `""`, and the check is named after the quantity alone):
+The role `plant` is the plant as a whole (`unit_path` `""`):
 `electricity_bought`, `gas_bought` and `heat_surplus` are powers, read from the same edge ports as
 `gm.evaluate.totals` (the net import of the electricity grid, the gas out of the gas grid, the surplus
 of the heating grid), and `co2` is the mass emitted in one step [kg] as `gm.evaluate.co2` counts it, so
-`over: "sum"` is the mass of the run and needs `assumptions.emissions.CO2.electricity` when the run
+`over: "sum"` is the mass of the run and needs `utilities.electricity.co2_intensity` when the run
 buys electricity (`missing_assumption` otherwise). `heat_output` of a `heat_pump`, `boiler` or `chp` and
 `cold_output` of a `chiller` are the enthalpy delivered, the difference of the flows of two ports (a
 heat pump heating: sink out less sink in; cooling: source in less source out; absorption and adsorption:
 chilled in less chilled out; boiler and `CHP`: fluid out less fluid in). `doublet` also has
+`reinjection_ratio` (the injected over the produced liquid volume flow of the doublet, judged per step),
+`count` (the number of doublets of the plant, one check with `unit_path` `""`) and
 `intake_pressure` and `intake_gas_fraction`, the outputs of its `ESP`. A `sum` of a power adds the step
 values, with no integration; `when="running"` of the plant counts the steps on which any unit carried flow. The service requirement is checked as well: each `HeatingGrid` must receive water at
 least at `demand.heating.supply_temperature` and each `CoolingGrid` at most at
 `demand.cooling.supply_temperature`; a service without a supply temperature adds no check.
 
-`gm.evaluate.constraints` returns one check `{name, role, unit_path, quantity, passed, value, limit,
-worst_step}` per unit and constraint, `value` the worst value of the run (or the figure) and `limit` the
-bound that was violated, else the nearest. A role with no unit in the plant gives one check with `passed` `None` and
+`gm.evaluate.requirements` returns one check `{name, role, unit_path, quantity, passed, value, limit,
+worst_step}` per unit and requirement, `name` the name of the requirement (the supply temperatures of
+the services are `heating_supply_temperature` and `cooling_supply_temperature`), `value` the worst value of the run (or the figure) and `limit` the
+bound that was violated, else the nearest. `unmet_share` of `heating_supply` and `cooling_supply` is the unmet energy over the energy demanded in the run, one figure of the period (the demand is that of the case, `case.demand.frame`; a service that demands nothing has share 0). A role with no unit in the plant gives one check with `passed` `None` and
 `unit_path` `None`; a name that is not in `gm.case.roles()` raises `ValidationError`, code `unknown_name`,
 with suggestions. A violated limit is an answer, and a run with no value of
 the field, every row having failed, gives `passed: null` with the reason `no_value`. `Results`
@@ -213,7 +216,7 @@ holds leaf columns, so an output of a composite is read through the paths its co
 (`Output.difference("riser.wellhead_out.T", "injector.wellhead_in.T")`), and the liquid volume flow of
 a doublet is `reservoir.liquid_flow` of its reservoir. `gm.schedule` enforces some forms of the same
 constraints and lists the others in `plan.attrs["check_only"]`, see
-[engine.md](engine.md#schedule); `constraints` judges them all.
+[engine.md](engine.md#schedule); `requirements` judges them all.
 
 A real closure check needs the engine to record each call's residual (`balance.energy_balance`)
 as a result column; that is a change to the engine, not to this package.
@@ -248,13 +251,15 @@ the pressure. A rate the column of brine injects alone has no pressure to give: 
 
 `gm.modules.check` is described in [modules.md](modules.md#registry-categories-and-streams).
 
-`gm.study.size(plant, case, backup)` returns a new plant with first sizes from the case, by gemini
-physics only. `backup` is a design policy with no default (`missing_value` naming `backup` when
-absent, `invalid_value` for another word): `"peak"` rates a boiler for the whole heating peak (and drive heat) with
+`gm.study.size(plant, case)` returns a new plant with first sizes from the case, by gemini
+physics only. It runs `gm.check` first and raises its issues, except the parameters of the plant
+that have no value, since completing a template plant is what it is for. `backup` is a design policy
+of the plant (`params.backup`, with no default: `missing_value` naming `params.backup` when
+absent, `invalid_value` for another word on `set_params`): `"peak"` rates a boiler for the whole heating peak (and drive heat) with
 the doublets off, so it carries the peak when a doublet is out; `"none"` rates it for the heat the
 doublets cannot reach, the larger of the peak less the heat of the doublets at their limits and the
 part of the peak the reservoir temperature cannot reach. The sizes: the number of doublets (the
-smallest in `case.choices.doublets` whose heat at the flow limit and the brine cooling limit of the
+smallest in the `range` of `size.doublets` of the plant whose heat at the flow limit and the brine cooling limit of the
 case's constraints covers the heating peak, the largest with a note when none does); the nominal
 flow of each doublet, which is the flow limit of the case, the largest flow it may run, so its
 `share` in `gm.evaluate.capacities` is at most one; the capacity of each boiler (the policy above),
@@ -272,50 +277,50 @@ the whole of it for `"peak"`, and for `"none"` that less the heat of the doublet
 lift share (the ideal-exchanger assumption may leave the supply short, which `broken` lists). The sized plant is then
 simulated once on the case. The plant is not changed; the notes are `plant.sizing`: `{"sized":
 [{path, value, reason}], "unchanged": [{path, reason}], "broken": [{unit_path, role, quantity,
-value, limit, worst_step}], "simulation": str}`, where `broken` lists each constraint the sized
+value, limit, worst_step}], "simulation": str}`, where `broken` lists each requirement the sized
 design breaks (empty when it meets them all) and `simulation` says `simulated` or `not simulated:
 <code>: <reason>`. A plant class that takes no structural size `doublets` (see
 `gm.plants.capabilities()`) keeps the doublets it has and says so in `unchanged`; a size the case
 lacks the input for raises `missing_value` naming its path. A size that is not computed for a
 module kind (`chp`, `heat_exchanger`) is left unchanged and listed.
 
-`gm.study.minimize(plant, case, objective, variables=None, constraints=None, evaluations=100, *,
-plan=None)` searches design values. Each trial copies the plant and the case, sets the variables,
-plans the demand of the case on that design with `gm.schedule`, simulates and reads the metric, so
-neither is changed. Without `variables` they are those of `case.choices`: `size.doublets` (a
-discrete variable: the search runs once for each count, from the lowest to the highest, on a new
-plant of that size, and the best trial of all counts wins) and `depth`; a list replaces them, so
-restate these to keep searching them, and a capacity is searched only when listed. A name is a plant
-`path.parameter`, a number of the case as `case.<path>` (the path of `case.json`, for example
-`case.assumptions.finance.opex.electricity`), `size.doublets`, or `<role>.<parameter>` with a role
-of `gm.case.roles()` (`heat_pump.capacity`, `chiller.capacity`, `doublet.nominal_flow`,
-`doublet.depth`): it sets that parameter on every unit of the role, after the doublet count, so one
-list serves plants of other paths and counts. `depth` on a plant with no depth of its own is the
-depth of each doublet. A variable the plant cannot take, a role it lacks or `size.doublets` on a
-plant whose dict has none, is not searched and is in the result's `fixed`
-(`{name, value, reason}`); `invalid_design` is raised only when nothing is left to search. A `plan`
-stays fixed over the trials and lets `case` be `None` for a building block; with neither the call
-raises `missing_value`. `evaluations` is the largest number of simulations **for each doublet
-count**; with three variables 15 gave 45 trials. The search is
-`scipy.optimize.differential_evolution` from a Latin hypercube, seed fixed, with five candidates per
-variable, so a smaller budget than one population raises `ValidationError`.
+`gm.study.minimize(plant, case, objective, evaluations, seed, *, plan=None)`
+searches the design space that the plant states. The variables are the plant's: every leaf with a
+`range` (continuous, or integer when its parameter is) and every leaf with `options` (strings), and
+`size.doublets` when it has a `range` (a discrete variable: the search runs once for each count,
+from the lowest to the highest, on a new plant of that size, and the best trial of all counts
+wins). Leaves with the same parameter name, the same role (`gm.case.roles()`) and an equal range
+are one variable that sets them all (`heat_pump.capacity`, `chiller.capacity` for three chillers,
+`doublet.nominal_flow`, `doublet.depth`); the order is that of the file; a plant that states
+nothing to search raises `invalid_design`. `evaluations` and `seed` have no default (7.28). Each
+trial copies the plant, sets the variables, plans the demand of the case on that design with
+`gm.schedule`, simulates and reads the metric, so neither is changed. A `plan` stays fixed over the
+trials and lets `case` be `None` for a building block; with neither the call raises
+`missing_value`. `gm.check` runs first. `evaluations` is the largest number of simulations **for
+each doublet count**; with four variables 20 gave 80 trials. The search is
+`scipy.optimize.differential_evolution` from a Latin hypercube with the given seed, with five
+candidates per variable, so a smaller budget than one population raises `ValidationError`; the
+integer and the option variables are searched as integers.
 
-A trial is feasible when its run has no failed step, every constraint of the case passes
-(`gm.evaluate.constraints`, the supply temperatures of the services included) and every limit of
+A trial is feasible when its `gm.evaluate.verdict` has no reason that a design variable can change:
+the reasons with a `violation` (a failed requirement, the supply temperatures of the services
+included, an operating limit, a failed step, a balance out of its tolerance), and every limit of
 the `constraints` argument (limits on *metrics*, `{metric, minimum, maximum}`, not the
-`case.constraints` on roles) holds. A check with no value (no flow, a role the plant lacks) does
-not fail a trial. A trial that does not run, such as a negative injection head at great depth, is
+`case.requirements` on roles) holds. A reason with no `violation` is structural (a service the
+plant has no unit for, `cold_delivered` of a heating plant) and does not rank the trials; the
+verdict of the run of the best plant keeps it. The violation of a trial is the sum of those of its
+reasons (relative excess), at most 1e6 for a failed step. A trial that does not run, such as a negative injection head at great depth, is
 infeasible and the search goes on. The optimiser sees every feasible trial as better than every
 infeasible one and the infeasible ones ordered by their relative violation. `history` holds every
 trial with its `reason` (`None` when feasible; the first failed check, a dict, or a text) and
-`parts["violation"]`. The result is `{best, feasible, fixed, history, evaluations}`; `best` is the
-objective as a `Value` whose `parts["parameters"]` are `{name: Quantity}` and whose `["plant"]` is
-the best feasible plant, or with none the least violating trial that ran, then `feasible` is
+`parts["violation"]`. The result is `{best, feasible, history, evaluations}`; `best` is the
+objective as a `Value` whose `parts["parameters"]` are `{name: Quantity}` (an option is its string)
+and whose `["plant"]` is the best feasible plant (a `Plant`; its `to_json` runs), or with none the least violating trial that ran, then `feasible` is
 `False`. A trial costs about 1.5 times one `gm.simulate` of the same plant and case (0.15 s against
 0.10 s on the year of the hackathon sample), see below.
 
-`gm.study.sample(plant, case, distributions, metrics, count, seed=0, *, plan=None)` draws `normal`,
-`uniform` and `triangular` values (a plant parameter or `case.<path>`, each field a `Quantity`) with
+`gm.study.sample(plant, case, metrics, samples, seed, *, plan=None)` draws `normal`,
+`uniform` and `triangular` values (the `uncertainty` of the case, `case.<path>`) with
 `numpy.random.default_rng(seed)`, one simulation each, and summarises each metric as `mean`, `p5`,
 `p50`, `p95`, with `failed`, the number of draws left out. A run with failed steps is no valid
 design: its metrics are `None` with a `reason` (the count of failed steps and the most frequent
@@ -323,10 +328,27 @@ failure group of `gm.evaluate.failures`), it stays out of the summary, and in `s
 end and the effect are `None` with that reason. `minimize` calls such a trial infeasible with the
 same reason, never the best, and `compare` calls a report with `failed_steps > 0` infeasible
 (`failed_steps`). The evaluate cost functions still report what was delivered.
-`gm.study.sensitivity(plant, case, parameters, metrics, *, plan=None)` runs each value at its `low`
-and its `high` with the others as they are, and returns a list of `{parameter, metric, low, high,
+`gm.study.sensitivity(plant, case, metrics, *, plan=None)` runs each value the case declares an
+`uncertainty` for at its low and its high end with the others as they are, and returns a list of `{parameter, metric, low, high,
 at_low, at_high, effect}`, the largest effect first, with `to_frame(units=None)`: the metric columns
 in the display unit of the metric, or the unit of `units`, and a `unit` column.
+
+`gm.Study` (`gemini/study/study.py`) is the same functions from a `study.json` (`kind: study`, see
+[inputs.md](inputs.md#studyjson-kind-study-gmstudy-optional-what-to-run-how)): `cases`, `plants`,
+`prepare`, `method` (`run`, `minimize`, `sample`, `sensitivity`), `objective`, `metrics`,
+`evaluations`, `samples`, `seed`, with no default for a setting the method needs. `Study.run()`
+prepares (`size`), calls `minimize`, `sample` or `sensitivity`, simulates and reports each plant on
+each case and returns a `StudyResult`: `runs` (`plant_name`, `case_name`, `verdict`, `metrics`,
+`plant`, `report`, `found`, `note`), `comparison` (a `gm.evaluate.compare` of the reports of each
+case, by the objective then the metrics) and `best` (the feasible run ranked first by the
+objective, per case); `to_json(folder)` writes the run records. A `minimize` on a plant that states
+no range and no options runs the plant as it is, with a `note`. `Study.run(plants={name: Plant})`
+takes plants in memory instead of the files. `gm.check(plant, case)` (`gemini/run/check.py`)
+returns the issues that need both: a capex and a fixed opex for every equipment kind (when the case
+has economics), a requirement on a role the plant lacks (not `heating_supply` or `cooling_supply`: a
+plant without a supply is judged infeasible for that service), an initial state for every state of
+every stateful module, the energy prices of a `least_cost` dispatch, and the parameters without a
+value; `simulate` and every study function run it first.
 
 **What a trial costs.** A trial copies the plant once, sets its variables and the values of the case
 on that copy (`applied_in_place` of `gemini/run/_utils/apply.py`), and the run and every metric read
@@ -346,9 +368,26 @@ a process pays the import of gemini once (about a second and a half) and every w
 own graphs, so a study of fewer than a dozen trials is faster serial.
 
 A metric is a KPI or total of `gm.evaluate.totals` or one of `lcoh`, `lcoc`, `lcts`,
-`annualised_cost`, `co2`; the economic ones read the assumptions of `case`, so they need a case with
+`annualised_cost`, `co2`; the economic ones read the economics of `case`, so they need a case with
 the factors they use. `parameters` in `best`, `history` and `samples` are `Quantity` values in SI,
 the input of the next `set_params`.
+
+## Verdict
+
+`gm.evaluate.verdict(plant, case, results)` is the one place that decides feasibility
+([inputs.md](inputs.md#6-what-gemini-checks-on-every-run-not-inputs)). It returns `{feasible,
+reasons}`; a reason is `{kind, name, message}` and, when it has them, `path`, `value`, `limit`,
+`worst_step`. `requirement`: a requirement of the case or the supply temperature of a service
+failed (`name` that of the requirement), no requirement could be checked, or a service the case
+asks for is not delivered (`name` `heat_delivered` or `cold_delivered`). `failed_step`: failed or
+skipped rows (`failed_steps`). `numerical`: `mass_balance` below -1e-12 kg/s, `energy_balance`
+below -1e-9 W, a leaf residual above 1e-9 or the root above 1e-6 (`plant_balance`), a loop that did
+not converge; the constants of inputs.md 7.5. `bound`: `bounds` found values outside the limits a
+module declares, or a module with `operating_limits` `(output, "min" | "max", parameter)` has the
+output past the value of the parameter in the steps in which it carried flow (`path` the module,
+`name` the output). A limit never changes a run. `report` applies the case once and holds the
+verdict under `verdict`; `report` reads `economics.accounting`, which a second economics file
+changes (two allocations, two reports).
 
 ## Report and comparison
 
@@ -356,15 +395,13 @@ the input of the next `set_params`.
 each module that is equipment and has a rating: the design capacity, the largest use of any step
 and their ratio. `gm.evaluate.report(plant, case, results)` returns a `Report`, a `dict` with
 `heat_delivered`, `cold_delivered`, `boiler_heat`, `electricity_bought`, `gas_bought` (J over the
-run), `capacities`, `capex`, `opex`, `lcts`, `lcoh`, `lcoc`, `co2`, `constraints`, `passed` and
+run), `capacities`, `capex`, `opex`, `lcts`, `lcoh`, `lcoc`, `co2`, `requirements`, `verdict`, `passed` and
 `failed_steps`; its costs are read with `on_error="record"`, so a cost the case cannot give is a
-value `None` with a `reason` and many designs stay comparable. `report.to_dict()` is plain JSON in display units, the parts of each value too: the annualised cost and the opex components in MEUR/yr, an energy per year in MWh/yr, a mass in kt, a duration in days (the lifetime included); `units=` reaches the parts of the same SI unit (`co2="t"` shows the kg parts in t); the values inside the report stay SI.
+value `None` with a `reason` and many designs stay comparable. `report.to_dict()` is plain JSON in display units, the parts of each value too: the annualised cost and the opex components in MEUR/yr, an energy per year in MWh/yr, a mass in kt, a duration in days (`analysis_period`, `payback` and `lifetime_years` in yr) and a temperature difference in K; `units=` reaches the parts of the same SI unit (`co2="t"` shows the kg parts in t); the values inside the report stay SI.
 `gm.evaluate.compare(reports, by)` ranks reports by the metrics `by` (a name, a list, or a
 `{metric: "min" | "max"}` dict) and returns a `Comparison`, a list with one entry per report in the
 order given (`index`, `values`, `ranks`, `pareto`, `feasible`, and `reasons` when not feasible) and
-`to_frame(units=None)`. A report is feasible when no step failed, no constraint failed and every
-service in its `services` (`report["services"]`) is delivered; feasible reports rank first, only
-they can be on the front, and `reasons` are the failed items of `gm.evaluate.constraints` or
-`{name, reason}`. `values` stay floats in SI; `to_frame` shows the metrics in display units, columns
+`to_frame(units=None)`. A report is feasible when its `verdict` has no reason; feasible reports rank first, only
+they can be on the front, and `reasons` are those of the verdict. `values` stay floats in SI; `to_frame` shows the metrics in display units, columns
 `<metric> [<unit>]`. A report with no value of a metric ranks last for it and is never on the
 front.

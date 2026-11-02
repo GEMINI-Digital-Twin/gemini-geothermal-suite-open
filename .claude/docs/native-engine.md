@@ -265,7 +265,7 @@ Where the implementation differs from sections 1 to 11, and why:
   inputs are gone. Validation happens at the boundary and raises
   `gm.errors`: numbers become `float`; `m_dot` must be finite, `T > 0`, `p >= 0`
   (`PhysicsError`). When a field is an array or a traced value the same limits are
-  `ops.check` calls, so an invalid row raises the same class. `with_` is a trusted copy
+  `ops.check` calls, so an invalid row raises the same class. `_with_si` is a trusted copy
   (`object.__new__`, same `Fluid`, only changed fields checked), about 5 us against 25 us before.
   A traced inlet is a `Stream` of `Proxy` fields with the concrete `Fluid`: **a `Fluid` is static
   during a trace**, its property values are plain floats in the graph, not named inputs, and the
@@ -436,7 +436,7 @@ builds one with `add` and `connect`. There is one `forward`. JSON exists only as
   a stated parameter, fluid, binding or history stays as written while it equals the current value,
   otherwise the current SI value replaces it; a value that now differs from its starting value is
   added; unstated defaults stay out. A single undated history entry is not written.
-- **Validation.** `gm.plants.validate(data)` reads the dict the way `from_dict` does and collects
-  every problem as `{path, message, code, suggestions}` (`connections[1].target`); a module that
+- **Validation.** `plant.check()` writes the plant as its file and reads it again the way `from_dict` does,
+  and collects every issue as an `Issue` with a path into the file (`connections[1].target`); a module that
   failed to build hides the problems that only follow from it. Parameter problems use
   `invalid_unit`, `out_of_bounds`, `unknown_name`.

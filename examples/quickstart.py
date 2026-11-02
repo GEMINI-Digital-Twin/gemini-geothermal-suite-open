@@ -1,7 +1,7 @@
-"""Quickstart: a case and a plant from JSON, one simulation, its constraints and its report.
+"""Quickstart: a case and a plant from JSON, one simulation, its requirements and its report.
 
-Shows ``gm.Case.from_json``, ``gm.Plant.from_json``, ``gm.simulate``, ``gm.evaluate.constraints``
-and ``gm.evaluate.report`` on the shallow district sample.
+Shows ``gm.Case.from_json``, ``gm.Plant.from_json``, ``gm.check``, ``gm.simulate``,
+``gm.evaluate.requirements`` and ``gm.evaluate.report`` on the shallow district sample.
 
 Run with ``python examples/quickstart.py``.
 """
@@ -22,9 +22,11 @@ def show(label, quantity, unit):
 def main():
     """Run the sample for its three weeks and print what it delivered and what it costs."""
     case = gm.Case.from_json(SAMPLE / "case.json")
-    plant = gm.Plant.from_json(SAMPLE / "plant.json")
+    plant = gm.Plant.from_json(SAMPLE / "plants/HeatingHeatPumpCoolingPlant.json")
+    issues = gm.check(plant, case)
+    print("Check: ready" if not issues else f"Check: {issues}")
     results = gm.simulate(plant, case)
-    for check in gm.evaluate.constraints(plant, case, results):
+    for check in gm.evaluate.requirements(plant, case, results):
         print(f"{check['name']:<45} {'ok' if check['passed'] else 'VIOLATED'}")
     report = gm.evaluate.report(plant, case, results)
     show("Heat delivered", report["heat_delivered"], "MWh")

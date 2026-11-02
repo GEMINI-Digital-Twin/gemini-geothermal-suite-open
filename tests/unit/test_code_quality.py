@@ -19,7 +19,6 @@ from mccabe import PathGraphingAstVisitor
 import gemini as gm
 from gemini._utils import paths
 from gemini._utils.files import from_json
-from gemini.modules._utils.serialization import SECTIONS
 from gemini.plants.plant import Plant
 from tests.fixtures import ROOT
 
@@ -76,7 +75,7 @@ BUILDS_NO_DATA_PATH = {
 """Files allowed to name the data folders; the first is the one that knows where they are."""
 SAMPLE_PROBLEM = re.compile(r"hackathon|challenge|inputs/examples", re.IGNORECASE)
 """What no file of ``gemini/`` may name: it is a general package, and a problem is only an input."""
-VALUE_KEYS = {"plant", "size", "params", "inputs", *SECTIONS}
+VALUE_KEYS = {"format", "kind", "name", "about", "type", "size", "params", "fluids", "boundary"}
 FRAMEWORK = re.compile("py" + "tor" + "ch|\\b" + "tor" + "ch\\b", re.IGNORECASE)
 FRAMEWORK_STEM = "tor" + "ch"
 """Lowercase text that every ``FRAMEWORK`` match contains, checked before the slower regex."""
@@ -649,7 +648,9 @@ def test_a_file_of_example_values_has_only_the_allowed_keys_and_names_a_register
     for path in files:
         values = from_json(path)
         assert set(values) <= VALUE_KEYS, path.name
-        assert values["plant"] == path.stem and path.stem in gm.plants.names(), path.name
+        assert values["type"] == path.stem == values["name"], path.name
+        assert path.stem in gm.plants.names(), path.name
+        assert (values["format"], values["kind"]) == (1, "plant"), path.name
         assert isinstance(values["params"], dict), path.name
 
 
@@ -769,38 +770,31 @@ def test_the_case_imports_nothing_that_runs_or_judges():
 
 
 def test_the_case_has_no_default_but_absent():
-    """A field of ``gm.case`` is required or ``None``; ``over`` and ``when`` are the two choices."""
+    """A value of a section of ``gm.case`` is given or ``None``; no field holds a default."""
     import gemini as gm
-    from gemini.case._utils.section import Section
+    from gemini.case._utils.node import Node
 
-    allowed = {("Constraint", "over"): "each", ("Constraint", "when"): "always"}
     found = []
     for name in gm.case.__all__:
         cls = getattr(gm.case, name)
-        if not (isinstance(cls, type) and issubclass(cls, Section)):
+        if not (isinstance(cls, type) and issubclass(cls, Node)):
             continue
-        for field, info in cls.model_fields.items():
-            default = None if info.is_required() else info.default
-            if default is not None and allowed.get((name, field)) != default:
-                found.append(f"{name}.{field}")
+        section = cls()
+        found += [
+            f"{name}.{field}"
+            for field in (*cls.fields, *cls.sections)
+            if getattr(section, field) is not None
+        ]
     assert found == []
 
 
 DEFAULTED = {"Parameter", "Control", "Boundary", "State"}
 DECLARED_DEFAULTS = {
-    (
-        "Atmosphere",
-        "pressure",
-    ): "normal pressure of DIN 1343, a standard state (gas.NORMAL_PRESSURE)",
     ("Cooler", "latent_heat"): "latent heat of vaporisation of water, IAPWS-IF97 tables",
     ("IceStorage", "latent_heat"): "latent heat of fusion of ice, 333.55 kJ/kg (IAPWS R10-06)",
     ("IceStorage", "freezing_temperature"): "normal melting point of ice at 101.325 kPa",
     ("IceStorage", "water_specific_heat"): "liquid water at 0.01 degC (IAPWS-95)",
     ("IceStorage", "ice_specific_heat"): "ice Ih at the triple point (IAPWS R10-06)",
-    (
-        "InjectionPump",
-        "frequency",
-    ): "the catalogue frequency of the curves, ESP_REFERENCE_FREQUENCY",
     ("_Reservoir", "role"): "the identity of the subclass (production or injection), not a choice",
     ("PIDController", "integral"): "the integrator memory starts at zero by definition",
     ("AquiferStorage", "warm_volume"): "accumulator: zero before any charge",
@@ -855,6 +849,7 @@ def _open_objects(node, path="case"):
 def test_the_case_schema_is_closed_at_every_level():
     """``additionalProperties`` is false in every object of the case schema."""
     assert _open_objects(gm.Case.schema()) == []
+    assert _open_objects(gm.case.Economics.schema()) == []
 
 
 SHAPE_NAMES = {"problem", "problems", "_problems", "root_problems", "PROBLEM_SCHEMA"}
@@ -928,8 +923,10 @@ def test_no_reader_or_writer_breaks_the_naming_rule():
 
 
 GEMINI_FILES = [path for path in PYTHON_FILES if path.startswith("gemini/")]
-OLD_NAME = re.compile(r"legacy|compat|deprecated|^old_|_old($|_)|_v1|_v2", re.IGNORECASE)
-"""What a kept old name, shape or call path is called."""
+OLD_NAME = re.compile(
+    r"legacy|compat|deprecated|^old_|_old($|_)|_v1|_v2|assumptions|finance|lifetime", re.IGNORECASE
+)
+"""What a kept old name, shape or call path is called, with the names of the old inputs."""
 WRAPPER_ALLOWANCE = {
     "gemini/modules/module.py::fluid": "a property setter that calls the hook plants override",
 }
@@ -1153,9 +1150,11 @@ def test_no_name_keeps_something_old(package_trees):
 
 
 def test_the_old_name_guard_finds_old_names_and_not_words_that_contain_them():
-    """``old_value``, ``_compat`` and ``f_v2`` are caught; ``is_older`` and ``old`` are not."""
+    """``old_value``, ``_compat``, ``f_v2`` and the names of the old inputs are caught."""
     caught = "def old_value(): pass\nclass Compat: pass\n_compat = 1\ndef f_v2(deprecated): pass\n"
     assert old_names(ast.parse(caught)) == ["Compat", "_compat", "deprecated", "f_v2", "old_value"]
+    renamed = "assumptions = 1\ndef finance(lifetime_years): pass\n"
+    assert old_names(ast.parse(renamed)) == ["assumptions", "finance", "lifetime_years"]
     assert old_names(ast.parse("def is_older(folder, hold): pass\nold = 1\n")) == []
 
 

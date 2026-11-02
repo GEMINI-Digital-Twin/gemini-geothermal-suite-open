@@ -3,6 +3,7 @@
 from gemini import ops
 from gemini.modules._utils.cost import Equipment
 from gemini.modules._utils.flow import require_forward
+from gemini.modules._utils.supply import supply_margin
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.heating import _burner
 from gemini.modules.module import Module
@@ -11,7 +12,11 @@ from gemini.types import Efficiency, Fuel, Power, Stream, Temperature
 
 
 class _BoilerBody(Equipment, Module):
-    """Water side of a boiler: heat a forward stream to its setpoint, up to a duty limit."""
+    """Water side of a boiler: heat a forward stream to its setpoint, up to a duty limit.
+
+    On a supply line the setpoint is the supply temperature of ``demand.heating`` plus the
+    ``supply_margin`` the plant states (``gm.run.apply_case``).
+    """
 
     abstract = True
 
@@ -27,6 +32,8 @@ class _BoilerBody(Equipment, Module):
             description="Thermal efficiency of the boiler: heat to water over fuel energy",
         )
 
+        self.supply_margin = supply_margin()
+
         # Inlets
         self.fluid_in = Inlet(Stream, kind="hot_water")
 
@@ -41,9 +48,9 @@ class _BoilerBody(Equipment, Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="hot_water")
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the boiler from its capacity."""
-        return self.capex_of(finance, self.capacity)
+        return self.capex_of(economics, self.capacity)
 
     def _requested_duty(self, inlet):
         """Return the duty [W] that reaches the setpoint, refusing reverse flow."""
@@ -55,7 +62,7 @@ class _BoilerBody(Equipment, Module):
     def _heated(self, inlet, duty):
         """Return the inlet stream heated by ``duty``."""
         rate = inlet.heat_capacity_rate()
-        return inlet.with_(T=inlet.T + heat_transfer.temperature_change(duty, rate))
+        return inlet._with_si(T=inlet.T + heat_transfer.temperature_change(duty, rate))
 
 
 class Boiler(_BoilerBody):
@@ -73,6 +80,7 @@ class Boiler(_BoilerBody):
     """
 
     equipment_kind = "boiler"
+    plant_role = "boiler"
 
     def __init__(self):
         """Declare boiler design data, ports and computed performance."""

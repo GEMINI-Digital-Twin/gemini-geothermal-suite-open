@@ -6,8 +6,8 @@ from gemini.plants._utils.roles import units_of
 from tests.fixtures.errors import raises
 
 
-def test_the_table_lists_every_role_with_its_quantities():
-    """The closed table of the task, as a copy."""
+def test_the_table_lists_every_role_with_its_quantities_dimension_and_over():
+    """The closed table: a dimension (None without one) and whether the quantity takes over."""
     table = gm.case.roles()
     assert list(table) == [
         "doublet",
@@ -20,7 +20,12 @@ def test_the_table_lists_every_role_with_its_quantities():
         "cooling_supply",
         "plant",
     ]
-    assert table["doublet"][:2] == ["production_flow", "brine_cooling"]
+    assert list(table["doublet"])[:2] == ["production_flow", "brine_cooling"]
+    assert table["doublet"]["production_flow"] == {"dimension": "volume_flow", "over": True}
+    assert table["doublet"]["pump_efficiency"] == {"dimension": None, "over": False}
+    assert table["doublet"]["reinjection_ratio"] == {"dimension": None, "over": True}
+    assert table["heating_supply"]["unmet_share"] == {"dimension": None, "over": False}
+    assert "volume_imbalance" not in table["doublet"]
     table["doublet"].clear()
     assert gm.case.roles()["doublet"]
 

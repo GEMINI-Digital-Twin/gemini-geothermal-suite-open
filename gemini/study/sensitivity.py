@@ -4,12 +4,14 @@ import pandas as pd
 
 from gemini import units
 from gemini._utils.jsonable import to_plain
+from gemini.errors.base import raise_issues
 from gemini.evaluate._utils.display import by_si_unit, display_units, in_unit
 from gemini.evaluate._utils.display import shown as displayed
+from gemini.run import check
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.target import quantities
 from gemini.study._utils.trial import checked_metric, drawn_trial
-from gemini.study._utils.uncertain import declared
+from gemini.study._utils.uncertain import declared, tried_ends
 from gemini.study.sample import value_of
 from gemini.types.shapes import measure
 
@@ -113,7 +115,8 @@ def _row(name, metric, shown, ends):
 def sensitivity(plant, case, metrics, *, plan=None):
     """Return how each metric changes when each uncertain value of the case moves, one at a time.
 
-    The values are those the case declares an ``uncertainty`` for (``missing_value`` when it
+    ``gm.check`` runs first and raises its issues. The values are those the case declares an
+    ``uncertainty`` for (``missing_value`` when it
     declares none); plant parameters are not moved. Each is run at its low and at its high end,
     the others at their values in the case: ``min`` and ``max`` when the declaration has them,
     else ``value - std`` and ``value + std`` of a ``normal``. A run is a copy of the plant and the
@@ -142,8 +145,9 @@ def sensitivity(plant, case, metrics, *, plan=None):
         when a run failed. The rows are grouped by metric in the order given, the largest effect
         first, the failed last. ``to_frame()`` gives the table and ``to_dict()`` plain JSON.
     """
+    raise_issues(check(plant, case))
     names = [checked_metric(name) for name in metrics]
-    limits = [(name, un.limits(value)) for name, un, value in declared(case, "sensitivity")]
+    limits = [(name, tried_ends(un, value)) for name, un, value in declared(case, "sensitivity")]
     jobs = [{name: end} for name, ends in limits for end in ends]
     runs = mapped(drawn_trial, (plant, case, plan, names), jobs)
     rows = []

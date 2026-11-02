@@ -172,3 +172,30 @@ def test_a_problem_without_a_path_has_no_prefix_in_the_message():
     """A message does not start with ``None:``."""
     problem = {"path": None, "code": "invalid_value", "message": "x", "suggestions": []}
     assert errors.ValidationError.of([problem]).args == ("x",)
+
+
+@pytest.mark.parametrize("kind, code", sorted(base.ISSUE_KINDS.items()))
+def test_an_issue_presents_as_a_problem_with_the_code_of_its_kind(kind, code):
+    """An issue presents as a problem with the code of its kind."""
+    issue = base.Issue("a.b", kind, "msg", suggestions=("c",))
+    assert issue.problem() == {"path": "a.b", "code": code, "message": "msg", "suggestions": ["c"]}
+    assert code in base.CODES
+
+
+def test_an_issue_refuses_an_unknown_kind_or_code():
+    """An issue refuses an unknown kind or code."""
+    with pytest.raises(errors.GeminiError):
+        base.Issue("a", "bad", "m")
+    with pytest.raises(errors.GeminiError):
+        base.Issue("a", "unit", "m", code="bad")
+
+
+def test_raise_issues_carries_issues_and_problems_and_is_silent_when_empty():
+    """Raise issues carries issues and problems and is silent when empty."""
+    base.raise_issues([])
+    issues = [base.Issue("a", "missing", "one"), base.Issue("b", "unit", "two")]
+    with pytest.raises(errors.ValidationError) as caught:
+        base.raise_issues(issues)
+    assert caught.value.issues == tuple(issues)
+    assert [p["path"] for p in caught.value.problems] == ["a", "b"]
+    assert caught.value.code == "missing_value"

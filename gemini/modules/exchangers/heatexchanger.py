@@ -30,6 +30,7 @@ class HeatExchanger(Equipment, Module):
     """Two-stream heat exchanger with thermal and fouling diagnostics."""
 
     equipment_kind = "heat_exchanger"
+    plant_role = "heat_exchanger"
 
     repr_fields = (
         "thermal_conductance",
@@ -127,8 +128,10 @@ class HeatExchanger(Equipment, Module):
         cold_in = inlets.cold_in
         values = self._performance(hot_in, cold_in)
 
-        hot_out = hot_in.with_(T=values["hot_out_T"], p=hot_in.p - values["hot_pressure_drop"])
-        cold_out = cold_in.with_(T=values["cold_out_T"], p=cold_in.p - values["cold_pressure_drop"])
+        hot_out = hot_in._with_si(T=values["hot_out_T"], p=hot_in.p - values["hot_pressure_drop"])
+        cold_out = cold_in._with_si(
+            T=values["cold_out_T"], p=cold_in.p - values["cold_pressure_drop"]
+        )
 
         # Outputs
         for name, value in values.items():
@@ -142,9 +145,9 @@ class HeatExchanger(Equipment, Module):
         cold, hot = inlets.get("cold_in"), inlets.get("hot_in")
         return (None if cold is None else cold.T), (None if hot is None else hot.T)
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the exchanger from its thermal conductance."""
-        return self.capex_of(finance, self.thermal_conductance)
+        return self.capex_of(economics, self.thermal_conductance)
 
     def _performance(self, hot_in, cold_in):
         self._check_inlets(hot_in, cold_in)

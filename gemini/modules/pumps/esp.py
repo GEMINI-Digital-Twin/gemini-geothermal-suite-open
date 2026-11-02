@@ -45,6 +45,10 @@ class ESP(Module):
     """Electrical submersible pump installed inside a production well."""
 
     repr_fields = ("stage_count", "setting_depth", "motor_efficiency", "best_efficiency_flow")
+    operating_limits = (
+        ("intake_pressure", "min", "minimum_intake_pressure"),
+        ("gas_volume_fraction", "max", "maximum_gas_fraction"),
+    )
 
     def __init__(self):
         """Declare ESP design data, ports and computed performance."""
@@ -103,6 +107,16 @@ class ESP(Module):
             description=(
                 "Inner diameter of the tubing the pump discharges into; empty when not given"
             ),
+        )
+        self.minimum_intake_pressure = Parameter(
+            Pressure | None,
+            default=None,
+            description="Lowest pressure at the pump intake the equipment allows; empty: no limit",
+        )
+        self.maximum_gas_fraction = Parameter(
+            Fraction | None,
+            default=None,
+            description="Largest free-gas volume fraction at the intake; empty: no limit",
         )
         self.drift_threshold = Parameter(
             Fraction,
@@ -173,7 +187,7 @@ class ESP(Module):
         gas = self._gas_volume_fraction(suction)
         self._check_inside_curve(flow, head, power, scale, suction.p, gas)
 
-        discharge = suction.with_(p=suction.p + head)
+        discharge = suction._with_si(p=suction.p + head)
         power_in = energy.input_power(power, self.motor_efficiency)
 
         # Outputs

@@ -15,7 +15,7 @@ DISTRIBUTION = "gemini-geothermal-suite-open"
 OLDEST_READABLE = "0.1.0"
 """Results files written before this version do not load."""
 
-OLDEST_CHECKPOINT = "0.2.0"
+OLDEST_CHECKPOINT = "0.3.0"
 """Checkpoints written before this version do not load: they hold a plant file of an older form."""
 
 PYPROJECT = Path(__file__).parents[2] / "pyproject.toml"

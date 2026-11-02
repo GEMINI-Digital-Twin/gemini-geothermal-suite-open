@@ -11,8 +11,10 @@ import pytest
 
 import gemini as gm
 from gemini.case._utils.kinds import EQUIPMENT_KINDS
+from gemini.case.roletable import reads
 from gemini.run._utils.apply import apply_case
 from gemini.units import Quantity
+from tests.fixtures.cases import requirement
 from tests.fixtures.sample_cases import sample_case, template_dict
 
 pytestmark = pytest.mark.xdist_group("case_needs")
@@ -21,19 +23,17 @@ HOURS = 12
 HEAT_MW = 12.0
 COLD_MW = 5.0
 LIMITS = [
-    {
-        "on": "doublet",
-        "quantity": "production_flow",
-        "when": "running",
-        "min": {"value": 60, "unit": "m3/h"},
-        "max": {"value": 320, "unit": "m3/h"},
-    },
-    {
-        "on": "doublet",
-        "quantity": "brine_cooling",
-        "when": "running",
-        "max": {"value": 45, "unit": "K"},
-    },
+    requirement(
+        "doublet",
+        "production_flow",
+        name="flow_range",
+        when="running",
+        min=Quantity(60, "m3/h"),
+        max=Quantity(320, "m3/h"),
+    ),
+    requirement(
+        "doublet", "brine_cooling", name="cooling_limit", when="running", max=Quantity(45, "K")
+    ),
 ]
 
 
@@ -48,12 +48,10 @@ PLACEHOLDERS = {
 def sized_dict(doublets):
     """Return the plant dict on ``doublets`` doublets, each with the values of ``d0``."""
     data = deepcopy(template_dict("HeatingCoolingPlant"))
-    data["size"] = {"doublets": doublets}
-    own = {name: item for name, item in data["params"].items() if not name.startswith(("d0", "d1"))}
-    first = {name[3:]: item for name, item in data["params"].items() if name.startswith("d0.")}
-    data["params"] = own | {
-        f"d{index}.{name}": item for index in range(doublets) for name, item in first.items()
-    }
+    data["size"] = {"doublets": {"value": doublets}}
+    first = data["params"]["d0"]
+    own = {name: item for name, item in data["params"].items() if name not in ("d0", "d1")}
+    data["params"] = own | {f"d{index}": deepcopy(first) for index in range(doublets)}
     return data
 
 
@@ -61,7 +59,7 @@ def demand_file(folder):
     """Write an hourly demand in kW under names of its own and return its path."""
     index = pd.date_range("2031-02-03", periods=HOURS, freq="h", tz="UTC")
     frame = pd.DataFrame(
-        {"stamp": index, "heat_kw": HEAT_MW * 1000, "cold_kw": COLD_MW * 1000},
+        {"time": index, "heat_kw": HEAT_MW * 1000, "cold_kw": COLD_MW * 1000},
     )
     path = folder / "demand.csv"
     frame.to_csv(path, index=False)
@@ -78,16 +76,14 @@ def case_of(folder, *constraints):
     }
     heating, cooling = data["demand"]["heating"], data["demand"]["cooling"]
     data["demand"] = {
-        "file": "demand.csv",
-        "time_column": "stamp",
-        "heating": heating | {"column": "heat_kw", "unit": "kW"},
-        "cooling": cooling | {"column": "cold_kw", "unit": "kW"},
+        "heating": heating | {"power": {"file": "demand.csv", "column": "heat_kw", "unit": "kW"}},
+        "cooling": cooling | {"power": {"file": "demand.csv", "column": "cold_kw", "unit": "kW"}},
     }
-    data["constraints"] = [*LIMITS, *constraints]
-    finance = data["assumptions"]["finance"]
-    finance["capex"] |= PLACEHOLDERS
-    finance["opex"]["fixed"] = {kind: {"value": 2, "unit": "%/yr"} for kind in EQUIPMENT_KINDS}
-    return gm.Case.from_dict(data, folder)
+    data["requirements"] = [*LIMITS, *constraints]
+    economics = data["economics"] = sample_case().economics.to_dict()
+    economics["capex"] |= PLACEHOLDERS
+    economics["opex"]["fixed"] = {kind: {"value": 2, "unit": "%/yr"} for kind in EQUIPMENT_KINDS}
+    return gm.Case.from_dict(data, folder=folder)
 
 
 @pytest.fixture(scope="module")
@@ -116,12 +112,17 @@ def results(plant, case):
     return gm.simulate(plant, case)
 
 
+def only(case, *requirements):
+    """Return ``case`` with the requirements ``requirements`` and no other."""
+    data = case.to_dict() | {"requirements": list(requirements)}
+    return gm.Case.from_dict(data, files=case.files())
+
+
 def worst(plant, case, results, on, quantity, **bounds):
     """Return the check of one constraint on the run, for each unit of the role."""
-    limit = gm.case.Constraint(on=on, quantity=quantity, when="running", **bounds)
-    checks = gm.evaluate.constraints(
-        plant, case.model_copy(update={"constraints": (limit,)}), results
-    )
+    when = "running" if reads(on, quantity).over else None
+    limit = requirement(on, quantity, when=when, **bounds)
+    checks = gm.evaluate.requirements(plant, only(case, limit), results)
     return [item for item in checks if (item["role"], item["quantity"]) == (on, quantity)]
 
 
@@ -188,10 +189,9 @@ def test_a_limit_on_a_parameter(plant, case, results):
     assert not worst(plant, case, results, "doublet", "pump_efficiency", min=0.9)[0]["passed"]
 
 
-def test_a_limit_on_the_volume_balance(plant, case, results):
+def test_a_limit_on_the_reinjection_ratio(plant, case, results):
     """What a doublet produces it injects again."""
-    bounds = {"min": Quantity(-1e-6, "m3/s"), "max": Quantity(1e-6, "m3/s")}
-    checks = worst(plant, case, results, "doublet", "volume_imbalance", **bounds)
+    checks = worst(plant, case, results, "doublet", "reinjection_ratio", min=0.99999, max=1.00001)
     assert [item["passed"] for item in checks] == [True, True]
 
 
@@ -203,23 +203,20 @@ def test_limits_on_the_supply_temperatures(plant, case, results):
 
 
 def duration(**bound):
-    """Return a constraint on the time each doublet carries flow."""
-    return {
-        "on": "doublet",
-        "quantity": "production_flow",
-        "over": "duration",
-        "when": "running",
-    } | bound
+    """Return a requirement on the time each doublet carries flow."""
+    return requirement(
+        "doublet", "production_flow", name="running_time", over="duration", when="running", **bound
+    )
 
 
 def test_a_limit_on_the_operating_time(folder):
     """Each doublet runs the time of the rule, with its outages at whole steps."""
     plant = gm.Plant.from_dict(sized_dict(2))
-    results = gm.simulate(plant, case_of(folder, duration(max={"value": 11, "unit": "h"})))
+    results = gm.simulate(plant, case_of(folder, duration(max=Quantity(11, "h"))))
     for hours, passes in ((11, True), (5, False)):
-        bound = gm.case.Constraint(**duration(equals=Quantity(hours, "h")))
-        case = case_of(folder).model_copy(update={"constraints": (bound,)})
-        checks = gm.evaluate.constraints(plant, case, results)
+        bound = duration(min=Quantity(hours, "h"), max=Quantity(hours, "h"))
+        case = only(case_of(folder), bound)
+        checks = gm.evaluate.requirements(plant, case, results)
         assert all(item["passed"] for item in checks) is passes
 
 

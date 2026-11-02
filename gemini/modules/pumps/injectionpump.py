@@ -99,11 +99,7 @@ class InjectionPump(Equipment, Module):
         )
         self.frequency = Control(
             Frequency,
-            default=float(constants.ESP_REFERENCE_FREQUENCY),
-            description=(
-                "Operating frequency of the pump motor; the catalogue frequency of the ESP "
-                "curves unless a run sets it"
-            ),
+            description="Operating frequency of the pump motor; the plant states it",
         )
 
         # Outputs
@@ -135,7 +131,7 @@ class InjectionPump(Equipment, Module):
             head=head,
         )
 
-        discharge = suction.with_(p=suction.p + head)
+        discharge = suction._with_si(p=suction.p + head)
         power_in = self._power(suction, head)
 
         # Outputs
@@ -189,7 +185,7 @@ class InjectionPump(Equipment, Module):
             code="invalid_design",
         )
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the pump from its shaft power at the nominal flow.
 
         The power is the power curve at ``nominal_flow`` and the catalogue frequency of the curves
@@ -206,13 +202,13 @@ class InjectionPump(Equipment, Module):
                 self.stage_count,
                 self.power_coefficients,
             )
-            return self.capex_of(finance, power)
+            return self.capex_of(economics, power)
         if self.nominal_head is None:
             raise _missing_design(self.path, "nominal_head")
         if self.efficiency is None:
             raise _missing_design(self.path, "efficiency")
         hydraulic = pumps.hydraulic_power(self.nominal_flow, self.nominal_head)
-        return self.capex_of(finance, energy.input_power(hydraulic, self.efficiency))
+        return self.capex_of(economics, energy.input_power(hydraulic, self.efficiency))
 
 
 def _missing_design(path, name):

@@ -22,30 +22,35 @@ def _schedulable(plant):
     return bool(_count(plant, Doublet)) and max(heating, cooling) <= 1
 
 
-def _choices(plant):
-    """Return the choices of a study the plant supports: ``doublets`` and ``depth``."""
+def _ranges(plant):
+    """Return the paths of the leaves a plant file may give a ``range`` for a study to search.
+
+    These are ``size.doublets`` when the class takes that structural size and ``params.depth``
+    when the plant has a ``depth`` parameter.
+    """
     found = []
     if "doublets" in (getattr(plant, "_size", None) or {}):
-        found.append("doublets")
+        found.append("size.doublets")
     if "depth" in dict(plant.named_parameters(recurse=False)):
-        found.append("depth")
+        found.append("params.depth")
     return found
 
 
 def capabilities():
-    """Return what each plant class contains, plans and lets a study choose.
+    """Return what each plant class contains, plans and lets a study search.
 
     Every registered plant class is built at its smallest size and read. For each, the dict holds:
 
     - ``roles``: the roles (``gm.case.roles()``) of which it has a unit;
     - ``schedulable``: whether ``gm.schedule`` can plan it;
-    - ``choices``: the choices of ``gm.case.Choices`` it supports, ``doublets`` when its class
-      takes a structural size of that name and ``depth`` when it has a ``depth`` parameter.
+    - ``ranges``: the leaves of the plant file that may state a ``range``: ``size.doublets`` when
+      its class takes a structural size of that name and ``params.depth`` when it has a ``depth``
+      parameter.
 
     Returns
     -------
     dict
-        ``{plant class name: {"roles": list, "schedulable": bool, "choices": list}}``.
+        ``{plant class name: {"roles": list, "schedulable": bool, "ranges": list}}``.
     """
     result = {}
     for name in registry.names("plants"):
@@ -56,6 +61,6 @@ def capabilities():
         result[name] = {
             "roles": sorted(roles),
             "schedulable": _schedulable(plant),
-            "choices": _choices(plant),
+            "ranges": _ranges(plant),
         }
     return result

@@ -35,7 +35,7 @@ def test_hand_computed_removal_and_loss():
     out = result.outputs
     assert out.pressure_drop == 25000
     removed = result.outlets.waste_out.m_dot
-    assert result.outlets.fluid_out == INLET.with_(m_dot=INLET.m_dot - removed, p=1e6 - 25000)
+    assert result.outlets.fluid_out == INLET._with_si(m_dot=INLET.m_dot - removed, p=1e6 - 25000)
     assert result.outlets.waste_out.m_dot == out.sand_removal_rate
     assert out.sand_removal_rate == pytest.approx(0.9 * 0.05 * 0.02)
     assert out.residual_sand_concentration == pytest.approx(0.005)
@@ -46,12 +46,12 @@ def test_hand_computed_removal_and_loss():
 def test_limits():
     """Zero flow removes nothing; reverse flow and a loss above inlet pressure raise."""
     module = desander()
-    stopped = module(fluid_in=INLET.with_(m_dot=0), sand_concentration=0.05).outputs
+    stopped = module(fluid_in=INLET._with_si(m_dot=0), sand_concentration=0.05).outputs
     assert stopped.pressure_drop == 0 and stopped.sand_removal_rate == 0
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot"):
-        module(fluid_in=INLET.with_(m_dot=-1), sand_concentration=0.05)
+        module(fluid_in=INLET._with_si(m_dot=-1), sand_concentration=0.05)
     with pytest.raises(gm.errors.PhysicsError, match="pressure_drop"):
-        module(fluid_in=INLET.with_(m_dot=200, p=2e5), sand_concentration=0.05)
+        module(fluid_in=INLET._with_si(m_dot=200, p=2e5), sand_concentration=0.05)
     with pytest.raises(gm.errors.ValidationError):
         module(fluid_in=INLET, sand_concentration=-1)
     with raises(gm.errors.ValidationError, "missing_value"):

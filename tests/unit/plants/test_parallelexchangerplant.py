@@ -19,10 +19,6 @@ FITTED_INJECTION = gm.Stream(
 INPUTS = {
     "doublet.esp.frequency": {"value": 60, "unit": "Hz"},
     "doublet.wellhead_pressure": {"value": 10, "unit": "bar"},
-    "primary_splitters.0.split_fraction": 0.5,
-    "primary_splitters.1.split_fraction": 0.6,
-    "secondary_splitters.0.split_fraction": 0.5,
-    "secondary_splitters.1.split_fraction": 0.6,
 }
 
 
@@ -44,6 +40,16 @@ def test_the_call_reproduces_the_upstream_case(run):
     duties = [result.children[f"heat_exchangers.{index}"].outputs.duty for index in range(3)]
     assert [round(duty / 1e3, 1) for duty in duties] == [297.8, 178.7, 119.1]
     assert round(gm.units.convert(result.outlets.supply_out.T, "K", "degC"), 2) == 24.06
+
+
+def test_the_plant_file_states_the_shares():
+    """The 50/30/20 split is the designer's: it sits in the plant file, not in the class."""
+    plant = example_plant("ParallelExchangerPlant")
+    for cascade in ("primary_splitters", "secondary_splitters"):
+        assert [plant.input_value(f"{cascade}.{index}.split_fraction") for index in (0, 1)] == [
+            0.5,
+            0.6,
+        ]
 
 
 def test_the_shares_divide_both_streams(run):

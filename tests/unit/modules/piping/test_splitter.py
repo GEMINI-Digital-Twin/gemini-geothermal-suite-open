@@ -32,16 +32,16 @@ def test_limits_of_the_split():
     """Fractions 0 and 1 send everything to one branch; zero feed gives two stopped branches."""
     assert Splitter()(fluid_in=FEED, split_fraction=0).outlets.branch2_out.m_dot == 0
     assert Splitter()(fluid_in=FEED, split_fraction=1).outlets.branch1_out.m_dot == 0
-    stopped = Splitter()(fluid_in=FEED.with_(m_dot=0), split_fraction=0.5).outlets
+    stopped = Splitter()(fluid_in=FEED._with_si(m_dot=0), split_fraction=0.5).outlets
     assert stopped.branch1_out.m_dot == stopped.branch2_out.m_dot == 0
-    odd = Splitter()(fluid_in=FEED.with_(m_dot=0.7), split_fraction=0.3)
+    odd = Splitter()(fluid_in=FEED._with_si(m_dot=0.7), split_fraction=0.3)
     assert mass_balance(Splitter(), odd)["relative_residual"] < 1e-15
 
 
 def test_invalid_inputs_raise():
     """Reverse feed, a fraction outside [0, 1] and a missing command are rejected."""
     with pytest.raises(gm.errors.PhysicsError, match="splitter: fluid_in.m_dot = -1"):
-        Splitter()(fluid_in=FEED.with_(m_dot=-1), split_fraction=0.5)
+        Splitter()(fluid_in=FEED._with_si(m_dot=-1), split_fraction=0.5)
     with pytest.raises(gm.errors.ValidationError):
         Splitter()(fluid_in=FEED, split_fraction=1.2)
     with raises(gm.errors.ValidationError, "missing_value"):

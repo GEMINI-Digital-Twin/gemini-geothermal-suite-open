@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from tests.fixtures.heating_cooling import HEAT, two_days_case
+from tests.fixtures.plant_files import issues
 from tests.fixtures.sample_cases import template_plant
 
 pytestmark = pytest.mark.slow
@@ -25,7 +26,7 @@ def _run(data):
 def test_every_plant_runs_one_simulate(name):
     """A plant builds, validates and runs two ticks without a row error."""
     data = template_plant(name).to_dict(structure=True)
-    assert gm.plants.validate(data) == []
+    assert issues(data) == []
     plant, results = _run(data)
     assert results.errors() == []
     frame = results.to_frame()

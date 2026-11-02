@@ -22,7 +22,7 @@ def test_bleed_split_conserves_mass_and_energy():
     blowdown = Blowdown()
     result = blowdown(fluid_in=FEED, blowdown_fraction=0.25)
     retained, drained = result.outlets.fluid_out, result.outlets.waste_out
-    assert drained == FEED.with_(m_dot=2) and retained == FEED.with_(m_dot=6)
+    assert drained == FEED._with_si(m_dot=2) and retained == FEED._with_si(m_dot=6)
     assert reading(result).blowdown_mass_flow == 2
     assert "modelled" not in result.outputs and "heat_loss" not in reading(result)
     assert mass_balance(blowdown, result)["residual"] == 0
@@ -34,10 +34,10 @@ def test_limits():
     blowdown = Blowdown()
     assert blowdown(fluid_in=FEED, blowdown_fraction=0).outlets.waste_out.m_dot == 0
     assert blowdown(fluid_in=FEED, blowdown_fraction=1).outlets.fluid_out.m_dot == 0
-    stopped = blowdown(fluid_in=FEED.with_(m_dot=0), blowdown_fraction=0.1)
+    stopped = blowdown(fluid_in=FEED._with_si(m_dot=0), blowdown_fraction=0.1)
     assert reading(stopped).blowdown_mass_flow == 0
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot"):
-        blowdown(fluid_in=FEED.with_(m_dot=-1), blowdown_fraction=0.1)
+        blowdown(fluid_in=FEED._with_si(m_dot=-1), blowdown_fraction=0.1)
     with raises(gm.errors.ValidationError, "missing_value"):
         blowdown(fluid_in=FEED)
 

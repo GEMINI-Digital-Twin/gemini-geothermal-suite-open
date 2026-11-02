@@ -92,7 +92,7 @@ value is SI.
 
 **The public door converts, SI inside.** A bare number with a dimension is refused at every public
 door (`Module.set_params`, `Plant.add`, `validate_params`, `Plant.set_inputs`, `Stream(...)`, `Fluid(...)`,
-`gm.call`, `gm.modules.check`, the plant dict, the case, `gm.study`): `ValidationError` `invalid_value`
+`Module.<name> = ...` outside a call, `Stream.with_`, `gm.call`, `gm.modules.check`, the plant dict, the case, `gm.study`): `ValidationError` `invalid_value`
 with the path, the quantity and the accepted units, zero included (`gemini/types/bare.py` is the one
 rule). `set_params` converts the quantities and calls the private `Module._set_si_params(path,
 params, valid_from=None)`; `Plant.set_inputs` calls `Plant._set_si_inputs`; `Stream._si(m_dot=, T=, p=,
@@ -100,10 +100,13 @@ fluid=)` and `Fluid._si(...)` build from SI. `gemini` itself uses only the priva
 case apply, `gm.study`, the readers of checkpoints. A plant class that derives values for its children
 overrides `_set_si_params`, never `set_params`. Do not add a second public setter.
 
-Two author-level doors stay in SI and are not for users: attribute assignment on a module
-(`esp.frequency = 50`, `module.fluid = {...}`), the way a module author writes inside `forward` and
-`__init__`, and `Stream.with_(...)`, the hot path of the solvers, where a unit lookup per call costs
-more than the run. The stored forms of a plant dict (`fluids`, `param_history`) are quantities;
+Attribute assignment on a module and `Stream.with_` follow the same rule: `esp.frequency = 50` and
+`stream.with_(T=300.0)` raise `invalid_value`; a quantity or its dict is converted. Inside a running
+call (`forward`, hooks) an assigned control or boundary is SI by contract, and `gemini` assigns SI
+outside a call with `Module._assign_si(name, value)` and copies streams with `Stream._with_si(...)`,
+the hot path of the solvers, so a unit lookup is never added to a run. A module author writes
+`inlet._with_si(T=...)` in `forward`. Assignments in a constructor of a declared value go through
+`set_params` or a quantity. The stored forms of a plant dict (`fluids`, `param_history`) are quantities;
 `tree_dict` checkpoints and `state_dict` are SI by design. Tests wrap SI numbers through
 `tests/fixtures/si.py` (`si.set_params`, `si.stream`, `si.fluid`, ...) or use the private path to test
 private behaviour.
@@ -113,10 +116,9 @@ private behaviour.
 Nothing that a user must decide has a default in gemini: not a price, a temperature, a limit, a
 cost factor, an efficiency, a depth. A field is required or absent (`None`), and a call that needs
 an absent value raises `ValidationError` (`missing_value`, or `missing_assumption` below
-`assumptions` of the case) naming its path in the case or the plant. The only defaults in `gm.case`
-are `over="each"` and `when="always"` of `Constraint`, the signature the case gives;
-`test_the_case_has_no_default_but_absent` in `tests/unit/test_code_quality.py` allows exactly these
-two. The rule holds in `gemini/modules` and `gemini/plants` too, and is tested:
+`economics` of the case) naming its path in the case or the plant. `gm.case` has no default at
+all (a requirement states `over`, and an absent `when` means every step);
+`test_the_case_has_no_default_but_absent` in `tests/unit/test_code_quality.py` checks it. The rule holds in `gemini/modules` and `gemini/plants` too, and is tested:
 `test_no_declaration_has_a_default_but_the_listed_constants` allows a default of a `Parameter`,
 `Control`, `Boundary` or `State` only for the entries of `DECLARED_DEFAULTS` in
 `tests/unit/test_code_quality.py`, each with its reason, in three classes: a physical constant or
@@ -142,7 +144,7 @@ does not describe the plant is in the case ([data.md](data.md#the-case)).
 
 The public API is frozen: [api.md](api.md) lists it. `gm.__version__` is the one version, read from
 `version` in `pyproject.toml`. Below 1.0 a breaking change to a public name or a return field raises
-the minor number (`0.2.0`) and an addition or a fix raises the patch number (`0.1.1`), in the same
+the minor number (`0.3.0`) and an addition or a fix raises the patch number (`0.1.1`), in the same
 commit, with a line in the change log of [api.md](api.md). `tests/unit/test_public_api.py` compares
 against the stored snapshot `tests/fixtures/public_api.json`, which records the version and may only
 change together with it: regenerate it with `tests/fixtures/capture_public_api.py` and add its hash
@@ -222,6 +224,15 @@ source data is printed as one. An example stays within about 150 lines: plant bu
 belongs in gemini, as a registered plant. `GEMINI_EXAMPLE_DATASET` is the one way to change the
 dataset, the fast month by default. `tests/unit/test_code_quality.py` checks what can be checked.
 Generated output goes under ignored `runs/`.
+
+## Inputs
+
+Every input of a project has one owner and one file, and the rule that says which is the placement
+test of [inputs.md](inputs.md#2-the-placement-test): a new input goes where the placement test says,
+and the reason is written in inputs.md. A value is never written twice (a plant states a margin over
+the demand's supply temperature, not the temperature), a default for anything a user decides is
+refused, and a setting that cannot change a result is runtime and in no file. When a change adds,
+moves or removes an input, update inputs.md in the same commit.
 
 ## Data files
 
@@ -391,8 +402,8 @@ reason it is needed:
   can travel against the energy ([ports](modules.md#ports)).
 - Two optional method protocols: a module that is equipment (the mixin `Equipment` of
   `gemini/modules/_utils/cost.py`) sets `equipment_kind`, one of the kinds of `gm.case.Capex`, and
-  defines `capex(finance)`, an amount in the currency of the case from its own design values and the
-  factor of its kind; `fixed_opex(finance)` is the share of the kind times that capex
+  defines `capex(economics)`, an amount in the currency of the case from its own design values and the
+  factor of its kind; `fixed_opex(economics)` is the share of the kind times that capex
   ([economics.md](economics.md#costs)). A module that overrides `health(result, measured)` gets a
   diagnostic, which the engine calls after each replayed twin (the base method returns `None`,
   meaning not assessed).

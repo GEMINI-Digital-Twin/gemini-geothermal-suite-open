@@ -11,6 +11,8 @@ import pandas as pd
 import pytest
 
 import gemini as gm
+from gemini.plants._utils import form
+from gemini.plants._utils import inputs as plant_inputs
 from gemini.types import Fluid
 from gemini.types.bindings import DatedParams
 from tests.fixtures.parity import BACKENDS, on_each_backend, run_engine
@@ -19,29 +21,38 @@ from tests.fixtures.sample_cases import example_plant
 ROWS = 24
 
 
-def _add_modules(plant, modules):
+def _add_modules(plant, modules, prefix=""):
     for name, entry in modules.items():
-        plant.add(entry["type"], name, params=entry.get("params", {}))
-        for child, item in entry.get("modules", {}).items():
-            plant.add(item["type"], f"{name}.{child}", params=item["params"])
+        key = f"{prefix}.{name}" if prefix else name
+        plant.add(entry["type"], key)
+        _add_modules(plant, entry.get("modules", {}), key)
 
 
 def _fill_sections(plant, spec):
-    for path, value in spec["fluids"].items():
+    for path, value in spec.get("fluids", {}).items():
         plant.get_submodule(path)._set_own_fluid(value)
-    for path, value in spec["boundary"].items():
+    for path, value in spec.get("boundary", {}).items():
         plant.get_submodule(path).boundary = copy.deepcopy(value)
-    for path, value in spec["bindings"].items():
-        plant.set_bindings(path, value)
-    for path, history in spec["param_history"].items():
-        plant.get_submodule(path)._param_history = [DatedParams.model_validate(i) for i in history]
-    stored = spec.get("inputs", {})
+    for path, bound in example_plant("DoubletHeatPlant").bindings.items():
+        plant.bindings[path] = copy.deepcopy(bound)
+    found = {}
+    form._walk(spec["params"], "", found, [])
+    declared = plant.inputs()
+    ported = lambda path: plant_inputs._port_field(plant, path) is not None  # noqa: E731
+    values = {form.flat_name(path): form.flat_value(node) for path, node in found.items()}
+    values = {path: value for path, value in values.items() if value is not form.MISSING}
+    plant.set_params(
+        "", {path: v for path, v in values.items() if path not in declared and not ported(path)}
+    )
+    inputs = {path: v for path, v in values.items() if path in declared or ported(path)}
     plant.set_inputs(
         {
             path: Fluid.model_validate(v) if path.endswith(".fluid") else v
-            for path, v in stored.items()
+            for path, v in inputs.items()
         }
     )
+    for path, history in form._history(found).items():
+        plant.get_submodule(path)._param_history = [DatedParams.model_validate(i) for i in history]
 
 
 def built_by_hand(spec):
@@ -62,8 +73,9 @@ def built_by_hand(spec):
 
 @pytest.fixture(scope="module")
 def spec():
-    """Return the plant dict of the example, with its structure."""
-    return example_plant("DoubletHeatPlant").to_dict(structure=True)
+    """Return the plant file of the example with its structure and no class, a plant of no class."""
+    data = example_plant("DoubletHeatPlant").to_dict(structure=True)
+    return {key: value for key, value in data.items() if key != "type"}
 
 
 @pytest.fixture(scope="module")
@@ -72,10 +84,15 @@ def window(fast_frame):
     return gm.Dataset.from_frame(fast_frame.iloc[:ROWS], time_column="time")
 
 
-BUILDERS = {
-    "builder": built_by_hand,
-    "spec": lambda spec: gm.Plant.from_dict(copy.deepcopy(spec)),
-}
+def read_with_bindings(spec):
+    """Return the plant of the file, with the bindings to the measured columns it does not hold."""
+    plant = gm.Plant.from_dict(copy.deepcopy(spec))
+    for path, bound in example_plant("DoubletHeatPlant").bindings.items():
+        plant.bindings[path] = copy.deepcopy(bound)
+    return plant
+
+
+BUILDERS = {"builder": built_by_hand, "spec": read_with_bindings}
 
 
 @pytest.fixture(scope="module")

@@ -143,7 +143,7 @@ class ControlledTank(Module):
             measurement=self.measured_temperature, setpoint=self.temperature_setpoint
         )
         charge_in = inlets.charge_in
-        throttled = charge_in.with_(m_dot=charge_in.m_dot * control.outputs.command)
+        throttled = charge_in._with_si(m_dot=charge_in.m_dot * control.outputs.command)
         self.command = control.outputs.command
         stored = self.storage(
             charge_in=throttled, discharge_in=inlets.discharge_in, air_in=air(293.15)
@@ -178,7 +178,7 @@ def test_controller_steps_inside_a_composite():
     assert result.outputs.command == pytest.approx(0.1 * 10)
     assert result.children["storage"].inlets.charge_in.m_dot == pytest.approx(1.0)
     assert state["controller"]["integral"] == 0
-    plant.measured_temperature = 338.15
+    si.assign(plant, "measured_temperature", 338.15)
     state, result = plant.step(state, 60, streams)
     assert result.outputs.command == pytest.approx(0.1 * 5)
     assert state["controller"]["integral"] == pytest.approx(0.1 * 60 / 600 * 5)

@@ -1,7 +1,7 @@
 """The air around the plant: the one place of the ambient conditions and of the emissions."""
 
 from gemini import ops
-from gemini.errors import PhysicsError
+from gemini.errors import PhysicsError, ValidationError
 from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import energy, gas
@@ -18,7 +18,8 @@ class Atmosphere(Module):
     no flow, to any number of modules; a cooler returns what it took through ``air_in``. Losses
     arrive at ``heat_in`` and flue gas, flare exhaust and any released gas at ``gas_in``, and
     ``co2_emission`` and ``methane_emission`` of the whole plant are computed here and only here,
-    from the composition of what arrives. ``pressure`` defaults to one standard atmosphere.
+    from the composition of what arrives. ``pressure`` is the ambient pressure of the site
+    (``site.air.pressure`` of the case); a run without it raises ``missing_value``.
     """
 
     @staticmethod
@@ -40,7 +41,11 @@ class Atmosphere(Module):
 
         # Parameters
         self.pressure = Parameter(
-            Pressure, default=gas.NORMAL_PRESSURE, gt=0, description="Ambient air pressure"
+            Pressure | None,
+            default=None,
+            gt=0,
+            case="site.air.pressure",
+            description="Ambient air pressure; empty takes it from the case",
         )
 
         # Inlets
@@ -70,6 +75,12 @@ class Atmosphere(Module):
 
     def _offer(self, inlets):
         """Offer the air at the ambient conditions, at no flow."""
+        if self.pressure is None:
+            raise ValidationError(
+                f"{self.path}: pressure = None; expected site.air.pressure in the case",
+                path="site.air.pressure",
+                code="missing_value",
+            )
         wet_bulb = self.wet_bulb_temperature
         temperature = self.temperature if wet_bulb is None else wet_bulb
         temperature = ops.where(ops.isfinite(temperature), temperature, self.temperature)

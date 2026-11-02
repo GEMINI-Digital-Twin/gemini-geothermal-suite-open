@@ -52,20 +52,20 @@ def test_turbulent_flow_matches_hand_calculation():
 def test_laminar_flow_and_continuous_transition():
     """Laminar flow follows Hagen–Poiseuille and the transition bridge has no jumps."""
     module = pipe(elevation_change=0, heat_transfer_coefficient=0)
-    laminar = reading(module(fluid_in=STREAM.with_(m_dot=0.1), air_in=air(283.15)))
+    laminar = reading(module(fluid_in=STREAM._with_si(m_dot=0.1), air_in=air(283.15)))
     velocity = 0.1 / 1000 / (math.pi * 0.1**2 / 4)
     assert laminar.pressure_drop == pytest.approx(32 * 0.001 * 1000 * velocity / 0.1**2)
     for reynolds in (2300, 4000):
         m_dot = reynolds * 0.001 / 0.1 * math.pi * 0.1**2 / 4
         below, above = (
             module(
-                fluid_in=STREAM.with_(m_dot=m_dot * factor), air_in=air(283.15)
+                fluid_in=STREAM._with_si(m_dot=m_dot * factor), air_in=air(283.15)
             ).outputs.pressure_drop
             for factor in (1 - 1e-9, 1 + 1e-9)
         )
         assert above == pytest.approx(below, rel=1e-6)
     drops = [
-        module(fluid_in=STREAM.with_(m_dot=m_dot), air_in=air(283.15)).outputs.pressure_drop
+        module(fluid_in=STREAM._with_si(m_dot=m_dot), air_in=air(283.15)).outputs.pressure_drop
         for m_dot in (0.15, 0.2, 0.25, 0.3, 0.35)
     ]
     assert drops == sorted(drops)
@@ -73,11 +73,13 @@ def test_laminar_flow_and_continuous_transition():
 
 def test_cold_fluid_absorbs_heat_and_long_pipes_approach_ambient():
     """Chilled water gains heat, and a huge exchange area never overshoots the ambient."""
-    chilled = pipe()(fluid_in=STREAM.with_(T=280.15), air_in=air(300.15))
+    chilled = pipe()(fluid_in=STREAM._with_si(T=280.15), air_in=air(300.15))
     assert reading(chilled).heat_loss == 0 and reading(chilled).heat_absorbed > 0
     assert 280.15 < reading(chilled).fluid_out_T < 300.15
     assert energy_balance(pipe(), chilled)["relative_residual"] < 1e-12
-    bare = pipe(heat_transfer_coefficient=1e4)(fluid_in=STREAM.with_(m_dot=0.5), air_in=air(283.15))
+    bare = pipe(heat_transfer_coefficient=1e4)(
+        fluid_in=STREAM._with_si(m_dot=0.5), air_in=air(283.15)
+    )
     assert (
         reading(bare).fluid_out_T == pytest.approx(283.15) and reading(bare).fluid_out_T >= 283.15
     )
@@ -88,7 +90,7 @@ def test_cold_fluid_absorbs_heat_and_long_pipes_approach_ambient():
 def test_zero_flow_keeps_only_the_static_head():
     """A stopped pipe has no friction or heat exchange; a descending one gains pressure."""
     module = pipe(elevation_change={"value": -10, "unit": "ft"})
-    result = module(fluid_in=STREAM.with_(m_dot=0), air_in=air(283.15))
+    result = module(fluid_in=STREAM._with_si(m_dot=0), air_in=air(283.15))
     assert result.outputs.pressure_drop == pytest.approx(-1000 * 9.81 * 3.048)
     assert result.outputs.velocity == 0 and reading(result).fluid_out_T == STREAM.T
     assert reading(result).heat_loss == reading(result).heat_absorbed == 0
@@ -98,14 +100,14 @@ def test_zero_flow_keeps_only_the_static_head():
 def test_invalid_inputs_raise():
     """Reverse flow, free gas, impossible rise and a negative outlet pressure are rejected."""
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        pipe()(fluid_in=STREAM.with_(m_dot=-1), air_in=air(283.15))
-    gassy = STREAM.with_(fluid=Fluid(gas_mass_fraction=0.01))
+        pipe()(fluid_in=STREAM._with_si(m_dot=-1), air_in=air(283.15))
+    gassy = STREAM._with_si(fluid=Fluid(gas_mass_fraction=0.01))
     with pytest.raises(gm.errors.PhysicsError, match="gas_mass_fraction"):
         pipe()(fluid_in=gassy, air_in=air(283.15))
     with raises(gm.errors.ValidationError, "invalid_design", match="pipe: elevation_change = 2000"):
         pipe(elevation_change=2000)(fluid_in=STREAM, air_in=air(283.15))
     with pytest.raises(gm.errors.PhysicsError, match="outlet pressure"):
-        pipe()(fluid_in=STREAM.with_(m_dot=40), air_in=air(283.15))
+        pipe()(fluid_in=STREAM._with_si(m_dot=40), air_in=air(283.15))
     with raises(gm.errors.ValidationError, "invalid_call"):
         pipe()(fluid_in=STREAM)
     with pytest.raises(gm.errors.ValidationError):

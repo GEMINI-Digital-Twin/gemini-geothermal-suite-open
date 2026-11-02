@@ -35,17 +35,21 @@ first, then `hackathon.py`. gemini holds no data file: plants are Python classes
 plant dict agents use (`gm.Plant.from_dict`, `plant.to_dict`, `gm.plants.schema`). Data lives in
 `inputs/`, never `examples/`, and is not installed ([data](.claude/docs/data.md#where-data-lives)).
 
+Before adding or moving an input, apply the placement test of [inputs](.claude/docs/inputs.md#2-the-placement-test):
+one owner, one file, and the reason is written there.
+
 One `gm.Case` carries what a plant is asked to do, for every call: the sections `time`,
-`environment`, `demand`, `choices`, `constraints` and `assumptions`, strict and typed, read from a
+`site`, `demand`, `utilities`, `economics` and `requirements`, strict and typed, read from a
 `case.json` with `gm.Case.from_json` ([case](.claude/docs/data.md#the-case)). A plant dict holds only the
 plant. Run a plant with `gm.simulate(plant, case)`, `gm.replay`, `gm.live` and `gm.resume`; keep
 `gm.Engine` for complex tasks ([functions or engine](.claude/docs/engine.md#functions-or-engine)).
 `gm.schedule(plant, case)` plans the run input of a design from the demand of the case, at any
-constant step: sources load from the cheapest to the dearest, limits and outages come from the
-constraints, and the role of each unit is read from the wiring
+constant step: sources load from the cheapest to the dearest, limits come from the
+requirements, the merit order and the outages from the plant's `control`, and the role of each unit is read from the wiring
 ([schedule](.claude/docs/engine.md#schedule)). The `gm.evaluate` functions take
-`(plant, case, results)`: `totals`, `constraints`, the costs, `report` and `compare`. `gm.study`
-sizes (`size`), searches (`minimize`), samples and ranks the influence of a value (`sensitivity`).
+`(plant, case, results)`: `totals`, `requirements`, `verdict`, the costs, `report` and `compare`. `gm.study`
+sizes (`size`), searches (`minimize`), samples and ranks the influence of a value (`sensitivity`);
+`gm.Study` runs them from a `study.json`; `gm.check(plant, case)` lists what is missing first.
 
 gemini is a general package and knows no sample: `inputs/examples/` holds sample cases, each a
 `case.json`, a demand CSV and the plant dicts, and only `examples/` and `tests/` read them
@@ -53,7 +57,7 @@ gemini is a general package and knows no sample: `inputs/examples/` holds sample
 
 ```python
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value)
 ```
@@ -64,14 +68,13 @@ print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value
   `gm.units.Unit` enum, or its dict `{"value": 150, "unit": "m3/h"}`; a string such as
   `"150 m3/h"` is never accepted, and nothing in the package parses unit text. A dimensionless value
   is a number. A bare number with a dimension raises `invalid_value` at every public door
-  (`set_params`, `Plant.set_inputs`, `gm.Stream`, `gm.Fluid`, `gm.call`); `gemini` itself uses the
-  private SI path (`_set_si_params`, `Stream._si`, `Fluid._si`), and only attribute assignment and
-  `Stream.with_` stay in SI for module authors ([units](.claude/docs/conventions.md#units)).
+  (`set_params`, `Plant.set_inputs`, `gm.Stream`, `Stream.with_`, attribute assignment outside a call, `gm.Fluid`, `gm.call`); `gemini` itself uses the
+  private SI path (`_set_si_params`, `Stream._si`, `Fluid._si`, `Stream._with_si`,
+  `Module._assign_si`) ([units](.claude/docs/conventions.md#units)).
 - *No defaults.* Nothing a user must decide has a default value in gemini: not a price, a
   temperature, a limit, a factor or an efficiency. Such a field is required, or absent (`None`),
   and a call that needs an absent value raises `missing_value` (`missing_assumption` below
-  `assumptions`) naming its path. The only defaults of `gm.case` are `over="each"` and
-  `when="always"` of `Constraint`, and a module or plant declaration keeps a default only if it is
+  `economics`) naming its path. `gm.case` has no default at all, and a module or plant declaration keeps a default only if it is
   in `DECLARED_DEFAULTS` (a sourced constant or the zero of an accumulator);
   `tests/unit/test_code_quality.py` checks this
   ([no defaults](.claude/docs/conventions.md#no-defaults)).
@@ -88,7 +91,7 @@ goes through a port, and a plant total is read from the ports of the modules at 
 
 Every port of a module is connected or named as a plant port; there are no automatic plant ports
 ([plants](.claude/docs/plants.md#the-builder)). What a design holds beside its parameters, such as a
-setpoint, is set with `plant.set_inputs` and stored in the plant dict under `inputs`. A plant may derive its children's values by
+setpoint, is set with `plant.set_inputs` and stored in the plant file as a leaf of `params`. A plant may derive its children's values by
 overriding `_set_si_params`
 ([modules](.claude/docs/modules.md#a-plant-that-sets-its-childrens-values)).
 
@@ -106,9 +109,10 @@ Read every file in `.claude/docs/` before changing the repository:
 - [Data](.claude/docs/data.md): read/write naming, in-memory datasets, sampling, gaps, `case.json`, the unit format
   and where data lives.
 - [Engine](.claude/docs/engine.md): clocks, runs, callbacks, results, checkpoints and live.
-- [Economics](.claude/docs/economics.md): `gm.evaluate` costs, totals, KPIs, constraints and checks, `gm.study` and well analysis.
+- [Economics](.claude/docs/economics.md): `gm.evaluate` costs, totals, KPIs, requirements, the verdict and checks, `gm.study`, `gm.Study` and well analysis.
 - [Equipment](.claude/docs/equipment.md): every shipped module, its model and energy audit.
 - [Errors](.claude/docs/errors.md): the rule for raising, the seven `gm.errors` error classes and `GeminiWarning`, the codes.
+- [Inputs](.claude/docs/inputs.md): the principles, the placement test and the file formats; where every input lives and why.
 - [Glossary](.claude/docs/glossary.md): one name per concept for parameters, outputs and ports.
 - [Legacy](.claude/docs/legacy.md): the old-format reader kept in `scripts/legacy/` for the tests.
 - [Modules](.claude/docs/modules.md): declarations, listings, calls, outputs, hooks and state.
@@ -152,13 +156,13 @@ gemini/
 ├── runtime/          # context-local backend, precision, display units and default fluid
 ├── modules/          # module.py, declarations.py, container.py, call.py, check.py, _utils/; one folder per category with its _physics.py
 ├── plants/           # plant.py (Plant) and the plant classes, one file each; _utils/ holds the plant tools
-├── case/             # Case and its sections (time, environment, demand, choices, constraints, assumptions), roles; _utils/ (demand frame, fields, profiles, access)
+├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements), roles; _utils/ (node: the one reader of a section, schema, access, kinds)
 ├── engine/           # Engine, Clock, executor.py, eager.py, rows.py, loader, runner, chunks, checkpoint, callbacks
-├── run/              # schedule, simulate, replay, live, resume, call, Results, Dataset; _utils/ (apply: the case on a plant copy, roles, limits, sources)
+├── run/              # check, schedule, simulate, replay, live, resume, call, Results, Dataset; _utils/ (apply: the case on a plant copy, roles, limits, sources)
 ├── compiler/         # graph/ (Tracer, Graph, passes, cache), executor.py, gm.compiler.compile; optional, registers itself
 ├── data/             # from_csv, from_values, profile_schema
-├── study/            # size, minimize, sample, sensitivity; _utils/ (trial, choices, target)
-├── evaluate/         # totals, constraints, balances, bounds, run_all, capex, opex, lcoh, lcoc, lcts, annualised_cost, co2, npv, payback; capacities, report, compare
+├── study/            # size, minimize, sample, sensitivity, Study; _utils/ (trial, variables, execute, target)
+├── evaluate/         # totals, requirements, verdict, balances, bounds, run_all, capex, opex, lcoh, lcoc, lcts, annualised_cost, co2, npv, payback; capacities, report, compare
 └── analysis/         # calibrate, nodal, pump curve, corrosion forecast, fits
 docs/schemas/         # generated JSON Schemas and samples of the exchanged documents
 inputs/               # not installed: examples/ (sample cases), plants/ (example values), doublet_heat/, legacy_project/ (read by tests only)

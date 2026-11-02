@@ -2,12 +2,12 @@
 
 import pytest
 
-import gemini as gm
 from gemini.errors import PhysicsError, ValidationError
 from gemini.modules.pumps import InjectionPump
 from gemini.physics import pumps
 from gemini.types.flows import Stream
 from gemini.units import Quantity
+from tests.fixtures.cases import make_case
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 
@@ -25,6 +25,7 @@ def test_equipment_forward():
     result = c(
         fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
         pressure_setpoint=2e6,
+        frequency=60,
     )
     assert sum(s.m_dot for s in result.outlets.values() if isinstance(s, Stream)) == 1
     assert result.outlets["fluid_out"].T == 300
@@ -63,6 +64,7 @@ def test_a_setpoint_below_the_suction_needs_no_pumping():
     result = pump(
         fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e6, "Pa")),
         pressure_setpoint=1e6,
+        frequency=60,
     )
     assert result.outputs.power == 0
     assert result.outputs.head == 0
@@ -76,6 +78,7 @@ def test_a_positive_head_is_pumping():
     result = pump(
         fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
         pressure_setpoint=2e6,
+        frequency=60,
     )
     assert result.outputs.is_pumping is True
     assert result.outputs.power > 0
@@ -99,6 +102,7 @@ def test_a_stopped_pump_lets_the_pressure_through():
             m_dot=Quantity(0.0, "kg/s"), T=Quantity(320.0, "K"), p=Quantity(100e5, "Pa")
         ),
         pressure_setpoint=30e5,
+        frequency=60,
     )
     assert result.outlets["fluid_out"].p == 100e5
     assert result.outputs["head"] == 0.0
@@ -118,18 +122,18 @@ def test_a_pump_on_its_curves_needs_no_efficiency():
     pump = InjectionPump().set_params("", CURVES)
     assert (
         pump(
-            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa"))
+            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+            frequency=60,
         ).outputs["power"]
         > 0
     )
 
 
-def _finance(**capex):
-    """Return the finance of a case that prices what ``capex`` names, with a 2 %/yr fixed opex."""
-    return gm.case.Finance(
-        capex=gm.case.Capex(**capex),
-        opex=gm.case.Opex(fixed={"injection_pump": Quantity(2, "%/yr")}),
-    )
+def _economics(**capex):
+    """Return the economics of a case that prices what ``capex`` names, with 2 %/yr fixed opex."""
+    return make_case(
+        economics={"capex": capex, "opex": {"fixed": {"injection_pump": Quantity(2, "%/yr")}}}
+    ).economics
 
 
 def _sized_pump():
@@ -146,32 +150,32 @@ def _sized_pump():
 
 def test_the_capex_is_the_price_per_watt_of_the_shaft_power_at_the_nominal_flow():
     """The shaft power is the hydraulic power over the efficiency; the opex is a share of it."""
-    finance = _finance(injection_pump=Quantity(0.5, "currency/W"))
+    economics = _economics(injection_pump=Quantity(0.5, "currency/W"))
     pump = _sized_pump()
     assert pump.equipment_kind == "injection_pump"
-    assert pump.capex(finance) == pytest.approx(0.5 * 400000.0)
-    assert pump.fixed_opex(finance) == pytest.approx(0.02 * 0.5 * 400000.0)
+    assert pump.capex(economics) == pytest.approx(0.5 * 400000.0)
+    assert pump.fixed_opex(economics) == pytest.approx(0.02 * 0.5 * 400000.0)
 
 
 def test_the_capex_from_curves_is_the_power_curve_at_the_nominal_flow():
     """A pump with a power curve is sized by it, not by the efficiency."""
     pump = InjectionPump().set_params("", CURVES | {"nominal_flow": Quantity(0.1, "m3/s")})
     power = pumps.power(0.1, 60.0, 10, CURVES["power_coefficients"])
-    assert pump.capex(_finance(injection_pump=Quantity(1, "currency/W"))) == pytest.approx(power)
+    assert pump.capex(_economics(injection_pump=Quantity(1, "currency/W"))) == pytest.approx(power)
 
 
 def test_a_pump_without_a_price_raises_naming_the_path():
     """The case has no ``injection_pump`` capex: nothing is estimated."""
-    finance = _finance(degasser=Quantity(1000.0, "currency"))
-    with raises(ValidationError, "missing_assumption", "assumptions.finance.capex.injection_pump"):
-        _sized_pump().capex(finance)
+    economics = _economics(degasser=Quantity(1000.0, "currency"))
+    with raises(ValidationError, "missing_assumption", "economics.capex.injection_pump"):
+        _sized_pump().capex(economics)
 
 
 def test_a_pump_without_a_nominal_flow_raises_naming_it():
     """The design flow has no default."""
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.5})
     with raises(ValidationError, "missing_value", "nominal_flow"):
-        pump.capex(_finance(injection_pump=Quantity(0.5, "currency/W")))
+        pump.capex(_economics(injection_pump=Quantity(0.5, "currency/W")))
 
 
 def test_a_pump_that_adds_no_head_costs_nothing():
@@ -184,5 +188,15 @@ def test_a_pump_that_adds_no_head_costs_nothing():
             "nominal_head": Quantity(0, "bar"),
         },
     )
-    finance = _finance(injection_pump=Quantity(0.5, "currency/W"))
-    assert pump.capex(finance) == 0.0 and pump.fixed_opex(finance) == 0.0
+    economics = _economics(injection_pump=Quantity(0.5, "currency/W"))
+    assert pump.capex(economics) == 0.0 and pump.fixed_opex(economics) == 0.0
+
+
+def test_the_frequency_has_no_default():
+    """The operating frequency is the designer's: a pump run without one says so."""
+    pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.65})
+    with raises(ValidationError, "missing_value", match="frequency"):
+        pump(
+            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+            pressure_setpoint=2e6,
+        )

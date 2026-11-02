@@ -7,7 +7,7 @@ import pytest
 import gemini as gm
 from gemini.evaluate.report import Report
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case, requirement
 from tests.fixtures.costed_plants import day, heating_plant
 from tests.fixtures.result_tables import make_results
 from tests.unit.evaluate.test_capacities import boiler_plant, boiler_run
@@ -25,7 +25,8 @@ KEYS = {
     "lcoh",
     "lcoc",
     "co2",
-    "constraints",
+    "requirements",
+    "verdict",
     "passed",
     "failed_steps",
     "failures",
@@ -34,17 +35,17 @@ KEYS = {
 
 
 def case(**parts):
-    """Return a case with the finance of the costed plants and a limit on the unmet demand."""
-    finance = costed_finance(
-        opex={"electricity": Quantity(2e-8, "currency/J")},
+    """Return a case with the economics of the costed plants and a limit on the unmet demand."""
+    economics = costed_economics(
+        energy={"electricity": Quantity(2e-8, "currency/J")},
         discount_rate=0.05,
-        lifetime=Quantity(20, "yr"),
+        analysis_period=Quantity(20, "yr"),
     )
-    limit = gm.case.Constraint(on="heating_supply", quantity="unmet", max=Quantity(5.0, "W"))
+    limit = requirement("heating_supply", "unmet", max=Quantity(5.0, "W"))
     return make_case(
-        finance=finance,
-        constraints=[limit],
-        emissions={"CO2": gm.case.CO2(electricity=Quantity(1e-7, "kg/J"))},
+        economics=economics,
+        requirements=[limit],
+        utilities={"electricity": {"co2_intensity": Quantity(1e-7, "kg/J")}},
         **parts,
     )
 
@@ -61,7 +62,7 @@ def test_the_report_holds_the_energy_the_costs_the_checks_and_the_failed_steps()
     assert report["failed_steps"] == 0
     assert report["failures"].to_dict() == {"total": 0, "groups": []}
     assert report["boiler_heat"].value is None
-    assert [item["name"] for item in report["constraints"]] == ["heat.unmet_demand"]
+    assert [item["name"] for item in report["requirements"]] == ["heating_supply_unmet"]
     assert report["passed"] is True
 
 
@@ -70,7 +71,7 @@ def test_a_cost_the_case_cannot_give_is_a_value_with_a_reason():
     report = gm.evaluate.report(heating_plant(), case(), day())
     assert report["lcoc"].value is None and "no cold" in report["lcoc"].reason
     bare = gm.evaluate.report(heating_plant(), make_case(), day())
-    assert bare["capex"].value is None and "assumptions.finance" in bare["capex"].reason
+    assert bare["capex"].value is None and "economics" in bare["capex"].reason
 
 
 def test_to_dict_is_plain_json():
@@ -80,7 +81,7 @@ def test_to_dict_is_plain_json():
     json.dumps(plain, allow_nan=False)
     assert plain["capex"]["unit"] == "MEUR" and plain["capex"]["value"] == pytest.approx(1e-3)
     assert report["capex"].value == 1000.0
-    assert plain["constraints"][0]["role"] == "heating_supply"
+    assert plain["requirements"][0]["role"] == "heating_supply"
     assert plain["failed_steps"] == 0
 
 
@@ -89,7 +90,7 @@ def test_a_boiler_the_run_does_not_show_gives_no_heat_value():
     plant = gm.Plant("Boiling")
     plant.add("Boiler", "boiler")
     plant.boiler.capacity = Quantity(1e6, "W")
-    results = make_results({"other": {"power_in": [1.0, 1.0]}})
+    results = make_results({"boiler": {"power_in": [1.0, 1.0]}})
     heat = gm.evaluate.report(plant, make_case(), results)["boiler_heat"]
     assert heat.value is None and "boilers" in heat.reason
 
@@ -127,7 +128,7 @@ def test_every_part_of_a_report_has_a_display_unit():
     """Each ``{value, unit}`` of the dict, parts and nested dicts included, is in a display unit."""
     from gemini.evaluate._utils.display import by_si_unit
 
-    shown = set(by_si_unit().values()) | {"-"}
+    shown = set(by_si_unit().values()) | {"-", "yr"}
     plain = gm.evaluate.report(heating_plant(), case(), day()).to_dict()
     found = []
 

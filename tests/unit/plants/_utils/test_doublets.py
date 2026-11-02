@@ -51,6 +51,7 @@ PIPE = {
 INPUTS = {
     "peak_boiler.temperature_setpoint": {"value": 100, "unit": "degC"},
     "injection_pump.pressure_setpoint": {"value": 60, "unit": "bar"},
+    "injection_pump.frequency": {"value": 60, "unit": "Hz"},
 }
 GEOTHERM = {
     f"d{index}.{name}": value
@@ -62,6 +63,10 @@ GEOTHERM = {
 }
 
 
+RULES = {"dispatch": "least_cost", "outages": "lowest_demand"}
+"""The rules a plant states for the schedule of a run without a plan."""
+
+
 def designed(count):
     """Return a heating plant on ``count`` doublets with the sample problem's values."""
     plant = gm.plants.HeatingPlant(doublets=count)
@@ -70,7 +75,7 @@ def designed(count):
         values |= {f"d{index}.{name}": value for name, value in WELL_DESIGN.items()}
     for pipe in ("heating_return_pipe", "heating_supply_pipe"):
         values |= {f"{pipe}.{name}": value for name, value in PIPE.items()}
-    si.set_params(plant, "", design_values(plant) | values)
+    si.set_params(plant, "", design_values(plant) | values | RULES)
     return plant.set_inputs(INPUTS)
 
 
@@ -82,8 +87,9 @@ def test_every_template_takes_one_to_three_doublets(name, count):
     assert [hasattr(plant, f"d{index}") for index in range(4)] == [
         index < count for index in range(4)
     ]
-    assert gm.plants.validate(plant, on_error="record") == []
-    assert plant.to_dict()["size"] == {"doublets": count}
+    assert [item for item in plant.check() if item.kind != "missing"] == []
+    assert plant.to_dict()["size"] == {"doublets": {"value": count}}
+    assert plant.size == {"doublets": count}
 
 
 @pytest.mark.parametrize("count", [0, 4])
@@ -103,7 +109,7 @@ def stored(request):
 def test_a_plant_round_trips(stored):
     """The plant read from the dict of each size writes the same dict."""
     count, data, built = stored
-    assert data["size"] == {"doublets": count}
+    assert data["size"] == {"doublets": {"value": count}}
     assert built.to_dict() == data
 
 

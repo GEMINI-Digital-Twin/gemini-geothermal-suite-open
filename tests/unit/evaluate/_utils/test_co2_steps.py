@@ -10,10 +10,8 @@ from tests.fixtures.costed_plants import heating_plant
 from tests.fixtures.errors import raises
 from tests.fixtures.result_tables import make_results
 
-EMISSIONS = {
-    "CO2": gm.case.CO2(electricity=Quantity([1e-7, 3e-7], "kg/J")),
-    "CH4": gm.case.CH4(gwp=30.0),
-}
+UTILITIES = {"electricity": {"co2_intensity": Quantity([1e-7, 3e-7], "kg/J")}}
+ECONOMICS = {"accounting": {"gwp": {"CH4": 30.0}}}
 RUN = make_results(
     {
         "air": {"co2_emission": [1.0, 0.0], "methane_emission": [0.0, 0.5]},
@@ -24,7 +22,7 @@ RUN = make_results(
 
 def test_each_step_has_its_own_emissions():
     """The CO2, the methane in CO2-equivalent and the electricity at the factor of the step."""
-    case = make_case(count=2, emissions=EMISSIONS)
+    case = make_case(count=2, utilities=UTILITIES, economics=ECONOMICS)
     direct, methane, equivalent, electricity = co2_steps.emissions_steps(heating_plant(), case, RUN)
     assert list(direct) == [3600.0, 0.0]
     assert list(methane) == [0.0, 1800.0] and list(equivalent) == [0.0, 54000.0]
@@ -45,8 +43,8 @@ def test_a_factor_is_needed_only_when_the_run_uses_it():
     case = make_case(count=2)
     run = make_results({"air": {"co2_emission": [1.0, 1.0]}})
     assert list(co2_steps.emitted_steps(heating_plant(), case, run)) == [3600.0, 3600.0]
-    with raises(gm.errors.ValidationError, "missing_assumption", match=r"CH4\.gwp"):
+    with raises(gm.errors.ValidationError, "missing_assumption", match=r"gwp\.CH4"):
         co2_steps.emitted_steps(heating_plant(), case, RUN)
     grid = make_results({"grid": {"net_import": [5.0, 5.0]}})
-    with raises(gm.errors.ValidationError, "missing_assumption", match=r"CO2\.electricity"):
+    with raises(gm.errors.ValidationError, "missing_value", match=r"co2_intensity"):
         co2_steps.emitted_steps(heating_plant(), case, grid)

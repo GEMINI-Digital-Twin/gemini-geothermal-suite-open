@@ -4,12 +4,12 @@ import pytest
 
 from gemini.evaluate._utils.cashflow import net_cash_flow
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case
 from tests.fixtures.costed_plants import day, heating_plant
 
 CASE = make_case(
-    finance=costed_finance(
-        opex={"electricity": Quantity(2e-8, "currency/J")},
+    economics=costed_economics(
+        energy={"electricity": Quantity(2e-8, "currency/J")},
         revenue={"heat": Quantity(5e-8, "currency/J")},
     )
 )

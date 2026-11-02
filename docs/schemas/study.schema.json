@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "about": {},
+    "cases": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "evaluations": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "format": {
+      "const": 1
+    },
+    "kind": {
+      "const": "study"
+    },
+    "method": {
+      "enum": [
+        "run",
+        "minimize",
+        "sample",
+        "sensitivity"
+      ]
+    },
+    "metrics": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "name": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "plants": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "prepare": {
+      "items": {
+        "enum": [
+          "size"
+        ]
+      },
+      "type": "array"
+    },
+    "samples": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "seed": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "format",
+    "kind",
+    "name",
+    "cases",
+    "plants",
+    "method"
+  ],
+  "title": "Study",
+  "type": "object"
+}

@@ -14,6 +14,7 @@ from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import WELL
 from tests.fixtures.esp_design import ESP_DESIGN
+from tests.fixtures.plant_files import leaves, tree
 from tests.fixtures.reading import reading
 
 
@@ -81,20 +82,25 @@ BRINE = gm.Fluid(
 
 
 def design_case():
-    """Return a case whose environment is the ground, reservoir and brine of ``DESIGN``."""
+    """Return a case whose site is the ground, reservoir and brine of ``DESIGN``."""
     Q = units.Quantity
-    return gm.Case(
-        time=gm.case.Time(start="2027-01-01", end="2027-01-02", step=Q(1, "d")),
-        environment=gm.case.Environment(
-            ground=gm.case.Ground(surface_temperature=Q(12, "degC"), gradient=Q(30, "K/km")),
-            reservoir=gm.case.Reservoir(
-                reference_depth=Q(2500, "m"),
-                thickness=Q(100, "m"),
-                permeability=Q(200, "mD"),
-                pressure=Q(hydraulics.hydrostatic_pressure(1030.0, 2500.0), "Pa"),
-            ),
-            fluid=gm.case.Fluid(density=Q(1030, "kg/m3"), viscosity=Q(0.4, "mPa.s")),
-        ),
+    return gm.Case.from_dict(
+        {
+            "format": 1,
+            "kind": "case",
+            "name": "design",
+            "time": {"start": "2027-01-01", "end": "2027-01-02", "step": Q(1, "d")},
+            "site": {
+                "ground": {"surface_temperature": Q(12, "degC"), "gradient": Q(30, "K/km")},
+                "reservoir": {
+                    "reference_depth": Q(2500, "m"),
+                    "thickness": Q(100, "m"),
+                    "permeability": Q(200, "mD"),
+                    "pressure": Q(hydraulics.hydrostatic_pressure(1030.0, 2500.0), "Pa"),
+                },
+                "fluid": {"density": Q(1030, "kg/m3"), "viscosity": Q(0.4, "mPa.s")},
+            },
+        }
     )
 
 
@@ -202,7 +208,7 @@ def test_the_file_holds_the_design_and_rebuilds_the_same_numbers():
     """No derived value is written, and reading derives the same ones."""
     plant, doublet = designed(**PUMP | {"reservoir.skin": 2.0})
     spec = plant.to_dict()
-    params = spec["modules"]["d0"]["params"]
+    params = {key[3:]: v for key, v in leaves(spec).items() if key.startswith("d0.")}
     assert params == STORED | PUMP | {"reservoir.skin": 2.0}
     rebuilt = apply_case(gm.Plant.from_dict(json.loads(json.dumps(spec))), design_case()).d0
     assert rebuilt.reservoir.productivity_index == doublet.reservoir.productivity_index
@@ -214,10 +220,10 @@ def test_the_file_holds_the_design_and_rebuilds_the_same_numbers():
 def test_a_designed_doublet_as_the_root_round_trips():
     """A doublet stores its class and its flat design, never its structure."""
     doublet = gm.plants.get("Doublet")
-    assert doublet.to_dict()["params"] == {} and "modules" not in doublet.to_dict()
+    assert leaves(doublet.to_dict()) == {} and "modules" not in doublet.to_dict()
     doublet.set_params("", DESIGN)
     spec = doublet.to_dict()
-    assert spec["type"] == "Doublet" and spec["params"] == STORED
+    assert spec["type"] == "Doublet" and leaves(spec) == STORED
     rebuilt = apply_case(gm.Plant.from_dict(spec), design_case())
     assert rebuilt.reservoir.temperature == pytest.approx(360.15)
 
@@ -231,13 +237,13 @@ def test_a_dated_design_derives_at_its_date():
 
 
 def test_a_waiting_depth_is_a_missing_parameter():
-    """``missing_parameters`` names the geotherm, and a doublet without a depth needs none."""
+    """``check`` names the geotherm, and a doublet without a depth needs none."""
     doublet = gm.plants.Doublet().set_params("", {"depth": {"value": 2500, "unit": "m"}})
-    assert [item["path"] for item in doublet.missing_parameters()[:2]] == [
-        "gradient",
-        "surface_temperature",
+    assert [item.path for item in doublet.check()[:2]] == [
+        "params.gradient",
+        "params.surface_temperature",
     ]
-    assert "gradient" not in [item["path"] for item in gm.plants.Doublet().missing_parameters()]
+    assert "params.gradient" not in [item.path for item in gm.plants.Doublet().check()]
 
 
 def test_a_depth_waits_for_its_geotherm():
@@ -261,11 +267,11 @@ def test_the_values_of_a_stored_doublet_rebuild_in_any_order():
     """The depth before its geotherm in a plant dict is read like the geotherm before the depth."""
     plant, _ = designed()
     spec = plant.to_dict()
-    params = spec["modules"]["d0"]["params"]
-    spec["modules"]["d0"]["params"] = dict(reversed(list(params.items())))
+    params = leaves(spec)
+    spec["params"] = tree(dict(reversed(list(params.items()))))
     rebuilt = apply_case(gm.Plant.from_dict(spec), design_case())
     assert rebuilt.d0.reservoir.temperature == pytest.approx(360.15)
-    spec["modules"]["d0"]["params"] = params
+    spec["params"] = tree(params)
     rebuilt = apply_case(gm.Plant.from_dict(spec), design_case())
     assert rebuilt.d0.reservoir.temperature == pytest.approx(360.15)
 
@@ -286,7 +292,7 @@ def test_the_volume_imbalance_of_a_balanced_doublet_is_zero():
         gas_composition={"CH4": 0.8, "CO2": 0.2},
     )
     doublet.set_params("", DESIGN | PUMP)
-    doublet.reservoir.production_rate = 80.0
+    si.assign(doublet.reservoir, "production_rate", 80.0)
     doublet.esp.frequency = {"value": 60, "unit": "Hz"}
     liquid = doublet.fluid.with_gas_fraction(0.0)
     produced = doublet.fluid.properties(0, 0)
@@ -307,7 +313,7 @@ def test_the_volume_imbalance_is_produced_less_injected():
         density=gm.units.Quantity(1030, "kg/m3"), viscosity={"value": 0.4, "unit": "mPa*s"}
     )
     doublet.set_params("", DESIGN | PUMP)
-    doublet.reservoir.production_rate = 80.0
+    si.assign(doublet.reservoir, "production_rate", 80.0)
     doublet.esp.frequency = {"value": 60, "unit": "Hz"}
     injected = gm.Stream(
         m_dot=gm.units.Quantity(70.0, "kg/s"),

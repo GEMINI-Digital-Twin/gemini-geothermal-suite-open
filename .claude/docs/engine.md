@@ -48,15 +48,16 @@ memory, a manual checkpoint.
 import gemini as gm
 
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 print(results.summary(units={"power": "MW", "temperature": "degC"}))
 ```
 
 `gm.simulate(plant, case=None, plan=None, ...)` sets the values of the case on a copy of the plant
 ([the case reaches the modules by class](#how-the-case-reaches-the-modules)), schedules the demand
-unless a `plan` is given and runs the plan. A building block has no demand: `case` may be `None`
-only with a `plan`, else `ValidationError` (code `missing_value`).
+unless a `plan` is given and runs the plan. `gm.check(plant, case)` runs first on the plant with the
+case applied and `simulate` raises its issues (a run with no case skips it). A building block has no
+demand: `case` may be `None` only with a `plan`, else `ValidationError` (code `missing_value`).
 
 No object is kept between calls of the functions, except the traced graphs of the compiled
 executor, which the process holds (`gemini.compiler.graph.graph_cache`, at most 16 graphs, the least
@@ -107,31 +108,45 @@ the air, the return and supply temperatures or the prices. `gm.simulate` and `gm
 what the case holds **by module class**, one private function for each kind, never by a path
 written in the case:
 
-- every `Formation` (and the one inside each `Doublet`): `environment.ground.gradient` and
+- every `Formation` (and the one inside each `Doublet`): `site.ground.gradient` and
   `surface_temperature`;
 - every `Doublet`: the reservoir and the injection reservoir, at the doublet's own depth, take the
-  temperature and pressure of `case.environment.temperature_at(depth)` and `pressure_at(depth)`
+  temperature and pressure of `case.site.temperature_at(depth)` and `pressure_at(depth)`
   (the two rules of `gemini/physics/ground.py`), the permeability and the thickness of
-  `environment.reservoir`, and the brine of `environment.fluid` as the module's fluid; a
+  `site.reservoir`, and the brine of `site.fluid` as the module's fluid; a
   production or injection reservoir outside a doublet takes the permeability, the thickness, the
   fluid and the pressure at `reference_depth`;
-- every `Atmosphere`: `environment.air.temperature` (a profile reaches it through the plan column
-  `<atmosphere>.temperature` that `gm.schedule` writes; a user `plan` without it carries no air
-  profile);
-- every `HeatingGrid` and `CoolingGrid`: `return_temperature` and the required supply
-  temperature (`minimum_supply_temperature` for heat, `maximum_supply_temperature` for cold) from
-  `demand.heating` and `demand.cooling`.
+- every `Atmosphere`: `site.air.pressure` (required) and `site.air.temperature` (a profile reaches
+  it through the plan column `<atmosphere>.temperature` that `gm.schedule` writes; a user `plan`
+  without it carries no air profile);
+- every `GasGrid`: `utilities.gas.composition` (required, `missing_value` naming the path);
+- every `HeatingGrid` and `CoolingGrid`: what each declares with a `case` path under
+  `demand.heating` or `demand.cooling`: `return_temperature`, the required supply temperature
+  (`minimum_supply_temperature` for heat, `maximum_supply_temperature` for cold),
+  `return_pressure`, the return-temperature limits, and for cold `dew_point_margin`,
+  `indoor_temperature` and `indoor_relative_humidity`;
+- every `Desander`: `site.fluid.sand_concentration`; every `ElectricityGrid`:
+  `utilities.electricity.import_limit` and `export_limit` (absent means unlimited);
+- every unit on a supply line (`HeatPump`, `Boiler`, `ElectricBoiler`, `AbsorptionUnit`,
+  `AdsorptionChiller` whose useful outlet reaches the `HeatingGrid` or the `CoolingGrid`, found with
+  `plant.feeds`, `gemini/plants/_utils/roles.py` `supply_service`): the `temperature_setpoint` is
+  the supply temperature of the service plus the unit's `supply_margin` (minus it for cold), set
+  as an input. A unit without a margin keeps the setpoint the plant gives; a margin on a unit on
+  no supply line is `invalid_design`;
+- every stateful module named in `case.initial_state` starts from the states given there
+  (`Module._start_from`, which `initial_state()` and the engine read first): `gm.check` asks for
+  every state of every stateful module, and a state or module the plant lacks is `unknown_name`.
 
-A parameter that the case sets is declared with `Parameter(..., case="environment.ground.gradient")`;
-a plant dict that states it is refused (`invalid_value`, naming the case path), and `to_dict` never
-writes it. A value the plant needs and the case lacks raises `missing_value` naming its path in
+A parameter or boundary that the case sets is declared with `Parameter(..., case="site.ground.gradient")`
+or `Boundary(..., case="demand.cooling.indoor_temperature")`; a plant dict that states it is refused
+(`invalid_value`, naming the case path), and `to_dict` never writes it. A value the plant needs and the case lacks raises `missing_value` naming its path in
 the case. The plant of the user never changes. Known limits: `fluids` stays in the plant dict for a
 module whose fluid differs from its class default, because a measured or replayed plant (the
 `DoubletHeatPlant` example, a calibration) has no case and carries its own brine; with a case, the
-fluid of a `Doublet` comes from `environment.fluid`. The leaf reservoir parameters `pressure`,
+fluid of a `Doublet` comes from `site.fluid`. The leaf reservoir parameters `pressure`,
 `permeability` and `aquifer_thickness` are not case-flagged for the same reason, but a `Doublet` in
-a run gets them from the case. The pressure of the water returned by a consumer stays a design
-parameter of the plant, because the case has no field for it.
+a run gets them from the case. A module run on its own, without a plant and a case, takes the
+values of the case as ordinary parameters (`set_params`), as the unit tests do.
 
 ## Schedule
 
@@ -154,9 +169,14 @@ feeds the `CoolingGrid` a cooling unit, directly or through mixers, splitters an
 `HeatPump` is either: on the cooling grid it is the compression chiller, with its condenser heat
 going to its cooler. At most one unit per role and kind, or `invalid_design`.
 
+**The two rules.** The plant states how the schedule orders its sources and picks its outage steps:
+`params.control.dispatch` (`least_cost`) and `params.control.outages` (`lowest_demand`), each a
+closed list of the one implemented value. A plant without them makes `gm.schedule` raise
+`missing_value` naming the path; another value is refused when the plant is read.
+
 **Cost dispatch.** Every heat and cold source gets a marginal cost at each step
 (`gemini/run/_utils/sources.py`, `physics/dispatch.marginal_cost`): `price / efficiency +
-co2 price * emission`, with the prices of `case.assumptions.finance.opex` and the CO2 price `opex.co2` and the efficiency of the source at
+co2 price * emission`, with the prices of `case.economics.energy`, the CO2 price `economics.carbon.price`, the grid factor `utilities.electricity.co2_intensity` and the efficiency of the source at
 its design values: the COP of a heat pump or compression chiller, the efficiency of a boiler, the
 pump electricity of a doublet, the `thermal_cop` of a heat-driven chiller on the cheapest heat. A
 price a source needs and the case lacks raises `ValidationError` (code `missing_assumption`). A
@@ -166,17 +186,18 @@ Unmet demand is no error: the run reports `unmet_demand`. The drive heat of a he
 cold over its `thermal_cop`, adds to the heat need. On one chilled-water circuit the last unit
 brings the water to its setpoint and each unit before it gets the setpoint that leaves the rest to
 the units after it. The heat pump, the boilers and the last cooling unit take the
-`temperature_setpoint` set on them with `set_inputs`. `ATESPlant` is not scheduled: its three
+`temperature_setpoint` that `apply_case` derives from their `supply_margin` (or that the plant
+states as a control). `ATESPlant` is not scheduled: its three
 seasonal commands (`storage.mode`, `source_valve.split_fraction`, `load_valve.split_fraction`)
 stay inputs of a run.
 
-**Constraints.** The schedule reads the constraints of the case by **role and quantity**
+**Requirements.** The schedule reads the requirements of the case by **role and quantity**
 (`gemini/run/_utils/limits.py`), each applying to every unit of its role on its own. Per `doublet`:
 
 - a flow range: quantity `production_flow`, `over="each"`, `when="running"`, `min` and `max`;
 - a maximum brine cooling: quantity `brine_cooling`, `over="each"`, `max`;
 - an operating duration: quantity `production_flow`, `over="duration"`, `when="running"`,
-  `max` or `equals` a duration (`{"value": 330, "unit": "d"}`, `{"value": 7920, "unit": "h"}`).
+  `max` a duration (`min` = `max` for an exact one) (`{"value": 330, "unit": "d"}`, `{"value": 7920, "unit": "h"}`).
 
 The flow range and the brine cooling have no default: a doublet without one raises
 `ValidationError` code `missing_value`. Each doublet, in plant order, runs at the flow that gives
@@ -187,10 +208,10 @@ the first doublet taking the lowest and the next the lowest left, so at most one
 step; steps of equal demand go earliest first. It needs at least two rows at a constant step. On an
 outage step a doublet has no flow and its heat goes to the next sources; a heat pump fed only by
 doublets that are off stops. Every other step a doublet with a duration runs, at the minimum flow
-when no heat is left for it. Every other constraint, and a duration with only `min`, is left to
-the check of a run: `plan.attrs["check_only"]` lists them (`to_dict()` of each; a constraint enforced in part keeps only
+when no heat is left for it. Every other requirement, and a duration with only `min`, is left to
+the check of a run: `plan.attrs["check_only"]` lists them (`to_dict()` of each; a requirement enforced in part keeps only
 the bounds left, so a duration of `min` and `max` lists its `min`), and
-`gm.evaluate.constraints(plant, case, results)` judges all of them, the enforced ones too.
+`gm.evaluate.requirements(plant, case, results)` judges all of them, the enforced ones too.
 
 A heat-driven chiller on a bypass (a `Splitter` whose branches reach the users and the generator) has
 the drive water pass the users: the plan sets the split from the balance, the heat the users take
@@ -405,7 +426,7 @@ the columns.
 The ports of a leaf are columns too, by `Stream.quantities()`: `<port>.<quantity>` for a fluid
 (`results.get("hp", "hot_out.enthalpy_flow")`) and the port's name for a `Power`
 (`results.get("grid", "power_out")`); the quantities are listed in [types.md](types.md). `gm.evaluate.totals`,
-`gm.evaluate.constraints` (a role quantity such as `doublet.wellhead_pressure` reads one) and the
+`gm.evaluate.requirements` (a role quantity such as `doublet.wellhead_pressure` reads one) and the
 energy report read them.
 
 `Results[path]` returns the series of one module path; `Results[path].field` is a pandas Series
@@ -451,7 +472,7 @@ uses `allow_pickle=False`, so no pickle is read, and gives the same bits, units 
 Anything that is not an archive of this format (including the former Parquet and CSV files)
 raises `ValidationError` with the code `invalid_format`. The metadata records `gm.__version__`, and a
 file written before 0.1.0 raises `ValidationError` with the code `old_format`, as a checkpoint
-written before 0.2.0 does: it holds a plant dict of an older form.
+written before 0.3.0 does: it holds a plant dict of an older form.
 Checkpoints keep their results in the same file.
 
 **End state.** `results.end_state` is plain JSON `{position, module_states}`: the last committed

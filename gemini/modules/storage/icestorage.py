@@ -138,7 +138,7 @@ class IceStorage(Module):
         # Outlets
         inlet = inlets.fluid_in
         effectiveness = self._effectiveness(inlet)
-        outlet = inlet.with_(
+        outlet = inlet._with_si(
             T=heat_transfer.effectiveness_outlet_temperature(
                 inlet.T, effectiveness, self.temperature
             )

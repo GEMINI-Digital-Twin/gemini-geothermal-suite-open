@@ -1,30 +1,21 @@
 """``gm.schedule``: the controls of a plant from its demand at any step, and a run of them."""
 
+import itertools
+
 import numpy as np
 import pandas as pd
 import pytest
 
 import gemini as gm
-from gemini.case import (
-    CO2,
-    Air,
-    Assumptions,
-    Case,
-    Constraint,
-    Demand,
-    Emissions,
-    Environment,
-    Finance,
-)
-from gemini.case import Fluid as CaseFluid
-from gemini.case import Ground, Opex, Reservoir, Service, Time
 from gemini.physics import constants
 from gemini.run.schedule import _doublets_above
 from gemini.runtime import settings
 from gemini.units import Quantity
+from tests.fixtures.cases import priced, requirement
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.esp_design import ESP_DESIGN
+from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.parity import BACKENDS
 from tests.fixtures.sample_cases import example_plant, template_dict
 
@@ -44,13 +35,14 @@ FULL = 300 / 3600 * HEAT_PER_FLOW
 
 
 def constraint(quantity, on="doublet", **fields):
-    """Return a constraint on ``quantity`` of ``on`` with bounds given as ``(value, unit)``."""
-    bounds = {
-        name: Quantity(*fields.pop(name)) for name in ("min", "max", "equals") if name in fields
-    }
-    return Constraint(on=on, quantity=quantity, **bounds, **fields)
+    """Return a requirement on ``quantity`` of ``on`` with bounds given as ``(value, unit)``."""
+    bounds = {name: Quantity(*fields.pop(name)) for name in ("min", "max") if name in fields}
+    name = f"{on}_{quantity}_{next(NUMBER)}"
+    return requirement(on, quantity, name=name, **bounds, **fields)
 
 
+NUMBER = itertools.count()
+"""Numbers that keep the names of the requirements of a case apart."""
 CONSTRAINTS = [
     constraint("production_flow", min=(50, "m3/h"), max=(300, "m3/h"), when="running"),
     constraint("brine_cooling", max=(40, "K")),
@@ -60,62 +52,84 @@ CONSTRAINTS = [
 def services_of(frame):
     """Return the heating and cooling services of the columns ``frame`` has."""
     services = {
-        "heating": Service(
-            column="heating_demand",
-            unit="W",
-            supply_temperature=Quantity(100, "degC"),
-            return_temperature=Quantity(60, "degC"),
-        ),
-        "cooling": Service(
-            column="cooling_demand",
-            unit="W",
-            supply_temperature=Quantity(20, "degC"),
-            return_temperature=Quantity(28, "degC"),
-        ),
+        "heating": {
+            "supply_temperature": Quantity(100, "degC"),
+            "return_temperature": Quantity(60, "degC"),
+            "return_pressure": Quantity(6, "bar"),
+        },
+        "cooling": {
+            "supply_temperature": Quantity(20, "degC"),
+            "return_temperature": Quantity(28, "degC"),
+            "return_pressure": Quantity(4, "bar"),
+            "dew_point_margin": Quantity(1, "K"),
+            "indoor_temperature": Quantity(26, "degC"),
+            "indoor_relative_humidity": {"value": 0.5},
+        },
     }
-    return {name: item for name, item in services.items() if item.column in frame}
+    return {
+        name: item | {"power": {"file": "demand.csv", "column": f"{name}_demand", "unit": "W"}}
+        for name, item in services.items()
+        if f"{name}_demand" in frame
+    }
 
 
-def environment_of(ground=True):
-    """Return the site of the sample: ground, reservoir, brine and air."""
-    return Environment(
-        ground=(
-            Ground(surface_temperature=Quantity(12, "degC"), gradient=Quantity(30, "K/km"))
-            if ground
-            else None
-        ),
-        reservoir=Reservoir(
-            reference_depth=Quantity(2500, "m"),
-            thickness=Quantity(100, "m"),
-            permeability=Quantity(200, "mD"),
-            pressure=Quantity(250, "barg"),
-        ),
-        fluid=CaseFluid(density=Quantity(1030, "kg/m3"), viscosity=Quantity(0.4, "mPa.s")),
-        air=Air(temperature=Quantity(10, "degC")),
-    )
+def site_of(ground=True, air=None):
+    """Return the site of the sample: ground, reservoir, brine and air (a series when ``air``)."""
+    site = {
+        "reservoir": {
+            "reference_depth": Quantity(2500, "m"),
+            "thickness": Quantity(100, "m"),
+            "permeability": Quantity(200, "mD"),
+            "pressure": Quantity(250, "barg"),
+        },
+        "fluid": {"density": Quantity(1030, "kg/m3"), "viscosity": Quantity(0.4, "mPa.s")},
+        "air": {"temperature": Quantity(10, "degC"), "pressure": Quantity(101325, "Pa")},
+    }
+    if air is not None:
+        site["air"]["temperature"] = {"file": "air.csv", "column": "temperature", "unit": "K"}
+    if ground:
+        site["ground"] = {
+            "surface_temperature": Quantity(12, "degC"),
+            "gradient": Quantity(30, "K/km"),
+        }
+    return site
 
 
-def case_of(frame, constraints=(), prices=None, co2=None, ground=True, limits=None):
+def case_of(frame, constraints=(), prices=None, co2=None, ground=True, limits=None, air=None):
     """Return a case on ``frame``: the site of the sample, the flow range and cooling, the prices.
 
     ``constraints`` are added to the flow range and the brine cooling (or to ``limits``);
-    ``prices`` replace the electricity and gas prices; ``co2`` is a price per kg of CO2.
+    ``prices`` replace the electricity and gas prices; ``co2`` is a price per kg of CO2; ``air`` is
+    the temperature [K] of the outside air at each step.
     """
-    frame = frame.copy()
-    frame.attrs = {"units": dict.fromkeys(frame, "W"), "quantities": dict.fromkeys(frame, "power")}
     step = frame.index[1] - frame.index[0] if len(frame) > 1 else pd.Timedelta(days=1)
-    time = Time(
-        start=frame.index[0], end=frame.index[-1] + step, step=Quantity(step.total_seconds(), "s")
-    )
-    opex = Opex(co2=None if co2 is None else Quantity(co2, "EUR/kg"), **(prices or PRICES))
-    emissions = None if co2 is None else Emissions(CO2=CO2(electricity=Quantity(0, "g/kWh")))
-    return Case(
-        time=time,
-        environment=environment_of(ground),
-        demand=Demand(file="demand.csv", frame=frame, **services_of(frame)),
-        constraints=tuple(CONSTRAINTS if limits is None else limits) + tuple(constraints),
-        assumptions=Assumptions(finance=Finance(opex=opex), emissions=emissions),
-    )
+    stamps = frame.index.strftime("%Y-%m-%dT%H:%M:%SZ")
+    files = {"demand.csv": frame.set_axis(stamps).rename_axis("time").to_csv().encode()}
+    if air is not None:
+        files["air.csv"] = (
+            pd.DataFrame({"time": stamps, "temperature": air}).to_csv(index=False).encode()
+        )
+    economics = {"format": 1, "kind": "economics", "name": "prices", "energy": prices or PRICES}
+    economics = priced(economics)
+    utilities = {"gas": {"composition": {k: {"value": v} for k, v in GRID_COMPOSITION.items()}}}
+    if co2 is not None:
+        economics["carbon"] = {"price": Quantity(co2, "EUR/kg")}
+        utilities["electricity"] = {"co2_intensity": Quantity(0, "g/kWh")}
+    data = {
+        "format": 1,
+        "kind": "case",
+        "name": "schedule",
+        "time": {
+            "start": frame.index[0].isoformat(),
+            "end": (frame.index[-1] + step).isoformat(),
+            "step": Quantity(step.total_seconds(), "s"),
+        },
+        "site": site_of(ground, air),
+        "demand": services_of(frame),
+        "economics": economics,
+        "requirements": list(CONSTRAINTS if limits is None else limits) + list(constraints),
+    }
+    return gm.Case.from_dict(data | {"utilities": utilities}, files)
 
 
 def plant_of_two(names=("d0", "d1")):
@@ -141,10 +155,15 @@ def plant_of_two(names=("d0", "d1")):
     plant.add(
         "Boiler", name="boiler", params={"capacity": {"value": 40, "unit": "MW"}, "efficiency": 0.9}
     )
-    plant.add("HeatingGrid", name="users", params={"return_pressure": {"value": 6, "unit": "bar"}})
+    plant.add("HeatingGrid", name="users")
     wire(plant, names)
     plant.boiler.temperature_setpoint = {"value": 100, "unit": "degC"}
-    return with_values(plant)
+    return scheduling(with_values(plant))
+
+
+def scheduling(plant):
+    """Return ``plant`` stating the rules the schedule applies, as a plant file does."""
+    return plant.set_params("", {"dispatch": "least_cost", "outages": "lowest_demand"})
 
 
 def wire(plant, names=("d0", "d1")):
@@ -181,8 +200,9 @@ def at(day, hour=0):
 
 def duration(value, unit="d", **fields):
     """Return the constraint that each doublet runs ``value`` ``unit`` of the period."""
-    bound = {"max": (value, unit)} if "equals" not in fields else {}
-    return constraint("production_flow", over="duration", when="running", **bound, **fields)
+    return constraint(
+        "production_flow", over="duration", when="running", max=(value, unit), **fields
+    )
 
 
 def plan_of(*heat, constraints=(), prices=None, plant=None, freq="D", **options):
@@ -193,7 +213,7 @@ def plan_of(*heat, constraints=(), prices=None, plant=None, freq="D", **options)
 
 def _duration_checks(plant, case, results):
     """Return the checks of the duration constraint, one per doublet."""
-    checks = gm.evaluate.constraints(plant, case, results)
+    checks = gm.evaluate.requirements(plant, case, results)
     return [item for item in checks if item["value"].unit == "s"]
 
 
@@ -241,7 +261,7 @@ def test_a_missing_price_is_named():
         prices = {name: price for name, price in PRICES.items() if name != missing}
         with raises(gm.errors.ValidationError, "missing_assumption") as refused:
             plan_of(FULL, prices=prices)
-        assert refused.value.path == f"assumptions.finance.opex.{missing}"
+        assert refused.value.path == f"economics.energy.{missing}"
 
 
 def test_the_plan_names_its_columns_after_what_they_drive():
@@ -294,12 +314,13 @@ def test_unmet_demand_is_no_error():
     assert results.errors() == [] and results.to_frame()["users.unmet_demand"].iloc[0] > 0
 
 
-def test_a_constraint_the_schedule_does_not_enforce_is_left_to_the_check():
+def test_a_requirement_the_schedule_does_not_enforce_is_left_to_the_check():
     """Listed as plain data in ``attrs["check_only"]``; the flow range and cooling are enforced."""
     extra = constraint("unmet", on="heating_supply", max=(0, "W"))
     short = constraint("production_flow", min=(1, "d"), over="duration", when="running")
     plan = plan_of(FULL, constraints=[extra, short])
-    assert plan.attrs["check_only"] == [extra.to_dict(), short.to_dict()]
+    kept = [gm.case.Requirement.from_dict(item).to_dict() for item in (extra, short)]
+    assert plan.attrs["check_only"] == kept
     assert plan_of(FULL).attrs["check_only"] == []
 
 
@@ -335,9 +356,9 @@ def test_a_doublet_without_a_need_still_runs_its_days():
     assert plan["d0.is_running"].sum() == plan["d1.is_running"].sum() == 2
 
 
-def test_equals_is_a_duration_too():
-    """``equals`` fixes the time as ``max`` does."""
-    exact = duration(0, equals=(2, "d"))
+def test_an_exact_duration_fixes_the_time_as_max_does():
+    """The same number as ``min`` and ``max`` runs to the maximum; the minimum is left over."""
+    exact = duration(2, min=(2, "d"))
     assert plan_of(FULL, FULL, FULL, constraints=[exact]).attrs["outages"] == {
         "d0": [at(1)],
         "d1": [at(2)],
@@ -406,9 +427,11 @@ def split_sources():
     spec = plant.to_dict()
     drop = ("production", "degasser", "injection")
     spec["modules"] = {name: item for name, item in spec["modules"].items() if name not in drop}
-    spec["modules"]["heat_pump"] = {
-        "type": "HeatPump",
-        "params": {"mode": "heating", "capacity": {"value": 10, "unit": "MW"}},
+    spec["params"] = {name: item for name, item in spec["params"].items() if name not in drop}
+    spec["modules"]["heat_pump"] = {"type": "HeatPump"}
+    spec["params"]["heat_pump"] = {
+        "mode": {"value": "heating"},
+        "capacity": {"value": 10, "unit": "MW"},
     }
     spec.pop("outlets", None)
     spec["inlets"] = {"power_in": ["d0.power_in", "d1.power_in", "heat_pump.power_in"]}
@@ -427,7 +450,7 @@ def split_sources():
     built = with_values(gm.Plant.from_dict(spec))
     built.boiler.temperature_setpoint = {"value": 100, "unit": "degC"}
     built.heat_pump.temperature_setpoint = {"value": 100, "unit": "degC"}
-    return built
+    return scheduling(built)
 
 
 @pytest.fixture(scope="module")
@@ -512,7 +535,7 @@ def cooling_plant(inputs=COOLING_INPUTS):
     plant = with_values(gm.plants.get("HeatingCoolingPlant"))
     plant.set_params("", COOLING_SIZES)
     plant.set_params("d0", DESIGN)
-    return plant.set_inputs(inputs)
+    return scheduling(plant).set_inputs(inputs)
 
 
 def cooling_plan(cold, heat=1e6, plant=None):
@@ -602,7 +625,7 @@ def test_a_plan_keeps_the_unit_of_the_demand():
 
 def test_the_doublet_heat_plant_runs_a_plan_within_its_pump_curve():
     """Its bindings read m3/s and a plan is in kg/s: the flow is what was planned, in range."""
-    plant = example_plant("DoubletHeatPlant")
+    plant = scheduling(example_plant("DoubletHeatPlant"))
     wide = constraint("production_flow", min=(50, "m3/h"), max=(165, "m3/h"), when="running")
     case = case_of(demand(5e6, 3e7), limits=[wide, CONSTRAINTS[1]])
     results = gm.simulate(plant, case, on_error="record")
@@ -617,11 +640,11 @@ def test_a_limit_the_schedule_needs_has_no_default(index, name):
     limits = [item for place, item in enumerate(CONSTRAINTS) if place != index]
     with raises(gm.errors.ValidationError, "missing_value", match=name) as refused:
         gm.schedule(plant_of_two(), case_of(demand(FULL), limits=limits))
-    assert refused.value.path == "constraints"
+    assert refused.value.path == "requirements"
 
 
-def test_a_constraint_by_role_limits_doublets_of_any_name():
-    """The role, not the path, says which units a constraint limits."""
+def test_a_requirement_by_role_limits_doublets_of_any_name():
+    """The role, not the path, says which units a requirement limits."""
     plant = plant_of_two(("north", "south"))
     plan = gm.schedule(plant, case_of(demand(1.5 * FULL)))
     assert plan["north.flow"].iloc[0] == pytest.approx(300 / 3600)
@@ -632,14 +655,29 @@ def test_a_schedule_without_the_ground_names_the_path_in_the_case():
     """The plan reads the reservoir, so the missing value is named before anything else."""
     with raises(gm.errors.ValidationError, "missing_value") as caught:
         gm.schedule(plant_of_two(), case_of(demand(FULL), ground=False))
-    assert caught.value.path == "environment.ground.gradient"
+    assert caught.value.path == "site.ground.gradient"
 
 
 def test_a_profile_of_the_air_is_a_column_of_the_plan():
     """A constant air is an input of the copy; a profile is the air of each step."""
     plant = gm.Plant.from_dict(template_dict("HeatingPlant"))
-    case = case_of(demand(FULL, FULL))
-    air = case.environment.air.model_copy(update={"temperature": np.array([280.0, 290.0])})
-    case = case.model_copy(update={"environment": case.environment.model_copy(update={"air": air})})
+    case = case_of(demand(FULL, FULL), air=[280.0, 290.0])
     plan = gm.schedule(plant, case)
     assert plan["atmosphere.temperature"].tolist() == [280.0, 290.0]
+
+
+@pytest.mark.parametrize("rule", ["dispatch", "outages"])
+def test_a_rule_the_plant_does_not_state_is_named(rule):
+    """The merit order and the outage choice are the plant's: no silent default."""
+    plant = plant_of_two()
+    plant.set_params("", {rule: None})
+    with raises(gm.errors.ValidationError, "missing_value", match=rule) as refused:
+        gm.schedule(plant, case_of(demand(FULL)))
+    assert refused.value.path == f"params.control.{rule}"
+
+
+@pytest.mark.parametrize(("rule", "other"), [("dispatch", "cheapest"), ("outages", "latest")])
+def test_a_rule_the_schedule_does_not_implement_is_refused(rule, other):
+    """The two rules have one implemented value each; another is refused when it is set."""
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        plant_of_two().set_params("", {rule: other})

@@ -51,7 +51,7 @@ class Gain(Module):
             path=self.path,
             gain=self.gain,
         )
-        outlet = inlet.with_(p=inlet.p + self.gain * self.scale * REFERENCE)
+        outlet = inlet._with_si(p=inlet.p + self.gain * self.scale * REFERENCE)
 
         outlets = dict(fluid_out=outlet)
         self.rise = outlets["fluid_out"].p - inlets.fluid_in.p
@@ -100,7 +100,7 @@ class Stepper(Module):
         pressure = inlets.fluid_in.p
         for _ in range(self.steps):
             pressure = pressure + self.increment
-        return dict(fluid_out=inlets.fluid_in.with_(p=pressure))
+        return dict(fluid_out=inlets.fluid_in._with_si(p=pressure))
 
 
 @pytest.fixture
@@ -289,7 +289,7 @@ class Twice(Module):
         second = self.gain(fluid_in=inlets.fluid_in)
 
         # Outlets
-        outlet = inlets.fluid_in.with_(p=first.outlets.fluid_out.p + second.outlets.fluid_out.p)
+        outlet = inlets.fluid_in._with_si(p=first.outlets.fluid_out.p + second.outlets.fluid_out.p)
         outlets = dict(fluid_out=outlet)
         return outlets
 
@@ -363,7 +363,9 @@ class Stubborn(Gain):
             path=self.path,
             gain=self.gain,
         )
-        outlet = inlets.fluid_in.with_(p=inlets.fluid_in.p + self.gain * float(inlets.fluid_in.T))
+        outlet = inlets.fluid_in._with_si(
+            p=inlets.fluid_in.p + self.gain * float(inlets.fluid_in.T)
+        )
         outlets = dict(fluid_out=outlet)
         self.rise = outlets["fluid_out"].p - inlets.fluid_in.p
         self.boost = 0.0

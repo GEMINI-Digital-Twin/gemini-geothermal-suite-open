@@ -3,10 +3,10 @@
 import pytest
 
 from gemini.modules.heating import _burner
-from gemini.physics import gas
 from gemini.types.flows import Stream
 from gemini.types.fluid import Fluid
 from gemini.units import Quantity
+from tests.fixtures.gas import GRID_COMPOSITION
 
 FLUID = Fluid(kind="gas", gas_composition={"CH4": 1.0})
 FUEL = Stream(m_dot=Quantity(0.1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e5, "Pa"), fluid=FLUID)
@@ -26,7 +26,7 @@ def test_the_fuel_of_a_stream_is_its_mass_times_its_heating_value():
 def test_the_mark_says_whether_the_grid_may_be_drawn():
     """A mark is the grid composition on the fluid."""
     assert not _burner.has_grid(FUEL)
-    assert _burner.has_grid(FUEL.with_(fluid=FLUID.with_grid(gas.GRID_COMPOSITION)))
+    assert _burner.has_grid(FUEL._with_si(fluid=FLUID.with_grid(GRID_COMPOSITION)))
 
 
 def test_the_split_and_the_gas_left():

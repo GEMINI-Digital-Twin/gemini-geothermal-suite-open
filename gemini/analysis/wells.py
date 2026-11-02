@@ -232,7 +232,7 @@ def _production_curves(chain, conditions, output):
     """Return the IPR, the VLP and the operating point of a case of a production well."""
     pressure, rates, frequency = _case_inputs(chain, conditions)
     if chain.esp is not None:
-        chain.esp.frequency = frequency
+        chain.esp._assign_si("frequency", frequency)
     return _curves(chain, pressure, rates, output)
 
 

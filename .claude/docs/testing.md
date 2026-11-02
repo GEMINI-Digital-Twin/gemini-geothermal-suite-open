@@ -240,12 +240,24 @@ data folders outside `gemini/_utils/paths.py`. It enforces the structure of the 
   exists in `gemini/`;
 - the case rules: `gemini/case/` imports none of `run`, `engine`, `evaluate`, `study`, `compiler`,
   `data` and `analysis`; no field of `gm.case` has a default but absent (`over` and `when` of
-  `Constraint` are the two exceptions); the case schema has `additionalProperties: false` at every
+  `Requirement` are the two exceptions); the case schema has `additionalProperties: false` at every
   level; no string of the package is a number followed by a unit (`tests/unit/test_unit_boundary.py`,
   [units](conventions.md#units)); and no name or docstring of `gemini/` calls the input a
   `Problem` (the shape `problem` of an error, which keeps its name, is the one use of the word);
 - a snapshot of `gm.__all__` and of the `__all__` of each folder, so a public name changes only on
-  purpose;
+  purpose, and `tests/unit/test_api_contract.py`, which reads the table "Names and signatures" of
+  [api.md](api.md) and fails on a public name that the table lacks, a row that names nothing and a
+  signature that differs from the code (the module classes of the catalogue and the plant classes
+  are one row each);
+- `tests/unit/test_docs.py`, which runs every `python` snippet of `.claude/docs/*.md` from the root
+  of the repository, a page in runs of 12 snippets so each run fits the CPU budget of a fast test; a
+  snippet that is only illustrative is fenced `text`, never skipped;
+- runtime settings cannot change a result (P4 of [inputs.md](inputs.md)):
+  `tests/unit/runtime/test_context.py` runs a plant compiled and eager and compares the numbers
+  within 1e-9, and `test_a_sample_in_workers_equals_the_serial_sample` of
+  `tests/unit/study/_utils/test_parallel.py` compares a real sample in workers with the serial one;
+- the names of the old inputs (`assumptions`, `finance`, `lifetime`) are among the old names
+  that `test_no_name_keeps_something_old` refuses in a name of `gemini/`;
 - no function or method starts with `read_`, `write_`, `load_`, `save_`, `parse_` or `dump_`
   ([read/write naming](conventions.md#public-names-and-readwrite-naming));
 - the layout of `gemini/modules/` ([where a file goes](conventions.md#module-rules)): only
@@ -277,7 +289,7 @@ in `tests/fixtures/json_schema.py`.
 ## Sandbox image
 
 `make sandbox-image` builds `docker/sandbox.Dockerfile` as `gemini-sandbox:<version>`, the version of
-`pyproject.toml`, so `gemini-sandbox:0.2.0` today. geomind's `DockerSandbox(image="gemini-sandbox:0.2.0")`
+`pyproject.toml`, so `gemini-sandbox:0.3.0` today. geomind's `DockerSandbox(image="gemini-sandbox:0.3.0")`
 runs agent-written modules in it. It is a slim Python 3.11, the oldest supported version, with gemini
 and its runtime dependencies installed from the repository, about 640 MB, and a non-root user
 `sandbox`. `docker/sandbox.Dockerfile.dockerignore` lets only `pyproject.toml`, `README.md`, `LICENSE`
@@ -298,8 +310,9 @@ terms, so a sample case is never the only proof that gemini can do it:
 - a plant on one to three doublets;
 - a chosen depth, which sets the reservoir from the geotherm;
 - co-produced gas that reaches the boiler before the gas grid;
-- limits of each kind: the flow range per doublet, the brine cooling, the operating time, a parameter,
-  the volume balance, the supply temperatures;
+- requirements of each kind (the rules of third parties in `case.requirements`): the flow range per
+  doublet, the brine cooling, the operating time, a plant property such as the pump efficiency,
+  the reinjection ratio, the supply temperatures;
 - a levelised cost of heat and cold together (LCTS).
 
 `inputs/examples/hackathon_2026/` and `inputs/examples/shallow_district/` run through these same

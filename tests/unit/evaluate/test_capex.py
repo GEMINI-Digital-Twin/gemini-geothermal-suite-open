@@ -16,7 +16,7 @@ from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.esp_design import ESP_DESIGN
 
-ALL = gm.case.Capex(
+ALL = dict(
     drilling=Quantity(1000.0, "currency/m"),
     production_pump=Quantity(0.5, "currency/W"),
     injection_pump=Quantity(0.4, "currency/W"),
@@ -44,7 +44,7 @@ def priced(kind, params, capex=ALL):
     """Return the capex of one module in a plant of its own, its ports aside."""
     plant = gm.Plant("One")
     plant.add(kind, name="unit", params=params)
-    return gm.evaluate.capex(plant, make_case(finance={"capex": capex}))
+    return gm.evaluate.capex(plant, make_case(economics={"capex": capex}))
 
 
 @pytest.mark.parametrize(
@@ -106,7 +106,7 @@ def test_a_circulation_pump_costs_by_its_shaft_power_at_the_nominal_flow():
     )
     density = pump.fluid.properties(0, 0).rho_l
     power = 50 / density * 3e5 / 0.6
-    result = gm.evaluate.capex(plant, make_case(finance={"capex": ALL}))
+    result = gm.evaluate.capex(plant, make_case(economics={"capex": ALL}))
     assert result.value == pytest.approx(0.2 * power)
 
 
@@ -144,7 +144,7 @@ def test_a_doublet_pays_for_its_wells_by_the_metre_and_its_pump_by_its_power():
     plant = gm.Plant("One")
     plant.add("Doublet", name="unit", params=DESIGN | PUMP)
     with_values(plant)
-    case = make_case(finance={"capex": ALL})
+    case = make_case(economics={"capex": ALL})
     result = gm.evaluate.capex(plant, case)
     head = apply_case(plant, case).unit.esp.head_coefficients
     power = 300 / 3600 * _physics.head(0.0, 60.0, 1, head) / 0.7
@@ -161,12 +161,12 @@ def test_a_doublet_without_a_nominal_flow_cannot_price_its_pump():
     plant = gm.Plant("One")
     plant.add("Doublet", name="unit", params=DESIGN)
     with raises(gm.errors.ValidationError, "missing_value", match="nominal_flow"):
-        gm.evaluate.capex(plant, make_case(finance={"capex": ALL}))
+        gm.evaluate.capex(plant, make_case(economics={"capex": ALL}))
 
 
 def test_the_capex_is_the_sum_of_the_modules_with_their_kinds_and_price_year():
     """Per module a value with its kind; the total, the currency and the price year."""
-    case = make_case(finance={"capex": ALL, "price_year": 2015, "currency": "EUR"})
+    case = make_case(economics={"capex": ALL, "price_year": 2015, "currency": "EUR"})
     result = gm.evaluate.capex(heating_plant(), case)
     assert to_plain(result) == {
         "value": 1e6,
@@ -178,7 +178,7 @@ def test_the_capex_is_the_sum_of_the_modules_with_their_kinds_and_price_year():
 
 def test_a_plant_without_equipment_has_no_capex_with_a_reason():
     """The grids are not equipment: nothing is invented."""
-    case = make_case(finance={"capex": ALL})
+    case = make_case(economics={"capex": ALL})
     result = gm.evaluate.capex(heating_plant(costed=False), case, on_error="record")
     assert result.value is None
     assert result.reason == cost.NO_COST
@@ -189,20 +189,20 @@ def test_a_plant_without_equipment_has_no_capex_with_a_reason():
 
 def test_a_factor_the_case_lacks_is_missing_assumption_naming_the_kind():
     """A degasser without a factor: the error names its path, the record says why."""
-    case = make_case(finance={"capex": gm.case.Capex(boiler=Quantity(0.06, "currency/W"))})
+    case = make_case(economics={"capex": {"boiler": Quantity(0.06, "currency/W")}})
     recorded = gm.evaluate.capex(heating_plant(), case, on_error="record")
-    assert recorded.value is None and "assumptions.finance.capex.degasser" in recorded.reason
+    assert recorded.value is None and "economics.capex.degasser" in recorded.reason
     with raises(
         gm.errors.ValidationError,
         "missing_assumption",
-        match=r"assumptions\.finance\.capex\.degasser",
+        match=r"economics\.capex\.degasser",
     ):
         gm.evaluate.capex(heating_plant(), case)
 
 
-def test_a_case_without_finance_is_missing_assumption():
-    """No finance section, no capex."""
-    with raises(gm.errors.ValidationError, "missing_assumption", match="assumptions.finance"):
+def test_a_case_without_economics_is_missing_assumption():
+    """No economics, no capex."""
+    with raises(gm.errors.ValidationError, "missing_assumption", match="economics"):
         gm.evaluate.capex(heating_plant(), make_case())
 
 

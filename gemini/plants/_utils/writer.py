@@ -93,6 +93,7 @@ def _inputs_section(plant):
         for path, module in plant.named_modules()
         if is_plant(module)
         for name, value in module._inputs.items()
+        if not getattr(inputs.declaration(module, name), "case", None)
     }
     return {"inputs": to_plain(deepcopy(stated))} if stated else {}
 
@@ -100,7 +101,7 @@ def _inputs_section(plant):
 def class_dict(plant, fresh):
     """Return the plant dict of a plant of a class: ``fresh`` is a new one, without values."""
     plant._baselines[""] = tree_params(fresh)
-    data = {"format": FORMAT, "type": type(plant).__name__}
+    data = {"format": FORMAT, "name": plant.name, "type": type(plant).__name__}
     if plant._size:
         data["size"] = deepcopy(plant._size)
     data["params"] = params_entry(plant, "", plant)
@@ -123,4 +124,8 @@ def structure_dict(plant):
         data["outputs"] = deepcopy(plant._output_entries)
     if plant._constraints:
         data["constraints"] = [item.as_dict() for item in plant._constraints]
+    plant._baselines[""] = tree_params(plant._fresh())
+    own = {name: v for name, v in params_entry(plant, "", plant).items() if "." not in name}
+    if own:
+        data["params"] = own
     return data | to_sections(plant, plant._sections) | _inputs_section(plant)

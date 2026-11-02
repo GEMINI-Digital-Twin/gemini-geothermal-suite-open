@@ -26,7 +26,7 @@ def burned_stream(need, fuel):
     The flow is the co-produced gas it burns and, in kg/s of grid gas, what it buys.
     """
     _, purchased, burnt = fuel_split(need, fuel)
-    return fuel.with_(m_dot=burnt + _grid_mass(purchased, fuel))
+    return fuel._with_si(m_dot=burnt + _grid_mass(purchased, fuel))
 
 
 def _grid_mass(purchased, fuel):
@@ -47,4 +47,4 @@ def flue_stream(need, fuel):
     released = combustion.emission_rate(
         coproduced, fuel.fluid.emission_factor(), purchased, _grid_factor(fuel)
     )
-    return fuel.with_(m_dot=released, fluid=FLUE_CO2)
+    return fuel._with_si(m_dot=released, fluid=FLUE_CO2)

@@ -26,7 +26,7 @@ def test_split_esp_traversal():
     )
     stream = Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(353.15, "K"), p=Quantity(25e6, "Pa"))
     intake = c.intake_conditions(stream)
-    out = c.wellhead_from_discharge(intake.with_(p=intake.p + 3e6))
+    out = c.wellhead_from_discharge(intake._with_si(p=intake.p + 3e6))
     passive = c.wellhead_from_discharge(intake)
     assert out.p - passive.p == pytest.approx(3e6)
     assert out.m_dot == stream.m_dot
@@ -111,8 +111,8 @@ def test_another_esp_depth_and_path_length_reuse_the_graph():
     """The ESP depth and the section lengths are graph inputs: a new value traces nothing."""
     cache = GraphCache()
     first, other = _well(), _well()
-    other.esp_depth = first.esp_depth - 50
-    other.section_length = [length * 1.1 for length in first.section_length]
+    si.assign(other, "esp_depth", first.esp_depth - 50)
+    si.assign(other, "section_length", [length * 1.1 for length in first.section_length])
     for well in (first, other):
         cache.graph(well, {name: well.fluid for name in well._fed_inlets()})
     assert cache.traces == 1

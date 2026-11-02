@@ -10,7 +10,7 @@ import pytest
 import gemini as gm
 from gemini._utils.jsonable import to_plain
 from tests.fixtures import ROOT
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case, requirement
 from tests.fixtures.costed_plants import cooling_plant, day, heating_plant
 from tests.fixtures.json_schema import check
 from tests.fixtures.sample_cases import example_plant
@@ -33,15 +33,16 @@ CORROSION = {
     "start": "2024-01-01T00:00:00Z",
 }
 PRICED = make_case(
-    finance=costed_finance(
-        opex={"electricity": gm.units.Quantity(2e-8, "currency/J")},
+    economics=costed_economics(
+        energy={"electricity": gm.units.Quantity(2e-8, "currency/J")},
         revenue={
             "heat": gm.units.Quantity(5e-8, "currency/J"),
             "cold": gm.units.Quantity(4e-8, "currency/J"),
         },
         discount_rate=0.05,
+        analysis_period=gm.units.Quantity(20, "yr"),
     ),
-    emissions={"CO2": gm.case.CO2(electricity=gm.units.Quantity(1e-7, "kg/J"))},
+    utilities={"electricity": {"co2_intensity": gm.units.Quantity(1e-7, "kg/J")}},
 )
 POINTS = [
     {"flow": 0.03, "frequency": 50, "head": 3e6},
@@ -57,13 +58,25 @@ RETIRED = {"values", "units", "tolerance", "timestamp", "class", "type", "module
 
 def _constrained():
     """Return a case with a constraint on each way of reading a run."""
-    duty = {"on": "heat_exchanger", "quantity": "duty"}
-    constraints = [
-        gm.case.Constraint(**duty, min={"value": 0, "unit": "MW"}),
-        gm.case.Constraint(**duty, max={"value": 1000, "unit": "MW"}, over="mean", when="running"),
-        gm.case.Constraint(**duty, min={"value": 1, "unit": "h"}, over="duration", when="running"),
+    duty = ("heat_exchanger", "duty")
+    requirements = [
+        requirement(*duty, name="duty_least", min={"value": 0, "unit": "MW"}),
+        requirement(
+            *duty,
+            name="duty_mean",
+            max={"value": 1000, "unit": "MW"},
+            over="mean",
+            when="running",
+        ),
+        requirement(
+            *duty,
+            name="duty_time",
+            min={"value": 1, "unit": "h"},
+            over="duration",
+            when="running",
+        ),
     ]
-    return make_case(count=1, constraints=constraints)
+    return make_case(count=1, requirements=requirements)
 
 
 def _run_entries(plant, results):
@@ -128,15 +141,15 @@ def _economics_entries():
     return {
         "capex": lambda: gm.evaluate.capex(costed, priced),
         "opex": lambda: gm.evaluate.opex(costed, priced, run),
-        "lcoh": lambda: gm.evaluate.lcoh(costed, priced, run, 0.05, 20),
-        "lcoc": lambda: gm.evaluate.lcoc(cold, priced, chilled, 0.05, 20),
-        "lcts": lambda: gm.evaluate.lcts(costed, priced, run, 0.05, 20),
-        "annualised_cost": lambda: gm.evaluate.annualised_cost(costed, priced, run, 0.05, 20),
+        "lcoh": lambda: gm.evaluate.lcoh(costed, priced, run),
+        "lcoc": lambda: gm.evaluate.lcoc(cold, priced, chilled),
+        "lcts": lambda: gm.evaluate.lcts(costed, priced, run),
+        "annualised_cost": lambda: gm.evaluate.annualised_cost(costed, priced, run),
         "co2": lambda: gm.evaluate.co2(costed, priced, run),
-        "npv": lambda: gm.evaluate.npv(costed, priced, run, 0.05, 20),
+        "npv": lambda: gm.evaluate.npv(costed, priced, run),
         "payback": lambda: gm.evaluate.payback(costed, priced, run),
         "economics.record": lambda: gm.evaluate.lcoh(
-            heating_plant(costed=False), priced, run, 0.05, 20, on_error="record"
+            heating_plant(costed=False), priced, run, on_error="record"
         ),
     }
 
@@ -150,7 +163,8 @@ def _ledger_entries(plant, results):
         "mass_balance": lambda: gm.evaluate.mass_balance(plant, problem, results),
         "bounds": lambda: gm.evaluate.bounds(plant, problem, results),
         "plant_balance": lambda: gm.evaluate.plant_balance(plant, problem, results),
-        "constraints": lambda: gm.evaluate.constraints(plant, _constrained(), results),
+        "requirements": lambda: gm.evaluate.requirements(plant, _constrained(), results),
+        "verdict": lambda: gm.evaluate.verdict(plant, problem, results),
         "run_all": lambda: gm.evaluate.run_all(plant, problem, results),
     }
 
@@ -160,7 +174,7 @@ def _validation_entries(plant):
         "validate_params": lambda: gm.modules.Valve().validate_params(
             {"nope": 1}, on_error="record"
         ),
-        "plants.validate": lambda: gm.plants.validate({"format": 2, "name": 3}, on_error="record"),
+        "plant.check": lambda: [item.problem() for item in gm.plants.Doublet().check()],
         "to_dict": lambda: [gm.errors.ValidationError("bad", code="invalid_unit").to_dict()],
     }
 

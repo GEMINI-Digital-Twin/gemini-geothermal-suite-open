@@ -7,13 +7,91 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-02
+
+Breaking: the inputs of a project are separated by owner and every public entry point follows the
+new model (rules and reasons in [inputs.md](.claude/docs/inputs.md)). A checkpoint of 0.2.0, a plant
+file of `format: 2` and a `case.json` of the old shape do not load: they raise `old_format` naming the
+new form. Nothing of the old names is aliased.
+
+### Changed
+- Four files, one owner each: `case.json` (`site`, `demand`, `utilities`, `economics`,
+  `requirements`, `time`, `initial_state`), `economics.json`, a plant file (`kind: plant`, `format: 1`)
+  and an optional `study.json`; every leaf is `{"value", "unit"}` with optional `range`, `options`,
+  `uncertainty`; a series is a CSV whose first column is `time`.
+- `gm.check(plant, case)` runs first in `simulate` and every study function; `gm.Study` runs
+  `study.json`; the verdict (`gm.evaluate.verdict`) is the one answer to feasibility.
+- Python signatures are `(plant, case, ...)` and the remaining arguments are method settings only
+  (`objective`, `evaluations`, `seed`, `metrics`, `samples`): the economics file owns the discount
+  rate and the analysis period, the plant owns `backup`, the case owns the requirements.
+- `gm.plants.capabilities()` reports the leaves that may state a `range` (`ranges`), the cost parts
+  `lifetime_years` are `analysis_period`, `gm.plants.schema()` and `gm.Case.schema()` are the file
+  forms, and `docs/schemas/` holds `case`, `economics`, `plant` and `study`.
+- The version of a checkpoint is 0.3.0 or later; `precision`, `processes` and `compile` stay runtime
+  settings and a test keeps the last two from changing a number (1e-9).
+
 ### Removed
+- With no alias: `gm.case.Choices`, `Constraint`, `Assumptions`, `Finance` and the sections under
+  them, `gm.evaluate.constraints`, `gm.plants.validate`, `Module.missing_parameters`, the pydantic
+  methods of `gm.Case`, the `constraints` argument of `gm.study.minimize`, the `discount_rate` and
+  `lifetime` arguments of the costs, `time_column` of `gm.data.from_csv`, `backup` of
+  `gm.study.size`, `docs/schemas/plant_dict.*`.
+
+### Every changed name, old and new
+
+#### Signatures
+
+| Old (0.2.0) | New (0.3.0) |
+| --- | --- |
+| `gm.evaluate.lcoh`, `lcoc`, `lcts`, `annualised_cost`, `npv` `(plant, case, results, discount_rate=None, lifetime=None, on_error="raise")` | `(plant, case, results, on_error="raise")`: `economics.discount_rate` and `economics.analysis_period` of the case are the only source |
+| `gm.study.minimize(plant, case, objective, variables=None, constraints=None, evaluations=100, *, plan=None)` | `gm.study.minimize(plant, case, objective, evaluations, seed, *, plan=None)`: `variables` is the `range` and `options` leaves of the plant, `constraints` is the `requirements` of the case (nothing real needed the argument), `evaluations` and `seed` have no default; the result has no `fixed` |
+| `gm.study.sample(plant, case, metrics, count, seed, *, plan=None)` | `gm.study.sample(plant, case, metrics, samples, seed, *, plan=None)` |
+| `gm.study.size(plant, case, backup=None)` | `gm.study.size(plant, case)`: the policy is `params.backup` of the plant |
+| `gm.data.from_csv(path, columns, unit, time_column=None)` | `gm.data.from_csv(path, columns, unit)`: the first column is named `time` |
+| `gm.Case.from_dict(data, folder=None)` | `gm.Case.from_dict(data, files=None, folder=None)`: series and economics from `files` (`{name: bytes}`), else from `folder` |
+| (none) | `gm.case.Economics.from_dict(data, files=None, time=None)`, `from_json(path, time=None)`, `to_json`, `check`, `schema`, `drilling_cost_per_metre(length)`: the file `economics.json`, held as `case.economics` |
+| `gm.Case(*, time, environment=None, demand=None, choices=None, constraints=None, assumptions=None, uncertainty=None)` | `gm.Case(**found)`, built by `from_dict` or `from_json`; no pydantic methods (`model_dump`, `model_copy`, `copy`, `json`, ...): `to_dict`, `with_value` |
+| `gm.Plant.to_json(path)` | `gm.Plant.to_json(path, structure=False)` |
+| `gm.case.Range(min=None, max=None, *, unit=None)`; `gm.case.Uncertainty(*, kind, min, max, std)`; `gm.case.Time(*, start, end, step)` | `Range(min=None, max=None)` (the bounds are in the unit of the leaf); `Uncertainty(kind, min=None, max=None, std=None)`; `Time.from_dict({...})` |
+| `gm.modules.Boundary(type, *, default=UNSET, description=None, **bounds)` | `gm.modules.Boundary(type, *, case=None, **kwargs)`: a boundary that the case owns names its path |
+| `gm.case.Constraint(*, on, quantity, over='each', when='always', min=None, max=None, equals=None)` | `gm.case.Requirement` `(name, on, quantity, over?, when?, min, max)`, built by `Requirement.from_dict`; `equals` is `min` = `max`; `over` is absent for a window quantity |
+| `gm.case.Environment(ground, reservoir, fluid, air)`; `Fluid(gas=)`; `Air(temperature)` | `gm.case.Site(ground, reservoir, fluid, air)`; `Fluid.dissolved_gas`; `Air(temperature, relative_humidity, pressure)` |
+| `gm.case.Demand(file, time_column, heating, cooling)`; `Service(column, unit, supply_temperature, return_temperature)` | `gm.case.Demand(heating, cooling)`; `Service`, `CoolingService`: `power` (a series), the supply and return conditions of the consumer |
+| `gm.case.Assumptions(finance, emissions)`, `Finance`, `Allocation`, `Emissions`, `CO2`, `CH4`, `Capex`, `Opex(fixed, electricity, gas, chemical, waste_disposal, co2)`, `Revenue(heat, cold)` | `gm.case.Economics` with `Capex`, `Opex(fixed, variable)`, `Energy`, `Carbon`, `Revenue(heat, cold, subsidy)`, `Subsidy`, `Accounting`, `Gwp`, `DepthTable`; `gm.case.Utilities` with `Electricity`, `Gas` |
+| `gm.case.Choices(doublets, depth)` | removed: a `range` on `size.doublets` and `params.depth` of the plant file (`plant.set_range`) |
+| `gm.evaluate.constraints` | `gm.evaluate.requirements` (the same arguments); new `gm.evaluate.verdict` |
+| `gm.plants.validate(data, on_error="raise")`; `Module.missing_parameters()`, `Plant.missing_parameters()` | `plant.check()` (a list of issues, never raises); `Plant.from_dict` raises the same issues |
+| (none) | new: `gm.Study`, `gm.check(plant, case)`, `gm.study.Study`, `StudyResult`, `Run`; `Case.check`, `files`, `field`, `leaf`, `with_value`; `Plant.check`, `set_range`, `set_options`, `ranges`, `options`, `size`; `Study.from_dict(data, files=None, folder=None)`, `from_json`, `run(plants=None)`, `check`, `to_dict`, `to_json`, `schema` |
+
+#### Return shapes and files
+
+| Old (0.2.0) | New (0.3.0) |
+| --- | --- |
+| `gm.plants.capabilities()[class]["choices"]` (`["doublets", "depth"]`) | `["ranges"]` (`["size.doublets", "params.depth"]`): the leaves of the plant file that may state a `range` |
+| cost parts `lifetime_years` of `lcoh`, `lcoc`, `annualised_cost`, `npv` | `analysis_period` (in yr) |
+| `report["constraints"]` | `report["requirements"]` and `report["verdict"]`; `compare` reads the verdict |
+| result of `minimize` `{best, feasible, fixed, history, evaluations}` | `{best, feasible, history, evaluations}` |
+| `docs/schemas/plant_dict.*` | `docs/schemas/plant.*`; new `study.*`; `case.*` and `economics.*` regenerated |
+| plant dict `format: 2` without `kind`; keys `inputs`, `bindings`, flat dotted `params` | plant file `format: 1`, `kind: plant`; `params` a tree of leaf objects; a control is a leaf; `bindings` stay in memory; the key `inputs` is refused |
+| `case.json` keys `environment`, `constraints`, `assumptions`, `choices`, `demand.file`, `time_column` | `site`, `requirements`, `economics` (a file), `utilities`, ranges in the plant, a series leaf with a `time` column: the old keys are refused with `old_format` |
+| checkpoints written by 0.2.0 | refused with `old_format` (they hold a plant of `format: 2`) |
+
+### Also in 0.3.0: the study and correctness work that was unreleased before the inputs task
+
+#### Changed
+- The plant file is `kind: plant`, `format: 1`: `type` or `modules` and `connections`, `size` beside
+  `params`, `params` a tree of leaf objects `{value, unit, range, options, history}`; the keys `inputs`
+  and `bindings` are gone (a control is a leaf, bindings are set in memory). A file of `format: 2`
+  without `kind` raises `old_format`. `Plant.ranges`, `options`, `set_range`, `set_options`, `size`,
+  `check`; `Module.check` replaces `missing_parameters`; `gm.plants.validate` is removed.
+
+#### Removed
 - `gm.Plant.from_legacy`, `gemini.data.legacy`, `gemini/plants/_utils/legacy/`, `paths.legacy_project`
   and `Plant.validate`: the package reads no old project. Use
   `gm.plants.validate(plant.to_dict(structure=True))`. The old-project reader the tests still need
   is `scripts/legacy/`.
 
-### Changed
+#### Changed
 - `gm.Case` and the folder `gm.case` replace `gm.Problem`, `gm.Constraint` and `gm.Assumptions`:
   fixed sections in a `case.json`, SI storage, no default for anything a user must decide. Every
   call takes `(plant, case)`, plus `results` when it reads a run. The plant dict holds only the
@@ -38,7 +116,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   class), `gm.data.synthesize`, `gm.analysis.injectivity`, `calibrate_pump`, `calibrate_corrosion`,
   `erosion`. The old -> new table is in [api.md](.claude/docs/api.md).
 
-### Added
+#### Added
 - `uncertainty` next to a number of the case and `gm.case.Uncertainty`; `plant.missing_parameters()`
   and an error that lists every missing value with its meaning; `gm.evaluate.failures`; `to_dict()`
   and `from_dict` of every study result; `gm.runtime.settings(processes=n)` for parallel trials, with

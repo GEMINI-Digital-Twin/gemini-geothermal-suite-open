@@ -1,3 +1,4 @@
+Check: ready
 capex d0 (production_pump)                       0.23 MEUR
 capex d0.well (drilling)                         2.66 MEUR
 capex d0.riser (drilling)                        0.44 MEUR
@@ -27,6 +28,6 @@ capex                                           38.92 MEUR
 opex                                             4.38 MEUR/yr
 LCTS                                            52.69 EUR/MWh
 CO2                                             14.49 kt
-electricity_bought: 5.321 MW, limit 6 MW
+electricity_bought_limit: 5.321 MW, limit 6 MW
   passed: True
-missing_assumption: assumptions.finance.capex.heat_pump
+missing_assumption: economics.capex.heat_pump

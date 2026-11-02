@@ -35,7 +35,7 @@ class Leak(Module):
 
     def forward(self, inlets):
         """Pass nine tenths of the flow."""
-        outlets = dict(fluid_out=inlets.fluid_in.with_(m_dot=0.9 * inlets.fluid_in.m_dot))
+        outlets = dict(fluid_out=inlets.fluid_in._with_si(m_dot=0.9 * inlets.fluid_in.m_dot))
         return outlets
 
 

@@ -1,22 +1,25 @@
 """``gm.study.size`` on the shallow sample."""
 
+from copy import deepcopy
+
 import pandas as pd
 import pytest
 
 import gemini as gm
 from gemini._utils.files import from_json
+from gemini.units import Quantity
 from tests.fixtures.errors import raises
 from tests.fixtures.sample_cases import HACKATHON_2026 as HACKATHON
 from tests.unit.study.conftest import SAMPLE, shallow_case, shallow_plant
 
 
 def limited(flow_max):
-    """Return the constraints of the sample with a maximum production flow of ``flow_max`` m3/h."""
-    items = from_json(SAMPLE / "case.json")["constraints"]
-    items[0]["max"] = {"value": flow_max, "unit": "m3/h"}
+    """Return the requirements of the sample with a maximum production flow of ``flow_max`` m3/h."""
+    items = from_json(SAMPLE / "case.json")["requirements"]
+    items[0]["max"] = flow_max
     for item in items:
         if item.get("over") == "duration":
-            item["max"]["value"] = 20
+            item["max"] = 20
     return items
 
 
@@ -33,8 +36,9 @@ class Sized:
         self.case = quick(folder, **sections)
         self.case.demand.frame[["heating_demand", "cooling_demand"]] *= scale
         self.plant = plant or shallow_plant()
+        self.plant.set_params("", {"backup": backup})
         self.before = self.plant.to_dict()
-        self.design = gm.study.size(self.plant, self.case, backup=backup)
+        self.design = gm.study.size(self.plant, self.case)
         self.notes = self.design.sizing
         self.by_path = {item["path"]: item for item in self.notes["sized"]}
 
@@ -63,13 +67,13 @@ def none(tmp_path_factory):
 @pytest.fixture(scope="module")
 def tight(tmp_path_factory):
     """Return a flow limit of 40 m3/h: three doublets."""
-    return Sized(tmp_path_factory.mktemp("tight"), constraints=limited(40))
+    return Sized(tmp_path_factory.mktemp("tight"), requirements=limited(40))
 
 
 @pytest.fixture(scope="module")
 def short(tmp_path_factory):
     """Return a flow limit of 36 m3/h and twice the demand: three doublets do not cover the peak."""
-    return Sized(tmp_path_factory.mktemp("short"), scale=2.0, constraints=limited(36))
+    return Sized(tmp_path_factory.mktemp("short"), scale=2.0, requirements=limited(36))
 
 
 @pytest.fixture(scope="module")
@@ -88,8 +92,8 @@ def hot(tmp_path_factory):
             "gradient": {"value": 36, "unit": "K/km"},
         }
     }
-    environment = from_json(SAMPLE / "case.json")["environment"] | ground
-    return Sized(tmp_path_factory.mktemp("hot"), environment=environment)
+    site = from_json(SAMPLE / "case.json")["site"] | ground
+    return Sized(tmp_path_factory.mktemp("hot"), site=site)
 
 
 @pytest.fixture(scope="module")
@@ -108,7 +112,7 @@ def catalogue(tmp_path_factory):
 
 def test_the_shallow_sample_needs_one_doublet_and_covers_its_peak(base):
     """One doublet of 4.7 MW at the flow and cooling limits covers the 3.03 MW peak."""
-    assert base.design.to_dict()["size"] == {"doublets": 1}
+    assert base.design.size == {"doublets": 1}
     assert base.by_path["size.doublets"]["value"].value == 1
     assert "covers the heating peak" in base.by_path["size.doublets"]["reason"]
 
@@ -121,7 +125,7 @@ def test_a_doublet_is_rated_for_the_flow_limit_of_the_case(base):
 def share_of(case, depth_m):
     """Return the part of the heating peak that the reservoir at ``depth_m`` cannot reach."""
     heating = case.demand.heating
-    reservoir = case.environment.temperature_at(depth_m)
+    reservoir = case.site.temperature_at(depth_m)
     return (heating.supply_temperature - reservoir) / (
         heating.supply_temperature - heating.return_temperature
     )
@@ -140,13 +144,13 @@ def test_the_capacities_follow_the_demand_peaks(base):
 
 def test_a_tighter_flow_limit_asks_for_more_doublets(tight):
     """At 40 m3/h a doublet gives 1.04 MW: three cover the peak."""
-    assert tight.design.to_dict()["size"] == {"doublets": 3}
+    assert tight.design.size == {"doublets": 3}
     assert tight.design.get_submodule("d2").nominal_flow == pytest.approx(40 / 3600)
 
 
 def test_a_peak_no_count_covers_takes_the_largest_and_says_so(short):
     """At 36 m3/h and twice the demand three doublets do not cover it."""
-    assert short.design.to_dict()["size"] == {"doublets": 3}
+    assert short.design.size == {"doublets": 3}
     assert "does not cover" in short.by_path["size.doublets"]["reason"]
 
 
@@ -169,18 +173,17 @@ def test_a_class_without_the_structural_size_keeps_its_doublets(catalogue):
 @pytest.mark.parametrize(
     ("sections", "path"),
     [
-        ({"constraints": limited(180)[1:]}, "constraints"),
-        ({"demand": None}, "demand"),
+        ({"requirements": limited(180)[1:]}, "requirements"),
+        ({"demand": None}, "demand.heating.supply_temperature"),
     ],
 )
 def test_what_the_case_lacks_is_named(sections, path):
     """``missing_value`` with the path."""
     data = from_json(SAMPLE / "case.json") | sections
     data = {key: value for key, value in data.items() if value is not None}
-    data["choices"] = {"doublets": {"min": 1, "max": 3}}
-    case = gm.Case.from_dict(data, SAMPLE)
+    case = gm.Case.from_dict(data, folder=SAMPLE)
     with raises(gm.errors.ValidationError, "missing_value") as refused:
-        gm.study.size(shallow_plant(), case, backup="peak")
+        gm.study.size(shallow_plant(), case)
     assert refused.value.path == path
 
 
@@ -207,16 +210,12 @@ def test_a_reservoir_hotter_than_the_supply_leaves_the_heat_pump_unsized(hot):
 
 
 def test_a_searched_capacity_replaces_the_sized_one(runs, base):
-    """The search varies ``heat_pump.capacity`` of the sized plant within its bounds."""
-    variables = [
-        {
-            "path": "heat_pump",
-            "parameter": "capacity",
-            "lower": gm.units.Quantity(0.1, "MW"),
-            "upper": gm.units.Quantity(0.5, "MW"),
-        }
-    ]
-    result = gm.study.minimize(base.design, base.case, "lcts", variables, evaluations=5)
+    """The search varies ``heat_pump.capacity`` of the sized plant within its range."""
+    design = deepcopy(base.design)
+    for path in design.ranges:
+        design.set_range(path)
+    design.set_range("heat_pump.capacity", min=Quantity(0.1, "MW"), max=Quantity(0.5, "MW"))
+    result = gm.study.minimize(design, base.case, "lcts", evaluations=5, seed=0)
     found = result["best"]["plant"].get_submodule("heat_pump").capacity
     assert 0.1e6 <= found <= 0.5e6
     assert found != base.capacity("heat_pump")
@@ -258,17 +257,28 @@ def test_a_pump_whose_doublet_lacks_a_design_value_is_left_unsized_with_a_note(c
 
 
 def test_a_missing_backup_policy_is_named():
-    """The policy is a design decision: no default, ``missing_value`` naming ``backup``."""
+    """The policy is the plant's decision, with no default: ``missing_value`` naming its path."""
+    plant = shallow_plant()
+    plant.set_params("", {"backup": None})
     with raises(gm.errors.ValidationError, "missing_value") as refused:
-        gm.study.size(shallow_plant(), shallow_case())
-    assert refused.value.path == "backup"
+        gm.study.size(plant, shallow_case())
+    assert refused.value.path == "params.backup"
 
 
-def test_an_unknown_backup_policy_is_refused():
-    """Only ``none`` and ``peak`` exist."""
-    with raises(gm.errors.ValidationError, "invalid_value") as refused:
-        gm.study.size(shallow_plant(), shallow_case(), backup="half")
-    assert refused.value.path == "backup"
+def test_an_unknown_backup_policy_is_refused_by_the_plant():
+    """Only ``none`` and ``peak`` exist: the parameter refuses another value."""
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        shallow_plant().set_params("", {"backup": "half"})
+
+
+def test_a_template_plant_is_completed_not_refused_for_its_missing_parameters():
+    """``size`` tolerates the parameters of the plant that have no value (``gm.check`` does not)."""
+    data = shallow_plant().to_dict()
+    del data["params"]["peak_boiler"]["capacity"]["value"]
+    plant = gm.Plant.from_dict(data)
+    assert any(item.kind == "missing" for item in gm.check(plant, shallow_case()))
+    design = gm.study.size(plant, shallow_case())
+    assert design.get_submodule("peak_boiler").capacity > 0
 
 
 def test_no_backup_gives_a_smaller_boiler_than_the_peak(base, none):
@@ -285,7 +295,7 @@ def test_every_rated_pump_covers_the_duty_of_its_run(tight):
 
 
 def test_a_broken_constraint_is_listed_with_its_role_quantity_value_limit_and_step(short):
-    """The notes hold what the design breaks, in the shape of ``gm.evaluate.constraints``."""
+    """The notes hold what the design breaks, in the shape of ``gm.evaluate.requirements``."""
     for item in short.notes["broken"]:
         assert {"role", "quantity", "value", "limit", "worst_step", "unit_path"} <= set(item)
 
@@ -296,19 +306,22 @@ def cooling_peak_case(folder, days=1, winter=True):
     With ``winter`` the heating demand is the year's peak every day.
     """
     data = from_json(HACKATHON / "case.json")
-    frame = pd.read_csv(HACKATHON / data["demand"]["file"])
+    file = data["demand"]["heating"]["power"]["file"]
+    frame = pd.read_csv(HACKATHON / file)
     at = int(frame["cooling_demand_MWcool"].idxmax())
     winter_peak = frame["heating_demand_MWth"].max()
     frame = frame.iloc[at : at + days]
     if winter:
         frame = frame.assign(heating_demand_MWth=winter_peak)
-    frame.to_csv(folder / data["demand"]["file"], index=False)
-    data["time"]["start"] = str(frame["date"].iloc[0])
-    data["time"]["end"] = str(pd.Timestamp(frame["date"].iloc[-1]) + pd.Timedelta(days=1))[:10]
-    for item in data["constraints"]:
+    (folder / file).parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(folder / file, index=False)
+    data["time"]["start"] = str(frame["time"].iloc[0])
+    data["time"]["end"] = str(pd.Timestamp(frame["time"].iloc[-1]) + pd.Timedelta(days=1))[:10]
+    data["economics"] = from_json(HACKATHON / data["economics"])
+    for item in data["requirements"]:
         if item.get("over") == "duration":
-            item["max"]["value"] = days
-    return gm.Case.from_dict(data, folder)
+            item["max"] = days
+    return gm.Case.from_dict(data, folder=folder)
 
 
 @pytest.fixture(scope="module")
@@ -316,7 +329,7 @@ def series(tmp_path_factory):
     """Return the sample plant with three chillers in series, sized on its cooling peak days."""
     case = cooling_peak_case(tmp_path_factory.mktemp("series"))
     plant = gm.Plant.from_json(HACKATHON / "plants/HeatingFullCoolingPlant.json")
-    return gm.study.size(plant, case, backup="peak")
+    return gm.study.size(plant, case)
 
 
 def test_chillers_in_series_deliver_the_cooling_supply_at_the_peak(series):
@@ -334,7 +347,8 @@ def driven(request, tmp_path_factory):
     """Return the sample plant on the cooling-peak day with its own, small heating demand."""
     case = cooling_peak_case(tmp_path_factory.mktemp("driven"), winter=False)
     plant = gm.Plant.from_json(HACKATHON / "plants/HeatingFullCoolingPlant.json")
-    return request.param, case, gm.study.size(plant, case, backup=request.param)
+    plant.set_params("", {"backup": request.param})
+    return request.param, case, gm.study.size(plant, case)
 
 
 def test_the_boiler_is_rated_for_the_heating_and_the_drive_heat_of_the_sorption_chillers(driven):

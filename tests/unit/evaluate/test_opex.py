@@ -15,16 +15,26 @@ GRID_PER_YEAR = 100.0 * SECONDS_PER_YEAR
 
 
 def priced(fixed=None, capex=True, **prices):
-    """Return a case whose finance holds ``prices`` [currency/J, currency/kg] and the fixed shares.
+    """Return a case whose economics holds ``prices`` [currency/J, currency/kg] and fixed shares.
 
     The degasser costs 1000 and its fixed opex is 1 %/yr unless ``fixed`` says otherwise.
     """
     shares = {"degasser": Quantity(1, "%/yr")} if fixed is None else fixed
-    opex = {name: Quantity(price, _unit(name)) for name, price in prices.items()}
-    finance = {"opex": gm.case.Opex(fixed=shares or None, **opex)}
+    economics = {"opex": {"fixed": shares}} if shares else {}
+    for name, price in prices.items():
+        economics = economics | _price(name, Quantity(price, _unit(name)))
     if capex:
-        finance["capex"] = gm.case.Capex(degasser=Quantity(1000.0, "currency"))
-    return make_case(finance=finance)
+        economics["capex"] = {"degasser": Quantity(1000.0, "currency")}
+    return make_case(economics=economics)
+
+
+def _price(name, price):
+    """Return the part of the economics that holds the price ``name``."""
+    if name in ("electricity", "gas"):
+        return {"energy": {name: price}}
+    if name == "co2":
+        return {"carbon": {"price": price}}
+    return {"opex": {"variable": {name: price}}}
 
 
 def _unit(name):
@@ -55,16 +65,14 @@ def test_fixed_opex_is_listed_by_kind():
 
 def test_each_kind_has_its_own_share():
     """A degasser at 1 %/yr of 1000 and a flare at 3 %/yr of 2000."""
-    finance = {
-        "capex": gm.case.Capex(
-            degasser=Quantity(1000.0, "currency"), flare=Quantity(2000.0, "currency")
-        ),
-        "opex": gm.case.Opex(
-            fixed={"degasser": Quantity(1, "%/yr"), "flare": Quantity(3, "%/yr")},
-            electricity=Quantity(0.0, "currency/J"),
-        ),
+    economics = {
+        "capex": {"degasser": Quantity(1000.0, "currency"), "flare": Quantity(2000.0, "currency")},
+        "opex": {"fixed": {"degasser": Quantity(1, "%/yr"), "flare": Quantity(3, "%/yr")}},
+        "energy": {"electricity": Quantity(0.0, "currency/J")},
     }
-    result = gm.evaluate.opex(heating_cooling_plant(), make_case(finance=finance), day(cold=1.0))
+    result = gm.evaluate.opex(
+        heating_cooling_plant(), make_case(economics=economics), day(cold=1.0)
+    )
     fixed = {kind: item.value for kind, item in result.parts["fixed_by_kind"].items()}
     assert fixed == {"degasser": pytest.approx(10.0), "flare": pytest.approx(60.0)}
     assert result.parts["components"]["fixed"].value == pytest.approx(70.0)
@@ -75,7 +83,7 @@ def test_a_share_the_case_lacks_is_missing_assumption_naming_the_kind():
     with raises(
         gm.errors.ValidationError,
         "missing_assumption",
-        match=r"assumptions\.finance\.opex\.fixed\.degasser",
+        match=r"economics\.opex\.fixed\.degasser",
     ):
         gm.evaluate.opex(heating_plant(), priced(fixed={}, electricity=2e-8), day())
 
@@ -85,7 +93,7 @@ def test_opex_needs_the_price_of_an_energy_the_run_draws():
     with raises(
         gm.errors.ValidationError,
         "missing_assumption",
-        match=r"assumptions\.finance\.opex\.electricity",
+        match=r"economics\.energy\.electricity",
     ):
         gm.evaluate.opex(heating_plant(), priced(), day())
 

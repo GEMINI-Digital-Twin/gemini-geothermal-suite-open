@@ -130,7 +130,7 @@ def test_unset_keeps_its_identity_through_copy_and_pickle():
     assert pickle.loads(pickle.dumps(UNSET)) is UNSET
     parameter = Parameter(Length)
     assert not copy.deepcopy(parameter).initialized
-    assert [item["path"] for item in copy.deepcopy(Declared()).missing_parameters()] == [
+    assert [item.path for item in copy.deepcopy(Declared()).check()] == [
         "length",
         "coefficients",
     ]

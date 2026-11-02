@@ -55,7 +55,7 @@ class Filter(Module):
         # Outlets
         inlet = inlets.fluid_in
         drop = self._pressure_drop(inlet)
-        outlet = inlet.with_(p=inlet.p - drop)
+        outlet = inlet._with_si(p=inlet.p - drop)
 
         # Outputs
         self.pressure_drop = drop

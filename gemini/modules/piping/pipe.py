@@ -105,7 +105,7 @@ class Pipe(Equipment, Module):
             outlet_p=outlet_p,
             inlet_p=inlet.p,
         )
-        outlet = inlet.with_(T=self._outlet_temperature(inlet, inlets.air_in), p=outlet_p)
+        outlet = inlet._with_si(T=self._outlet_temperature(inlet, inlets.air_in), p=outlet_p)
         loss_out = heat_transfer.heat_rate(inlet.heat_capacity_rate(), inlet.T - outlet.T)
 
         # Outputs
@@ -115,9 +115,9 @@ class Pipe(Equipment, Module):
         outlets = dict(fluid_out=outlet, loss_out=loss_out)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the pipe from its length."""
-        return self.capex_of(finance, self.length)
+        return self.capex_of(economics, self.length)
 
     def _check(self, inlet):
         """Reject a pipe shorter than its rise, reverse flow and free gas."""

@@ -46,7 +46,7 @@ def test_inherent_characteristics():
     assert linear.effective_flow_coefficient == pytest.approx(KV * (0.05 + 0.95 * 0.5))
     for module in (valve(), valve(characteristic="linear")):
         coefficients = [
-            module(fluid_in=STREAM.with_(m_dot=1), opening=h).outputs.effective_flow_coefficient
+            module(fluid_in=STREAM._with_si(m_dot=1), opening=h).outputs.effective_flow_coefficient
             for h in (0.01, 0.3, 0.6, 1)
         ]
         assert coefficients == sorted(coefficients)
@@ -67,7 +67,7 @@ def test_density_enters_the_sizing_equation():
 
 def test_closed_valve():
     """A closed valve passes zero flow with no drop and rejects any flow."""
-    stopped = valve()(fluid_in=STREAM.with_(m_dot=0), opening=0).outputs
+    stopped = valve()(fluid_in=STREAM._with_si(m_dot=0), opening=0).outputs
     assert stopped.pressure_drop == 0 and stopped.effective_flow_coefficient == 0
     with pytest.raises(gm.errors.PhysicsError, match="valve: fluid_in.m_dot = 10.0 kg/s"):
         valve()(fluid_in=STREAM, opening=0)
@@ -76,9 +76,9 @@ def test_closed_valve():
 def test_invalid_inputs_raise():
     """Reverse flow, free gas and a drop larger than the inlet pressure are rejected."""
     with pytest.raises(gm.errors.PhysicsError, match="reverse flow"):
-        valve()(fluid_in=STREAM.with_(m_dot=-1), opening=1)
+        valve()(fluid_in=STREAM._with_si(m_dot=-1), opening=1)
     with pytest.raises(gm.errors.PhysicsError, match="gas_mass_fraction"):
-        valve()(fluid_in=STREAM.with_(fluid=Fluid(gas_mass_fraction=0.01)), opening=1)
+        valve()(fluid_in=STREAM._with_si(fluid=Fluid(gas_mass_fraction=0.01)), opening=1)
     with pytest.raises(gm.errors.PhysicsError, match="pressure drop"):
         valve()(fluid_in=STREAM, opening=0.05)
     with pytest.raises(gm.errors.ValidationError):

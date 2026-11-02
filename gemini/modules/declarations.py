@@ -279,7 +279,7 @@ class Parameter(Declaration):
         """Create design data with optional shape, bounds and calibration metadata.
 
         ``case`` is the path of the case value that sets this parameter, such as
-        ``"environment.ground.gradient"``: a plant dict refuses it, and a run takes it from the
+        ``"site.ground.gradient"``: a plant dict refuses it, and a run takes it from the
         case.
 
         A ``structural`` parameter decides the shape of the computation (a loop count, a value
@@ -425,9 +425,19 @@ class Control(Declaration):
 
 
 class Boundary(Declaration):
-    """External operating condition that the system cannot set."""
+    """External operating condition that the system cannot set.
+
+    ``case`` is the path of the case value that gives this boundary, such as
+    ``"demand.cooling.indoor_temperature"``: a plant dict refuses it, and a run takes it from the
+    case unless the plan gives the boundary at each step.
+    """
 
     section = "boundary"
+
+    def __init__(self, type, *, case=None, **kwargs):
+        """Create a boundary of ``type``, optionally given by the case at ``case``."""
+        super().__init__(type, **kwargs)
+        self.case = case
 
 
 class State(Declaration):

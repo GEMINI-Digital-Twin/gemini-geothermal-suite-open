@@ -87,7 +87,7 @@ def solve_injection_rate(well, sink, wellhead, rates):
     """
 
     def residual(rate):
-        return _injection_residual(well, sink, wellhead.with_(m_dot=rate))
+        return _injection_residual(well, sink, wellhead._with_si(m_dot=rate))
 
     return root("solve_injection_rate", "rate", residual, rates, "kg/s")
 
@@ -118,7 +118,7 @@ def solve_injection_pressure(well, sink, wellhead, pressures):
     """
 
     def residual(pressure):
-        return _injection_residual(well, sink, wellhead.with_(p=pressure))
+        return _injection_residual(well, sink, wellhead._with_si(p=pressure))
 
     low = pressures[0]
     if evaluate("solve_injection_pressure", "pressure", residual, low, "Pa") >= 0:

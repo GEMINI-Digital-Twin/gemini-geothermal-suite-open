@@ -4,9 +4,10 @@ import pytest
 
 import gemini as gm
 from gemini.modules import GasGrid, GasMakeup
-from gemini.physics import gas
+from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
+from tests.fixtures.gas import GRID_COMPOSITION
 
 FLUID = gm.Fluid(kind="gas", gas_composition={"CH4": 0.8, "CO2": 0.2})
 GAS = gm.Stream(
@@ -23,19 +24,19 @@ def test_the_makeup_marks_the_offer_and_moves_no_gas():
     outlet = GasMakeup()._offered({"gas_in": GAS, "grid_in": GRID})["fuel_out"]
     assert (outlet.m_dot, outlet.T, outlet.p) == (GAS.m_dot, GAS.T, GAS.p)
     assert outlet.fluid.gas_composition == FLUID.gas_composition
-    assert outlet.fluid.grid_composition == gas.GRID_COMPOSITION
+    assert outlet.fluid.grid_composition == GRID_COMPOSITION
 
 
 def test_the_surplus_leaves_through_excess_out():
     """A burner that burns less than the co-produced gas leaves the rest and draws no grid gas."""
-    result = GasMakeup()(gas_in=GAS, grid_in=GRID, fuel_out=GAS.with_(m_dot=0.02))
+    result = GasMakeup()(gas_in=GAS, grid_in=GRID, fuel_out=GAS._with_si(m_dot=0.02))
     assert result.outlets.excess_out.m_dot == pytest.approx(0.03)
     assert result.inlets.grid_in.m_dot == 0
 
 
 def test_the_shortfall_comes_from_the_grid():
     """A burner that burns more than the co-produced gas draws the rest and leaves no surplus."""
-    result = GasMakeup()(gas_in=GAS, grid_in=GRID, fuel_out=GAS.with_(m_dot=0.08))
+    result = GasMakeup()(gas_in=GAS, grid_in=GRID, fuel_out=GAS._with_si(m_dot=0.08))
     assert result.outlets.excess_out.m_dot == 0
     assert result.inlets.grid_in.m_dot == pytest.approx(0.03)
 
@@ -55,12 +56,12 @@ def test_traced_calls_match_one_call_per_row():
     plant.connect("boiler.flue_out", "flue")
     plant.connect("boiler.loss_out", "loss")
     with_values(plant)
-    plant.boiler.temperature_setpoint = 330.0
+    si.assign(plant.boiler, "temperature_setpoint", 330.0)
     water = gm.Stream(
         m_dot=gm.units.Quantity(5.0, "kg/s"),
         T=gm.units.Quantity(320.0, "K"),
         p=gm.units.Quantity(3e5, "Pa"),
         fluid=gm.WATER,
     )
-    rows = [dict(gas_in=GAS.with_(m_dot=flow), water_in=water) for flow in (0.0, 0.1)]
+    rows = [dict(gas_in=GAS._with_si(m_dot=flow), water_in=water) for flow in (0.0, 0.1)]
     assert_module_matches(plant, rows)

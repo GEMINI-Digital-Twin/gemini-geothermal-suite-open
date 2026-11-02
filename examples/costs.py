@@ -2,11 +2,11 @@
 
 Runs the hackathon sample plant ``HeatingCoolingPlant`` for 2027 and reads its costs with
 ``gm.evaluate.capex``, ``opex``, ``lcts`` and ``co2``. Then it removes one capex factor from the
-case and shows the ``missing_assumption`` error that names the factor. Shows ``gm.evaluate.capex``
-and ``gm.errors.ValidationError``.
+case and shows the ``missing_assumption`` error that names the factor. Shows ``gm.check``,
+``gm.evaluate.capex`` and ``gm.errors.ValidationError``.
 
-A limit on the electricity the plant buys is a constraint of the case, an assumption of 6 MW, and
-``gm.evaluate.constraints`` checks it.
+A limit on the electricity the plant buys is a requirement of the case, a limit of 6 MW, and
+``gm.evaluate.requirements`` checks it.
 
 Run with ``python examples/costs.py``.
 """
@@ -18,10 +18,12 @@ import gemini as gm
 SAMPLE = Path(__file__).resolve().parents[1] / "inputs/examples/hackathon_2026"
 MISSING = "heat_pump"
 BOUGHT = {
+    "name": "electricity_bought_limit",
     "on": "plant",
     "quantity": "electricity_bought",
     "over": "each",
-    "max": {"value": 6, "unit": "MW"},
+    "unit": "MW",
+    "max": 6,
 }
 """A limit of 6 MW on the electricity bought at any step, an assumption of this example."""
 
@@ -46,9 +48,9 @@ def print_costs(plant, case, results):
 def print_bought(plant, case, results):
     """Add the limit on the electricity bought to the case and print its check."""
     data = case.to_dict()
-    data["constraints"].append(BOUGHT)
-    limited = gm.Case.from_dict(data, SAMPLE)
-    for check in gm.evaluate.constraints(plant, limited, results):
+    data["requirements"].append(BOUGHT)
+    limited = gm.Case.from_dict(data, folder=SAMPLE)
+    for check in gm.evaluate.requirements(plant, limited, results):
         if check["role"] == "plant":
             value, limit = check["value"].to("MW"), check["limit"].to("MW")
             print(f"{check['name']}: {value.value:.3f} MW, limit {limit.value:.0f} MW")
@@ -58,8 +60,9 @@ def print_bought(plant, case, results):
 def case_without(case, kind):
     """Return the case with the capex factor of ``kind`` removed."""
     data = case.to_dict()
-    del data["assumptions"]["finance"]["capex"][kind]
-    return gm.Case.from_dict(data, SAMPLE)
+    data["economics"] = case.economics.to_dict()
+    del data["economics"]["capex"][kind]
+    return gm.Case.from_dict(data, folder=SAMPLE)
 
 
 def print_missing(plant, case):
@@ -74,6 +77,8 @@ def main():
     """Cost the sample design, then show what a missing factor reports."""
     case = gm.Case.from_json(SAMPLE / "case.json")
     plant = gm.Plant.from_json(SAMPLE / "plants/HeatingCoolingPlant.json")
+    issues = gm.check(plant, case)
+    print("Check: ready" if not issues else f"Check: {issues}")
     results = gm.simulate(plant, case)
     print_costs(plant, case, results)
     print_bought(plant, case, results)

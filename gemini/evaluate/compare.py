@@ -12,9 +12,6 @@ from gemini.units import Quantity, si_unit
 SENSES = ("min", "max")
 """The two ways to prefer a metric: the smaller or the larger value."""
 
-SERVICES = {"heating": "heat_delivered", "cooling": "cold_delivered"}
-"""The metric that shows a service of the case being delivered."""
-
 
 class Comparison(list):
     """A list of ``{index, values, ranks, pareto, feasible}``, one per report in the order given."""
@@ -86,17 +83,15 @@ def _label(name, shown):
 def compare(reports, by):
     """Rank reports by the given metrics and mark the Pareto front of the feasible ones.
 
-    A report is feasible when ``passed`` is ``True`` (or ``None`` with no
-    constraint to check), it has no failed step and it delivers every
-    service in its ``services`` (``heat_delivered`` has a value for ``"heating"``,
-    ``cold_delivered`` for ``"cooling"``). A dict without these keys, such as a plain table of
-    figures, is feasible. Feasible reports rank before all infeasible ones; the infeasible are
+    A report is feasible when its ``verdict`` (``gm.evaluate.verdict``) has no reason; compare
+    decides nothing itself. A dict without a ``verdict`` raises ``missing_value``: there is no
+    silent feasible. Feasible reports rank before all infeasible ones; the infeasible are
     ordered by their number of reasons, then by the metrics.
 
     Parameters
     ----------
     reports : list of dict
-        Reports as ``gm.evaluate.report`` returns them, or any dicts whose ``by`` keys are values.
+        Reports as ``gm.evaluate.report`` returns them, each with its ``verdict``.
     by : str, list of str or dict
         The metrics, keys of the reports whose value is a ``Quantity`` or a number. A name or a list
         prefers the smaller value of each; a dict ``{metric: "min" or "max"}`` says which. A report
@@ -110,16 +105,14 @@ def compare(reports, by):
         value), ``ranks`` (1 is best; equal values share a rank), ``pareto`` (whether no other
         feasible report is at least as good in every metric and better in one; an infeasible
         report is never on it), ``feasible`` and, when not feasible,
-        ``reasons``: the failed constraints as ``gm.evaluate.constraints`` gives them, and
-        ``{name, reason}`` for a missing service, a failed step or constraints none of which
-        was checked.
+        ``reasons``: those of the ``verdict`` of the report.
         With one metric the front is its best reports. ``to_frame()`` gives a table in display
         units and ``to_dict()`` plain JSON.
     """
     senses = _senses(by, reports)
     values = {name: [_value(report, name) for report in reports] for name in senses}
     quantities = {name: [_quantity(report, name) for report in reports] for name in senses}
-    reasons = [_reasons(report) for report in reports]
+    reasons = [_reasons(report, position) for position, report in enumerate(reports)]
     feasible = [not found for found in reasons]
     ranks = {name: _ranks(values[name], senses[name], reasons) for name in senses}
     front = _front(values, senses, feasible)
@@ -136,17 +129,16 @@ def compare(reports, by):
     )
 
 
-def _reasons(report):
-    """Return why a report is not feasible: the failed constraints and the services not given."""
-    found = [item for item in report.get("constraints", []) if item["passed"] is False]
-    if "passed" in report and report["passed"] is None and report.get("constraints"):
-        found.append({"name": "constraints", "reason": "no constraint was checked"})
-    if report.get("failed_steps"):
-        found.append({"name": "failed_steps", "reason": f"{report['failed_steps']} steps failed"})
-    for service, key in SERVICES.items():
-        if service in report.get("services", ()) and _value(report, key) is None:
-            found.append({"name": key, "reason": f"the run gives no {key} for the {service}"})
-    return found
+def _reasons(report, position):
+    """Return why a report is not feasible: the reasons of its verdict; a report needs one."""
+    found = report.get("verdict")
+    if found is None:
+        raise ValidationError(
+            f"reports[{position}]: verdict is missing; expected the report of gm.evaluate.report",
+            path=f"reports[{position}].verdict",
+            code="missing_value",
+        )
+    return list(found["reasons"])
 
 
 def _senses(by, reports):
