@@ -205,6 +205,29 @@ block wrote. `tests/unit/test_purity.py` applies it to every registered class th
 case per registered class, no class is skipped; a plant class may not override `forward` or
 `update`). A class without a case fails the test.
 
+## Parity with main
+
+`tests/e2e/test_parity_main.py` compares the current package with `origin/main` (1.0.3, the
+upstream `gemini_model`) at 1e-9. `main` has only the physics: the ESP, inflow performance,
+injectivity, reservoir pressure, the well march, the friction and temperature correlations, CO2
+corrosion, erosion and the CO2 partial pressure. It has no plant file, case, schedule, simulate,
+verdict, report, compare, size, minimize, sample or sensitivity, so the rest of the competition path
+cannot be run there; `parity_main_allowed.json` lists those parts under `no_counterpart_on_main`.
+The cases are the phase-0 golden inputs and seeded sweeps around them (`scripts/parity/cases.py`).
+
+The capture is not committed. Make or refresh it with `python scripts/capture_parity_main.py`: it
+fetches `origin/main`, checks it out as a detached worktree at `.tmp/parity/main` (the main folder
+is never touched), runs `scripts/parity/main_adapter.py` there with `PYTHONPATH` set to its `src`,
+and writes `.tmp/parity/main.npz` (numbers) and `.tmp/parity/main.json` (commit, version, inputs,
+text and `None` leaves). The current side is `scripts/parity/current_adapter.py`, which uses
+`tests/fixtures/evaluate.py`. Both adapters live under `scripts/parity/`, never in `gemini/`. Without
+the capture the test skips and says how to make it.
+
+A difference is a bug. Only an output that was changed on purpose goes into
+`parity_main_allowed.json` under `differences`, as `{"case", "commit", "reason"}` with the commit that
+changed it (found with `git log`); the test fails for an entry without a difference, with an
+unknown commit, or without a reason.
+
 ## Backend parity
 
 `BACKENDS = ("python", "numpy")` in `tests/fixtures/parity.py` is the one list of backends under
