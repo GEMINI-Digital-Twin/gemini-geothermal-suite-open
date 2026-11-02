@@ -20,6 +20,7 @@ import pandas as pd
 
 from gemini import units
 from gemini._utils.strings import join_path
+from gemini.case._utils import unused
 from gemini.errors import ValidationError
 from gemini.errors.base import Issue, raise_issues
 from gemini.units import inputs
@@ -219,7 +220,12 @@ class Node(Frozen):
         ctx = Context(issues, inputs.Source(folder, files), *_steps(time))
         found = cls.read(plain(data), cls.where, ctx)
         raise_issues(issues)
+        unused.warn(found._unused_ranges(), 3)
         return found
+
+    def _unused_ranges(self):
+        """Return the ``deprecated`` issues of this section: a ``range`` on a leaf."""
+        return unused.ranges(self.to_dict(), self.where)
 
     def to_dict(self):
         """Return the section as plain data, every leaf as it was read."""
@@ -335,7 +341,7 @@ class Node(Frozen):
         issues = []
         ctx = Context(issues, inputs.Source(None, self.files()), *_steps(time))
         type(self).read(self.to_dict(), self.where, ctx)
-        return issues
+        return issues + self._unused_ranges()
 
     def __eq__(self, other):
         """Equal when written alike, with the same CSV files."""

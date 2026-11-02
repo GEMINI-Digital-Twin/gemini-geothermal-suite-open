@@ -4,13 +4,14 @@ from gemini.engine.apply import apply_case
 from gemini.evaluate._utils.cashflow import net_cash_flow, subsidy
 from gemini.evaluate._utils.cost import annuity, investment, yearly_cost
 from gemini.evaluate._utils.discounting import discounting
+from gemini.evaluate._utils.display import displayed
 from gemini.evaluate._utils.flows import Flows
 from gemini.evaluate._utils.levelised import annualised, levelised
 from gemini.evaluate._utils.outcome import reported, unavailable
 from gemini.units.shapes import measure
 
 
-def capex(plant, case, on_error="raise"):
+def capex(plant, case, on_error="raise", *, units="si"):
     """Return the investment of a plant: the sum of the capex of its equipment, per module.
 
     A module that is equipment declares a kind (``gemini.case._utils.kinds.EQUIPMENT_KINDS``) and
@@ -27,6 +28,9 @@ def capex(plant, case, on_error="raise"):
         Its economics gives the capex factors, the currency label and the price year.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
+    units : {"si", "display"}, optional
+        ``"si"`` (the default) is the value as computed; ``"display"`` gives it and its parts in
+        the units of ``gm.units.display`` (MEUR, MEUR/yr, EUR/MWh, a span of years in ``yr``).
 
     Returns
     -------
@@ -37,14 +41,16 @@ def capex(plant, case, on_error="raise"):
         equipment to its capex, a value with its ``kind``, and ``price_year`` is a value in ``-``
         when the case gives it. A plant with no equipment has no value.
     """
-    return reported(
-        on_error,
-        "currency",
-        lambda: investment(apply_case(plant, case), case, on_error),
+    return displayed(
+        units,
+        "capex",
+        lambda: reported(
+            on_error, "currency", lambda: investment(apply_case(plant, case), case, on_error)
+        ),
     )
 
 
-def opex(plant, case, results, on_error="raise"):
+def opex(plant, case, results, on_error="raise", *, units="si"):
     """Return the annual operating cost of a plant run.
 
     The sum of the fixed opex of each kind of equipment [currency/yr], its share
@@ -66,6 +72,9 @@ def opex(plant, case, results, on_error="raise"):
         A finished run of the plant.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
+    units : {"si", "display"}, optional
+        ``"si"`` (the default) is the value as computed; ``"display"`` gives it and its parts in
+        the units of ``gm.units.display`` (MEUR, MEUR/yr, EUR/MWh, a span of years in ``yr``).
 
     Returns
     -------
@@ -77,14 +86,18 @@ def opex(plant, case, results, on_error="raise"):
         in that unit. With no equipment and ``on_error="record"``, ``value`` is ``None`` with a
         ``reason``, and only the bills are given.
     """
-    return reported(
-        on_error,
-        "currency/yr",
-        lambda: yearly_cost(apply_case(plant, case), case, results, on_error),
+    return displayed(
+        units,
+        "opex",
+        lambda: reported(
+            on_error,
+            "currency/yr",
+            lambda: yearly_cost(apply_case(plant, case), case, results, on_error),
+        ),
     )
 
 
-def annualised_cost(plant, case, results, on_error="raise"):
+def annualised_cost(plant, case, results, on_error="raise", *, units="si"):
     """Return the annualised system cost [currency/year]: ``capex / A + opex``.
 
     ``A`` is the annuity factor of ``lcoh``, the sum over the years of the analysis period of
@@ -101,6 +114,9 @@ def annualised_cost(plant, case, results, on_error="raise"):
         The finished run of the plant.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
+    units : {"si", "display"}, optional
+        ``"si"`` (the default) is the value as computed; ``"display"`` gives it and its parts in
+        the units of ``gm.units.display`` (MEUR, MEUR/yr, EUR/MWh, a span of years in ``yr``).
 
     Returns
     -------
@@ -110,14 +126,18 @@ def annualised_cost(plant, case, results, on_error="raise"):
         analysis_period}``, the last
         five each a value. A plant without equipment with a cost has no value.
     """
-    return reported(
-        on_error,
-        "currency/yr",
-        lambda: annualised(apply_case(plant, case), case, results, on_error),
+    return displayed(
+        units,
+        "annualised_cost",
+        lambda: reported(
+            on_error,
+            "currency/yr",
+            lambda: annualised(apply_case(plant, case), case, results, on_error),
+        ),
     )
 
 
-def lcoh(plant, case, results, on_error="raise"):
+def lcoh(plant, case, results, on_error="raise", *, units="si"):
     """Return the levelised cost of heat [currency/J]: the discounted cost over the discounted heat.
 
     ``(capex + opex * A) / (heat * A)`` with ``A`` the annuity factor, the sum over the analysis
@@ -139,6 +159,9 @@ def lcoh(plant, case, results, on_error="raise"):
         The finished run of the plant.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
+    units : {"si", "display"}, optional
+        ``"si"`` (the default) is the value as computed; ``"display"`` gives it and its parts in
+        the units of ``gm.units.display`` (MEUR, MEUR/yr, EUR/MWh, a span of years in ``yr``).
 
     Returns
     -------
@@ -150,10 +173,10 @@ def lcoh(plant, case, results, on_error="raise"):
         declares no cost, delivers no heat, or also delivers cold without a ``heat_cost_share`` has
         no value.
     """
-    return levelised(plant, case, results, "heat", on_error)
+    return displayed(units, "lcoh", lambda: levelised(plant, case, results, "heat", on_error))
 
 
-def lcoc(plant, case, results, on_error="raise"):
+def lcoc(plant, case, results, on_error="raise", *, units="si"):
     """Return the levelised cost of cold [currency/J]; the cooling twin of ``lcoh``.
 
     The same formula with the cold delivered (what the water gains across the ``CoolingGrid``
@@ -161,10 +184,10 @@ def lcoc(plant, case, results, on_error="raise"):
     ``allocation.heat_cost_share`` leaves. The parameters and the return shape are those of
     ``lcoh``.
     """
-    return levelised(plant, case, results, "cold", on_error)
+    return displayed(units, "lcoc", lambda: levelised(plant, case, results, "cold", on_error))
 
 
-def lcts(plant, case, results, on_error="raise"):
+def lcts(plant, case, results, on_error="raise", *, units="si"):
     """Return the levelised cost of thermal supply [currency/J].
 
     ``annualised_cost / (heat + cold)``, the heat and the cold delivered per year as scaled from
@@ -180,10 +203,10 @@ def lcts(plant, case, results, on_error="raise"):
         ``cold`` in J/year; ``value`` in currency/J (``.to("EUR/MWh")`` converts). A plant
         without equipment with a cost, or a run that delivers neither heat nor cold, has no value.
     """
-    return reported(
-        on_error,
-        "currency/J",
-        lambda: _lcts(plant, case, results, on_error),
+    return displayed(
+        units,
+        "lcts",
+        lambda: reported(on_error, "currency/J", lambda: _lcts(plant, case, results, on_error)),
     )
 
 
@@ -207,7 +230,7 @@ def _lcts(plant, case, results, on_error):
     )
 
 
-def npv(plant, case, results, on_error="raise"):
+def npv(plant, case, results, on_error="raise", *, units="si"):
     """Return the net present value [currency]: ``-capex + (revenue - opex) * A``.
 
     ``A`` is the annuity factor, the sum over the years of the analysis period of
@@ -229,6 +252,9 @@ def npv(plant, case, results, on_error="raise"):
         The finished run of the plant.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
+    units : {"si", "display"}, optional
+        ``"si"`` (the default) is the value as computed; ``"display"`` gives it and its parts in
+        the units of ``gm.units.display`` (MEUR, MEUR/yr, EUR/MWh, a span of years in ``yr``).
 
     Returns
     -------
@@ -239,10 +265,10 @@ def npv(plant, case, results, on_error="raise"):
         a value, with ``value`` and ``capex`` in the currency (``unit``) and ``net_cash_flow`` in
         currency per year. A plant without equipment with a cost has no value.
     """
-    return reported(
-        on_error,
-        "currency",
-        lambda: _npv(plant, case, results, on_error),
+    return displayed(
+        units,
+        "npv",
+        lambda: reported(on_error, "currency", lambda: _npv(plant, case, results, on_error)),
     )
 
 
@@ -264,7 +290,7 @@ def _npv(plant, case, results, on_error):
     )
 
 
-def payback(plant, case, results, on_error="raise"):
+def payback(plant, case, results, on_error="raise", *, units="si"):
     """Return the simple payback time [year]: ``capex / (revenue - opex)``, without discounting.
 
     A subsidy of the case (``economics.revenue.subsidy``) adds its amount per year to the cash flow
@@ -282,6 +308,9 @@ def payback(plant, case, results, on_error="raise"):
         The finished run of the plant.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
+    units : {"si", "display"}, optional
+        ``"si"`` (the default) is the value as computed; ``"display"`` gives it and its parts in
+        the units of ``gm.units.display`` (MEUR, MEUR/yr, EUR/MWh, a span of years in ``yr``).
 
     Returns
     -------
@@ -291,7 +320,11 @@ def payback(plant, case, results, on_error="raise"):
         the last two each a value. A plant without equipment with a cost, or whose yearly revenue
         does not exceed its yearly cost (it never pays back), has no value.
     """
-    return reported(on_error, "yr", lambda: _payback(plant, case, results, on_error))
+    return displayed(
+        units,
+        "payback",
+        lambda: reported(on_error, "yr", lambda: _payback(plant, case, results, on_error)),
+    )
 
 
 def _payback(plant, case, results, on_error):

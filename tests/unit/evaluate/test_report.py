@@ -362,3 +362,16 @@ def test_a_missing_value_and_the_reasons_survive_the_round_trip():
     assert again[0]["values"]["lcts"] is None
     assert again[0]["reasons"] == found[0]["reasons"] and again[0]["feasible"] is False
     assert [entry["ranks"] for entry in again] == [entry["ranks"] for entry in found]
+
+
+def test_comparison_to_dict_shows_display_units_or_the_metrics_given():
+    """SI by default; display units as ``to_frame``; a dict replaces one metric's unit."""
+    found = gm.evaluate.compare(reports(), ["lcts", "co2"])
+    assert found.to_dict()[0]["values"]["lcts"]["unit"] == "currency/J"
+    shown = found.to_dict(units="display")
+    assert shown[0]["values"]["lcts"] == {"value": pytest.approx(10.0 * 3.6e9), "unit": "EUR/MWh"}
+    assert shown[0]["values"]["co2"] == 5.0
+    assert found.to_dict(units={"lcts": "EUR/kWh"})[0]["values"]["lcts"]["unit"] == "EUR/kWh"
+    assert found.to_dict(units="si") == found.to_dict()
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        found.to_dict(units="field")

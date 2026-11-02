@@ -412,6 +412,8 @@ engine's callbacks; any other exception it raises propagates too. The trials, th
 random draws and the numbers do not depend on it, and a call without it is that of 0.5.1.
 `gm.study.size` runs no trials and has no `on_progress`.
 
+`gm.study.kinds()` gives the kinds in plain words with the JSON Schema of their settings; `objective` of `gm.evaluate.metrics()` marks the metrics `minimize` may target. The cost functions take the keyword-only `units="display"`: the value and its parts in the display table (MEUR, MEUR/yr, EUR/MWh, yr).
+
 A metric is a KPI or total of `gm.evaluate.totals` or one of `lcoh`, `lcoc`, `lcts`,
 `annualised_cost`, `co2`; the economic ones read the economics of `case`, so they need a case with
 the factors they use. `parameters` in `best`, `history` and `samples` are `Quantity` values in SI,

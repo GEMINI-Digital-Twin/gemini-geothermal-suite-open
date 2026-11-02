@@ -7,7 +7,7 @@ import pandas as pd
 
 from gemini import units
 from gemini._utils.strings import join_path
-from gemini.case._utils import schema
+from gemini.case._utils import schema, unused
 from gemini.case._utils.node import (
     Context,
     Frozen,
@@ -105,6 +105,7 @@ class Case(Frozen):
         issues = []
         found = cls._read(plain(data), inputs.Source(folder, files), issues)
         raise_issues(issues)
+        unused.warn(found._unused_ranges(), 2)
         return found
 
     @classmethod
@@ -149,16 +150,21 @@ class Case(Frozen):
     def schema(cls):
         """Return the JSON Schema (draft 2020-12) of ``case.json``."""
         properties = {name: schema.section(sub) for name, sub in SECTIONS.items()}
+        used = {}
+        for sub in (*SECTIONS.values(), Economics):
+            used |= schema.quantities(sub)
+        used["duration"] = units.names("duration")
         properties |= {
             "time": schema.time(),
             "initial_state": {"type": "object", "additionalProperties": {"type": "object"}},
             "economics": {"anyOf": [{"type": "string"}, Economics.schema()]},
             "requirements": {"type": "array", "items": schema.requirement()},
         }
-        return {"$schema": schema.DRAFT, "title": cls.__name__} | schema.closed(
-            schema.HEADER | {"about": {"type": "object"}} | properties,
+        found = schema.closed(
+            schema.header("case") | {"about": {"type": "object"}} | properties,
             ["format", "kind", "name", "time"],
         )
+        return {"$schema": schema.DRAFT, "title": cls.__name__} | found | {"x-quantities": used}
 
     def to_dict(self):
         """Return the case as it was read, the header first."""
@@ -197,6 +203,8 @@ class Case(Frozen):
     def check(self):
         """Return the list of issues of this case; it never raises.
 
+        A ``range`` on a value is a warning, an issue of kind ``deprecated`` that stops nothing.
+
         The case is written and read again, so a value changed by ``with_value`` is judged by the
         rules that judge a file.
         """
@@ -206,7 +214,14 @@ class Case(Frozen):
             return _unwritable(self.economics.to_dict(), "economics")
         issues = []
         self._read(self.to_dict(), inputs.Source(None, files), issues)
-        return issues
+        return issues + self._unused_ranges()
+
+    def _unused_ranges(self):
+        """Return the ``deprecated`` issues of the case: a ``range`` on a value or a series."""
+        found = unused.ranges(self.to_dict())
+        if self.economics is not None and self._reference is not None:
+            found += self.economics._unused_ranges()
+        return found
 
     @property
     def uncertainty(self):

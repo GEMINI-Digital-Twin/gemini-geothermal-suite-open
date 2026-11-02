@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-11-02
+
+Backward compatible with 0.5.2 and 0.5.0: an addition only, every number is the same to 1e-9
+(`tests/fixtures/public_api_0_5_0.json` is the frozen surface; the working snapshot gains the code
+`deprecated`).
+
+### Deprecated
+- A `range` on a leaf of a case or economics file, series leaves included, is read and used by
+  nothing. `case.check()`, `economics.check()`, `gm.check` and `Study.check` report it as an `Issue`
+  of kind `deprecated` (code `deprecated`, a warning that comes last and stops nothing), and reading
+  the case emits `gm.errors.GeminiWarning`. A search range belongs on the plant leaf; to move a case
+  value use `uncertainty`; the `range` will be refused in a later version. Requirement `min`/`max`,
+  `uncertainty` and a plant `range` are not affected.
+
+### Added
+- Schemas for forms: `Case.schema()` and `Economics.schema()` state `kind` as a constant (`"case"`,
+  `"economics"`; the plant and study schemas already did), so a generated header is accepted by the
+  reader (a document without `kind` is `old_format`). Leaves gain `x-quantity`, `x-units`,
+  `x-limits` (SI bounds with their SI unit) and `x-fraction` (a share between 0 and 1); the files
+  gain `x-quantities` (units of every quantity used). No existing key changed.
+- `gm.evaluate.metrics()`: `title` and `objective` (a target for `gm.study.minimize`) per metric.
+- `gm.study.kinds()`: `[{kind, use, title, description, settings}]` for run, minimize, sample,
+  sensitivity and size (a preparation), `settings` the JSON Schema of the keys the kind reads.
+- `units="display"` (or `"si"`) on `Results.get`, `summary`, `to_frame`, `to_dict`,
+  `energy_report` and `Comparison.to_dict`; keyword-only `units="si"` on `gm.evaluate.capex`,
+  `opex`, `annualised_cost`, `lcoh`, `lcoc`, `lcts`, `npv` and `payback`, whose value and parts
+  then come in display units. The default is unchanged.
+- `gm.case.missing(case)`: the paths a case or a partial case dict still lacks, as `Issue`s with
+  quantity and accepted units; it never raises.
+- `gm.plants.capabilities()[class]["ranges"]` lists every numeric leaf of `params` (and
+  `size.doublets`), not only `params.depth`.
+- `Issue.is_warning` and the issue kind and code `deprecated`; `raise_issues` leaves a warning out.
+
 ## [0.5.2] - 2026-11-02
 
 Backward compatible with 0.5.1 and 0.5.0: additions only, every number is the same to 1e-9, and a

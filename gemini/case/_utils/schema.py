@@ -2,6 +2,7 @@
 
 from gemini import units
 from gemini.case._utils.node import Field
+from gemini.case.site import FRACTION
 from gemini.plants.roles import TABLE
 from gemini.units import inputs
 
@@ -23,18 +24,48 @@ UNCERTAINTY = {
         "std": NUMBER,
     },
 }
-HEADER = {
-    "format": {"const": inputs.FORMAT},
-    "kind": {"type": "string"},
-    "name": {"type": "string"},
-}
+
+
+def header(kind):
+    """Return the properties every file starts with; ``kind`` is the one value this file has."""
+    return {
+        "format": {"const": inputs.FORMAT},
+        "kind": {"type": "string", "const": kind},
+        "name": {"type": "string"},
+    }
+
+
+def limits(bounds, quantity):
+    """Return the numeric limits of a leaf in SI: ``min``, ``max`` and the SI ``unit`` if any."""
+    found = bounds.to_json()
+    if quantity is not None:
+        found["unit"] = units.si_unit(units.names(quantity)[0])
+    return found
+
+
+def marks(field):
+    """Return the ``x-`` keys that describe a leaf to a form: quantity, units, limits, fraction.
+
+    ``x-quantity`` is the quantity of the unit and ``x-units`` the units it accepts, both from
+    ``gm.units``; ``x-limits`` are the bounds of the value in SI, with their unit; ``x-fraction``
+    marks a dimensionless share between 0 and 1, which a form may show as a percentage.
+    """
+    found = {}
+    if field.quantity is not None:
+        found["x-quantity"] = field.quantity
+        found["x-units"] = units.names(field.quantity)
+    if field.bounds is not None:
+        found["x-limits"] = limits(field.bounds, field.quantity)
+    if field.quantity is None and field.bounds == FRACTION:
+        found["x-fraction"] = True
+    return found
 
 
 def leaf(field):
     """Return the schema of the leaf of one ``Field``."""
     if field.keys is not None:
         item = leaf(Field(field.quantity, bounds=field.bounds))
-        return closed({key: item for key in field.keys})
+        return closed({key: item for key in field.keys}) | marks(field)
     value = {"type": "string"} if field.text else NUMBER
     properties = {"value": value, "range": RANGE, "uncertainty": UNCERTAINTY}
     required = ["value"]
@@ -43,14 +74,14 @@ def leaf(field):
         required.append("unit")
     form = closed(properties, required)
     if not field.series:
-        return form
+        return form | marks(field)
     series = {
         "file": {"type": "string"},
         "column": {"type": "string"},
         "unit": properties.get("unit"),
     }
     series = {key: item for key, item in series.items() if item is not None}
-    return {"anyOf": [form, closed(series | {"range": RANGE}, list(series))]}
+    return {"anyOf": [form, closed(series | {"range": RANGE}, list(series))]} | marks(field)
 
 
 def closed(properties, required=()):
@@ -63,14 +94,26 @@ def closed(properties, required=()):
     }
 
 
-def section(cls, header=False):
-    """Return the schema of a section class; ``header`` adds the keys every file starts with."""
+def quantities(cls):
+    """Return ``{quantity: units}`` of every leaf below a section class, from the one unit table."""
+    found = {field.quantity for field in cls.fields.values() if field.quantity is not None}
+    for sub in cls.sections.values():
+        found |= set(quantities(sub))
+    return {quantity: units.names(quantity) for quantity in sorted(found)}
+
+
+def section(cls, kind=None):
+    """Return the schema of a section class; a ``kind`` adds the keys every file starts with.
+
+    The file schema also lists, as ``x-quantities``, the units of every quantity it uses.
+    """
     properties = {name: leaf(field) for name, field in cls.fields.items()}
     properties |= {name: section(sub) for name, sub in cls.sections.items()}
     properties["about"] = {"type": "object"}
     required = [name for name, field in cls.fields.items() if field.required]
-    if header:
-        return closed(HEADER | properties, ["format", "kind", "name"] + required)
+    if kind is not None:
+        found = closed(header(kind) | properties, ["format", "kind", "name"] + required)
+        return found | {"x-quantities": quantities(cls)}
     return closed(properties, required)
 
 

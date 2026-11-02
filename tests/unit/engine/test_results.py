@@ -382,3 +382,19 @@ def fast_run_results():
         "users.heat_demand": 1e5,
     }
     return gm.simulate(plant, plan=pd.DataFrame(columns, index=index))
+
+
+def test_units_display_uses_the_one_display_table_and_a_map_still_works():
+    """Power in MW by its SI unit; a text other than si and display is refused."""
+    rows = with_quantities()
+    assert rows.get("pump", "power_in", units="display")["unit"] == "MW"
+    assert rows.get("pump", "power_in", units="display")["value"] == pytest.approx([1e-3, 3e-3])
+    assert rows.get("pump", "head", units="display")["unit"] == "Pa"
+    assert rows.summary(units="display")["pump"]["power_in"]["mean"]["unit"] == "MW"
+    assert rows.get("pump", "power_in", units="si") == rows.get("pump", "power_in")
+    assert rows.get("pump", "power_in", units=UNITS)["unit"] == "kW"
+    assert rows.to_frame(units="display").attrs["units"]["pump.power_in"] == "MW"
+    assert rows.energy_report(units="display")["pump"]["power_in"]["energy"]["unit"] == "MWh"
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        rows.get("pump", "power_in", units="field")
+    assert caught.value.code == "invalid_value"

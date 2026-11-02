@@ -7,7 +7,7 @@ inputs.md" is the list of decisions. Every row of the inventory of inputs has a 
 `.tmp/inputs/placement.md`; this page holds the rules and the reasons that are not specific to one
 row. A new input goes where the placement test of section 2 says; the reason is written here.
 
-Status: built in 0.3.0 and extended to 0.5.1 (7.19, 7.27, 7.50). The code, the sample files, the public API and the other docs follow this
+Status: built in 0.3.0 and extended to 0.5.3 (7.19, 7.27, 7.50, 7.51). The code, the sample files, the public API and the other docs follow this
 page; what is not built yet is listed in section 8 and under "Decisions not built yet" in section 7.
 Where a table of this page says "today", it describes the code of 0.2.0 that the row replaced.
 
@@ -64,7 +64,7 @@ and stays in code for now (7.5). Neither is ever a value that a party can legiti
 | quantity | `{"value": 3000, "unit": "m"}` | `unit` present if and only if the quantity has a dimension; units from `gm.units.Unit`; text such as `"150 m3/h"` is refused as today |
 | dimensionless | `{"value": 0.7}` | same object, so every leaf has one shape |
 | choice | `{"value": "counterflow"}` | the module declares the closed list of allowed strings |
-| range | `{"min": a, "max": b}` | either side optional; bare numbers in the leaf's unit; for search ranges, distribution bounds, requirements and declared bounds alike (`gm.case.Range` is this object) |
+| range | `{"min": a, "max": b}` | either side optional; bare numbers in the leaf's unit; for search ranges, distribution bounds, requirements and declared bounds alike (`gm.case.Range` is this object). A `range` key on a leaf of a case or economics file (or a series leaf) is deprecated (7.51): read, used by nothing, warned about |
 | search freedom | `"range": {...}` or `"options": [...]` on a plant leaf | `options` is a subset of the module's list |
 | uncertainty | `"uncertainty": {"kind": "uniform", "min", "max"}`, `"triangular"` (mode = value), `{"kind": "normal", "std", "min"?, "max"?}` | numbers in the leaf's unit; `value` is always the nominal; `gm.case.Uncertainty` |
 | time series | `{"file": "data/demand.csv", "column": "heat_mw", "unit": "MW"}` in place of `value` | every CSV has a first column `time`, ISO 8601 with offset or `Z`; no `time_column` key (7.38) |
@@ -820,6 +820,21 @@ did not converge as kind `numerical`. `minimize`, `sample`, `sensitivity` and `c
 verdict, so an infeasible design is an infeasible trial with a reason, never a crash; a NaN value of
 a metric counts as the largest violation. Where it lives: [engine.md](engine.md#errors).
 
+**7.51 A `range` on a case or economics leaf is deprecated** (rule: test 2, P6). The reader accepts
+`range` on every leaf (`LEAF_KEYS` and `SERIES_KEYS` of `gemini/units/inputs.py`) and the case keeps
+it, but nothing reads it: a case with a `range` on a value, an economics value or a series gives the
+same numbers as without (`tests/integration/test_range_deprecated.py`). A search range is the
+designer's statement and belongs on the plant leaf (7.8); a case value that may be other is moved by
+`uncertainty`. So `case.check()`, `economics.check()` and `gm.check` report each such `range` as an
+`Issue` of kind `deprecated` (code `deprecated`, path ending in `.range`), and reading the case
+(`Case.from_dict`, `from_json`, `Economics.from_json`) emits one `gm.errors.GeminiWarning` naming the
+path. It is a warning and stops nothing: `raise_issues` leaves a `deprecated` issue out, so reading,
+`gm.simulate`, `size` and the studies run as before, and `Issue.is_warning` lets a caller that judges
+readiness skip it (it comes last in the list). The message says: a search range belongs on the plant
+leaf, to move a case value use `uncertainty`, this will be refused in a later version. A requirement
+`min`/`max`, an `uncertainty` and a plant `range` are not affected. Where it lives:
+`gemini/case/_utils/unused.py`.
+
 ## 8. Still open
 
 - Profile uncertainty (for example demand times a factor), multi-year runs (reservoir decline, price
@@ -904,3 +919,5 @@ a metric counts as the largest violation. Where it lives: [engine.md](engine.md#
   (objective, budget, seed, metrics). Everything else comes from the files.
 - Keys are snake_case; the name of a key in a file is the name of the declaration in code
   (`temperature_setpoint`, `supply_margin`), so a reader finds one from the other.
+
+**Forms.** `Case.schema()` states `kind` as a constant and marks each leaf with `x-quantity`, `x-units`, `x-limits` (SI) and `x-fraction`, and each file with `x-quantities`, from the one unit table; `gm.case.missing(case)` lists what a document still lacks.

@@ -48,6 +48,19 @@ def test_the_schedule_plans_plants_with_doublets_and_a_grid(found):
 
 def test_the_ranges_follow_the_class(found):
     """Doublets need the structural size, depth a depth parameter."""
-    assert found["HeatingPlant"]["ranges"] == ["size.doublets", "params.depth"]
-    assert found["Doublet"]["ranges"] == ["params.depth"]
-    assert found["HeatingSubstation"]["ranges"] == []
+    assert found["HeatingPlant"]["ranges"][:2] == ["size.doublets", "params.depth"]
+    assert found["Doublet"]["ranges"][0] == "params.depth"
+    assert "size.doublets" not in found["DoubletHeatPlant"]["ranges"]
+    assert "params.valve.flow_coefficient" in found["HeatingSubstation"]["ranges"]
+
+
+def test_every_numeric_leaf_of_a_plant_file_may_state_a_range(found):
+    """``params.<path>`` for each number of the plant, and ``set_range`` takes each one."""
+    plant = gm.plants.get("HeatingPlant")
+    ranges = found["HeatingPlant"]["ranges"]
+    assert ranges[:2] == ["size.doublets", "params.depth"]
+    assert {"params.d0.depth", "params.d0.gradient"} <= set(ranges)
+    assert len(ranges) > 50 and len(set(ranges)) == len(ranges)
+    for path in ranges[::20]:
+        plant.set_range(path.removeprefix("params."), None, None)
+    assert not any("dispatch" in path or "outages" in path for path in ranges)

@@ -720,3 +720,16 @@ def test_electricity_sold_to_the_grid_earns_nothing():
     assert Flows(heating_plant(), run).series["electricity"].sum() < 0
     result = gm.evaluate.opex(heating_plant(), priced_opex(electricity=2e-8), run)
     assert result.parts["components"]["electricity"].value == 0.0
+
+
+def test_cost_results_take_units_display_with_their_parts():
+    """Capex in MEUR with its modules; si is the default; anything else is refused first."""
+    case = make_case(economics={"capex": ALL})
+    plain = gm.evaluate.capex(heating_plant(), case)
+    shown = gm.evaluate.capex(heating_plant(), case, units="display")
+    assert str(shown.unit) == "MEUR" and shown.value == pytest.approx(plain.value * 1e-6)
+    module = next(iter(shown.parts["modules"]))
+    assert str(shown.parts["modules"][module].unit) == "MEUR"
+    assert gm.evaluate.capex(heating_plant(), case, units="si") == plain
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        gm.evaluate.capex(heating_plant(), case, units="field")

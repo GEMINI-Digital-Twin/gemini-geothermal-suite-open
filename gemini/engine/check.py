@@ -24,7 +24,9 @@ GAS_ROLES = ("boiler", "chp")
 def check(plant, case):
     """Return the issues that prevent ``plant`` from running on ``case``; it never raises.
 
-    An empty list means ready. The issues are those of ``Issue`` with a ``path`` in the files:
+    An empty list means ready. The issues are those of ``Issue`` with a ``path`` in the files; a
+    warning (``Issue.is_warning``, kind ``deprecated``) comes last and does not make the plant
+    unready, so a caller that judges readiness reads the issues that are no warning:
 
     - a parameter of the plant without a value (``missing``, path ``params.<path>``);
     - for every equipment kind the plant contains, a capex and a fixed opex in the economics
@@ -39,7 +41,9 @@ def check(plant, case):
       ``initial_state.<module>.<state>``), a state or a module the plant lacks
       (``unknown_key``), a unit of another dimension (``unit``);
     - when the plant states the dispatch ``least_cost``, the electricity price and, for a plant with
-      a gas unit, the gas price in the economics (``missing``).
+      a gas unit, the gas price in the economics (``missing``);
+    - a ``range`` on a value of the case or of its economics (``deprecated``): a search range
+      belongs on the plant leaf.
 
     A case that is wrong by itself (``case.check()``, for example a value set with ``with_value`` of
     another type than the quantity) is reported with its own issues and not applied to the plant.
@@ -59,13 +63,13 @@ def check(plant, case):
     if case is None:
         return _parameters(plant)
     own = case.check()
-    if own:
+    if any(not item.is_warning for item in own):
         return own
     try:
         applied = apply_case(plant, _known_states(plant, case))
     except ValidationError as error:
-        return _refused(error)
-    return issues_of(applied, case)
+        return _refused(error) + own
+    return issues_of(applied, case) + own
 
 
 def _known_states(plant, case):

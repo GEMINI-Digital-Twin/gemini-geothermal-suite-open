@@ -3,6 +3,7 @@
 from gemini import units as _units
 from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import ValidationError
+from gemini.modules.call import UNITS
 from gemini.plants.roles import TABLE
 from gemini.units import display
 from gemini.units.display import without_offsets
@@ -46,6 +47,43 @@ Durations are shown in ``d`` (the time a requirement counts, the running time) e
 ``flow`` and ``temperature`` stand for the quantities of the capacities and requirements of a
 report, which are shown by their SI unit (``by_si_unit``).
 """
+
+TITLES = {
+    "heat_delivered": "Heat delivered",
+    "cold_delivered": "Cold delivered",
+    "boiler_heat": "Heat from the boilers",
+    "electricity_bought": "Electricity bought",
+    "electricity_sold": "Electricity sold",
+    "gas_bought": "Gas bought",
+    "peak_heat": "Peak heat demand",
+    "peak_cold": "Peak cold demand",
+    "capex": "Investment",
+    "opex": "Operating cost",
+    "annualised_cost": "Annualised cost",
+    "lcts": "Cost of thermal supply",
+    "lcoh": "Cost of heat",
+    "lcoc": "Cost of cold",
+    "annual_energy": "Energy per year",
+    "duration": "Duration",
+    "analysis_period": "Analysis period",
+    "payback": "Payback time",
+    "co2": "CO2 emissions",
+    "co2_emitted": "CO2 emitted",
+    "methane_emitted": "Methane emitted",
+    "permeability": "Permeability",
+    "temperature_gradient": "Temperature gradient",
+    "price_per_mass": "Price per mass",
+    "flow": "Flow",
+    "temperature": "Temperature",
+}
+"""The readable label of each metric, in the order of ``METRICS``."""
+
+OBJECTIVES = ("annualised_cost", "lcts", "lcoh", "lcoc", "co2")
+"""The metrics worth minimising that ``gm.study.minimize`` reads: costs and emissions.
+
+A temperature, a flow, a delivered energy or a size is a result or an input, not a target; the
+others a table shows (``capex``, ``opex``, ``payback``, the energies bought) are not read by a
+search."""
 
 YEARS = ("analysis_period", "payback")
 """The names of the durations of years: shown in ``yr`` by their name, not by their SI unit."""
@@ -123,6 +161,36 @@ def display_units(metrics, units=None):
         _units.convert(1.0, _units.si_unit(chosen[name]), unit, DISPLAY[name][0])
         chosen[name] = unit
     return chosen
+
+
+def checked(units):
+    """Return ``units`` when it is ``"si"`` or ``"display"``, else raise ``invalid_value``."""
+    if units not in UNITS:
+        raise ValidationError(
+            f"evaluate: units = {units!r}; expected one of {join_names(UNITS)}"
+            f"{did_you_mean(str(units), UNITS)}",
+            path="units",
+            code="invalid_value",
+            suggestions=close_matches(str(units), UNITS),
+        )
+    return units
+
+
+def checked_or_map(units):
+    """Return ``units`` when it is a map ``{metric: unit}``, else ``checked(units)``."""
+    return units if isinstance(units, dict) else checked(units)
+
+
+def displayed(units, name, compute):
+    """Return ``compute()``, a cost value called ``name``, in SI or in the display table.
+
+    ``units`` is ``"si"`` (the value as computed) or ``"display"`` (the value and every part in
+    the units of ``gm.units.display``, a long span in ``yr``). Anything else raises
+    ``invalid_value`` before ``compute`` runs.
+    """
+    checked(units)
+    found = compute()
+    return found if units == "si" else shown(found, adjusted(name, display.by_si_unit()))
 
 
 def in_unit(metric, number, unit):

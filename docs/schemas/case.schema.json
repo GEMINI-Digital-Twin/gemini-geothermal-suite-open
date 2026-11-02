@@ -73,7 +73,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature_difference",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "indoor_relative_humidity": {
               "additionalProperties": false,
@@ -122,7 +133,12 @@
               "required": [
                 "value"
               ],
-              "type": "object"
+              "type": "object",
+              "x-fraction": true,
+              "x-limits": {
+                "max": 1.0,
+                "min": 0.0
+              }
             },
             "indoor_temperature": {
               "additionalProperties": false,
@@ -180,7 +196,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "maximum_return_temperature": {
               "additionalProperties": false,
@@ -238,7 +265,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "minimum_return_temperature": {
               "additionalProperties": false,
@@ -296,7 +334,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "power": {
               "anyOf": [
@@ -395,6 +444,17 @@
                   ],
                   "type": "object"
                 }
+              ],
+              "x-limits": {
+                "min": 0.0,
+                "unit": "W"
+              },
+              "x-quantity": "power",
+              "x-units": [
+                "GW",
+                "MW",
+                "W",
+                "kW"
               ]
             },
             "return_pressure": {
@@ -455,7 +515,20 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "Pa"
+              },
+              "x-quantity": "pressure",
+              "x-units": [
+                "MPa",
+                "Pa",
+                "bar",
+                "bar(g)",
+                "barg",
+                "kPa"
+              ]
             },
             "return_temperature": {
               "additionalProperties": false,
@@ -513,7 +586,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "supply_temperature": {
               "additionalProperties": false,
@@ -571,7 +655,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             }
           },
           "required": [
@@ -641,7 +736,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "minimum_return_temperature": {
               "additionalProperties": false,
@@ -699,7 +805,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "power": {
               "anyOf": [
@@ -798,6 +915,17 @@
                   ],
                   "type": "object"
                 }
+              ],
+              "x-limits": {
+                "min": 0.0,
+                "unit": "W"
+              },
+              "x-quantity": "power",
+              "x-units": [
+                "GW",
+                "MW",
+                "W",
+                "kW"
               ]
             },
             "return_pressure": {
@@ -858,7 +986,20 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "Pa"
+              },
+              "x-quantity": "pressure",
+              "x-units": [
+                "MPa",
+                "Pa",
+                "bar",
+                "bar(g)",
+                "barg",
+                "kPa"
+              ]
             },
             "return_temperature": {
               "additionalProperties": false,
@@ -916,7 +1057,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "supply_temperature": {
               "additionalProperties": false,
@@ -974,7 +1126,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             }
           },
           "required": [
@@ -1057,7 +1220,12 @@
                       "required": [
                         "value"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-fraction": true,
+                      "x-limits": {
+                        "max": 1.0,
+                        "min": 0.0
+                      }
                     }
                   },
                   "required": [],
@@ -1113,7 +1281,10 @@
                       "required": [
                         "value"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0
+                      }
                     },
                     "about": {
                       "type": "object"
@@ -1232,7 +1403,19 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "s"
+              },
+              "x-quantity": "duration",
+              "x-units": [
+                "d",
+                "h",
+                "min",
+                "s",
+                "yr"
+              ]
             },
             "capex": {
               "additionalProperties": false,
@@ -1294,7 +1477,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "adsorption_chiller": {
                   "additionalProperties": false,
@@ -1350,7 +1542,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "boiler": {
                   "additionalProperties": false,
@@ -1406,7 +1607,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "chp": {
                   "additionalProperties": false,
@@ -1462,7 +1672,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "circulation_pump": {
                   "additionalProperties": false,
@@ -1518,7 +1737,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "compression_chiller": {
                   "additionalProperties": false,
@@ -1574,7 +1802,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "cooler": {
                   "additionalProperties": false,
@@ -1630,7 +1867,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "degasser": {
                   "additionalProperties": false,
@@ -1688,7 +1934,18 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency"
+                  },
+                  "x-quantity": "money",
+                  "x-units": [
+                    "EUR",
+                    "MEUR",
+                    "currency",
+                    "kEUR"
+                  ]
                 },
                 "drilling": {
                   "additionalProperties": false,
@@ -1744,7 +2001,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/m"
+                  },
+                  "x-quantity": "money_per_length",
+                  "x-units": [
+                    "EUR/m",
+                    "currency/m"
+                  ]
                 },
                 "electric_boiler": {
                   "additionalProperties": false,
@@ -1800,7 +2066,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "flare": {
                   "additionalProperties": false,
@@ -1858,7 +2133,18 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency"
+                  },
+                  "x-quantity": "money",
+                  "x-units": [
+                    "EUR",
+                    "MEUR",
+                    "currency",
+                    "kEUR"
+                  ]
                 },
                 "gas_makeup": {
                   "additionalProperties": false,
@@ -1916,7 +2202,18 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency"
+                  },
+                  "x-quantity": "money",
+                  "x-units": [
+                    "EUR",
+                    "MEUR",
+                    "currency",
+                    "kEUR"
+                  ]
                 },
                 "heat_exchanger": {
                   "additionalProperties": false,
@@ -1972,7 +2269,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/(W/K)"
+                  },
+                  "x-quantity": "money_per_conductance",
+                  "x-units": [
+                    "EUR/(W/K)",
+                    "currency/(W/K)"
+                  ]
                 },
                 "heat_pump": {
                   "additionalProperties": false,
@@ -2028,7 +2334,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "ice_storage": {
                   "additionalProperties": false,
@@ -2084,7 +2399,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/m3"
+                  },
+                  "x-quantity": "money_per_volume",
+                  "x-units": [
+                    "EUR/m3",
+                    "currency/m3"
+                  ]
                 },
                 "injection_pump": {
                   "additionalProperties": false,
@@ -2140,7 +2464,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "pipe": {
                   "additionalProperties": false,
@@ -2196,7 +2529,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/m"
+                  },
+                  "x-quantity": "money_per_length",
+                  "x-units": [
+                    "EUR/m",
+                    "currency/m"
+                  ]
                 },
                 "production_pump": {
                   "additionalProperties": false,
@@ -2252,7 +2594,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/W"
+                  },
+                  "x-quantity": "money_per_power",
+                  "x-units": [
+                    "EUR/W",
+                    "currency/W"
+                  ]
                 },
                 "thermal_storage": {
                   "additionalProperties": false,
@@ -2308,7 +2659,16 @@
                     "value",
                     "unit"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/m3"
+                  },
+                  "x-quantity": "money_per_volume",
+                  "x-units": [
+                    "EUR/m3",
+                    "currency/m3"
+                  ]
                 }
               },
               "required": [],
@@ -2417,6 +2777,17 @@
                       ],
                       "type": "object"
                     }
+                  ],
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/kg"
+                  },
+                  "x-quantity": "money_per_mass",
+                  "x-units": [
+                    "EUR/kg",
+                    "EUR/t",
+                    "currency/kg",
+                    "currency/t"
                   ]
                 }
               },
@@ -2519,7 +2890,10 @@
               "required": [
                 "value"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0
+              }
             },
             "energy": {
               "additionalProperties": false,
@@ -2628,6 +3002,19 @@
                       ],
                       "type": "object"
                     }
+                  ],
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/J"
+                  },
+                  "x-quantity": "money_per_energy",
+                  "x-units": [
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
                   ]
                 },
                 "gas": {
@@ -2731,6 +3118,19 @@
                       ],
                       "type": "object"
                     }
+                  ],
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/J"
+                  },
+                  "x-quantity": "money_per_energy",
+                  "x-units": [
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
                   ]
                 }
               },
@@ -2741,6 +3141,7 @@
               "const": 1
             },
             "kind": {
+              "const": "economics",
               "type": "string"
             },
             "name": {
@@ -2809,7 +3210,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "adsorption_chiller": {
                       "additionalProperties": false,
@@ -2865,7 +3275,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "boiler": {
                       "additionalProperties": false,
@@ -2921,7 +3340,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "chp": {
                       "additionalProperties": false,
@@ -2977,7 +3405,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "circulation_pump": {
                       "additionalProperties": false,
@@ -3033,7 +3470,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "compression_chiller": {
                       "additionalProperties": false,
@@ -3089,7 +3535,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "cooler": {
                       "additionalProperties": false,
@@ -3145,7 +3600,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "degasser": {
                       "additionalProperties": false,
@@ -3201,7 +3665,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "drilling": {
                       "additionalProperties": false,
@@ -3257,7 +3730,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "electric_boiler": {
                       "additionalProperties": false,
@@ -3313,7 +3795,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "flare": {
                       "additionalProperties": false,
@@ -3369,7 +3860,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "gas_makeup": {
                       "additionalProperties": false,
@@ -3425,7 +3925,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "heat_exchanger": {
                       "additionalProperties": false,
@@ -3481,7 +3990,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "heat_pump": {
                       "additionalProperties": false,
@@ -3537,7 +4055,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "ice_storage": {
                       "additionalProperties": false,
@@ -3593,7 +4120,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "injection_pump": {
                       "additionalProperties": false,
@@ -3649,7 +4185,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "pipe": {
                       "additionalProperties": false,
@@ -3705,7 +4250,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "production_pump": {
                       "additionalProperties": false,
@@ -3761,7 +4315,16 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     },
                     "thermal_storage": {
                       "additionalProperties": false,
@@ -3817,11 +4380,29 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "1/yr"
+                      },
+                      "x-quantity": "annual_rate",
+                      "x-units": [
+                        "%/yr",
+                        "1/yr"
+                      ]
                     }
                   },
                   "required": [],
-                  "type": "object"
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "1/yr"
+                  },
+                  "x-quantity": "annual_rate",
+                  "x-units": [
+                    "%/yr",
+                    "1/yr"
+                  ]
                 },
                 "variable": {
                   "additionalProperties": false,
@@ -3926,6 +4507,17 @@
                           ],
                           "type": "object"
                         }
+                      ],
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/kg"
+                      },
+                      "x-quantity": "money_per_mass",
+                      "x-units": [
+                        "EUR/kg",
+                        "EUR/t",
+                        "currency/kg",
+                        "currency/t"
                       ]
                     },
                     "waste_disposal": {
@@ -4025,6 +4617,17 @@
                           ],
                           "type": "object"
                         }
+                      ],
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/kg"
+                      },
+                      "x-quantity": "money_per_mass",
+                      "x-units": [
+                        "EUR/kg",
+                        "EUR/t",
+                        "currency/kg",
+                        "currency/t"
                       ]
                     }
                   },
@@ -4191,6 +4794,19 @@
                       ],
                       "type": "object"
                     }
+                  ],
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/J"
+                  },
+                  "x-quantity": "money_per_energy",
+                  "x-units": [
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
                   ]
                 },
                 "heat": {
@@ -4294,6 +4910,19 @@
                       ],
                       "type": "object"
                     }
+                  ],
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/J"
+                  },
+                  "x-quantity": "money_per_energy",
+                  "x-units": [
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
                   ]
                 },
                 "subsidy": {
@@ -4358,7 +4987,18 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/yr"
+                      },
+                      "x-quantity": "annual_money",
+                      "x-units": [
+                        "EUR/yr",
+                        "MEUR/yr",
+                        "currency/yr",
+                        "kEUR/yr"
+                      ]
                     },
                     "duration": {
                       "additionalProperties": false,
@@ -4417,7 +5057,19 @@
                         "value",
                         "unit"
                       ],
-                      "type": "object"
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "s"
+                      },
+                      "x-quantity": "duration",
+                      "x-units": [
+                        "d",
+                        "h",
+                        "min",
+                        "s",
+                        "yr"
+                      ]
                     }
                   },
                   "required": [],
@@ -4434,7 +5086,62 @@
             "name"
           ],
           "title": "Economics",
-          "type": "object"
+          "type": "object",
+          "x-quantities": {
+            "annual_money": [
+              "EUR/yr",
+              "MEUR/yr",
+              "currency/yr",
+              "kEUR/yr"
+            ],
+            "annual_rate": [
+              "%/yr",
+              "1/yr"
+            ],
+            "duration": [
+              "d",
+              "h",
+              "min",
+              "s",
+              "yr"
+            ],
+            "money": [
+              "EUR",
+              "MEUR",
+              "currency",
+              "kEUR"
+            ],
+            "money_per_conductance": [
+              "EUR/(W/K)",
+              "currency/(W/K)"
+            ],
+            "money_per_energy": [
+              "EUR/J",
+              "EUR/MWh",
+              "EUR/kWh",
+              "currency/J",
+              "currency/MWh",
+              "currency/kWh"
+            ],
+            "money_per_length": [
+              "EUR/m",
+              "currency/m"
+            ],
+            "money_per_mass": [
+              "EUR/kg",
+              "EUR/t",
+              "currency/kg",
+              "currency/t"
+            ],
+            "money_per_power": [
+              "EUR/W",
+              "currency/W"
+            ],
+            "money_per_volume": [
+              "EUR/m3",
+              "currency/m3"
+            ]
+          }
         }
       ]
     },
@@ -4448,6 +5155,7 @@
       "type": "object"
     },
     "kind": {
+      "const": "case",
       "type": "string"
     },
     "name": {
@@ -4610,7 +5318,20 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "Pa"
+              },
+              "x-quantity": "pressure",
+              "x-units": [
+                "MPa",
+                "Pa",
+                "bar",
+                "bar(g)",
+                "barg",
+                "kPa"
+              ]
             },
             "relative_humidity": {
               "anyOf": [
@@ -4691,7 +5412,12 @@
                   ],
                   "type": "object"
                 }
-              ]
+              ],
+              "x-fraction": true,
+              "x-limits": {
+                "max": 1.0,
+                "min": 0.0
+              }
             },
             "temperature": {
               "anyOf": [
@@ -4790,6 +5516,17 @@
                   ],
                   "type": "object"
                 }
+              ],
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
               ]
             }
           },
@@ -4857,7 +5594,13 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-quantity": "density",
+              "x-units": [
+                "g/m3",
+                "kg/m3",
+                "mg/l"
+              ]
             },
             "dissolved_gas": {
               "additionalProperties": false,
@@ -4909,7 +5652,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "CO2": {
                   "additionalProperties": false,
@@ -4958,7 +5706,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "H2S": {
                   "additionalProperties": false,
@@ -5007,7 +5760,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "N2": {
                   "additionalProperties": false,
@@ -5056,11 +5814,21 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 }
               },
               "required": [],
-              "type": "object"
+              "type": "object",
+              "x-fraction": true,
+              "x-limits": {
+                "max": 1.0,
+                "min": 0.0
+              }
             },
             "gas_liquid_ratio": {
               "additionalProperties": false,
@@ -5117,7 +5885,13 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-quantity": "gas_liquid_ratio",
+              "x-units": [
+                "-",
+                "Nm3/m3",
+                "ppm"
+              ]
             },
             "sand_concentration": {
               "additionalProperties": false,
@@ -5174,7 +5948,17 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "kg/m3"
+              },
+              "x-quantity": "mass_concentration",
+              "x-units": [
+                "g/m3",
+                "kg/m3",
+                "mg/l"
+              ]
             },
             "viscosity": {
               "additionalProperties": false,
@@ -5231,7 +6015,13 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-quantity": "viscosity",
+              "x-units": [
+                "Pa.s",
+                "mPa*s",
+                "mPa.s"
+              ]
             }
           },
           "required": [],
@@ -5297,7 +6087,12 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-quantity": "temperature_gradient",
+              "x-units": [
+                "K/km",
+                "K/m"
+              ]
             },
             "surface_temperature": {
               "additionalProperties": false,
@@ -5355,7 +6150,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             }
           },
           "required": [],
@@ -5421,7 +6227,16 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "m2"
+              },
+              "x-quantity": "permeability",
+              "x-units": [
+                "m2",
+                "mD"
+              ]
             },
             "pressure": {
               "additionalProperties": false,
@@ -5481,7 +6296,20 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "Pa"
+              },
+              "x-quantity": "pressure",
+              "x-units": [
+                "MPa",
+                "Pa",
+                "bar",
+                "bar(g)",
+                "barg",
+                "kPa"
+              ]
             },
             "reference_depth": {
               "additionalProperties": false,
@@ -5540,7 +6368,15 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-quantity": "length",
+              "x-units": [
+                "ft",
+                "in",
+                "km",
+                "m",
+                "mm"
+              ]
             },
             "temperature": {
               "additionalProperties": false,
@@ -5598,7 +6434,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "K"
+              },
+              "x-quantity": "temperature",
+              "x-units": [
+                "C",
+                "K",
+                "degC",
+                "\u00b0C"
+              ]
             },
             "thickness": {
               "additionalProperties": false,
@@ -5657,7 +6504,19 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "m"
+              },
+              "x-quantity": "length",
+              "x-units": [
+                "ft",
+                "in",
+                "km",
+                "m",
+                "mm"
+              ]
             }
           },
           "required": [],
@@ -5733,7 +6592,15 @@
             "value",
             "unit"
           ],
-          "type": "object"
+          "type": "object",
+          "x-quantity": "duration",
+          "x-units": [
+            "d",
+            "h",
+            "min",
+            "s",
+            "yr"
+          ]
         }
       },
       "required": [
@@ -5848,6 +6715,15 @@
                   ],
                   "type": "object"
                 }
+              ],
+              "x-limits": {
+                "min": 0.0,
+                "unit": "kg/J"
+              },
+              "x-quantity": "mass_per_energy",
+              "x-units": [
+                "g/kWh",
+                "kg/J"
               ]
             },
             "export_limit": {
@@ -5906,7 +6782,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "W"
+              },
+              "x-quantity": "power",
+              "x-units": [
+                "GW",
+                "MW",
+                "W",
+                "kW"
+              ]
             },
             "import_limit": {
               "additionalProperties": false,
@@ -5964,7 +6851,18 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "W"
+              },
+              "x-quantity": "power",
+              "x-units": [
+                "GW",
+                "MW",
+                "W",
+                "kW"
+              ]
             }
           },
           "required": [],
@@ -6026,7 +6924,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "C3H8": {
                   "additionalProperties": false,
@@ -6075,7 +6978,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "CH4": {
                   "additionalProperties": false,
@@ -6124,7 +7032,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "CO2": {
                   "additionalProperties": false,
@@ -6173,7 +7086,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "N2": {
                   "additionalProperties": false,
@@ -6222,7 +7140,12 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 },
                 "O2": {
                   "additionalProperties": false,
@@ -6271,11 +7194,21 @@
                   "required": [
                     "value"
                   ],
-                  "type": "object"
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  }
                 }
               },
               "required": [],
-              "type": "object"
+              "type": "object",
+              "x-fraction": true,
+              "x-limits": {
+                "max": 1.0,
+                "min": 0.0
+              }
             },
             "heating_value": {
               "additionalProperties": false,
@@ -6331,7 +7264,16 @@
                 "value",
                 "unit"
               ],
-              "type": "object"
+              "type": "object",
+              "x-limits": {
+                "min": 0.0,
+                "unit": "J/kg"
+              },
+              "x-quantity": "specific_enthalpy",
+              "x-units": [
+                "J/kg",
+                "kJ/kg"
+              ]
             }
           },
           "required": [],
@@ -6349,5 +7291,129 @@
     "time"
   ],
   "title": "Case",
-  "type": "object"
+  "type": "object",
+  "x-quantities": {
+    "annual_money": [
+      "EUR/yr",
+      "MEUR/yr",
+      "currency/yr",
+      "kEUR/yr"
+    ],
+    "annual_rate": [
+      "%/yr",
+      "1/yr"
+    ],
+    "density": [
+      "g/m3",
+      "kg/m3",
+      "mg/l"
+    ],
+    "duration": [
+      "d",
+      "h",
+      "min",
+      "s",
+      "yr"
+    ],
+    "gas_liquid_ratio": [
+      "-",
+      "Nm3/m3",
+      "ppm"
+    ],
+    "length": [
+      "ft",
+      "in",
+      "km",
+      "m",
+      "mm"
+    ],
+    "mass_concentration": [
+      "g/m3",
+      "kg/m3",
+      "mg/l"
+    ],
+    "mass_per_energy": [
+      "g/kWh",
+      "kg/J"
+    ],
+    "money": [
+      "EUR",
+      "MEUR",
+      "currency",
+      "kEUR"
+    ],
+    "money_per_conductance": [
+      "EUR/(W/K)",
+      "currency/(W/K)"
+    ],
+    "money_per_energy": [
+      "EUR/J",
+      "EUR/MWh",
+      "EUR/kWh",
+      "currency/J",
+      "currency/MWh",
+      "currency/kWh"
+    ],
+    "money_per_length": [
+      "EUR/m",
+      "currency/m"
+    ],
+    "money_per_mass": [
+      "EUR/kg",
+      "EUR/t",
+      "currency/kg",
+      "currency/t"
+    ],
+    "money_per_power": [
+      "EUR/W",
+      "currency/W"
+    ],
+    "money_per_volume": [
+      "EUR/m3",
+      "currency/m3"
+    ],
+    "permeability": [
+      "m2",
+      "mD"
+    ],
+    "power": [
+      "GW",
+      "MW",
+      "W",
+      "kW"
+    ],
+    "pressure": [
+      "MPa",
+      "Pa",
+      "bar",
+      "bar(g)",
+      "barg",
+      "kPa"
+    ],
+    "specific_enthalpy": [
+      "J/kg",
+      "kJ/kg"
+    ],
+    "temperature": [
+      "C",
+      "K",
+      "degC",
+      "\u00b0C"
+    ],
+    "temperature_difference": [
+      "C",
+      "K",
+      "degC",
+      "\u00b0C"
+    ],
+    "temperature_gradient": [
+      "K/km",
+      "K/m"
+    ],
+    "viscosity": [
+      "Pa.s",
+      "mPa*s",
+      "mPa.s"
+    ]
+  }
 }

@@ -2,6 +2,7 @@
 
 from gemini._utils import registry
 from gemini.modules.grids import CoolingGrid, HeatingGrid
+from gemini.plants._utils import leaves
 from gemini.plants.doublet import Doublet
 from gemini.plants.roles import roles_of
 
@@ -25,15 +26,11 @@ def _schedulable(plant):
 def _ranges(plant):
     """Return the paths of the leaves a plant file may give a ``range`` for a study to search.
 
-    These are ``size.doublets`` when the class takes that structural size and ``params.depth``
-    when the plant has a ``depth`` parameter.
+    These are ``size.doublets`` when the class takes that structural size, then every leaf of
+    ``params`` that holds a number: a parameter, a control or a boundary of any module.
     """
-    found = []
-    if "doublets" in (getattr(plant, "_size", None) or {}):
-        found.append("size.doublets")
-    if "depth" in dict(plant.named_parameters(recurse=False)):
-        found.append("params.depth")
-    return found
+    found = ["size.doublets"] if "doublets" in (getattr(plant, "_size", None) or {}) else []
+    return found + leaves.numeric_paths(plant)
 
 
 def capabilities():
@@ -43,9 +40,9 @@ def capabilities():
 
     - ``roles``: the roles (``gm.plants.roles()``) of which it has a unit;
     - ``schedulable``: whether ``gm.schedule`` can plan it;
-    - ``ranges``: the leaves of the plant file that may state a ``range``: ``size.doublets`` when
-      its class takes a structural size of that name and ``params.depth`` when it has a ``depth``
-      parameter.
+    - ``ranges``: every leaf of the plant file that may state a ``range``: ``size.doublets`` when
+      its class takes a structural size of that name, then ``params.<path>`` for each parameter,
+      control and boundary that is a number (``params.depth``, ``params.doublet.nominal_flow``).
 
     Returns
     -------
