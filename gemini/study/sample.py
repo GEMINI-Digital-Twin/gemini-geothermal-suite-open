@@ -39,6 +39,7 @@ class Sample(dict):
                 "parameters": to_plain(shown(draw["parameters"], names)),
                 "metrics": to_plain(shown(draw["metrics"])),
                 **({"reason": draw["reason"]} if "reason" in draw else {}),
+                **({"feasible": draw["feasible"]} if "feasible" in draw else {}),
             }
             for draw in self["samples"]
         ]
@@ -56,6 +57,7 @@ class Sample(dict):
                 },
                 "metrics": {k: value_of(v) for k, v in draw["metrics"].items()},
                 **({"reason": draw["reason"]} if "reason" in draw else {}),
+                **({"feasible": draw["feasible"]} if "feasible" in draw else {}),
             }
             for draw in data["samples"]
         ]
@@ -162,7 +164,10 @@ def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None):
     Sample
         A dict ``{samples, summary}``: ``samples`` lists each draw's ``parameters``, ``Quantity``
         values in SI by ``case.<path>``, and ``metrics``, a ``Value`` per metric, with a
-        ``reason`` for a draw whose run failed; ``summary`` gives, for each metric,
+        ``reason`` for a draw whose run failed, and ``feasible``, whether the run of the draw is
+        feasible by ``gm.evaluate.verdict`` (``False`` for a run that failed); a result stored
+        before the flag has none. The flag does not change the metrics or the summary, which
+        count the draws as before; ``summary`` gives, for each metric,
         ``{mean, p5, p50, p95}`` over the draws that give a finite number, each a ``Value`` that
         is ``None`` with a ``reason`` when none does, and ``failed``, the number of draws left out
         because their run had failed steps (their ``reason`` names the count and the most frequent
@@ -187,9 +192,16 @@ def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None):
         if count is not None:
             count.reach(len(draws))
     drawn_runs = []
-    for drawn, (run, reason) in zip(draws, runs):
+    for drawn, (run, reason, feasible) in zip(draws, runs):
         failed = {"reason": reason} if reason else {}
-        drawn_runs.append({"parameters": quantities(plant, case, drawn), "metrics": run, **failed})
+        drawn_runs.append(
+            {
+                "parameters": quantities(plant, case, drawn),
+                "metrics": run,
+                **failed,
+                "feasible": feasible,
+            }
+        )
     summary = {name: _spread(drawn_runs, name) for name in names}
     lifts = difference_names(
         quantities(plant, case, draws[0]), lambda name: quantity_of(plant, case, name)

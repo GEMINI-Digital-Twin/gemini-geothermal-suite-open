@@ -169,9 +169,9 @@ def test_the_draws_of_a_call_are_one_batch(monkeypatch, runs):
     sizes = []
     real = trial_module.run_trials
 
-    def counting(shared, case, plan, valued, names, judge):
+    def counting(shared, case, plan, valued, names, judge, **flag):
         sizes.append(len(valued))
-        return real(shared, case, plan, valued, names, judge)
+        return real(shared, case, plan, valued, names, judge, **flag)
 
     monkeypatch.setattr(trial_module, "run_trials", counting)
     gm.study.sample(shallow_plant(), declared_case(), ["co2"], 6, 3)
@@ -231,8 +231,8 @@ def test_a_difference_of_temperature_stays_in_kelvin_through_the_round_trip():
     assert again.to_dict() == plain
 
 
-def test_a_draw_that_breaks_a_requirement_is_a_plain_number_in_the_summary(runs, monkeypatch):
-    """Pinned for the owner (t2.md): the draws run unjudged: no feasible count."""
+def test_a_draw_that_breaks_a_requirement_is_a_plain_number_flagged_infeasible(runs, monkeypatch):
+    """The metrics and the summary are the numbers of the run; the draw carries its flag."""
     broken = reason("requirement", "heating_supply_unmet", "unmet demand above its limit")
     monkeypatch.setattr(
         trial_module, "verdict", lambda *a: Verdict(feasible=False, reasons=[broken])
@@ -241,3 +241,47 @@ def test_a_draw_that_breaks_a_requirement_is_a_plain_number_in_the_summary(runs,
     assert all(item["metrics"]["lcts"].value is not None for item in found["samples"])
     assert set(found["summary"]["lcts"]) == {"mean", "p5", "p50", "p95", "failed"}
     assert found["summary"]["lcts"]["failed"].value == 0
+    assert [item["feasible"] for item in found["samples"]] == [False] * 4
+
+
+def test_a_feasible_draw_is_flagged_feasible(runs):
+    """The clean fake verdict has no reason: every draw is feasible."""
+    found = gm.study.sample(shallow_plant(), declared_case(), ["lcts"], 3, 3)
+    assert [item["feasible"] for item in found["samples"]] == [True] * 3
+
+
+def test_a_draw_with_failed_steps_is_flagged_infeasible(failing_runs):
+    """A failed run is infeasible, and a clean one beside it is feasible."""
+    case = declared_case(**{PATH: {"kind": "uniform", "min": 100, "max": 300}})
+    found = gm.study.sample(shallow_plant(), case, ["lcts"], 8, 1)
+    assert all(item["feasible"] is ("reason" not in item) for item in found["samples"])
+    assert any(item["feasible"] for item in found["samples"])
+    assert any(not item["feasible"] for item in found["samples"])
+
+
+def test_the_flag_round_trips_through_json(sampled):
+    """``to_dict`` writes the flag and ``from_dict`` reads it back."""
+    plain = json.loads(json.dumps(sampled[0].to_dict(), allow_nan=False))
+    assert all(item["feasible"] is True for item in plain["samples"])
+    again = gm.study.Sample.from_dict(plain)
+    assert [item["feasible"] for item in again["samples"]] == [True] * 6
+    assert again.to_dict() == plain
+
+
+def test_a_stored_result_without_the_flag_is_read_without_it(sampled):
+    """A 0.5.3 result has no ``feasible``: it stays absent, in the object and in its JSON."""
+    plain = json.loads(json.dumps(sampled[0].to_dict()))
+    for item in plain["samples"]:
+        del item["feasible"]
+    again = gm.study.Sample.from_dict(plain)
+    assert all("feasible" not in item for item in again["samples"])
+    assert again.to_dict() == plain
+
+
+def test_the_flags_are_the_same_with_worker_processes(runs):
+    """``processes`` > 1 gives the flags of one process."""
+    case = declared_case()
+    one = gm.study.sample(shallow_plant(), case, ["co2"], 4, 3)
+    with gm.runtime.settings(processes=2):
+        two = gm.study.sample(shallow_plant(), case, ["co2"], 4, 3)
+    assert [i["feasible"] for i in two["samples"]] == [i["feasible"] for i in one["samples"]]

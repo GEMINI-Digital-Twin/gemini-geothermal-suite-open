@@ -82,10 +82,14 @@ def judged(plant, case, results):
 class _Trial:
     """One trial of a batch: its values, its metrics to read and the lane it runs in."""
 
-    def __init__(self, shared, case, plan, values, names, judge):
-        """Prepare the trial of ``values`` on ``shared``; ``judge`` adds the verdict to the read."""
+    def __init__(self, shared, case, plan, values, names, judge, flag=False):
+        """Prepare the trial of ``values`` on ``shared``.
+
+        ``judge`` adds the verdict to the read; ``flag``, for a trial that is not judged, adds
+        whether the run is feasible.
+        """
         self.shared, self.case, self.plan = shared, case, plan
-        self.values, self.names, self.judge = values, names, judge
+        self.values, self.names, self.judge, self.flag = values, names, judge, flag
         self.held = None
         self.lane = Lane(self._steps(), self._restore)
 
@@ -98,7 +102,8 @@ class _Trial:
         """Run the trial; return ``(metrics, reason)`` or, judged, ``(metrics, reason, violation)``.
 
         A run that fails has its reason (``failure_reason`` for a failed step, with every metric
-        ``None``) and, judged, the largest violation.
+        ``None``) and, judged, the largest violation. A flagged trial gives ``(metrics, reason,
+        feasible)`` with the metrics of the unjudged read; a run that fails is not feasible.
         """
         try:
             trial, changed, results = yield from self._simulated()
@@ -107,10 +112,16 @@ class _Trial:
                 return (metrics, *judged(trial, changed, results))
             if results.failures:
                 reason = failure_reason(results)
-                return {item: measure(None, "-", reason) for item in self.names}, reason
-            return {item: metric(trial, changed, results, item) for item in self.names}, None
+                found = {item: measure(None, "-", reason) for item in self.names}, reason
+                return (*found, False) if self.flag else found
+            found = {item: metric(trial, changed, results, item) for item in self.names}, None
+            if self.flag:
+                return (*found, verdict(trial, changed, results)["feasible"])
+            return found
         except GeminiError as error:
-            return ({}, str(error), LARGEST_VIOLATION) if self.judge else ({}, str(error))
+            if self.judge:
+                return {}, str(error), LARGEST_VIOLATION
+            return ({}, str(error), False) if self.flag else ({}, str(error))
 
     def _simulated(self):
         """Set the values on the shared plant and run it; return ``(plant, case, results)``.
@@ -133,23 +144,28 @@ class _Trial:
         return plant, changed, results
 
 
-def run_trials(shared, case, plan, valued, names, judge):
+def run_trials(shared, case, plan, valued, names, judge, *, flag=False):
     """Return the outcome of each of the trials ``valued`` (a list of ``{name: SI number}``).
 
     The outcome is ``(metrics, reason)``, or ``(metrics, reason, violation)`` when ``judge``: a
-    run that fails is infeasible with its message as the reason and ``LARGEST_VIOLATION``. The
-    trials run together on ``shared`` (a ``Shared``) and each gives what it gives alone. Each
-    trial that ends is counted for ``gemini.study._utils.progress``.
+    run that fails is infeasible with its message as the reason and ``LARGEST_VIOLATION``. With
+    ``flag`` and no ``judge``, the outcome is ``(metrics, reason, feasible)``, the metrics being
+    those of the unjudged read. The trials run together on ``shared`` (a ``Shared``) and each
+    gives what it gives alone. Each trial that ends is counted for
+    ``gemini.study._utils.progress``.
     """
-    trials = [_Trial(shared, case, plan, values, names, judge) for values in valued]
+    trials = [_Trial(shared, case, plan, values, names, judge, flag) for values in valued]
     return lockstep([trial.lane for trial in trials], lambda lane: progress.finished())
 
 
 def drawn_trials(shared, valued):
     """Return ``run_trials`` of ``valued`` with the ``(plant, case, plan, names)`` it shares.
 
+    Each outcome is ``(metrics, reason, feasible)``: the draws and the ends are not judged, but
+    each says whether its run is feasible.
+
     The function ``gemini.study._utils.parallel.mapped`` runs in a worker process, which copies
     the plant once for its trials.
     """
     plant, case, plan, names = shared
-    return run_trials(Shared(plant), case, plan, valued, names, False)
+    return run_trials(Shared(plant), case, plan, valued, names, False, flag=True)

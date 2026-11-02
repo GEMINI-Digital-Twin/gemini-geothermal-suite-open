@@ -215,7 +215,7 @@
       "description": "Production flow the doublet and its pump are designed for",
       "enum": null,
       "maximum": null,
-      "minimum": null,
+      "minimum": 0,
       "quantity": "volume_flow",
       "section": "parameter",
       "type": "number",

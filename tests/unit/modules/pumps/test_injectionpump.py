@@ -224,3 +224,15 @@ def test_the_frequency_has_no_default():
             ),
             pressure_setpoint=2e6,
         )
+
+
+@pytest.mark.parametrize("flow", [0, -0.1])
+def test_a_nominal_flow_of_zero_or_below_is_refused(flow):
+    """A pump designed for no flow would be priced as free, so the door refuses it."""
+    with raises(ValidationError, "out_of_bounds", "nominal_flow"):
+        InjectionPump().set_params("", {"nominal_flow": Quantity(flow, "m3/s")})
+
+
+def test_a_pump_may_have_no_nominal_flow():
+    """``None`` still means not sized."""
+    assert InjectionPump().set_params("", {"nominal_flow": None}).nominal_flow is None

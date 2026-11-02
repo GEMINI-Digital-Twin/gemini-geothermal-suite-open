@@ -17,6 +17,9 @@ from gemini.study.sample import value_of
 from gemini.units.display import by_si_unit
 from gemini.units.shapes import measure
 
+FLAGS = ("feasible_low", "feasible_high")
+"""The keys of a row that say whether the run at each end is feasible."""
+
 
 class Tornado(list):
     """The rows of a one-at-a-time sensitivity, sorted by effect, with ``to_frame``."""
@@ -33,6 +36,7 @@ class Tornado(list):
             "rows": [
                 {"parameter": row["parameter"], "metric": row["metric"]}
                 | {key: to_plain(displayed(row[key], table)) for key in keys}
+                | {key: row[key] for key in FLAGS if key in row}
                 for row in self
             ]
         }
@@ -47,6 +51,7 @@ class Tornado(list):
                 "low": units.Quantity.from_dict(row["low"]),
                 "high": units.Quantity.from_dict(row["high"]),
                 **{key: value_of(row[key]) for key in ("at_low", "at_high", "effect")},
+                **{key: row[key] for key in FLAGS if key in row},
             }
             for row in data["rows"]
         )
@@ -95,8 +100,8 @@ def _metric(found, name, reason):
     return found[name] if name in found else measure(None, "-", reason)
 
 
-def _row(name, metric, shown, ends):
-    """Return the row of one metric of one parameter."""
+def _row(name, metric, shown, ends, feasible):
+    """Return the row of one metric of one parameter; ``feasible`` is the flag of each end."""
     at_low, at_high = ends
     effect = None
     if at_low.value is not None and at_high.value is not None:
@@ -111,6 +116,8 @@ def _row(name, metric, shown, ends):
         "at_low": at_low,
         "at_high": at_high,
         "effect": measure(effect, unit, reason),
+        "feasible_low": feasible[0],
+        "feasible_high": feasible[1],
     }
 
 
@@ -145,10 +152,13 @@ def sensitivity(plant, case, metrics, *, plan=None, on_progress=None):
     -------
     Tornado
         A list with one row for each uncertain value and metric, ``{parameter, metric, low, high,
-        at_low, at_high, effect}``: ``parameter`` is ``case.<path>``, ``low`` and ``high`` are
-        ``Quantity`` values in SI, ``at_low`` and ``at_high`` the metric as a ``Value`` there, and
-        ``effect`` the size of their difference, a ``Value`` that is ``None`` with a ``reason``
-        when a run failed. The rows are grouped by metric in the order given, the largest effect
+        at_low, at_high, effect, feasible_low, feasible_high}``: ``parameter`` is ``case.<path>``,
+        ``low`` and ``high`` are ``Quantity`` values in SI, ``at_low`` and ``at_high`` the metric
+        as a ``Value`` there, and ``effect`` the size of their difference, a ``Value`` that is
+        ``None`` with a ``reason`` when a run failed. ``feasible_low`` and ``feasible_high`` say
+        whether the run at each end is feasible by ``gm.evaluate.verdict`` (``False`` for a run
+        that failed); the numbers are those of the run either way, and a result stored before the
+        flags has none. The rows are grouped by metric in the order given, the largest effect
         first, the failed last. ``to_frame()`` gives the table and ``to_dict()`` plain JSON.
     """
     raise_issues(check(plant, case))
@@ -164,8 +174,8 @@ def sensitivity(plant, case, metrics, *, plan=None, on_progress=None):
         pair = runs[2 * index : 2 * index + 2]
         shown = tuple(quantities(plant, case, {name: end})[name] for end in ends)
         for metric in names:
-            found = [_metric(items, metric, reason) for items, reason in pair]
-            rows.append(_row(name, metric, shown, found))
+            found = [_metric(items, metric, reason) for items, reason, _ in pair]
+            rows.append(_row(name, metric, shown, found, [feasible for *_, feasible in pair]))
     order = {metric: index for index, metric in enumerate(names)}
     rows.sort(
         key=lambda row: (

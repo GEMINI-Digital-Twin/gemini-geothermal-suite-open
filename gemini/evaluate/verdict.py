@@ -492,8 +492,10 @@ def verdict(plant, case, results):
     feasible when it has no reason. A reason has a ``kind``:
 
     - ``requirement``: a requirement of the case, or a supply temperature of a service, that
-      failed (``requirements``); no requirement could be checked; a service of the case that the
-      run does not deliver.
+      failed (``requirements``); no requirement could be checked; when some passed and none
+      failed, each one that could not be judged (without a ``violation``), except an idle unit
+      and the supply of a service reported as not delivered; a service of the case that the run
+      does not deliver.
     - ``failed_step``: rows of the run that failed or were skipped.
     - ``numerical``: a mass or energy residual above the tolerances of ``mass_balance``,
       ``energy_balance`` and ``plant_balance``, or a loop that did not converge.
@@ -589,14 +591,48 @@ def _text(item):
 
 
 def _requirement_reasons(case, checks, edge):
-    """Return the requirement reasons: failed checks, none checked, a service not delivered."""
+    """Return the requirement reasons: failed or undecided checks, none checked, a missing service.
+
+    A check that could not be judged is a reason when another one passed and none failed, unless
+    the unit never ran or its service is already reported as not delivered. It has no
+    ``violation``.
+    """
     found = [_failed(item) for item in checks if item["passed"] is False]
-    if checks and tally([item["passed"] for item in checks]) is None:
+    outcome = tally([item["passed"] for item in checks])
+    if checks and outcome is None:
         found.append(reason("requirement", "requirements", "no requirement could be checked"))
-    for service, key in SERVICES.items():
-        if _asked(case, service) and edge[key].value is None:
-            found.append(reason("requirement", key, f"the run gives no {key} for the {service}"))
+    missing = {
+        service: key
+        for service, key in SERVICES.items()
+        if _asked(case, service) and edge[key].value is None
+    }
+    if outcome:
+        skipped = {f"{service}_supply" for service in missing}
+        found.extend(_unjudged(item) for item in checks if _unjudgeable(item, skipped))
+    for service, key in missing.items():
+        found.append(reason("requirement", key, f"the run gives no {key} for the {service}"))
     return found
+
+
+def _unjudgeable(item, skipped):
+    """Return whether an undecided check is a gap: not an idle unit, not a ``skipped`` role."""
+    return (
+        item["passed"] is None and item["value"].reason != NO_FLOW and item["role"] not in skipped
+    )
+
+
+def _unjudged(item):
+    """Return the reason of a requirement check that could not be judged."""
+    return reason(
+        "requirement",
+        item["name"],
+        f"{item['name']}: {item['value'].reason}",
+        path=item["unit_path"] or None,
+        value=item["value"],
+        limit=item["limit"],
+        role=item["role"],
+        quantity=item["quantity"],
+    )
 
 
 def _asked(case, service):
