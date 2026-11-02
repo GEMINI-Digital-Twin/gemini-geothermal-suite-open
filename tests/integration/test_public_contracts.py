@@ -51,7 +51,9 @@ CALLS = {
     "results.end_state": lambda plant, results: results.end_state,
     "evaluate": lambda plant, results: gm.call("Valve", {}, {}, {}, "si", on_error="record"),
     "kpi": lambda plant, results: gm.evaluate.totals(plant, make_case(), results),
-    "checks.run_all": lambda plant, results: gm.evaluate.run_all(plant, make_case(), results),
+    "checks.verdict": lambda plant, results: gm.evaluate.verdict(
+        plant, make_case(), results
+    ).to_dict(),
     "economics.capex": lambda plant, results: gm.evaluate.capex(
         plant, make_case(), on_error="record"
     ),

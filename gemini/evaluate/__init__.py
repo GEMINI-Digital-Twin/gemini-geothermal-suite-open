@@ -19,7 +19,7 @@ from .costs import annualised_cost, capex, lcoc, lcoh, lcts, npv, opex, payback
 from .emissions import co2
 from .report import compare, report
 from .summary import capacities, totals
-from .verdict import bounds, failures, requirements, run_all, verdict
+from .verdict import bounds, failures, requirements, verdict
 
 __all__ = [
     "totals",
@@ -35,7 +35,6 @@ __all__ = [
     "collect_flows",
     "call_emissions",
     "bounds",
-    "run_all",
     "requirements",
     "verdict",
     "capex",

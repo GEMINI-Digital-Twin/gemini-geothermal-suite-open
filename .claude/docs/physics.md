@@ -498,9 +498,9 @@ Fuel-fired heat and power: fuel input of a boiler or engine, flare emissions.
   CO2 and methane emissions and the fuel power of a flared gas.
 - `released_heat(gas_flow, heating_value, combustion_efficiency)`: heat a flare releases.
 
-### `control.py`
+### `control.py` (moved)
 
-Discrete PID control: the error, the ideal-form command and the clamped integral.
+The PID relations are no longer in `gemini/physics/`: they are `modules/control/_physics.py`, used only by `PIDController`. Discrete PID control: the error, the ideal-form command and the clamped integral.
 
 - `pid_error(setpoint, measurement, reverse)`: control error in the sense of the controller
   direction.
@@ -1092,7 +1092,7 @@ or a size distribution.
 
 ## Control
 
-`control.py` holds the ideal (ISA) PID form of `PIDController`, discretised as in Astrom and
+`modules/control/_physics.py` holds the ideal (ISA) PID form of `PIDController`, discretised as in Astrom and
 Hagglund (2006, chapter 3): explicit rectangular integral, backward-difference derivative on the
 error, and anti-windup by clamping (conditional integration).
 

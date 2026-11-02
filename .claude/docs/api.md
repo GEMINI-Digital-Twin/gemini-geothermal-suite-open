@@ -66,11 +66,20 @@ not fit it, raises `ValidationError` with suggestions.
 ## Freeze rule
 
 `gm.__version__` is the one version of the package, read from `version` in `pyproject.toml`.
-Semantic versioning, below 1.0: a breaking change to a public name or return field raises the
-minor number (`0.3.0`); an addition or a fix raises the patch number (`0.1.1`). Every change has a
-line in the change log below, in the same commit. The public-API test compares against a stored
-snapshot (`tests/fixtures/public_api.json`) that records the version and may only change together
-with it; its hash per version is held in the test.
+From 0.5.0 the API is backward compatible and additions are allowed if they break nothing: no name,
+parameter (name, kind, default, order), output field, code, schema key or behaviour that exists in
+0.5.0 changes, and the module-author contract (`forward`, `update`, `State`) stays; what the
+competition runs stays exactly the same ([conventions.md](conventions.md#public-api-freeze)). An
+addition or a fix raises the patch number (`0.5.1`). Every change has a line in the change log
+below, in the same commit. `tests/fixtures/public_api_0_5_0.json` is the frozen 0.5.0 surface,
+written once and never regenerated; `tests/fixtures/public_api.json` is the working snapshot with
+its hash per version in the test.
+
+**Names kept on purpose.** `gm.evaluate.call_energy_balance`, `call_mass_balance`, `collect_flows`
+and `call_emissions` keep their `call_` prefix: they audit one `gm.call` result (a module or a
+plant, no case), unlike `energy_balance(plant, case, results)`, which judges a run. The `gm.ops`
+names are the math API that module authors write physics with; they are not internal and do not
+change.
 
 **Module catalogue.** Adding, removing, moving or renaming modules is never a version matter. The
 snapshot covers the package API (functions, types, return shapes), not the list of modules.
@@ -362,7 +371,6 @@ error.
 | `gm.evaluate.plant_balance(plant, case, results)` | real, a list of checks: mass and energy of every module within 1e-9 and of the root within 1e-6. The root's in and out are the ports of the grids and environment modules, the aquifers and the plant ports of a building block run alone; a replay does not close at the root |
 | `gm.evaluate.energy_balance(plant, case, results)`, `mass_balance(plant, case, results)`, `bounds(plant, case, results)` | real, each a check; they are ledger checks, see [economics.md](economics.md) |
 | `gm.evaluate.call_energy_balance(module, result)`, `call_mass_balance(module, result)`, `collect_flows(result_tree)`, `call_emissions(result_tree, fuel_factor, electricity_factor)` | real: the audits of one `gm.call` (a module or a plant, no case), the former `gm.modules.energy_balance`, `mass_balance`, `collect_flows` and `emissions`; they sit here because they judge, and a module never imports `evaluate` |
-| `gm.evaluate.run_all(plant, case, results)` | real: `{passed, checks: [check]}` of the ledgers, the bounds and the requirements |
 | `gm.evaluate.verdict(plant, case, results)` | real: the one answer to feasibility, a `Verdict` (a `dict`, `to_dict()` for plain JSON) `{feasible, reasons}`. A reason is `{kind, name, message}` plus `path`, `value`, `limit`, `worst_step` when it has them (a `requirement` reason also has `role` and `quantity`). Kinds: `requirement` (a failed requirement or service supply temperature of the case, none checkable, a service not delivered; `name` that of the requirement, or `cold_delivered`-style), `failed_step` (failed or skipped rows), `numerical` (a mass, energy or plant balance beyond its constant, a loop that did not converge) and `bound` (an output outside the limits its module declares, or past an operating limit of `Module.operating_limits`, in the steps in which the module ran). The case is applied to the plant once; `report` and `compare` use it, nothing else decides feasibility |
 | `gm.evaluate.capex(plant, case, on_error="raise")` | real: the sum, each module in `parts["modules"]` |
 | `gm.evaluate.opex(plant, case, results, on_error="raise")` | real: the fixed opex of each kind in `parts["fixed_by_kind"]` and the bills of energy; no variable opex |
@@ -711,7 +719,6 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.evaluate.call_energy_balance` | `(module, result)` | function |
 | `gm.evaluate.call_mass_balance` | `(module, result)` | function |
 | `gm.evaluate.bounds` | `(plant, case, results)` | function |
-| `gm.evaluate.run_all` | `(plant, case, results)` | function |
 | `gm.evaluate.requirements` | `(plant, case, results)` | function |
 | `gm.evaluate.verdict` | `(plant, case, results)` | function |
 | `gm.evaluate.capex` | `(plant, case, on_error='raise')` | function |
@@ -837,7 +844,6 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.physics.chemistry` |  | module |
 | `gm.physics.combustion` |  | module |
 | `gm.physics.constants` |  | module |
-| `gm.physics.control` |  | module |
 | `gm.physics.corrosion` |  | module |
 | `gm.physics.cycles` |  | module |
 | `gm.physics.diagnostics` |  | module |
@@ -866,6 +872,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 | 0.4.0 | 2026-11-02 | **Folders by job** (rules and tree in [structure.md](structure.md)). Moves only, numbers equal to 1e-9; no old path is kept. Public names, old -> new: `gm.data.from_csv`, `from_values`, `profile_schema` -> `gm.case.from_csv`, `from_values`, `profile_schema` (`gm.data` is gone); `gm.analysis.calibrate`, `CalibrationResult` -> `gm.study.calibrate`, `CalibrationResult`; `gm.case.roles()` -> `gm.plants.roles()`; `gm.modules.collect_flows`, `emissions`, `energy_balance`, `mass_balance` -> `gm.evaluate.collect_flows`, `call_emissions`, `call_energy_balance`, `call_mass_balance`; `gm.physics.dispatch`, `gm.physics.doublet`, `gm.physics.costs` removed (the dispatch policy is `engine/schedule/`, the doublet design `plants/_utils/`, the price `evaluate/_utils/pricing.py`); `circuit_flow`, `temperature_after` -> `gm.physics.energy`; `hydraulics.pipe_path_profile`, `corrosion_profile` -> `modules/wells/_physics.py` (they take a `Stream`), `hydraulics.erosion_check` -> `gm.physics.erosion.pipe_path_erosion_check(path, mass_flow, density)`; the PID relations are `gm.physics.control` (new module); `gm.streams` joins `gm.__all__` (`Stream`, `Fluid`, `Ports`, `BRINE`, `WATER`, `GLYCOL_30`, `STEAM`); `gm.run` and `gm.types` are gone (nothing public lived there). `gm.evaluate.<name>`, `gm.analysis.nodal`, `pump_curve` and the rest are unchanged. Examples move from `inputs/examples/<name>/` to `examples/<name>/`, test data from `inputs/` to `tests/fixtures/`. |
 | 0.4.0, unreleased changes | | **Readable units in `gm.call` and the study results; burned gas; state door.** `gm.call(module, parameters, inlets, controls, units, on_error="raise", state=None, dt=None)`: `units` is required, `"si"` or `"display"`, and replaces the map `{quantity: unit}`; the result has a key `state`; a module with state takes `state` and `dt`. `Best.to_dict()`, `Sample.to_dict()`, the history of a search and the notes of `gm.study.size` are in display units. New plant quantity `gas_burned` (kg/s) of the role `plant`. `runtime.settings(default_fluid=)` is removed (the fluid is `site.fluid` or a plant `fluids` entry; a module or `gm.Stream` without one raises `missing_value`). Module contract: `forward(self, inputs, inlets, state)` is pure and a stateful module has a pure `update(self, inputs, inlets, outlets, state, dt)`; a stateful plant still runs one tick at a time. Hooks are `(module, inputs, inlets, state)` and `(module, inputs, inlets, state, outputs, outlets)`, and a returned mapping replaces the controls (pre-hook) or outputs (forward hook) of the call. `gm.physics.control` is new. A physical failure of a simulated step (`invalid_inlet`, `out_of_bounds`, `out_of_range`, `no_convergence`) is a failed row whatever `on_error` says; a trial of a search that fails a step is infeasible instead of raising. |
 | 0.4.0, unreleased changes | | **Physics of pumps and power in `gm.physics`.** `modules/pumps/_physics.py` and `modules/power/_physics.py` are gone: `head`, `pump_efficiency`, `esp_efficiency`, `line_shaft_friction_power` are in `gm.physics.pumps`; the intercooled compression (`isentropic_outlet_temperature`, `stage_outlet_temperature`, `stage_pressure_ratio`, `overall_pressure_ratio`, `specific_compression_work`, `shaft_power`, `heat_rejected`) is in `gm.physics.gas`; the IAPWS-IF97 steam, flash and turbine functions are the new `gm.physics.steam`; `lorenz_efficiency`, `cycle_design`, `plant_balance` are the new `gm.physics.cycles`. |
+| 0.5.0 | 2026-11-02 | **Backward compatible from here.** Last breaking change, old -> new: `gm.evaluate.run_all` -> `gm.evaluate.verdict` (`{feasible, reasons}` replaces `{passed, checks}`); `gm.physics.control` -> private `modules/control/_physics.py`. `gm.evaluate.call_*` and `gm.ops` stay (reasons in the freeze rule). New tests: `test_api_compatibility.py` with the frozen `public_api_0_5_0.json`, `test_competition_surface.py`. |
 | 0.3.0 | 2026-11-02 | **Inputs by owner.** `gm.Case` has the sections `time`, `initial_state`, `site`, `demand`, `utilities`, `economics` and `requirements`; `economics.json` holds all money; the plant file is `kind: plant`, `format: 1` with the design space (`range`, `options`) and the controls as leaves; `gm.Study` and `study.json` record a run. `gm.case.Choices`, `Constraint`, `Assumptions` and `Finance` are removed, `gm.evaluate.constraints` is `requirements`, `gm.plants.validate` and `missing_parameters` are `check()`. |
 | 0.3.0 | 2026-11-02 | **Signatures `(plant, case, ...)`.** `gm.check(plant, case)` is new and runs first in `simulate` and every study function. Removed arguments, no alias: `discount_rate` and `lifetime` of the costs (the economics file owns them), `constraints` and `variables` of `minimize` (the case and the plant own them; `evaluations` and `seed` have no default), `backup` of `size`, `time_column` of `gm.case.from_csv`; `sample(..., count)` is `samples`. `Case.from_dict(data, files=None, folder=None)`, `Economics.from_dict(data, files=None, time=None)`. Every signature, old and new, is in the table below the change log. |
 | 0.3.0 | 2026-11-02 | **Return shapes.** `capabilities()[class]["ranges"]` replaces `"choices"`; the cost parts `lifetime_years` are `analysis_period`; the result of `minimize` has no `fixed`; `report` has `requirements` and `verdict`; `docs/schemas/plant.*` replace `plant_dict.*` and `study.*` is new; a checkpoint of 0.2.0 is refused (`old_format`). The public-API snapshot gains `gm.check`, `gm.schedule` and the methods of `Study`, and this page the table "Names and signatures", which a test compares with the code. |

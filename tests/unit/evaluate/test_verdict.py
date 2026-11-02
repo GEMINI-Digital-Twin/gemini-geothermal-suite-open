@@ -694,36 +694,22 @@ def test_a_figure_the_run_lacks_gives_no_value_also_when_running():
     assert found["passed"] is None and "no_value" in found["value"].reason
 
 
-def test_run_all_lists_the_three_checks():
-    """The ledgers and the bounds, in order, and a passing verdict."""
-    results = make_results(
-        {"grid": {"power_out": [1.0]}, "heat": {"return_out.temperature": [300.0]}}
-    )
-    report = gm.evaluate.run_all(heating_plant(), make_case(), results)
-    assert [item["name"] for item in report["checks"]] == [
-        "energy_balance",
-        "mass_balance",
-        "bounds",
-    ]
-    assert [item["passed"] for item in report["checks"]] == [True, None, True]
-    assert report["passed"] is True
-
-
-def test_the_requirements_of_the_case_join_the_checks():
-    """Each match of a requirement is one more check and can fail the run."""
+def test_the_requirements_of_the_case_join_the_verdict():
+    """A requirement that fails is a reason of kind requirement and makes the run infeasible."""
     results = make_results(
         {"heat": {"unmet_demand": [7.0], "return_out.temperature": [300.0], "operating": [1.0]}}
     )
     limit = requirement("heating_supply", "unmet", max=gm.units.Quantity(5.0, "W"))
-    report = gm.evaluate.run_all(heating_plant(), make_case(count=1, requirements=[limit]), results)
-    assert report["checks"][-1]["name"] == "heating_supply_unmet"
-    assert report["checks"][-1]["passed"] is False and report["passed"] is False
+    found = gm.evaluate.verdict(heating_plant(), make_case(count=1, requirements=[limit]), results)
+    assert found["feasible"] is False
+    assert "heating_supply_unmet" in {item["name"] for item in found["reasons"]}
 
 
 def test_one_failure_fails_the_run():
-    """A negative fuel power fails the energy ledger and the whole report."""
+    """A negative fuel power fails the energy ledger and the whole verdict."""
     results = make_results({"heat": {"fuel": [-1.0], "return_out.temperature": [300.0]}})
-    assert gm.evaluate.run_all(heating_plant(), make_case(), results)["passed"] is False
+    found = gm.evaluate.verdict(heating_plant(), make_case(), results)
+    assert found["feasible"] is False
 
 
 def kinds(found):

@@ -162,7 +162,6 @@ it, and the checks audit what the columns hold:
 | `mass_balance(plant, case, results)` | the leaf outputs whose unit in `results.units` is kg/s: finite or missing, not negative | smallest flow [kg/s], 1e-12 kg/s |
 | `bounds(plant, case, results)` | every recorded output with a declared limit (`ge`, `gt`, `le`, `lt` of its `Declaration`) | number of values outside, 0 |
 | `requirements(plant, case, results)` | every `gm.case.Requirement` of the case and the supply temperatures of the services, below | one check per matched module and requirement |
-| `run_all(plant, case, results)` | the first three, `bounds` and `requirements` | `{passed, checks}` |
 
 The limits of a run are the `requirements` of its `gm.Case`: each names a **role** and a
 **quantity** of it, never a module path or a field (`gm.plants.roles()` is the closed table):

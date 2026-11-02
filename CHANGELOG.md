@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0]
+
+From 0.5.0 the public API is backward compatible (additions allowed if nothing breaks).
+
+### Removed or moved (the last breaking change)
+| Old | New |
+| --- | --- |
+| `gm.evaluate.run_all(plant, case, results)` returning `{passed, checks}` | `gm.evaluate.verdict(plant, case, results)` returning `{feasible, reasons}`; the checks are `energy_balance`, `mass_balance`, `bounds` and `requirements` |
+| `gm.physics.control` (`pid_error`, `pid_derivative`, `pid_command`, `pid_integral_increment`, `anti_windup_increment`) | `gemini/modules/control/_physics.py`, private to `PIDController` |
+
+Kept on purpose: `gm.evaluate.call_*` (they audit one `gm.call`) and `gm.ops` (the math API of
+module authors). `gm.physics.diagnostics` stays: five modules call it from `health` and a module
+may not import `engine`.
+
+### Added
+- `tests/fixtures/public_api_0_5_0.json`, `tests/unit/test_api_compatibility.py` and
+  `tests/e2e/test_competition_surface.py`.
+
 ## [Unreleased]
 
 ### Added

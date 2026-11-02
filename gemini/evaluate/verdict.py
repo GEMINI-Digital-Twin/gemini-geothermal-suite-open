@@ -467,35 +467,6 @@ def _where(requirement, unit_path, step):
     }
 
 
-def run_all(plant, case, results):
-    """Run the energy ledger, the mass ledger, the bounds and the requirements on a finished run.
-
-    Parameters
-    ----------
-    plant : Module
-        The plant that produced ``results``.
-    case : Case
-        The case of the run; its requirements and its service supply temperatures are checked.
-    results : Results
-        A finished run.
-
-    Returns
-    -------
-    dict
-        Plain JSON ``{passed, checks}``: ``checks`` lists the results of ``energy_balance``,
-        ``mass_balance`` and ``bounds``, then those of ``requirements`` (each
-        ``{name, passed, value, limit}``), and ``passed`` is ``False`` if any check failed,
-        ``True`` if none failed and at least one passed, and ``None`` if none could judge.
-    """
-    checks = [
-        energy_balance(plant, case, results),
-        mass_balance(plant, case, results),
-        bounds(plant, case, results),
-        *requirements(plant, case, results),
-    ]
-    return to_plain({"passed": tally([item["passed"] for item in checks]), "checks": checks})
-
-
 SERVICES = {"heating": "heat_delivered", "cooling": "cold_delivered"}
 """The figure that shows a service of the case being delivered."""
 

@@ -62,7 +62,6 @@ def real_calls(example_run):
         ("checks.energy_balance", gm.evaluate.energy_balance(plant, problem, replay)),
         ("checks.mass_balance", gm.evaluate.mass_balance(plant, problem, replay)),
         ("checks.bounds", gm.evaluate.bounds(plant, problem, replay)),
-        ("checks.run_all", gm.evaluate.run_all(plant, problem, replay)),
         ("testing.check_module", gm.modules.check(Booster, EXAMPLE)),
     ]
 
