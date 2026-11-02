@@ -24,6 +24,13 @@ The first version published as a package. Every public name, default and number 
 - The compatibility tests no longer compare methods gemini inherits from Python or pydantic, whose
   signatures change with those versions, nor the call of an enum class. The frozen file is unchanged.
 
+### Known issues
+- On a few winter days of the sample plants the split of the heat between the heat pump and the
+  peak boiler is not unique, so a change in the last bit of a calculation moves it. The same
+  installation on the same CPU always gives the same numbers, but a CPU with AVX-512 can give others:
+  LCTS moves by up to 0.13% on `HeatingPlant`, and the fuel of the boiler by more. This is not new in
+  this version. CI runs NumPy without AVX-512 to stay on the expected numbers.
+
 ## [0.5.4] - 2026-11-02
 
 Backward compatible with 0.5.3 and 0.5.0 for every number: all are the same to 1e-9 (`gm.study.sample`
