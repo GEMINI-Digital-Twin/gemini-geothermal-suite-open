@@ -9,12 +9,12 @@ from gemini.units import Quantity
 from tests.fixtures.cases import make_case
 from tests.fixtures.errors import raises
 
-PATH = "assumptions.finance.opex.electricity"
+PATH = "economics.energy.electricity"
 
 
 def priced(value, count=4):
     """Return a case of ``count`` steps whose electricity costs ``value``."""
-    return make_case(count=count, finance={"opex": gm.case.Opex(electricity=value)})
+    return make_case(count=count, economics={"energy": {"electricity": value}})
 
 
 def test_a_constant_is_a_float():
@@ -37,5 +37,5 @@ def test_a_profile_of_another_length_than_the_run_is_invalid_value():
 
 def test_an_absent_price_is_missing_assumption():
     """Nothing in the case, nothing assumed."""
-    with raises(gm.errors.ValidationError, "missing_assumption", match=r"opex\.electricity"):
-        level(make_case(finance={"currency": "EUR"}), PATH, 4)
+    with raises(gm.errors.ValidationError, "missing_assumption", match=r"energy\.electricity"):
+        level(make_case(economics={"currency": "EUR"}), PATH, 4)

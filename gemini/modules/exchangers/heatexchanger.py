@@ -144,9 +144,9 @@ class HeatExchanger(Equipment, Module):
         cold, hot = inlets.get("cold_in"), inlets.get("hot_in")
         return (None if cold is None else cold.T), (None if hot is None else hot.T)
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the exchanger from its thermal conductance."""
-        return self.capex_of(finance, self.thermal_conductance)
+        return self.capex_of(economics, self.thermal_conductance)
 
     def _performance(self, hot_in, cold_in):
         self._check_inlets(hot_in, cold_in)

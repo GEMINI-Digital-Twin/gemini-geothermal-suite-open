@@ -144,9 +144,9 @@ class AdsorptionChiller(Equipment, Module):
         )
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the adsorption chiller from its capacity."""
-        return self.capex_of(finance, self.capacity)
+        return self.capex_of(economics, self.capacity)
 
     def _performance(self, inlets):
         """Return the duties [W], COP and outlet temperatures [K] of one operating point."""

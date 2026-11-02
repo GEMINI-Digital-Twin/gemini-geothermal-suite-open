@@ -14,12 +14,12 @@ from gemini.modules.grids import ChemicalGrid, ElectricityGrid, GasGrid, WasteGr
 from gemini.units import SECONDS_PER_YEAR
 
 PRICES = {
-    "heat": "assumptions.finance.revenue.heat",
-    "cold": "assumptions.finance.revenue.cold",
-    "electricity": "assumptions.finance.opex.electricity",
-    "fuel": "assumptions.finance.opex.gas",
-    "waste": "assumptions.finance.opex.waste_disposal",
-    "chemical": "assumptions.finance.opex.chemical",
+    "heat": "economics.revenue.heat",
+    "cold": "economics.revenue.cold",
+    "electricity": "economics.energy.electricity",
+    "fuel": "economics.energy.gas",
+    "waste": "economics.opex.variable.waste_disposal",
+    "chemical": "economics.opex.variable.chemical",
 }
 """Each flow of ``Flows`` with the path in the case of the price it takes."""
 

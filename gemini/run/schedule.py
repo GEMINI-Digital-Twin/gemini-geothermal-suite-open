@@ -5,7 +5,7 @@ drive, the dotted path of a control or boundary or ``port.field`` of a plant inl
 ``attrs["units"]`` states, so ``gm.simulate(plant, case, plan)`` binds them by the rule of a
 run: nothing is stored on the plant and no caller writes a binding. The demand may have any
 constant time step, hourly or daily; the plan has one row per step. The role of each unit comes
-from the wiring, ``gemini/run/_utils/roles.py``, and the limits from the constraints of the
+from the wiring, ``gemini/run/_utils/roles.py``, and the limits from the requirements of the
 case, ``gemini/run/_utils/limits.py``. Sources load from the cheapest to the dearest marginal
 cost, ``gemini/run/_utils/sources.py``.
 """
@@ -67,7 +67,7 @@ def _outage_count(demand, step, duration, path):
     if not 0 <= running <= steps:
         raise ValidationError(
             f"schedule: {path} duration = {duration}; expected 0 to {steps} steps of the demand",
-            path=f"constraints.{path}",
+            path=f"requirements.{path}",
             code="invalid_value",
         )
     return steps - running
@@ -94,7 +94,7 @@ def _lowest_demand_outages(demand, step, limits):
         raise ValidationError(
             f"schedule: the durations leave {sum(counts.values())} outage steps for "
             f"{len(counts)} doublets, more than the {len(demand)} steps of the demand",
-            path="constraints",
+            path="requirements",
             code="invalid_value",
         )
     heat, cool = _demand_columns(demand)
@@ -409,8 +409,8 @@ def schedule(plant, case):
     chiller.
 
     Every heat and cold source gets a marginal cost at each step, ``price / efficiency +
-    co2_price * emission``, from ``case.assumptions`` (``finance.opex``, ``emissions``) and the
-    efficiency of its module (the COP of a heat pump or chiller, the efficiency of a boiler, the
+    co2_price * emission``, from ``case.economics`` (``energy``, ``carbon``), ``case.utilities`` and
+    the efficiency of its module (the COP of a heat pump or chiller, the efficiency of a boiler, the
     pump electricity of a doublet, the ``thermal_cop`` of a heat-driven chiller on the cheapest
     heat). Sources load from the cheapest
     to the dearest up to their capacity, ties in plant order. Unmet demand is no error: the run
@@ -420,17 +420,17 @@ def schedule(plant, case):
     the maximum brine cooling, clipped to the flow range, and below the minimum at the minimum
     with less cooling.
 
-    The schedule enforces the constraints it knows by role and quantity (``_utils/limits.py``),
+    The schedule enforces the requirements it knows by role and quantity (``_utils/limits.py``),
     each applying to every ``doublet``: a flow range (``production_flow``, ``over="each"``,
     ``when="running"``, ``min`` and ``max``), a maximum brine cooling (``brine_cooling``, ``max``)
     and optionally an operating duration (``production_flow``, ``over="duration"``,
-    ``when="running"``, ``max`` or ``equals``, such as 330 d). The outage steps are the steps of
+    ``when="running"``, ``max``, such as 330 d). The outage steps are the steps of
     lowest total demand, heating plus cooling, the first doublet taking the lowest, the next the
     lowest left, so at most one doublet is off on a step; a duration rounds to the nearest whole
     step of ``case.time``. On an outage step a doublet has no flow and its heat
     goes to the next sources, and a heat pump fed only by doublets that are off stops. Every other
     step a doublet with a duration runs, at the minimum flow when no heat is left for it. Every
-    other constraint is listed in ``attrs["check_only"]``.
+    other requirement is listed in ``attrs["check_only"]``.
 
     Parameters
     ----------
@@ -444,8 +444,8 @@ def schedule(plant, case):
         ports named ``heating_return`` and ``cooling_return`` take their temperature from the
         inputs (``heating_return.T``) and get their flow from the plan.
     case : Case
-        The time, environment, demand (``case.demand.frame``, in W on ``case.time.index``),
-        constraints and the assumptions with the prices.
+        The time, site, demand (``case.demand.frame``, in W on ``case.time.index``),
+        requirements, utilities and the economics with the prices.
 
     Returns
     -------
@@ -455,14 +455,14 @@ def schedule(plant, case):
         ``<doublet>.flow``, ``<doublet>.is_running`` and ``<heat pump>.is_running`` for reading,
         in SI with units in ``attrs["units"]``. ``attrs["outages"]`` is
         ``{doublet path: [time]}``, the ISO time of each outage step and ``attrs["check_only"]``
-        the ``to_dict()`` of each constraint left to the check. ``gm.simulate(plant, case,
+        the ``to_dict()`` of each requirement left to the check. ``gm.simulate(plant, case,
         plan=plan)`` needs no bindings: a run binds a control to a column of that name.
 
     Raises
     ------
     ValidationError
-        ``missing_value`` for a flow range or brine cooling constraint of a doublet that the
-        case lacks, or a value of the environment the plant needs; ``missing_assumption`` for a
+        ``missing_value`` for a flow range or brine cooling requirement of a doublet that the
+        case lacks, or a value of the site the plant needs; ``missing_assumption`` for a
         price a source of the plant needs; ``invalid_value`` for a duration that needs more outage
         steps than the demand has; ``invalid_design`` for a missing setpoint or a role that breaks
         the wiring.
@@ -475,7 +475,7 @@ def scheduled(plant, case):
     plant._check_design()
     demand = case.demand.frame
     doublets = units_of(plant, "doublet")
-    limits, check_only = limit_forms.split(case.constraints, doublets)
+    limits, check_only = limit_forms.split(case.requirements, doublets)
     step = pd.Timedelta(seconds=case.time.step)
     outages = _lowest_demand_outages(demand, step, limits)
     costs = sources.Costs(case)
@@ -487,7 +487,7 @@ def scheduled(plant, case):
 
 def _air_columns(plant, case):
     """Return the air temperature of each step as a column of each ``Atmosphere``, for a profile."""
-    air = case.environment.air.temperature if case.environment and case.environment.air else None
+    air = case.site.air.temperature if case.site and case.site.air else None
     if not isinstance(air, np.ndarray):
         return {}
     return {

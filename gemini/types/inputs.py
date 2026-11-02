@@ -744,7 +744,6 @@ def align(series, index, step, path, issues):
 def _mean_over_steps(series, index, step, own, path, issues):
     """Return the mean of the SI samples in each step, or ``None`` with an issue."""
     values = series.si
-    total = np.concatenate([[0.0], np.cumsum(values)])
     time = series.time.as_unit("ns").asi8
     low = np.searchsorted(time, index.as_unit("ns").asi8, side="left")
     high = np.searchsorted(time, (index + step).as_unit("ns").asi8, side="left")
@@ -759,4 +758,4 @@ def _mean_over_steps(series, index, step, own, path, issues):
             f"{index[first].isoformat()}; its step is {own}",
         )
         return None
-    return (total[high] - total[low]) / counts
+    return np.add.reduceat(values[: high[-1]], low) / counts

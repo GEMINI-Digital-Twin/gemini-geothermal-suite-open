@@ -769,20 +769,21 @@ def test_the_case_imports_nothing_that_runs_or_judges():
 
 
 def test_the_case_has_no_default_but_absent():
-    """A field of ``gm.case`` is required or ``None``; ``over`` and ``when`` are the two choices."""
+    """A value of a section of ``gm.case`` is given or ``None``; no field holds a default."""
     import gemini as gm
-    from gemini.case._utils.section import Section
+    from gemini.case._utils.node import Node
 
-    allowed = {("Constraint", "over"): "each", ("Constraint", "when"): "always"}
     found = []
     for name in gm.case.__all__:
         cls = getattr(gm.case, name)
-        if not (isinstance(cls, type) and issubclass(cls, Section)):
+        if not (isinstance(cls, type) and issubclass(cls, Node)):
             continue
-        for field, info in cls.model_fields.items():
-            default = None if info.is_required() else info.default
-            if default is not None and allowed.get((name, field)) != default:
-                found.append(f"{name}.{field}")
+        section = cls()
+        found += [
+            f"{name}.{field}"
+            for field in (*cls.fields, *cls.sections)
+            if getattr(section, field) is not None
+        ]
     assert found == []
 
 
@@ -855,6 +856,7 @@ def _open_objects(node, path="case"):
 def test_the_case_schema_is_closed_at_every_level():
     """``additionalProperties`` is false in every object of the case schema."""
     assert _open_objects(gm.Case.schema()) == []
+    assert _open_objects(gm.case.Economics.schema()) == []
 
 
 SHAPE_NAMES = {"problem", "problems", "_problems", "root_problems", "PROBLEM_SCHEMA"}

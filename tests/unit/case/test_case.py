@@ -1,216 +1,248 @@
-"""``gm.Case``: sections, SI storage, round trips, profiles and errors."""
+"""``gm.Case``: sections, SI storage, round trips, in-memory files, coverage and errors."""
 
+import copy
 import json
 
-import numpy as np
 import pandas as pd
 import pytest
 
 import gemini as gm
+from gemini.units import Quantity
 from tests.fixtures.errors import raises
+from tests.unit.case.conftest import codes, csv_text
 
 
-def built(data, folder):
-    """Return the case of ``data`` with its files in ``folder``."""
-    return gm.Case.from_dict(data, folder)
-
-
-def test_the_full_case_round_trips_through_a_dict_and_a_json_file(data, folder):
+def test_the_full_case_round_trips_through_a_dict_and_a_json_file(data, files, tmp_path):
     """to_dict, from_dict, to_json and from_json give an equal case."""
-    case = built(data, folder)
-    target = folder / "out"
-    target.mkdir()
-    case.to_json(target / "case.json")
-    assert gm.Case.from_dict(case.to_dict(), target) == case
-    assert gm.Case.from_json(target / "case.json") == case
-    assert sorted(path.name for path in target.iterdir()) == ["case.json", "demand.csv"]
-
-
-def test_the_python_form_equals_the_json_form(data, folder):
-    """The same case built from classes is equal to the one read from the dict."""
-    from gemini.units import Quantity as Q
-
-    python = gm.Case(
-        time=gm.case.Time(start="2027-01-01", end="2027-01-08", step=Q(1, "d")),
-        demand=gm.case.Demand(
-            file=str(folder / "demand.csv"),
-            time_column="date",
-            heating=gm.case.Service(column="heat_MW", unit="MW", supply_temperature=Q(100, "degC")),
-        ),
-    )
-    smaller = built({"time": data["time"], "demand": {**data["demand"], "cooling": None}}, folder)
-    assert python.demand.frame.equals(smaller.demand.frame)
-    assert python.time == smaller.time
-
-
-def test_values_are_stored_in_si_and_written_in_si(data, folder):
-    """12 degC is 285.15 K inside and in the file."""
-    case = built(data, folder)
-    assert case.environment.ground.surface_temperature == pytest.approx(285.15)
-    assert case.demand.heating.supply_temperature == pytest.approx(373.15)
-    written = case.to_dict()
-    assert written["environment"]["ground"]["surface_temperature"] == {
-        "value": pytest.approx(285.15),
-        "unit": "K",
-    }
-    assert list(written) == [
-        "time",
-        "environment",
-        "demand",
-        "choices",
-        "constraints",
-        "assumptions",
+    case = gm.Case.from_dict(data, files=files)
+    case.to_json(tmp_path / "out" / "case.json")
+    assert gm.Case.from_dict(case.to_dict(), files=case.files()) == case
+    assert gm.Case.from_json(tmp_path / "out" / "case.json") == case
+    assert sorted(path.name for path in (tmp_path / "out").rglob("*") if path.is_file()) == [
+        "case.json",
+        "demand.csv",
     ]
 
 
-def test_the_demand_frame_is_on_the_time_index(data, folder):
-    """The frame is in W on the index of ``time``."""
-    case = built(data, folder)
-    assert case.demand.frame.index.equals(case.time.index)
-    assert case.demand.frame["cooling_demand"].iloc[-1] == 2e6
+def test_a_case_is_read_from_in_memory_files_without_a_folder(data, files):
+    """A mapping of names to bytes serves the series, with no folder."""
+    case = gm.Case.from_dict(data, files=files)
+    assert case.demand.frame["heating_demand"].iloc[0] == pytest.approx(1e6)
+    assert len(case.demand.frame) == 7
 
 
-def test_a_demand_off_the_time_range_names_the_file_and_the_row(data, folder):
-    """One day of the file is missing from the time range."""
-    data["time"]["end"] = "2027-01-09"
-    with raises(gm.errors.ValidationError, "invalid_value") as caught:
-        built(data, folder)
-    assert "demand.csv" in str(caught.value) and "7 rows; expected 8" in str(caught.value)
-    data["time"] = {"start": "2027-01-02", "end": "2027-01-09", "step": data["time"]["step"]}
-    with raises(gm.errors.ValidationError, "invalid_value") as caught:
-        built(data, folder)
-    assert "row 0" in str(caught.value)
+def test_an_economics_given_by_path_is_read_from_the_files_and_kept_a_path(data, files):
+    """The case holds the economics and writes the path back, with the file next to it."""
+    economics = data["economics"]
+    data = {**data, "economics": "prices/economics.json"}
+    files = {**files, "prices/economics.json": json.dumps(economics).encode()}
+    case = gm.Case.from_dict(data, files=files)
+    assert case.economics.currency == "EUR" and case.economics.name == "prices"
+    assert case.to_dict()["economics"] == "prices/economics.json"
+    assert json.loads(case.files()["prices/economics.json"]) == economics
 
 
-def test_a_profile_comes_from_a_csv_on_the_time_index(data, folder):
-    """The air as a file column in degC becomes an array in K."""
-    days = pd.date_range("2027-01-01", periods=7, freq="D")
-    pd.DataFrame({"t": days, "t_air": np.arange(7.0)}).to_csv(folder / "air.csv", index=False)
-    data["environment"]["air"] = {
-        "temperature": {"file": "air.csv", "column": "t_air", "unit": "degC"}
+def test_values_are_stored_in_si_and_written_as_given(case):
+    """12 degC is 285.15 K inside and 12 degC in the file."""
+    assert case.site.ground.surface_temperature == pytest.approx(285.15)
+    assert case.demand.heating.supply_temperature == pytest.approx(373.15)
+    assert case.to_dict()["site"]["ground"]["surface_temperature"] == {"value": 12, "unit": "degC"}
+    assert list(case.to_dict()) == [
+        "format",
+        "kind",
+        "name",
+        "about",
+        "time",
+        "site",
+        "demand",
+        "utilities",
+        "economics",
+        "requirements",
+        "choices",
+    ]
+
+
+def test_a_kw_series_keeps_its_unit_and_its_numbers_on_a_round_trip(tmp_path):
+    """The old bug: a kW column came back as watts under the kW name, 1000 times too large."""
+    data = {
+        "format": 1,
+        "kind": "case",
+        "name": "kw",
+        "time": {
+            "start": "2026-01-12",
+            "end": "2026-01-12T03:00:00Z",
+            "step": {"value": 1, "unit": "h"},
+        },
+        "demand": {"heating": {"power": {"file": "data/d.csv", "column": "heat_kw", "unit": "kW"}}},
     }
-    case = built(data, folder)
-    assert np.allclose(case.environment.air.temperature, 273.15 + np.arange(7.0))
-    case.to_json(folder / "again.json")
-    assert gm.Case.from_json(folder / "again.json") == case
-    assert json.loads((folder / "again.json").read_text())["environment"]["air"]["temperature"][
-        "file"
-    ].endswith(".csv")
+    rows = ["2026-01-12T00:00:00Z,639", "2026-01-12T01:00:00Z,653", "2026-01-12T02:00:00Z,640"]
+    text = "time,heat_kw\n" + "\n".join(rows) + "\n"
+    case = gm.Case.from_dict(data, files={"data/d.csv": text.encode()})
+    assert case.demand.frame["heating_demand"].tolist() == [639000.0, 653000.0, 640000.0]
+    case.to_json(tmp_path / "case.json")
+    written = pd.read_csv(tmp_path / "data" / "d.csv")
+    assert written["heat_kw"].tolist() == [639.0, 653.0, 640.0]
+    assert (
+        json.loads((tmp_path / "case.json").read_text())["demand"]["heating"]["power"]["unit"]
+        == "kW"
+    )
+    assert gm.Case.from_json(tmp_path / "case.json").demand.frame.equals(case.demand.frame)
 
 
-def test_a_profile_off_the_time_range_names_the_file_and_the_first_row(data, folder):
-    """Row 3 of the profile is one day late."""
-    days = pd.date_range("2027-01-01", periods=7, freq="D").to_series().reset_index(drop=True)
-    days[3] = pd.Timestamp("2027-02-01")
-    pd.DataFrame({"t": days, "p": np.ones(7)}).to_csv(folder / "price.csv", index=False)
-    data["assumptions"]["finance"]["opex"]["gas"] = {
-        "file": "price.csv",
-        "column": "p",
-        "unit": "EUR/MWh",
+def test_quantities_of_python_are_accepted_for_the_json_objects(data, files):
+    """A ``Quantity`` is the Python form of ``{"value", "unit"}``."""
+    data["site"]["ground"]["surface_temperature"] = Quantity(12, "degC")
+    case = gm.Case.from_dict(data, files=files)
+    assert case.to_dict()["site"]["ground"]["surface_temperature"] == {"value": 12, "unit": "degC"}
+
+
+def test_an_old_section_is_refused_with_the_name_of_the_new_form(data, files):
+    """environment, constraints and assumptions are old_format and name their replacement."""
+    for old, new in (
+        ("environment", "site"),
+        ("constraints", "requirements"),
+        ("assumptions", "economics"),
+    ):
+        with raises(gm.errors.ValidationError, "old_format") as caught:
+            gm.Case.from_dict({**data, old: {}}, files=files)
+        assert new in str(caught.value) and caught.value.path == old
+
+
+def test_a_file_without_a_header_is_old_format(data, files):
+    """The header `kind` tells the new shape."""
+    del data["kind"]
+    with raises(gm.errors.ValidationError, "old_format"):
+        gm.Case.from_dict(data, files=files)
+    data["kind"] = "plant"
+    with raises(gm.errors.ValidationError, "invalid_format"):
+        gm.Case.from_dict(data, files=files)
+
+
+def test_every_issue_is_reported_in_one_error(data, files):
+    """Two wrong values and an unknown key come back together."""
+    data["site"]["ground"]["gradient"]["unit"] = "m"
+    data["site"]["rock"] = {}
+    data["demand"]["heating"]["supply_temperature"] = 100
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        gm.Case.from_dict(data, files=files)
+    assert sorted(codes(caught.value)) == sorted(
+        [
+            ("site.ground.gradient.unit", "invalid_unit"),
+            ("site.rock", "unknown_name"),
+            ("demand.heating.supply_temperature", "invalid_unit"),
+        ]
+    )
+    assert len(caught.value.issues) == 3
+
+
+def test_a_series_that_does_not_cover_the_period_is_a_coverage_issue(data):
+    """The issue names the file, the column, the window covered and the window asked."""
+    files = {"data/demand.csv": csv_text(days=4).encode()}
+    with raises(gm.errors.ValidationError, "invalid_data") as caught:
+        gm.Case.from_dict(data, files=files)
+    issue = caught.value.issues[0]
+    assert issue.kind == "coverage" and issue.path == "demand.heating.power"
+    for text in (
+        "data/demand.csv",
+        "heat_MW",
+        "2027-01-05T00:00:00+00:00",
+        "2027-01-08T00:00:00+00:00",
+    ):
+        assert text in issue.message
+
+
+def test_a_coarser_step_averages_and_a_finer_one_is_an_issue(data, files):
+    """A daily series on a two-day step averages pairs; an hourly step is refused."""
+    data["time"] = {"start": "2027-01-01", "end": "2027-01-07", "step": {"value": 2, "unit": "d"}}
+    case = gm.Case.from_dict(data, files=files)
+    heat = [1e6 * value for value in (1.0, 1.5, 2.0, 2.5, 3.0, 3.5)]
+    assert case.demand.frame["heating_demand"].tolist() == pytest.approx(
+        [(heat[0] + heat[1]) / 2, (heat[2] + heat[3]) / 2, (heat[4] + heat[5]) / 2]
+    )
+    data["time"] = {"start": "2027-01-01", "end": "2027-01-02", "step": {"value": 1, "unit": "h"}}
+    with raises(gm.errors.ValidationError, "invalid_value") as caught:
+        gm.Case.from_dict(data, files=files)
+    assert caught.value.issues[0].kind == "incompatible"
+
+
+def test_check_returns_the_issues_and_never_raises(case):
+    """An object read from a file is ready; one changed to a bad value is not, and check says so."""
+    assert case.check() == []
+    bad = case.with_value("site.fluid.density", 1030.0)
+    assert bad.check() == []
+    with raises(gm.errors.ValidationError, "out_of_bounds"):
+        case.with_value("site.reservoir.thickness", -5.0)
+
+
+def test_a_value_is_replaced_by_its_path_and_a_series_becomes_a_constant(case):
+    """with_value copies the case; the original stays."""
+    changed = case.with_value("economics.energy.electricity", 3e-8)
+    assert (
+        changed.economics.energy.electricity == 3e-8 and case.economics.energy.electricity != 3e-8
+    )
+    constant = case.with_value("demand.heating.power", 5e6)
+    assert constant.demand.frame["heating_demand"].tolist() == [5e6] * 7
+    assert case.leaf("site.ground.gradient").unit == "K/km"
+    assert case.field("site.ground.gradient").quantity == "temperature_gradient"
+    with raises(gm.errors.ValidationError, "unknown_name"):
+        case.with_value("site.nowhere", 1.0)
+
+
+def test_the_uncertainty_of_each_value_is_indexed_by_its_path(case):
+    """The declared uncertainty is in SI under the dotted path."""
+    found = case.uncertainty
+    assert list(found) == ["site.ground.gradient"]
+    assert found["site.ground.gradient"].std == pytest.approx(0.002)
+    assert found["site.ground.gradient"].min == pytest.approx(0.025)
+
+
+def test_a_case_is_immutable(case):
+    """No attribute can be set."""
+    with pytest.raises(AttributeError):
+        case.name = "other"
+    with pytest.raises(AttributeError):
+        case.site.ground.gradient = 1.0
+
+
+def test_the_initial_state_is_a_map_of_modules_to_states(data, files):
+    """Each state is a value with a unit the plant gives a dimension to."""
+    data["initial_state"] = {
+        "storage": {"temperature": {"value": 60, "unit": "degC"}, "fill": {"value": 0.5}}
     }
-    with raises(gm.errors.ValidationError, "invalid_value") as caught:
-        built(data, folder)
-    message = str(caught.value)
-    assert "price.csv" in message and "row 3" in message and "opex.gas" in message
+    case = gm.Case.from_dict(data, files=files)
+    assert case.initial_state["storage"]["temperature"].si == pytest.approx(333.15)
+    assert case.to_dict()["initial_state"] == data["initial_state"]
+    data["initial_state"]["storage"]["fill"] = {"value": 0.5, "unit": "nope"}
+    with raises(gm.errors.ValidationError, "invalid_unit"):
+        gm.Case.from_dict(data, files=files)
 
 
-def test_an_array_of_the_wrong_length_is_invalid_value(data, folder):
-    """A profile given as numbers must have one value per step."""
-    data["assumptions"]["finance"]["opex"]["gas"] = {"value": [1.0, 2.0], "unit": "EUR/MWh"}
-    with raises(gm.errors.ValidationError, "invalid_value") as caught:
-        built(data, folder)
-    assert "2 values; expected 7" in str(caught.value)
+def test_a_case_without_economics_or_requirements_is_a_pure_physics_case(data, files):
+    """Both are absent, not empty."""
+    for key in ("economics", "requirements", "choices"):
+        del data[key]
+    case = gm.Case.from_dict(data, files=files)
+    assert case.economics is None and case.requirements is None and case.choices is None
+    assert "economics" not in case.to_dict() and case.check() == []
 
 
-def test_a_missing_time_is_missing_value(data, folder):
-    """The case needs its time."""
-    del data["time"]
-    with raises(gm.errors.ValidationError, "missing_value") as caught:
-        built(data, folder)
-    assert "time" in str(caught.value)
+def test_the_choices_are_ranges_in_si(case):
+    """Doublets 1 to 3 and a depth range in metres."""
+    assert (case.choices.doublets.min, case.choices.doublets.max) == (1, 3)
+    assert (case.choices.depth.min, case.choices.depth.max) == (2000.0, 3500.0)
 
 
-def test_an_unknown_section_and_key_are_unknown_name(data, folder):
-    """Nothing outside the sections is accepted, and the error names the section."""
-    data["problem"] = {}
-    with raises(gm.errors.ValidationError, "unknown_name") as caught:
-        built(data, folder)
-    assert "problem" in str(caught.value)
-    del data["problem"]
-    data["environment"]["reservoir"]["depth"] = 1
-    with raises(gm.errors.ValidationError, "unknown_name") as caught:
-        built(data, folder)
-    assert "environment.reservoir" in str(caught.value) and "reference_depth" in str(caught.value)
-
-
-def test_an_error_names_the_path_in_the_case(data, folder):
-    """A constraint bound of the wrong dimension names its index and field."""
-    data["constraints"][0]["max"] = {"value": 300, "unit": "m"}
-    with raises(gm.errors.ValidationError, "invalid_unit") as caught:
-        built(data, folder)
-    assert str(caught.value).startswith("constraints[0].max: unit 'm' is not a volume flow")
-    assert caught.value.path == "constraints[0].max"
-
-
-def test_text_and_plain_numbers_with_a_dimension_are_refused(data, folder):
-    """A value with a dimension is a quantity."""
-    data["environment"]["ground"]["gradient"] = "30 K/km"
-    with raises(gm.errors.ValidationError, "invalid_value"):
-        built(data, folder)
-    data["environment"]["ground"]["gradient"] = 0.03
-    with raises(gm.errors.ValidationError, "invalid_value"):
-        built(data, folder)
-
-
-def test_an_unreadable_json_is_invalid_format(tmp_path):
-    """A missing file and a JSON that is no object."""
+def test_the_unreadable_file_is_invalid_format(tmp_path):
+    """A missing file and a non-object are invalid_format."""
     with raises(gm.errors.ValidationError, "invalid_format"):
         gm.Case.from_json(tmp_path / "none.json")
-    (tmp_path / "list.json").write_text("[]")
+    (tmp_path / "case.json").write_text("[1]")
     with raises(gm.errors.ValidationError, "invalid_format"):
-        gm.Case.from_json(tmp_path / "list.json")
+        gm.Case.from_json(tmp_path / "case.json")
 
 
-def test_the_schema_is_closed_at_every_level():
-    """``additionalProperties`` is false in every object of the schema."""
-    schema = gm.Case.schema()
-    open_objects = []
-
-    def walk(node, path):
-        if isinstance(node, dict):
-            if node.get("type") == "object" and "properties" in node:
-                if node.get("additionalProperties") is not False:
-                    open_objects.append(path)
-            for key, item in node.items():
-                walk(item, f"{path}.{key}")
-        elif isinstance(node, list):
-            for number, item in enumerate(node):
-                walk(item, f"{path}[{number}]")
-
-    walk(schema, "case")
-    assert open_objects == []
-    assert list(schema["properties"]) == [
-        "time",
-        "environment",
-        "demand",
-        "choices",
-        "constraints",
-        "assumptions",
-    ]
-    assert schema["required"] == ["time"]
-
-
-def test_a_case_with_only_a_time_is_valid():
-    """Nothing but ``time`` is required; an absent section is ``None``."""
-    case = gm.Case(
-        time=gm.case.Time(start="2027-01-01", end="2027-01-02", step=gm.units.Quantity(1, "h"))
-    )
-    assert case.environment is None and case.constraints is None
-    assert list(case.to_dict()) == ["time"]
-
-
-def test_a_case_is_frozen(data, folder):
-    """No attribute is set after the case is built."""
-    case = built(data, folder)
-    with pytest.raises(Exception):
-        case.time = None
+def test_a_missing_series_file_is_a_missing_issue(data):
+    """The path of the leaf and the name of the file."""
+    with raises(gm.errors.ValidationError, "missing_value") as caught:
+        gm.Case.from_dict(copy.deepcopy(data), files={})
+    assert "data/demand.csv" in str(caught.value)

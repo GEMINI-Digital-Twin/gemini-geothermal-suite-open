@@ -10,7 +10,7 @@ with ``compile=False`` and ``compile=True``.
 A demand may be daily or hourly. The other cadence is derived with public functions only: the
 demand frame is resampled to the step (the mean to a coarser step, the last value to a finer one),
 repeated cyclically to the wanted number of rows, and a ``gm.Case`` is built from it with the
-environment, choices, constraints and assumptions of the original on a ``gm.case.Time`` of the
+site, choices, requirements and economics of the original on a ``gm.case.Time`` of the
 wanted number of steps. The plan of the plain plant is a constant profile on a ``gm.engine.Clock``.
 A case that cannot run a cadence is recorded with its error, not fatal.
 
@@ -106,15 +106,19 @@ def rebuilt(case, step, count):
     index = pd.date_range(case.time.start, periods=count, freq=DELTAS[step], name="time")
     values = {name: np.resize(frame[name].to_numpy(), count) for name in frame}
     resized = pd.DataFrame(values, index=index)
-    resized.attrs = frame.attrs
-    sections = {name: getattr(case, name) for name in type(case).model_fields}
-    sections["time"] = gm.case.Time(
-        start=case.time.start,
-        end=index[-1] + DELTAS[step],
-        step={"value": DELTAS[step].total_seconds(), "unit": "s"},
-    )
-    sections["demand"] = case.demand.model_copy(update={"frame": resized})
-    return gm.Case(**sections)
+    data = case.to_dict()
+    data["time"] = {
+        "start": case.time.start.isoformat(),
+        "end": (index[-1] + DELTAS[step]).isoformat(),
+        "step": {"value": DELTAS[step].total_seconds(), "unit": "s"},
+    }
+    files = case.files()
+    for service, part in data["demand"].items():
+        column = f"{service}_demand"
+        table = resized[[column]].set_axis(index.strftime("%Y-%m-%dT%H:%M:%SZ")).rename_axis("time")
+        files[f"{service}.csv"] = table.to_csv().encode()
+        part["power"] = {"file": f"{service}.csv", "column": column, "unit": "W"}
+    return gm.Case.from_dict(data, files)
 
 
 def cases(only=None):

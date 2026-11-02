@@ -116,9 +116,9 @@ class CHP(Equipment, Module):
         )
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the engine from its electric capacity."""
-        return self.capex_of(finance, self.electric_capacity)
+        return self.capex_of(economics, self.electric_capacity)
 
     def _no_load_fuel_fraction(self):
         """Return the no-load fuel share; zero when the term is left out."""

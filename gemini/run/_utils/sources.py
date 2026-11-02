@@ -2,7 +2,7 @@
 
 A source costs ``price / efficiency + co2_price * emission`` per joule delivered, with the
 efficiency of its module at the design values of the step. A price a source needs and the case
-lacks raises ``missing_assumption``; a case without ``opex.co2`` has no CO2 cost.
+lacks raises ``missing_assumption``; a case without ``carbon.price`` has no CO2 cost.
 """
 
 import math
@@ -26,14 +26,14 @@ class Costs:
 
     def _co2(self):
         """Return the CO2 price per kg, or zero when the case has none."""
-        if _absent(self.case, "assumptions.finance.opex.co2"):
+        if _absent(self.case, "economics.carbon.price"):
             return 0.0
-        return series(self.case, "assumptions.finance.opex.co2")
+        return series(self.case, "economics.carbon.price")
 
     def _cost(self, carrier, path, efficiency, factor):
         """Return the marginal cost per joule delivered by ``path`` drawing ``carrier``."""
         cost = dispatch.marginal_cost(
-            series(self.case, f"assumptions.finance.opex.{carrier}"),
+            series(self.case, f"economics.energy.{carrier}"),
             efficiency,
             self._co2(),
             factor,
@@ -42,10 +42,10 @@ class Costs:
 
     def electric(self, path, efficiency):
         """Return the cost of heat or cold made from grid electricity at ``efficiency``."""
-        if _absent(self.case, "assumptions.finance.opex.co2"):
+        if _absent(self.case, "economics.carbon.price"):
             factor = 0.0
         else:
-            factor = series(self.case, "assumptions.emissions.CO2.electricity")
+            factor = series(self.case, "utilities.electricity.co2_intensity")
         return self._cost("electricity", path, efficiency, factor)
 
     def gas(self, path, efficiency):

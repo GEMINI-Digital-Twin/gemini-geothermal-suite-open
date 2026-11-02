@@ -8,10 +8,11 @@ import gemini as gm
 from gemini._utils.jsonable import to_plain
 from gemini.study._utils import trial
 from gemini.study._utils.best import Best
+from tests.fixtures import si
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
-PRICE = "case.assumptions.finance.opex.electricity"
+PRICE = "case.economics.energy.electricity"
 DEPTH = [
     {
         "path": "",
@@ -97,7 +98,7 @@ def test_a_value_of_the_case_is_a_variable(runs):
     """It is named case.<path>; the lowest price wins, in SI."""
     variables = [
         {
-            "path": "case.assumptions.finance.opex",
+            "path": "case.economics.energy",
             "parameter": "electricity",
             "lower": gm.units.Quantity(50, "EUR/MWh"),
             "upper": gm.units.Quantity(200, "EUR/MWh"),
@@ -106,7 +107,7 @@ def test_a_value_of_the_case_is_a_variable(runs):
     result = gm.study.minimize(shallow_plant(), shallow_case(), "lcts", variables, evaluations=10)
     best = result["best"].parts["parameters"][PRICE]
     assert best.unit == "currency/J" and 50 / 3.6e9 <= best.si < 100 / 3.6e9
-    assert all(given.assumptions.finance.opex.electricity <= 200 / 3.6e9 for _, given, _ in runs)
+    assert all(given.economics.energy.electricity <= 200 / 3.6e9 for _, given, _ in runs)
 
 
 def test_explicit_variables_replace_the_choices(runs):
@@ -156,8 +157,7 @@ def test_a_plant_with_no_structural_size_cannot_search_only_its_doublets(runs):
 
 def test_a_case_without_choices_needs_variables(runs):
     """Nothing to search: ``missing_value`` naming ``choices``."""
-    case = shallow_case()
-    case = case.model_copy(update={"choices": None})
+    case = shallow_case(choices=None)
     with raises(gm.errors.ValidationError, "missing_value") as refused:
         gm.study.minimize(shallow_plant(), case, "lcts")
     assert refused.value.path == "choices"
@@ -175,7 +175,7 @@ def test_a_case_without_choices_needs_variables(runs):
         ),
         (
             {"variables": [{"path": "case.time", "parameter": "step", "lower": 1, "upper": 2}]},
-            "invalid_value",
+            "unknown_name",
         ),
         ({"evaluations": 4}, "invalid_value"),
     ],
@@ -287,7 +287,7 @@ def test_a_role_the_plant_lacks_is_fixed(runs):
 def test_the_plant_as_given_is_one_of_the_trials(runs):
     """The search starts from the plant, so its depth is tried and the best is never worse."""
     plant = shallow_plant()
-    plant.depth = 1234.0
+    si.assign(plant, "depth", 1234.0)
     found = gm.study.minimize(plant, shallow_case(), "lcts", DEPTH, evaluations=5)
     depths = [item.parts["parameters"]["depth"].value for item in found["history"]]
     assert 1234.0 in depths

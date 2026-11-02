@@ -1,14 +1,13 @@
-"""The constraints a schedule enforces, found by their role and quantity.
+"""The requirements a schedule enforces, found by their role and quantity.
 
-A constraint of the case applies to every unit of its role on its own. The schedule reads three
+A requirement of the case applies to every unit of its role on its own. The schedule reads three
 forms of the role ``doublet``:
 
 - flow range: ``production_flow``, ``over="each"``, ``when="running"``, ``min`` and ``max``;
 - maximum brine cooling: ``brine_cooling``, ``over="each"``, ``max``;
-- operating duration: ``production_flow``, ``over="duration"``, ``when="running"``, ``max`` or
-  ``equals`` a duration.
+- operating duration: ``production_flow``, ``over="duration"``, ``when="running"``, ``max``.
 
-Every other constraint, a duration with only ``min``, and a bound of a constraint that the form
+Every other requirement, a duration with only ``min``, and a bound of a requirement that the form
 does not read are left to the check of a run.
 """
 
@@ -20,8 +19,8 @@ from gemini._utils.strings import join_path
 from gemini._utils.time import to_timedelta
 from gemini.errors import ValidationError
 
-BOUNDS = ("min", "max", "equals")
-"""The bounds of a constraint."""
+BOUNDS = ("min", "max")
+"""The bounds of a requirement."""
 ROLE = "doublet"
 """The role whose units the schedule limits."""
 FLOW = "production_flow"
@@ -40,82 +39,75 @@ class DoubletLimits:
     operating_time: pd.Timedelta | None
 
 
-def _has(constraint, *names):
-    """Return whether ``constraint`` has one of the bounds ``names``."""
-    return any(getattr(constraint, name) is not None for name in names)
-
-
-def _forms(constraint):
-    """Return the forms ``constraint`` has."""
-    if constraint.on != ROLE:
+def _forms(requirement):
+    """Return the forms ``requirement`` has."""
+    if requirement.on != ROLE:
         return []
     forms = []
-    if constraint.quantity == FLOW and constraint.over == "each" and constraint.when == "running":
-        if constraint.min is not None and constraint.max is not None:
+    flow = requirement.quantity == FLOW
+    if flow and requirement.over == "each" and requirement.when == "running":
+        if requirement.min is not None and requirement.max is not None:
             forms.append("range")
-    if constraint.quantity == COOLING and constraint.over == "each" and constraint.max is not None:
-        forms.append("cooling")
-    if constraint.quantity == FLOW and constraint.over == "duration":
-        if constraint.when == "running" and _has(constraint, "max", "equals"):
+    if requirement.quantity == COOLING and requirement.over == "each":
+        if requirement.max is not None:
+            forms.append("cooling")
+    if flow and requirement.over == "duration" and requirement.when == "running":
+        if requirement.max is not None:
             forms.append("duration")
     return forms
 
 
-def _duration(constraint):
-    """Return the duration of a duration constraint as a ``Timedelta``."""
-    bound = constraint.equals if constraint.equals is not None else constraint.max
+def _duration(requirement):
+    """Return the duration of a duration requirement as a ``Timedelta``."""
+    bound = requirement.max
     try:
         return to_timedelta(bound)
     except ValueError as error:
         raise ValidationError(
-            f"schedule: constraint on {constraint.on} {constraint.quantity} duration = {bound}; "
-            "expected a duration",
-            path="constraints",
+            f"schedule: requirement {requirement.name} on {requirement.on} "
+            f"{requirement.quantity} duration = {bound}; expected a duration",
+            path="requirements",
             code="invalid_value",
         ) from error
 
 
 def _missing(doublet, name, form):
-    """Return the ``missing_value`` error of a limit that no constraint gives for ``doublet``."""
+    """Return the ``missing_value`` error of a limit that no requirement gives for ``doublet``."""
     return ValidationError(
-        f"schedule: no constraint on {ROLE} gives {form} of {join_path(doublet, name)}; "
+        f"schedule: no requirement on {ROLE} gives {form} of {join_path(doublet, name)}; "
         "expected one, a limit has no default",
-        path="constraints",
+        path="requirements",
         code="missing_value",
     )
 
 
-def _enforced(form, constraint):
-    """Return the names of the bounds of ``constraint`` a schedule enforces in ``form``."""
-    if form == "range":
-        return ("min", "max")
-    if form == "duration" and constraint.equals is not None:
-        return ("equals",)
-    return ("max",)
+def _enforced(form):
+    """Return the names of the bounds of a requirement a schedule enforces in ``form``."""
+    return ("min", "max") if form == "range" else ("max",)
 
 
-def _left_over(constraint, enforced):
-    """Return ``to_dict()`` of ``constraint`` without ``enforced``; ``None`` if no bound is left."""
-    rest = constraint.model_copy(update=dict.fromkeys(enforced))
-    if all(getattr(rest, name) is None for name in BOUNDS):
+def _left_over(requirement, enforced):
+    """Return ``to_dict()`` of ``requirement`` less ``enforced``; ``None`` if no bound is left."""
+    rest = {key: value for key, value in requirement.to_dict().items() if key not in enforced}
+    if all(name not in rest for name in BOUNDS):
         return None
-    return rest.to_dict()
+    return rest
 
 
-def _found(constraints):
-    """Return ``{form: (index, constraint)}``, the first constraint of each form."""
+def _found(requirements):
+    """Return ``{form: (index, requirement)}``, the first requirement of each form."""
     found = {}
-    for index, constraint in enumerate(constraints):
-        for form in _forms(constraint):
-            found.setdefault(form, (index, constraint))
+    for index, requirement in enumerate(requirements):
+        for form in _forms(requirement):
+            found.setdefault(form, (index, requirement))
     return found
 
 
 def of_doublet(found, doublet):
     """Return ``(DoubletLimits, used)`` of the doublet at path ``doublet``.
 
-    ``used`` maps the index of each constraint that gave a limit to the bounds the schedule
-    enforces of it. A flow range or a brine cooling that no constraint gives raises
+    ``used`` maps the index of each requirement that gave a limit to the bounds the schedule
+    enforces of it. A flow range or a brine cooling that no requirement gives raises
     ``ValidationError`` (code ``missing_value``).
     """
     if "range" not in found:
@@ -127,23 +119,21 @@ def of_doublet(found, doublet):
     limits = DoubletLimits(
         flow.min, flow.max, cooling.max, None if duration is None else _duration(duration[1])
     )
-    return limits, {
-        index: _enforced(form, constraint) for form, (index, constraint) in found.items()
-    }
+    return limits, {index: _enforced(form) for form, (index, _) in found.items()}
 
 
-def split(constraints, doublets):
+def split(requirements, doublets):
     """Return ``({doublet: DoubletLimits}, check_only)`` for the doublet paths ``doublets``.
 
-    ``check_only`` lists the ``to_dict()`` of every constraint the schedule did not enforce, and of
+    ``check_only`` lists the ``to_dict()`` of every requirement the schedule did not enforce, and of
     one it enforced in part with only the bounds left: a duration of ``min`` and ``max`` runs to
     the maximum, so its entry keeps the minimum.
     """
-    constraints = constraints or ()
-    found = _found(constraints)
+    requirements = requirements or ()
+    found = _found(requirements)
     limits, used = {}, {}
     for doublet in doublets:
         limits[doublet], taken = of_doublet(found, doublet)
         used |= taken
-    left = [_left_over(item, used.get(index, ())) for index, item in enumerate(constraints)]
+    left = [_left_over(item, used.get(index, ())) for index, item in enumerate(requirements)]
     return limits, [item for item in left if item is not None]

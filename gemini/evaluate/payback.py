@@ -1,6 +1,6 @@
 """Simple payback time of a plant run."""
 
-from gemini.evaluate._utils.cashflow import net_cash_flow
+from gemini.evaluate._utils.cashflow import net_cash_flow, subsidy
 from gemini.evaluate._utils.outcome import reported, unavailable
 from gemini.run._utils.apply import apply_case
 from gemini.types.shapes import measure
@@ -9,12 +9,16 @@ from gemini.types.shapes import measure
 def payback(plant, case, results, on_error="raise"):
     """Return the simple payback time [year]: ``capex / (revenue - opex)``, without discounting.
 
+    A subsidy of the case (``economics.revenue.subsidy``) adds its amount per year to the cash flow
+    for its duration only: the payback is the time at which the sum of the cash flows equals the
+    capex.
+
     Parameters
     ----------
     plant : Module
         The plant of the run.
     case : Case
-        Its finance gives the prices of ``heat``, ``cold`` and energy, as for ``npv``; anything
+        Its economics gives the prices of ``heat``, ``cold`` and energy, as for ``npv``; anything
         needed and missing raises ``ValidationError`` (code ``missing_assumption``).
     results : Results
         The finished run of the plant.
@@ -38,7 +42,15 @@ def _payback(plant, case, results, on_error):
     if cost is None:
         return unavailable("yr", reason, on_error)
     details = dict(capex=measure(cost, unit), net_cash_flow=measure(flow, "currency/yr"))
-    if flow <= 0:
+    amount, paid = subsidy(case)
+    if flow <= 0 and not (amount and (flow + amount) * paid >= cost):
         reason = "the yearly revenue does not exceed the yearly cost"
         return unavailable("yr", reason, on_error, **details)
-    return measure(cost / flow, "yr", **details)
+    return measure(_years(cost, flow, amount, paid), "yr", **details)
+
+
+def _years(cost, flow, amount, paid):
+    """Return the years until the cash flow repays ``cost``, a subsidy being paid ``paid`` years."""
+    if amount and (flow + amount) * paid < cost:
+        return paid + (cost - (flow + amount) * paid) / flow
+    return cost / (flow + amount)

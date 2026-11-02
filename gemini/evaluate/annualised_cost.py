@@ -17,13 +17,13 @@ def annualised_cost(plant, case, results, discount_rate=None, lifetime=None, on_
     plant : Module
         The plant of the run.
     case : Case
-        Its finance gives the prices and, when not given below, the rate and lifetime.
+        Its economics gives the prices and, when not given below, the rate and lifetime.
     results : Results
         The finished run of the plant.
     discount_rate : float, optional
-        Real discount rate per year [-]; ``assumptions.finance.discount_rate`` when ``None``.
+        Real discount rate per year [-]; ``economics.discount_rate`` when ``None``.
     lifetime : float, optional
-        Years of operation; ``assumptions.finance.lifetime`` when ``None``.
+        Years of operation; ``economics.analysis_period`` when ``None``.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
 

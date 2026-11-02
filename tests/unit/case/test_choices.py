@@ -1,41 +1,47 @@
-"""``gm.case.Range`` and ``Choices``."""
+"""``gm.case.Choices``: what a study may vary, each as a range."""
+
+import copy
 
 import gemini as gm
-from gemini.units import Quantity
 from tests.fixtures.errors import raises
 
 
-def test_a_range_of_counts_and_a_range_of_lengths():
-    """Counts stay numbers; lengths are metres."""
-    counts = gm.case.Range(1, 3)
-    assert (counts.min, counts.max, counts.unit) == (1, 3, None)
-    depth = gm.case.Range(Quantity(2, "km"), Quantity(3500, "m"))
-    assert (depth.min, depth.max, depth.unit) == (2000.0, 3500.0, "m")
-    assert depth.to_dict()["min"] == {"value": 2000.0, "unit": "m"}
-    assert gm.case.Range.from_dict(depth.to_dict()) == depth
+def test_the_ranges_are_whole_counts_and_lengths_in_metres(case):
+    """Counts as given, depth in SI, written as given."""
+    assert isinstance(case.choices.doublets, gm.case.Range)
+    assert (case.choices.depth.min, case.choices.depth.max) == (2000.0, 3500.0)
+    assert case.to_dict()["choices"]["depth"]["min"] == {"value": 2000, "unit": "m"}
 
 
-def test_min_above_max_is_out_of_bounds():
-    """``min <= max``."""
-    with raises(gm.errors.ValidationError, "out_of_bounds"):
-        gm.case.Range(3, 1)
+def test_a_depth_in_kilometres_is_converted_and_written_back_in_kilometres(data, files):
+    """The unit given is kept."""
+    data["choices"]["depth"] = {
+        "min": {"value": 2, "unit": "km"},
+        "max": {"value": 3.5, "unit": "km"},
+    }
+    case = gm.Case.from_dict(data, files=files)
+    assert case.choices.depth.max == 3500.0
+    assert case.to_dict()["choices"]["depth"]["max"] == {"value": 3.5, "unit": "km"}
 
 
-def test_a_range_of_two_kinds_is_invalid_unit():
-    """A count and a length do not make a range."""
-    with raises(gm.errors.ValidationError, "invalid_unit"):
-        gm.case.Range(1, Quantity(5, "m"))
+def test_bad_ranges_are_refused(data, files):
+    """A count below one, a fraction, an inverted range and a depth that is no length."""
+    for key, value in (
+        ("doublets", {"min": 0, "max": 3}),
+        ("doublets", {"min": 1.5, "max": 3}),
+        ("doublets", {"min": 3, "max": 1}),
+        ("depth", {"min": {"value": 3, "unit": "m"}, "max": {"value": 1, "unit": "m"}}),
+        ("depth", {"min": {"value": 3, "unit": "bar"}, "max": {"value": 5, "unit": "bar"}}),
+        ("depth", {"min": 1, "max": 2}),
+    ):
+        bad = copy.deepcopy(data)
+        bad["choices"][key] = value
+        with raises(gm.errors.ValidationError, bad_code(key, value)):
+            gm.Case.from_dict(bad, files=files)
 
 
-def test_the_choices_are_counts_of_doublets_and_a_depth():
-    """Doublets are whole numbers from 1; depth is a range of lengths."""
-    choices = gm.case.Choices(
-        doublets=gm.case.Range(1, 3), depth=gm.case.Range(Quantity(2000, "m"), Quantity(3500, "m"))
-    )
-    assert choices.to_dict()["doublets"] == {"min": 1, "max": 3}
-    with raises(gm.errors.ValidationError, "out_of_bounds"):
-        gm.case.Choices(doublets=gm.case.Range(0, 3))
-    with raises(gm.errors.ValidationError, "out_of_bounds"):
-        gm.case.Choices(doublets=gm.case.Range(1.5, 3))
-    with raises(gm.errors.ValidationError, "invalid_unit"):
-        gm.case.Choices(depth=gm.case.Range(1, 3))
+def bad_code(key, value):
+    """Return the code of the first issue of a bad range."""
+    if key == "doublets":
+        return "out_of_bounds" if value["min"] in (0, 1.5) else "invalid_value"
+    return "invalid_unit" if value["min"] == 1 or value["min"]["unit"] == "bar" else "invalid_value"

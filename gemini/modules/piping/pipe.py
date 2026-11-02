@@ -115,9 +115,9 @@ class Pipe(Equipment, Module):
         outlets = dict(fluid_out=outlet, loss_out=loss_out)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the pipe from its length."""
-        return self.capex_of(finance, self.length)
+        return self.capex_of(economics, self.length)
 
     def _check(self, inlet):
         """Reject a pipe shorter than its rise, reverse flow and free gas."""

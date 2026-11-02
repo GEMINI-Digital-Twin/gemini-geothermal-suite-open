@@ -11,7 +11,7 @@ from gemini.errors import PhysicsError
 from gemini.modules._utils.cost import Equipment
 from gemini.modules.declarations import Parameter
 from gemini.modules.module import Module
-from gemini.physics import geometry, hydraulics
+from gemini.physics import costs, geometry, hydraulics
 from gemini.types import (
     Angle,
     Dimensionless,
@@ -99,9 +99,10 @@ class _Well(Equipment, Module):
         """Return the measured length [m] of the path."""
         return sum(self.section_length)
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of drilling the length of the well that this module traverses."""
-        return self.capex_of(finance, self._drilled_length())
+        length = self._drilled_length()
+        return costs.scaled(economics.drilling_cost_per_metre(length), length)
 
     def _drilled_length(self):
         """Return the measured length [m] of the well."""

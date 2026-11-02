@@ -30,7 +30,7 @@ def test_any_other_name_stands_for_itself():
     plant = shallow_plant()
     for name in (
         "size.doublets",
-        "case.assumptions.finance.opex.electricity",
+        "case.economics.energy.electricity",
         "peak_boiler.capacity",
     ):
         assert concrete(plant, name) == [name]

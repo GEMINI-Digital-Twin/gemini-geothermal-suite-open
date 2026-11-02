@@ -164,4 +164,4 @@ def test_a_value_the_case_holds_is_refused_naming_where_it_lives(spec):
     assert (item["path"], item["code"]) == ("modules.pipe.params.length", "invalid_value")
     plant = {"format": 2, "type": "Doublet", "params": {"gradient": {"value": 30, "unit": "K/km"}}}
     (item,) = gm.plants.validate(plant, on_error="record")
-    assert item["code"] == "invalid_value" and "environment.ground.gradient" in item["message"]
+    assert item["code"] == "invalid_value" and "site.ground.gradient" in item["message"]

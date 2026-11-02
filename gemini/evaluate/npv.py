@@ -1,6 +1,6 @@
 """Net present value of a plant run."""
 
-from gemini.evaluate._utils.cashflow import net_cash_flow
+from gemini.evaluate._utils.cashflow import net_cash_flow, subsidy
 from gemini.evaluate._utils.cost import annuity
 from gemini.evaluate._utils.discounting import discounting
 from gemini.evaluate._utils.outcome import reported, unavailable
@@ -15,21 +15,22 @@ def npv(plant, case, results, discount_rate=None, lifetime=None, on_error="raise
     The yearly revenue is the heat and cold delivered per year at the prices of ``heat`` and
     ``cold``, integrated over the run when a price follows the demand; the yearly cost is
     ``opex``. Both are constant over the lifetime, with no degradation, tax, replacement or
-    residual value.
+    residual value. A subsidy of the case (``economics.revenue.subsidy``) adds its amount per
+    year for its duration, within the lifetime, discounted like the rest.
 
     Parameters
     ----------
     plant : Module
         The plant of the run.
     case : Case
-        Its finance gives the prices, and the rate and lifetime when not given below. Anything
+        Its economics gives the prices, and the rate and lifetime when not given below. Anything
         needed and given nowhere raises ``ValidationError`` (code ``missing_assumption``).
     results : Results
         The finished run of the plant.
     discount_rate : float, optional
-        Real discount rate per year [-]; ``assumptions.finance.discount_rate`` when ``None``.
+        Real discount rate per year [-]; ``economics.discount_rate`` when ``None``.
     lifetime : float, optional
-        Years of operation; ``assumptions.finance.lifetime`` when ``None``.
+        Years of operation; ``economics.analysis_period`` when ``None``.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
 
@@ -55,8 +56,10 @@ def _npv(plant, case, results, discount, on_error):
     cost, flow, unit, reason = net_cash_flow(apply_case(plant, case), case, results, on_error)
     if cost is None:
         return unavailable(unit, reason, on_error)
+    amount, paid = subsidy(case)
+    granted = amount * annuity(rate, min(paid, years)) if amount else 0.0
     return measure(
-        flow * annuity(rate, years) - cost,
+        flow * annuity(rate, years) + granted - cost,
         unit,
         capex=measure(cost, unit),
         net_cash_flow=measure(flow, "currency/yr"),

@@ -8,11 +8,11 @@ import gemini as gm
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
-PRICE = "case.assumptions.finance.opex.electricity"
-GAS = "case.assumptions.finance.opex.gas"
+PRICE = "case.economics.energy.electricity"
+GAS = "case.economics.energy.gas"
 DECLARED = {
-    "assumptions.finance.opex.electricity": {"kind": "uniform", "min": 100, "max": 300},
-    "assumptions.finance.opex.gas": {"kind": "normal", "std": 5},
+    "economics.energy.electricity": {"kind": "uniform", "min": 100, "max": 300},
+    "economics.energy.gas": {"kind": "normal", "std": 5},
 }
 
 
@@ -64,8 +64,8 @@ def test_the_table_has_a_row_per_parameter_and_metric(runs):
 def test_a_failed_run_gives_an_effect_with_a_reason_and_goes_last(runs):
     """A normal reaching below zero breaks the bounds of the price."""
     declared = {
-        "assumptions.finance.opex.electricity": {"kind": "normal", "std": 150},
-        "assumptions.finance.opex.gas": DECLARED["assumptions.finance.opex.gas"],
+        "economics.energy.electricity": {"kind": "normal", "std": 150},
+        "economics.energy.gas": DECLARED["economics.energy.gas"],
     }
     found = gm.study.sensitivity(shallow_plant(), shallow_case(uncertain=declared), ["lcts"])
     assert found[-1]["parameter"] == PRICE
@@ -121,7 +121,7 @@ def test_the_result_round_trips_through_json(tornado):
 def test_the_bounds_are_shown_in_readable_units_but_kept_in_si(runs):
     """The table and the JSON show EUR/MWh and mD; the rows hold SI quantities."""
     rock = {"kind": "uniform", "min": 100, "max": 600}
-    declared = DECLARED | {"environment.reservoir.permeability": rock}
+    declared = DECLARED | {"site.reservoir.permeability": rock}
     found = gm.study.sensitivity(shallow_plant(), shallow_case(uncertain=declared), ["lcts"])
     row = next(row for row in found if row["parameter"].endswith("permeability"))
     assert row["low"].unit == "m2" and row["low"].si == pytest.approx(100 * 9.869233e-16)
@@ -129,7 +129,7 @@ def test_the_bounds_are_shown_in_readable_units_but_kept_in_si(runs):
     assert frame.loc[PRICE, ["low", "high"]].tolist() == pytest.approx([100, 300])
     assert frame.loc[PRICE, "value_unit"] == "EUR/MWh"
     assert frame.loc[PRICE, "unit"] == "EUR/MWh"
-    permeability = frame.loc["case.environment.reservoir.permeability"]
+    permeability = frame.loc["case.site.reservoir.permeability"]
     assert [permeability["low"], permeability["high"]] == pytest.approx([100, 600])
     assert permeability["value_unit"] == "mD"
     shown = next(r for r in found.to_dict()["rows"] if r["parameter"] == PRICE)
@@ -139,9 +139,7 @@ def test_the_bounds_are_shown_in_readable_units_but_kept_in_si(runs):
 
 def test_a_bound_whose_run_failed_has_no_value_and_no_effect(failing_runs):
     """The high price of 300 EUR/MWh fails: its end and the effect are None with the reason."""
-    declared = {
-        "assumptions.finance.opex.electricity": DECLARED["assumptions.finance.opex.electricity"]
-    }
+    declared = {"economics.energy.electricity": DECLARED["economics.energy.electricity"]}
     found = gm.study.sensitivity(shallow_plant(), shallow_case(uncertain=declared), ["lcts"])
     row = found[0]
     assert row["at_low"].value is not None and row["at_high"].value is None

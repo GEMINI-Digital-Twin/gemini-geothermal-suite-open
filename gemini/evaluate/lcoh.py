@@ -11,7 +11,7 @@ def lcoh(plant, case, results, discount_rate=None, lifetime=None, on_error="rais
     ``opex`` of this package, ``opex`` and ``heat`` are per year as scaled from the run,
     constant over the lifetime, with no degradation, replacement or residual value. The whole
     plant cost is charged to the heat; for a plant that also delivers cold,
-    ``assumptions.finance.allocation.heat_cost_share`` of it, and without that share it gives no
+    ``economics.accounting.allocation.heat_cost_share`` of it, and without that share it gives no
     value.
 
     Parameters
@@ -19,14 +19,14 @@ def lcoh(plant, case, results, discount_rate=None, lifetime=None, on_error="rais
     plant : Module
         The plant of the run.
     case : Case
-        Its finance gives the prices and, when not given below, the rate and lifetime; a rate
+        Its economics gives the prices and, when not given below, the rate and lifetime; a rate
         or lifetime given nowhere raises ``ValidationError`` (code ``missing_assumption``).
     results : Results
         The finished run of the plant.
     discount_rate : float, optional
-        Real discount rate per year [-]; ``assumptions.finance.discount_rate`` when ``None``.
+        Real discount rate per year [-]; ``economics.discount_rate`` when ``None``.
     lifetime : float, optional
-        Years of operation; ``assumptions.finance.lifetime`` when ``None``.
+        Years of operation; ``economics.analysis_period`` when ``None``.
     on_error : {"raise", "record"}, optional
         A value the inputs cannot give raises; ``"record"`` makes it ``None`` with a ``reason``.
 

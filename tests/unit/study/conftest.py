@@ -39,42 +39,48 @@ def shallow_case(days=None, folder=None, uncertain=None, **sections):
     demand, written to ``folder``, so that a real run is short.
     """
     data = from_json(SAMPLE / "case.json")
+    data["economics"] = _priced(from_json(SAMPLE / data["economics"]))
     where = SAMPLE
     if days is not None:
-        frame = pd.read_csv(SAMPLE / data["demand"]["file"]).iloc[: 24 * days]
-        frame.to_csv(folder / data["demand"]["file"], index=False)
-        data["time"]["end"] = str(pd.Timestamp(data["time"]["start"]) + pd.Timedelta(days=days))[
-            :10
-        ]
-        where = folder
-        for item in data["constraints"]:
-            if item.get("over") == "duration":
-                item["max"]["value"] = 20 * days
+        where = _cut(data, days, folder)
     data["choices"] = {
         "doublets": {"min": 1, "max": 3},
         "depth": {"min": {"value": 1000, "unit": "m"}, "max": {"value": 2000, "unit": "m"}},
     }
-    capex = data["assumptions"]["finance"]["capex"]
-    for kind, (basis, _) in EQUIPMENT_KINDS.items():
-        capex.setdefault(kind, PLACEHOLDERS[basis])
-    fixed = data["assumptions"]["finance"]["opex"].setdefault("fixed", {})
-    for kind in EQUIPMENT_KINDS:
-        fixed.setdefault(kind, {"value": 2, "unit": "%/yr"})
     for path, uncertainty in (uncertain or {}).items():
         *parents, last = path.split(".")
         node = data
         for part in parents:
             node = node[part]
         value = node[last]
-        node[last] = (
-            {**value, "uncertainty": uncertainty}
-            if isinstance(value, dict)
-            else {
-                "value": value,
-                "uncertainty": uncertainty,
-            }
-        )
-    return gm.Case.from_dict(data | sections, where)
+        node[last] = {**value, "uncertainty": uncertainty}
+    given = {key: item for key, item in (data | sections).items() if item is not None}
+    return gm.Case.from_dict(given, folder=where)
+
+
+def _priced(economics):
+    """Return ``economics`` with a placeholder cost and fixed opex for each kind it gives none."""
+    capex = economics["capex"]
+    for kind, (basis, _) in EQUIPMENT_KINDS.items():
+        capex.setdefault(kind, PLACEHOLDERS[basis])
+    fixed = economics["opex"].setdefault("fixed", {})
+    for kind in EQUIPMENT_KINDS:
+        fixed.setdefault(kind, {"value": 2, "unit": "%/yr"})
+    return economics
+
+
+def _cut(data, days, folder):
+    """Keep the first ``days`` of the demand of ``data``, written to ``folder``; return it."""
+    file = data["demand"]["heating"]["power"]["file"]
+    frame = pd.read_csv(SAMPLE / file).iloc[: 24 * days]
+    (folder / file).parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(folder / file, index=False)
+    start = pd.Timestamp(data["time"]["start"])
+    data["time"]["end"] = str(start + pd.Timedelta(days=days))[:10]
+    for item in data["requirements"]:
+        if item.get("over") == "duration":
+            item["max"] = 20 * days
+    return folder
 
 
 def shallow_plant():
@@ -89,7 +95,7 @@ def cost_model(plant, case, results, name):
     the electricity price in EUR/MWh over 1000; ``peak_heat`` is the capacity of the peak boiler.
     """
     count = len(units_of(plant, "doublet"))
-    price = case.assumptions.finance.opex.electricity * 3.6e9
+    price = case.economics.energy.electricity * 3.6e9
     if name == "lcts":
         cost = COUNT_COST[count] + ((plant.depth - 1500) / 1000) ** 2 + price / 1000
         return measure(cost, "currency/J")
@@ -133,7 +139,7 @@ def failing_runs(runs, monkeypatch):
     def fake(plant, case=None, plan=None):
         runs.append((plant, case, plan))
         results = make_results({"users": {"unmet_demand": [0.0, 0.0, 0.0]}})
-        price = case.assumptions.finance.opex.electricity * 3.6e9
+        price = case.economics.energy.electricity * 3.6e9
         if price > FAILS_ABOVE or plant.depth > FAILS_DEEPER:
             errors = [(row, problem("d0.esp", "out_of_range", "flow too high")) for row in (0, 1)]
             later = [START + timedelta(hours=3), START + timedelta(hours=4)]

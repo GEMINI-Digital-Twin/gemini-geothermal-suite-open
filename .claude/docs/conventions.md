@@ -116,10 +116,9 @@ private behaviour.
 Nothing that a user must decide has a default in gemini: not a price, a temperature, a limit, a
 cost factor, an efficiency, a depth. A field is required or absent (`None`), and a call that needs
 an absent value raises `ValidationError` (`missing_value`, or `missing_assumption` below
-`assumptions` of the case) naming its path in the case or the plant. The only defaults in `gm.case`
-are `over="each"` and `when="always"` of `Constraint`, the signature the case gives;
-`test_the_case_has_no_default_but_absent` in `tests/unit/test_code_quality.py` allows exactly these
-two. The rule holds in `gemini/modules` and `gemini/plants` too, and is tested:
+`economics` of the case) naming its path in the case or the plant. `gm.case` has no default at
+all (a requirement states `over`, and an absent `when` means every step);
+`test_the_case_has_no_default_but_absent` in `tests/unit/test_code_quality.py` checks it. The rule holds in `gemini/modules` and `gemini/plants` too, and is tested:
 `test_no_declaration_has_a_default_but_the_listed_constants` allows a default of a `Parameter`,
 `Control`, `Boundary` or `State` only for the entries of `DECLARED_DEFAULTS` in
 `tests/unit/test_code_quality.py`, each with its reason, in three classes: a physical constant or

@@ -23,20 +23,20 @@ POLICIES = ("none", "peak")
 
 
 def _limit(case, quantity, bound, required=True):
-    """Return the ``bound`` of the constraint on ``quantity`` of each doublet.
+    """Return the ``bound`` of the requirement on ``quantity`` of each doublet.
 
     Without it, ``None`` when not ``required``, else ``missing_value`` is raised.
     """
-    for item in case.constraints or ():
+    for item in case.requirements or ():
         if (item.on, item.quantity, item.over) == ("doublet", quantity, "each"):
             if getattr(item, bound) is not None:
                 return getattr(item, bound)
     if not required:
         return None
     raise ValidationError(
-        f"constraints is missing a {bound} of {quantity} on each doublet; expected a value in the "
+        f"requirements is missing a {bound} of {quantity} on each doublet; expected a value in the "
         "case (it has no default)",
-        path="constraints",
+        path="requirements",
         code="missing_value",
     )
 
@@ -63,7 +63,7 @@ def _doublets(plant, case, peak, notes):
     ``heat`` is the heat [W] of all its doublets at the flow limit and the brine cooling limit.
     Each doublet is rated for the largest flow the case lets it run: the flow limit.
     """
-    density = require(case, "environment.fluid.density")
+    density = require(case, "site.fluid.density")
     flow_max = _limit(case, "production_flow", "max")
     cooling_max = _limit(case, "brine_cooling", "max")
     heat = heat_capacity_rate(density * flow_max, FluidProperties().cp_l) * cooling_max
@@ -197,7 +197,7 @@ def _injection_head(applied, case, path):
     """
     doublet = applied.get_submodule(path)
     cooling = _limit(case, "brine_cooling", "max")
-    temperature = case.environment.temperature_at(doublet.depth) - cooling
+    temperature = case.site.temperature_at(doublet.depth) - cooling
     rate = doublet.fluid.density * doublet.nominal_flow
     stream = Stream._si(
         m_dot=rate, T=temperature, p=doublet.nominal_wellhead_pressure, fluid=doublet.fluid
@@ -273,12 +273,12 @@ def _lift_share(design, case):
         )
     supply = require(case, "demand.heating.supply_temperature")
     back = require(case, "demand.heating.return_temperature")
-    reservoir = case.environment.temperature_at(depth)
+    reservoir = case.site.temperature_at(depth)
     return min(1.0, max(0.0, (supply - reservoir) / (supply - back)))
 
 
 def _check(design, case, notes):
-    """Simulate the sized plant once and note each constraint it breaks."""
+    """Simulate the sized plant once and note each requirement it breaks."""
     notes["broken"] = []
     try:
         results = simulate(design, case)
@@ -302,7 +302,7 @@ def size(plant, case, backup=None):
     The sizes use gemini physics only. In order:
 
     - the number of doublets, the smallest in ``case.choices.doublets`` whose heat at the flow
-      limit and the brine cooling limit of the case's constraints covers the heating peak (the
+      limit and the brine cooling limit of the case's requirements covers the heating peak (the
       largest, with a note, when none does), for a plant class that takes the structural size
       ``doublets``; the nominal flow of each doublet is the flow limit, the largest flow the case
       lets it run, so that its share in ``gm.evaluate.capacities`` is at most one;
@@ -329,14 +329,14 @@ def size(plant, case, backup=None):
 
     A size that is not computed for a module kind (``chp``, ``heat_exchanger``, a heat pump that
     is not needed) leaves it unchanged and lists it. The sized plant is then simulated once on the
-    case and every constraint it breaks is listed: size never hides an infeasible start.
+    case and every requirement it breaks is listed: size never hides an infeasible start.
 
     Parameters
     ----------
     plant : Plant
         A plant with parameter values.
     case : Case
-        The demand, the constraints on each doublet (a maximum production flow and brine cooling),
+        The demand, the requirements on each doublet (a maximum production flow and brine cooling),
         the choices of doublets, the reservoir and the fluid.
     backup : str
         The design policy of the top-up units, required (it has no default):
@@ -354,7 +354,7 @@ def size(plant, case, backup=None):
     Plant
         A new plant. Its attribute ``sizing`` holds the notes: ``{"sized": [...], "unchanged":
         [...], "broken": [...], "simulation": str}``. Each size is ``{path, value, reason}`` with a
-        ``Quantity`` value, each unit left unchanged ``{path, reason}``, each broken constraint
+        ``Quantity`` value, each unit left unchanged ``{path, reason}``, each broken requirement
         ``{unit_path, role, quantity, value, limit, worst_step}`` as ``gm.evaluate.constraints``
         gives it, and ``simulation`` says ``simulated``, or ``not simulated: <code>: <reason>``
         when the sized plant cannot run (a value it still lacks, a design the case refuses).

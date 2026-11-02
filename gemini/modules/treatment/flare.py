@@ -86,6 +86,6 @@ class Flare(Equipment, Module):
             kind="gas", gas_composition=gas.composition_of_masses({"CO2": co2, "CH4": methane})
         )
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the flare, a fixed item."""
-        return self.capex_of(finance, 1)
+        return self.capex_of(economics, 1)

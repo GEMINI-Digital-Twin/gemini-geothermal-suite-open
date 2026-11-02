@@ -42,14 +42,14 @@ def variables(case):
     doublets, depth = case.choices.doublets, case.choices.depth
     flow = next(
         item
-        for item in case.constraints
+        for item in case.requirements
         if item.quantity == "production_flow" and item.over == "each"
     )
     peak = {s: case.demand.frame[f"{s}_demand"].max() for s in ("heating", "cooling")}
     low, high = SHARE
     return [
         variable("size", "doublets", int(doublets.min), int(doublets.max)),
-        variable("", "depth", Q(depth.min, depth.unit), Q(depth.max, depth.unit)),
+        variable("", "depth", Q(depth.min, "m"), Q(depth.max, "m")),
         variable(
             "heat_pump", "capacity", Q(low * peak["heating"], "W"), Q(high * peak["heating"], "W")
         ),

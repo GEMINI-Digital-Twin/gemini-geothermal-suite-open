@@ -1,12 +1,11 @@
-"""The constraints of a case, checked against a finished run."""
+"""The requirements of a case, checked against a finished run."""
 
 import numpy as np
 
 from gemini._utils.strings import join_path
-from gemini.case import Constraint
-from gemini.case._utils.fields import si_unit_of
+from gemini.case import Requirement
+from gemini.case._utils.node import si_unit_of
 from gemini.case.roletable import reads
-from gemini.errors import ValidationError
 from gemini.evaluate._utils.co2_steps import emitted_steps
 from gemini.evaluate._utils.columns import (
     field_of,
@@ -19,13 +18,12 @@ from gemini.evaluate._utils.series import edge_power
 from gemini.plants._utils.roles import delivery_ports, units_of
 from gemini.run._utils.apply import apply_case
 from gemini.types.shapes import check, measure
-from gemini.units import Quantity
 
 TOLERANCE = 1e-9
 """Relative margin of a limit: a value on the limit passes through its rounding; numerical."""
 
 AGGREGATES = {"sum": np.sum, "mean": np.mean, "max": np.max, "min": np.min}
-"""How a constraint with ``over`` other than ``each`` and ``duration`` reads the run."""
+"""How a requirement with ``over`` other than ``each`` and ``duration`` reads the run."""
 
 NO_VALUE = "no_value: the run gives no value of this field"
 """The reason when the field is not among the results."""
@@ -33,18 +31,29 @@ NO_VALUE = "no_value: the run gives no value of this field"
 NO_FLOW = "the module carried no flow in this run"
 """The reason when ``when="running"`` leaves no step."""
 
+NO_DEMAND = "no_value: the service demanded no energy in this run"
+"""The reason when a share of the demanded energy has no demand to divide by."""
+
+DEMANDED = {"unmet_demand": "heat_demand", "unmet_sensible": "sensible_cooling_demand"}
+"""The boundary of a consumer that holds the demand, for each of its unmet outputs."""
+
 
 def constraints(plant, case, results):
-    """Check every constraint of ``case`` and the supply temperatures of its services.
+    """Check every requirement of ``case`` and the supply temperatures of its services.
 
-    A ``Constraint`` is on a role and a quantity of it (``gm.case.roles()``); it applies to every
+    A ``Requirement`` is on a role and a quantity of it (``gm.case.roles()``); it applies to every
     unit of the role in ``plant`` on its own, the units being found by class and wiring. A result
     field is read over the run, a composite's through the leaves its formula names; with
-    ``when="running"`` only the steps in which the module carried flow count. ``over`` gives how
-    the run is read: ``each`` judges every step and reports the worst; ``sum``, ``mean``, ``max``
+    ``when="running"`` only the steps in which the module carried flow count, without ``when``
+    every step counts. ``over`` gives how the run is read: ``each`` judges every step and reports
+    the worst; ``sum``, ``mean``, ``max``
     and ``min`` judge one figure of the run; ``duration`` judges the total time of the steps
     that count. A parameter is judged once, or at each date inside the run when it changes over
-    time, with the case applied to the plant. A value on a limit passes within ``TOLERANCE``, a
+    time, with the case applied to the plant. ``count`` of ``doublet`` is the number of doublets
+    of the plant and ``unmet_share`` of a supply the unmet energy over the energy its service
+    demanded in the run, each one figure of the period. ``reinjection_ratio`` is the injected over
+    the produced liquid volume flow of the doublet. A value on a limit passes within
+    ``TOLERANCE``, a
     duration within half a step.
 
     The service requirement is checked as well: each ``HeatingGrid`` must receive water at least at
@@ -58,7 +67,7 @@ def constraints(plant, case, results):
     plant : Module
         The plant of the run.
     case : Case
-        The case whose constraints and services are checked, and that gives design values.
+        The case whose requirements and services are checked, and that gives design values.
     results : Results
         A finished run.
 
@@ -66,8 +75,8 @@ def constraints(plant, case, results):
     -------
     list of dict
         One check ``{name, role, unit_path, quantity, passed, value, limit, worst_step}`` per unit
-        and constraint: ``name`` is ``<unit path>.<field>``, ``role`` and ``quantity`` those of the
-        constraint, ``unit_path`` the path of the unit (``""`` for the plant, and for the role
+        and requirement: ``name`` is that of the requirement, ``role`` and ``quantity`` those of
+        it, ``unit_path`` the path of the unit (``""`` for the plant, and for the role
         ``plant``, whose figures are named by the quantity alone). ``value`` is a
         ``Quantity`` (SI, ``s`` for ``duration``): the worst value of the run for ``each`` and the
         figure otherwise, and ``limit`` the bound that was violated, else the nearest.
@@ -83,27 +92,52 @@ def constraints(plant, case, results):
     frame = results.to_frame()
     sited = apply_case(plant, case)
     checks = []
-    for constraint in (*(case.constraints or ()), *_services(case)):
-        found = units_of(sited, constraint.on)
-        if not found:
-            checks.append(_no_unit(constraint))
-        checks += [_check(sited, case, results, frame, constraint, path) for path in found]
+    for requirement in (*(case.requirements or ()), *_services(case)):
+        checks += _checks(sited, case, results, frame, requirement)
     return checks
 
 
-def _no_unit(constraint):
-    """Return the undecided check of a constraint whose role has no unit in the plant."""
-    unit = "s" if constraint.over == "duration" else si_unit_of(constraint.dimension)
-    lower, upper = _bounds(constraint)
-    reason = f"no_value: the plant has no unit of the role {constraint.on!r}"
-    name = f"{constraint.on}.{constraint.quantity}"
-    limit = measure(lower if lower is not None else upper, unit)
-    verdict = check(name, None, measure(None, unit, reason), limit)
-    return verdict | _where(constraint, None, None)
+def _checks(plant, case, results, frame, requirement):
+    """Return the checks of one requirement: one per unit of its role, or one for a count."""
+    found = units_of(plant, requirement.on)
+    if reads(requirement.on, requirement.quantity).source == "count":
+        return [_count(requirement, len(found))]
+    if not found:
+        return [_no_unit(requirement)]
+    return [_check(plant, case, results, frame, requirement, path) for path in found]
+
+
+def _unit_of(requirement):
+    """Return the SI unit of the figure a requirement judges."""
+    if requirement.over == "duration":
+        return "s"
+    return "-" if requirement.dimension is None else si_unit_of(requirement.dimension)
+
+
+def _no_unit(requirement):
+    """Return the undecided check of a requirement whose role has no unit in the plant."""
+    reason = f"no_value: the plant has no unit of the role {requirement.on!r}"
+    return _undecided(requirement, None, reason, _unit_of(requirement))
+
+
+def _count(requirement, number):
+    """Return the check of the number of units of the role of ``requirement``."""
+    return _judged(requirement, "", None, float(number), 0.0, "-")
+
+
+def _judged(requirement, unit_path, step, measured, margin, unit):
+    """Return the check of one figure against the bounds of ``requirement``."""
+    lower, upper = _bounds(requirement)
+    passed = (lower is None or measured >= lower - margin) and (
+        upper is None or measured <= upper + margin
+    )
+    limit = measure(_nearest(measured, lower, upper), unit)
+    verdict = check(requirement.name, bool(passed), measure(measured, unit), limit)
+    return verdict | _where(requirement, unit_path, step)
 
 
 def _services(case):
-    """Return the constraints that the supply temperatures of the services of ``case`` make."""
+    """Return the requirements that the supply temperatures of the services of ``case`` make."""
     demand = case.demand
     if demand is None:
         return []
@@ -112,39 +146,40 @@ def _services(case):
         (demand.cooling, "cooling_supply", "max"),
     ]
     return [
-        Constraint(
-            on=role,
-            quantity="temperature",
-            when="running",
-            **{bound: Quantity(service.supply_temperature, "K")},
+        Requirement.from_dict(
+            {
+                "name": f"{role}_temperature",
+                "on": role,
+                "quantity": "temperature",
+                "unit": "K",
+                "over": "each",
+                "when": "running",
+                bound: service.supply_temperature,
+            }
         )
         for service, role, bound in required
         if service is not None and service.supply_temperature is not None
     ]
 
 
-def _bounds(constraint):
-    """Return ``(lower, upper)`` of a constraint; ``equals`` sets both."""
-    lower = [bound for bound in (constraint.min, constraint.equals) if bound is not None]
-    upper = [bound for bound in (constraint.max, constraint.equals) if bound is not None]
-    return (max(lower) if lower else None, min(upper) if upper else None)
+def _bounds(requirement):
+    """Return ``(lower, upper)`` of a requirement."""
+    return requirement.min, requirement.max
 
 
-def _reading(plant, frame, constraint, path, name):
+def _over(requirement):
+    """Return how the run is read: a property or a window quantity is judged once, as ``each``."""
+    return requirement.over or "each"
+
+
+def _reading(plant, frame, requirement, path, name):
     """Return ``(values, keep)`` of a field: its values and the steps that count."""
     if is_parameter(plant, path, name):
-        if constraint.over != "each":
-            raise ValidationError(
-                f"constraint {constraint.on}.{constraint.quantity}: over = {constraint.over!r}; "
-                "expected 'each' for a parameter",
-                path=f"{constraint.on}.{constraint.quantity}",
-                code="invalid_value",
-            )
         values = parameter_values(plant, frame, path, name)
         return values, np.isfinite(values)
     values, active = series(plant, frame, path, name)
     keep = np.isfinite(values)
-    return values, keep & active if constraint.when == "running" else keep
+    return values, keep & active if requirement.when == "running" else keep
 
 
 def _worst_index(values, lower, upper):
@@ -157,15 +192,16 @@ def _worst_index(values, lower, upper):
     return low if lower - values[low] > values[high] - upper else high
 
 
-def _measure(constraint, values, keep, durations, bounds):
+def _measure(requirement, values, keep, durations, bounds):
     """Return ``(measured, margin, position)``; ``position`` is the worst step of ``each``."""
-    if constraint.over == "duration":
+    over = _over(requirement)
+    if over == "duration":
         return float(durations[keep].sum()), float(np.median(durations)) / 2, None
     judged = values[keep]
-    if constraint.over == "each":
+    if over == "each":
         worst = _worst_index(judged, *bounds)
         return float(judged[worst]), TOLERANCE * abs(judged[worst]), int(keep.nonzero()[0][worst])
-    measured = float(AGGREGATES[constraint.over](judged))
+    measured = float(AGGREGATES[over](judged))
     return measured, TOLERANCE * abs(measured), None
 
 
@@ -209,9 +245,9 @@ def _plant_values(plant, case, results, frame, name):
     return found.to_numpy(dtype=float), _leaf_flags(plant, frame), "W"
 
 
-def _delivery_values(plant, frame, constraint, path):
+def _delivery_values(plant, frame, requirement, path):
     """Return ``(values, active)`` of the power a unit delivers: its two ports less one another."""
-    ports = delivery_ports(plant.get_submodule(path), constraint.on)
+    ports = delivery_ports(plant.get_submodule(path), requirement.on)
     first, second = (f"{port}.enthalpy_flow" for port in ports)
     one, active = series(plant, frame, path, first)
     other, _ = series(plant, frame, path, second)
@@ -220,20 +256,20 @@ def _delivery_values(plant, frame, constraint, path):
     return one - other, active
 
 
-def _values(plant, case, results, frame, constraint, unit_path):
-    """Return ``(values, keep, unit, label, timed)`` of what a constraint reads on one unit."""
-    read = reads(constraint.on, constraint.quantity)
+def _values(plant, case, results, frame, requirement, unit_path):
+    """Return ``(values, keep, unit, label, timed)`` of what a requirement reads on one unit."""
+    read = reads(requirement.on, requirement.quantity)
     label = join_path(unit_path, read.path)
     if read.source == "plant":
         values, active, unit = _plant_values(plant, case, results, frame, read.path)
-        keep = np.isfinite(values) & (active if constraint.when == "running" else True)
+        keep = np.isfinite(values) & (active if requirement.when == "running" else True)
         return values, keep, unit, label, True
     if read.source == "delivery":
-        values, active = _delivery_values(plant, frame, constraint, unit_path)
-        keep = np.isfinite(values) & (active if constraint.when == "running" else True)
+        values, active = _delivery_values(plant, frame, requirement, unit_path)
+        keep = np.isfinite(values) & (active if requirement.when == "running" else True)
         return values, keep, si_unit_of("power"), label, True
     path, name = field_of(plant, label)
-    values, keep = _reading(plant, frame, constraint, path, name)
+    values, keep = _reading(plant, frame, requirement, path, name)
     return (
         values,
         keep,
@@ -243,32 +279,48 @@ def _values(plant, case, results, frame, constraint, unit_path):
     )
 
 
-def _check(plant, case, results, frame, constraint, unit_path):
-    """Return the check of one constraint on one unit of its role."""
-    values, keep, unit, label, timed = _values(plant, case, results, frame, constraint, unit_path)
-    unit = "s" if constraint.over == "duration" else unit
-    bounds = _bounds(constraint)
-    reason = _no_reason(values, keep, constraint.over)
+def _share(plant, results, frame, requirement, unit_path):
+    """Return the check of the unmet energy over the demanded energy of one supply unit."""
+    read = reads(requirement.on, requirement.quantity)
+    unmet, _ = series(plant, frame, unit_path, read.path)
+    demand, _ = series(plant, frame, unit_path, DEMANDED[read.path])
+    if not unmet.size or not demand.size:
+        return _undecided(requirement, unit_path, NO_VALUE, "-")
+    wanted = float((demand * results.durations).sum())
+    if wanted <= 0:
+        return _undecided(requirement, unit_path, NO_DEMAND, "-")
+    measured = float((unmet * results.durations).sum()) / wanted
+    return _judged(requirement, unit_path, None, measured, TOLERANCE * abs(measured), "-")
+
+
+def _undecided(requirement, unit_path, reason, unit):
+    """Return the check of a figure that cannot be judged, with the ``reason``."""
+    lower, upper = _bounds(requirement)
+    limit = measure(lower if lower is not None else upper, unit)
+    verdict = check(requirement.name, None, measure(None, unit, reason), limit)
+    return verdict | _where(requirement, unit_path, None)
+
+
+def _check(plant, case, results, frame, requirement, unit_path):
+    """Return the check of one requirement on one unit of its role."""
+    if reads(requirement.on, requirement.quantity).source == "share":
+        return _share(plant, results, frame, requirement, unit_path)
+    values, keep, unit, _, timed = _values(plant, case, results, frame, requirement, unit_path)
+    unit = "s" if requirement.over == "duration" else unit
+    bounds = _bounds(requirement)
+    reason = _no_reason(values, keep, _over(requirement))
     if reason:
-        limit = measure(bounds[0] if bounds[0] is not None else bounds[1], unit)
-        verdict = check(label, None, measure(None, unit, reason), limit)
-        return verdict | _where(constraint, unit_path, None)
-    measured, margin, position = _measure(constraint, values, keep, results.durations, bounds)
-    lower, upper = bounds
-    passed = (lower is None or measured >= lower - margin) and (
-        upper is None or measured <= upper + margin
-    )
+        return _undecided(requirement, unit_path, reason, unit)
+    measured, margin, position = _measure(requirement, values, keep, results.durations, bounds)
     step = None if position is None or not timed else frame.index[position]
-    limit = measure(_nearest(measured, lower, upper), unit)
-    verdict = check(label, bool(passed), measure(measured, unit), limit)
-    return verdict | _where(constraint, unit_path, step)
+    return _judged(requirement, unit_path, step, measured, margin, unit)
 
 
-def _where(constraint, unit_path, step):
-    """Return the keys that tell which constraint and unit a check answers and when it was worst."""
+def _where(requirement, unit_path, step):
+    """Return the keys of a check: its role, unit and quantity, and the time of the worst step."""
     return {
-        "role": constraint.on,
+        "role": requirement.on,
         "unit_path": unit_path,
-        "quantity": constraint.quantity,
+        "quantity": requirement.quantity,
         "worst_step": None if step is None else step.isoformat(),
     }

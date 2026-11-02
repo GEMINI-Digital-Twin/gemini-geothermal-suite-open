@@ -107,28 +107,28 @@ the air, the return and supply temperatures or the prices. `gm.simulate` and `gm
 what the case holds **by module class**, one private function for each kind, never by a path
 written in the case:
 
-- every `Formation` (and the one inside each `Doublet`): `environment.ground.gradient` and
+- every `Formation` (and the one inside each `Doublet`): `site.ground.gradient` and
   `surface_temperature`;
 - every `Doublet`: the reservoir and the injection reservoir, at the doublet's own depth, take the
-  temperature and pressure of `case.environment.temperature_at(depth)` and `pressure_at(depth)`
+  temperature and pressure of `case.site.temperature_at(depth)` and `pressure_at(depth)`
   (the two rules of `gemini/physics/ground.py`), the permeability and the thickness of
-  `environment.reservoir`, and the brine of `environment.fluid` as the module's fluid; a
+  `site.reservoir`, and the brine of `site.fluid` as the module's fluid; a
   production or injection reservoir outside a doublet takes the permeability, the thickness, the
   fluid and the pressure at `reference_depth`;
-- every `Atmosphere`: `environment.air.temperature` (a profile reaches it through the plan column
+- every `Atmosphere`: `site.air.temperature` (a profile reaches it through the plan column
   `<atmosphere>.temperature` that `gm.schedule` writes; a user `plan` without it carries no air
   profile);
 - every `HeatingGrid` and `CoolingGrid`: `return_temperature` and the required supply
   temperature (`minimum_supply_temperature` for heat, `maximum_supply_temperature` for cold) from
   `demand.heating` and `demand.cooling`.
 
-A parameter that the case sets is declared with `Parameter(..., case="environment.ground.gradient")`;
+A parameter that the case sets is declared with `Parameter(..., case="site.ground.gradient")`;
 a plant dict that states it is refused (`invalid_value`, naming the case path), and `to_dict` never
 writes it. A value the plant needs and the case lacks raises `missing_value` naming its path in
 the case. The plant of the user never changes. Known limits: `fluids` stays in the plant dict for a
 module whose fluid differs from its class default, because a measured or replayed plant (the
 `DoubletHeatPlant` example, a calibration) has no case and carries its own brine; with a case, the
-fluid of a `Doublet` comes from `environment.fluid`. The leaf reservoir parameters `pressure`,
+fluid of a `Doublet` comes from `site.fluid`. The leaf reservoir parameters `pressure`,
 `permeability` and `aquifer_thickness` are not case-flagged for the same reason, but a `Doublet` in
 a run gets them from the case. The pressure of the water returned by a consumer stays a design
 parameter of the plant, because the case has no field for it.
@@ -156,7 +156,7 @@ going to its cooler. At most one unit per role and kind, or `invalid_design`.
 
 **Cost dispatch.** Every heat and cold source gets a marginal cost at each step
 (`gemini/run/_utils/sources.py`, `physics/dispatch.marginal_cost`): `price / efficiency +
-co2 price * emission`, with the prices of `case.assumptions.finance.opex` and the CO2 price `opex.co2` and the efficiency of the source at
+co2 price * emission`, with the prices of `case.economics.energy`, the CO2 price `economics.carbon.price`, the grid factor `utilities.electricity.co2_intensity` and the efficiency of the source at
 its design values: the COP of a heat pump or compression chiller, the efficiency of a boiler, the
 pump electricity of a doublet, the `thermal_cop` of a heat-driven chiller on the cheapest heat. A
 price a source needs and the case lacks raises `ValidationError` (code `missing_assumption`). A

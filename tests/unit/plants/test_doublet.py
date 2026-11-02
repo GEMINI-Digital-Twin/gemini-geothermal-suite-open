@@ -81,20 +81,25 @@ BRINE = gm.Fluid(
 
 
 def design_case():
-    """Return a case whose environment is the ground, reservoir and brine of ``DESIGN``."""
+    """Return a case whose site is the ground, reservoir and brine of ``DESIGN``."""
     Q = units.Quantity
-    return gm.Case(
-        time=gm.case.Time(start="2027-01-01", end="2027-01-02", step=Q(1, "d")),
-        environment=gm.case.Environment(
-            ground=gm.case.Ground(surface_temperature=Q(12, "degC"), gradient=Q(30, "K/km")),
-            reservoir=gm.case.Reservoir(
-                reference_depth=Q(2500, "m"),
-                thickness=Q(100, "m"),
-                permeability=Q(200, "mD"),
-                pressure=Q(hydraulics.hydrostatic_pressure(1030.0, 2500.0), "Pa"),
-            ),
-            fluid=gm.case.Fluid(density=Q(1030, "kg/m3"), viscosity=Q(0.4, "mPa.s")),
-        ),
+    return gm.Case.from_dict(
+        {
+            "format": 1,
+            "kind": "case",
+            "name": "design",
+            "time": {"start": "2027-01-01", "end": "2027-01-02", "step": Q(1, "d")},
+            "site": {
+                "ground": {"surface_temperature": Q(12, "degC"), "gradient": Q(30, "K/km")},
+                "reservoir": {
+                    "reference_depth": Q(2500, "m"),
+                    "thickness": Q(100, "m"),
+                    "permeability": Q(200, "mD"),
+                    "pressure": Q(hydraulics.hydrostatic_pressure(1030.0, 2500.0), "Pa"),
+                },
+                "fluid": {"density": Q(1030, "kg/m3"), "viscosity": Q(0.4, "mPa.s")},
+            },
+        }
     )
 
 

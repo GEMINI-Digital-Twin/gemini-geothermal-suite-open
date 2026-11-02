@@ -12,15 +12,15 @@ from gemini.units import SECONDS_PER_YEAR
 
 NO_COST = (
     "no module of the plant is equipment with a cost: a module declares it with an "
-    "equipment_kind and a capex(finance)"
+    "equipment_kind and a capex(economics)"
 )
 """The reason when a plant has no equipment with a cost."""
 
 BILLED = ("electricity", "fuel", "waste", "chemical")
 """The flows that are bought or discarded, each with a bill of its name."""
 
-FINANCE = "assumptions.finance"
-"""The path of the finance section in a case."""
+ECONOMICS = "economics"
+"""The path of the economics in a case."""
 
 
 def annuity(rate, years):
@@ -50,37 +50,37 @@ def equipment(plant):
 
 def investment(plant, case, on_error):
     """Return the investment as ``capex`` does, for a plant that already has its design values."""
-    finance = require(case, FINANCE)
+    economics = require(case, ECONOMICS)
     units = equipment(plant)
     if not units:
         return unavailable("currency", NO_COST, on_error)
     items = {
-        path: measure(module.capex(finance), "currency", kind=module.equipment_kind)
+        path: measure(module.capex(economics), "currency", kind=module.equipment_kind)
         for path, module in units.items()
     }
     parts = {"modules": items}
-    if finance.price_year is not None:
-        parts["price_year"] = measure(finance.price_year, "-")
+    if economics.price_year is not None:
+        parts["price_year"] = measure(economics.price_year, "-")
     return measure(sum(item.value for item in items.values()), "currency", **parts)
 
 
 def fixed_opex(plant, case):
     """Return the fixed opex of a year [currency/yr] of each kind of equipment of ``plant``."""
-    finance = require(case, FINANCE)
+    economics = require(case, ECONOMICS)
     amounts = {}
     for module in equipment(plant).values():
         kind = module.equipment_kind
-        amounts[kind] = amounts.get(kind, 0.0) + module.fixed_opex(finance)
+        amounts[kind] = amounts.get(kind, 0.0) + module.fixed_opex(economics)
     return amounts
 
 
 def _bills(flows, case, results, plant):
     """Return the yearly bills of what the plant buys and discards, and of its CO2 when priced."""
     bills = {name: flows.cost(name, case) for name in BILLED}
-    opex = require(case, FINANCE).opex
-    if opex is not None and opex.co2 is not None:
+    carbon = require(case, ECONOMICS).carbon
+    if carbon is not None and carbon.price is not None:
         steps = emitted_steps(plant, case, results)
-        price = level(case, f"{FINANCE}.opex.co2", len(steps))
+        price = level(case, f"{ECONOMICS}.carbon.price", len(steps))
         bills["co2"] = float(np.sum(steps * price)) * SECONDS_PER_YEAR / results.durations.sum()
     return bills
 

@@ -1,4 +1,4 @@
-"""Constraints on roles and on the supply temperatures, against hand-made runs."""
+"""Requirements on roles and on the supply temperatures, against hand-made runs."""
 
 import math
 
@@ -8,7 +8,7 @@ import gemini as gm
 from gemini._utils.jsonable import to_plain
 from gemini.modules import HeatingGrid
 from gemini.units import Quantity
-from tests.fixtures.cases import make_case
+from tests.fixtures.cases import make_case, requirement
 from tests.fixtures.costed_plants import heating_plant
 from tests.fixtures.errors import raises
 from tests.fixtures.result_tables import make_results
@@ -24,8 +24,8 @@ def run(unmet=UNMET, operating=RUNNING):
 
 
 def unmet(**kwargs):
-    """Return a constraint on the unmet demand of every heating supply."""
-    return gm.case.Constraint(on="heating_supply", quantity="unmet", **kwargs)
+    """Return a requirement on the unmet demand of every heating supply."""
+    return requirement("heating_supply", "unmet", **kwargs)
 
 
 def watts(value):
@@ -33,15 +33,15 @@ def watts(value):
     return Quantity(value, "W")
 
 
-def checked(*constraints, plant=None, results=None, supply=None):
-    """Return the checks of ``constraints`` on a run."""
-    case = make_case(count=4, constraints=list(constraints) or None, supply=supply)
+def checked(*requirements, plant=None, results=None, supply=None):
+    """Return the checks of ``requirements`` on a run."""
+    case = make_case(count=4, requirements=list(requirements) or None, supply=supply)
     return gm.evaluate.constraints(plant or heating_plant(), case, results or run())
 
 
-def only(*constraints, **parts):
-    """Return the one check of ``constraints``."""
-    (result,) = checked(*constraints, **parts)
+def only(*requirements, **parts):
+    """Return the one check of ``requirements``."""
+    (result,) = checked(*requirements, **parts)
     return result
 
 
@@ -49,7 +49,7 @@ def test_each_reports_the_worst_step_of_a_violated_maximum():
     """The second hour is the highest: its value, the limit and its time."""
     result = only(unmet(max=watts(4.0)))
     assert to_plain(result) == {
-        "name": "heat.unmet_demand",
+        "name": "heating_supply_unmet",
         "role": "heating_supply",
         "unit_path": "heat",
         "quantity": "unmet",
@@ -75,11 +75,11 @@ def test_each_with_two_bounds_reports_the_one_that_is_further_out():
     assert result["worst_step"] == "2024-01-01T03:00:00+00:00"
 
 
-def test_equals_is_both_bounds():
-    """A constant run equals its value; another value does not."""
+def test_an_exact_rule_is_the_same_number_as_min_and_max():
+    """A constant run meets its value; another value does not."""
     flat = run(unmet=[2.0] * 4, operating=[1] * 4)
-    assert only(unmet(equals=watts(2.0)), results=flat)["passed"] is True
-    assert only(unmet(equals=watts(3.0)), results=flat)["passed"] is False
+    assert only(unmet(min=watts(2.0), max=watts(2.0)), results=flat)["passed"] is True
+    assert only(unmet(min=watts(3.0), max=watts(3.0)), results=flat)["passed"] is False
 
 
 def test_a_value_on_the_limit_passes_within_the_rounding_margin():
@@ -128,11 +128,14 @@ def test_duration_is_the_time_of_the_steps_that_count():
     def hours(count):
         return Quantity(count, "h")
 
-    ran = only(unmet(equals=hours(3), over="duration", when="running"))
+    ran = only(unmet(min=hours(3), max=hours(3), over="duration", when="running"))
     assert to_plain(ran["value"]) == {"value": 3 * HOUR, "unit": "s"}
     assert ran["passed"] is True and ran["worst_step"] is None
-    assert only(unmet(equals=hours(3.4), over="duration", when="running"))["passed"] is True
-    far = only(unmet(equals=hours(4), over="duration", when="running"))
+    assert (
+        only(unmet(min=hours(3.4), max=hours(3.4), over="duration", when="running"))["passed"]
+        is True
+    )
+    far = only(unmet(min=hours(4), max=hours(4), over="duration", when="running"))
     assert far["passed"] is False
     assert to_plain(far["limit"]) == {"value": 4 * HOUR, "unit": "s"}
 
@@ -170,12 +173,10 @@ def test_a_port_quantity_is_a_field():
     results = make_results(
         {"heat": {"supply_in.temperature": [300.0, 320.0], "operating": [1.0, 1.0]}}
     )
-    constraint = gm.case.Constraint(
-        on="heating_supply", quantity="temperature", max=Quantity(40, "degC")
-    )
-    case = make_case(count=2, constraints=[constraint])
+    limit = requirement("heating_supply", "temperature", max=Quantity(40, "degC"))
+    case = make_case(count=2, requirements=[limit])
     result = gm.evaluate.constraints(heating_plant(), case, results)[0]
-    assert result["name"] == "heat.supply_in.temperature"
+    assert result["name"] == "heating_supply_temperature"
     assert result["passed"] is False and result["value"].value == 320.0
     assert result["limit"].value == pytest.approx(313.15)
 
@@ -190,7 +191,7 @@ def test_a_role_checks_each_of_its_units_on_its_own():
             "heat2": {"unmet_demand": [9.0], "operating": [1.0]},
         }
     )
-    case = make_case(count=1, constraints=[unmet(max=watts(5.0))])
+    case = make_case(count=1, requirements=[unmet(max=watts(5.0))])
     found = gm.evaluate.constraints(plant, case, results)
     assert [(item["unit_path"], item["passed"]) for item in found] == [
         ("heat", True),
@@ -201,10 +202,10 @@ def test_a_role_checks_each_of_its_units_on_its_own():
 
 def test_a_role_without_a_unit_in_the_plant_is_one_undecided_check():
     """A plant with no doublet has nothing to judge by a doublet limit: no value, no error."""
-    flow = gm.case.Constraint(on="doublet", quantity="production_flow", max=Quantity(300, "m3/h"))
+    flow = requirement("doublet", "production_flow", max=Quantity(300, "m3/h"))
     (found,) = checked(flow)
     assert found["passed"] is None and found["unit_path"] is None
-    assert found["role"] == "doublet" and found["name"] == "doublet.production_flow"
+    assert found["role"] == "doublet" and found["name"] == "doublet_production_flow"
     assert found["value"].value is None and found["value"].reason.startswith("no_value")
     assert found["limit"].value == pytest.approx(300 / 3600) and found["limit"].unit == "m3/s"
 
@@ -213,40 +214,38 @@ def test_a_parameter_is_judged_as_the_plant_states_it():
     """The pump efficiency of a doublet, equal to 0.7."""
     plant = gm.Plant("One")
     plant.add("Doublet", name="d0", params={"pump_efficiency": 0.6})
-    constraint = gm.case.Constraint(on="doublet", quantity="pump_efficiency", equals=0.7)
-    result = only(constraint, plant=plant, results=make_results({"d0.esp": {"head": [1.0]}}))
+    rule = requirement("doublet", "pump_efficiency", min=0.7, max=0.7)
+    result = only(rule, plant=plant, results=make_results({"d0.esp": {"head": [1.0]}}))
     assert result["passed"] is False and result["worst_step"] is None
     assert result["value"].value == 0.6 and result["limit"].value == 0.7
-    assert result["unit_path"] == "d0" and result["name"] == "d0.pump_efficiency"
+    assert result["unit_path"] == "d0" and result["name"] == "doublet_pump_efficiency"
 
 
 def test_a_parameter_without_a_value_is_undecided():
     """Nothing states it."""
     plant = gm.Plant("One")
     plant.add("Doublet", name="d0")
-    constraint = gm.case.Constraint(on="doublet", quantity="pump_efficiency", equals=0.7)
-    result = only(constraint, plant=plant, results=make_results({"d0.esp": {"head": [1.0]}}))
+    rule = requirement("doublet", "pump_efficiency", min=0.7, max=0.7)
+    result = only(rule, plant=plant, results=make_results({"d0.esp": {"head": [1.0]}}))
     assert result["passed"] is None and result["value"].reason.startswith("no_value")
 
 
 @pytest.mark.parametrize("over", ["sum", "mean", "max", "min", "duration"])
-def test_a_parameter_takes_only_each(over):
-    """A parameter has no steps to aggregate."""
-    plant = gm.Plant("One")
-    plant.add("Doublet", name="d0", params={"pump_efficiency": 0.6})
-    bound = Quantity(300.0, "s") if over == "duration" else 0.7
-    constraint = gm.case.Constraint(on="doublet", quantity="pump_efficiency", max=bound, over=over)
-    with raises(gm.errors.ValidationError, "invalid_value", match="parameter"):
-        checked(constraint, plant=plant, results=make_results({"d0.esp": {"head": [1.0]}}))
+def test_a_parameter_takes_no_over(over):
+    """A parameter has no steps to aggregate: the requirement refuses ``over``."""
+    rule = requirement("doublet", "pump_efficiency", max=0.7) | {"over": over}
+    with raises(gm.errors.ValidationError, "invalid_value", match="over"):
+        make_case(count=4, requirements=[rule])
 
 
-def test_every_constraint_of_the_case_is_checked_in_order():
-    """Two constraints, two checks."""
-    found = checked(unmet(max=watts(9.0)), unmet(min=watts(0.0)))
+def test_every_requirement_of_the_case_is_checked_in_order():
+    """Two requirements, two checks."""
+    found = checked(unmet(max=watts(9.0)), unmet(min=watts(0.0), name="unmet_least"))
+    assert [item["name"] for item in found] == ["heating_supply_unmet", "unmet_least"]
     assert [item["passed"] for item in found] == [True, True]
 
 
-def test_a_case_without_constraints_gives_no_checks():
+def test_a_case_without_requirements_gives_no_checks():
     """Nothing to check."""
     assert checked() == []
 
@@ -261,10 +260,10 @@ def test_an_output_of_a_plant_is_read_through_the_leaves_it_names():
             "d0.injector": {"wellhead_in.temperature": [340.0, 340.0], "operating": [1.0, 0.0]},
         }
     )
-    cooling = {"on": "doublet", "quantity": "brine_cooling", "max": Quantity(45, "K")}
-    case = make_case(count=2, constraints=[gm.case.Constraint(**cooling)])
+    cooling = requirement("doublet", "brine_cooling", max=Quantity(45, "K"))
+    case = make_case(count=2, requirements=[cooling])
     assert gm.evaluate.constraints(plant, case, results)[0]["value"].value == 50.0
-    case = make_case(count=2, constraints=[gm.case.Constraint(**cooling, when="running")])
+    case = make_case(count=2, requirements=[cooling | {"when": "running"}])
     found = gm.evaluate.constraints(plant, case, results)[0]
     assert found["passed"] is True and found["value"].value == 40.0
 
@@ -277,7 +276,7 @@ def test_the_supply_temperature_of_a_service_is_a_requirement():
     )
     case = make_case(count=2, supply=supply)
     (found,) = gm.evaluate.constraints(heating_plant(), case, cold)
-    assert found["name"] == "heat.supply_in.temperature"
+    assert found["name"] == "heating_supply_temperature"
     assert found["role"] == "heating_supply" and found["quantity"] == "temperature"
     assert found["passed"] is False and found["value"].value == 360.0
     assert found["limit"].value == pytest.approx(373.15)
@@ -307,11 +306,11 @@ def test_a_minimum_intake_pressure_rejects_a_design_whose_suction_drops_below_it
     results = make_results(
         {"d0.esp": {"intake_pressure": [30e5, 8e5, 25e5], "operating": [1.0, 1.0, 1.0]}}
     )
-    low = gm.case.Constraint(on="doublet", quantity="intake_pressure", min=Quantity(10, "bar"))
+    low = requirement("doublet", "intake_pressure", min=Quantity(10, "bar"))
     (found,) = checked(low, plant=plant, results=results)
-    assert found["passed"] is False and found["name"] == "d0.esp.intake_pressure"
+    assert found["passed"] is False and found["name"] == "doublet_intake_pressure"
     assert found["value"].value == pytest.approx(8e5)
-    held = gm.case.Constraint(on="doublet", quantity="intake_pressure", min=Quantity(5, "bar"))
+    held = requirement("doublet", "intake_pressure", min=Quantity(5, "bar"))
     assert only(held, plant=plant, results=results)["passed"] is True
 
 
@@ -322,5 +321,5 @@ def test_a_maximum_gas_fraction_at_the_intake_is_judged_per_step():
     results = make_results(
         {"d0.esp": {"gas_volume_fraction": [0.02, 0.2], "operating": [1.0, 1.0]}}
     )
-    limit = gm.case.Constraint(on="doublet", quantity="intake_gas_fraction", max=0.1)
+    limit = requirement("doublet", "intake_gas_fraction", max=0.1)
     assert only(limit, plant=plant, results=results)["passed"] is False

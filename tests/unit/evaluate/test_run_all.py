@@ -1,7 +1,7 @@
 """All checks together."""
 
 import gemini as gm
-from tests.fixtures.cases import make_case
+from tests.fixtures.cases import make_case, requirement
 from tests.fixtures.costed_plants import heating_plant
 from tests.fixtures.result_tables import make_results
 
@@ -21,16 +21,14 @@ def test_run_all_lists_the_three_checks():
     assert report["passed"] is True
 
 
-def test_the_constraints_of_the_case_join_the_checks():
-    """Each match of a constraint is one more check and can fail the run."""
+def test_the_requirements_of_the_case_join_the_checks():
+    """Each match of a requirement is one more check and can fail the run."""
     results = make_results(
         {"heat": {"unmet_demand": [7.0], "return_out.temperature": [300.0], "operating": [1.0]}}
     )
-    limit = gm.case.Constraint(
-        on="heating_supply", quantity="unmet", max=gm.units.Quantity(5.0, "W")
-    )
-    report = gm.evaluate.run_all(heating_plant(), make_case(count=1, constraints=[limit]), results)
-    assert report["checks"][-1]["name"] == "heat.unmet_demand"
+    limit = requirement("heating_supply", "unmet", max=gm.units.Quantity(5.0, "W"))
+    report = gm.evaluate.run_all(heating_plant(), make_case(count=1, requirements=[limit]), results)
+    assert report["checks"][-1]["name"] == "heating_supply_unmet"
     assert report["checks"][-1]["passed"] is False and report["passed"] is False
 
 

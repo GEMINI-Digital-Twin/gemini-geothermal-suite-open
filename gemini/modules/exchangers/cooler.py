@@ -153,9 +153,9 @@ class Cooler(Equipment, Module):
         outlets = dict(fluid_out=outlet, air_out=air_out, air_in=air_in, power_in=power_in)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the cooler from its capacity."""
-        return self.capex_of(finance, self.capacity)
+        return self.capex_of(economics, self.capacity)
 
     def _air(self, air, water_T, heat):
         """Return the air taken and returned: it leaves at the cooled water, at least an approach.

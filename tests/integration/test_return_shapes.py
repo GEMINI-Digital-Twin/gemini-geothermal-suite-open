@@ -10,7 +10,7 @@ import pytest
 import gemini as gm
 from gemini._utils.jsonable import to_plain
 from tests.fixtures import ROOT
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case, requirement
 from tests.fixtures.costed_plants import cooling_plant, day, heating_plant
 from tests.fixtures.json_schema import check
 from tests.fixtures.sample_cases import example_plant
@@ -33,15 +33,15 @@ CORROSION = {
     "start": "2024-01-01T00:00:00Z",
 }
 PRICED = make_case(
-    finance=costed_finance(
-        opex={"electricity": gm.units.Quantity(2e-8, "currency/J")},
+    economics=costed_economics(
+        energy={"electricity": gm.units.Quantity(2e-8, "currency/J")},
         revenue={
             "heat": gm.units.Quantity(5e-8, "currency/J"),
             "cold": gm.units.Quantity(4e-8, "currency/J"),
         },
         discount_rate=0.05,
     ),
-    emissions={"CO2": gm.case.CO2(electricity=gm.units.Quantity(1e-7, "kg/J"))},
+    utilities={"electricity": {"co2_intensity": gm.units.Quantity(1e-7, "kg/J")}},
 )
 POINTS = [
     {"flow": 0.03, "frequency": 50, "head": 3e6},
@@ -57,13 +57,25 @@ RETIRED = {"values", "units", "tolerance", "timestamp", "class", "type", "module
 
 def _constrained():
     """Return a case with a constraint on each way of reading a run."""
-    duty = {"on": "heat_exchanger", "quantity": "duty"}
-    constraints = [
-        gm.case.Constraint(**duty, min={"value": 0, "unit": "MW"}),
-        gm.case.Constraint(**duty, max={"value": 1000, "unit": "MW"}, over="mean", when="running"),
-        gm.case.Constraint(**duty, min={"value": 1, "unit": "h"}, over="duration", when="running"),
+    duty = ("heat_exchanger", "duty")
+    requirements = [
+        requirement(*duty, name="duty_least", min={"value": 0, "unit": "MW"}),
+        requirement(
+            *duty,
+            name="duty_mean",
+            max={"value": 1000, "unit": "MW"},
+            over="mean",
+            when="running",
+        ),
+        requirement(
+            *duty,
+            name="duty_time",
+            min={"value": 1, "unit": "h"},
+            over="duration",
+            when="running",
+        ),
     ]
-    return make_case(count=1, constraints=constraints)
+    return make_case(count=1, requirements=requirements)
 
 
 def _run_entries(plant, results):

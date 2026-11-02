@@ -155,9 +155,9 @@ class ThermalStorage(Equipment, Module):
         outlets = dict(charge_out=charge_out, discharge_out=discharge_out, loss_out=loss_out)
         return outlets
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the tank from its volume."""
-        return self.capex_of(finance, self.volume)
+        return self.capex_of(economics, self.volume)
 
     def _advance_states(self, inlets, outlets, dt):
         charge_in, discharge_in = inlets.charge_in, inlets.discharge_in

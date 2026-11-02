@@ -38,7 +38,7 @@ that plain JSON. A result of `gm.evaluate` and `gm.study` is a `gm.units.Quantit
    as more keys, each a value or a text. In Python a result of `gm.evaluate` or `gm.study` is a
    `Value`, a `Quantity` with a `reason` and the `parts` of the result: `lcts(...).value`,
    `.unit`, `.to("EUR/MWh")`, `.parts["heat"]`. Money is in the unit `currency` (`currency/J`,
-   `currency/yr`), whatever `assumptions.finance.currency` of the case labels, and a year is `yr`.
+   `currency/yr`), whatever `economics.currency` of the case labels, and a year is `yr`.
 2. **Problem** `{path, code, message, suggestions}`, for every error, validation result and failed
    run row. A run row adds `time`. There is no `class` key: `code` is the stable key for machines.
 3. **Check** `{name, passed, value, limit}`, where `value` and `limit` are values. A failed check is
@@ -174,7 +174,7 @@ are in `gm.plants`, not in `gm.modules`; `gm.modules` never imports `gm.plants`.
 
 A `Doublet` with a `depth` and no geotherm waits for it, and a run that starts without it raises code
 `missing_value` with the path: a plant holds the design, and the geotherm comes from the case
-(`environment.ground`).
+(`site.ground`).
 
 On any plant, `path` being a dotted module path (`""` is the root):
 
@@ -232,38 +232,29 @@ The setters and getters of the settings (`set_precision`, `set_display_units`, `
 
 ## Case
 
-`gm.Case` is the strict, typed entry boundary of every run. It replaces `gm.Problem`,
-`gm.Constraint` and `gm.Assumptions`, which are gone. Fixed sections `time`, `environment`,
-`demand`, `choices`, `constraints` and `assumptions`, in a `case.json` with its CSV files next to
-it ([data.md](data.md#the-case) holds the file section by section). Every class is a frozen
-pydantic model that refuses unknown keys, with `to_dict`, `from_dict` and `schema` (closed at
-every level, `additionalProperties: false`). Everything is stored in SI as plain numbers or arrays
-(`Quantity(12, "degC")` is 285.15) and written as `{"value", "unit"}` in the SI unit. No field has a
-default but absent (`None`); only `time` is required. An absent value that a call needs raises
-`missing_value` naming its path, `missing_assumption` below `assumptions`.
+`gm.Case` is the strict, typed entry boundary of every run: the outside conditions over one period
+and the rules of third parties. Sections `time`, `initial_state`, `site`, `demand`, `utilities`,
+`economics`, `requirements` and `choices` in a `case.json` with its CSV files and `economics.json`
+next to it ([data.md](data.md#the-case) holds the file section by section, [inputs.md](inputs.md)
+the rule of each field). Objects are immutable, values are stored in SI as plain numbers or arrays
+and written back as given. No field has a default but absent (`None`). An absent value that a call
+needs raises `missing_value` naming its path, `missing_assumption` below `economics`.
 
 | Name | Meaning | Status |
 | --- | --- | --- |
-| `gm.Case(time, environment=None, demand=None, choices=None, constraints=None, assumptions=None)` | the case; `time` is required | real |
-| `gm.Case.from_json(path)`, `case.to_json(path)` | reads a `case.json` and the CSV files named in it, or writes both | real |
-| `gm.Case.from_dict(data, folder=None)`, `case.to_dict()`, `gm.Case.schema()` | plain data, files read from `folder`; JSON Schema | real |
-| `gm.case.Time(start, end, step)` | `end` is excluded; `.index` is the UTC `DatetimeIndex` of the steps | real |
-| `gm.case.Environment(ground, reservoir, fluid, air)` with `Ground`, `Reservoir`, `Fluid`, `Air` | `temperature_at(depth)`, `pressure_at(depth)` apply the two rules of `gemini/physics/ground.py` | real |
-| `gm.case.Demand(file, time_column, heating, cooling)` with `Service(column, unit, supply_temperature, return_temperature)` | reads the CSV into `.frame`, in W on the index of `time` | real |
-| `gm.case.Choices(doublets, depth)` with `Range(min, max)` | what a study may vary | real |
-| `gm.case.Constraint(on, quantity, min=None, max=None, equals=None, over="each", when="always")` | a limit on a quantity of a role; `over` is `each`, `sum`, `mean`, `max`, `min` or `duration`; `when` is `always` or `running`; `over` and `when` are the only defaults of the case | real |
-| `gm.case.Assumptions(finance, emissions)` with `Finance`, `Capex`, `Opex`, `Revenue`, `Allocation`, `Emissions`, `CO2`, `CH4` | prices, cost factors per equipment kind, rate, lifetime, emission factors; no default of any value | real |
-| `gm.case.Uncertainty(kind, min, max, std)` | the `uncertainty` of a number of `environment` or `assumptions`, in SI, by dotted path in `case.uncertainty` | real |
-| `gm.case.roles()` | `{role: [quantities]}`, the closed table a `Constraint` names. `doublet` also has `intake_pressure` (a pressure, the suction of the ESP) and `intake_gas_fraction` (a fraction, the free gas volume over the total at the intake); `heat_pump`, `boiler` and `chp` have `heat_output` and `chiller` has `cold_output` (powers, the enthalpy delivered at the sink or chilled side); the role `plant`, with no unit path (`""`), has `electricity_bought`, `gas_bought` and `heat_surplus` (powers) and `co2` (the mass emitted in one step, in kg; `over: sum` is the mass of the run, what `gm.evaluate.co2` gives) | real |
-
-A number of `environment` or `assumptions` may declare how uncertain it is, next to its value and in
-its unit: `{"value": 0.10575, "unit": "EUR/kWh", "uncertainty": {"kind": "uniform", "min": 0.08,
-"max": 0.14}}`. `kind` is required: `uniform` (`min`, `max`), `triangular` (the mode is `value`;
-`min`, `max`) or `normal` (the mean is `value`; `std`, with `min` and `max` optional to truncate).
-`value` lies inside `[min, max]`; an unknown or missing key raises `ValidationError` naming its path;
-`time`, `demand`, `choices` and `constraints` cannot carry one. The case stays frozen and a run,
-`size` and `minimize` use only `value`; `sample` and `sensitivity` read the declarations
-([data.md](data.md#the-case)).
+| `gm.Case.from_json(path)`, `case.to_json(path)` | reads a `case.json`, its CSV files and its economics file, or writes them | real |
+| `gm.Case.from_dict(data, files=None, folder=None)`, `case.to_dict()`, `case.files()`, `gm.Case.schema()` | plain data; series read from the `{name: bytes}` mapping, then the folder; the CSV and JSON files of a case; JSON Schema | real |
+| `case.check()`, `economics.check()` | the issues of an object; never raises. `from_json` and `from_dict` raise a `ValidationError` carrying the same issues | real |
+| `case.with_value(path, number)`, `case.field(path)`, `case.leaf(path)`, `case.uncertainty` | a copy with an SI value, the quantity and bounds of a value, the leaf as read, the index of uncertainties | real |
+| `gm.case.Time` (`start`, `end`, `step`) | `end` is excluded; `.index` is the UTC `DatetimeIndex` of the steps | real |
+| `gm.case.Site` with `Ground`, `Reservoir`, `Fluid`, `Air` | `temperature_at(depth)`, `pressure_at(depth)` | real |
+| `gm.case.Demand` with `Service`, `CoolingService` | `.frame` in W on the index of `time`; the services hold `power` and the conditions of the consumer | real |
+| `gm.case.Utilities` with `Electricity`, `Gas` | `co2_intensity`, `import_limit`, `export_limit`, `composition`, `heating_value` | real |
+| `gm.case.Economics.from_json(path)`, `from_dict`, `to_json`, `check`, `schema`, `drilling_cost_per_metre(length)` | all money; usable alone, held as `case.economics` | real |
+| `gm.case.Requirement` (`name`, `on`, `quantity`, `over`, `when`, `min`, `max`) | a rule on a quantity of a role; bounds in SI | real |
+| `gm.case.Choices` (`doublets`, `depth`) | what a study may vary, each a `gm.case.Range` | real |
+| `gm.case.Range`, `gm.case.Uncertainty` | the shared objects of `gemini.types.inputs` | real |
+| `gm.case.roles()` | `{role: {quantity: {"dimension", "over"}}}`, the closed table a `Requirement` names. `doublet` has `production_flow`, `brine_cooling`, `pump_efficiency`, `reinjection_ratio`, `count`, `intake_pressure`, ...; `heating_supply` and `cooling_supply` have `unmet` and `unmet_share`; the role `plant` has `electricity_bought`, `gas_bought`, `heat_surplus` and `co2` | real |
 
 The plant dict holds only the plant ([plants.md](plants.md#what-the-plant-dict-holds)). A run sets
 the values of the case on a copy of the plant by module class ([engine.md](engine.md#how-the-case-reaches-the-modules)).
@@ -358,15 +349,15 @@ Every `gm.evaluate` function takes `(plant, case, results, ...)`; only `capex` h
 The cost functions return a value with the parts of the result as more keys. A value the inputs
 cannot give raises `ValidationError` (code `no_value`, or `missing_assumption` for an assumption
 nobody gave); with `on_error="record"` it is a `Value` whose `value` is `None` and whose `reason`
-says why. Prices, rates and cost factors are those of `case.assumptions`; gemini holds none.
-Equipment declares `capex(finance)` and `fixed_opex(finance)` from its design values and the cost
+says why. Prices, rates and cost factors are those of `case.economics`; gemini holds none.
+Equipment declares `capex(economics)` and `fixed_opex(economics)` from its design values and the cost
 factor of its kind, see [economics.md](economics.md#costs). A violated constraint is a check, never an
 error.
 
 | Name | Status |
 | --- | --- |
 | `gm.evaluate.totals(plant, case, results)` | real: `{name: value}` of what crossed the plant's edge over the run, each read from the ports of the edge modules, heat and cold as delivered, useful (at most the demand) and surplus; `None` with a reason when no edge module shows it. It also gives the KPIs `heating_coverage`, `cooling_coverage`, `cop`, `peak_heat`, `peak_cold` |
-| `gm.evaluate.constraints(plant, case, results)` | real: a list of checks `{name, role, unit_path, quantity, passed, value, limit, worst_step}`, one per unit of the role of each constraint of the case, plus the supply temperatures of the services; `value` the worst of the run; `passed` is `null` with a reason `no_value` when there is nothing to judge (a role with no unit in the plant gives one such check); a role or quantity not in `gm.case.roles()` raises `unknown_name` |
+| `gm.evaluate.constraints(plant, case, results)` | real: a list of checks `{name, role, unit_path, quantity, passed, value, limit, worst_step}`, one per unit of the role of each requirement of the case (`name` that of the requirement), plus the supply temperatures of the services; `value` the worst of the run; `passed` is `null` with a reason `no_value` when there is nothing to judge (a role with no unit in the plant gives one such check); a role or quantity not in `gm.case.roles()` raises `unknown_name` |
 | `gm.evaluate.plant_balance(plant, case, results)` | real, a list of checks: mass and energy of every module within 1e-9 and of the root within 1e-6. The root's in and out are the ports of the grids and environment modules, the aquifers and the plant ports of a building block run alone; a replay does not close at the root |
 | `gm.evaluate.energy_balance(plant, case, results)`, `mass_balance(plant, case, results)`, `bounds(plant, case, results)` | real, each a check; they are ledger checks, see [economics.md](economics.md) |
 | `gm.evaluate.run_all(plant, case, results)` | real: `{passed, checks: [check]}` of the ledgers, the bounds and the constraints |

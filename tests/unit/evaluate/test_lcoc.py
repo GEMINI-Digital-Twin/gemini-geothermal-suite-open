@@ -5,10 +5,10 @@ import pytest
 import gemini as gm
 from gemini.modules import CoolingGrid
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_finance, make_case
+from tests.fixtures.cases import costed_economics, make_case
 from tests.fixtures.costed_plants import cooling_plant, day, heating_plant
 
-PRICES = make_case(finance=costed_finance(opex={"electricity": Quantity(2e-8, "currency/J")}))
+PRICES = make_case(economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")}))
 HEAT = 1000.0 * SECONDS_PER_YEAR
 OPEX = 10.0 + 2e-8 * 100.0 * SECONDS_PER_YEAR
 """Yearly cost of the heating plant under ``PRICES``: the fixed opex and the electricity."""
@@ -20,9 +20,9 @@ def test_a_share_splits_the_cost_of_a_plant_with_two_products():
     plant._add_module("cool", CoolingGrid())
     run = day(cold=100.0)
     values = make_case(
-        finance=costed_finance(
-            opex={"electricity": Quantity(2e-8, "currency/J")},
-            allocation=gm.case.Allocation(heat_cost_share=0.8),
+        economics=costed_economics(
+            energy={"electricity": Quantity(2e-8, "currency/J")},
+            accounting={"allocation": {"heat_cost_share": 0.8}},
         )
     )
     heat = gm.evaluate.lcoh(plant, values, run, 0.05, 20)

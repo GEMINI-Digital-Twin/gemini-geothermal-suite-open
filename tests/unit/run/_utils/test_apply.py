@@ -14,15 +14,14 @@ def sample_plant():
     return gm.Plant.from_dict(template_dict("HeatingCoolingPlant"))
 
 
-def with_environment(case, **sections):
-    """Return ``case`` with parts of its environment replaced (SI values)."""
-    parts = {name: getattr(case.environment, name) for name in ("ground", "reservoir", "fluid")}
-    updated = {
-        name: parts[name].model_copy(update=values) if name in parts else values
-        for name, values in sections.items()
-    }
-    environment = case.environment.model_copy(update=updated)
-    return case.model_copy(update={"environment": environment})
+def without(case, *path):
+    """Return ``case`` as it reads without the value (or section) at ``path`` of its dict."""
+    data = case.to_dict()
+    node = data
+    for part in path[:-1]:
+        node = node[part]
+    del node[path[-1]]
+    return gm.Case.from_dict(data, files=case.files())
 
 
 def test_the_plant_of_the_user_never_changes():
@@ -41,13 +40,13 @@ def test_the_ground_and_the_reservoir_reach_every_doublet_at_its_depth():
     plant.set_params("", {"depth": Quantity(3000, "m")})
     applied = apply_case(plant, case)
     for doublet in (applied.d0, applied.d1):
-        assert doublet.reservoir.temperature == pytest.approx(case.environment.temperature_at(3000))
-        assert doublet.sink.pressure == pytest.approx(case.environment.pressure_at(3000))
-        assert doublet.reservoir.permeability == case.environment.reservoir.permeability
+        assert doublet.reservoir.temperature == pytest.approx(case.site.temperature_at(3000))
+        assert doublet.sink.pressure == pytest.approx(case.site.pressure_at(3000))
+        assert doublet.reservoir.permeability == case.site.reservoir.permeability
 
 
 def test_the_brine_of_the_case_is_the_fluid_of_every_doublet_module():
-    """Density, viscosity and the dissolved gas of ``environment.fluid``."""
+    """Density, viscosity and the dissolved gas of ``site.fluid``."""
     applied = apply_case(sample_plant(), sample_case())
     fluid = applied.d1.well.fluid
     assert fluid.density == 1030.0 and fluid.gas_liquid_ratio == 0.8
@@ -57,14 +56,14 @@ def test_the_brine_of_the_case_is_the_fluid_of_every_doublet_module():
 def test_the_same_plant_on_two_reservoirs_gives_two_production_temperatures():
     """Only the case differs."""
     plant = sample_plant()
-    hot = apply_case(plant, with_environment(sample_case(), ground={"gradient": 0.04}))
+    hot = apply_case(plant, sample_case().with_value("site.ground.gradient", 0.04))
     cold = apply_case(plant, sample_case())
     assert hot.d0.reservoir.temperature > cold.d0.reservoir.temperature
 
 
 def test_a_given_reservoir_temperature_anchors_the_geotherm():
     """The measured temperature at the reference depth is shifted by the gradient."""
-    case = with_environment(sample_case(), reservoir={"temperature": 350.0})
+    case = sample_case().with_value("site.reservoir.temperature", 350.0)
     applied = apply_case(sample_plant(), case)
     assert applied.d0.reservoir.temperature == pytest.approx(350.0)
 
@@ -94,15 +93,15 @@ def test_a_formation_outside_a_doublet_gets_the_ground():
 
 
 def test_a_value_the_plant_needs_and_the_case_lacks_is_named_by_its_path():
-    """A plant without its environment raises ``missing_value`` naming the path in the case."""
-    case = sample_case().model_copy(update={"environment": None})
+    """A plant without its site raises ``missing_value`` naming the path in the case."""
+    case = without(sample_case(), "site")
     with raises(gm.errors.ValidationError, "missing_value") as caught:
         apply_case(sample_plant(), case)
-    assert caught.value.path == "environment.fluid.density"
-    case = with_environment(sample_case(), ground={"gradient": None})
+    assert caught.value.path == "site.fluid.density"
+    case = without(sample_case(), "site", "ground", "gradient")
     with raises(gm.errors.ValidationError, "missing_value") as caught:
         apply_case(sample_plant(), case)
-    assert caught.value.path == "environment.ground.gradient"
+    assert caught.value.path == "site.ground.gradient"
 
 
 def test_a_copy_that_carries_the_case_is_not_copied_again():
@@ -112,6 +111,6 @@ def test_a_copy_that_carries_the_case_is_not_copied_again():
     applied = applied_in_place(plant, case)
     assert applied is plant and plant.d0.gradient == pytest.approx(0.03)
     assert apply_case(plant, case) is plant
-    other = case.model_copy()
+    other = gm.Case.from_dict(case.to_dict(), files=case.files())
     assert apply_case(plant, other) is not plant
     assert apply_case(sample_plant(), case) is not plant

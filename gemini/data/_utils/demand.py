@@ -1,9 +1,9 @@
 """Demand profiles built from a file, from values or from a frame, in the run-input format.
 
 A profile is a frame with a UTC ``DatetimeIndex`` called ``time`` at a constant step, one column per
-demand quantity in W, and ``attrs["units"]`` and ``attrs["quantities"]``: the demand of a
-``gm.Case``. Every reader validates it the same way. It lives here because a ``gm.Case`` reads it
-and ``gm.case`` imports no ``gm.data``, which exports ``from_csv`` and ``from_values``.
+demand quantity in W, and ``attrs["units"]`` and ``attrs["quantities"]``: the run-input form of a
+demand. Every reader validates it the same way; ``gm.data`` exports ``from_csv`` and
+``from_values``.
 """
 
 import numpy as np

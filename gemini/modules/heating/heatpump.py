@@ -157,9 +157,9 @@ class HeatPump(Equipment, Module):
         """The kind of equipment: a ``heat_pump``, or a ``compression_chiller`` in cooling mode."""
         return "compression_chiller" if self.mode == "cooling" else "heat_pump"
 
-    def capex(self, finance):
+    def capex(self, economics):
         """Return the cost of the machine from its capacity."""
-        return self.capex_of(finance, self.capacity)
+        return self.capex_of(economics, self.capacity)
 
     def _performance(self, source_in, sink_in):
         """Return every output; the outlet temperatures [K] also define the outlets."""
