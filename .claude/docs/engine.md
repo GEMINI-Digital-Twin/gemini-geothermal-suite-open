@@ -190,7 +190,7 @@ doublets that are off stops. Every other step a doublet with a duration runs, at
 when no heat is left for it. Every other constraint, and a duration with only `min`, is left to
 the check of a run: `plan.attrs["check_only"]` lists them (`to_dict()` of each; a constraint enforced in part keeps only
 the bounds left, so a duration of `min` and `max` lists its `min`), and
-`gm.evaluate.constraints(plant, case, results)` judges all of them, the enforced ones too.
+`gm.evaluate.requirements(plant, case, results)` judges all of them, the enforced ones too.
 
 A heat-driven chiller on a bypass (a `Splitter` whose branches reach the users and the generator) has
 the drive water pass the users: the plan sets the split from the balance, the heat the users take
@@ -405,7 +405,7 @@ the columns.
 The ports of a leaf are columns too, by `Stream.quantities()`: `<port>.<quantity>` for a fluid
 (`results.get("hp", "hot_out.enthalpy_flow")`) and the port's name for a `Power`
 (`results.get("grid", "power_out")`); the quantities are listed in [types.md](types.md). `gm.evaluate.totals`,
-`gm.evaluate.constraints` (a role quantity such as `doublet.wellhead_pressure` reads one) and the
+`gm.evaluate.requirements` (a role quantity such as `doublet.wellhead_pressure` reads one) and the
 energy report read them.
 
 `Results[path]` returns the series of one module path; `Results[path].field` is a pandas Series

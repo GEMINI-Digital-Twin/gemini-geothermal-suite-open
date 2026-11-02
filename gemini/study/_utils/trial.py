@@ -5,7 +5,7 @@ from copy import deepcopy
 from gemini import units
 from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import GeminiError, ValidationError
-from gemini.evaluate import annualised_cost, co2, constraints, lcoc, lcoh, lcts, totals
+from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, requirements, totals
 from gemini.evaluate.failures import failures
 from gemini.evaluate.totals import KPI_NAMES
 from gemini.run._utils.apply import applied_in_place
@@ -117,15 +117,15 @@ def _excess(check):
 def judged(plant, case, results):
     """Return ``(reason, violation)`` of a finished run against the requirements of the case.
 
-    The checks are those of ``gm.evaluate.constraints``, the supply temperatures of the services
+    The checks are those of ``gm.evaluate.requirements``, the supply temperatures of the services
     included. A run with a failed step is infeasible with ``LARGEST_VIOLATION``. Otherwise the
     ``violation`` is the sum of the relative excess of every failed check, and the ``reason`` is the
-    first failed check itself (the dict of ``gm.evaluate.constraints``). A feasible run is
+    first failed check itself (the dict of ``gm.evaluate.requirements``). A feasible run is
     ``(None, 0.0)``; a check with nothing to judge does not fail.
     """
     if results.failures:
         return failure_reason(results), LARGEST_VIOLATION
-    failed = [item for item in constraints(plant, case, results) if item["passed"] is False]
+    failed = [item for item in requirements(plant, case, results) if item["passed"] is False]
     if not failed:
         return None, 0.0
     return failed[0], min(sum(map(_excess, failed)), LARGEST_VIOLATION)

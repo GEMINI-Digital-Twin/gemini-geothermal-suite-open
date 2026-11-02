@@ -195,7 +195,7 @@ def minimize(
     plant and the case themselves are not changed.
 
     A trial is feasible when its run has no failed step and every requirement of the case passes,
-    the supply temperatures of the services included (``gm.evaluate.constraints``), and every
+    the supply temperatures of the services included (``gm.evaluate.requirements``), and every
     limit of ``constraints``. A trial that does not run (a physics error, say at some depth) is
     infeasible with the largest violation. The search sees feasible trials as better than
     infeasible ones, and infeasible ones ordered by their total relative violation, so it moves
@@ -252,7 +252,7 @@ def minimize(
         its ``reason`` says why. ``fixed`` lists ``{name, value, reason}`` of the variables the
         plant fixed. ``history`` lists the same as ``best`` for every trial, with
         ``parts["violation"]`` (0 when feasible) and a ``reason`` for an infeasible trial: the first
-        failed check of ``gm.evaluate.constraints`` (its dict), a text for a limit on a metric or
+        failed check of ``gm.evaluate.requirements`` (its dict), a text for a limit on a metric or
         a failed run.
         ``evaluations`` is the number of simulations. With no trial that ran, ``best`` has no value
         and no plant, and gives a ``reason``. ``to_plain`` gives the JSON form.

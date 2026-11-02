@@ -285,7 +285,7 @@ def test_every_rated_pump_covers_the_duty_of_its_run(tight):
 
 
 def test_a_broken_constraint_is_listed_with_its_role_quantity_value_limit_and_step(short):
-    """The notes hold what the design breaks, in the shape of ``gm.evaluate.constraints``."""
+    """The notes hold what the design breaks, in the shape of ``gm.evaluate.requirements``."""
     for item in short.notes["broken"]:
         assert {"role", "quantity", "value", "limit", "worst_step", "unit_path"} <= set(item)
 

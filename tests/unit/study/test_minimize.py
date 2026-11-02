@@ -213,7 +213,7 @@ def failing_above(limit):
 
 def test_the_cheapest_trial_that_breaks_a_constraint_is_not_best(monkeypatch, runs):
     """The cost falls with a shallower depth in this model only above 1500 m: a limit decides."""
-    monkeypatch.setattr(trial, "constraints", failing_above(1200))
+    monkeypatch.setattr(trial, "requirements", failing_above(1200))
     result = gm.study.minimize(shallow_plant(), shallow_case(), "lcts", DEPTH, evaluations=5)
     assert result["feasible"] is True
     assert result["best"].parts["parameters"]["depth"].value <= 1200
@@ -224,7 +224,7 @@ def test_the_cheapest_trial_that_breaks_a_constraint_is_not_best(monkeypatch, ru
 
 def test_without_a_feasible_trial_the_least_violating_one_is_best(monkeypatch, runs):
     """``feasible`` is false and the best trial is the shallowest, the nearest to the limit."""
-    monkeypatch.setattr(trial, "constraints", failing_above(900))
+    monkeypatch.setattr(trial, "requirements", failing_above(900))
     result = gm.study.minimize(shallow_plant(), shallow_case(), "lcts", DEPTH, evaluations=5)
     assert result["feasible"] is False and result["best"].reason["name"] == "d0.depth"
     violations = [item.parts["violation"] for item in result["history"]]

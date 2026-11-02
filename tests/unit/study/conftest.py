@@ -118,7 +118,7 @@ def runs(monkeypatch):
 
     monkeypatch.setattr(trial, "simulate", fake)
     monkeypatch.setattr(trial, "metric", cost_model)
-    monkeypatch.setattr(trial, "constraints", lambda plant, case, results: [])
+    monkeypatch.setattr(trial, "requirements", lambda plant, case, results: [])
     return calls
 
 

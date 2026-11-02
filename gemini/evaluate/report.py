@@ -7,17 +7,18 @@ from gemini.evaluate._utils.cost import equipment
 from gemini.evaluate._utils.display import DISPLAY, by_si_unit, display_units, shown
 from gemini.evaluate._utils.ratings import rating_of
 from gemini.evaluate._utils.series import energy
-from gemini.evaluate._utils.verdict import verdict
+from gemini.evaluate._utils.tally import tally
 from gemini.evaluate.capacities import capacities
 from gemini.evaluate.capex import capex
 from gemini.evaluate.co2 import co2
-from gemini.evaluate.constraints import constraints
 from gemini.evaluate.failures import failures
 from gemini.evaluate.lcoc import lcoc
 from gemini.evaluate.lcoh import lcoh
 from gemini.evaluate.lcts import lcts
 from gemini.evaluate.opex import opex
+from gemini.evaluate.requirements import requirements
 from gemini.evaluate.totals import totals
+from gemini.evaluate.verdict import judged
 from gemini.run._utils.apply import apply_case
 from gemini.types.shapes import measure
 from gemini.units import si_unit
@@ -31,9 +32,10 @@ class Report(dict):
 
         The values inside the report stay SI; the dict shows them in the display table of
         ``gm.evaluate`` (energy in MWh, power in MW, money in MEUR, LCTS in EUR/MWh, CO2 in kt,
-        flow in m3/h, temperature in degC), also inside ``capacities`` and ``constraints`` and in
+        flow in m3/h, temperature in degC), also inside ``capacities`` and ``requirements`` and in
         the parts of a value (annualised cost in MEUR/yr, energy per year in MWh/yr, mass in kt,
-        durations in days). A part that is dimensionless or text stays as it is.
+        durations in days; ``analysis_period``, ``payback`` and ``lifetime_years`` in yr, a
+        temperature difference in K). A part that is dimensionless or text stays as it is.
 
         Parameters
         ----------
@@ -61,7 +63,7 @@ class Report(dict):
 
 
 def report(plant, case, results):
-    """Return the energy, capacities, costs, CO2, constraints and failed steps of a finished run.
+    """Return the energy, capacities, costs, CO2, requirements, verdict and failures of a run.
 
     The costs are read with ``on_error="record"``: a cost that the case or the plant cannot give is
     a value ``None`` with a ``reason``, so that reports of many designs stay comparable.
@@ -82,31 +84,33 @@ def report(plant, case, results):
         ``electricity_bought`` and ``gas_bought`` (J over the run, ``Quantity`` values;
         ``boiler_heat`` is the heat of the boilers), ``capacities`` (see ``capacities``), ``capex``,
         ``opex``, ``lcts``, ``lcoh``, ``lcoc`` and ``co2`` (values; ``capex`` and ``opex`` keep
-        their parts, per module and per kind), ``constraints`` (the list of ``constraints``),
-        ``passed`` (``False`` if any constraint failed, ``True`` if none failed and one passed,
-        else ``None``), ``failed_steps`` (the number of steps that failed), ``failures`` (the failed
+        their parts, per module and per kind), ``requirements`` (the list of ``requirements``),
+        ``passed`` (``False`` if any requirement failed, ``True`` if none failed and one passed,
+        else ``None``), ``verdict`` (``gm.evaluate.verdict``, the one answer ``compare`` reads),
+        ``failed_steps`` (the number of steps that failed), ``failures`` (the failed
         and skipped rows grouped by module path and code, see ``failures``; empty when nothing
-        failed) and ``services`` (the services the case asks for, ``"heating"`` and ``"cooling"``,
-        which ``compare`` needs to see that a design delivers them). ``to_dict(units=None)`` gives
-        plain JSON in display units.
+        failed) and ``services`` (the services the case asks for, ``"heating"`` and ``"cooling"``).
+        ``to_dict(units=None)`` gives plain JSON in display units.
     """
-    edge = totals(plant, case, results)
-    checks = constraints(plant, case, results)
+    sited = apply_case(plant, case)
+    edge = totals(sited, case, results)
+    checks = requirements(sited, case, results)
     return Report(
         heat_delivered=edge["heat_delivered"],
         cold_delivered=edge["cold_delivered"],
-        boiler_heat=_boiler_heat(apply_case(plant, case), results),
+        boiler_heat=_boiler_heat(sited, results),
         electricity_bought=edge["electricity_bought"],
         gas_bought=edge["gas_bought"],
-        capacities=capacities(plant, case, results),
-        capex=capex(plant, case, "record"),
-        opex=opex(plant, case, results, "record"),
-        lcts=lcts(plant, case, results, on_error="record"),
-        lcoh=lcoh(plant, case, results, on_error="record"),
-        lcoc=lcoc(plant, case, results, on_error="record"),
-        co2=co2(plant, case, results, "record"),
-        constraints=checks,
-        passed=verdict([item["passed"] for item in checks]),
+        capacities=capacities(sited, case, results),
+        capex=capex(sited, case, "record"),
+        opex=opex(sited, case, results, "record"),
+        lcts=lcts(sited, case, results, on_error="record"),
+        lcoh=lcoh(sited, case, results, on_error="record"),
+        lcoc=lcoc(sited, case, results, on_error="record"),
+        co2=co2(sited, case, results, "record"),
+        requirements=checks,
+        passed=tally([item["passed"] for item in checks]),
+        verdict=judged(sited, case, results, checks, edge),
         failed_steps=len(results.errors()),
         failures=failures(results),
         services=_services(case),

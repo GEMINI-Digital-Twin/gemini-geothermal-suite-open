@@ -162,7 +162,8 @@ def _ledger_entries(plant, results):
         "mass_balance": lambda: gm.evaluate.mass_balance(plant, problem, results),
         "bounds": lambda: gm.evaluate.bounds(plant, problem, results),
         "plant_balance": lambda: gm.evaluate.plant_balance(plant, problem, results),
-        "constraints": lambda: gm.evaluate.constraints(plant, _constrained(), results),
+        "requirements": lambda: gm.evaluate.requirements(plant, _constrained(), results),
+        "verdict": lambda: gm.evaluate.verdict(plant, problem, results),
         "run_all": lambda: gm.evaluate.run_all(plant, problem, results),
     }
 

@@ -417,7 +417,7 @@
     "reports",
     "by"
    ],
-   "constraints": [
+   "requirements": [
     "plant",
     "case",
     "results"

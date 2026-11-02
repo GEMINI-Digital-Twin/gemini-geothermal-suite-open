@@ -335,6 +335,8 @@ class Module:
     _derived_params = frozenset()
     category = _FolderCategory()
     abstract = True
+    operating_limits = ()
+    """Limits of the module on its own outputs: ``(output, "min" or "max", parameter)`` each."""
 
     def __init_subclass__(cls, **kwargs):
         """Register a class that has a category, unless its own body says ``abstract = True``."""

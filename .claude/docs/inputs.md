@@ -577,7 +577,7 @@ series in a stand-alone `Economics` needs `time=`; the case passes its own.
 
 **7.45 The callers on the new case** (rule: P1, P6). The package reads `case.site`,
 `case.utilities`, `case.economics` and `case.requirements`; nothing reads an old name. Four
-placements the code needed: (a) the name of a check of `gm.evaluate.constraints` is the name of its
+placements the code needed: (a) the name of a check of `gm.evaluate.requirements` is the name of its
 requirement, one row per unit of the role (`unit_path` tells them apart), and the supply temperatures
 of the services are the requirements `heating_supply_temperature` and `cooling_supply_temperature`;
 (b) `count` is one check of the plant (`unit_path` `""`, the number of units of the role found in the
@@ -609,7 +609,7 @@ computes today.
 | `ops.brentq` `xtol`, `maxiter` | 2e-12, 100 | `gemini/ops/solvers.py`; `BRENT_RTOL` 8.88e-16 |
 | `ops.newton` `tolerance`, `max_iterations` | 1e-6, 100 | `gemini/ops/solvers.py` |
 | call-site `xtol` of `brentq` | 1e-9 (psychrometrics), 1e-14 (ground) | `physics/psychrometrics.py:114`, `physics/ground.py:236` |
-| requirement slack | 1e-9, relative | `evaluate/constraints.py` `TOLERANCE`: a value on a limit passes (this is also how `equals`, now min = max, passes) |
+| requirement slack | 1e-9, relative | `evaluate/requirements.py` `TOLERANCE`: a value on a limit passes (this is also how `equals`, now min = max, passes) |
 | mass, energy and plant balance residuals | 1e-12, 1e-9, 1e-9 (module), 1e-6 (plant) | `evaluate/mass_balance.py`, `energy_balance.py`, `plant_balance.py`: when a `numerical` reason is raised (section 6) |
 | gas composition sum | 1e-9 | `physics/gas.py` `COMPOSITION_TOLERANCE` |
 | saturation and corrosion Newton | 1e-9; 1e-6, 100 | `modules/power/_physics.py` `SATURATION_TOLERANCE`; `physics/corrosion.py` |

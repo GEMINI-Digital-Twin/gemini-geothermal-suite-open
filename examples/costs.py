@@ -6,7 +6,7 @@ case and shows the ``missing_assumption`` error that names the factor. Shows ``g
 and ``gm.errors.ValidationError``.
 
 A limit on the electricity the plant buys is a requirement of the case, a limit of 6 MW, and
-``gm.evaluate.constraints`` checks it.
+``gm.evaluate.requirements`` checks it.
 
 Run with ``python examples/costs.py``.
 """
@@ -50,7 +50,7 @@ def print_bought(plant, case, results):
     data = case.to_dict()
     data["requirements"].append(BOUGHT)
     limited = gm.Case.from_dict(data, folder=SAMPLE)
-    for check in gm.evaluate.constraints(plant, limited, results):
+    for check in gm.evaluate.requirements(plant, limited, results):
         if check["role"] == "plant":
             value, limit = check["value"].to("MW"), check["limit"].to("MW")
             print(f"{check['name']}: {value.value:.3f} MW, limit {limit.value:.0f} MW")

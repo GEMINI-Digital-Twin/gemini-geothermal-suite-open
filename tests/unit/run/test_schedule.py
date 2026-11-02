@@ -201,7 +201,7 @@ def plan_of(*heat, constraints=(), prices=None, plant=None, freq="D", **options)
 
 def _duration_checks(plant, case, results):
     """Return the checks of the duration constraint, one per doublet."""
-    checks = gm.evaluate.constraints(plant, case, results)
+    checks = gm.evaluate.requirements(plant, case, results)
     return [item for item in checks if item["value"].unit == "s"]
 
 

@@ -1693,7 +1693,7 @@ delivered heat at the imposed flow.
 - **Parameters**: `minimum_return_temperature` (`Temperature | None`): the lowest temperature the
   emitters can cool the water to. `return_temperature` and `minimum_supply_temperature` are set by
   a run from `demand.heating.return_temperature` and `demand.heating.supply_temperature` of the
-  case and refused in a plant dict; `evaluate.constraints` checks the supply against the minimum.
+  case and refused in a plant dict; `evaluate.requirements` checks the supply against the minimum.
 - **Boundaries**: `heat_demand` (`Power`, >= 0).
 - **Outputs**: `unmet_demand`, `surplus`, `is_unmet`.
 - **Model**: `Q = min(heat_demand, m_dot cp max(0, T_supply - T_min))`, `T_return = T_supply -

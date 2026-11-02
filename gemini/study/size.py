@@ -9,7 +9,7 @@ from gemini.analysis import solves
 from gemini.analysis.wells import WELLHEAD_PRESSURES
 from gemini.case._utils.access import require
 from gemini.errors import PhysicsError, RunError, ValidationError
-from gemini.evaluate import constraints
+from gemini.evaluate import requirements
 from gemini.modules.pumps import InjectionPump
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
 from gemini.plants._utils.roles import units_of
@@ -286,7 +286,7 @@ def _check(design, case, notes):
         notes["simulation"] = f"not simulated: {error.code}: {error}"
         return
     notes["simulation"] = "simulated"
-    for item in constraints(design, case, results):
+    for item in requirements(design, case, results):
         if item["passed"] is False:
             notes["broken"].append(
                 {
@@ -355,7 +355,7 @@ def size(plant, case, backup=None):
         A new plant. Its attribute ``sizing`` holds the notes: ``{"sized": [...], "unchanged":
         [...], "broken": [...], "simulation": str}``. Each size is ``{path, value, reason}`` with a
         ``Quantity`` value, each unit left unchanged ``{path, reason}``, each broken requirement
-        ``{unit_path, role, quantity, value, limit, worst_step}`` as ``gm.evaluate.constraints``
+        ``{unit_path, role, quantity, value, limit, worst_step}`` as ``gm.evaluate.requirements``
         gives it, and ``simulation`` says ``simulated``, or ``not simulated: <code>: <reason>``
         when the sized plant cannot run (a value it still lacks, a design the case refuses).
 

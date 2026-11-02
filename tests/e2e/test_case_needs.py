@@ -124,7 +124,7 @@ def worst(plant, case, results, on, quantity, **bounds):
     """Return the check of one constraint on the run, for each unit of the role."""
     when = "running" if reads(on, quantity).over else None
     limit = requirement(on, quantity, when=when, **bounds)
-    checks = gm.evaluate.constraints(plant, only(case, limit), results)
+    checks = gm.evaluate.requirements(plant, only(case, limit), results)
     return [item for item in checks if (item["role"], item["quantity"]) == (on, quantity)]
 
 
@@ -218,7 +218,7 @@ def test_a_limit_on_the_operating_time(folder):
     for hours, passes in ((11, True), (5, False)):
         bound = duration(min=Quantity(hours, "h"), max=Quantity(hours, "h"))
         case = only(case_of(folder), bound)
-        checks = gm.evaluate.constraints(plant, case, results)
+        checks = gm.evaluate.requirements(plant, case, results)
         assert all(item["passed"] for item in checks) is passes
 
 

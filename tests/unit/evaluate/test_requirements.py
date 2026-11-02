@@ -36,7 +36,7 @@ def watts(value):
 def checked(*requirements, plant=None, results=None, supply=None):
     """Return the checks of ``requirements`` on a run."""
     case = make_case(count=4, requirements=list(requirements) or None, supply=supply)
-    return gm.evaluate.constraints(plant or heating_plant(), case, results or run())
+    return gm.evaluate.requirements(plant or heating_plant(), case, results or run())
 
 
 def only(*requirements, **parts):
@@ -175,7 +175,7 @@ def test_a_port_quantity_is_a_field():
     )
     limit = requirement("heating_supply", "temperature", max=Quantity(40, "degC"))
     case = make_case(count=2, requirements=[limit])
-    result = gm.evaluate.constraints(heating_plant(), case, results)[0]
+    result = gm.evaluate.requirements(heating_plant(), case, results)[0]
     assert result["name"] == "heating_supply_temperature"
     assert result["passed"] is False and result["value"].value == 320.0
     assert result["limit"].value == pytest.approx(313.15)
@@ -192,7 +192,7 @@ def test_a_role_checks_each_of_its_units_on_its_own():
         }
     )
     case = make_case(count=1, requirements=[unmet(max=watts(5.0))])
-    found = gm.evaluate.constraints(plant, case, results)
+    found = gm.evaluate.requirements(plant, case, results)
     assert [(item["unit_path"], item["passed"]) for item in found] == [
         ("heat", True),
         ("heat2", False),
@@ -262,9 +262,9 @@ def test_an_output_of_a_plant_is_read_through_the_leaves_it_names():
     )
     cooling = requirement("doublet", "brine_cooling", max=Quantity(45, "K"))
     case = make_case(count=2, requirements=[cooling])
-    assert gm.evaluate.constraints(plant, case, results)[0]["value"].value == 50.0
+    assert gm.evaluate.requirements(plant, case, results)[0]["value"].value == 50.0
     case = make_case(count=2, requirements=[cooling | {"when": "running"}])
-    found = gm.evaluate.constraints(plant, case, results)[0]
+    found = gm.evaluate.requirements(plant, case, results)[0]
     assert found["passed"] is True and found["value"].value == 40.0
 
 
@@ -275,7 +275,7 @@ def test_the_supply_temperature_of_a_service_is_a_requirement():
         {"heat": {"supply_in.temperature": [380.0, 360.0], "operating": [1.0, 1.0]}}
     )
     case = make_case(count=2, supply=supply)
-    (found,) = gm.evaluate.constraints(heating_plant(), case, cold)
+    (found,) = gm.evaluate.requirements(heating_plant(), case, cold)
     assert found["name"] == "heating_supply_temperature"
     assert found["role"] == "heating_supply" and found["quantity"] == "temperature"
     assert found["passed"] is False and found["value"].value == 360.0
@@ -283,7 +283,7 @@ def test_the_supply_temperature_of_a_service_is_a_requirement():
     warm = make_results(
         {"heat": {"supply_in.temperature": [380.0, 375.0], "operating": [1.0, 1.0]}}
     )
-    assert gm.evaluate.constraints(heating_plant(), case, warm)[0]["passed"] is True
+    assert gm.evaluate.requirements(heating_plant(), case, warm)[0]["passed"] is True
 
 
 def test_the_cooling_requirement_is_a_maximum_and_a_service_without_one_adds_nothing():
@@ -294,7 +294,7 @@ def test_the_cooling_requirement_is_a_maximum_and_a_service_without_one_adds_not
         {"cool": {"supply_in.temperature": [290.0, 295.0], "operating": [1.0, 1.0]}}
     )
     case = make_case(count=2, supply={"heating": None, "cooling": Quantity(20, "degC")})
-    (found,) = gm.evaluate.constraints(plant, case, results)
+    (found,) = gm.evaluate.requirements(plant, case, results)
     assert found["unit_path"] == "cool" and found["passed"] is False
     assert found["value"].value == 295.0 and found["limit"].value == pytest.approx(293.15)
 

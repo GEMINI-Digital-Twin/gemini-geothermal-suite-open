@@ -38,7 +38,7 @@ DEMANDED = {"unmet_demand": "heat_demand", "unmet_sensible": "sensible_cooling_d
 """The boundary of a consumer that holds the demand, for each of its unmet outputs."""
 
 
-def constraints(plant, case, results):
+def requirements(plant, case, results):
     """Check every requirement of ``case`` and the supply temperatures of its services.
 
     A ``Requirement`` is on a role and a quantity of it (``gm.case.roles()``); it applies to every
