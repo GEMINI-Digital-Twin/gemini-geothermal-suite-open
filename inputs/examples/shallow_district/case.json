@@ -195,6 +195,25 @@
       "when": "running",
       "min": 0.99999,
       "max": 1.00001
+    },
+    {
+      "name": "doublet_count",
+      "on": "doublet",
+      "quantity": "count",
+      "min": 1,
+      "max": 3
+    },
+    {
+      "name": "heat_delivered",
+      "on": "heating_supply",
+      "quantity": "unmet_share",
+      "max": 0.01
+    },
+    {
+      "name": "cold_delivered",
+      "on": "cooling_supply",
+      "quantity": "unmet_share",
+      "max": 0.01
     }
   ]
 }

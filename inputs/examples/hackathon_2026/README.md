@@ -59,6 +59,42 @@ standard conditions.
 | Heating supply temperature | 100 °C | Fixed |
 | Cooling supply temperature | 20 °C | Fixed |
 
+## Requirements of the case
+
+Each is an entry of `requirements` in `case.json`, on a role of the plant, so that one case judges any plant.
+
+| Name | Rule | Where it comes from |
+| --- | --- | --- |
+| `doublet_count` | `count` of `doublet`, 1 to 3 | the brief (geothermal doublets 1 to 3) |
+| `production_flow_range` | 50 to 300 m3/h in every step in which the doublet runs | the brief |
+| `brine_cooling_limit` | at most 40 K, producer to injector, while running | the brief |
+| `running_time_limit` | at most 330 d running | the brief (330 daily steps) |
+| `pump_efficiency` | 0.7 (`min` = `max`) | the brief (simplified) |
+| `full_reinjection` | `reinjection_ratio` 0.99999 to 1.00001 while running | the brief says only "equal liquid volumes" and gives no number; the band is an assumption carried from the earlier absolute limit of this sample (1e-6 m3/s), see below |
+| `heat_delivered` | `unmet_share` of `heating_supply` at most 0.01 | assumption: the brief asks that the heat demand is met and gives no tolerance |
+| `cold_delivered` | `unmet_share` of `cooling_supply` at most 0.01 | assumption: the brief asks that the cold demand is met and gives no tolerance |
+
+`full_reinjection`. The band 0.99999 to 1.00001 is not the brief's. It is the relative band that keeps the
+verdict of every candidate under the earlier absolute limit of 1e-6 m3/s (the first relative band tried, 0.999999 to
+1.000001, rejected `HackathonPlant` sized with the backup policy `peak`). `HackathonPlant` has a real imbalance:
+2.2e-3 m3/h at about 300 m3/h, a ratio of 0.9999925, which is inside the band and outside a band of 1e-6 in
+the ratio. The sample applies this band as its reading of the brief's rule.
+
+`heat_delivered` and `cold_delivered`. The brief asks that the heat and cold demands are met and gives no tolerance;
+the sample applies 1 % of the demanded energy of the year as an assumption. The share of the demanded energy that is
+unmet was measured in every trial of the search (20 evaluations, seed 0, serial) of the six plants, and in the
+searched designs:
+
+| Share unmet | Largest in a trial | In the searched design |
+| --- | --- | --- |
+| heat | 1.1e-16 | 1.0e-16 or less (the peak boiler covers the rest) |
+| cold | 0.79 (`HackathonPlant`, `HeatingHeatPumpCoolingPlant`), 0.70 (`HeatingAbsorptionCoolingPlant`), 0.45 (`HeatingCoolingPlant`), 0.26 (`HeatingFullCoolingPlant`) | 8.5e-17 |
+
+Trials with an undersized chiller meet only part of the cold, so they are infeasible in the search under this band; the
+searched designs meet the cold fully, so the best design of every plant is the one found without the requirement
+(checked with the search guard on the six plants). `HeatingPlant` has no cooling supply: it breaks the cold rule
+structurally, its trials are not made infeasible by it, and its verdict reason stays `cold_delivered`.
+
 ## Heat pump performance
 
 Every heat pump and compression chiller states `carnot_fraction` 0.5 in its plant dict, which the
@@ -72,9 +108,18 @@ they leave open, in the shapes of gemini.
 
 | File | Holds | Read by |
 | --- | --- | --- |
-| `demand.csv` | The two organiser demand files joined on `date`: `heating_demand_MWth` and `cooling_demand_MWcool`, values unchanged | `case.json` |
+| `demand.csv` (in `data/`) | The two organiser demand files joined on `time`: `heating_demand_MWth` and `cooling_demand_MWcool`, values unchanged | `case.json` |
 | `case.json` | The one case: time, site, brine, demand, the requirements (with the 330 day operating duration) and the assumptions | every example, `gm.Case.from_json` |
-| `plants/<Class>.json` | One plant dict per candidate: `HeatingPlant`, `HeatingAbsorptionCoolingPlant`, `HeatingHeatPumpCoolingPlant`, `HeatingFullCoolingPlant`, `HeatingCoolingPlant`, and `HackathonPlant` (structure form: desander, inhibitor dosing, one absorption chiller); design values only, no site | `examples/hackathon.py`, tests |
+| `economics.json` | Every price, factor and finance value, with the uncertainty ranges | `case.json` |
+| `plants/<Class>.json` | One plant dict per candidate: `HeatingPlant`, `HeatingAbsorptionCoolingPlant`, `HeatingHeatPumpCoolingPlant`, `HeatingFullCoolingPlant`, `HeatingCoolingPlant`, and `HackathonPlant` (structure form: desander, inhibitor dosing, one absorption chiller); design values and search ranges only, no site; each `esp` states the two pump intake limits below | `study.json`, `examples/costs.py`, tests |
+| `plants_brief/<Class>.json` | The same six plants without those two limits, for the ranking by the brief's rules only (an absent leaf is no limit); written from `plants/` by a script that removes the two leaves | `study_brief.json` |
+| `study.json` | Size and search every plant of `plants/` on LCTS: 20 evaluations, seed 0, metric `co2` too | `examples/hackathon.py` |
+| `study_brief.json` | The same study on `plants_brief/` | `examples/hackathon.py` |
+| `study_sensitivity.json` | One-at-a-time sensitivity of LCTS; run on the best design given in memory | `examples/hackathon.py` |
+| `study_sample.json` | 5 draws of the uncertain values (seed 1), metrics LCTS and CO2; run on the best design given in memory | `examples/hackathon.py` |
+
+`examples/hackathon.py` runs `study_brief.json` and `study.json` one after the other, so it takes about
+twice as long as one ranking: about 4.5 minutes with 8 processes (one ranking took 2 min 14 s).
 
 Sizes of equipment and the injection pressure are design values of the plants. The return
 temperatures, the air temperature and every price are assumptions of the case.
@@ -83,14 +128,14 @@ temperatures, the air temperature and every price are assumptions of the case.
 
 | Section | Values |
 | --- | --- |
-| `environment` | Gradient 30 K/km, surface 12 degC, 2500 m, 100 m, 200 mD, 250 barg; brine 1030 kg/m3, 0.4 mPa.s, GLR 0.8, 80 % CH4 and 20 % CO2 |
+| `site` | Gradient 30 K/km, surface 12 degC, 2500 m, 100 m, 200 mD, 250 barg; brine 1030 kg/m3, 0.4 mPa.s, GLR 0.8, 80 % CH4 and 20 % CO2 |
 | `demand` | The two profiles; supply 100 degC heating and 20 degC cooling |
-| plant `range` | 1 to 3 doublets (`size.doublets`) and 2000 to 3500 m of depth: ranges of the plant files, an assumption of the example |
-| `constraints` | 50 to 300 m3/h while running, brine cooling at most 40 K, at most 330 d running, pump efficiency 0.7, equal liquid volumes (within 1e-6 m3/s) |
+| `requirements` | 1 to 3 doublets, 50 to 300 m3/h while running, brine cooling at most 40 K, at most 330 d running, pump efficiency 0.7, equal liquid volumes (the band is stated below), heat and cold delivered (the band is an assumption, stated below) |
+| plant `range` | 2000 to 3500 m of depth, capacities and flows: search ranges of the plant files, an assumption of the example |
 
 ## Assumptions of the example
 
-Every value of this section is a placeholder of the example, from no source and none given by the organisers: return temperatures 60 degC (heating) and 25 degC (cooling), air
+Every value of this section is a placeholder of the example, from no source and none given by the organisers (the search settings, 20 evaluations, seed 0, and 5 draws with seed 1, the search ranges of the plant files, the backup policy `peak`, the bands of `heat_delivered` and `cold_delivered` (1 %) and the band of `full_reinjection` are assumptions of the example as well): return temperatures 60 degC (heating) and 25 degC (cooling), air
 10 degC; prices chemical 3 EUR/kg, waste disposal 0.2 EUR/kg,
 heat and cold revenue 60 EUR/MWh; discount rate 0.05, lifetime 25 yr, `heat_cost_share` 0.8;
 electricity 300 g CO2/kWh; capex of the production and injection pump 0.5 EUR/W, absorption and
@@ -168,9 +213,42 @@ rounded to four digits. They are data of the plants, not a default of the packag
 other doublets rates its pump again. On `HeatingHeatPumpCoolingPlant` the pump is 0.187 MEUR of the
 33.0 MEUR capex (0.57 %).
 
+## Catalogue ids (`docs/cost-sources`)
+
+Values of `economics.json` that have rows in [the cost catalogue](../../../docs/cost-sources/README.md), by `id`. The values
+of the sample are unchanged; where they differ from the catalogue it is said here and nowhere is the sample changed.
+
+| Key of `economics.json` | Sample value | Catalogue id | Catalogue value |
+| --- | --- | --- | --- |
+| `capex.heat_pump` | 0.73786 EUR/W | `heat-pump-dea-2025-10mw` | 0.737864 EUR2015/W: equal |
+| `opex.fixed.heat_pump` | 0.2239 %/yr | `opex-heat-pump-dea-2025-10mw` | 2127 EUR/MW/yr over 0.95 MEUR/MW: equal |
+| `capex.drilling` | 1239.13 EUR/m | `drilling-nl-2013-2300m` | 1239.1 EUR/m in 2013 prices, 1246.83 in 2015: the sample takes it into 2015 without escalation; other rows (`-3000m` 1844.74, `-4000m` 2075.37 EUR/m in 2015) are for deeper wells, the sample uses one price for every depth |
+| `capex.degasser` | 1.0 MEUR | `degasser-nl-2013` | 1 MEUR in 2013, 1.00624 MEUR in 2015: same note, secondary source |
+| `capex.production_pump`, `capex.injection_pump` | 0.5 EUR/W | `esp-geophires-500kw`, `injection-pump-geophires-500kw`, `injection-pump-proxy-dh-station`, `esp-unit-2019` | 0.593 and 0.733 USD/W at 500 kW, 0.0990 EUR2015/W (a DH pump station), 800000 EUR per unit: differs |
+| `capex.absorption_chiller` | 0.3 EUR/W | `absorption-chiller-ecos-2023`, `-kim-2008-low`, `-kim-2008-high`, `-bigee-105kw` | 0.234, 0.328, 0.438, 0.409 EUR2015/W: inside the range |
+| `capex.compression_chiller` | 0.3 EUR/W | `compression-chiller-ecos-2023` | 0.159 EUR2015/W: differs |
+| `capex.adsorption_chiller` | 0.3 EUR/W | `adsorption-chiller-edinburgh-2023`, `adsorption-chiller-bigee-100-150kw` | 0.827 and 0.859 EUR2015/W: differs, the catalogue is nearly three times higher |
+| `capex.heat_exchanger` | 0.5 EUR/(W/K) | `heat-exchanger-dea-2025-station` | 0.1089 EUR2015/W of duty: a different unit, not comparable |
+| `capex.cooler` | 0.1 EUR/W | `dry-cooler-iea-2014-low`, `-high`, `cooling-tower-iea-2014-low`, `-high` | 0.049 to 0.107 (dry), 0.022 to 0.027 (wet) EUR/W: inside the range of the dry cooler |
+| `capex.pipe` | 500 EUR/m | `pipe-dea-2025-distribution-1-5mw`, `-5-25mw`, `-transmission-0-50mw` | 636 and 1148 EUR2015/m, 49 EUR2015/MW/m: differs |
+| `capex.flare`, `capex.gas_makeup` | 100000, 50000 EUR | `flare-capex`, `gas-makeup-capex` | placeholders: no verified source |
+| `opex.fixed.drilling`, `degasser`, `absorption_chiller`, `adsorption_chiller`, `injection_pump`, `heat_exchanger`, `cooler`, `flare`, `gas_makeup` | 1 to 2 %/yr | `opex-fixed-drilling`, `-degasser`, `-absorption-chiller`, `-adsorption-chiller`, `-injection-pump`, `-heat-exchanger`, `-dry-cooler`, `-cooling-tower`, `-flare`, `-gas-makeup` | placeholders |
+| `opex.fixed.pipe` | 0.5 %/yr | `opex-pipe-dea-2025-distribution`, `opex-pipe-dea-2025-transmission` | 1000 EUR/MW/yr, 100 EUR/MW/km/yr: different units |
+| `opex.variable.chemical` | 3 EUR/kg | `chemical-scale-inhibitor`, `chemical-corrosion-inhibitor` | placeholders |
+| `opex.variable.waste_disposal` | 0.2 EUR/kg | `waste-disposal`, `waste-disposal-proxy-sewage-sludge` | placeholder; proxy 0.0497 EUR2015/kg: differs |
+| `revenue.heat` | 60 EUR/MWh | `heat-price-se-2019`, `heat-price-nl-2019`, `heat-price-nl-cap-2026` | 81.1, 93.5, 114.6 EUR2015/MWh: the sample is below all three |
+| `revenue.cold` | 60 EUR/MWh | `cold-price-no-2017`, `cold-price-eu27-alternative-2014`, `cold-price-eu27-new-investment-2014` | 103.5, 81.2, 110.2 EUR2015/MWh: below all three |
+| `discount_rate` | 0.05 | `discount-rate-financial-eu`, `discount-rate-social-eu` | 0.04 and 0.03: differs |
+| `emissions.CO2.electricity` (`utilities.electricity.co2_intensity`, 300 g/kWh) | 300 g/kWh | `co2-grid-eu-2025`, `co2-grid-eu-2024` | 209.21 and 211.52 g/kWh: differs |
+
+No catalogue row exists for `capex.boiler`, `capex.chp`, their fixed opex, `opex.electricity`, `opex.gas`, `opex.co2`
+and the methane GWP: their sources are the rows of the table above in this README, not the catalogue.
+The Carnot fraction 0.5 cites Frutschi (ABB Review 1996); the catalogue row `heat-pump-lorenz-dea-2025` is a Lorenz
+fraction of 0.5 (DEA), which is the `lorenz_fraction` the plants state.
+
 ## Pump intake limits
 
-Each plant file states two operating limits on the `esp` of every doublet (`minimum_intake_pressure` and
+The brief states neither limit, so `plants_brief/` holds the same six plants without them and `examples/hackathon.py` prints a ranking for each folder: the brief's rules only, then the standard-stage limits. Each plant file of `plants/` states two operating limits on the `esp` of every doublet (`minimum_intake_pressure` and
 `maximum_gas_fraction`), which the organisers did not state. They are properties of the pump chosen, so they sit in
 the plant and not in the case; a run that breaches one still runs every step with the same numbers, and
 `gm.evaluate.verdict` gives a reason of kind `bound` (`gm.study.minimize` treats such a trial as infeasible).

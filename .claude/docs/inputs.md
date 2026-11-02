@@ -582,7 +582,7 @@ requirement, one row per unit of the role (`unit_path` tells them apart), and th
 of the services are the requirements `heating_supply_temperature` and `cooling_supply_temperature`;
 (b) `count` is one check of the plant (`unit_path` `""`, the number of units of the role found in the
 plant, with no slack) and `unmet_share` one figure per supply unit, the unmet energy over the energy
-its own demand column holds, `passed` `None` when nothing was demanded; (c) a subsidy
+the demand of the case holds for the service (`case.demand.frame`), 0 when nothing was demanded; (c) a subsidy
 (`economics.revenue.subsidy`, amount per year for a duration) adds to `npv` the amount discounted
 over the shorter of its duration and the analysis period, and to `payback` the amount per year for its
 duration only, so the payback is the time at which the cash flows add up to the capex; without a
@@ -726,12 +726,21 @@ ran), `report.json`, `verdict.json`, `series.csv` and `found.json`. `plan` (7.24
 `measurements` are not built. (i) Data fix: `HackathonPlant.json` had no `range` on `d0.depth` and
 `d1.depth`, so a search of it lost the variable the old search had (`depth`, 2000 to 3500 m, on
 each doublet); both leaves carry it, which gives 80 trials as before. The variable order is the
-file's (heat pump, chiller, flow, depth), not the old (depth first); the best design of the
-sample is the same to the last digit. (j) Search equivalence: `.tmp/inputs/guard_search.py <plant>`
+first appearance of a leaf in the `params` tree (the tree mirrors the module tree, P6): for the
+structure plant `HackathonPlant` it is heat pump, chiller, depth, flow, where the old search had
+depth first. A dotted key in `params` (`d0.depth` at the head, to force depth first) is refused by
+the reader with the nested form named (`not_allowed`, `params.d0.depth`), so the order cannot be
+forced from outside the tree. The trial histories differ between orders (checked: the sequence of
+LCTS values of the 80 trials), the best design does not: `guard_search` compares only the best
+design, and in `HackathonPlant` that is the start design (trial 1, depth 2500 m), so it passes for
+any order and is the evidence only for that. (j) Search equivalence: `.tmp/inputs/guard_search.py <plant>`
 runs `size` and `minimize(objective="lcts", evaluations=20, seed=0)` under `processes=4` on a
 sample plant and compares `lcts`, `co2` and `capex` of the best design with the report of the old
 code within 1e-6: `HackathonPlant` (80 trials), `HeatingPlant` (120) and
-`HeatingHeatPumpCoolingPlant` (240) pass.
+`HeatingHeatPumpCoolingPlant` (240) pass. (k) `unmet_share` of a supply is the unmet energy of
+the run over the demand of the case for the service (`case.demand.frame`), read from the results and
+the case; a service that demands nothing has share 0. Before this it gave no value on a simulated
+run, because the demand column is not among the results.
 
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is

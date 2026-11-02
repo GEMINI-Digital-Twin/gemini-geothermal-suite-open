@@ -48,7 +48,7 @@ memory, a manual checkpoint.
 import gemini as gm
 
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 print(results.summary(units={"power": "MW", "temperature": "degC"}))
 ```

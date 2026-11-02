@@ -4,7 +4,7 @@ Draws every value that `case.json` gives an `uncertainty` (prices, permeability,
 gradient, discount rate), one simulation per draw, and prints the mean and the 5th to 95th
 percentile of the two metrics.
 
-Shows ``gm.study.sample``.
+Shows ``gm.check`` and ``gm.study.sample``.
 
 Run with ``python examples/uncertainty.py``.
 """
@@ -32,6 +32,8 @@ def main():
     """Draw the uncertain values and print the spread of the metrics."""
     case = gm.Case.from_json(SAMPLE / "case.json")
     plant = gm.Plant.from_json(SAMPLE / "plants/HeatingPlant.json")
+    issues = gm.check(plant, case)
+    print("Check: ready" if not issues else f"Check: {issues}")
     spread = gm.study.sample(plant, case, list(UNITS), DRAWS, SEED)
     print(f"Draws: {len(spread['samples'])}")
     print_spread(spread["summary"])

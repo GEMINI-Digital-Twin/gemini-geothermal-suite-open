@@ -5,10 +5,12 @@ from gemini.run._utils.apply import apply_case
 from gemini.units import Quantity
 from tests.fixtures.sample_cases import HACKATHON_2026, SHALLOW_DISTRICT, sample_case, shallow_case
 
+SHALLOW_PLANT = SHALLOW_DISTRICT / "plants/HeatingHeatPumpCoolingPlant.json"
+
 
 def sample():
     """Return the shallow sample plant and case, which are ready for each other."""
-    return gm.Plant.from_json(SHALLOW_DISTRICT / "plant.json"), shallow_case()
+    return gm.Plant.from_json(SHALLOW_PLANT), shallow_case()
 
 
 def revised(case, change):
@@ -146,7 +148,7 @@ def test_a_least_cost_dispatch_needs_the_energy_prices():
 
 def test_a_parameter_without_a_value_is_a_missing_issue_of_the_plant_file():
     """The path is that of the plant file."""
-    data = gm.Plant.from_json(SHALLOW_DISTRICT / "plant.json").to_dict()
+    data = gm.Plant.from_json(SHALLOW_PLANT).to_dict()
     del data["params"]["peak_boiler"]["capacity"]["value"]
     found = gm.check(gm.Plant.from_dict(data), shallow_case())
     assert paths(found) == ["params.peak_boiler.capacity"] and found[0].kind == "missing"
@@ -166,7 +168,7 @@ def test_simulate_raises_the_issues_of_the_check_first():
 
 def test_without_a_case_only_the_parameters_of_the_plant_are_checked():
     """A plant alone has no price, role or state to compare; the case's values are missing."""
-    data = gm.Plant.from_json(SHALLOW_DISTRICT / "plant.json").to_dict()
+    data = gm.Plant.from_json(SHALLOW_PLANT).to_dict()
     del data["params"]["peak_boiler"]["capacity"]["value"]
     found = gm.check(gm.Plant.from_dict(data), None)
     assert "params.peak_boiler.capacity" in paths(found)

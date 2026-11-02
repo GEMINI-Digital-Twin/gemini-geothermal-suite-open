@@ -1,3 +1,4 @@
+Check: ready
 capex d0 (production_pump)                       0.23 MEUR
 capex d0.well (drilling)                         2.66 MEUR
 capex d0.riser (drilling)                        0.44 MEUR

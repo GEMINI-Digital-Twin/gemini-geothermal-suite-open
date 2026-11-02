@@ -207,7 +207,7 @@ least at `demand.heating.supply_temperature` and each `CoolingGrid` at most at
 `gm.evaluate.requirements` returns one check `{name, role, unit_path, quantity, passed, value, limit,
 worst_step}` per unit and requirement, `name` the name of the requirement (the supply temperatures of
 the services are `heating_supply_temperature` and `cooling_supply_temperature`), `value` the worst value of the run (or the figure) and `limit` the
-bound that was violated, else the nearest. `unmet_share` of `heating_supply` and `cooling_supply` is the unmet energy over the energy demanded in the run, one figure of the period (`passed` `None` when nothing was demanded). A role with no unit in the plant gives one check with `passed` `None` and
+bound that was violated, else the nearest. `unmet_share` of `heating_supply` and `cooling_supply` is the unmet energy over the energy demanded in the run, one figure of the period (the demand is that of the case, `case.demand.frame`; a service that demands nothing has share 0). A role with no unit in the plant gives one check with `passed` `None` and
 `unit_path` `None`; a name that is not in `gm.case.roles()` raises `ValidationError`, code `unknown_name`,
 with suggestions. A violated limit is an answer, and a run with no value of
 the field, every row having failed, gives `passed: null` with the reason `no_value`. `Results`

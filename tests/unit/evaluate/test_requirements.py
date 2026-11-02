@@ -12,6 +12,7 @@ from tests.fixtures.cases import make_case, requirement
 from tests.fixtures.costed_plants import heating_plant
 from tests.fixtures.errors import raises
 from tests.fixtures.result_tables import make_results
+from tests.unit.study.conftest import shallow_case, shallow_plant
 
 HOUR = 3600.0
 UNMET = [1.0, 5.0, 3.0, 0.0]
@@ -323,3 +324,50 @@ def test_a_maximum_gas_fraction_at_the_intake_is_judged_per_step():
     )
     limit = requirement("doublet", "intake_gas_fraction", max=0.1)
     assert only(limit, plant=plant, results=results)["passed"] is False
+
+
+def share(max, unmet=(0.5, 0.0, 0.25, 0.0), scale=1.0):
+    """Return the check of the share of heat left unmet, the demand scaled by ``scale``."""
+    wanted = requirement("heating_supply", "unmet_share", max=max, name="heat_delivered")
+    supply = {"heating": Quantity(65, "degC")}
+    case = make_case(count=4, requirements=[wanted], supply=supply)
+    frame = case.demand.frame
+    case.demand.__dict__["frame"] = frame * scale
+    found = gm.evaluate.requirements(heating_plant(), case, run(list(unmet)))
+    return next(item for item in found if item["name"] == "heat_delivered")
+
+
+def test_an_unmet_share_is_the_unmet_energy_over_the_demand_of_the_case():
+    """0.75 J of 4 J demanded: a number, not an undecided check."""
+    result = share(0.1)
+    assert result["passed"] is False
+    assert result["value"].value == pytest.approx(0.1875)
+    assert share(0.2)["passed"] is True
+
+
+def test_a_service_with_no_demand_has_no_unmet_share():
+    """Nothing demanded, nothing unmet: the share is 0."""
+    result = share(0.01, scale=0.0)
+    assert result["passed"] is True and result["value"].value == 0.0
+
+
+def test_a_simulated_run_gives_the_share_left_unmet_when_the_heat_falls_short(tmp_path):
+    """A shallow plant with small heat sources, two days: the share of heat and none of cold."""
+    plant = shallow_plant()
+    plant.set_params("heat_pump", {"capacity": Quantity(100, "kW")})
+    plant.set_params("peak_boiler", {"capacity": Quantity(100, "kW")})
+    case = shallow_case(days=2, folder=tmp_path)
+    results = gm.simulate(plant, case)
+    shares = [
+        requirement("heating_supply", "unmet_share", max=1, name="heat_delivered"),
+        requirement("cooling_supply", "unmet_share", max=1, name="cold_delivered"),
+    ]
+    data = case.to_dict() | {"requirements": shares}
+    found = gm.evaluate.requirements(plant, gm.Case.from_dict(data, folder=tmp_path), results)
+    by_name = {item["name"]: item for item in found}
+    frame = results.to_frame()
+    wanted = case.demand.frame["heating_demand"].sum()
+    left = frame["heating_consumer.unmet_demand"].sum() / wanted
+    assert 0.0 < left < 1.0
+    assert by_name["heat_delivered"]["value"].value == pytest.approx(left)
+    assert by_name["cold_delivered"]["value"].value >= 0.0

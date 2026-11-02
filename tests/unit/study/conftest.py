@@ -86,7 +86,7 @@ def shallow_plant(backup=None):
 
     ``backup`` replaces the policy the file states.
     """
-    plant = gm.Plant.from_json(SAMPLE / "plant.json")
+    plant = gm.Plant.from_json(SAMPLE / "plants/HeatingHeatPumpCoolingPlant.json")
     plant.set_range("size.doublets", min=1, max=3)
     plant.set_range("depth", min=gm.units.Quantity(1000, "m"), max=gm.units.Quantity(2000, "m"))
     if backup is not None:

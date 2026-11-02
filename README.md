@@ -11,7 +11,7 @@ The short form, on a sample case of the repository:
 import gemini as gm
 
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 report = gm.evaluate.report(plant, case, results)
 print(report["heat_delivered"].to("MWh").value, report["lcts"].to("EUR/MWh").value)
@@ -105,7 +105,7 @@ sizes a design and searches the ranges its plant file states:
 
 ```python
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 sized = gm.study.size(plant, case)
 results = gm.simulate(sized, case)
 checks = gm.evaluate.requirements(sized, case, results)

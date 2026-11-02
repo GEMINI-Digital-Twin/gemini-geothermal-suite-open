@@ -105,12 +105,26 @@ def _walk(tree, prefix, found, issues):
     """Collect ``{leaf path: node}`` of ``tree`` in file order; a node that is no object is kept."""
     for key, node in tree.items():
         path = join_path(prefix, key)
-        if not isinstance(node, dict) or is_leaf(node):
+        if "." in key:
+            _dotted(path, key, issues)
+        elif not isinstance(node, dict) or is_leaf(node):
             found[path] = node
         elif key == CONTROL:
             _controls(node, path, found, issues)
         else:
             _walk(node, path, found, issues)
+
+
+def _dotted(path, key, issues):
+    """Append the issue of a key of ``params`` that is a path: the tree has one level for each."""
+    parts = key.split(".")
+    nested = "".join(f'{{"{part}": ' for part in parts) + "..." + "}" * len(parts)
+    issue(
+        issues,
+        f"params.{path}",
+        "not_allowed",
+        f"params.{path}: a key is one name, not a path; expected the nested form {nested}",
+    )
 
 
 def _controls(node, path, found, issues):

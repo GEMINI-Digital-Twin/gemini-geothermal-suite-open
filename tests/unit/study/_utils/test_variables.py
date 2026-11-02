@@ -101,13 +101,13 @@ def test_a_plant_with_no_range_or_options_has_nothing_to_search():
 
 
 def test_the_sample_plants_state_the_variables_the_search_had_in_the_order_it_had():
-    """Capacities, then the flow and the depth of the doublets (the plant has no depth)."""
+    """The capacities, then the depth and the flow of the doublets: first appearance in the tree."""
     names = [item.name for item in variables(hackathon("HackathonPlant"))]
     assert names == [
         "heat_pump.capacity",
         "chiller.capacity",
-        "doublet.nominal_flow",
         "doublet.depth",
+        "doublet.nominal_flow",
     ]
     names = [item.name for item in variables(hackathon("HeatingPlant"))]
     assert names == ["depth", "doublet.nominal_flow"]

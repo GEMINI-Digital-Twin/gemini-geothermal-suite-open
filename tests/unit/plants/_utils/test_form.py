@@ -113,3 +113,12 @@ def test_the_control_leaves_read_and_write():
     assert data["params"]["control"] == {"dispatch": {"value": "least_cost"}}
     assert data["params"]["backup"] == {"value": "peak"}
     assert gm.Plant.from_dict(data).dispatch == "least_cost"
+
+
+def test_a_dotted_key_in_params_is_refused_and_names_the_nested_form():
+    """``params`` mirrors the module tree: ``d0.depth`` is ``d0`` holding ``depth``."""
+    data = file_of("x", type="Doublet", params={"d0.depth": {"value": 1, "unit": "m"}})
+    found = issues(data)
+    (item,) = found
+    assert item.path == "params.d0.depth" and item.kind == "not_allowed"
+    assert '{"d0": {"depth": ...}}' in item.message
