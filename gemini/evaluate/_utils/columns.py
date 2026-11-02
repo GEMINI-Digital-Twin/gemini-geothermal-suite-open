@@ -77,7 +77,7 @@ def _parameter_times(plant, frame, path):
 def parameter_values(plant, frame, path, name):
     """Return each value the parameter takes in the run, as an array."""
     times = _parameter_times(plant, frame, path)
-    found = [plant.params_at(path, time)[name] for time in times]
+    found = [plant.params_at(path, time).get(name) for time in times]
     return np.array([np.nan if item is None else item for item in found], dtype=float)
 
 
