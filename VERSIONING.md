@@ -46,8 +46,10 @@ pip install https://github.com/geomind-spe-geohackathon-2026/gemini/releases/dow
 ```
 
 An application pins this exact version. The sandbox image of the same version is
-`ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:X.Y.Z`. An editable install from a checkout
-is for trying a change locally and is not committed.
+`ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:X.Y.Z`.
+
+No project installs another project with `pip install -e`, not even locally. A change another
+project needs is published as a new version first. `-e .` remains for a repository's own tests.
 
 ## Changelog categories
 
