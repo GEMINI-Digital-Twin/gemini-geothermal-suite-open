@@ -15,6 +15,7 @@ from gemini_model.pump.esp import ESP
 from gemini_model.reservoir.inflow_performance import IPR
 from gemini_model.well.pressure_drop import DPDT
 from gemini_simulator.nodal_solver import (
+    _well_bottomhole_pressure_injection,
     solve_injection_flow_rate,
     solve_production_flow_rate,
 )
@@ -183,7 +184,7 @@ def test_solve_injection_flow_rate_balances_pressures():
             "pressure": 1e5,
             "temperature": 60 + 273.15,
             "temperature_ambient": 60 + 273.15,
-            "flowrate": flow_rate,
+            "flowrate": -flow_rate,
             "direction": "down",
         },
         None,
@@ -193,3 +194,14 @@ def test_solve_injection_flow_rate_balances_pressures():
     p_reservoir = ipr.get_output()["bottomhole_pressure"]
 
     assert abs(p_well - p_reservoir) < 1.0
+
+
+def test_injection_friction_lowers_bottomhole_pressure():
+    """Friction should reduce bottomhole pressure as injection flow rises."""
+    well = _make_well()
+    pressures = [
+        _well_bottomhole_pressure_injection(well, flow_rate, 1e5, 60 + 273.15)
+        for flow_rate in (0.001, 0.01, 0.05)
+    ]
+
+    assert pressures[0] > pressures[1] > pressures[2]

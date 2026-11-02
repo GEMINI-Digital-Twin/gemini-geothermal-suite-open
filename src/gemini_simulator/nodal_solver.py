@@ -141,13 +141,15 @@ def _well_bottomhole_pressure_injection(dpdt, flow_rate, wellhead_pressure, well
     """Bottomhole pressure resulting from injecting ``flow_rate`` (Pa).
 
     Injection flows *down* the well from a fixed wellhead pressure; no
-    ESP is involved on the injection side.
+    ESP is involved on the injection side. ``flow_rate`` is positive here
+    and negated for ``DPDT``, whose convention for injection is a negative
+    flow, so that friction reduces the bottomhole pressure.
     """
     u = {
         "pressure": wellhead_pressure,
         "temperature": wellhead_temperature,
         "temperature_ambient": wellhead_temperature,
-        "flowrate": flow_rate,
+        "flowrate": -flow_rate,
         "direction": "down",
     }
     dpdt.calculate_output(u, None)
