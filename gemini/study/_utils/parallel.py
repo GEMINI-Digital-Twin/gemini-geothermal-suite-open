@@ -1,17 +1,27 @@
 """Independent trials of a study in worker processes, in the order of a serial run."""
 
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from multiprocessing import get_context
 
 from gemini import runtime
 from gemini.ops.backend import forced_name
+from gemini.study._utils import progress
 
 _shared = {}
 """What a worker process holds: the arguments every item of the map shares."""
 
 
-def _start(shared, state, backend):
-    """Set the runtime of a worker like its parent's, one process, and keep ``shared``."""
+POLL = 0.05
+"""Seconds the parent waits for a worker before it looks at the finished trials again."""
+
+
+def _start(shared, state, backend, queue):
+    """Set the runtime of a worker like its parent's, one process, and keep ``shared``.
+
+    With a ``queue`` every trial the worker finishes is put on it, for the parent to count.
+    """
+    if queue is not None:
+        progress.forwarding(lambda: queue.put(1))
     _shared["value"] = shared
     _shared["settings"] = runtime.settings(backend, **(state | {"processes": 1}))
     _shared["settings"].__enter__()
@@ -33,17 +43,55 @@ def mapped(function, shared, items):
     it starts no pool of its own. ``function`` is a module level function, and ``shared`` and
     every item and result can be pickled. A worker starts from a ``forkserver`` that has imported
     gemini, so a call pays that import once for the process, not for every worker.
+
+    When ``gemini.study._utils.progress`` has a listener, the parent counts the trials the workers
+    finish while it waits, and an exception of the listener (a ``Cancelled``) stops the workers
+    and is raised.
     """
     count = min(runtime.get_processes(), len(items))
     if count <= 1:
         return [function(shared, item) for item in items]
     context = get_context("forkserver")
     context.set_forkserver_preload(["gemini"])
-    initargs = (shared, runtime.state(), forced_name())
-    with ProcessPoolExecutor(
-        count, mp_context=context, initializer=_start, initargs=initargs
-    ) as pool:
-        return list(pool.map(_call, [(function, item) for item in items]))
+    listener = progress.listening()
+    queue = None if listener is None else context.SimpleQueue()
+    initargs = (shared, runtime.state(), forced_name(), queue)
+    pool = ProcessPoolExecutor(count, mp_context=context, initializer=_start, initargs=initargs)
+    try:
+        futures = [pool.submit(_call, (function, item)) for item in items]
+        _wait(futures, queue, listener)
+        answers = [future.result() for future in futures]
+    except BaseException:
+        _stop(pool)
+        raise
+    pool.shutdown()
+    return answers
+
+
+def _wait(futures, queue, listener):
+    """Wait for the ``futures``; count each trial a worker puts on ``queue`` while they run."""
+    pending = set(futures)
+    while pending:
+        _count(queue, listener)
+        pending = wait(pending, timeout=POLL, return_when=FIRST_COMPLETED).not_done
+    _count(queue, listener)
+
+
+def _count(queue, listener):
+    """Tell ``listener`` of every trial now on ``queue``."""
+    while queue is not None and not queue.empty():
+        queue.get()
+        listener()
+
+
+def _stop(pool):
+    """Stop the pool at once: queued items are dropped and the running workers are terminated."""
+    workers = list(pool._processes.values())
+    pool.shutdown(wait=False, cancel_futures=True)
+    for worker in workers:
+        worker.terminate()
+    for worker in workers:
+        worker.join()
 
 
 def split(items):

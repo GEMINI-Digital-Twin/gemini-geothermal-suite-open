@@ -9,6 +9,7 @@ from gemini.errors.base import raise_issues
 from gemini.evaluate._utils.display import display_units, in_unit
 from gemini.evaluate._utils.display import shown as displayed
 from gemini.study._utils.parallel import mapped_batches
+from gemini.study._utils.progress import counting
 from gemini.study._utils.target import quantities
 from gemini.study._utils.trial import checked_metric, drawn_trials
 from gemini.study._utils.uncertain import declared, tried_ends
@@ -113,7 +114,7 @@ def _row(name, metric, shown, ends):
     }
 
 
-def sensitivity(plant, case, metrics, *, plan=None):
+def sensitivity(plant, case, metrics, *, plan=None, on_progress=None):
     """Return how each metric changes when each uncertain value of the case moves, one at a time.
 
     ``gm.check`` runs first and raises its issues. The values are those the case declares an
@@ -135,6 +136,10 @@ def sensitivity(plant, case, metrics, *, plan=None):
         The metrics to read, as for ``minimize``.
     plan : DataFrame, optional
         The run input held fixed, for a building block with no demand.
+    on_progress : callable, optional
+        ``on_progress(done, total)`` after each finished run, as for ``minimize``; ``total`` is
+        the two ends of every uncertain value. Raising ``gm.errors.Cancelled`` from it stops the
+        study.
 
     Returns
     -------
@@ -150,7 +155,10 @@ def sensitivity(plant, case, metrics, *, plan=None):
     names = [checked_metric(name) for name in metrics]
     limits = [(name, tried_ends(un, value)) for name, un, value in declared(case, "sensitivity")]
     jobs = [{name: end} for name, ends in limits for end in ends]
-    runs = mapped_batches(drawn_trials, (plant, case, plan, names), jobs)
+    with counting(on_progress, len(jobs)) as count:
+        runs = mapped_batches(drawn_trials, (plant, case, plan, names), jobs)
+        if count is not None:
+            count.reach(len(jobs))
     rows = []
     for index, (name, ends) in enumerate(limits):
         pair = runs[2 * index : 2 * index + 2]

@@ -8,6 +8,7 @@ from gemini.engine.check import check
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
 from gemini.study._utils.parallel import mapped_batches
+from gemini.study._utils.progress import counting
 from gemini.study._utils.shown import difference_names, shown
 from gemini.study._utils.target import quantities, quantity_of
 from gemini.study._utils.trial import checked_metric, drawn_trials
@@ -121,7 +122,7 @@ def _spread(samples, name):
     return {key: measure(number, unit) for key, number in spread.items()} | {"failed": failed}
 
 
-def sample(plant, case, metrics, samples, seed, *, plan=None):
+def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None):
     """Return the spread of metrics when the uncertain values of the case are drawn at random.
 
     ``gm.check`` runs first and raises its issues. The distributions are only those the case
@@ -152,6 +153,9 @@ def sample(plant, case, metrics, samples, seed, *, plan=None):
         seed is a reproducibility choice, so there is no default.
     plan : DataFrame, optional
         The run input held fixed over the draws, as for ``minimize``.
+    on_progress : callable, optional
+        ``on_progress(done, total)`` after each finished draw, as for ``minimize``; ``total`` is
+        ``samples``. Raising ``gm.errors.Cancelled`` from it stops the study.
 
     Returns
     -------
@@ -178,7 +182,10 @@ def sample(plant, case, metrics, samples, seed, *, plan=None):
         {name: _draw(generator, name, uncertainty, value) for name, uncertainty, value in found}
         for _ in range(samples)
     ]
-    runs = mapped_batches(drawn_trials, (plant, case, plan, names), draws)
+    with counting(on_progress, len(draws)) as count:
+        runs = mapped_batches(drawn_trials, (plant, case, plan, names), draws)
+        if count is not None:
+            count.reach(len(draws))
     drawn_runs = []
     for drawn, (run, reason) in zip(draws, runs):
         failed = {"reason": reason} if reason else {}

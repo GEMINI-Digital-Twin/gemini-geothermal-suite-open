@@ -147,6 +147,28 @@ duration:
 | `peak_heat` | W | largest tick sum of useful heat (delivered power, not the demand peak) |
 | `peak_cold` | W | largest tick sum of useful cold |
 
+### Daily coverage
+
+`gm.evaluate.daily_coverage(plant, case, results)` says, for each day of a run and each service the
+plant has a consumer for (`heating`, `cooling`), how much was asked and who gave it. The result is
+`{service: [{date, source, demand, geothermal, backup, short, failed_steps}, ...]}`, the energies
+`Quantity` values in the display unit of energy (`gm.units.display`, MWh) and `failed_steps` a count;
+`to_plain` gives the JSON, whose `date` and `source` are what the frontend's days strip reads. A day is a
+UTC calendar day (the time of a case is UTC) and a tick belongs to the day it starts in. With the
+useful power U and the unmet power M of the totals above: `demand = U + M`, `short = M`, `backup` is
+the part of U that the units of the roles `boiler` and `chp` of `gm.plants.roles()` gave their
+water in the same tick (the roles of the plant, never a list of classes), `geothermal = U - backup`.
+No role is a backup of cooling, so its `backup` is 0. A tick that failed, was skipped or shows no
+demand adds no energy (as `totals` skips it) and counts in `failed_steps`; a day with one is
+`short`. `source` is `short` with such a tick or an unmet demand above a millionth of the day's
+demand, else `backup` when the backup is above that, else `geothermal`. The sum of `geothermal +
+backup` over the days is `heat_useful` (`cold_useful`) and its ratio to the sum of `demand` is
+`heating_coverage` (`cooling_coverage`).
+
+`gm.evaluate.metrics()` lists the metrics a table of results shows as `[{name, quantity, unit}]`
+(the table of `gemini/evaluate/_utils/display.py`, kept private); `unit` is the display unit of the
+quantity, `yr` for the durations of years.
+
 ## Checks and constraints
 
 Each check returns the check `{name, passed, value, limit}`, `value` and `limit` being values; a
@@ -375,6 +397,20 @@ results are those of a serial run, in the same order. Workers start from a `fork
 script needs the `if __name__ == "__main__":` guard; the first parallel call of a process pays the
 import of gemini once (about a second and a half) and every worker traces its own graphs, so a
 study of fewer than a dozen trials is faster serial.
+
+**Progress and cancelling.** `minimize`, `sample`, `sensitivity` and `Study.run` take the keyword
+`on_progress=None`, a callable `on_progress(done, total)` with the meaning of the engine's
+`on_progress` ([engine.md](engine.md#callbacks)): it is called in the calling process after each
+finished trial, in a serial call, in a batch and with `processes=n` (the workers tell the parent
+through a queue). `total` is the trial count the call knows: `samples`, two for each uncertain value,
+the budget of a search summed over its doublet counts (a population times its generations); for
+`Study.run` the sum over every plant and case, a pair that runs no trial counting as one. A search
+that ends before its budget still ends with `done == total`. Raising `gm.errors.Cancelled` from it
+stops the study cleanly: no later trial starts (the trials of a batch that already ran in the same
+pass are lost with it), the workers are stopped, and the exception propagates, the class of the
+engine's callbacks; any other exception it raises propagates too. The trials, their order, the
+random draws and the numbers do not depend on it, and a call without it is that of 0.5.1.
+`gm.study.size` runs no trials and has no `on_progress`.
 
 A metric is a KPI or total of `gm.evaluate.totals` or one of `lcoh`, `lcoc`, `lcts`,
 `annualised_cost`, `co2`; the economic ones read the economics of `case`, so they need a case with

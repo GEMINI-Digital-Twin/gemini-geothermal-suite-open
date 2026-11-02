@@ -5,7 +5,8 @@ runs one after the other, collects the request each one stops at, hands the requ
 executor can ``batchable`` evaluate together to its ``run_batch`` (one array pass for all of
 them), runs the others alone, and sends each run its answer. Each run goes on in a context of its
 own, so the runtime settings it enters are its own. A ``restore`` function of a run is called before
-the run goes on and before a request of it that runs alone, for runs that share a plant.
+the run goes on and before a request of it that runs alone, for runs that share a plant. A
+``finished`` function, when given, is called with each run as it ends.
 """
 
 import contextvars
@@ -49,16 +50,19 @@ class Lane:
             return error
 
 
-def lockstep(lanes):
+def lockstep(lanes, finished=None):
     """Run the ``lanes`` to their end and return the value of each one's generator.
 
-    An exception a run does not catch stops all the runs and is raised.
+    An exception a run does not catch stops all the runs and is raised. ``finished(lane)`` is
+    called as each run ends, in the order they end; an exception it raises stops all the runs
+    like one of a run.
     """
     try:
         for lane in lanes:
             lane.advance()
+            _ended(lane, finished)
         while any(lane.request is not None for lane in lanes):
-            _round([lane for lane in lanes if lane.request is not None])
+            _round([lane for lane in lanes if lane.request is not None], finished)
     except BaseException:
         for lane in lanes:
             lane.close()
@@ -66,13 +70,20 @@ def lockstep(lanes):
     return [lane.result for lane in lanes]
 
 
-def _round(waiting):
+def _ended(lane, finished):
+    """Tell ``finished`` that ``lane`` has ended, when it has."""
+    if finished is not None and lane.request is None:
+        finished(lane)
+
+
+def _round(waiting, finished):
     """Answer the pending request of every waiting lane and let each lane go on."""
     for lane, answer in zip(waiting, _answers(waiting)):
         if isinstance(answer, Exception):
             lane.advance(throw=answer)
         else:
             lane.advance(send=answer)
+        _ended(lane, finished)
 
 
 def _answers(waiting):

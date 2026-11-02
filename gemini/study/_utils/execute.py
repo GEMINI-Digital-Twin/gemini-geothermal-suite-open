@@ -2,8 +2,9 @@
 
 from gemini.engine.simulate import simulate
 from gemini.evaluate import report as reported
+from gemini.study._utils.uncertain import declared
 from gemini.study._utils.variables import searchable
-from gemini.study.minimize import minimize
+from gemini.study.minimize import minimize, trials_of
 from gemini.study.sample import sample
 from gemini.study.sensitivity import sensitivity
 from gemini.study.size import size
@@ -53,3 +54,27 @@ def executed(study, plant, case):
     design, found, note = METHODS[study.method](study, prepared, case)
     results = simulate(design, case)
     return design, found, note, results, reported(design, case, results)
+
+
+def _searches(study, plant, case):
+    """Return the trials of ``minimize`` on ``plant``: none when the plant is run as it is."""
+    return trials_of(plant, study.evaluations) if searchable(plant) else 0
+
+
+def _draws(study, plant, case):
+    """Return the trials of ``sample``: one for each draw."""
+    return study.samples
+
+
+def _ends(study, plant, case):
+    """Return the trials of ``sensitivity``: the two ends of each uncertain value."""
+    return 2 * len(declared(case, "sensitivity"))
+
+
+TRIALS = {"run": lambda study, plant, case: 0, "minimize": _searches, "sample": _draws}
+TRIALS["sensitivity"] = _ends
+
+
+def trials(study, plant, case):
+    """Return the trials the method of ``study`` runs on ``plant`` and ``case``, one at least."""
+    return max(1, TRIALS[study.method](study, plant, case))

@@ -12,6 +12,7 @@ from gemini.errors.base import raise_issues
 from gemini.plants._utils.resize import resized
 from gemini.study._utils.best import Best
 from gemini.study._utils.parallel import mapped
+from gemini.study._utils.progress import counting
 from gemini.study._utils.shared import Shared
 from gemini.study._utils.shown import difference_names
 from gemini.study._utils.target import quantity_of, unit_of
@@ -270,7 +271,24 @@ def _counted(shared, count):
     return history
 
 
-def minimize(plant, case, objective, evaluations, seed, *, plan=None):
+def trials_of(plant, evaluations):
+    """Return the number of trials ``minimize`` runs on ``plant``: the sum over its doublet counts.
+
+    A count with variables runs whole populations, as many as the budget allows; one without
+    runs the design once. A search that ends before its budget runs fewer.
+    """
+    total = 0
+    for count in counts(plant):
+        found = variables(plant if count is None else resized(plant, count))
+        if not found:
+            total += 1
+            continue
+        population, allowed = _generations(evaluations, len(found))
+        total += population * (allowed + 1)
+    return total
+
+
+def minimize(plant, case, objective, evaluations, seed, *, plan=None, on_progress=None):
     """Return the design of a plant that minimises a metric, searched in the space the plant states.
 
     The variables are the plant's own: every leaf with a ``range`` (continuous, or integer when
@@ -321,6 +339,13 @@ def minimize(plant, case, objective, evaluations, seed, *, plan=None):
     plan : DataFrame, optional
         The run input held fixed over the trials, for a building block with no demand; without it
         each trial is planned from the case.
+    on_progress : callable, optional
+        ``on_progress(done, total)``, called in the calling process after each finished trial,
+        also when the searches run in worker processes; ``total`` is the number of trials the
+        budget gives, and ``done`` reaches it at the end even when a search ends early. Raising
+        ``gm.errors.Cancelled`` from it stops the search: no later trial starts, the workers are
+        stopped and the exception propagates. The trials, their order and the result do not
+        depend on it; any other exception it raises propagates too.
 
     Returns
     -------
@@ -356,6 +381,10 @@ def minimize(plant, case, objective, evaluations, seed, *, plan=None):
     if sizes != [None]:
         resized(plant, sizes[0])
     shared = (plant, case, plan, name, sign, evaluations, seed)
-    history = [entry for found in mapped(_counted, shared, sizes) for entry in found]
+    total = None if on_progress is None else trials_of(plant, evaluations)
+    with counting(on_progress, total) as count:
+        history = [entry for found in mapped(_counted, shared, sizes) for entry in found]
+        if count is not None:
+            count.reach(total)
     best, feasible = _best(history, sign, plant)
     return {"best": best, "feasible": feasible, "history": history, "evaluations": len(history)}
