@@ -56,7 +56,7 @@ def _carries(plant, case):
 
 
 def started(case):
-    """Return the ``state=`` of ``Engine.simulate``: the initial states of ``case``, else ``None``.
+    """Return the start the engine simulates from: the initial states of ``case``, else ``None``.
 
     The states are the nested dict of the states of the plant's modules, by child name, in SI.
     """

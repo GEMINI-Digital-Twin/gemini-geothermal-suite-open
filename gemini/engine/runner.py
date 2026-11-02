@@ -3,11 +3,12 @@
 ``Runner.run`` is what ``Engine.replay``, ``live``, ``simulate`` and ``resume`` all execute. A
 run is a list of twins (the equipment twins of a replay, the plant of a simulation) evaluated
 over **chunks** of ticks, each inside a stretch of ticks that share one dated parameter
-snapshot. A chunk is the whole stretch, except that it is one tick when a stateful module is
-stepped, a twin sits below another twin or a callback declares ``changes_run``. For each chunk
-and twin: the bound columns become SI arrays (``columns``), the twin is evaluated by the
-engine's executor on the selected backend (``outcome``), the health is assessed and the columns
-of the twin join one ``ResultChunk``.
+snapshot. A chunk is the whole stretch, except that it is one tick when a replay or a live run
+steps a stateful module, a twin sits below another twin, a callback declares ``changes_run`` or
+callbacks read the states of a stateful plant; a simulation of a stateful plant without callbacks
+is one chunk, which the executor scans. For each chunk and twin: the bound columns become SI
+arrays (``columns``), the twin is evaluated by the engine's executor on the selected backend
+(``twinresult``), the health is assessed and the columns of the twin join one ``ResultChunk``.
 
 Callbacks are replayed from the results of a chunk, tick by tick, seeing the engine as a tick
 loop would have left it: ``on_step_start``, the inputs of the tick, the results, the position and

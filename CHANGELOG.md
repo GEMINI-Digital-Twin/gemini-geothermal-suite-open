@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-11-02
+
+Backward compatible with 0.5.0: no name, signature, key or code changed, and every number is the
+same to 1e-9 (`tests/fixtures/public_api_0_5_0.json` is the frozen surface; the working snapshot
+only changed its version).
+
+### Added
+- State connections (`connect(source, target, type="state")`): the target reads what the source
+  outlet gave at the previous step; the plant keeps those values in its state under `@previous`.
+  They are in the plant file as a connection of type `state` (no new key) and round-trip. This
+  replaces the `NotImplementedYet` of the plan compiler.
+- The page [Writing a module](.claude/docs/writing-a-module.md): a pump (stateless) and a
+  controller (stateful), each alone and inside a plant.
+
+### Changed (same numbers)
+- Time is a scan: a stateful plant carries its state from step to step in one call over the whole
+  run, eager (`ops.control.scan`) and compiled (a `scan` node of the graph); a year of hourly steps
+  of a storage plant no longer runs one tick at a time.
+- `minimize`, `sample` and `sensitivity` run their trials on one shared plant as one array pass
+  instead of one run and one plant copy each; the first population of a search is one batch. The
+  sequence of trials, the history and the ranking are those of 0.5.0.
+- A module takes the fluid of its inlet stream (`ThermalStorage`, `InjectionReservoir`), so
+  `gm.call` works on them with `state` and `dt`.
+
+### Fixed
+- `gm.check` never raises: a module with an unset parameter is reported once and its kind is not
+  read, a case wrong by itself gives its own issues, and `case.check` names a value no file can
+  hold.
+
 ## [0.5.0]
 
 From 0.5.0 the public API is backward compatible (additions allowed if nothing breaks).
@@ -23,25 +52,19 @@ may not import `engine`.
 - `tests/fixtures/public_api_0_5_0.json`, `tests/unit/test_api_compatibility.py` and
   `tests/e2e/test_competition_surface.py`.
 
-## [Unreleased]
-
-### Added
+### Also in 0.5.0 (written under "Unreleased" before the freeze)
+**Added**
 - `gm.call(..., state=, dt=)`: a module with state takes the state at the start and the step, and
   the result has the key `state` with the state at the end of the step.
 - The quantity `gas_burned` (kg/s) of the role `plant`: the co-produced gas burned by the boilers
   and flares of the plant, so a requirement can limit it.
 
-- State connections (`connect(source, target, type="state")`): the target reads what the source
-  outlet gave at the previous step; the plant keeps those values in its state. They are in the plant
-  file as a connection of type `state` (no new key). A storage module runs inside a normal
-  simulation, from `case.initial_state`.
-
-### Changed
+**Changed**
 - Module contract: `forward(self, inputs, inlets, state)` is pure (it reads parameters on `self`
   and nothing else, writes nothing, returns `(outputs, outlets)`) and a stateful module has a pure
   `update(self, inputs, inlets, outlets, state, dt)` that returns the next state. A state has no
-  default: it comes from `case.initial_state`. A stateful plant scans in time: one call over the
-  whole run, the state carried from step to step.
+  default: it comes from `case.initial_state`. A stateful plant is stepped from
+  `case.initial_state`.
 - Hooks: a pre-hook is called `(module, inputs, inlets, state)` and a forward hook
   `(module, inputs, inlets, state, outputs, outlets)`; a hook that returns a mapping replaces the
   controls and boundaries (pre-hook) or the outputs (forward hook) of that call, `None` observes.

@@ -24,7 +24,7 @@ feed the inputs of a run (`engine/bindings.py`; the bindings a module declares a
 `modules/bindings.py`); *graph* is the compiler's traced form. Each keeps this one meaning.
 
 **Dependency rules.** The run folders are `modules`, `plants`, `physics`, `ops`, `runtime`,
-`engine`, `streams`, `units`, `errors` and `_utils`. They import none of `compiler`, `data`,
+`engine`, `streams`, `units`, `errors` and `_utils`. They import none of `compiler`,
 `study`, `evaluate` and `analysis`, not even inside a function; those sit above the run and import
 it. `modules` imports neither `plants` nor `engine`: `gm.call` is `gemini/modules/call.py`, which needs
 no engine. The direction is one way (`structure.md`, R4): `engine` imports `plants` and `case`, and nothing
@@ -278,12 +278,12 @@ each outage step]}`.
 
 `Engine(plant, backend="numpy", callbacks=None, on_error="raise", compile=True)` runs one plant on a finite clock
 and raises on a failure, unless `on_error="record"`.
-`simulate(profile, clock=None, state=None)` evaluates the plant from root-bound run input (the
-plan); `state` is the start of a plant with a stateful module (`apply.started(case)`, which
-`gm.simulate` passes from `case.initial_state`, or the `end_state` of a former run).
+`simulate(profile, clock=None)` evaluates the plant from root-bound run input (the plan); a plant
+with a stateful module starts from `case.initial_state`, which `gm.simulate` hands over
+([time as a scan](#time-as-a-scan)).
 `replay(data, start=None, end=None, state=None, clock=None, only=None)` evaluates equipment twins on
-measured boundaries. `live(source, checkpoint=None, step=None, now=None, sink=None, state=None)`
-evaluates only newly supplied timestamps; `state` starts a first call, as for `simulate`. All calls are finite; scheduling, sleeping, and fetching new data
+measured boundaries; `state` is the `end_state` of a former run. `live(source, checkpoint=None,
+step=None, now=None, sink=None)` evaluates only newly supplied timestamps. All calls are finite; scheduling, sleeping, and fetching new data
 belong to the caller. Every call returns `Results`.
 
 The pieces fit together as follows: the plant `Module` owns its design and bindings, the
@@ -354,7 +354,7 @@ supplied plant. Replay and simulation apply dated parameters at each transition 
 units at the boundary: volumetric flows become mass flows with the fluid density, and difference
 quantities convert by scale only.
 
-State bound to a sensor is authoritative for that tick; otherwise `module.step` integrates the
+State bound to a sensor is authoritative for that tick; otherwise `module.step` (its `update`) integrates the
 previous state. A twin skipped for missing data keeps its previous state, and the skipped tick's
 `dt` is not integrated. The engine assesses `module.health(result,
 measured)` for each replayed twin (once on the arrays of a chunk); a module without a diagnostic
@@ -390,11 +390,12 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
 
 - **Chunks.** Ticks that share one dated parameter snapshot form a stretch (the snapshot is applied
   at its first tick). A chunk is the whole stretch, except that it is **one tick** when a replay
-  steps a stateful module from the state it measures at each tick, when a twin sits below another
-  twin (its controls are read from what the other twin persisted this tick), when a callback
-  declares `changes_run = True`, or when there are callbacks and the plant is stateful (a callback
-  sees the state at each tick). A simulation of a stateful plant without callbacks is one chunk:
-  the executor scans it. `live` evaluates the ticks of one call as one chunk, like `replay`.
+  or a live run steps a stateful module from the state it measures or carries at each tick, when a
+  twin sits below another twin (its controls are read from what the other twin persisted this
+  tick), when a callback declares `changes_run = True`, or when there are callbacks and the plant
+  is stateful (a callback sees the state at each tick). A simulation of a stateful plant without
+  callbacks is one chunk: the executor scans it ([time as a scan](#time-as-a-scan)). Without a
+  stateful module, `live` evaluates the ticks of one call as one chunk, like `replay`.
 - **Per chunk and twin.** `columns.read` converts the bound columns to SI (`units.si_conversion`,
   volumetric flows with `flows.mass_flow`) and gives every tick a status in the order a plain call
   meets its problems: the first missing column (a skip counted by its name; the missing rule is
@@ -411,18 +412,21 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
   `declaration.validate`. Then `health.assess` runs `Module.health` once on the arrays (row by row on
   the Python backend, or when the call on arrays raises, which finds the rows whose health fails:
   they are errors), and the columns are spread over the chunk (`PathColumns.spread`).
-- **Breaks.** A leaf that is stateful, pre-hooked, untraceable or has a hook that only reads is a
-  break node. A root that cannot be traced as a whole (a plant with a constraint, float32
-  precision, or a stateful module in a stepped run) is one **root break**: the real module, called
-  row by row or scanned with its states, so its results are real `ModuleResult` trees (children and
-  combinations exact). A stateful module is never a break node inside a traced graph: a tree that
-  has one is a root break whether the run is stepped or not (unstepped, its rows fail with
-  `missing_value`, as a direct call without a state does). There is one implementation of a break, used by every mode. A loop is no
-  break: compiled, it is one `fixed_point` node whose interpreter runs the same iteration
-  (`loops.iterate`) on arrays, masked per row (native-engine.md, Loops); eager, the plant runs on
-  arrays with the same iteration. Eager has no graph: it goes by rows for a constraint or
-  pre-hook, and scans a stateful plant, without a record, and records in `ChunkResult.breaks` (kept per twin path in
-  `engine.graph_breaks`) only a fall back to rows after an array call raised.
+- **Breaks.** A leaf that is pre-hooked, untraceable or has a hook that only reads is a break
+  node: the real module, called row by row inside the graph. A root that cannot be traced as a whole
+  (a plant with a constraint, float32 precision) is one **root break**: the real module, called row
+  by row or scanned with its states, so its results are real `ModuleResult` trees (children and
+  combinations exact). A stateful module is no break node in a stepped run: the compiled executor
+  traces the whole call as one `scan` node ([time as a scan](#time-as-a-scan)). Without a state to
+  start from (an unstepped call) a tree that holds one is a root break, and its rows fail with
+  `missing_value`, as a direct call without a state does. There is one implementation of a break,
+  used by every mode. A loop is no break: compiled, it is one `fixed_point` node whose interpreter
+  runs the same iteration (`loops.iterate`) on arrays, masked per row (native-engine.md, Loops);
+  eager, the plant runs on arrays with the same iteration. Eager has no graph: it goes by rows for
+  a constraint or pre-hook, scans a stateful plant, and records in `ChunkResult.breaks` (kept per
+  twin path in `engine.graph_breaks`) only a fall back to rows after an array call raised. The
+  plant classes that still break the compiled graph are `NodalDoublet`, `BoilerChpPlant` and
+  `ParallelExchangerPlant`, which solve a constraint (native-engine.md, section 12).
 - **Skips and errors.** A twin is skipped for the first missing column in this order: controls,
   boundaries, inlet fields (each inlet's stream is checked once its fields are read), observations,
   measured states. In simulate the plant is the one twin: root inlets, then the leaf inputs; a skip
@@ -432,34 +436,6 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
   before the module is called, so a failing tick has persisted them; the runner sets them at the
   end of a chunk, for the last tick that applied them (one tick at a time when there are callbacks
   or one-tick chunks), so the plant keeps the last tick's inputs, as an interrupted run does.
-- **States and the scan.** The plant is stateful when a module declares a `State` or a connection
-  is of type `state`; the engine takes the path from this, never from a flag. A stateless plant is
-  evaluated for all ticks at once on arrays. A stateful one **scans**: `rowwise.call_rows` runs
-  `ops.control.scan`, which carries the state from tick to tick and calls
-  `Module.step(state, dt, inlets)` in each, the one implementation of `forward` of every module the
-  plant reaches and then `update` of every stateful one. The inputs of a tick are validated and set
-  on their owners once per tick. A tick that fails (any exception of the step) is a failed row: its
-  values are NaN, the state is the one before it and the next tick starts from it. Under
-  `on_error="raise"` a failure that stops the run (above) ends the scan at that tick, so the state
-  committed is the state before it and a resumed run continues from there. The start state comes
-  from `case.initial_state` (`gm.simulate`; `Engine.simulate` and `gm.live` take no `state=`) or
-  from a checkpoint; a stateful module without one raises `missing_value`. The scan keeps no
-  per-step cost that grows with the number of modules: the paths of the stateful modules are found
-  once per scan, and a module called inside a call of its plant is not checked again. Compiled
-  (`compile=True`, the default) the scan is one `scan` node of the graph (native-engine.md, Scan):
-  the same values to 1e-9 as the eager scan, and a year of the small storage plant takes 2.4 s
-  against 12.5 s of CPU hourly. `engine.module_states` is `{path: tree}` in replay and
-  `{"": tree}` in simulate, as in a checkpoint. State bound to a sensor is passed as the start state
-  and stays authoritative.
-- **State connections.** A connection of type `state` has no place in the order: its target reads
-  what its source outlet gave at the previous step. The plant keeps those values in its own state,
-  under the key `@previous` of its subtree (`{"@previous": {"tank.discharge_out": {"m_dot", "T",
-  "p"}}}`; a number for an outlet that is no stream), and `Plant._advance` writes them at the end of
-  each step. The first step has no previous value: it reads the stream at rest (no flow) at the
-  temperature the source module guesses for a loop (`Module._loop_start`) and the highest pressure
-  of the plant inlets of that step, filled in before the scan so that the state has one structure
-  at every step; a source that guesses none raises `invalid_design` naming the connection.
-  `plants/_utils/delays.py` is the code.
 - **`on_error="raise"`.** The ticks before the first failing one that [stops the
   run](#errors) are committed, their callbacks run,
   `on_step_start` of the failing tick is delivered and the error is raised: `RunError` chained to
@@ -467,6 +443,47 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
   evaluated when the chunk is one tick.
 
 A direct call such as `esp(fluid_in=...)` stays eager: the same `forward` and ops.
+
+## Time as a scan
+
+Every module is two pure functions ([modules.md](modules.md), [writing a module](writing-a-module.md)):
+`forward(inputs, inlets, state) -> (outputs, outlets)` and, for a module with states,
+`update(inputs, inlets, outlets, state, dt) -> next state`. A plant implements both once for any
+graph (`Plant.forward`, `Plant.update`), its state being the nested dict of its children's states.
+`Module.step(state, dt, inlets)` is one step of any module: `forward`, then `update` of every
+stateful module the call reached, on the values of that call. The engine uses it for time:
+
+- **A stateless plant** is evaluated for all ticks at once, as arrays (eager) or through the traced
+  graph (compiled): no tick depends on another.
+- **A stateful plant scans.** The plant is stateful when a module declares a `State` or a connection
+  is of type `state`; the engine takes the path from this, never from a flag. `state[t + 1] =
+  update(..., state[t], dt)` with `forward` inside each step. Eager, `rowwise.call_rows` runs
+  `ops.control.scan`, which carries the state from tick to tick and calls `Module._step` in each.
+  The inputs of a tick are validated and set on their owners once per tick. The scan keeps no
+  per-step cost that grows with the number of modules: the paths of the stateful modules are found
+  once per scan, and a module called inside a call of its plant is not checked again. Compiled
+  (`compile=True`, the default) the scan is one `scan` node of the graph (native-engine.md, Scan);
+  the part of its body that reads no carry is evaluated once on all rows, the rest once per row.
+  Compiled and eager give the same values to 1e-9, on every sample plant and storage plant.
+- **A failed step** (any exception of the step) is a failed row: its values are NaN, the state is
+  the one before it and the next tick starts from it. Under `on_error="raise"` a failure that stops
+  the run ([errors](#errors)) ends the scan at that tick, so the committed state is the state before
+  it and a resumed run continues from there.
+- **The start state** comes from `case.initial_state` (`gm.simulate` passes `apply.started(case)`
+  to the engine) or from a checkpoint; `Engine.simulate`, `Engine.live` and `gm.live` take no
+  `state=`, and a stateful plant without a start state raises `missing_value` naming the case path.
+  `engine.module_states` is `{path: tree}` in replay and `{"": tree}` in simulate, as in a
+  checkpoint. A state bound to a sensor is passed as the start state and stays authoritative.
+- **State connections.** A connection of type `state` has no place in the order: its target reads
+  what its source outlet gave at the previous step. The plant keeps those values in its own state,
+  under the key `@previous` of its subtree (`{"@previous": {"tank.discharge_out": {"m_dot", "T",
+  "p"}}}`; a number for an outlet that is no stream), and `Plant.update` writes them at the end of
+  each step. The first step has no previous value: it reads the stream at rest (no flow) at the
+  temperature the source module guesses for a loop (`Module._loop_start`) and the highest pressure
+  of the plant inlets of that step, filled in before the scan so that the state has one structure
+  at every step; a source that guesses none raises `invalid_design` naming the connection. A
+  connection of type `state` is in the plant file as an entry of `connections` (no other key) and
+  round-trips. `plants/_utils/delays.py` is the code.
 
 ## Callbacks
 

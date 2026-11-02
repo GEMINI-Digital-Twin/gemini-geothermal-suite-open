@@ -7,7 +7,7 @@ inputs.md" is the list of decisions. Every row of the inventory of inputs has a 
 `.tmp/inputs/placement.md`; this page holds the rules and the reasons that are not specific to one
 row. A new input goes where the placement test of section 2 says; the reason is written here.
 
-Status: built in 0.3.0. The code, the sample files, the public API and the other docs follow this
+Status: built in 0.3.0 and extended to 0.5.1 (7.19, 7.27, 7.50). The code, the sample files, the public API and the other docs follow this
 page; what is not built yet is listed in section 8 and under "Decisions not built yet" in section 7.
 Where a table of this page says "today", it describes the code of 0.2.0 that the row replaced.
 
@@ -390,18 +390,24 @@ and `demand.cooling` next to `supply_temperature` and `return_temperature`, with
 `indoor_temperature` and `indoor_relative_humidity`. If a project wants the dew-point margin as the
 designer's safety factor it is a different field, not a different place for this one.
 
-**7.19 Initial state, and no default for a state** (rule: 7.7, P5; built, 0.4.0: no `State` has a
-default, no `initial_*` parameter is left, and a module called without its state raises
-`missing_value`). Every `State` declaration (14
-rows) is the value at the start of the period and comes from `case.initial_state`, a section present
-if and only if the plant has stateful modules. The code default is removed (the accumulator zeros of
-`AquiferStorage`, `ThermalDecline`, `BoreholeField`, the `PIDController` integrator, which
-`DECLARED_DEFAULTS` lists today). The samples have no stateful module, so no number changes; a
-stored zero in a future case is written, not assumed. The three parameters that are today an initial
-state in disguise (`IceStorage.initial_ice_fraction`, `IceStorage.initial_temperature`,
-`ThermalStorage.initial_temperature`) move to `initial_state`. Risk: a `PIDController` integrator at
-zero is a definition rather than a decision; it is written in the case all the same, because the
-rule has no exception for it.
+**7.19 Initial state, and no default for a state** (rule: 7.7, P5; built). Every `State` declaration
+of a shipped module is the value at the start of the period and comes from `case.initial_state`, a
+section present if and only if the plant has stateful modules. A state has no code default and no
+`initial_*` parameter is left (`IceStorage.initial_ice_fraction`, `IceStorage.initial_temperature`
+and `ThermalStorage.initial_temperature` moved into the state, and the accumulator zeros of
+`AquiferStorage`, `ThermalDecline`, `BoreholeField` and the `PIDController` integrator left
+`DECLARED_DEFAULTS`). The form is `initial_state: {module path: {state name: {"value", "unit"}}}`
+(for a plant, the path of the stateful child); the unit is read as a plain unit and the dimension
+is the declaration of the state, which `gm.check` compares (7.43). `apply.started(case)` turns it
+into the nested state tree the engine scans from, and a checkpoint or `results.end_state` starts a
+later run. A stateful module without a stated start raises `missing_value` naming the case path
+(`gm.check` lists it first as a `missing` issue); a state or module the plant lacks is
+`unknown_name`. "None yet" is a value, not `None`: a `PIDController` starts with `integral = 0`,
+`previous_error = 0` and `previous_step = 0` (no previous step), written in the case like any other
+state, because the rule has no exception for a zero that is a definition. A state connection
+(`type: state` in `connections`) keeps its previous values in the plant's own state and has no entry
+in the case: the first step reads the stream at rest at the temperature the source module guesses
+([engine.md](engine.md#time-as-a-scan)). The samples have no stateful module, so no number changes.
 
 **7.20 Ambient air pressure** (rule: test 4, P5). `Atmosphere.pressure` has a declared default, the
 normal pressure of DIN 1343. Air pressure is weather and depends on the altitude of the site, so it
@@ -798,6 +804,21 @@ keeps `plan` and `clock`, and `size` computes what it computes today.
 `Plant.loop_tolerance` and `Plant.loop_passes` are class attributes today; they stay settings in
 code and are no key of the plant file. Every row of this table is documented with its source in its
 docstring.
+
+**7.50 A failed step is a result** (rule: 7.39, P4). What a plant cannot do is the answer to the
+question of a run, so it is not an input and not an error of the run. In `gm.simulate` a step that
+fails with one of the codes `invalid_inlet`, `out_of_bounds`, `out_of_range` or `no_convergence`
+(`PHYSICAL_ROW_CODES` of `gemini/errors/rows.py`) is a **failed row** whatever `on_error` says: its
+values are NaN (never zero), the state of a stateful plant stays as it was before the step, the run
+goes on, and `results.errors()` lists the row with its code. `on_error` only decides the rest: under
+`"raise"` (the default) any other failure of a step is a bug of the plant, the module or the call
+and stops the run after committing the ticks before it; under `"record"` it is a failed row too.
+A replay or a live run of measured data stays strict. The one answer to feasibility, `gm.evaluate.verdict`,
+lists the failed and skipped rows as one reason of kind `failed_step` (name `failed_steps`, with a
+`violation` of 1e6, so a search ranks a plant that fails below any plant that runs) and a loop that
+did not converge as kind `numerical`. `minimize`, `sample`, `sensitivity` and `compare` read the
+verdict, so an infeasible design is an infeasible trial with a reason, never a crash; a NaN value of
+a metric counts as the largest violation. Where it lives: [engine.md](engine.md#errors).
 
 ## 8. Still open
 
