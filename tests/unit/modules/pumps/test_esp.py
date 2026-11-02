@@ -374,3 +374,42 @@ def test_an_out_of_range_row_names_the_intake_that_inflated_its_flow():
                 fluid=GASSY,
             ),
         )
+
+
+def _esp_call(pump, flow_m3s, frequency=60):
+    """Call ``pump`` with a brine stream of ``flow_m3s`` m3/s at 1 bar."""
+    return pump(
+        frequency=frequency,
+        fluid_in=Stream(
+            fluid=BRINE,
+            m_dot=gm.units.Quantity(flow_m3s * 1000, "kg/s"),
+            T=gm.units.Quantity(300, "K"),
+            p=gm.units.Quantity(1e5, "Pa"),
+        ),
+    )
+
+
+def test_the_correction_factors_scale_and_shift_the_pressure_rise():
+    """A multiplier 2 and an offset of 1 bar give 2 head + 1 bar; the power is the shaft's."""
+    plain = _esp_call(si.set_params(ESP(), "", ESP_PARAMS), 0.04)
+    pump = si.set_params(ESP(), "", {**ESP_PARAMS, "correction_factors": [2.0, 1e5]})
+    result = _esp_call(pump, 0.04)
+    assert result.outputs.head == pytest.approx(2 * plain.outputs.head + 1e5, rel=1e-12)
+    assert result.outputs.discharge_pressure == pytest.approx(
+        1e5 + 2 * plain.outputs.head + 1e5, rel=1e-12
+    )
+    assert result.outputs.power == plain.outputs.power
+    assert result.outlets.fluid_out.p == result.outputs.discharge_pressure
+
+
+def test_the_identity_correction_leaves_the_head_unchanged():
+    """The factors [1, 0] of every sample change nothing, to the last bit."""
+    pump = si.set_params(ESP(), "", ESP_PARAMS)
+    assert _esp_call(pump, 0.04).outputs.head == pump.head_function(0.04, 60)
+
+
+def test_a_flow_exactly_at_the_speed_scaled_maximum_is_inside_the_curve():
+    """``flow <= maximum_flow * speed ratio``: the limit itself is a valid row at 60 and 30 Hz."""
+    pump = si.set_params(ESP(), "", {**ESP_PARAMS, "maximum_flow": gm.units.Quantity(0.05, "m3/s")})
+    assert _esp_call(pump, 0.05, 60).outputs.power > 0
+    assert _esp_call(pump, 0.025, 30).outputs.power > 0

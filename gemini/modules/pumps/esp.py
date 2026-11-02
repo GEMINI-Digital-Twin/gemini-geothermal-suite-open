@@ -9,7 +9,7 @@ from gemini.modules.declarations import Control, Inlet, Outlet, Output, Paramete
 from gemini.modules.module import Module
 from gemini.modules.results import Health
 from gemini.ops import kernels
-from gemini.physics import constants, diagnostics, energy, pumps
+from gemini.physics import constants, diagnostics, energy, hydraulics, pumps
 from gemini.streams.flows import Stream
 from gemini.units.quantities import (
     Count,
@@ -187,6 +187,8 @@ class ESP(Module):
         gas = self._gas_volume_fraction(suction)
         self._check_inside_curve(flow, head, power, scale, suction.p, gas)
 
+        slope, offset = self.correction_factors
+        head = ops.where(frequency > 0, hydraulics.affine_correction(head, slope, offset), head)
         discharge = suction._with_si(p=suction.p + head)
         power_in = energy.input_power(power, self.motor_efficiency)
 

@@ -10,6 +10,7 @@ from gemini.streams.flows import Stream
 from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
+from tests.fixtures.errors import raises
 from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.reading import reading
 
@@ -144,3 +145,11 @@ def test_an_electric_boiler_has_no_gas_ports():
     """Only the water side."""
     assert list(ElectricBoiler().inlets()) == ["fluid_in", "power_in"]
     assert list(ElectricBoiler().outlets()) == ["fluid_out", "loss_out"]
+
+
+@pytest.mark.parametrize("efficiency", [0, -0.1, 1.2])
+def test_an_efficiency_outside_zero_to_one_is_refused(efficiency):
+    """The efficiency is above 0 and at most 1; 1 itself is allowed."""
+    with raises(gm.errors.ValidationError, "out_of_bounds"):
+        Boiler().set_params("", {"capacity": gm.units.Quantity(1e5, "W"), "efficiency": efficiency})
+    assert Boiler().set_params("", {"capacity": gm.units.Quantity(1e5, "W"), "efficiency": 1.0})

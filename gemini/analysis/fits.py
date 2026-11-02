@@ -283,8 +283,8 @@ def pump_curve(plant, pump, measured=None, units=None):
         pump's head at its flow and frequency. ``correction`` is ``{slope, offset}`` of the
         least-squares line ``theoretical_head = slope * head + offset`` (offset in Pa), or a value
         ``None`` with a ``reason`` when fewer than two distinct measured heads are given. This is
-        the retained ``fit_head_correction``; no module applies the correction yet, so it is a
-        diagnosis, not a parameter to set.
+        the retained ``fit_head_correction``; a diagnosis: the ESP's
+        ``correction_factors`` map the curve head to the pressure rise, the inverse direction.
     """
     output = OutputUnits(units)
     module = plant.get_submodule(pump)

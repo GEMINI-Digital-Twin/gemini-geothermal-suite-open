@@ -71,3 +71,17 @@ def test_a_humidity_above_one_is_out_of_bounds(data, files):
     data["site"]["air"]["relative_humidity"] = {"value": 1.5}
     with raises(gm.errors.ValidationError, "out_of_bounds"):
         gm.Case.from_dict(data, files=files)
+
+
+def test_the_reservoir_pressure_in_barg_is_stored_absolute_in_pascal(case):
+    """250 barg is 250 bar plus one atmosphere, 25 101 325 Pa, at the reference depth."""
+    assert case.site.reservoir.pressure == pytest.approx(25_101_325)
+    assert case.site.pressure_at(case.site.reservoir.reference_depth) == pytest.approx(25_101_325)
+
+
+def test_the_gradient_is_taken_as_given_whatever_its_sign(data, files):
+    """A zero or negative gradient is not refused; the temperature follows it linearly."""
+    for gradient in (0, -10):
+        data["site"]["ground"]["gradient"] = {"value": gradient, "unit": "K/km"}
+        site = gm.Case.from_dict(data, files=files).site
+        assert site.temperature_at(2000.0) == pytest.approx(285.15 + gradient * 2.0)
