@@ -216,6 +216,35 @@ class Study:
         """Write the study file."""
         to_json(path, self.to_dict())
 
+    @classmethod
+    def schema(cls):
+        """Return the JSON Schema (draft 2020-12) of ``study.json``, from the lists of the class."""
+        names = {"type": "array", "items": {"type": "string"}, "minItems": 1}
+        whole = {"type": "integer", "minimum": 1}
+        properties = {
+            "format": {"const": inputs.FORMAT},
+            "kind": {"const": "study"},
+            "name": {"type": "string"},
+            "about": {},
+            "cases": names,
+            "plants": names,
+            "prepare": {"type": "array", "items": {"enum": list(PREPARE)}},
+            "method": {"enum": list(METHODS)},
+            "objective": {"type": "string"},
+            "metrics": names,
+            "evaluations": whole,
+            "samples": whole,
+            "seed": {"type": "integer"},
+        }
+        return {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": cls.__name__,
+            "type": "object",
+            "additionalProperties": False,
+            "required": [*HEADER, "cases", "plants", "method"],
+            "properties": properties,
+        }
+
     def check(self):
         """Return the list of issues of the study; it never raises.
 

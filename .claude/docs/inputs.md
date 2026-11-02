@@ -7,9 +7,9 @@ inputs.md" is the list of decisions. Every row of the inventory of inputs has a 
 `.tmp/inputs/placement.md`; this page holds the rules and the reasons that are not specific to one
 row. A new input goes where the placement test of section 2 says; the reason is written here.
 
-Status: the design is agreed and the code is being moved to it. Where the code still has the old
-shape (`environment`, `constraints`, `assumptions`, `choices`, plant `inputs`), section 5 says what
-moves and the other docs describe the code as it is until the move is done.
+Status: built in 0.3.0. The code, the sample files, the public API and the other docs follow this
+page; what is not built yet is listed in section 8 and under "Decisions not built yet" in section 7.
+Where a table of this page says "today", it describes the code of 0.2.0 that the row replaced.
 
 ## 1. Principles
 
@@ -689,7 +689,7 @@ case files, `study/_utils/choices.py`); the key is refused with `old_format` nam
 `range`. `minimize` has no `variables` argument; `size` reads `params.backup` (a plant without it is
 `missing_value` naming `params.backup`) and the range of `size.doublets` (without it,
 `missing_value` naming `size.doublets.range`). (f) `minimize(plant, case, objective, evaluations,
-seed, *, constraints=None, plan=None)`: the variables are the ranges and options of the plant by
+seed, *, plan=None)`: the variables are the ranges and options of the plant by
 the rule above (strings and integers are searched as integers, `differential_evolution(integrality=)`
 only when there is one); `evaluations` and `seed` have no default (the old `100` and `SEED = 0` are
 gone); the result is `{best, feasible, history, evaluations}` and has no `fixed` (a leaf without a
@@ -741,6 +741,32 @@ code within 1e-6: `HackathonPlant` (80 trials), `HeatingPlant` (120) and
 the run over the demand of the case for the service (`case.demand.frame`), read from the results and
 the case; a service that demands nothing has share 0. Before this it gave no value on a simulated
 run, because the demand column is not among the results.
+
+**7.49 The public face as built** (rule: P1, P4, P6, section 11). (a) `gm.study.minimize(plant, case,
+objective, evaluations, seed, *, plan=None)` has no `constraints`: a rule on a result is a
+requirement of the case (P1, test 3) and nothing in `gm.Study`, the examples or the samples passed the
+argument. A cap on a metric that is no role quantity (for example `lcts`) has no home yet; if a brief
+imposes one, the role table gains the quantity, not the search an argument. (b) `Case.from_dict(data,
+files=None, folder=None)` and `Study.from_dict(data, files=None, folder=None)` keep `folder`: a
+caller that edits a dict read from a `case.json` (the limits of `examples/costs.py`) has its files on
+disk, and a case in memory needs only `files` (`{name: bytes}`, no folder). The sections and
+`gm.case.Economics.from_dict(data, files=None, time=None)` have no `folder`; `from_json` reads the
+folder of its file through a private path. (c) `gm.plants.capabilities()` reports `ranges`, the
+leaves of the plant file that may state a `range` (`size.doublets`, `params.depth`), in place of
+`choices`. (d) `gm.data.from_csv(path, columns, unit)` requires the first column `time` (7.38);
+`gm.Dataset.from_frame(frame, time_column=)` stays, because a pandas frame has any column names and
+is no file of the project. (e) The cost functions of `gm.evaluate` take no `discount_rate` or
+`lifetime` (7.39); the part of their results is `analysis_period`, not `lifetime_years`.
+(f) `missing_assumption` stays the code of a value that is absent below `economics`: it names a
+money assumption of the investor, errors.md documents it, and it is in the frozen code list. (g)
+`gm.replay`, `gm.live` and `Engine` keep `(plant, data, ...)`: they run a plant on measurements with
+no case, the open item of section 8. (h) `gm.Study.schema()` is the schema of `study.json`, with
+`gm.Case.schema()`, `gm.case.Economics.schema()` and `gm.plants.schema()` it gives
+`docs/schemas/{study,case,economics,plant}.schema.json`. (i) A checkpoint of a version before 0.3.0
+is refused with `old_format`, because it holds a plant file of `format: 2`. (j) `tests/unit/test_api_contract.py`
+compares the table "Names and signatures" of api.md with the code; `tests/unit/test_docs.py` runs the
+`python` snippets of the docs; the names `assumptions`, `finance` and `lifetime` join the old names
+that `test_no_name_keeps_something_old` refuses in a name of `gemini/`.
 
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is

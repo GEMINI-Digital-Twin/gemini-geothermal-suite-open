@@ -77,7 +77,7 @@ convert in-memory raw values to SI. Profiles combined into a dataset must share 
 
 `gm.data` ships no profile: a demand is the caller's. The code is `gemini/case/_utils/demand.py`,
 which `gm.data` exports, because a `gm.Case` holds a demand and `run` imports no `data`.
-`from_csv(path, columns, unit, time_column=None)` reads a file, and `columns` maps its columns to the quantities of gemini, so a
+`from_csv(path, columns, unit)` reads a file whose first column is named `time`, and `columns` maps its columns to the quantities of gemini, so a
 file adapts to gemini and gemini takes no name or unit from it. `from_values(values, unit, start,
 step, quantity)` takes numbers. A quantity is `heating_demand` or `cooling_demand`. Both return a
 DataFrame in the run-input format, the form of a case's `demand.frame`: a UTC `DatetimeIndex` called `time`

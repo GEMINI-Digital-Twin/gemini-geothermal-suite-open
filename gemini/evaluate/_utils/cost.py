@@ -30,8 +30,8 @@ def annuity(rate, years):
     return (1 - (1 + rate) ** -years) / rate
 
 
-def lifetime_cost(investment, yearly, factor):
-    """Return the discounted cost of a lifetime: ``capex + opex * A``.
+def period_cost(investment, yearly, factor):
+    """Return the discounted cost of an analysis period: ``capex + opex * A``.
 
     Over ``A`` it is the annualised cost ``capex / A + opex``; ``lcoh`` and ``lcoc`` divide it by
     ``energy * A`` in one step, so their numbers stay those of that order of operations.

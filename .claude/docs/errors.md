@@ -92,16 +92,16 @@ code is never renamed without raising the minor number of `gm.__version__`.
 | `invalid_value` | `ValidationError` | A value has the wrong type or shape |
 | `out_of_bounds` | `ValidationError` | A value is outside its declared bounds |
 | `missing_value` | `ValidationError` | A required value is absent |
-| `missing_assumption` | `ValidationError` | A cost, a price or an emission factor is needed and the case does not give it; the path names it in the case (`assumptions.finance.capex.<kind>`) |
+| `missing_assumption` | `ValidationError` | A cost, a price or an emission factor is needed and the case does not give it; the path names it in the case (`economics.capex.<kind>`) |
 | `no_value` | `ValidationError` | The inputs cannot give this value, such as a plant without equipment that has a cost |
-| `conflicting_value` | `ValidationError` | Two sources give one value: a `Constraint` of the case gives two bounds that exclude each other (`equals` with a `min` or `max`); the path names it |
+| `conflicting_value` | `ValidationError` | Two sources give one value: a `Requirement` of the case gives a `min` above its `max`; the path names it |
 | `duplicate_name` | `ValidationError` | A second class takes the registry name of another class |
 | `invalid_unit` | `ValidationError` | A unit is unknown or does not fit the quantity |
 | `unknown_name` | `ValidationError` | A module type, path, parameter, category, correlation or field does not exist |
 | `unknown_port` | `ValidationError` | A port does not exist on that module |
 | `invalid_call` | `ValidationError` | A module was called with wrong arguments |
 | `invalid_format` | `ValidationError` | A document has the wrong structure |
-| `old_format` | `ValidationError` | A plant dict is older than the current format, a checkpoint was written before 0.2.0, or a results file before 0.1.0 |
+| `old_format` | `ValidationError` | A plant dict is older than the current format, a checkpoint was written before 0.3.0, or a results file before 0.1.0 |
 | `invalid_connection` | `ValidationError` | A connection breaks a wiring rule |
 | `stream_mismatch` | `ValidationError` | The two ends of a connection have different kinds |
 | `ambiguous_port` | `ValidationError` | Automatic port matching found no port or more than one |

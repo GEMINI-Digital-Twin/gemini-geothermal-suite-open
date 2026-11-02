@@ -40,6 +40,7 @@ PRICED = make_case(
             "cold": gm.units.Quantity(4e-8, "currency/J"),
         },
         discount_rate=0.05,
+        analysis_period=gm.units.Quantity(20, "yr"),
     ),
     utilities={"electricity": {"co2_intensity": gm.units.Quantity(1e-7, "kg/J")}},
 )
@@ -140,15 +141,15 @@ def _economics_entries():
     return {
         "capex": lambda: gm.evaluate.capex(costed, priced),
         "opex": lambda: gm.evaluate.opex(costed, priced, run),
-        "lcoh": lambda: gm.evaluate.lcoh(costed, priced, run, 0.05, 20),
-        "lcoc": lambda: gm.evaluate.lcoc(cold, priced, chilled, 0.05, 20),
-        "lcts": lambda: gm.evaluate.lcts(costed, priced, run, 0.05, 20),
-        "annualised_cost": lambda: gm.evaluate.annualised_cost(costed, priced, run, 0.05, 20),
+        "lcoh": lambda: gm.evaluate.lcoh(costed, priced, run),
+        "lcoc": lambda: gm.evaluate.lcoc(cold, priced, chilled),
+        "lcts": lambda: gm.evaluate.lcts(costed, priced, run),
+        "annualised_cost": lambda: gm.evaluate.annualised_cost(costed, priced, run),
         "co2": lambda: gm.evaluate.co2(costed, priced, run),
-        "npv": lambda: gm.evaluate.npv(costed, priced, run, 0.05, 20),
+        "npv": lambda: gm.evaluate.npv(costed, priced, run),
         "payback": lambda: gm.evaluate.payback(costed, priced, run),
         "economics.record": lambda: gm.evaluate.lcoh(
-            heating_plant(costed=False), priced, run, 0.05, 20, on_error="record"
+            heating_plant(costed=False), priced, run, on_error="record"
         ),
     }
 

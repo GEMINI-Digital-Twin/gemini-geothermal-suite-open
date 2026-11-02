@@ -98,6 +98,25 @@
       "over": "each",
       "quantity": "reinjection_ratio",
       "when": "running"
+    },
+    {
+      "max": 3,
+      "min": 1,
+      "name": "doublet_count",
+      "on": "doublet",
+      "quantity": "count"
+    },
+    {
+      "max": 0.01,
+      "name": "heat_delivered",
+      "on": "heating_supply",
+      "quantity": "unmet_share"
+    },
+    {
+      "max": 0.01,
+      "name": "cold_delivered",
+      "on": "cooling_supply",
+      "quantity": "unmet_share"
     }
   ],
   "site": {

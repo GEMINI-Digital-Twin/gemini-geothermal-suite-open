@@ -1,4 +1,4 @@
-"""``gm.plants.capabilities``: what each plant class contains, plans and lets a study choose."""
+"""``gm.plants.capabilities``: what each plant class contains, plans and lets a study search."""
 
 import pytest
 
@@ -46,8 +46,8 @@ def test_the_schedule_plans_plants_with_doublets_and_a_grid(found):
     assert not planned & {"ATESPlant", "HeatingSubstation", "Doublet"}
 
 
-def test_the_choices_follow_the_class(found):
+def test_the_ranges_follow_the_class(found):
     """Doublets need the structural size, depth a depth parameter."""
-    assert found["HeatingPlant"]["choices"] == ["doublets", "depth"]
-    assert found["Doublet"]["choices"] == ["depth"]
-    assert found["HeatingSubstation"]["choices"] == []
+    assert found["HeatingPlant"]["ranges"] == ["size.doublets", "params.depth"]
+    assert found["Doublet"]["ranges"] == ["params.depth"]
+    assert found["HeatingSubstation"]["ranges"] == []

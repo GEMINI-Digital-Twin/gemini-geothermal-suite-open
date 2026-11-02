@@ -204,12 +204,17 @@ class Node(Frozen):
         """Append the issues of a rule between fields; a section with none leaves it alone."""
 
     @classmethod
-    def from_dict(cls, data, files=None, folder=None, time=None):
-        """Return the section of ``data``; ``files`` is ``{name: bytes}``, ``folder`` a root folder.
+    def from_dict(cls, data, files=None, time=None):
+        """Return the section of ``data``; ``files`` is ``{name: bytes}`` of the files it names.
 
         ``time`` is the ``Time`` of a case, needed only when a leaf is a series.
         Raises ``ValidationError`` carrying every issue found.
         """
+        return cls._load(data, files, None, time)
+
+    @classmethod
+    def _load(cls, data, files, folder, time):
+        """Return the section of ``data`` with its files from ``files`` or else from ``folder``."""
         issues = []
         ctx = Context(issues, inputs.Source(folder, files), *_steps(time))
         found = cls.read(plain(data), cls.where, ctx)

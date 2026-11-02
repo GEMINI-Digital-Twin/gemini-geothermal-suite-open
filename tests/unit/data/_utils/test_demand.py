@@ -34,18 +34,20 @@ def test_a_step_is_a_duration_text_or_seconds():
 
 def test_a_csv_maps_file_columns_to_quantities(tmp_path):
     """The first column is the time by default; columns keep the order given."""
-    path = write(tmp_path, "day,h,c\n2030-01-01,3,1\n2030-01-02,4,2\n2030-01-03,5,3\n")
+    path = write(tmp_path, "time,h,c\n2030-01-01,3,1\n2030-01-02,4,2\n2030-01-03,5,3\n")
     frame = gm.data.from_csv(path, {"c": "cooling_demand", "h": "heating_demand"}, "MW")
     assert list(frame.columns) == ["cooling_demand", "heating_demand"]
     assert frame["heating_demand"].tolist() == [3e6, 4e6, 5e6]
     assert frame.index[0] == pd.Timestamp("2030-01-01", tz="UTC")
 
 
-def test_a_csv_names_its_time_column(tmp_path):
-    """Another column can carry the time; offsets convert to UTC."""
-    path = write(tmp_path, "h,t\n1,2030-01-01T01:00:00+01:00\n2,2030-01-01T02:00:00+01:00\n")
-    frame = gm.data.from_csv(path, {"h": "heating_demand"}, "W", time_column="t")
+def test_a_csv_has_a_time_column_and_offsets_convert_to_utc(tmp_path):
+    """The column is named ``time``; there is no argument to name another."""
+    path = write(tmp_path, "h,time\n1,2030-01-01T01:00:00+01:00\n2,2030-01-01T02:00:00+01:00\n")
+    frame = gm.data.from_csv(path, {"h": "heating_demand"}, "W")
     assert frame.index[0] == pd.Timestamp("2030-01-01 00:00", tz="UTC")
+    with pytest.raises(TypeError, match="time_column"):
+        gm.data.from_csv(path, {"h": "heating_demand"}, "W", time_column="time")
 
 
 def test_a_year_and_a_month_both_load(tmp_path):
@@ -71,11 +73,12 @@ def test_a_unit_that_is_no_power_is_refused(unit):
 
 def test_a_missing_file_column_is_named(tmp_path):
     """The message lists the columns of the file."""
-    path = write(tmp_path, "day,h\n2030-01-01,3\n")
-    with raises(gm.errors.ValidationError, "missing_column", match="day, h"):
+    path = write(tmp_path, "time,h\n2030-01-01,3\n")
+    with raises(gm.errors.ValidationError, "missing_column", match="time, h"):
         gm.data.from_csv(path, {"x": "heating_demand"}, "W")
-    with raises(gm.errors.ValidationError, "missing_column"):
-        gm.data.from_csv(path, {"h": "heating_demand"}, "W", time_column="date")
+    other = write(tmp_path, "date,h\n2030-01-01,3\n")
+    with raises(gm.errors.ValidationError, "missing_column", match="'time'"):
+        gm.data.from_csv(other, {"h": "heating_demand"}, "W")
 
 
 @pytest.mark.parametrize(
@@ -91,13 +94,13 @@ def test_a_bad_time_index_is_refused(tmp_path, days, expected):
     """Order, repeats, gaps and a changing step."""
     rows = "".join(f"{day},1\n" for day in days)
     with raises(gm.errors.RunError, "invalid_data", match=expected):
-        gm.data.from_csv(write(tmp_path, "t,h\n" + rows), {"h": "heating_demand"}, "W")
+        gm.data.from_csv(write(tmp_path, "time,h\n" + rows), {"h": "heating_demand"}, "W")
 
 
 def test_text_that_is_no_time_is_refused(tmp_path):
     """The error names the column."""
-    with raises(gm.errors.RunError, "invalid_data", match="'t'"):
-        gm.data.from_csv(write(tmp_path, "t,h\nsoon,1\n"), {"h": "heating_demand"}, "W")
+    with raises(gm.errors.RunError, "invalid_data", match="'time'"):
+        gm.data.from_csv(write(tmp_path, "time,h\nsoon,1\n"), {"h": "heating_demand"}, "W")
 
 
 def test_no_rows_is_refused():

@@ -5,6 +5,7 @@ import json
 import pytest
 
 import gemini as gm
+from gemini.study import study
 from gemini.study._utils.resize import resized
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
@@ -175,3 +176,11 @@ def test_a_study_is_written_as_run_records(folder, fake_runs, tmp_path_factory):
     assert json.loads((out / "result.json").read_text())["best"] == {
         "shallow_district": {"plant_name": "one"}
     }
+
+
+def test_the_schema_names_the_keys_the_reader_accepts():
+    """``Study.schema()`` is closed on the keys of ``study.json``, and the methods are its enum."""
+    schema = gm.Study.schema()
+    assert set(schema["properties"]) == {*study.KEYS, "about"}
+    assert schema["properties"]["method"]["enum"] == list(study.METHODS)
+    assert schema["additionalProperties"] is False

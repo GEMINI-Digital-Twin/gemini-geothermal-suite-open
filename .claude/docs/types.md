@@ -264,8 +264,8 @@ Simulate profiles by combining them into a dataset keyed by dotted control or bo
 `gm.simulate(plant, plan=gm.Dataset.from_profiles(profiles), clock=clock)`. Profiles combined into a
 dataset must share one index; resample explicitly.
 
-Costs are not a type: equipment declares `capex(finance)` and `fixed_opex(finance)` in amounts of
-the case's currency, from the factors of `case.assumptions.finance`, and `gm.evaluate.capex` sums
+Costs are not a type: equipment declares `capex(economics)` and `fixed_opex(economics)` in amounts of
+the case's currency, from the factors of `case.economics`, and `gm.evaluate.capex` sums
 them ([economics.md](economics.md#costs)). `gemini.physics.costs.scaled(factor, size)` is a factor
 times a design size. A result of `gm.evaluate` is a `Value` (`gemini/types/shapes.py`), a
 `gm.units.Quantity` in SI that also holds `reason` and `parts`.

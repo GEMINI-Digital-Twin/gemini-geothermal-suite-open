@@ -34,7 +34,7 @@ class Report(dict):
         ``gm.evaluate`` (energy in MWh, power in MW, money in MEUR, LCTS in EUR/MWh, CO2 in kt,
         flow in m3/h, temperature in degC), also inside ``capacities`` and ``requirements`` and in
         the parts of a value (annualised cost in MEUR/yr, energy per year in MWh/yr, mass in kt,
-        durations in days; ``analysis_period``, ``payback`` and ``lifetime_years`` in yr, a
+        durations in days; ``analysis_period`` and ``payback`` in yr, a
         temperature difference in K). A part that is dimensionless or text stays as it is.
 
         Parameters

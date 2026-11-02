@@ -4,7 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_economics, make_case
+from tests.fixtures.cases import FINANCE, costed_economics, make_case
 from tests.fixtures.costed_plants import day, heating_plant
 from tests.fixtures.errors import raises
 
@@ -13,6 +13,7 @@ OPEX = 10.0 + 2e-8 * 100.0 * SECONDS_PER_YEAR
 SELLING = make_case(
     economics=costed_economics(
         energy={"electricity": Quantity(2e-8, "currency/J")},
+        **FINANCE,
         revenue={"heat": Quantity(5e-8, "currency/J")},
     )
 )
@@ -32,6 +33,7 @@ def test_payback_never_comes_when_revenue_does_not_cover_the_cost():
     cheap = make_case(
         economics=costed_economics(
             energy={"electricity": Quantity(2e-8, "currency/J")},
+            **FINANCE,
             revenue={"heat": Quantity(1e-9, "currency/J")},
         )
     )
@@ -43,7 +45,7 @@ def test_payback_never_comes_when_revenue_does_not_cover_the_cost():
 def test_the_price_of_heat_is_asked_for_when_heat_is_delivered():
     """Heat is delivered but unpriced: the user is asked."""
     unpriced = make_case(
-        economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")})
+        economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")}, **FINANCE)
     )
     with raises(
         gm.errors.ValidationError,

@@ -11,7 +11,7 @@ Version format: `MAJOR.MINOR.PATCH`
 - **PATCH**: backward-compatible bug fixes and small improvements.
 
 While the version is below 1.0, a breaking change to a public name or return field raises MINOR
-(`0.2.0`) and an addition or a fix raises PATCH (`0.1.1`).
+(`0.3.0`) and an addition or a fix raises PATCH (`0.1.1`).
 
 The version has one source: `version` in the `[project]` section of `pyproject.toml`.
 `gm.__version__` reads it, and the public-API snapshot, checkpoints and saved results record it.
