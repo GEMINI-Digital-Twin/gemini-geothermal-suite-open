@@ -23,7 +23,8 @@ from gemini.units.quantities import (
 class ThermalStorage(Equipment, Module):
     """Fully mixed (lumped) hot or chilled water tank with charge and discharge circuits.
 
-    The tank content is ``module.fluid`` at one uniform temperature, the state ``temperature``.
+    The tank content is the fluid of the charging inlet (``module.fluid`` when stated) at one
+    uniform temperature, the state ``temperature``.
     Each circuit exchanges heat with the tank through a constant effectiveness ``e``
     (``charge_effectiveness``, ``discharge_effectiveness``); ``e = 1`` is a direct
     connection, where the circuit leaves at the tank temperature. With ``C_i = m_dot_i * cp_i``
@@ -189,8 +190,8 @@ class ThermalStorage(Equipment, Module):
         return {"temperature": relaxed}
 
     def _capacity(self, charge_in, temperature):
-        """Return the tank heat capacity rho * cp * V [J/K] of ``module.fluid``."""
-        properties = self.fluid.properties(charge_in.p, temperature)
+        """Return the tank heat capacity rho * cp * V [J/K] of the tank fluid."""
+        properties = self._fluid_of(charge_in).properties(charge_in.p, temperature)
         return heat_transfer.tank_capacity(properties.liquid_volumetric_heat_capacity, self.volume)
 
     def _conductance(self, stream, effectiveness):

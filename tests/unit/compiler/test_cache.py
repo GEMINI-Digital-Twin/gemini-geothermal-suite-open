@@ -214,3 +214,12 @@ def test_threads_with_their_own_plants_share_a_cache(gain):
     for thread in threads:
         thread.join()
     assert len(graphs) == 4 and cache.graph(gain, fluids) in graphs
+
+
+def test_a_module_without_a_fluid_retraces_for_the_fluid_of_its_stream(gain):
+    """The fluid of an inlet stream is a guard: a module with no fluid gets a graph per fluid."""
+    object.__setattr__(gain, "_fluid", None)
+    cache = GraphCache()
+    first = cache.graph(gain, {"fluid_in": BRINE})
+    assert cache.graph(gain, {"fluid_in": BRINE}) is first
+    assert cache.graph(gain, {"fluid_in": gm.WATER}) is not first and cache.traces == 2

@@ -113,8 +113,8 @@ class _Reservoir(Module):
             "drainage radius",
         )
 
-    def _calculate_outputs(self, flow, p_bh):
-        properties = self.fluid.properties(self.pressure, self.temperature)
+    def _calculate_outputs(self, fluid, flow, p_bh):
+        properties = fluid.properties(self.pressure, self.temperature)
         if self.drainage_radius == 0:
             flow_pressure_drop = skin_pressure_drop = float("nan")
         else:
@@ -226,7 +226,7 @@ class ProductionReservoir(_Reservoir):
         # Outputs
         flow = sandface.volumetric_flow()
         properties = sandface.fluid.properties(sandface.p, sandface.T)
-        outputs = self._calculate_outputs(flow, sandface.p) | dict(
+        outputs = self._calculate_outputs(self.fluid, flow, sandface.p) | dict(
             liquid_flow=fluid_physics.liquid_volume_flow(
                 sandface.m_dot, properties.gmf, properties.rho_l
             )
@@ -277,11 +277,12 @@ class InjectionReservoir(_Reservoir):
             )
         # Outputs
         sandface = inlets.sandface_in
+        fluid = self._fluid_of(sandface)
         flow = fluid_physics.volume_flow(
-            ops.abs(sandface.m_dot), self.fluid.properties(sandface.p, sandface.T).rho_l
+            ops.abs(sandface.m_dot), fluid.properties(sandface.p, sandface.T).rho_l
         )
         properties = sandface.fluid.properties(sandface.p, sandface.T)
-        outputs = self._calculate_outputs(flow, self.required_pressure(sandface)) | dict(
+        outputs = self._calculate_outputs(fluid, flow, self.required_pressure(sandface)) | dict(
             liquid_flow=fluid_physics.liquid_volume_flow(
                 ops.abs(sandface.m_dot), properties.gmf, properties.rho_l
             )
@@ -302,6 +303,7 @@ class InjectionReservoir(_Reservoir):
                 f"{self.path}: injectivity_index is required", code="invalid_design"
             )
         flow = fluid_physics.volume_flow(
-            ops.abs(sandface.m_dot), self.fluid.properties(sandface.p, sandface.T).rho_l
+            ops.abs(sandface.m_dot),
+            self._fluid_of(sandface).properties(sandface.p, sandface.T).rho_l,
         )
         return hydraulics.injectivity_pressure(self.pressure, flow, self.injectivity_index)

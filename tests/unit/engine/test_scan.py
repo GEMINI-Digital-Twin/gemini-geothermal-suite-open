@@ -140,3 +140,19 @@ def test_a_bug_in_a_step_stops_the_scan_with_the_state_before_it():
     assert engine.module_states[""]["tank"]["temperature"] == pytest.approx(
         buffer_reference(frame)["temperature"][6], rel=1e-12
     )
+
+
+@pytest.mark.parametrize("compile", [False, True])
+def test_a_stateful_plant_takes_the_tank_fluid_from_its_streams(compile):
+    """A tank with no fluid of its own works on the fluid its inlet streams carry."""
+    plant = buffer_plant()
+    tank = plant.get_submodule("tank")
+    object.__setattr__(tank, "_fluid", None)
+    frame = buffer_frame(12)
+    results, _ = _run(plant, frame, compile=compile)
+    assert results.errors() == []
+    np.testing.assert_allclose(
+        results.to_frame()["tank.tank_temperature"],
+        buffer_reference(frame)["temperature"],
+        rtol=1e-12,
+    )

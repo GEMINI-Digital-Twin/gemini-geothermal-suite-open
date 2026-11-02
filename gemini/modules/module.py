@@ -194,6 +194,14 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         """
         self._set_own_fluid(value)
 
+    def _fluid_of(self, stream):
+        """Return the fluid of ``stream``, unless this module states its own (a design choice).
+
+        A module that works on the fluid of its inlet reads it here, so a call of the module alone
+        needs no fluid beyond the one its inlet stream carries.
+        """
+        return stream.fluid if self._fluid is None else self._fluid
+
     def _set_own_fluid(self, value):
         """Set the fluid of this module alone."""
         object.__setattr__(self, "_fluid", Fluid._of(value))

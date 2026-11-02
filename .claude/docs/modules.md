@@ -65,7 +65,7 @@ tree-shape arguments (for example `ModuleList(modules)`, `DistrictNetwork(consum
 class-creation hook: `module.name` is the snake_case class name computed on access,
 `Module.help()` reads the first paragraph of the class docstring and lists the declarations, and
 any number of classes may share a name. `module.path` is the dotted position in the tree, or the
-name for a standalone module. `module.fluid` is a validated property saved by `state_dict()`; it raises `missing_value` until the case or the plant `fluids` sets it. Checkpoints
+name for a standalone module. `module.fluid` is a validated property saved by `state_dict()`; it raises `missing_value` until the case or the plant `fluids` sets it. A module that works on a fluid takes it from its inlet stream (`self._fluid_of(stream)`: the stream's fluid, unless the module states its own, a design choice such as a plant `fluids` entry), so a call of the module alone, `gm.call` included, needs only the `fluid` of its inlets; `module.fluid` is read only where no inlet stream exists (a source, an offer). Checkpoints
 store the root class as `module:qualname` through `class_path`/`import_class` in `classpath.py`, the
 only import-by-string in the package.
 
