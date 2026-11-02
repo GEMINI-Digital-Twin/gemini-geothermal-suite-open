@@ -131,10 +131,17 @@ Sections of `case.json`:
 | `initial_state` | `{module path: {state: {value, unit}}}`; `case.initial_state[module][state].si` |
 | `site` | `ground` (`surface_temperature`, `gradient`), `reservoir` (`reference_depth`, `thickness`, `permeability`, `pressure`, `temperature`), `fluid` (`density`, `viscosity`, `gas_liquid_ratio`, `dissolved_gas` as a leaf per species, `sand_concentration`), `air` (`temperature`, `relative_humidity`, `pressure`). `temperature_at(depth)` and `pressure_at(depth)` apply the two rules of `gemini/physics/ground.py` |
 | `demand` | `heating` and `cooling`: `power` (a series or a quantity), `supply_temperature`, `return_temperature`, `minimum_return_temperature`, `maximum_return_temperature`, `return_pressure`; cooling also `indoor_temperature`, `indoor_relative_humidity`, `dew_point_margin`. `case.demand.frame` is the demand in W on `time.index`, columns `heating_demand` and `cooling_demand` |
-| `utilities` | `electricity` (`co2_intensity`, `import_limit`, `export_limit`), `gas` (`composition`, `heating_value`) |
+| `utilities` | `electricity` (`co2_intensity`, `import_limit`, `export_limit`), `gas` (`composition` over `CH4`, `C2H6`, `C3H8`, `CO2`, `N2`, `O2`, the species of `gemini.physics.gas`; `heating_value`) |
 | `economics` | an object or the path of an `economics.json`, see below |
 | `requirements` | a list of `{name, on, quantity, unit?, over?, when?, min?, max?}` |
 | `choices` | what a study may vary: `doublets` and `depth`, each `{min, max}` |
+
+`apply_case` (see [engine.md](engine.md#how-the-case-reaches-the-modules)) reads `site.air.pressure`
+for every `Atmosphere`, `utilities.gas.composition` for every `GasGrid` (both required where the
+module is present), the consumer conditions of `demand` (`return_pressure`, the return-temperature
+limits, `dew_point_margin`, `indoor_temperature`, `indoor_relative_humidity`), `site.fluid.sand_concentration`
+for a `Desander`, the connection limits of `utilities.electricity`, and `demand.<service>.supply_temperature`
+for the setpoint of a unit on a supply line. The plant states none of them.
 
 **Requirements.** `on` is a role and `quantity` one of it, from the closed table `gm.case.roles()`,
 which gives for each quantity its dimension and whether it takes `over`. A per-step quantity states

@@ -6,7 +6,6 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.modules import GasGrid
 from gemini.modules._utils.balance import energy_balance, mass_balance
 from gemini.modules.heating import CHP
-from gemini.physics import gas
 from gemini.types.flows import Stream
 from gemini.types.fluid import Fluid
 from gemini.units import Quantity
@@ -14,6 +13,7 @@ from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
+from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.reading import reading
 
 CP = 4217.4
@@ -110,7 +110,7 @@ def test_traced_call_matches_one_call_per_row():
 
 def test_an_engine_on_co_produced_gas_buys_what_it_lacks():
     """Co-produced gas comes first, as in a boiler; the rest is purchased."""
-    fluid = Fluid(kind="gas", gas_composition={"CH4": 1.0}).with_grid(gas.GRID_COMPOSITION)
+    fluid = Fluid(kind="gas", gas_composition={"CH4": 1.0}).with_grid(GRID_COMPOSITION)
     fuel = Stream(
         m_dot=Quantity(0.01, "kg/s"), T=Quantity(330, "K"), p=Quantity(2e5, "Pa"), fluid=fluid
     )

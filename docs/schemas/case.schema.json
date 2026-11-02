@@ -6123,6 +6123,104 @@
             "composition": {
               "additionalProperties": false,
               "properties": {
+                "C2H6": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "range": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "max": {
+                          "type": "number"
+                        },
+                        "min": {
+                          "type": "number"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "uncertainty": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "uniform",
+                            "triangular",
+                            "normal"
+                          ]
+                        },
+                        "max": {
+                          "type": "number"
+                        },
+                        "min": {
+                          "type": "number"
+                        },
+                        "std": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "C3H8": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "range": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "max": {
+                          "type": "number"
+                        },
+                        "min": {
+                          "type": "number"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "uncertainty": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "uniform",
+                            "triangular",
+                            "normal"
+                          ]
+                        },
+                        "max": {
+                          "type": "number"
+                        },
+                        "min": {
+                          "type": "number"
+                        },
+                        "std": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "type": "object"
+                },
                 "CH4": {
                   "additionalProperties": false,
                   "properties": {
@@ -6221,7 +6319,7 @@
                   ],
                   "type": "object"
                 },
-                "H2S": {
+                "N2": {
                   "additionalProperties": false,
                   "properties": {
                     "range": {
@@ -6270,7 +6368,7 @@
                   ],
                   "type": "object"
                 },
-                "N2": {
+                "O2": {
                   "additionalProperties": false,
                   "properties": {
                     "range": {

@@ -54,7 +54,6 @@ REMOVED_DEFAULTS = {
     "filters.hot.nominal_mass_flow": "Mass flow at which the clean-filter pressure drop holds",
     "heat_exchanger.arrangement": "Flow arrangement of the two streams",
     "heating_return_pipe.roughness": "Absolute roughness of the inner pipe wall",
-    "gas_grid.composition": "Mole or mass fractions of the gas components by name",
     "flare.combustion_efficiency": "Share of the flared gas burned completely",
     "d0.drainage_radius": "Radius of the drainage area around each well",
     "d0.well.heat_transfer_coefficient": (

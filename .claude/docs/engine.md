@@ -115,23 +115,34 @@ written in the case:
   `site.reservoir`, and the brine of `site.fluid` as the module's fluid; a
   production or injection reservoir outside a doublet takes the permeability, the thickness, the
   fluid and the pressure at `reference_depth`;
-- every `Atmosphere`: `site.air.temperature` (a profile reaches it through the plan column
-  `<atmosphere>.temperature` that `gm.schedule` writes; a user `plan` without it carries no air
-  profile);
-- every `HeatingGrid` and `CoolingGrid`: `return_temperature` and the required supply
-  temperature (`minimum_supply_temperature` for heat, `maximum_supply_temperature` for cold) from
-  `demand.heating` and `demand.cooling`.
+- every `Atmosphere`: `site.air.pressure` (required) and `site.air.temperature` (a profile reaches
+  it through the plan column `<atmosphere>.temperature` that `gm.schedule` writes; a user `plan`
+  without it carries no air profile);
+- every `GasGrid`: `utilities.gas.composition` (required, `missing_value` naming the path);
+- every `HeatingGrid` and `CoolingGrid`: what each declares with a `case` path under
+  `demand.heating` or `demand.cooling`: `return_temperature`, the required supply temperature
+  (`minimum_supply_temperature` for heat, `maximum_supply_temperature` for cold),
+  `return_pressure`, the return-temperature limits, and for cold `dew_point_margin`,
+  `indoor_temperature` and `indoor_relative_humidity`;
+- every `Desander`: `site.fluid.sand_concentration`; every `ElectricityGrid`:
+  `utilities.electricity.import_limit` and `export_limit` (absent means unlimited);
+- every unit on a supply line (`HeatPump`, `Boiler`, `ElectricBoiler`, `AbsorptionUnit`,
+  `AdsorptionChiller` whose useful outlet reaches the `HeatingGrid` or the `CoolingGrid`, found with
+  `plant.feeds`, `gemini/plants/_utils/roles.py` `supply_service`): the `temperature_setpoint` is
+  the supply temperature of the service plus the unit's `supply_margin` (minus it for cold), set
+  as an input. A unit without a margin keeps the setpoint the plant gives; a margin on a unit on
+  no supply line is `invalid_design`.
 
-A parameter that the case sets is declared with `Parameter(..., case="site.ground.gradient")`;
-a plant dict that states it is refused (`invalid_value`, naming the case path), and `to_dict` never
-writes it. A value the plant needs and the case lacks raises `missing_value` naming its path in
+A parameter or boundary that the case sets is declared with `Parameter(..., case="site.ground.gradient")`
+or `Boundary(..., case="demand.cooling.indoor_temperature")`; a plant dict that states it is refused
+(`invalid_value`, naming the case path), and `to_dict` never writes it. A value the plant needs and the case lacks raises `missing_value` naming its path in
 the case. The plant of the user never changes. Known limits: `fluids` stays in the plant dict for a
 module whose fluid differs from its class default, because a measured or replayed plant (the
 `DoubletHeatPlant` example, a calibration) has no case and carries its own brine; with a case, the
 fluid of a `Doublet` comes from `site.fluid`. The leaf reservoir parameters `pressure`,
 `permeability` and `aquifer_thickness` are not case-flagged for the same reason, but a `Doublet` in
-a run gets them from the case. The pressure of the water returned by a consumer stays a design
-parameter of the plant, because the case has no field for it.
+a run gets them from the case. A module run on its own, without a plant and a case, takes the
+values of the case as ordinary parameters (`set_params`), as the unit tests do.
 
 ## Schedule
 
@@ -154,6 +165,11 @@ feeds the `CoolingGrid` a cooling unit, directly or through mixers, splitters an
 `HeatPump` is either: on the cooling grid it is the compression chiller, with its condenser heat
 going to its cooler. At most one unit per role and kind, or `invalid_design`.
 
+**The two rules.** The plant states how the schedule orders its sources and picks its outage steps:
+`params.control.dispatch` (`least_cost`) and `params.control.outages` (`lowest_demand`), each a
+closed list of the one implemented value. A plant without them makes `gm.schedule` raise
+`missing_value` naming the path; another value is refused when the plant is read.
+
 **Cost dispatch.** Every heat and cold source gets a marginal cost at each step
 (`gemini/run/_utils/sources.py`, `physics/dispatch.marginal_cost`): `price / efficiency +
 co2 price * emission`, with the prices of `case.economics.energy`, the CO2 price `economics.carbon.price`, the grid factor `utilities.electricity.co2_intensity` and the efficiency of the source at
@@ -166,7 +182,8 @@ Unmet demand is no error: the run reports `unmet_demand`. The drive heat of a he
 cold over its `thermal_cop`, adds to the heat need. On one chilled-water circuit the last unit
 brings the water to its setpoint and each unit before it gets the setpoint that leaves the rest to
 the units after it. The heat pump, the boilers and the last cooling unit take the
-`temperature_setpoint` set on them with `set_inputs`. `ATESPlant` is not scheduled: its three
+`temperature_setpoint` that `apply_case` derives from their `supply_margin` (or that the plant
+states as a control). `ATESPlant` is not scheduled: its three
 seasonal commands (`storage.mode`, `source_valve.split_fraction`, `load_valve.split_fraction`)
 stay inputs of a run.
 

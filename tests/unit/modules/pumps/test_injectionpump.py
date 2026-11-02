@@ -25,6 +25,7 @@ def test_equipment_forward():
     result = c(
         fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
         pressure_setpoint=2e6,
+        frequency=60,
     )
     assert sum(s.m_dot for s in result.outlets.values() if isinstance(s, Stream)) == 1
     assert result.outlets["fluid_out"].T == 300
@@ -63,6 +64,7 @@ def test_a_setpoint_below_the_suction_needs_no_pumping():
     result = pump(
         fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e6, "Pa")),
         pressure_setpoint=1e6,
+        frequency=60,
     )
     assert result.outputs.power == 0
     assert result.outputs.head == 0
@@ -76,6 +78,7 @@ def test_a_positive_head_is_pumping():
     result = pump(
         fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
         pressure_setpoint=2e6,
+        frequency=60,
     )
     assert result.outputs.is_pumping is True
     assert result.outputs.power > 0
@@ -99,6 +102,7 @@ def test_a_stopped_pump_lets_the_pressure_through():
             m_dot=Quantity(0.0, "kg/s"), T=Quantity(320.0, "K"), p=Quantity(100e5, "Pa")
         ),
         pressure_setpoint=30e5,
+        frequency=60,
     )
     assert result.outlets["fluid_out"].p == 100e5
     assert result.outputs["head"] == 0.0
@@ -118,7 +122,8 @@ def test_a_pump_on_its_curves_needs_no_efficiency():
     pump = InjectionPump().set_params("", CURVES)
     assert (
         pump(
-            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa"))
+            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+            frequency=60,
         ).outputs["power"]
         > 0
     )
@@ -185,3 +190,13 @@ def test_a_pump_that_adds_no_head_costs_nothing():
     )
     economics = _economics(injection_pump=Quantity(0.5, "currency/W"))
     assert pump.capex(economics) == 0.0 and pump.fixed_opex(economics) == 0.0
+
+
+def test_the_frequency_has_no_default():
+    """The operating frequency is the designer's: a pump run without one says so."""
+    pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.65})
+    with raises(ValidationError, "missing_value", match="frequency"):
+        pump(
+            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+            pressure_setpoint=2e6,
+        )

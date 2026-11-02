@@ -37,7 +37,7 @@ def boiler_plant():
     plant.connect("pump_heater.flue_out", "flue")
     plant.connect("pump_heater.loss_out", "loss")
     plant.users.fluid = gm.WATER
-    return with_values(plant)
+    return with_values(plant).set_params("", {"dispatch": "least_cost", "outages": "lowest_demand"})
 
 
 def test_set_inputs_validates_and_persists_a_setpoint():

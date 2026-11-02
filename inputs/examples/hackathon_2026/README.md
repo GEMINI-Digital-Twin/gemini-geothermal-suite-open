@@ -170,7 +170,10 @@ other doublets rates its pump again. On `HeatingHeatPumpCoolingPlant` the pump i
 
 ## Pump intake limits
 
-`case.json` adds two constraints on the ESP intake of a running doublet, which the organisers did not state.
+Each plant file states two operating limits on the `esp` of every doublet (`minimum_intake_pressure` and
+`maximum_gas_fraction`), which the organisers did not state. They are properties of the pump chosen, so they sit in
+the plant and not in the case; a run that breaches one still runs every step with the same numbers, and
+`gm.evaluate.verdict` gives a reason of kind `bound` (`gm.study.minimize` treats such a trial as infeasible).
 
 - Maximum free gas, 0.1875 of the volume at the intake. Source: Baker Hughes, Ace Plus gas handler pumps,
   <https://www.bakerhughes.com/production/artificial-lift/electrical-submersible-pump-systems/pumps/ace-plus-gas-handler-pumps>:

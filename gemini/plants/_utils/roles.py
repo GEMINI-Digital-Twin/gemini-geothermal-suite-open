@@ -1,10 +1,11 @@
 """What a module is for in a plant, found from its class and its wiring, never from its name."""
 
 from gemini._utils.strings import join_path
+from gemini.errors import ValidationError
 from gemini.modules.cooling import AbsorptionUnit, AdsorptionChiller
 from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.grids import CoolingGrid, HeatingGrid
-from gemini.modules.heating import CHP, Boiler, HeatPump
+from gemini.modules.heating import CHP, Boiler, ElectricBoiler, HeatPump
 from gemini.plants.doublet import Doublet
 
 CLASSES = {
@@ -60,6 +61,45 @@ def roles_of(plant, path, module):
         if _reaches(plant, path, "chilled_out", CoolingGrid):
             found.append("chiller")
     return found
+
+
+SUPPLY = (
+    (HeatPump, "sink_out", HeatingGrid, "heating"),
+    (Boiler, "fluid_out", HeatingGrid, "heating"),
+    (ElectricBoiler, "fluid_out", HeatingGrid, "heating"),
+    (HeatPump, "source_out", CoolingGrid, "cooling"),
+    (AbsorptionUnit, "chilled_out", CoolingGrid, "cooling"),
+    (AdsorptionChiller, "chilled_out", CoolingGrid, "cooling"),
+)
+"""The units that regulate a supply temperature: class, outlet that carries it, grid it must reach
+and the service."""
+
+
+SUPPLY_CLASSES = tuple(dict.fromkeys(cls for cls, *_ in SUPPLY))
+"""The classes of ``SUPPLY``."""
+
+
+def supply_service(plant, path, module):
+    """Return ``"heating"`` or ``"cooling"`` when ``module`` at ``path`` is on a supply line.
+
+    A unit is on a supply line when the outlet that carries its useful stream reaches the
+    ``HeatingGrid`` or the ``CoolingGrid`` (``plant.feeds``, the rule the schedule uses for its
+    roles). ``None`` for a unit on neither; a unit on both raises ``invalid_design``, because it
+    has one setpoint.
+    """
+    found = {
+        service
+        for cls, port, grid, service in SUPPLY
+        if isinstance(module, cls) and _reaches(plant, path, port, grid)
+    }
+    if len(found) > 1:
+        raise ValidationError(
+            f"{path or 'plant'} feeds both the heating and the cooling grid; expected one supply "
+            "line, because a unit has one setpoint",
+            path=path,
+            code="invalid_design",
+        )
+    return found.pop() if found else None
 
 
 def units_of(plant, role):

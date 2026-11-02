@@ -2,9 +2,12 @@
 
 ``apply_case`` sets, for a run, what the plant dict does not hold: the ground on every
 ``Formation``, the reservoir and the fluid on every reservoir and ``Doublet`` (at the depth of the
-doublet), the air on every ``Atmosphere``, the return temperatures and the required supply
-temperatures on the heating and cooling consumers. One private function does each kind. A value
-the plant needs and the case lacks raises ``missing_value`` naming its path in the case.
+doublet), the air on every ``Atmosphere``, the grid gas on every ``GasGrid``, the supply
+temperature plus the margin on every unit of a supply line, and, for the consumers
+(``HeatingGrid``, ``CoolingGrid``), the desander (``site.fluid``) and the grid connection
+(``utilities.electricity``), every parameter and boundary that declares a case path (``case=``).
+One private function does each kind. A value the plant needs and the case lacks raises
+``missing_value`` naming its path in the case.
 """
 
 import weakref
@@ -14,9 +17,12 @@ import numpy as np
 
 from gemini._utils.strings import join_path
 from gemini.case._utils.access import require
+from gemini.errors import ValidationError
 from gemini.modules.environment import Atmosphere, Formation
-from gemini.modules.grids import CoolingGrid, HeatingGrid
+from gemini.modules.grids import CoolingGrid, ElectricityGrid, GasGrid, HeatingGrid
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
+from gemini.modules.treatment import Desander
+from gemini.plants._utils.roles import SUPPLY_CLASSES, supply_service
 from gemini.plants.doublet import Doublet
 from gemini.types import Fluid
 
@@ -59,7 +65,10 @@ def applied_in_place(plant, case):
     _reservoirs(applied, case, doublets)
     _doublets(applied, case, doublets)
     _air(applied, case)
-    _consumers(applied, case)
+    _gas(applied, case)
+    _owned(applied, case, ((HeatingGrid, "demand.heating."), (CoolingGrid, "demand.cooling.")))
+    _owned(applied, case, ((Desander, "site.fluid."), (ElectricityGrid, "utilities.electricity.")))
+    _supply(applied, case)
     _APPLIED[applied] = weakref.ref(case)
     return applied
 
@@ -133,31 +142,85 @@ def _doublets(plant, case, doublets):
 
 
 def _air(plant, case):
-    """Set the air temperature on every ``Atmosphere``; a profile reaches it through the plan."""
+    """Set the air pressure and temperature on every ``Atmosphere``; a profile is the plan's."""
     paths = [path for path, module in plant.named_modules() if isinstance(module, Atmosphere)]
     if not paths:
         return
+    pressure = require(case, "site.air.pressure")
+    for path in paths:
+        plant._set_si_params(path, {"pressure": pressure})
     air = require(case, "site.air.temperature")
     if isinstance(air, np.ndarray):
         return
     plant._set_si_inputs({join_path(path, "temperature"): air for path in paths})
 
 
-def _consumers(plant, case):
-    """Set the return temperature and the supply requirement on the heating and cooling consumers.
+def _gas(plant, case):
+    """Set the grid gas composition of ``utilities.gas`` on every ``GasGrid``; it must be given."""
+    for path, module in plant.named_modules():
+        if isinstance(module, GasGrid):
+            composition = require(case, "utilities.gas.composition")
+            plant._set_si_params(path, {"composition": dict(composition)})
 
-    The requirement is a minimum supply temperature for heat and a maximum for cold.
+
+def _given(case, path):
+    """Return the value at the dotted ``path`` of the case, or ``None`` when it has none."""
+    value = case
+    for name in path.split("."):
+        value = getattr(value, name, None)
+        if value is None:
+            return None
+    return value
+
+
+def _owned(plant, case, owners):
+    """Set on every module of a class of ``owners`` the values its declarations take from the case.
+
+    ``owners`` is ``((class, prefix), ...)``: a parameter or boundary of the class that declares a
+    case path under ``prefix`` takes the value there when the case has one. A parameter that has
+    none stays empty (the module says what it needs), and a boundary the plan gives at each step
+    wins over it.
     """
-    for grid, service, supply in (
-        (HeatingGrid, "heating", "minimum_supply_temperature"),
-        (CoolingGrid, "cooling", "maximum_supply_temperature"),
-    ):
-        demand = getattr(case.demand, service, None)
+    for cls, prefix in owners:
         for path, module in plant.named_modules():
-            if not isinstance(module, grid) or demand is None:
-                continue
-            values = {
-                "return_temperature": demand.return_temperature,
-                supply: demand.supply_temperature,
-            }
-            plant._set_si_params(path, {name: v for name, v in values.items() if v is not None})
+            if isinstance(module, cls):
+                _set_owned(plant, case, path, module, prefix)
+
+
+def _set_owned(plant, case, path, module, prefix):
+    """Set the case values of the declarations of one ``module`` under the case path ``prefix``."""
+    params, inputs = {}, {}
+    for name, declaration in [*module.named_parameters(), *module.inputs().items()]:
+        where = getattr(declaration, "case", None)
+        value = _given(case, where) if where and where.startswith(prefix) else None
+        if value is not None:
+            target = params if declaration.section == "parameter" else inputs
+            target[name] = value
+    if params:
+        plant._set_si_params(path, params)
+    if inputs:
+        plant._set_si_inputs({join_path(path, name): value for name, value in inputs.items()})
+
+
+def _supply(plant, case):
+    """Set the setpoint of each unit on a supply line: the supply temperature plus its margin.
+
+    A heating unit regulates to the supply temperature of ``demand.heating`` plus ``supply_margin``,
+    a cooling unit to the one of ``demand.cooling`` minus it. A unit without a margin keeps the
+    setpoint the plant or the plan gives; a margin on a unit that is on no supply line raises
+    ``invalid_design``.
+    """
+    for path, module in plant.named_modules():
+        if not isinstance(module, SUPPLY_CLASSES) or module.supply_margin is None:
+            continue
+        service = supply_service(plant, path, module)
+        if service is None:
+            raise ValidationError(
+                f"{path}: supply_margin is set but the unit feeds neither the heating nor the "
+                "cooling grid; expected a unit on a supply line",
+                path=join_path(path, "supply_margin"),
+                code="invalid_design",
+            )
+        supply = require(case, f"demand.{service}.supply_temperature")
+        margin = module.supply_margin if service == "heating" else -module.supply_margin
+        plant._set_si_inputs({join_path(path, "temperature_setpoint"): supply + margin})

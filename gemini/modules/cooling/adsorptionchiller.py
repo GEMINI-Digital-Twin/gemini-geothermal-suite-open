@@ -3,6 +3,7 @@
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
 from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.supply import supply_margin
 from gemini.modules.cooling import _physics, _sorption
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
@@ -20,6 +21,9 @@ from gemini.types import (
 
 class AdsorptionChiller(Equipment, Module):
     """Silica-gel/water adsorption chiller driven by hot water of 55 to 90 degC.
+
+    On a supply line the chilled setpoint is the supply temperature of ``demand.cooling`` minus the
+    ``supply_margin`` the plant states (``gm.run.apply_case``).
 
     Three circuits as in ``AbsorptionUnit``: ``generator_in`` carries the driving hot water that
     desorbs the bed, ``chilled_in`` the evaporator water and ``cooling_in`` the cooling water of
@@ -95,6 +99,8 @@ class AdsorptionChiller(Equipment, Module):
             Temperature,
             description="Highest driving hot-water temperature the machine accepts",
         )
+
+        self.supply_margin = supply_margin()
 
         # Inlets
         self.generator_in = Inlet(Stream, kind="hot_water")

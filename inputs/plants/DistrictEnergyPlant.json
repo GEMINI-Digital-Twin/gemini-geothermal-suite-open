@@ -92,15 +92,6 @@
               "value": 0.15
             }
           },
-          "consumer": {
-            "minimum_return_temperature": {
-              "value": 30,
-              "unit": "degC"
-            },
-            "return_pressure": {
-              "value": null
-            }
-          },
           "pump": {
             "flow": {
               "value": 3,
@@ -158,15 +149,6 @@
             },
             "fouling_threshold": {
               "value": 0.15
-            }
-          },
-          "consumer": {
-            "minimum_return_temperature": {
-              "value": 30,
-              "unit": "degC"
-            },
-            "return_pressure": {
-              "value": null
             }
           },
           "pump": {
@@ -409,19 +391,6 @@
               "value": 0.15
             }
           },
-          "consumer": {
-            "maximum_return_temperature": {
-              "value": 19,
-              "unit": "degC"
-            },
-            "dew_point_margin": {
-              "value": 1,
-              "unit": "K"
-            },
-            "return_pressure": {
-              "value": null
-            }
-          },
           "pump": {
             "flow": {
               "value": 12,
@@ -462,20 +431,6 @@
           "value": 0.8,
           "unit": "W/m2/K"
         }
-      }
-    },
-    "electricity_grid": {
-      "import_limit": {
-        "value": null
-      },
-      "export_limit": {
-        "value": null
-      }
-    },
-    "air": {
-      "pressure": {
-        "value": 1.01325,
-        "unit": "bar"
       }
     }
   }

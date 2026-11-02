@@ -6,6 +6,7 @@ import gemini as gm
 from gemini.modules import energy_balance, mass_balance
 from gemini.physics import combustion, gas
 from tests.fixtures.designs import with_values
+from tests.fixtures.gas import GRID_COMPOSITION
 
 BRINE = gm.Fluid(
     density={"value": 1030, "unit": "kg/m3"},
@@ -82,7 +83,7 @@ def test_a_boiler_short_of_gas_buys_the_rest_and_nothing_reaches_the_flare():
     gas_in, grid_in = leaves["makeup"].inlets.gas_in, leaves["makeup"].inlets.grid_in
     assert grid_in.m_dot > 0
     assert leaves["flare"].outputs.burned_mass_flow == pytest.approx(0, abs=1e-12)
-    bought = grid_in.m_dot * gas.lower_heating_value(gas.GRID_COMPOSITION)
+    bought = grid_in.m_dot * gas.lower_heating_value(GRID_COMPOSITION)
     coproduced = gas_in.m_dot * gas_in.fluid.heating_value()
     assert coproduced + bought == pytest.approx(leaves["boiler"].outputs.fuel)
 
@@ -106,9 +107,9 @@ def test_without_co_produced_gas_the_grid_covers_everything():
     leaves = plant(water_in=WATER).leaves()
     outputs = leaves["boiler"].outputs
     bought = leaves["grid"].outlets.gas_out.m_dot
-    assert bought * gas.lower_heating_value(gas.GRID_COMPOSITION) == pytest.approx(outputs.fuel)
+    assert bought * gas.lower_heating_value(GRID_COMPOSITION) == pytest.approx(outputs.fuel)
     assert leaves["air"].outputs.co2_emission == pytest.approx(
-        outputs.fuel * gas.emission_per_energy(gas.GRID_COMPOSITION)
+        outputs.fuel * gas.emission_per_energy(GRID_COMPOSITION)
     )
 
 

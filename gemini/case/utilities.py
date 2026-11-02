@@ -1,6 +1,6 @@
 """The utilities of a case: the physics of the electricity grid and of the gas grid."""
 
-from gemini.case._utils.kinds import GAS_SPECIES
+from gemini.case._utils.kinds import GRID_GAS_SPECIES
 from gemini.case._utils.node import Field, Node
 from gemini.case.site import FRACTION, POSITIVE
 
@@ -29,7 +29,7 @@ class Gas(Node):
 
     where = "utilities.gas"
     fields = {
-        "composition": Field(keys=GAS_SPECIES, bounds=FRACTION, total=1.0),
+        "composition": Field(keys=GRID_GAS_SPECIES, bounds=FRACTION, total=1.0),
         "heating_value": Field("specific_enthalpy", bounds=POSITIVE),
     }
 

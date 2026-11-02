@@ -15,6 +15,7 @@ from tests.fixtures.cases import requirement
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.esp_design import ESP_DESIGN
+from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.parity import BACKENDS
 from tests.fixtures.sample_cases import example_plant, template_dict
 
@@ -54,10 +55,15 @@ def services_of(frame):
         "heating": {
             "supply_temperature": Quantity(100, "degC"),
             "return_temperature": Quantity(60, "degC"),
+            "return_pressure": Quantity(6, "bar"),
         },
         "cooling": {
             "supply_temperature": Quantity(20, "degC"),
             "return_temperature": Quantity(28, "degC"),
+            "return_pressure": Quantity(4, "bar"),
+            "dew_point_margin": Quantity(1, "K"),
+            "indoor_temperature": Quantity(26, "degC"),
+            "indoor_relative_humidity": {"value": 0.5},
         },
     }
     return {
@@ -77,10 +83,10 @@ def site_of(ground=True, air=None):
             "pressure": Quantity(250, "barg"),
         },
         "fluid": {"density": Quantity(1030, "kg/m3"), "viscosity": Quantity(0.4, "mPa.s")},
-        "air": {"temperature": Quantity(10, "degC")},
+        "air": {"temperature": Quantity(10, "degC"), "pressure": Quantity(101325, "Pa")},
     }
     if air is not None:
-        site["air"] = {"temperature": {"file": "air.csv", "column": "temperature", "unit": "K"}}
+        site["air"]["temperature"] = {"file": "air.csv", "column": "temperature", "unit": "K"}
     if ground:
         site["ground"] = {
             "surface_temperature": Quantity(12, "degC"),
@@ -104,10 +110,10 @@ def case_of(frame, constraints=(), prices=None, co2=None, ground=True, limits=No
             pd.DataFrame({"time": stamps, "temperature": air}).to_csv(index=False).encode()
         )
     economics = {"format": 1, "kind": "economics", "name": "prices", "energy": prices or PRICES}
-    utilities = {}
+    utilities = {"gas": {"composition": {k: {"value": v} for k, v in GRID_COMPOSITION.items()}}}
     if co2 is not None:
         economics["carbon"] = {"price": Quantity(co2, "EUR/kg")}
-        utilities = {"utilities": {"electricity": {"co2_intensity": Quantity(0, "g/kWh")}}}
+        utilities["electricity"] = {"co2_intensity": Quantity(0, "g/kWh")}
     data = {
         "format": 1,
         "kind": "case",
@@ -122,7 +128,7 @@ def case_of(frame, constraints=(), prices=None, co2=None, ground=True, limits=No
         "economics": economics,
         "requirements": list(CONSTRAINTS if limits is None else limits) + list(constraints),
     }
-    return gm.Case.from_dict(data | utilities, files)
+    return gm.Case.from_dict(data | {"utilities": utilities}, files)
 
 
 def plant_of_two(names=("d0", "d1")):
@@ -148,10 +154,15 @@ def plant_of_two(names=("d0", "d1")):
     plant.add(
         "Boiler", name="boiler", params={"capacity": {"value": 40, "unit": "MW"}, "efficiency": 0.9}
     )
-    plant.add("HeatingGrid", name="users", params={"return_pressure": {"value": 6, "unit": "bar"}})
+    plant.add("HeatingGrid", name="users")
     wire(plant, names)
     plant.boiler.temperature_setpoint = {"value": 100, "unit": "degC"}
-    return with_values(plant)
+    return scheduling(with_values(plant))
+
+
+def scheduling(plant):
+    """Return ``plant`` stating the rules the schedule applies, as a plant file does."""
+    return plant.set_params("", {"dispatch": "least_cost", "outages": "lowest_demand"})
 
 
 def wire(plant, names=("d0", "d1")):
@@ -438,7 +449,7 @@ def split_sources():
     built = with_values(gm.Plant.from_dict(spec))
     built.boiler.temperature_setpoint = {"value": 100, "unit": "degC"}
     built.heat_pump.temperature_setpoint = {"value": 100, "unit": "degC"}
-    return built
+    return scheduling(built)
 
 
 @pytest.fixture(scope="module")
@@ -523,7 +534,7 @@ def cooling_plant(inputs=COOLING_INPUTS):
     plant = with_values(gm.plants.get("HeatingCoolingPlant"))
     plant.set_params("", COOLING_SIZES)
     plant.set_params("d0", DESIGN)
-    return plant.set_inputs(inputs)
+    return scheduling(plant).set_inputs(inputs)
 
 
 def cooling_plan(cold, heat=1e6, plant=None):
@@ -613,7 +624,7 @@ def test_a_plan_keeps_the_unit_of_the_demand():
 
 def test_the_doublet_heat_plant_runs_a_plan_within_its_pump_curve():
     """Its bindings read m3/s and a plan is in kg/s: the flow is what was planned, in range."""
-    plant = example_plant("DoubletHeatPlant")
+    plant = scheduling(example_plant("DoubletHeatPlant"))
     wide = constraint("production_flow", min=(50, "m3/h"), max=(165, "m3/h"), when="running")
     case = case_of(demand(5e6, 3e7), limits=[wide, CONSTRAINTS[1]])
     results = gm.simulate(plant, case, on_error="record")
@@ -652,3 +663,20 @@ def test_a_profile_of_the_air_is_a_column_of_the_plan():
     case = case_of(demand(FULL, FULL), air=[280.0, 290.0])
     plan = gm.schedule(plant, case)
     assert plan["atmosphere.temperature"].tolist() == [280.0, 290.0]
+
+
+@pytest.mark.parametrize("rule", ["dispatch", "outages"])
+def test_a_rule_the_plant_does_not_state_is_named(rule):
+    """The merit order and the outage choice are the plant's: no silent default."""
+    plant = plant_of_two()
+    plant.set_params("", {rule: None})
+    with raises(gm.errors.ValidationError, "missing_value", match=rule) as refused:
+        gm.schedule(plant, case_of(demand(FULL)))
+    assert refused.value.path == f"params.control.{rule}"
+
+
+@pytest.mark.parametrize(("rule", "other"), [("dispatch", "cheapest"), ("outages", "latest")])
+def test_a_rule_the_schedule_does_not_implement_is_refused(rule, other):
+    """The two rules have one implemented value each; another is refused when it is set."""
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        plant_of_two().set_params("", {rule: other})

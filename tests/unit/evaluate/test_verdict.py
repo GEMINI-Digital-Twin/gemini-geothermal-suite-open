@@ -13,6 +13,7 @@ from tests.fixtures.costed_plants import day, heating_plant
 from tests.fixtures.engine_plants import pair_frame, pair_plant
 from tests.fixtures.result_tables import make_results
 from tests.unit.evaluate.test_totals import overflowing
+from tests.unit.study.conftest import shallow_case, shallow_plant
 
 
 def kinds(found):
@@ -167,3 +168,28 @@ def test_the_requirement_of_the_case_is_a_reason_with_its_role_and_quantity():
     found = gm.evaluate.verdict(heating_plant(), make_case(requirements=[limit]), day())
     (item,) = [item for item in found["reasons"] if item["name"] == "no_unmet"]
     assert item["kind"] == "requirement" and item["role"] == "heating_supply"
+
+
+@pytest.fixture(scope="module")
+def sample_run(tmp_path_factory):
+    """Return the shallow sample plant sized for one day, the case and the run within its limits."""
+    case = shallow_case(days=1, folder=tmp_path_factory.mktemp("days"))
+    plant = gm.study.size(shallow_plant(), case, backup="peak")
+    return plant, case, gm.simulate(plant, case)
+
+
+def test_a_sample_plant_in_breach_of_its_esp_limit_runs_every_row_and_gets_a_bound_reason(
+    sample_run,
+):
+    """The limit lives in the plant: a breach changes no number, and the verdict names a bound."""
+    plant, case, held = sample_run
+    assert gm.evaluate.verdict(plant, case, held)["feasible"] is True
+    plant = deepcopy(plant)
+    plant.set_params("d0.esp", {"minimum_intake_pressure": Quantity(1e4, "bar")})
+    run = gm.simulate(plant, case)
+    (item,) = gm.evaluate.verdict(plant, case, run)["reasons"]
+    assert (
+        item["kind"] == "bound" and item["name"] == "intake_pressure" and item["path"] == "d0.esp"
+    )
+    assert len(run.to_frame()) == len(held.to_frame()) and not run.errors()
+    assert run.to_frame().fillna(0).equals(held.to_frame().fillna(0))

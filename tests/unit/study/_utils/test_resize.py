@@ -46,3 +46,11 @@ def test_keys_without_a_doublet_survive_a_removal_of_every_doublet():
     """Only the doublets go; a parameter of another module stays."""
     section = {"d0.nominal_flow": 1, "heat_pump.capacity": 2}
     assert resize._renumbered(section, 1, 0) == {"heat_pump.capacity": 2}
+
+
+def test_added_doublets_get_the_esp_limits_of_the_first():
+    """The operating limits are plant values: every doublet the search adds has them."""
+    plant = resized(shallow_plant(), 3)
+    for name in ("d0", "d1", "d2"):
+        esp = plant.get_submodule(f"{name}.esp")
+        assert esp.minimum_intake_pressure == 500000.0 and esp.maximum_gas_fraction == 0.1875

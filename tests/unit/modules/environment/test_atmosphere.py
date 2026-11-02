@@ -3,11 +3,12 @@
 import pytest
 
 import gemini as gm
-from gemini.errors import PhysicsError
+from gemini.errors import PhysicsError, ValidationError
 from gemini.modules import Atmosphere
 from gemini.physics import gas
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
+from tests.fixtures.errors import raises
 
 FLUE = gm.Stream(
     m_dot=gm.units.Quantity(0.2, "kg/s"),
@@ -24,8 +25,8 @@ RELEASED = gm.Stream(
 
 
 def atmosphere(**boundaries):
-    """Return the air at 15 degC, or with the given boundaries."""
-    air = Atmosphere()
+    """Return the air at 15 degC and one standard atmosphere, or with the given boundaries."""
+    air = Atmosphere().set_params("", {"pressure": gm.units.Quantity(101325, "Pa")})
     si.assign(air, "temperature", 288.15)
     air._set_inputs(boundaries)
     return air
@@ -48,6 +49,14 @@ def test_a_wet_bulb_above_the_dry_bulb_is_refused():
     """It is outside the model."""
     with pytest.raises(PhysicsError, match="wet_bulb_temperature = 300"):
         atmosphere(wet_bulb_temperature=300.0)._offered()
+
+
+def test_the_pressure_has_no_default():
+    """The ambient pressure is the site's (``site.air.pressure``): without it the air says so."""
+    air = Atmosphere()
+    si.assign(air, "temperature", 288.15)
+    with raises(ValidationError, "missing_value", match="site.air.pressure"):
+        air._offered()
 
 
 def test_the_emissions_come_from_what_arrives():

@@ -183,3 +183,49 @@ def test_a_value_the_case_holds_is_refused_naming_where_it_lives(spec):
     plant = file_of("Doublet", type="Doublet", params={"gradient": {"value": 30, "unit": "K/km"}})
     (found,) = problems_of(plant)
     assert found["code"] == "invalid_value" and "site.ground.gradient" in found["message"]
+
+
+OWNED = [
+    ("GasGrid", "composition", {"CH4": 1.0}, "utilities.gas.composition"),
+    ("HeatingGrid", "return_pressure", "6 bar", "demand.heating.return_pressure"),
+    (
+        "HeatingGrid",
+        "minimum_return_temperature",
+        "30 degC",
+        "demand.heating.minimum_return_temperature",
+    ),
+    ("CoolingGrid", "return_pressure", "4 bar", "demand.cooling.return_pressure"),
+    (
+        "CoolingGrid",
+        "maximum_return_temperature",
+        "18 degC",
+        "demand.cooling.maximum_return_temperature",
+    ),
+    ("CoolingGrid", "dew_point_margin", "1 K", "demand.cooling.dew_point_margin"),
+    ("CoolingGrid", "indoor_temperature", "26 degC", "demand.cooling.indoor_temperature"),
+    ("CoolingGrid", "indoor_relative_humidity", 0.5, "demand.cooling.indoor_relative_humidity"),
+    ("Desander", "sand_concentration", "20 mg/l", "site.fluid.sand_concentration"),
+    ("Atmosphere", "pressure", "101325 Pa", "site.air.pressure"),
+    ("ElectricityGrid", "import_limit", "6 MW", "utilities.electricity.import_limit"),
+    ("ElectricityGrid", "export_limit", "6 MW", "utilities.electricity.export_limit"),
+]
+"""A module, a leaf it declares with a ``case`` path, a value for it, and the case path."""
+
+
+def _leaf(value):
+    """Return the leaf object of ``"6 bar"``, a number, or a composition."""
+    if isinstance(value, str):
+        number, unit = value.split()
+        return {"value": float(number), "unit": unit}
+    return {"value": value}
+
+
+@pytest.mark.parametrize(("module", "leaf", "value", "where"), OWNED)
+def test_a_value_the_case_owns_is_refused_whatever_the_declaration(module, leaf, value, where):
+    """A parameter or a boundary the case gives is no design value: a plant leaf names its path."""
+    plant = file_of(
+        "Owned", modules={"unit": {"type": module}}, params={"unit": {leaf: _leaf(value)}}
+    )
+    found = [item for item in problems_of(plant) if item["path"] == f"params.unit.{leaf}"]
+    assert [item["code"] for item in found] == ["invalid_value"]
+    assert where in found[0]["message"]

@@ -4,6 +4,7 @@ from gemini.modules import GasGrid
 from gemini.physics import gas
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
+from tests.fixtures.gas import GRID_COMPOSITION
 
 GRID = with_values(GasGrid())._offered()["gas_out"]
 
@@ -12,7 +13,7 @@ def test_the_grid_is_a_marked_source_without_flow():
     """Purchased gas enters no stream; the stream says the burner may draw it."""
     outlet = with_values(GasGrid())._offered()["gas_out"]
     assert outlet.m_dot == 0 and outlet.fluid.kind == "gas"
-    assert outlet.fluid.grid_composition == gas.GRID_COMPOSITION
+    assert outlet.fluid.grid_composition == GRID_COMPOSITION
     assert outlet.T == gas.NORMAL_TEMPERATURE and outlet.p == gas.NORMAL_PRESSURE
 
 

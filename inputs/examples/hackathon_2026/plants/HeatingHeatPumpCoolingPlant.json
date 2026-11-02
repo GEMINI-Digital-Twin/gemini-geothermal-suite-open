@@ -50,9 +50,9 @@
         "value": 47,
         "unit": "degC"
       },
-      "temperature_setpoint": {
-        "value": 100,
-        "unit": "degC"
+      "supply_margin": {
+        "value": 0,
+        "unit": "K"
       }
     },
     "compression_chiller": {
@@ -80,9 +80,9 @@
         "value": 10.0,
         "unit": "K"
       },
-      "temperature_setpoint": {
-        "value": 20,
-        "unit": "degC"
+      "supply_margin": {
+        "value": 0,
+        "unit": "K"
       }
     },
     "d0": {
@@ -166,6 +166,13 @@
         },
         "drift_threshold": {
           "value": 0.1
+        },
+        "minimum_intake_pressure": {
+          "value": 5,
+          "unit": "bar"
+        },
+        "maximum_gas_fraction": {
+          "value": 0.1875
         }
       },
       "riser": {
@@ -294,6 +301,13 @@
         },
         "drift_threshold": {
           "value": 0.1
+        },
+        "minimum_intake_pressure": {
+          "value": 5,
+          "unit": "bar"
+        },
+        "maximum_gas_fraction": {
+          "value": 0.1875
         }
       },
       "riser": {
@@ -437,6 +451,10 @@
       "pressure_setpoint": {
         "value": 60,
         "unit": "bar"
+      },
+      "frequency": {
+        "value": 60,
+        "unit": "Hz"
       }
     },
     "heating_return_pipe": {
@@ -469,9 +487,9 @@
       "efficiency": {
         "value": 0.9
       },
-      "temperature_setpoint": {
-        "value": 100,
-        "unit": "degC"
+      "supply_margin": {
+        "value": 0,
+        "unit": "K"
       }
     },
     "heating_supply_pipe": {
@@ -494,12 +512,6 @@
       "heat_transfer_coefficient": {
         "value": 0.0,
         "unit": "W/m2/K"
-      }
-    },
-    "heating_consumer": {
-      "return_pressure": {
-        "value": 6,
-        "unit": "bar"
       }
     },
     "cooling_return_pipe": {
@@ -544,34 +556,6 @@
       "heat_transfer_coefficient": {
         "value": 0.0,
         "unit": "W/m2/K"
-      }
-    },
-    "cooling_consumer": {
-      "dew_point_margin": {
-        "value": 1,
-        "unit": "K"
-      },
-      "return_pressure": {
-        "value": 4,
-        "unit": "bar"
-      },
-      "indoor_temperature": {
-        "value": 26,
-        "unit": "degC"
-      },
-      "indoor_relative_humidity": {
-        "value": 0.5
-      }
-    },
-    "gas_grid": {
-      "composition": {
-        "value": {
-          "CH4": 0.8249507401227822,
-          "C2H6": 0.039549858193534584,
-          "C3H8": 0.012748086337494389,
-          "CO2": 0.011912342910726407,
-          "N2": 0.11083897243546233
-        }
       }
     },
     "flare": {

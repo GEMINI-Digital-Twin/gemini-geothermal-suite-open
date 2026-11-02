@@ -46,6 +46,9 @@ class CoolingGrid(Module):
     removed vapour) enters the water like the sensible heat, so the heat on its ports is their sum;
     the condensate drains on the air side and the water mass flow is unchanged.
 
+    The return pressure, the return-temperature limit, the dew-point margin and the indoor state
+    are conditions of the consumer: the case gives them (``demand.cooling``), a plant does not.
+
     On a closed loop ``return_temperature``, ``return_pressure`` and the control ``flow`` set the
     return water: ``return_out`` is offered before the other modules run, and the loads met are
     those the rise of the water up to the return temperature takes. Bind the demand to
@@ -71,15 +74,21 @@ class CoolingGrid(Module):
         self.maximum_return_temperature = Parameter(
             Temperature | None,
             default=None,
+            case="demand.cooling.maximum_return_temperature",
             description=(
-                "Highest return temperature the consumer can warm the chilled water to; empty means"
-                " no limit"
+                "Highest return temperature the consumer can warm the chilled water to; empty "
+                "takes it from the case"
             ),
         )
         self.dew_point_margin = Parameter(
-            TemperatureDifference,
+            TemperatureDifference | None,
+            default=None,
             ge=0,
-            description="Margin above the dew point below which no latent load is taken",
+            case="demand.cooling.dew_point_margin",
+            description=(
+                "Margin above the dew point below which no latent load is taken; empty takes it "
+                "from the case"
+            ),
         )
         self.return_temperature = Parameter(
             Temperature | None,
@@ -102,8 +111,9 @@ class CoolingGrid(Module):
         self.return_pressure = Parameter(
             Pressure | None,
             default=None,
+            case="demand.cooling.return_pressure",
             description=(
-                "Pressure of the stream leaving the consumer; empty keeps the supply pressure"
+                "Pressure of the stream leaving the consumer; empty takes it from the case"
             ),
         )
 
@@ -128,10 +138,15 @@ class CoolingGrid(Module):
             Power, ge=0, description="Latent cooling load of the building"
         )
         self.indoor_temperature = Boundary(
-            Temperature, description="Indoor air temperature of the building"
+            Temperature,
+            case="demand.cooling.indoor_temperature",
+            description="Indoor air temperature of the building",
         )
         self.indoor_relative_humidity = Boundary(
-            Fraction, gt=0, description="Relative humidity of the indoor air"
+            Fraction,
+            gt=0,
+            case="demand.cooling.indoor_relative_humidity",
+            description="Relative humidity of the indoor air",
         )
 
         # Outputs
@@ -213,6 +228,13 @@ class CoolingGrid(Module):
     def _met_loads(self, supply_in, return_out=None):
         """Return the met sensible and latent loads [W]; the rise of the water on a closed loop."""
         require_forward(self.path, "supply_in.m_dot", supply_in.m_dot)
+        if self.dew_point_margin is None:
+            raise ValidationError(
+                f"{self.path}: dew_point_margin = None; expected demand.cooling.dew_point_margin "
+                "in the case",
+                path="demand.cooling.dew_point_margin",
+                code="missing_value",
+            )
         available = self._available(supply_in, return_out)
         dew_point = psychrometrics.dew_point(self.indoor_temperature, self.indoor_relative_humidity)
         dry = supply_in.T > dew_point - self.dew_point_margin

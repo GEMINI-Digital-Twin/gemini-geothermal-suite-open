@@ -6,6 +6,7 @@ from gemini import units
 from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import GeminiError, ValidationError
 from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, requirements, totals
+from gemini.evaluate._utils.operating import breaches
 from gemini.evaluate.failures import failures
 from gemini.evaluate.totals import KPI_NAMES
 from gemini.run._utils.apply import applied_in_place
@@ -114,18 +115,35 @@ def _excess(check):
     return abs(found - limit) / (max(abs(found), abs(limit)) or 1.0)
 
 
-def judged(plant, case, results):
-    """Return ``(reason, violation)`` of a finished run against the requirements of the case.
+def _breach_check(breach):
+    """Return an operating-limit breach as a failed check: its ``name``, ``value`` and ``limit``."""
+    return {
+        "name": breach["output"],
+        "kind": "bound",
+        "unit_path": breach["path"],
+        "passed": False,
+        "value": breach["worst"],
+        "limit": breach["limit"],
+        "worst_step": breach["step"].isoformat(),
+    }
 
-    The checks are those of ``gm.evaluate.requirements``, the supply temperatures of the services
-    included. A run with a failed step is infeasible with ``LARGEST_VIOLATION``. Otherwise the
-    ``violation`` is the sum of the relative excess of every failed check, and the ``reason`` is the
-    first failed check itself (the dict of ``gm.evaluate.requirements``). A feasible run is
-    ``(None, 0.0)``; a check with nothing to judge does not fail.
+
+def judged(plant, case, results):
+    """Return ``(reason, violation)`` of a finished run against the rules of the verdict.
+
+    A trial is judged by what ``gm.evaluate.verdict`` judges that a search can move: the checks of
+    ``gm.evaluate.requirements`` (the supply temperatures of the services included) and the
+    operating limits of the modules (``Module.operating_limits``, as a bound reason). A run with a
+    failed step is infeasible with ``LARGEST_VIOLATION``. Otherwise the ``violation`` is the sum
+    of the relative excess of every failed check and breach, and the ``reason`` is the first
+    failed check itself (the dict of ``gm.evaluate.requirements``, or the breach in the same
+    form with ``kind`` ``bound``). A feasible run is ``(None, 0.0)``; a check with nothing to
+    judge does not fail.
     """
     if results.failures:
         return failure_reason(results), LARGEST_VIOLATION
     failed = [item for item in requirements(plant, case, results) if item["passed"] is False]
+    failed += [_breach_check(item) for item in breaches(plant, results.to_frame())]
     if not failed:
         return None, 0.0
     return failed[0], min(sum(map(_excess, failed)), LARGEST_VIOLATION)

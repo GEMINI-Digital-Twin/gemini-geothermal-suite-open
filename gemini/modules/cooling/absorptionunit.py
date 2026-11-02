@@ -4,6 +4,7 @@ from typing import Literal
 
 from gemini import ops
 from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.supply import supply_margin
 from gemini.modules.cooling import _physics, _sorption
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
@@ -21,6 +22,9 @@ from gemini.types import (
 
 class AbsorptionUnit(Equipment, Module):
     """Single-effect water/LiBr absorption chiller or heat pump driven by hot water.
+
+    On a supply line the chilled setpoint is the supply temperature of ``demand.cooling`` minus the
+    ``supply_margin`` the plant states (``gm.run.apply_case``).
 
     Three circuits: ``generator_in`` carries the driving hot water (the geothermal heat),
     ``chilled_in`` the evaporator water and ``cooling_in`` the cooling water of absorber and
@@ -101,6 +105,8 @@ class AbsorptionUnit(Equipment, Module):
             Temperature,
             description="Lowest driving hot-water temperature at which the machine operates",
         )
+
+        self.supply_margin = supply_margin()
 
         # Inlets
         self.generator_in = Inlet(Stream, kind="hot_water")

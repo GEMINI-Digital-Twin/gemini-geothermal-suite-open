@@ -44,12 +44,6 @@
         "value": 0.15
       }
     },
-    "consumer": {
-      "minimum_return_temperature": {
-        "value": 30,
-        "unit": "degC"
-      }
-    },
     "pump": {
       "flow": {
         "value": 3,

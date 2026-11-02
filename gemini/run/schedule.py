@@ -7,7 +7,9 @@ run: nothing is stored on the plant and no caller writes a binding. The demand m
 constant time step, hourly or daily; the plan has one row per step. The role of each unit comes
 from the wiring, ``gemini/run/_utils/roles.py``, and the limits from the requirements of the
 case, ``gemini/run/_utils/limits.py``. Sources load from the cheapest to the dearest marginal
-cost, ``gemini/run/_utils/sources.py``.
+cost, ``gemini/run/_utils/sources.py``. The plant states the two rules the schedule applies,
+``control.dispatch`` (``least_cost``) and ``control.outages`` (``lowest_demand``); without them it
+raises ``missing_value``.
 """
 
 from dataclasses import dataclass
@@ -31,6 +33,10 @@ from gemini.plants.doublet import Doublet
 from gemini.run._utils import limits as limit_forms
 from gemini.run._utils import roles, sources
 from gemini.run._utils.apply import apply_case
+
+RULES = {"dispatch": "least_cost", "outages": "lowest_demand"}
+"""The rules the plant states (`control.dispatch`, `control.outages`), each with its one value:
+sources load from the cheapest, and the outage steps are those of lowest demand."""
 
 ARRAY_BACKEND = "numpy"
 """A plan is a balance over the steps, on arrays whatever backend the run takes after it."""
@@ -437,9 +443,10 @@ def schedule(plant, case):
     plant : Plant
         The design: its ``Doublet`` children, at most one unit per role and kind (a heating
         ``HeatPump``, a ``Boiler``, an ``ElectricBoiler``, an absorption, an adsorption and a
-        compression chiller) and at most one ``HeatingGrid`` and ``CoolingGrid``, with the
-        ``temperature_setpoint`` of the heat pump, the boilers and the last cooling unit set with
-        ``set_inputs``, and that of the cooler of the compression chiller when cold is demanded.
+        compression chiller) and at most one ``HeatingGrid`` and ``CoolingGrid``. The units on a
+        supply line state a ``supply_margin`` (the case's supply temperature gives their
+        ``temperature_setpoint``, ``apply_case``); the cooler of the compression chiller states
+        its ``temperature_setpoint`` when cold is demanded.
         ``ATESPlant`` is not scheduled: its three seasonal commands are inputs of a run. Plant
         ports named ``heating_return`` and ``cooling_return`` take their temperature from the
         inputs (``heating_return.T``) and get their flow from the plan.
@@ -462,7 +469,8 @@ def schedule(plant, case):
     ------
     ValidationError
         ``missing_value`` for a flow range or brine cooling requirement of a doublet that the
-        case lacks, or a value of the site the plant needs; ``missing_assumption`` for a
+        case lacks, a value of the site the plant needs, or the rules ``control.dispatch`` and
+        ``control.outages`` that the plant does not state; ``missing_assumption`` for a
         price a source of the plant needs; ``invalid_value`` for a duration that needs more outage
         steps than the demand has; ``invalid_design`` for a missing setpoint or a role that breaks
         the wiring.
@@ -470,9 +478,27 @@ def schedule(plant, case):
     return scheduled(apply_case(plant, case), case)
 
 
+def _stated_rules(plant):
+    """Raise ``missing_value`` for a rule of the schedule that the plant does not state.
+
+    The merit order of the sources (``control.dispatch``, ``least_cost``) and the choice of the
+    outage steps (``control.outages``, ``lowest_demand``) are plant parameters with a closed list
+    of the implemented values, so another value is refused when the plant is read or set.
+    """
+    for name, implemented in RULES.items():
+        if getattr(plant, name) is None:
+            raise ValidationError(
+                f"schedule: params.control.{name} is missing; expected {implemented!r}, the only "
+                "rule the schedule implements",
+                path=f"params.control.{name}",
+                code="missing_value",
+            )
+
+
 def scheduled(plant, case):
     """Return the plan of ``schedule`` for a ``plant`` that already has the values of ``case``."""
     plant._check_design()
+    _stated_rules(plant)
     demand = case.demand.frame
     doublets = units_of(plant, "doublet")
     limits, check_only = limit_forms.split(case.requirements, doublets)

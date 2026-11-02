@@ -1,5 +1,6 @@
 """The gas grid: the plant's edge for bought gas."""
 
+from gemini.errors import ValidationError
 from gemini.modules.declarations import Outlet, Parameter
 from gemini.modules.module import Module
 from gemini.physics import gas
@@ -8,7 +9,10 @@ from gemini.types.fluid import grid_gas
 
 
 class GasGrid(Module):
-    """Gas grid: bought gas of ``composition``, which the plant states.
+    """Gas grid: bought gas of ``composition``, which the case states.
+
+    The composition is the physical property of the gas grid, ``utilities.gas.composition`` of the
+    case; a plant file does not state it, and a run without it raises ``missing_value``.
 
     ``gas_out`` is offered at normal conditions, without flow, and the taker returns what it burns:
     a burner on ``gas_out``, or a ``GasMakeup`` for the shortfall of the co-produced gas.
@@ -20,9 +24,13 @@ class GasGrid(Module):
 
         # Parameters
         self.composition = Parameter(
-            dict[str, Fraction],
+            dict[str, Fraction] | None,
+            default=None,
             structural=True,
-            description="Mole or mass fractions of the gas components by name",
+            case="utilities.gas.composition",
+            description=(
+                "Mole fractions of the gas components by name; empty takes them from the case"
+            ),
         )
 
         # Outlets
@@ -30,6 +38,13 @@ class GasGrid(Module):
 
     def _offer(self, inlets):
         """Offer the grid gas at normal conditions."""
+        if self.composition is None:
+            raise ValidationError(
+                f"{self.path}: composition is missing; expected utilities.gas.composition in the "
+                "case",
+                path="utilities.gas.composition",
+                code="missing_value",
+            )
         offered = Stream._si(
             m_dot=0.0,
             T=gas.NORMAL_TEMPERATURE,

@@ -155,7 +155,14 @@ basis (`gemini.physics.pumps`).
   - `correction_factors` (`(Dimensionless, PressureDifference)`, required, a plant states `[1, 0]`, the
     identity) and `tubing` (`Length | None`, default `None`): read only by the legacy import and export.
   - `drift_threshold` (`Fraction`, required): health alarm limit on relative drift.
-  No parameter of the ESP has a default: the plant states them, and a `Doublet` derives only
+  - `minimum_intake_pressure` (`Pressure | None`) and `maximum_gas_fraction` (`Fraction | None`),
+    default `None` (no limit): the operating limits of the pump chosen, on `intake_pressure` and
+    `gas_volume_fraction`. They are plant values, stated on every `esp` of the plant file (so
+    `gm.study.size` and a search on `size.doublets` give them to each doublet that is added). A limit
+    never fails or changes a step: a run that breaches one runs every row with the same numbers, and
+    `gm.evaluate.verdict` gives a reason of kind `bound` for the module, the output, the limit and the
+    worst step (`Module.operating_limits`). `gm.study.minimize` treats such a trial as infeasible.
+  No parameter of the ESP has a default value (the two limits are empty when the plant states none): the plant states them, and a `Doublet` derives only
   `stage_count`, the curves and `setting_depth` from its design.
 - **Controls**: `frequency` (`Frequency`, required). **Boundaries, states**: none.
 - **Outputs**: `head` (soft sensor), `power` (soft sensor), `efficiency` (soft sensor),
@@ -226,7 +233,8 @@ Injection (booster) pump that raises the brine to a discharge pressure.
   the power curve at `nominal_flow` for a pump with curves); a missing one raises `missing_value`
   from `capex`. `gm.study.size` sets them from the doublets the pump serves.
 - **Controls**: `pressure_setpoint` (`Pressure | None`, default `None`), `frequency`
-  (`Frequency`, default 60 Hz, the catalogue frequency of the curves, `ESP_REFERENCE_FREQUENCY`, used with curves).
+  (`Frequency`, required: the operating frequency is the designer's, a plant states it, 60 Hz for the
+  catalogue frequency of the curves).
 - **Outputs**: `head` (soft sensor), `power` (soft sensor), `discharge_pressure` (soft sensor),
   `is_pumping` (the required head is positive).
 - **Model**: with `head_coefficients` (and `stage_count`) the head is the ESP polynomial; otherwise
@@ -686,7 +694,9 @@ Hydrocyclone sand separator ahead of heat exchangers and injection.
   removal share of the sand mass), `nominal_pressure_drop` (`PressureDifference`, >= 0, of the order of
   1 bar) at `nominal_mass_flow` (`MassFlow`, > 0).
 - **Boundaries**: `sand_concentration` (`MassConcentration`, kg of sand per m3 of liquid,
-  accepted as `{"value": 20, "unit": "mg/l"}` or `{"value": 20, "unit": "g/m3"}`).
+  accepted as `{"value": 20, "unit": "mg/l"}` or `{"value": 20, "unit": "g/m3"}`): the brine brings
+  it from the reservoir, so a run takes it from `site.fluid.sand_concentration` of the case (a plant
+  file that states it is refused).
 - **Outputs**: `pressure_drop` (soft sensor), `sand_removal_rate` (soft sensor),
   `residual_sand_concentration`.
 - **Model**: `Q = m_dot (1 - x_gas) / rho`, `sand_removal_rate = eta c Q`, residual `(1 - eta)
@@ -865,6 +875,13 @@ Electric vapour-compression heat pump; in `cooling` mode it is an electric chill
   - `minimum_temperature_lift` (`TemperatureDifference`, > 0, required; 10 K upstream): floor of the lift
     in the COP, an engineering bound (not a literature value); set it to the smallest lift in
     the machine data.
+  - `supply_margin` (`TemperatureDifference | None`, default `None`): on a unit whose useful outlet
+    reaches the `HeatingGrid` or the `CoolingGrid`, the difference between the setpoint and the supply
+    temperature of the case. A run sets `temperature_setpoint` to `demand.heating.supply_temperature`
+    plus the margin (heating) or `demand.cooling.supply_temperature` minus it (cooling); the plant
+    states the margin, not the supply temperature. Boilers, `AbsorptionUnit` and `AdsorptionChiller`
+    have the same parameter. A unit without a margin keeps the `temperature_setpoint` the plant
+    states; a margin on a unit on no supply line is `invalid_design`.
   - `minimum_part_load` (`Fraction | None`, default `None`, no minimum): below this share of capacity the machine is off
     for the step.
   - `minimum_source_outlet_temperature` (`Temperature | None`, default `None`): lowest source
@@ -927,7 +944,8 @@ assert round(result.outputs.cop, 4) == 6.531 and round(result.outputs.electricit
 Auxiliary gas boiler heating a stream to a setpoint, burning co-produced gas first.
 
 - **Ports**: `fluid_in`, `fuel_in` -> `fluid_out`, `flue_out`, `loss_out` (power).
-- **Parameters** (all required): `capacity` (`Power`, > 0), `efficiency` (`Efficiency`).
+- **Parameters** (all required): `capacity` (`Power`, > 0), `efficiency` (`Efficiency`);
+  `supply_margin` (`TemperatureDifference | None`, default `None`, see HeatPump).
 - **Controls**: `temperature_setpoint` (`Temperature`).
 - **Outputs**: `is_capped`, `fuel`.
 - **Model**: `duty = min(m_dot cp max(0, T_set - T_in), limit)`, `fuel = duty / efficiency`,
@@ -1024,6 +1042,8 @@ Single-effect water/LiBr absorption chiller or heat pump driven by hot water.
     per watt of evaporator duty.
   - `minimum_driving_temperature` (required; 353.15 K): below it at the generator inlet the unit
     is off.
+  - `supply_margin` (`TemperatureDifference | None`, default `None`): as for `HeatPump`, on a chiller
+    whose `chilled_out` reaches the `CoolingGrid`.
 - **Controls**: `temperature_setpoint`: chilled outlet (chiller) or cooling outlet (heat pump).
 - **Outputs**: `cop`, `driving_temperature_difference`, `is_capped`.
 - **Model**: characteristic equation `Q_E = s (ddt - ddt_min)`, `ddt = t_G - a t_AC + r t_E`
@@ -1075,7 +1095,7 @@ Silica-gel/water adsorption chiller driven by hot water of 55 to 90 degC; a chil
   coefficients and `auxiliary_power_ratio` (pumps, valves, controls), all required;
   `thermal_cop` (required; 0.55, Wang and Oliveira 2006, Prog. Energy Combust. Sci. 32,
   424-458, report 0.5 to 0.6); `minimum_driving_temperature` (required; 328.15 K, off below it);
-  `maximum_driving_temperature` (required; 363.15 K).
+  `maximum_driving_temperature` (required; 363.15 K); `supply_margin` (as for `HeatPump`).
 - **Controls**: `temperature_setpoint` (chilled outlet).
 - **Outputs**: `cop`, `driving_temperature_difference`, `is_capped`.
 - **Model**: the closed-form characteristic equation of `AbsorptionUnit` with the adsorption
@@ -1649,7 +1669,9 @@ these ports. Every root plant takes what it buys from them; see
 Electricity exchange of a plant with the public grid.
 
 - **Ports**: `power_in` (power) -> `power_out` (power).
-- **Parameters**: `import_limit`, `export_limit` (`Power | None`, default `None` = unlimited).
+- **Parameters**: `import_limit`, `export_limit` (`Power | None`, default `None` = unlimited): the
+  physical property of the connection, set by a run from `utilities.electricity` of the case and
+  refused in a plant file.
 - **Outputs**: `net_import`, `net_export`, `unserved_consumption`, `curtailed_generation`,
   `is_import_limited`, `is_export_limited`.
 - **Model**: import `max(0, consumption - generation)` and export `max(0, generation -
@@ -1662,8 +1684,9 @@ Electricity exchange of a plant with the public grid.
 Fuel source of a burner without co-produced gas: `grid.fluid_out` to `boiler.fuel_in`.
 
 - **Ports**: none -> `gas_out`.
-- **Parameters**: `composition` (mole fractions, required; `gas.GRID_COMPOSITION` is a published grid
-  analysis).
+- **Parameters**: `composition` (mole fractions of the species of `gemini.physics.gas`): the physical
+  property of the gas grid, set by a run from `utilities.gas.composition` of the case (required,
+  `missing_value` naming the path) and refused in a plant file. There is no composition in the code.
 - **Model**: the outlet carries no flow at normal conditions and marks that the burner may draw grid
   gas: purchased gas enters no stream, the burner reports it.
 - **Energy audit**: closed.
@@ -1691,9 +1714,10 @@ delivered heat at the imposed flow.
 
 - **Ports**: `supply_in` -> `return_out`.
 - **Parameters**: `minimum_return_temperature` (`Temperature | None`): the lowest temperature the
-  emitters can cool the water to. `return_temperature` and `minimum_supply_temperature` are set by
-  a run from `demand.heating.return_temperature` and `demand.heating.supply_temperature` of the
-  case and refused in a plant dict; `evaluate.requirements` checks the supply against the minimum.
+  emitters can cool the water to; `return_pressure` (`Pressure | None`). Both, `return_temperature`
+  and `minimum_supply_temperature` are conditions of the consumer: a run sets them from
+  `demand.heating` of the case (`minimum_return_temperature`, `return_pressure`,
+  `return_temperature`, `supply_temperature`) and a plant dict that states one is refused; `evaluate.requirements` checks the supply against the minimum.
 - **Boundaries**: `heat_demand` (`Power`, >= 0).
 - **Outputs**: `unmet_demand`, `surplus`, `is_unmet`.
 - **Model**: `Q = min(heat_demand, m_dot cp max(0, T_supply - T_min))`, `T_return = T_supply -
@@ -1721,11 +1745,12 @@ and a dew-point test.
 
 - **Ports**: `supply_in` -> `return_out`.
 - **Parameters**: `maximum_return_temperature` (`Temperature | None`), `dew_point_margin` (>= 0,
-  the coil surface approach; coil specific, so no default). `return_temperature` and
-  `maximum_supply_temperature` are set by a run from `demand.cooling` of the case and refused in a
-  plant dict.
+  the coil surface approach), `return_pressure`, `return_temperature` and
+  `maximum_supply_temperature`: conditions of the consumer, set by a run from `demand.cooling` of the
+  case and refused in a plant dict. A run without `dew_point_margin` raises `missing_value`.
 - **Boundaries**: `sensible_cooling_demand`, `latent_cooling_demand` (`Power`, >= 0),
-  `indoor_temperature`, `indoor_relative_humidity` (`Fraction`, > 0).
+  `indoor_temperature`, `indoor_relative_humidity` (`Fraction`, > 0); the last two a run takes from
+  `demand.cooling` of the case.
 - **Outputs**: `unmet_sensible`, `unmet_latent`, `surplus`, `dew_point`, `is_unmet`.
 - **Model**: `T_limit = min(T_max, T_indoor)`; `Q_available = m_dot cp max(0, T_limit -
   T_supply)`; the sensible load is served first; the latent load only when `T_supply <= T_dew -
@@ -1760,6 +1785,9 @@ The air and the ground at the plant's edge. `co2_emission` and `methane_emission
 The air around a plant.
 
 - **Ports**: `air_in`, `heat_in` (power), `gas_in` -> `air_out`, `wet_air_out`.
+- **Parameters**: `pressure` (`Pressure | None`): the ambient pressure of the site, set by a run from
+  `site.air.pressure` of the case (required where an `Atmosphere` is present) and refused in a plant
+  file; the module has no default, and an `_offer` without it raises `missing_value`.
 - **Boundaries**: `temperature`, `wet_bulb_temperature`.
 - **Outputs**: `co2_emission`, `methane_emission`.
 - **Energy audit**: open boundary. One `Atmosphere` serves every `air_in` of a plant.

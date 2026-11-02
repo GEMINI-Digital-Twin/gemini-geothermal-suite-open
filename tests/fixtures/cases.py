@@ -7,6 +7,7 @@ import numpy as np
 import gemini as gm
 from gemini.case.roletable import TABLE
 from gemini.units import Quantity
+from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.result_tables import START
 
 
@@ -23,8 +24,9 @@ def make_case(
 
     ``economics`` is the dict of an ``economics.json`` below its header (``costed_economics`` builds
     one) and ``utilities`` the dict of the ``utilities`` section, each value a ``Quantity`` or a
-    number; ``supply`` is ``{"heating": Quantity, "cooling": Quantity}``, the supply temperatures of
-    services whose demand is 1 W; ``requirements`` is a list of dicts for ``gm.case.Requirement``;
+    number (the grid gas is ``GRID_COMPOSITION`` unless it gives ``gas``); ``supply`` is
+    ``{"heating": Quantity, "cooling": Quantity}``, the supply temperatures of services whose demand
+    is 1 W; ``requirements`` is a list of dicts for ``gm.case.Requirement``;
     ``site`` is the ``site`` section, ``make_site()`` when absent.
     """
     data = {
@@ -40,8 +42,7 @@ def make_case(
     }
     if supply is not None:
         data["demand"] = _demand(supply)
-    if utilities is not None:
-        data["utilities"] = utilities
+    data["utilities"] = {"gas": {"composition": GRID_COMPOSITION}} | (utilities or {})
     if economics is not None:
         data["economics"] = economics
     if requirements is not None:
@@ -147,7 +148,7 @@ def _demand(supply):
 
 
 def make_site():
-    """Return the site of a case with a doublet: ground, reservoir, brine and air."""
+    """Return the site of a case with a doublet: ground, reservoir, brine and air (1 atm)."""
     return {
         "ground": {
             "surface_temperature": Quantity(12, "degC"),
@@ -165,5 +166,5 @@ def make_site():
             "gas_liquid_ratio": Quantity(0.8, "Nm3/m3"),
             "dissolved_gas": {"CH4": 0.8, "CO2": 0.2},
         },
-        "air": {"temperature": Quantity(10, "degC")},
+        "air": {"temperature": Quantity(10, "degC"), "pressure": Quantity(101325, "Pa")},
     }

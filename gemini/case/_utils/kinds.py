@@ -27,4 +27,7 @@ The keys of ``economics.capex`` and ``economics.opex.fixed``. A module that is
 equipment declares one of these kinds."""
 
 GAS_SPECIES = ("CH4", "CO2", "N2", "H2S")
-"""The species of ``site.fluid.dissolved_gas`` and ``utilities.gas.composition``."""
+"""The species of ``site.fluid.dissolved_gas``."""
+
+GRID_GAS_SPECIES = ("CH4", "C2H6", "C3H8", "CO2", "N2", "O2")
+"""The species of ``utilities.gas.composition``: ``SPECIES`` of ``gemini.physics.gas``."""

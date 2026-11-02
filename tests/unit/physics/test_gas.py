@@ -4,6 +4,7 @@ import pytest
 
 from gemini.physics import combustion, constants, gas
 from tests.fixtures.equivalence import assert_function_matches
+from tests.fixtures.gas import GRID_COMPOSITION
 
 METHANE = {"CH4": 1.0}
 PRODUCED = {"CH4": 0.8, "CO2": 0.2}
@@ -53,7 +54,7 @@ def test_combustion_co2_counts_burnt_carbon_only():
 
 def test_grid_gas_agrees_with_its_published_analysis():
     """The lumped default keeps the published molar mass and CO2 factor within 1 %."""
-    composition = gas.GRID_COMPOSITION
+    composition = GRID_COMPOSITION
     assert sum(composition.values()) == pytest.approx(1)
     assert gas.molar_mass(composition) == pytest.approx(0.0187155, rel=1e-2)
     factor = gas.combustion_co2(composition) / gas.lower_heating_value(composition)
