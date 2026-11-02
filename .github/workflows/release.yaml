@@ -1,0 +1,100 @@
+# Publishes the version of pyproject.toml the first time it reaches dev: the wheel and the source
+# archive on a GitHub Release, and the sandbox image on ghcr.io. A push that keeps the version
+# publishes nothing, because a published version never changes. See VERSIONING.md.
+name: Release
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Read the version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      new: ${{ steps.read.outputs.new }}
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+    - id: read
+      name: Is this version already tagged?
+      run: |
+        version="$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        if git rev-parse --quiet --verify "refs/tags/v$version" >/dev/null; then
+          echo "new=false" >> "$GITHUB_OUTPUT"
+          echo "v$version is already published"
+        else
+          echo "new=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  test:
+    name: Python ${{ matrix.python }} (${{ matrix.resolution }})
+    needs: version
+    if: needs.version.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        resolution: [highest]
+        include:
+          - python: "3.11"
+            resolution: lowest-direct
+          - python: "3.14"
+            resolution: lowest-direct
+    steps:
+    - uses: actions/checkout@v5
+    - uses: astral-sh/setup-uv@v7
+    - name: Install Python ${{ matrix.python }} and the ${{ matrix.resolution }} dependencies
+      run: |
+        uv venv --python "${{ matrix.python }}"
+        uv pip install --resolution "${{ matrix.resolution }}" -e . --group test
+        echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+    - name: Run the whole fast suite
+      run: python -m pytest
+
+  publish:
+    name: Publish ${{ needs.version.outputs.version }}
+    needs: [version, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      IMAGE: ghcr.io/${{ github.repository_owner }}/gemini-sandbox
+      GH_TOKEN: ${{ github.token }}
+    steps:
+    - uses: actions/checkout@v5
+    - uses: astral-sh/setup-uv@v7
+    - name: Build the wheel and the source archive
+      run: uv build
+    - name: Install the wheel alone and read its version
+      run: |
+        uv venv --python 3.12 /tmp/clean
+        uv pip install --python /tmp/clean/bin/python dist/*.whl
+        cd /tmp
+        test "$(/tmp/clean/bin/python -c 'import gemini; print(gemini.__version__)')" = "$VERSION"
+    - name: Push the sandbox image
+      run: |
+        echo "$GH_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+        docker build -f docker/sandbox.Dockerfile -t "$IMAGE:$VERSION" .
+        docker push "$IMAGE:$VERSION"
+    - name: Take the notes of this version from the changelog
+      run: |
+        awk -v head="## [$VERSION]" 'index($0, head) == 1 {found = 1; next} /^## \[/ {found = 0} found' \
+          CHANGELOG.md > notes.md
+        test -s notes.md
+    - name: Create the tag and the release
+      run: gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" --title "$VERSION" --notes-file notes.md

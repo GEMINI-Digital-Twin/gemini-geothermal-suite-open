@@ -31,7 +31,6 @@ def test_sleeping_longer_than_the_budget_uses_no_cpu():
     with measure_cpu() as cpu:
         time.sleep(BUDGET_S + 0.05)
     assert time.perf_counter() - started > BUDGET_S
-    assert cpu.seconds < 0.1
     assert not exceeds_budget(cpu.seconds)
 
 

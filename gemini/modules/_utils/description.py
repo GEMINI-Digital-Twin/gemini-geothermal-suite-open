@@ -4,6 +4,7 @@
 its public methods only.
 """
 
+import inspect
 from copy import deepcopy
 
 from gemini import units
@@ -209,7 +210,7 @@ def describe(module):
       ``{source, target, kind, type}`` for a plant and is empty for a handwritten composite.
     - ``values`` holds the current parameter, control and boundary values.
     """
-    doc = type(module).__doc__ or ""
+    doc = inspect.cleandoc(type(module).__doc__ or "")
     outputs = module.outputs(recurse=False)
     description = {
         "name": module.path,

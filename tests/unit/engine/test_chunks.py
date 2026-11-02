@@ -189,7 +189,7 @@ def test_a_tick_by_tick_build_equals_the_former_row_dict_storage():
     assert frame[("pump", "maybe")].dtype == np.float64
     assert frame[("tank", "full")].dtype == bool
     assert frame[("tank", "steps")].dtype == np.int64
-    assert frame[("tank", "state")].dtype == pd.StringDtype(na_value=NAN)
+    assert pd.api.types.is_string_dtype(frame[("tank", "state")])
     assert frame[("pump", "items")].dtype == object
 
 

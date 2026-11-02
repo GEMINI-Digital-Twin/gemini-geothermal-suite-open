@@ -4,6 +4,7 @@
 from 0.5.0 on the API is backward compatible, so the current API must contain everything in it.
 """
 
+import enum
 import hashlib
 import inspect
 import json
@@ -17,6 +18,8 @@ SCHEMAS = ("case", "economics", "plant", "study")
 SCOPES = ("top", "streams", "errors", "modules") + NAMESPACES
 POSITIONAL = ("POSITIONAL_ONLY", "POSITIONAL_OR_KEYWORD")
 UNSET = "<none>"
+INHERITED = "<inherited>"
+"""A method gemini did not write: its signature is Python's or pydantic's, and varies with them."""
 
 
 def _default(parameter):
@@ -39,12 +42,19 @@ def parameters(function):
     ]
 
 
+def _written_by_gemini(owner, name):
+    home = next((klass for klass in owner.__mro__ if name in vars(klass)), type(owner))
+    return home.__module__.split(".")[0] == "gemini"
+
+
 def _methods(owner):
     found = {}
     for name, member in inspect.getmembers(owner):
         if name.startswith("_") and name != "__init__":
             continue
-        if isinstance(inspect.getattr_static(owner, name), property):
+        if not _written_by_gemini(owner, name):
+            found[name] = INHERITED
+        elif isinstance(inspect.getattr_static(owner, name), property):
             found[name] = "property"
         elif callable(member):
             found[name] = parameters(member)
@@ -53,7 +63,8 @@ def _methods(owner):
 
 def _member(value):
     if inspect.isclass(value):
-        return {"class": parameters(value), "methods": _methods(value)}
+        call = INHERITED if issubclass(value, enum.Enum) else parameters(value)
+        return {"class": call, "methods": _methods(value)}
     if inspect.ismodule(value):
         return "module"
     return parameters(value) if callable(value) else type(value).__name__
