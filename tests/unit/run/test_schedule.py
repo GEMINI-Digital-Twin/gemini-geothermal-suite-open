@@ -11,7 +11,7 @@ from gemini.physics import constants
 from gemini.run.schedule import _doublets_above
 from gemini.runtime import settings
 from gemini.units import Quantity
-from tests.fixtures.cases import requirement
+from tests.fixtures.cases import priced, requirement
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.esp_design import ESP_DESIGN
@@ -110,6 +110,7 @@ def case_of(frame, constraints=(), prices=None, co2=None, ground=True, limits=No
             pd.DataFrame({"time": stamps, "temperature": air}).to_csv(index=False).encode()
         )
     economics = {"format": 1, "kind": "economics", "name": "prices", "energy": prices or PRICES}
+    economics = priced(economics)
     utilities = {"gas": {"composition": {k: {"value": v} for k, v in GRID_COMPOSITION.items()}}}
     if co2 is not None:
         economics["carbon"] = {"price": Quantity(co2, "EUR/kg")}

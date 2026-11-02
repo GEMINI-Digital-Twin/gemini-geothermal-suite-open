@@ -5,6 +5,7 @@ from datetime import timedelta
 import numpy as np
 
 import gemini as gm
+from gemini.case._utils.kinds import EQUIPMENT_KINDS
 from gemini.case.roletable import TABLE
 from gemini.units import Quantity
 from tests.fixtures.gas import GRID_COMPOSITION
@@ -114,6 +115,31 @@ def _number_of(bound):
     if isinstance(bound, Quantity):
         return bound.value
     return bound["value"] if isinstance(bound, dict) else bound
+
+
+PLACEHOLDERS = {
+    "money_per_length": {"value": 500, "unit": "EUR/m"},
+    "money_per_power": {"value": 0.5, "unit": "EUR/W"},
+    "money_per_conductance": {"value": 0.05, "unit": "EUR/(W/K)"},
+    "money_per_volume": {"value": 500, "unit": "EUR/m3"},
+    "money": {"value": 1e5, "unit": "EUR"},
+}
+"""A cost factor of each basis for a kind a test gives none: ``gm.check`` wants it priced."""
+
+
+def priced(economics):
+    """Return ``economics`` (a dict) with a placeholder capex and fixed opex for each kind it lacks.
+
+    ``gm.check`` finds every equipment kind of a plant priced.
+    """
+    economics = {**economics}
+    capex = {**economics.get("capex", {})}
+    fixed = {**economics.get("opex", {}).get("fixed", {})}
+    for kind, (basis, _) in EQUIPMENT_KINDS.items():
+        capex.setdefault(kind, PLACEHOLDERS[basis])
+        fixed.setdefault(kind, {"value": 2, "unit": "%/yr"})
+    opex = {**economics.get("opex", {}), "fixed": fixed}
+    return economics | {"capex": capex, "opex": opex}
 
 
 def costed_economics(energy=None, revenue=None, **parts):

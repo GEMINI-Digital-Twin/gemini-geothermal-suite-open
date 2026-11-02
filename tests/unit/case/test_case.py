@@ -58,7 +58,6 @@ def test_values_are_stored_in_si_and_written_as_given(case):
         "utilities",
         "economics",
         "requirements",
-        "choices",
     ]
 
 
@@ -219,17 +218,19 @@ def test_the_initial_state_is_a_map_of_modules_to_states(data, files):
 
 def test_a_case_without_economics_or_requirements_is_a_pure_physics_case(data, files):
     """Both are absent, not empty."""
-    for key in ("economics", "requirements", "choices"):
+    for key in ("economics", "requirements"):
         del data[key]
     case = gm.Case.from_dict(data, files=files)
-    assert case.economics is None and case.requirements is None and case.choices is None
+    assert case.economics is None and case.requirements is None
     assert "economics" not in case.to_dict() and case.check() == []
 
 
-def test_the_choices_are_ranges_in_si(case):
-    """Doublets 1 to 3 and a depth range in metres."""
-    assert (case.choices.doublets.min, case.choices.doublets.max) == (1, 3)
-    assert (case.choices.depth.min, case.choices.depth.max) == (2000.0, 3500.0)
+def test_the_old_choices_key_is_refused_naming_the_plant_range(data, files):
+    """``choices`` moved to a ``range`` on the plant leaves."""
+    data["choices"] = {"doublets": {"min": 1, "max": 3}}
+    with raises(gm.errors.ValidationError, "old_format") as refused:
+        gm.Case.from_dict(data, files=files)
+    assert "range" in str(refused.value) and refused.value.path == "choices"
 
 
 def test_the_unreadable_file_is_invalid_format(tmp_path):

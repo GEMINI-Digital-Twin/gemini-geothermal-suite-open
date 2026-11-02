@@ -1,10 +1,13 @@
 """``gm.study.size`` on the shallow sample."""
 
+from copy import deepcopy
+
 import pandas as pd
 import pytest
 
 import gemini as gm
 from gemini._utils.files import from_json
+from gemini.units import Quantity
 from tests.fixtures.errors import raises
 from tests.fixtures.sample_cases import HACKATHON_2026 as HACKATHON
 from tests.unit.study.conftest import SAMPLE, shallow_case, shallow_plant
@@ -33,8 +36,9 @@ class Sized:
         self.case = quick(folder, **sections)
         self.case.demand.frame[["heating_demand", "cooling_demand"]] *= scale
         self.plant = plant or shallow_plant()
+        self.plant.set_params("", {"backup": backup})
         self.before = self.plant.to_dict()
-        self.design = gm.study.size(self.plant, self.case, backup=backup)
+        self.design = gm.study.size(self.plant, self.case)
         self.notes = self.design.sizing
         self.by_path = {item["path"]: item for item in self.notes["sized"]}
 
@@ -170,17 +174,16 @@ def test_a_class_without_the_structural_size_keeps_its_doublets(catalogue):
     ("sections", "path"),
     [
         ({"requirements": limited(180)[1:]}, "requirements"),
-        ({"demand": None}, "demand"),
+        ({"demand": None}, "demand.heating.supply_temperature"),
     ],
 )
 def test_what_the_case_lacks_is_named(sections, path):
     """``missing_value`` with the path."""
     data = from_json(SAMPLE / "case.json") | sections
     data = {key: value for key, value in data.items() if value is not None}
-    data["choices"] = {"doublets": {"min": 1, "max": 3}}
     case = gm.Case.from_dict(data, folder=SAMPLE)
     with raises(gm.errors.ValidationError, "missing_value") as refused:
-        gm.study.size(shallow_plant(), case, backup="peak")
+        gm.study.size(shallow_plant(), case)
     assert refused.value.path == path
 
 
@@ -207,16 +210,12 @@ def test_a_reservoir_hotter_than_the_supply_leaves_the_heat_pump_unsized(hot):
 
 
 def test_a_searched_capacity_replaces_the_sized_one(runs, base):
-    """The search varies ``heat_pump.capacity`` of the sized plant within its bounds."""
-    variables = [
-        {
-            "path": "heat_pump",
-            "parameter": "capacity",
-            "lower": gm.units.Quantity(0.1, "MW"),
-            "upper": gm.units.Quantity(0.5, "MW"),
-        }
-    ]
-    result = gm.study.minimize(base.design, base.case, "lcts", variables, evaluations=5)
+    """The search varies ``heat_pump.capacity`` of the sized plant within its range."""
+    design = deepcopy(base.design)
+    for path in design.ranges:
+        design.set_range(path)
+    design.set_range("heat_pump.capacity", min=Quantity(0.1, "MW"), max=Quantity(0.5, "MW"))
+    result = gm.study.minimize(design, base.case, "lcts", evaluations=5, seed=0)
     found = result["best"]["plant"].get_submodule("heat_pump").capacity
     assert 0.1e6 <= found <= 0.5e6
     assert found != base.capacity("heat_pump")
@@ -258,17 +257,28 @@ def test_a_pump_whose_doublet_lacks_a_design_value_is_left_unsized_with_a_note(c
 
 
 def test_a_missing_backup_policy_is_named():
-    """The policy is a design decision: no default, ``missing_value`` naming ``backup``."""
+    """The policy is the plant's decision, with no default: ``missing_value`` naming its path."""
+    plant = shallow_plant()
+    plant.set_params("", {"backup": None})
     with raises(gm.errors.ValidationError, "missing_value") as refused:
-        gm.study.size(shallow_plant(), shallow_case())
-    assert refused.value.path == "backup"
+        gm.study.size(plant, shallow_case())
+    assert refused.value.path == "params.backup"
 
 
-def test_an_unknown_backup_policy_is_refused():
-    """Only ``none`` and ``peak`` exist."""
-    with raises(gm.errors.ValidationError, "invalid_value") as refused:
-        gm.study.size(shallow_plant(), shallow_case(), backup="half")
-    assert refused.value.path == "backup"
+def test_an_unknown_backup_policy_is_refused_by_the_plant():
+    """Only ``none`` and ``peak`` exist: the parameter refuses another value."""
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        shallow_plant().set_params("", {"backup": "half"})
+
+
+def test_a_template_plant_is_completed_not_refused_for_its_missing_parameters():
+    """``size`` tolerates the parameters of the plant that have no value (``gm.check`` does not)."""
+    data = shallow_plant().to_dict()
+    del data["params"]["peak_boiler"]["capacity"]["value"]
+    plant = gm.Plant.from_dict(data)
+    assert any(item.kind == "missing" for item in gm.check(plant, shallow_case()))
+    design = gm.study.size(plant, shallow_case())
+    assert design.get_submodule("peak_boiler").capacity > 0
 
 
 def test_no_backup_gives_a_smaller_boiler_than_the_peak(base, none):
@@ -319,7 +329,7 @@ def series(tmp_path_factory):
     """Return the sample plant with three chillers in series, sized on its cooling peak days."""
     case = cooling_peak_case(tmp_path_factory.mktemp("series"))
     plant = gm.Plant.from_json(HACKATHON / "plants/HeatingFullCoolingPlant.json")
-    return gm.study.size(plant, case, backup="peak")
+    return gm.study.size(plant, case)
 
 
 def test_chillers_in_series_deliver_the_cooling_supply_at_the_peak(series):
@@ -337,7 +347,8 @@ def driven(request, tmp_path_factory):
     """Return the sample plant on the cooling-peak day with its own, small heating demand."""
     case = cooling_peak_case(tmp_path_factory.mktemp("driven"), winter=False)
     plant = gm.Plant.from_json(HACKATHON / "plants/HeatingFullCoolingPlant.json")
-    return request.param, case, gm.study.size(plant, case, backup=request.param)
+    plant.set_params("", {"backup": request.param})
+    return request.param, case, gm.study.size(plant, case)
 
 
 def test_the_boiler_is_rated_for_the_heating_and_the_drive_heat_of_the_sorption_chillers(driven):

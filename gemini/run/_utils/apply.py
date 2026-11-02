@@ -5,7 +5,8 @@
 doublet), the air on every ``Atmosphere``, the grid gas on every ``GasGrid``, the supply
 temperature plus the margin on every unit of a supply line, and, for the consumers
 (``HeatingGrid``, ``CoolingGrid``), the desander (``site.fluid``) and the grid connection
-(``utilities.electricity``), every parameter and boundary that declares a case path (``case=``).
+(``utilities.electricity``), every parameter and boundary that declares a case path (``case=``),
+and the states a stateful module starts from (``initial_state``).
 One private function does each kind. A value the plant needs and the case lacks raises
 ``missing_value`` naming its path in the case.
 """
@@ -69,6 +70,7 @@ def applied_in_place(plant, case):
     _owned(applied, case, ((HeatingGrid, "demand.heating."), (CoolingGrid, "demand.cooling.")))
     _owned(applied, case, ((Desander, "site.fluid."), (ElectricityGrid, "utilities.electricity.")))
     _supply(applied, case)
+    _states(applied, case)
     _APPLIED[applied] = weakref.ref(case)
     return applied
 
@@ -224,3 +226,21 @@ def _supply(plant, case):
         supply = require(case, f"demand.{service}.supply_temperature")
         margin = module.supply_margin if service == "heating" else -module.supply_margin
         plant._set_si_inputs({join_path(path, "temperature_setpoint"): supply + margin})
+
+
+def _states(plant, case):
+    """Start each module named in ``initial_state`` from the states the case gives it.
+
+    A module or a state the plant lacks raises ``unknown_name`` (``gm.check`` lists it first).
+    """
+    for path, states in (case.initial_state or {}).items():
+        module = plant.get_submodule(path)
+        missing = sorted(set(states) - set(module._states))
+        if missing:
+            raise ValidationError(
+                f"initial_state.{path}.{missing[0]}: {path or 'plant'} has no such state; "
+                f"expected one of {sorted(module._states)}",
+                path=f"initial_state.{path}.{missing[0]}",
+                code="unknown_name",
+            )
+        module._start_from({name: leaf.si for name, leaf in states.items()})

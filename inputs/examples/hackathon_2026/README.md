@@ -73,7 +73,7 @@ they leave open, in the shapes of gemini.
 | File | Holds | Read by |
 | --- | --- | --- |
 | `demand.csv` | The two organiser demand files joined on `date`: `heating_demand_MWth` and `cooling_demand_MWcool`, values unchanged | `case.json` |
-| `case.json` | The one case: time, site, brine, demand, the choices (1 to 3 doublets, 2000 to 3500 m), the constraints (with the 330 day operating duration) and the assumptions | every example, `gm.Case.from_json` |
+| `case.json` | The one case: time, site, brine, demand, the requirements (with the 330 day operating duration) and the assumptions | every example, `gm.Case.from_json` |
 | `plants/<Class>.json` | One plant dict per candidate: `HeatingPlant`, `HeatingAbsorptionCoolingPlant`, `HeatingHeatPumpCoolingPlant`, `HeatingFullCoolingPlant`, `HeatingCoolingPlant`, and `HackathonPlant` (structure form: desander, inhibitor dosing, one absorption chiller); design values only, no site | `examples/hackathon.py`, tests |
 
 Sizes of equipment and the injection pressure are design values of the plants. The return
@@ -85,7 +85,7 @@ temperatures, the air temperature and every price are assumptions of the case.
 | --- | --- |
 | `environment` | Gradient 30 K/km, surface 12 degC, 2500 m, 100 m, 200 mD, 250 barg; brine 1030 kg/m3, 0.4 mPa.s, GLR 0.8, 80 % CH4 and 20 % CO2 |
 | `demand` | The two profiles; supply 100 degC heating and 20 degC cooling |
-| `choices` | 1 to 3 doublets; the depth range 2000 to 3500 m is an assumption of the example |
+| plant `range` | 1 to 3 doublets (`size.doublets`) and 2000 to 3500 m of depth: ranges of the plant files, an assumption of the example |
 | `constraints` | 50 to 300 m3/h while running, brine cooling at most 40 K, at most 330 d running, pump efficiency 0.7, equal liquid volumes (within 1e-6 m3/s) |
 
 ## Assumptions of the example

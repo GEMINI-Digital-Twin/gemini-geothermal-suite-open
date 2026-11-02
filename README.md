@@ -18,7 +18,7 @@ print(report["heat_delivered"].to("MWh").value, report["lcts"].to("EUR/MWh").val
 ```
 
 A `gm.Case` holds what a plant is asked to do and the world around it: the time, the environment,
-the demand, the choices of a study, the constraints and the assumptions (prices, cost factors,
+the demand, the requirements and the economics (prices, cost factors,
 emission factors) of a run, in a `case.json` with its CSV files. The plant dict holds only the
 plant. Every value with a unit is a `{"value": 150, "unit": "m3/h"}` or a `gm.units.Quantity`, text
 such as `"150 m3/h"` is refused, and nothing a user must decide has a default: a value that is
@@ -101,12 +101,12 @@ A plant can be designed from its depth. A `Doublet` derives its reservoir, wells
 design values; the ground, the reservoir and the brine belong to the case, so one design runs on
 several cases. `gm.schedule` plans each step from the demand of the case with no bindings to write,
 `gm.evaluate.requirements` judges the run against the `requirements` of the case, and `gm.study`
-sizes a design and searches the choices of the case:
+sizes a design and searches the ranges its plant file states:
 
 ```python
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
 plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
-sized = gm.study.size(plant, case, backup="peak")
+sized = gm.study.size(plant, case)
 results = gm.simulate(sized, case)
 checks = gm.evaluate.requirements(sized, case, results)
 print([check["name"] for check in checks if check["passed"] is False])

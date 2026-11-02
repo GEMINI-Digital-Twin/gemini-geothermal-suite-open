@@ -21,50 +21,21 @@ ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = ROOT / "inputs/examples/hackathon_2026"
 EVALUATIONS = 20
 """Simulations of the search for each doublet count: five for each of four variables, the least."""
-SHARE = (0.1, 1.0)
-"""A capacity is searched from a tenth of the peak it serves to the whole peak, an assumption."""
 PROCESSES = 8
 """Worker processes of the search: one per doublet count and trial; an assumption, the cores."""
 DRAWS = 5
 """Simulations of the sample of the best design: few, a year of simulation each."""
 SEED = 1
 """The seed of the draws: the same seed gives the same draws."""
-Q = gm.units.Quantity
-
-
-def variable(path, parameter, lower, upper):
-    """Return a decision variable between two quantities or two counts."""
-    return {"path": path, "parameter": parameter, "lower": lower, "upper": upper}
-
-
-def variables(case):
-    """Return the variables every candidate is searched on, with bounds from the case."""
-    doublets, depth = case.choices.doublets, case.choices.depth
-    flow = next(
-        item
-        for item in case.requirements
-        if item.quantity == "production_flow" and item.over == "each"
-    )
-    peak = {s: case.demand.frame[f"{s}_demand"].max() for s in ("heating", "cooling")}
-    low, high = SHARE
-    return [
-        variable("size", "doublets", int(doublets.min), int(doublets.max)),
-        variable("", "depth", Q(depth.min, "m"), Q(depth.max, "m")),
-        variable(
-            "heat_pump", "capacity", Q(low * peak["heating"], "W"), Q(high * peak["heating"], "W")
-        ),
-        variable(
-            "chiller", "capacity", Q(low * peak["cooling"], "W"), Q(high * peak["cooling"], "W")
-        ),
-        variable("doublet", "nominal_flow", Q(flow.min, "m3/s"), Q(flow.max, "m3/s")),
-    ]
+SEARCH_SEED = 0
+"""The seed of the search: the same seed gives the same trials."""
 
 
 def design(plant, case):
     """Return ``(searched design, search result)``; the sized plant and ``None`` if not searched."""
-    sized = gm.study.size(plant, case, backup="peak")
+    sized = gm.study.size(plant, case)
     try:
-        found = gm.study.minimize(sized, case, "lcts", variables(case), evaluations=EVALUATIONS)
+        found = gm.study.minimize(sized, case, "lcts", EVALUATIONS, SEARCH_SEED)
     except gm.errors.ValidationError as error:
         print(f"  not searched: {error}")
         return sized, None
@@ -77,8 +48,6 @@ def print_candidate(name, report, found):
     reasons = [item["name"] for item in entry.get("reasons", [])]
     trials = len(found["history"]) if found else 0
     print(f"{name}: {trials} trials, feasible {entry['feasible']}, reasons {reasons}")
-    for item in found["fixed"] if found else []:
-        print(f"  fixed {item['name']} = {item['value']}: {item['reason']}")
 
 
 def study():

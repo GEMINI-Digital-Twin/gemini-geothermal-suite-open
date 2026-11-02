@@ -5,6 +5,7 @@ from copy import deepcopy
 import pytest
 
 import gemini as gm
+from gemini.evaluate.verdict import ranked
 from gemini.modules import CoolingGrid
 from gemini.run._utils import apply
 from gemini.units import Quantity
@@ -39,6 +40,7 @@ def test_a_failed_requirement_is_a_reason_of_kind_requirement_with_its_name():
     assert item["name"] == "heating_supply_temperature" and item["path"] == "users"
     assert item["value"].si == pytest.approx(373.15) and item["limit"].si == pytest.approx(423.15)
     assert item["worst_step"] and "heating_supply_temperature" in item["message"]
+    assert item["violation"] == pytest.approx((423.15 - 373.15) / 423.15)
 
 
 def test_a_service_the_run_does_not_deliver_is_a_requirement_reason():
@@ -47,6 +49,17 @@ def test_a_service_the_run_does_not_deliver_is_a_requirement_reason():
     case = make_case(supply={"heating": Quantity(60, "degC"), "cooling": Quantity(7, "degC")})
     found = gm.evaluate.verdict(plant, case, day())
     assert kinds(found)["cold_delivered"] == "requirement"
+    (item,) = [item for item in found["reasons"] if item["name"] == "cold_delivered"]
+    assert "violation" not in item and item not in ranked(found)
+
+
+def test_a_name_gives_one_reason_even_when_two_checks_raise_it():
+    """A requirement and the service of the same name are one reason, as for an absent supply."""
+    from gemini.evaluate.verdict import _distinct, reason
+
+    first = reason("requirement", "cold_delivered", "the run gives no cold_delivered")
+    again = reason("requirement", "cold_delivered", "requirement on the same name")
+    assert _distinct([first, again]) == [first]
 
 
 def test_failed_rows_are_a_reason_of_kind_failed_step():
@@ -174,7 +187,7 @@ def test_the_requirement_of_the_case_is_a_reason_with_its_role_and_quantity():
 def sample_run(tmp_path_factory):
     """Return the shallow sample plant sized for one day, the case and the run within its limits."""
     case = shallow_case(days=1, folder=tmp_path_factory.mktemp("days"))
-    plant = gm.study.size(shallow_plant(), case, backup="peak")
+    plant = gm.study.size(shallow_plant(), case)
     return plant, case, gm.simulate(plant, case)
 
 

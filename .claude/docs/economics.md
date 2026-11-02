@@ -251,13 +251,15 @@ the pressure. A rate the column of brine injects alone has no pressure to give: 
 
 `gm.modules.check` is described in [modules.md](modules.md#registry-categories-and-streams).
 
-`gm.study.size(plant, case, backup)` returns a new plant with first sizes from the case, by gemini
-physics only. `backup` is a design policy with no default (`missing_value` naming `backup` when
-absent, `invalid_value` for another word): `"peak"` rates a boiler for the whole heating peak (and drive heat) with
+`gm.study.size(plant, case)` returns a new plant with first sizes from the case, by gemini
+physics only. It runs `gm.check` first and raises its issues, except the parameters of the plant
+that have no value, since completing a template plant is what it is for. `backup` is a design policy
+of the plant (`params.backup`, with no default: `missing_value` naming `params.backup` when
+absent, `invalid_value` for another word on `set_params`): `"peak"` rates a boiler for the whole heating peak (and drive heat) with
 the doublets off, so it carries the peak when a doublet is out; `"none"` rates it for the heat the
 doublets cannot reach, the larger of the peak less the heat of the doublets at their limits and the
 part of the peak the reservoir temperature cannot reach. The sizes: the number of doublets (the
-smallest in `case.choices.doublets` whose heat at the flow limit and the brine cooling limit of the
+smallest in the `range` of `size.doublets` of the plant whose heat at the flow limit and the brine cooling limit of the
 case's constraints covers the heating peak, the largest with a note when none does); the nominal
 flow of each doublet, which is the flow limit of the case, the largest flow it may run, so its
 `share` in `gm.evaluate.capacities` is at most one; the capacity of each boiler (the policy above),
@@ -282,43 +284,43 @@ design breaks (empty when it meets them all) and `simulation` says `simulated` o
 lacks the input for raises `missing_value` naming its path. A size that is not computed for a
 module kind (`chp`, `heat_exchanger`) is left unchanged and listed.
 
-`gm.study.minimize(plant, case, objective, variables=None, constraints=None, evaluations=100, *,
-plan=None)` searches design values. Each trial copies the plant and the case, sets the variables,
-plans the demand of the case on that design with `gm.schedule`, simulates and reads the metric, so
-neither is changed. Without `variables` they are those of `case.choices`: `size.doublets` (a
-discrete variable: the search runs once for each count, from the lowest to the highest, on a new
-plant of that size, and the best trial of all counts wins) and `depth`; a list replaces them, so
-restate these to keep searching them, and a capacity is searched only when listed. A name is a plant
-`path.parameter`, a number of the case as `case.<path>` (the path of `case.json`, for example
-`case.economics.energy.electricity`), `size.doublets`, or `<role>.<parameter>` with a role
-of `gm.case.roles()` (`heat_pump.capacity`, `chiller.capacity`, `doublet.nominal_flow`,
-`doublet.depth`): it sets that parameter on every unit of the role, after the doublet count, so one
-list serves plants of other paths and counts. `depth` on a plant with no depth of its own is the
-depth of each doublet. A variable the plant cannot take, a role it lacks or `size.doublets` on a
-plant whose dict has none, is not searched and is in the result's `fixed`
-(`{name, value, reason}`); `invalid_design` is raised only when nothing is left to search. A `plan`
-stays fixed over the trials and lets `case` be `None` for a building block; with neither the call
-raises `missing_value`. `evaluations` is the largest number of simulations **for each doublet
-count**; with three variables 15 gave 45 trials. The search is
-`scipy.optimize.differential_evolution` from a Latin hypercube, seed fixed, with five candidates per
-variable, so a smaller budget than one population raises `ValidationError`.
+`gm.study.minimize(plant, case, objective, evaluations, seed, *, constraints=None, plan=None)`
+searches the design space that the plant states. The variables are the plant's: every leaf with a
+`range` (continuous, or integer when its parameter is) and every leaf with `options` (strings), and
+`size.doublets` when it has a `range` (a discrete variable: the search runs once for each count,
+from the lowest to the highest, on a new plant of that size, and the best trial of all counts
+wins). Leaves with the same parameter name, the same role (`gm.case.roles()`) and an equal range
+are one variable that sets them all (`heat_pump.capacity`, `chiller.capacity` for three chillers,
+`doublet.nominal_flow`, `doublet.depth`); the order is that of the file; a plant that states
+nothing to search raises `invalid_design`. `evaluations` and `seed` have no default (7.28). Each
+trial copies the plant, sets the variables, plans the demand of the case on that design with
+`gm.schedule`, simulates and reads the metric, so neither is changed. A `plan` stays fixed over the
+trials and lets `case` be `None` for a building block; with neither the call raises
+`missing_value`. `gm.check` runs first. `evaluations` is the largest number of simulations **for
+each doublet count**; with four variables 20 gave 80 trials. The search is
+`scipy.optimize.differential_evolution` from a Latin hypercube with the given seed, with five
+candidates per variable, so a smaller budget than one population raises `ValidationError`; the
+integer and the option variables are searched as integers.
 
-A trial is feasible when its run has no failed step, every constraint of the case passes
-(`gm.evaluate.requirements`, the supply temperatures of the services included) and every limit of
+A trial is feasible when its `gm.evaluate.verdict` has no reason that a design variable can change:
+the reasons with a `violation` (a failed requirement, the supply temperatures of the services
+included, an operating limit, a failed step, a balance out of its tolerance), and every limit of
 the `constraints` argument (limits on *metrics*, `{metric, minimum, maximum}`, not the
-`case.requirements` on roles) holds. A check with no value (no flow, a role the plant lacks) does
-not fail a trial. A trial that does not run, such as a negative injection head at great depth, is
+`case.requirements` on roles) holds. A reason with no `violation` is structural (a service the
+plant has no unit for, `cold_delivered` of a heating plant) and does not rank the trials; the
+verdict of the run of the best plant keeps it. The violation of a trial is the sum of those of its
+reasons (relative excess), at most 1e6 for a failed step. A trial that does not run, such as a negative injection head at great depth, is
 infeasible and the search goes on. The optimiser sees every feasible trial as better than every
 infeasible one and the infeasible ones ordered by their relative violation. `history` holds every
 trial with its `reason` (`None` when feasible; the first failed check, a dict, or a text) and
-`parts["violation"]`. The result is `{best, feasible, fixed, history, evaluations}`; `best` is the
-objective as a `Value` whose `parts["parameters"]` are `{name: Quantity}` and whose `["plant"]` is
-the best feasible plant, or with none the least violating trial that ran, then `feasible` is
+`parts["violation"]`. The result is `{best, feasible, history, evaluations}`; `best` is the
+objective as a `Value` whose `parts["parameters"]` are `{name: Quantity}` (an option is its string)
+and whose `["plant"]` is the best feasible plant (a `Plant`; its `to_json` runs), or with none the least violating trial that ran, then `feasible` is
 `False`. A trial costs about 1.5 times one `gm.simulate` of the same plant and case (0.15 s against
 0.10 s on the year of the hackathon sample), see below.
 
-`gm.study.sample(plant, case, distributions, metrics, count, seed=0, *, plan=None)` draws `normal`,
-`uniform` and `triangular` values (a plant parameter or `case.<path>`, each field a `Quantity`) with
+`gm.study.sample(plant, case, metrics, samples, seed, *, plan=None)` draws `normal`,
+`uniform` and `triangular` values (the `uncertainty` of the case, `case.<path>`) with
 `numpy.random.default_rng(seed)`, one simulation each, and summarises each metric as `mean`, `p5`,
 `p50`, `p95`, with `failed`, the number of draws left out. A run with failed steps is no valid
 design: its metrics are `None` with a `reason` (the count of failed steps and the most frequent
@@ -326,10 +328,27 @@ failure group of `gm.evaluate.failures`), it stays out of the summary, and in `s
 end and the effect are `None` with that reason. `minimize` calls such a trial infeasible with the
 same reason, never the best, and `compare` calls a report with `failed_steps > 0` infeasible
 (`failed_steps`). The evaluate cost functions still report what was delivered.
-`gm.study.sensitivity(plant, case, parameters, metrics, *, plan=None)` runs each value at its `low`
-and its `high` with the others as they are, and returns a list of `{parameter, metric, low, high,
+`gm.study.sensitivity(plant, case, metrics, *, plan=None)` runs each value the case declares an
+`uncertainty` for at its low and its high end with the others as they are, and returns a list of `{parameter, metric, low, high,
 at_low, at_high, effect}`, the largest effect first, with `to_frame(units=None)`: the metric columns
 in the display unit of the metric, or the unit of `units`, and a `unit` column.
+
+`gm.Study` (`gemini/study/study.py`) is the same functions from a `study.json` (`kind: study`, see
+[inputs.md](inputs.md#studyjson-kind-study-gmstudy-optional-what-to-run-how)): `cases`, `plants`,
+`prepare`, `method` (`run`, `minimize`, `sample`, `sensitivity`), `objective`, `metrics`,
+`evaluations`, `samples`, `seed`, with no default for a setting the method needs. `Study.run()`
+prepares (`size`), calls `minimize`, `sample` or `sensitivity`, simulates and reports each plant on
+each case and returns a `StudyResult`: `runs` (`plant_name`, `case_name`, `verdict`, `metrics`,
+`plant`, `report`, `found`, `note`), `comparison` (a `gm.evaluate.compare` of the reports of each
+case, by the objective then the metrics) and `best` (the feasible run ranked first by the
+objective, per case); `to_json(folder)` writes the run records. A `minimize` on a plant that states
+no range and no options runs the plant as it is, with a `note`. `Study.run(plants={name: Plant})`
+takes plants in memory instead of the files. `gm.check(plant, case)` (`gemini/run/check.py`)
+returns the issues that need both: a capex and a fixed opex for every equipment kind (when the case
+has economics), a requirement on a role the plant lacks (not `heating_supply` or `cooling_supply`: a
+plant without a supply is judged infeasible for that service), an initial state for every state of
+every stateful module, the energy prices of a `least_cost` dispatch, and the parameters without a
+value; `simulate` and every study function run it first.
 
 **What a trial costs.** A trial copies the plant once, sets its variables and the values of the case
 on that copy (`applied_in_place` of `gemini/run/_utils/apply.py`), and the run and every metric read

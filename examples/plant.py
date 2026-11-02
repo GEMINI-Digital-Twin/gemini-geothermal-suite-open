@@ -45,6 +45,8 @@ def build(stored):
     """Return the plant class with the stored design values, except those ``size`` computes."""
     size = stored["size"]["doublets"]["value"]
     plant = gm.plants.HeatingHeatPumpCoolingPlant(doublets=size)
+    spread = stored["size"]["doublets"]["range"]
+    plant.set_range("size.doublets", min=spread["min"], max=spread["max"])
     missing = [item for item in plant.check() if item.kind == "missing"]
     first = plant.get(missing[0].path.removeprefix("params."))
     print(f"Bare class: {len(missing)} values missing, the first {missing[0].path[7:]}:")
@@ -69,7 +71,7 @@ def main():
     stored = json.loads((SAMPLE / "plant.json").read_text())
     case = gm.Case.from_json(SAMPLE / "case.json")
     plant = build(stored)
-    sized = gm.study.size(plant, case, backup="peak")
+    sized = gm.study.size(plant, case)
     for size in sized.sizing["sized"]:
         print(f"  sized {size['path']} = {size['value'].to_dict()}")
     print(f"Left unchanged: {[item['path'] for item in sized.sizing['unchanged']]}")

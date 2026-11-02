@@ -99,11 +99,11 @@ def test_a_case_without_uncertainty_is_refused(runs):
 
 @pytest.mark.parametrize(
     ("arguments", "code"),
-    [({"count": 0}, "invalid_value"), ({"metrics": ["lcox"]}, "unknown_name")],
+    [({"samples": 0}, "invalid_value"), ({"metrics": ["lcox"]}, "unknown_name")],
 )
 def test_a_sample_that_does_not_fit_is_refused(arguments, code, runs):
-    """A wrong count or metric, before any run."""
-    call = dict(metrics=["co2"], count=2, seed=0) | arguments
+    """A wrong sample size or metric, before any run."""
+    call = dict(metrics=["co2"], samples=2, seed=0) | arguments
     with raises(gm.errors.ValidationError, code):
         gm.study.sample(shallow_plant(), declared_case(), **call)
     assert runs == []

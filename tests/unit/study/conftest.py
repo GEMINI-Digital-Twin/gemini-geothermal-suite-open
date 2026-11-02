@@ -10,9 +10,11 @@ from gemini._utils.files import from_json
 from gemini.case._utils.kinds import EQUIPMENT_KINDS
 from gemini.engine.chunks import ResultChunk
 from gemini.errors.base import problem
+from gemini.evaluate.verdict import LARGEST_VIOLATION, Verdict, reason
 from gemini.plants._utils.roles import units_of
-from gemini.study._utils import trial
+from gemini.study._utils import execute, trial
 from gemini.types.shapes import measure
+from gemini.units import Quantity
 from tests.fixtures.result_tables import START, make_results
 from tests.fixtures.sample_cases import SHALLOW_DISTRICT
 
@@ -32,7 +34,7 @@ PLACEHOLDERS = {
 
 
 def shallow_case(days=None, folder=None, uncertain=None, **sections):
-    """Return the shallow sample case with the choices of the study tests, plus ``sections``.
+    """Return the shallow sample case, priced for every kind, plus ``sections``.
 
     ``uncertain`` maps the dotted path of a number of the case to its ``uncertainty`` dict, as
     ``case.json`` writes it next to the value. ``days`` keeps only the first days of the sample
@@ -43,10 +45,6 @@ def shallow_case(days=None, folder=None, uncertain=None, **sections):
     where = SAMPLE
     if days is not None:
         where = _cut(data, days, folder)
-    data["choices"] = {
-        "doublets": {"min": 1, "max": 3},
-        "depth": {"min": {"value": 1000, "unit": "m"}, "max": {"value": 2000, "unit": "m"}},
-    }
     for path, uncertainty in (uncertain or {}).items():
         *parents, last = path.split(".")
         node = data
@@ -83,9 +81,17 @@ def _cut(data, days, folder):
     return folder
 
 
-def shallow_plant():
-    """Return the shallow sample plant, on one doublet."""
-    return gm.Plant.from_json(SAMPLE / "plant.json")
+def shallow_plant(backup=None):
+    """Return the shallow sample plant, on one doublet, searching 1 to 3 doublets and 1 to 2 km.
+
+    ``backup`` replaces the policy the file states.
+    """
+    plant = gm.Plant.from_json(SAMPLE / "plant.json")
+    plant.set_range("size.doublets", min=1, max=3)
+    plant.set_range("depth", min=gm.units.Quantity(1000, "m"), max=gm.units.Quantity(2000, "m"))
+    if backup is not None:
+        plant.set_params("", {"backup": backup})
+    return plant
 
 
 def cost_model(plant, case, results, name):
@@ -104,6 +110,15 @@ def cost_model(plant, case, results, name):
     return measure(plant.get_submodule("peak_boiler").capacity, "W")
 
 
+def clean_verdict(plant, case, results):
+    """Return the verdict of a fake run: a failed step is the one reason, with its violation."""
+    if not results.failures:
+        return Verdict(feasible=True, reasons=[])
+    found = reason("failed_step", "failed_steps", f"{len(results.failures)} steps failed")
+    found["violation"] = LARGEST_VIOLATION
+    return Verdict(feasible=False, reasons=[found])
+
+
 @pytest.fixture
 def runs(monkeypatch):
     """Replace the simulation of a trial by an empty result and its metrics by ``cost_model``.
@@ -118,7 +133,7 @@ def runs(monkeypatch):
 
     monkeypatch.setattr(trial, "simulate", fake)
     monkeypatch.setattr(trial, "metric", cost_model)
-    monkeypatch.setattr(trial, "requirements", lambda plant, case, results: [])
+    monkeypatch.setattr(trial, "verdict", clean_verdict)
     return calls
 
 
@@ -148,3 +163,60 @@ def failing_runs(runs, monkeypatch):
 
     monkeypatch.setattr(trial, "simulate", fake)
     return runs
+
+
+class Report(dict):
+    """A report of a fake run: figures and a verdict, with ``to_dict``."""
+
+    def to_dict(self):
+        """Return the figures as plain JSON."""
+        return {key: item.to_dict() for key, item in self.items() if key != "verdict"}
+
+
+class Series:
+    """The results of a fake run."""
+
+    def to_frame(self):
+        """Return one row."""
+        return pd.DataFrame({"x": [1.0]}, index=pd.DatetimeIndex(["2027-01-01"], name="time"))
+
+
+@pytest.fixture
+def fake_runs(runs, monkeypatch):
+    """Replace the simulation and the report of a run: the cost model gives the figures.
+
+    A plant on more than one doublet breaks a requirement.
+    """
+
+    def report(plant, case, results):
+        count = len(units_of(plant, "doublet"))
+        found = [] if count == 1 else [reason("requirement", "flow", "too many", violation=0.1)]
+        cost = 6.0 - count + (plant.depth - 1500) ** 2 / 1e6
+        return Report(
+            lcts=Quantity(cost, "currency/J"),
+            co2=Quantity(plant.depth, "kg"),
+            verdict=Verdict(feasible=not found, reasons=found),
+        )
+
+    monkeypatch.setattr(execute, "simulate", lambda plant, case: Series())
+    monkeypatch.setattr(execute, "reported", report)
+    return runs
+
+
+def searching(plant, **ranges):
+    """Return ``plant`` that searches only ``ranges`` ``{path: (min, max)}``."""
+    for path in plant.ranges:
+        plant.set_range(path)
+    for path, (low, high) in ranges.items():
+        plant.set_range(path, min=low, max=high)
+    return plant
+
+
+@pytest.fixture
+def folder(tmp_path):
+    """Return a folder with the shallow case, a plant that searches its depth, one that does not."""
+    shallow_case().to_json(tmp_path / "case.json")
+    depth = (Quantity(1000, "m"), Quantity(2000, "m"))
+    searching(shallow_plant(), depth=depth).to_json(tmp_path / "one.json")
+    searching(shallow_plant()).to_json(tmp_path / "two.json")
+    return tmp_path

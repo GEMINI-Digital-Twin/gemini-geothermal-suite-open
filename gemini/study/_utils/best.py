@@ -13,7 +13,8 @@ class Best(Value):
     """The objective of the best trial, a ``Value``, and the ``plant`` that gave it.
 
     ``best["plant"]`` is the plant too. ``to_dict`` is plain JSON: the plant as its plant dict
-    (``None`` with no plant), the parameters of the trial as ``{value, unit}``; ``from_dict`` reads
+    (``None`` with no plant), the parameters of the trial as ``{value, unit}`` (an option as its
+    text); ``from_dict`` reads
     it back.
     """
 
@@ -44,7 +45,8 @@ class Best(Value):
         parameters = parts.get("parameters")
         if parameters is not None:
             parts["parameters"] = {
-                name: Quantity.from_dict(item) for name, item in parameters.items()
+                name: Quantity.from_dict(item) if isinstance(item, dict) else item
+                for name, item in parameters.items()
             }
         plant = None if data["plant"] is None else Plant.from_dict(data["plant"])
         return cls(data["value"], data["unit"], data.get("reason"), parts, plant)

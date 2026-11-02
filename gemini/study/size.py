@@ -9,17 +9,20 @@ from gemini.analysis import solves
 from gemini.analysis.wells import WELLHEAD_PRESSURES
 from gemini.case._utils.access import require
 from gemini.errors import PhysicsError, RunError, ValidationError
+from gemini.errors.base import raise_issues
 from gemini.evaluate import requirements
 from gemini.modules.pumps import InjectionPump
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
 from gemini.plants._utils.roles import units_of
-from gemini.run import simulate
+from gemini.run import check, simulate
 from gemini.run._utils.apply import apply_case
 from gemini.study._utils.resize import resized
 from gemini.types import Stream
 
 POLICIES = ("none", "peak")
 """The backup policies of ``size``."""
+BACKUP = "params.backup"
+"""The path of the backup policy in the plant file."""
 
 
 def _limit(case, quantity, bound, required=True):
@@ -57,6 +60,19 @@ def _takes_doublets(plant):
     return "doublets" in plant.size
 
 
+def _doublet_range(plant):
+    """Return the ``range`` of ``size.doublets`` of the plant, or raise ``missing_value``."""
+    found = plant.ranges.get("size.doublets")
+    if found is None or found.min is None or found.max is None:
+        raise ValidationError(
+            "size.doublets.range is missing; expected a min and a max of the number of doublets "
+            "in the plant (it has no default)",
+            path="size.doublets.range",
+            code="missing_value",
+        )
+    return found
+
+
 def _doublets(plant, case, peak, notes):
     """Return ``(plant, heat)``: the plant on the smallest number of doublets that covers ``peak``.
 
@@ -69,7 +85,7 @@ def _doublets(plant, case, peak, notes):
     heat = heat_capacity_rate(density * flow_max, FluidProperties().cp_l) * cooling_max
     count = len(units_of(plant, "doublet"))
     if _takes_doublets(plant):
-        top = require(case, "choices.doublets")
+        top = _doublet_range(plant)
         count = next(
             (n for n in range(int(top.min), int(top.max) + 1) if n * heat >= peak), top.max
         )
@@ -296,12 +312,35 @@ def _check(design, case, notes):
             )
 
 
-def size(plant, case, backup=None):
+def _policy(plant):
+    """Return the backup policy the plant states, or raise ``missing_value`` naming its path."""
+    if plant.backup is None:
+        raise ValidationError(
+            f"{BACKUP} is missing; expected one of {POLICIES} (it has no default)",
+            path=BACKUP,
+            code="missing_value",
+        )
+    return plant.backup
+
+
+def _checked(plant, case):
+    """Raise the issues of ``gm.check`` but the parameters of the plant that have no value."""
+    raise_issues(
+        [
+            item
+            for item in check(plant, case)
+            if not (item.kind == "missing" and item.path.startswith("params."))
+        ]
+    )
+
+
+def size(plant, case):
     """Return a new plant with first sizes from the case; the plant itself is not changed.
 
     The sizes use gemini physics only. In order:
 
-    - the number of doublets, the smallest in ``case.choices.doublets`` whose heat at the flow
+    - the number of doublets, the smallest in the ``range`` of ``size.doublets`` of the plant whose
+      heat at the flow
       limit and the brine cooling limit of the case's requirements covers the heating peak (the
       largest, with a note, when none does), for a plant class that takes the structural size
       ``doublets``; the nominal flow of each doublet is the flow limit, the largest flow the case
@@ -331,23 +370,27 @@ def size(plant, case, backup=None):
     is not needed) leaves it unchanged and lists it. The sized plant is then simulated once on the
     case and every requirement it breaks is listed: size never hides an infeasible start.
 
+    The plant states the design policy of the top-up units in ``params.backup``, which has no
+    default (a plant without it raises ``missing_value`` naming the path):
+
+    - ``"none"``: a boiler covers only the heat the doublets cannot reach, the larger of the step
+      of the heating plus the drive heat of the sorption chillers less the heat of the doublets at
+      their limits and the part of it that the reservoir temperature cannot reach; a plant
+      without doublets gets the peak;
+    - ``"peak"``: a boiler covers the whole heating plus drive heat of the sorption chillers (the
+      unit that draws heat from the boiler) at the step where they peak together, with the
+      doublets off, so that it carries the peak when a doublet is out.
+
+    ``gm.check`` runs first and raises its issues, except the parameters of the plant that have
+    no value: completing a template plant is what ``size`` is for.
+
     Parameters
     ----------
     plant : Plant
-        A plant with parameter values.
+        A plant with parameter values and its ``backup``.
     case : Case
         The demand, the requirements on each doublet (a maximum production flow and brine cooling),
-        the choices of doublets, the reservoir and the fluid.
-    backup : str
-        The design policy of the top-up units, required (it has no default):
-
-        - ``"none"``: a boiler covers only the heat the doublets cannot reach, the larger of the
-          step of the heating plus the drive heat of the sorption chillers less the heat of the
-          doublets at their limits and the part of it that the reservoir temperature cannot
-          reach; a plant without doublets gets the peak;
-        - ``"peak"``: a boiler covers the whole heating plus drive heat of the sorption chillers
-          (the unit that draws heat from the boiler) at the step where they peak together, with
-          the doublets off, so that it carries the peak when a doublet is out.
+        the reservoir and the fluid.
 
     Returns
     -------
@@ -362,20 +405,12 @@ def size(plant, case, backup=None):
     Raises
     ------
     ValidationError
-        ``missing_value`` naming ``backup`` or the path of what a size needs and the case or plant
-        lacks; ``invalid_value`` for a ``backup`` that is not a policy; ``invalid_design`` for a
+        ``missing_value`` naming ``params.backup`` or the path of what a size needs and the case or
+        plant lacks; ``invalid_design`` for a
         plant that has doublets but whose class takes no structural size ``doublets``.
     """
-    if backup is None:
-        raise ValidationError(
-            f"backup is missing; expected one of {POLICIES} (it has no default)",
-            path="backup",
-            code="missing_value",
-        )
-    if backup not in POLICIES:
-        raise ValidationError(
-            f"backup = {backup!r}; expected one of {POLICIES}", path="backup", code="invalid_value"
-        )
+    backup = _policy(plant)
+    _checked(plant, case)
     require(case, "demand")
     notes = {"sized": [], "unchanged": []}
     design, cover = deepcopy(plant), 0.0

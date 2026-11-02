@@ -663,6 +663,76 @@ replacement"), so a value would be read by nothing; it stays in section 8. (h) T
 `.tmp/inputs/convert_moves.py` made the moves and checked against the files before that nothing else
 changed.
 
+**7.48 The study and `gm.check` as built** (rule: P5, section 10, 7.28, test 5). (a) `gm.check(plant,
+case)` (`gemini/run/check.py`, exported at `gm.check`, imported by `simulate` and every study
+function; the run folder imports nothing from `study` or `evaluate`) applies the case to a copy of
+the plant and returns the issues of: a parameter without a value (`missing`, path `params.<path>`),
+a capex and a fixed opex for every equipment kind the plant contains (`missing`, code
+`missing_assumption`, `economics.capex.<kind>`, `economics.opex.fixed.<kind>`), a requirement on a
+role the plant lacks (`incompatible`, `requirements[n].on`), an initial state for every state of
+every stateful module (`missing`; a module, a state or a unit that does not fit is `unknown_key` or
+`unit`), and the energy prices when the plant states `control.dispatch = least_cost` (the
+electricity price, and the gas price when the plant has a `boiler` or `chp` role). (b) A case with
+no `economics` is a pure physics case and has no price issue; `simulate(plant, case=None,
+plan=...)` runs no check. `size` runs `gm.check` and tolerates the `missing` issues of plant
+parameters (`params.*`), since it completes a template plant; `simulate`, `minimize` (the plant is
+sized first), `sample` and `sensitivity` do not tolerate them. (c) An absent `heating_supply` or
+`cooling_supply` role is no check issue: a heating-only plant runs on a case with cooling demand
+and is judged infeasible, P2 (one case judges any plant), for the reason `cold_delivered` that
+`gm.evaluate.verdict` already gives. Any other absent role is `incompatible`. The verdict
+dedupes its reasons by name, so a requirement on an absent supply role and the service reason are
+one. (d) `case.initial_state` is wired: `apply_case` starts each named module from it
+(`Module._start_from`, read first by `initial_state()`), so the code defaults of the states and the
+`initial_*` parameters stay (7.19) but a case that states a state wins. No sample has a stateful
+module. (e) `case.choices` is gone (the class, the field, `gemini/case/choices.py`, the sample
+case files, `study/_utils/choices.py`); the key is refused with `old_format` naming the plant
+`range`. `minimize` has no `variables` argument; `size` reads `params.backup` (a plant without it is
+`missing_value` naming `params.backup`) and the range of `size.doublets` (without it,
+`missing_value` naming `size.doublets.range`). (f) `minimize(plant, case, objective, evaluations,
+seed, *, constraints=None, plan=None)`: the variables are the ranges and options of the plant by
+the rule above (strings and integers are searched as integers, `differential_evolution(integrality=)`
+only when there is one); `evaluations` and `seed` have no default (the old `100` and `SEED = 0` are
+gone); the result is `{best, feasible, history, evaluations}` and has no `fixed` (a leaf without a
+range is not a variable). `sample(plant, case, metrics, samples, seed)` renamed `count` (7.10). The
+best design is a `Plant`; its `to_json` runs. (g) **One verdict** (decision of this step). `compare`
+requires a `verdict` in each report (`missing_value` otherwise); the study uses the verdict and
+nothing else decides feasibility. Today's search counted requirement checks, operating-limit
+breaches and failed steps, and did not count the service reasons (`cold_delivered` of a plant with
+no cooling grid), which `compare` added after; if every such reason made every trial infeasible, the
+search of `HeatingPlant` would change. The form chosen: a reason of the verdict carries a
+`violation` (the relative excess of a failed check, of a breach, of a balance; 1e6 for a failed
+step or a loop that did not converge) when a design variable can change it, and none when it is
+structural (a service the plant has no unit for, no requirement checkable). A trial is infeasible
+by the reasons with a `violation` (`gm.evaluate.verdict.ranked`), ranked by their sum (at most 1e6);
+the reasons without one stay in the verdict of the run of the best plant, so `report`, `compare` and
+`Study` give `cold_delivered` for `HeatingPlant` as before. Measured: the violations of 8
+random trials of a plant with a chiller of 0.1 to 10 MW agree with the old count to the last
+digit, and `.tmp/inputs/guard_search.py` (below) agrees on the search. A reason of kind `numerical`
+or a declared `bound` now also ranks a trial (it did not): none occurs on the samples. (h)
+`gm.Study` (`gemini/study/study.py`): header `kind: study`; keys `cases`, `plants` (paths relative
+to the file, or `files` in memory), `prepare` (`["size"]`), `method` (`run`, `minimize`, `sample`,
+`sensitivity`, a closed list), `objective`, `metrics`, `evaluations`, `samples`, `seed`; a key the
+method needs and the file lacks is `missing`, one the method does not read (`evaluations` and
+`samples` of other methods, `seed` of `run` and `sensitivity`) is `incompatible`, an unknown key
+`unknown_key`; `from_dict` raises all issues at once and `check()` returns them with the files that
+do not read and the `gm.check` of each pair. `run(plants=None)` calls `size`, `minimize`, `sample`
+or `sensitivity` as a caller does, simulates and reports the design (the best plant of a search),
+and returns a `StudyResult`: `runs`, `comparison` (per case, by the objective then the metrics, a
+leading `-` meaning a maximum) and `best` (per case, the feasible run ranked first by the
+objective). A `minimize` on a plant with no range and no options runs the plant as it is, with a
+`note`. `to_json(folder)` writes `study.json`, `version.json`, `result.json`, per case the case,
+its economics and series, and per plant `source.json` (as given), `plant.json` (the full form that
+ran), `report.json`, `verdict.json`, `series.csv` and `found.json`. `plan` (7.24) and
+`measurements` are not built. (i) Data fix: `HackathonPlant.json` had no `range` on `d0.depth` and
+`d1.depth`, so a search of it lost the variable the old search had (`depth`, 2000 to 3500 m, on
+each doublet); both leaves carry it, which gives 80 trials as before. The variable order is the
+file's (heat pump, chiller, flow, depth), not the old (depth first); the best design of the
+sample is the same to the last digit. (j) Search equivalence: `.tmp/inputs/guard_search.py <plant>`
+runs `size` and `minimize(objective="lcts", evaluations=20, seed=0)` under `processes=4` on a
+sample plant and compares `lcts`, `co2` and `capex` of the best design with the report of the old
+code within 1e-6: `HackathonPlant` (80 trials), `HeatingPlant` (120) and
+`HeatingHeatPumpCoolingPlant` (240) pass.
+
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is
 built for `case.initial_state` and its check in `gm.check`; the removal of the `State` defaults and

@@ -1,20 +1,4 @@
 {
-  "choices": {
-    "depth": {
-      "max": {
-        "unit": "m",
-        "value": 1800
-      },
-      "min": {
-        "unit": "m",
-        "value": 1000
-      }
-    },
-    "doublets": {
-      "max": 2,
-      "min": 1
-    }
-  },
   "demand": {
     "cooling": {
       "dew_point_margin": {
