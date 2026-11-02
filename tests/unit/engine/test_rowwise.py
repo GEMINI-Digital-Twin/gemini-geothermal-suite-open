@@ -6,6 +6,7 @@ import pytest
 import gemini as gm
 from gemini.engine.rowwise import (
     applied,
+    call_rows,
     inlet_feeds,
     row_item,
     row_streams,
@@ -41,8 +42,8 @@ def test_each_row_is_a_call_with_its_own_error():
     module = Booster()
     streams = _streams(3)
     feeds = inlet_feeds(streams) | {"level": np.array([1.0, -1.0, 3.0])}
-    results, errors, states = run_rows(module, {"fluid_in": gm.WATER}, feeds, 3, {}, False)
-    assert sorted(results) == [0, 2] and list(errors) == [1] and states is None
+    results, errors = run_rows(module, {"fluid_in": gm.WATER}, feeds, 3)
+    assert sorted(results) == [0, 2] and list(errors) == [1]
     assert "level = -1.0" in str(errors[1])
     assert stacked(results, 3).outputs["rise"].tolist()[::2] == [2.0, 6.0]
     assert np.isnan(stacked(results, 3).outputs["rise"][1])
@@ -50,13 +51,26 @@ def test_each_row_is_a_call_with_its_own_error():
 
 
 def test_a_stepped_module_carries_its_state_from_row_to_row():
-    """The states after the last row are those of the sum of the flows."""
-    streams = _streams(3)
-    feeds = inlet_feeds(streams)
-    _, errors, states = run_rows(
-        Reservoir(), {"fluid_in": gm.WATER}, feeds, 3, {"dt": 900.0, "states": {"total": 0.0}}, True
+    """The states after the last row are those of the sum of the flows; the values are arrays."""
+    feeds = inlet_feeds(_streams(3))
+    context = {"dt": 900.0, "states": {"total": 0.0}}
+    tree, failed, error, states = call_rows(
+        Reservoir(), {"fluid_in": gm.WATER}, feeds, 3, context, True
     )
-    assert errors == {} and states == {"total": 6.0}
+    assert not failed.any() and states == {"total": 6.0}
+    assert tree.outputs["content"].tolist() == [1.0, 3.0, 6.0]
+
+
+def test_a_failed_row_is_an_error_and_a_stepped_run_goes_on():
+    """A row that raises is an error and NaN; the state goes on from the row before it."""
+    feeds = inlet_feeds(_streams(4)) | {"level": np.array([1.0, -1.0, 3.0, 1.0])}
+    _, failed, error, _ = call_rows(Booster(), {"fluid_in": gm.WATER}, feeds, 4, {}, False)
+    assert failed.tolist() == [False, True, False, False] and "level = -1.0" in str(error(1))
+    context = {"dt": 900.0, "states": {"total": 0.0}, "halt": lambda raised: True}
+    tree, failed, error, states = call_rows(
+        Reservoir(), {"fluid_in": gm.WATER}, inlet_feeds(_streams(4)), 4, context, True
+    )
+    assert not failed.any() and states == {"total": 10.0}
 
 
 def test_applied_inputs_are_validated_and_put_back():

@@ -7,10 +7,10 @@ from gemini._utils.jsonable import to_plain
 from gemini.engine.check import check
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
-from gemini.study._utils.parallel import mapped
+from gemini.study._utils.parallel import mapped_batches
 from gemini.study._utils.shown import difference_names, shown
 from gemini.study._utils.target import quantities, quantity_of
-from gemini.study._utils.trial import checked_metric, drawn_trial
+from gemini.study._utils.trial import checked_metric, drawn_trials
 from gemini.study._utils.uncertain import declared
 from gemini.units.shapes import measure
 
@@ -171,7 +171,7 @@ def sample(plant, case, metrics, samples, seed, *, plan=None):
         {name: _draw(generator, name, uncertainty, value) for name, uncertainty, value in found}
         for _ in range(samples)
     ]
-    runs = mapped(drawn_trial, (plant, case, plan, names), draws)
+    runs = mapped_batches(drawn_trials, (plant, case, plan, names), draws)
     drawn_runs = []
     for drawn, (run, reason) in zip(draws, runs):
         failed = {"reason": reason} if reason else {}

@@ -9,7 +9,9 @@ Test with the development profile (`make test`); see
 
 A leaf module computes and a plant connects; no class does both
 ([modules](.claude/docs/modules.md), [plants](.claude/docs/plants.md)). A leaf has physics calls and
-one pure method, `forward`, and a pure `update` when it has states. Every composite is a `Plant`: it declares children, ports and connections in
+one pure method, `forward`, and a pure `update` when it has states; to write one, follow
+[Writing a module](.claude/docs/writing-a-module.md) (a pump and a controller, each alone and
+inside a plant). Every composite is a `Plant`: it declares children, ports and connections in
 `__init__` and never writes `forward`. The engine closes loops and solves constraints.
 
 Physics lives in `gemini/physics/`, and in a `_physics.py` beside a category only when it needs
@@ -129,6 +131,7 @@ Read every file in `.claude/docs/` before changing the repository:
 - [Glossary](.claude/docs/glossary.md): one name per concept for parameters, outputs and ports.
 - [Legacy](.claude/docs/legacy.md): the old-format reader kept in `scripts/legacy/` for the tests.
 - [Modules](.claude/docs/modules.md): declarations, listings, calls, outputs, hooks and state.
+- [Writing a module](.claude/docs/writing-a-module.md): the pure contract (`forward`, `update`), a stateless pump and a stateful controller, each alone and inside a plant; its snippets run in `test_docs`.
 - [Native engine](.claude/docs/native-engine.md): the computation-graph design and its status.
 - [Physics](.claude/docs/physics.md): every physics function by file, SI correlations and numerical
   constraints.

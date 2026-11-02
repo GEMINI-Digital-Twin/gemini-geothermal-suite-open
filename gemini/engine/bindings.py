@@ -117,8 +117,10 @@ class RunBindings:
     ``twins`` holds one ``Twin`` per evaluated module. In simulate the only twin is the plant,
     reading its root inlets and every leaf control or boundary that has a data column;
     ``root_inlets`` holds the plant inlet fields stated with ``plant.set_inputs``.
-    ``one_tick`` tells that the run cannot evaluate more than one tick at a time: a stateful
-    module is stepped, or a twin sits below another twin and reads what that twin persisted.
+    ``one_tick`` tells that the run cannot evaluate more than one tick at a time: a replay steps a
+    stateful module from the state it measures at each tick, or a twin sits below another twin and
+    reads what that twin persisted. ``stepped`` tells that a twin has states: a simulation scans
+    its ticks in time as one chunk, but ticks one by one when a callback reads the states.
     """
 
     def __init__(self, plant, dataset, kind, only=None, on_error="raise"):
@@ -144,7 +146,8 @@ class RunBindings:
             )
         paths = [twin.path for twin in self.twins]
         nested = any(_is_below(path, paths) for path in paths)
-        self.one_tick = nested or any(twin.stepped for twin in self.twins)
+        self.stepped = any(twin.stepped for twin in self.twins)
+        self.one_tick = nested or (self.stepped and kind != "simulate")
 
     def _simulation(self, plant, dataset):
         """Add the plant as the one twin, with its leaf inputs read from the data."""

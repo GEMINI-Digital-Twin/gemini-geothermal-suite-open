@@ -132,6 +132,7 @@ records, NumPy, and profiles already in memory. A plant owns bindings and dated 
 engine and optimizer calls never take a separate configuration.
 
 See [api.md](.claude/docs/api.md), [modules.md](.claude/docs/modules.md),
+[writing-a-module.md](.claude/docs/writing-a-module.md),
 [data.md](.claude/docs/data.md), [engine.md](.claude/docs/engine.md),
 [legacy.md](.claude/docs/legacy.md) and [errors.md](.claude/docs/errors.md). Report bugs with the
 output of `python -m gemini._utils.collect_env`.

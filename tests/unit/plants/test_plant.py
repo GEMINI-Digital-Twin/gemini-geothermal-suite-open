@@ -5,7 +5,7 @@ import json
 import pytest
 
 import gemini as gm
-from gemini.errors import NotImplementedYet, ValidationError
+from gemini.errors import ValidationError
 from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
@@ -150,8 +150,8 @@ def test_a_stream_type_mismatch_is_refused(chain):
     assert caught.value.code == "stream_mismatch"
 
 
-def test_a_cycle_is_a_loop_and_a_state_connection_waits_for_scan():
-    """A plain connection may close a cycle; the same wire as state does not run yet."""
+def test_a_cycle_is_a_loop_and_a_state_connection_is_not():
+    """A plain connection may close a cycle into a loop; the same wire as state is a delay."""
     plant = gm.Plant("Loop")
     plant.add("Filter", "first")
     plant.add("Filter", "second")
@@ -163,9 +163,7 @@ def test_a_cycle_is_a_loop_and_a_state_connection_waits_for_scan():
     plant.add("Filter", "second")
     plant.connect("first.fluid_out", "second.fluid_in")
     plant.connect("second.fluid_out", "first.fluid_in", type="state")
-    with_values(plant)
-    with pytest.raises(NotImplementedYet):
-        plant()
+    assert not with_values(plant)._compiled().iterates
 
 
 def test_unknown_names_come_with_suggestions(chain):

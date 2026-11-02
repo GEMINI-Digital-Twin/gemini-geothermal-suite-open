@@ -12,9 +12,10 @@ from gemini.errors.base import raise_issues
 from gemini.plants._utils.resize import resized
 from gemini.study._utils.best import Best
 from gemini.study._utils.parallel import mapped
+from gemini.study._utils.shared import Shared
 from gemini.study._utils.shown import difference_names
 from gemini.study._utils.target import quantity_of, unit_of
-from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, run_judged
+from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, run_trials
 from gemini.study._utils.variables import DOUBLETS, counts, variables
 from gemini.units.shapes import Value, measure
 
@@ -163,16 +164,21 @@ def _discrete(found):
     return np.array(flags) if any(flags) else None
 
 
-def _search(evaluated, found, evaluations, start, seed):
-    """Run the search of the variables from ``start``; with none, evaluate once."""
+def _search(evaluated, found, evaluations, start, seed, generations=None):
+    """Run the search of the variables from ``start``; with none, evaluate once.
+
+    ``generations`` is the number of generations after the first; without it, what the budget
+    allows. With ``0`` only the first population is evaluated, which is how the points of the
+    first generation are known before the search runs.
+    """
     if not found:
         evaluated(np.empty(0))
         return
-    population, generations = _generations(evaluations, len(found))
+    population, allowed = _generations(evaluations, len(found))
     differential_evolution(
         evaluated,
         _bounds(found),
-        maxiter=generations,
+        maxiter=allowed if generations is None else generations,
         popsize=population,
         x0=start,
         tol=0,
@@ -180,6 +186,53 @@ def _search(evaluated, found, evaluations, start, seed):
         seed=seed,
         integrality=_discrete(found),
     )
+
+
+class _Population:
+    """The first population of a search, run as one batch, and the trials after it one by one.
+
+    ``differential_evolution`` with ``updating="immediate"`` (the default, and the trial sequence
+    this search has always had) builds each candidate of a generation from the members replaced
+    before it, so only the first population, which is drawn before any trial is known, is one
+    batch; its points are found by a search of zero generations that records them. A point that
+    was run in the batch is read from there when the search asks for it, in the order the search
+    asks, so the history, the order and the random draws are those of a search that runs every
+    trial alone.
+    """
+
+    def __init__(self, shared, case, plan, name, found):
+        """Run the trials on ``shared``, the plant of the search, judged on ``name``."""
+        self.shared, self.case, self.plan, self.name, self.found = shared, case, plan, name, found
+        self.known = {}
+
+    def prepare(self, evaluations, start, seed):
+        """Run the first population of the search that ``evaluations`` and ``seed`` describe."""
+        points = []
+
+        def record(point):
+            points.append(np.array(point, dtype=float))
+            return 0.0
+
+        _search(record, self.found, evaluations, start, seed, generations=0)
+        outcomes = self.run([_values(self.found, point) for point in points])
+        for point, outcome in zip(points, outcomes):
+            self.known.setdefault(point.tobytes(), []).append(outcome)
+
+    def run(self, valued):
+        """Return the outcome ``(metrics, reason, violation)`` of the trials of ``valued``."""
+        if not valued:
+            return []
+        return run_trials(self.shared, self.case, self.plan, valued, {self.name}, True)
+
+    def outcome(self, point):
+        """Return the outcome of the trial at ``point``: the batch's, else one trial alone.
+
+        A trial of the batch is read once, so a point asked twice is run twice, as it is alone.
+        """
+        waiting = self.known.get(np.asarray(point, dtype=float).tobytes())
+        if waiting:
+            return waiting.pop(0)
+        return self.run([_values(self.found, point)])[0]
 
 
 def _counted(shared, count):
@@ -190,17 +243,20 @@ def _counted(shared, count):
     found = variables(design)
     history = []
     lifts = _lifts(design, case, found)
+    population = _Population(Shared(design), case, plan, name, found)
 
     def evaluated(point):
-        values = _values(found, point)
-        metrics, reason, violation = run_judged(design, case, plan, values, {name})
+        metrics, reason, violation = population.outcome(point)
         if reason is None and metrics[name].value is None:
             reason, violation = metrics[name].reason, LARGEST_VIOLATION
         shown = chosen | _shown(design, case, found, point)
         history.append(_entry(shown, metrics, name, reason, violation, lifts))
         return _ranked(sign, history[-1].value, reason, violation)
 
-    _search(evaluated, found, evaluations, _start(design, found), seed)
+    start = _start(design, found)
+    if found:
+        population.prepare(evaluations, start, seed)
+    _search(evaluated, found, evaluations, start, seed)
     return history
 
 

@@ -1,7 +1,8 @@
 """Break nodes: a leaf child that cannot be traced runs as a plain call, row by row, inside a graph.
 
-``record_break`` records one ``break`` node for the call of a stateful, pre-hooked or
-untraceable leaf child. Its operands are the fields of the inlets and the supplied control and
+``record_break`` records one ``break`` node for the call of a pre-hooked or untraceable leaf
+child without states (one with states makes the whole root a break: a node has no state to start
+from). Its operands are the fields of the inlets and the supplied control and
 boundary values, flattened; its attributes are the path of the module below the root of the call
 (a graph holds no module) and the layout of the operands. Every output and outlet field is a
 ``break_output`` node of it. ``evaluate_break`` runs the module of the root it is given row by

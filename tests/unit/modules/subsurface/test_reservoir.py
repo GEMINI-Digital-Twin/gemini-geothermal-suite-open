@@ -247,3 +247,27 @@ def test_health_without_a_nominal_index_or_measurements_is_not_assessed():
     health = producer.health(None, dict(flow=1.0, bottomhole_pressure=producer.pressure))
     assert not health.assessed and not health.alarm and health.score == 1
     assert health.message == "No diagnostic model or sufficient measurements"
+
+
+def test_an_injection_reservoir_without_a_fluid_takes_the_fluid_of_its_sandface():
+    """A call of the aquifer alone works on the fluid the sandface stream carries."""
+    design = dict(
+        pressure=2.4e7,
+        temperature=353.15,
+        permeability=1e-12,
+        aquifer_thickness=100,
+        drainage_radius=500,
+        wellbore_radius=0.1,
+        top_depth=3100,
+        injectivity_index=1e-8,
+    )
+    kept = si.set_params(with_values(InjectionReservoir()), "", design)
+    alone = si.set_params(with_values(InjectionReservoir()), "", design)
+    object.__setattr__(alone, "_fluid", None)
+    sandface = Stream(
+        m_dot=Quantity(20.0, "kg/s"),
+        T=Quantity(330.0, "K"),
+        p=Quantity(2e7, "Pa"),
+        fluid=BRINE,
+    )
+    assert alone(sandface_in=sandface).outputs == kept(sandface_in=sandface).outputs

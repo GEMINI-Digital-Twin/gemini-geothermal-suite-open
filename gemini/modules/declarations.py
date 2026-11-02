@@ -218,6 +218,14 @@ class Declaration:
         """
         return _value_schema(self.schema).get("type")
 
+    def _options(self):
+        """Return the allowed values of a ``Literal`` kind in declared order, else ``None``."""
+        value_schema = _value_schema(self.schema)
+        if "const" in value_schema:
+            return (value_schema["const"],)
+        options = value_schema.get("enum")
+        return None if options is None else tuple(options)
+
     def accepts_none(self):
         """Return whether the declared kind is ``X | None``."""
         return any(variant.get("type") == "null" for variant in self.schema.get("anyOf", ()))

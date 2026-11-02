@@ -56,7 +56,7 @@ def _carries(plant, case):
 
 
 def started(case):
-    """Return the ``state=`` of ``Engine.simulate``: the initial states of ``case``, else ``None``.
+    """Return the start the engine simulates from: the initial states of ``case``, else ``None``.
 
     The states are the nested dict of the states of the plant's modules, by child name, in SI.
     """
@@ -89,6 +89,14 @@ def applied_in_place(plant, case):
     _states(applied, case)
     _APPLIED[applied] = weakref.ref(case)
     return applied
+
+
+def remember_case(plant, case):
+    """Record that ``plant`` carries the values of ``case``, as ``applied_in_place`` does.
+
+    For a plant whose state was put back after a run, such as the shared plant of a study.
+    """
+    _APPLIED[plant] = weakref.ref(case)
 
 
 def _outside(path, doublets):

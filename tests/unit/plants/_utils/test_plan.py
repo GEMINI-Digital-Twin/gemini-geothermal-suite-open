@@ -1,7 +1,5 @@
 """The order and wiring of the steps of a plant."""
 
-import pytest
-
 import gemini as gm
 from gemini.plants._utils import plan
 
@@ -39,8 +37,8 @@ def test_the_plan_names_where_every_inlet_comes_from():
     assert steps.outlets == {"supply_out": [("riser", "wellhead_out")]}
 
 
-def test_state_connections_cannot_run_yet():
-    """A plan with a state link raises ``NotImplementedYet``."""
+def test_a_state_connection_orders_nothing_and_reads_the_previous_step():
+    """A cycle closed by a state connection has no loop: the target reads ``("delayed", key)``."""
     plant = gm.Plant("State")
     plant.add("Pipe", "one")
     plant.add("Pipe", "two")
@@ -50,8 +48,12 @@ def test_state_connections_cannot_run_yet():
     plant.connect("air", "two.air_in")
     plant.connect("one.loss_out", "loss")
     plant.connect("two.loss_out", "loss")
-    with pytest.raises(gm.errors.NotImplementedYet):
-        plan.compile_plan(plant)
+    compiled = plan.compile_plan(plant)
+    assert not compiled.iterates
+    assert compiled.delays == {"two.fluid_out": ("two", "fluid_out")}
+    assert compiled.arguments["one"]["fluid_in"] == ("delayed", "two.fluid_out")
+    assert [step.path for step in compiled.steps] == ["one", "two"]
+    assert plant.stateful and plant._has_state()
 
 
 def test_a_loop_through_a_plant_child_opens_it():

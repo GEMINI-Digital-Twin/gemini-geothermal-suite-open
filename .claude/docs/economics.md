@@ -293,8 +293,9 @@ wins). Leaves with the same parameter name, the same role (`gm.plants.roles()`) 
 are one variable that sets them all (`heat_pump.capacity`, `chiller.capacity` for three chillers,
 `doublet.nominal_flow`, `doublet.depth`); the order is that of the file; a plant that states
 nothing to search raises `invalid_design`. `evaluations` and `seed` have no default (7.28). Each
-trial copies the plant, sets the variables, plans the demand of the case on that design with
-`gm.schedule`, simulates and reads the metric, so neither is changed. A `plan` stays fixed over the
+trial sets the variables on the one plant the trials of a batch share (nothing is copied for a
+trial), plans the demand of the case on that design with `gm.schedule`, simulates and reads the
+metric, so neither the plant nor the case is changed. A `plan` stays fixed over the
 trials and lets `case` be `None` for a building block; with neither the call raises
 `missing_value`. `gm.check` runs first. `evaluations` is the largest number of simulations **for
 each doublet count**; with four variables 20 gave 80 trials. The search is
@@ -317,7 +318,9 @@ trial with its `reason` (`None` when feasible; the first failed check, a dict, o
 objective as a `Value` whose `parts["parameters"]` are `{name: Quantity}` (an option is its string)
 and whose `["plant"]` is the best feasible plant (a `Plant`; its `to_json` runs), or with none the least violating trial that ran, then `feasible` is
 `False`. A trial costs about 1.5 times one `gm.simulate` of the same plant and case (0.15 s against
-0.10 s on the year of the hackathon sample), see below.
+0.10 s on the year of the hackathon sample), see below. The first population of a search is one
+batch (one array pass for all its candidates); each candidate of a later generation is built from
+the members replaced before it, so they run one by one.
 
 `gm.study.sample(plant, case, metrics, samples, seed, *, plan=None)` draws `normal`,
 `uniform` and `triangular` values (the `uncertainty` of the case, `case.<path>`) with
@@ -350,22 +353,28 @@ plant without a supply is judged infeasible for that service), an initial state 
 every stateful module, the energy prices of a `least_cost` dispatch, and the parameters without a
 value; `simulate` and every study function run it first.
 
-**What a trial costs.** A trial copies the plant once, sets its variables and the values of the case
-on that copy (`applied_in_place` of `gemini/engine/apply.py`), and the run and every metric read
-that copy: `apply_case` returns a copy that already carries the same case object, so it copies
-nothing again. The ESP depth and the pipe path of a well (`section_length`, `section_inclination`,
-`section_diameter`, `section_roughness`, `esp_depth`) are numeric graph inputs, so one traced graph
-serves every trial of a study (a different number of sections, or an ESP that is added or removed,
-traces once more). `Results.to_frame()` of a finished run builds its table with the unit of each
-column without touching the columns one by one.
+**What a trial costs.** The trials of a batch share one plant: a trial sets its variables and the
+values of the case on it (`applied_in_place` of `gemini/engine/apply.py`), keeps the state it has
+(`gemini/study/_utils/shared.py`) and puts it back whenever it goes on, so nothing is copied for a
+trial. The trials run side by side: each plans and prepares its run, the array pass of all of them
+is one (a parameter or a sampled value is a column over the rows of the trial), and each reads its
+metrics from its own results, which are those of a run alone. The ESP depth and the pipe path of
+a well (`section_length`, `section_inclination`, `section_diameter`, `section_roughness`,
+`esp_depth`) are numeric graph inputs, so one traced graph serves every trial of a study (a
+different number of sections, or an ESP that is added or removed, traces once more), and trials
+that differ in a structural value (a text option that changes the structure, a doublet count) form
+batches of their own. A plant that holds a graph break (a root solve such as `NodalDoublet`, a
+pre-hook) runs its trials one at a time. There is no batch-size setting: one batch for the first
+population of a search, for the draws of `sample` or `sensitivity` of a process.
 
-**Parallel trials.** `with gm.runtime.settings(processes=4):` runs the independent trials of
-`sample` and `sensitivity` in four worker processes, and the searches of `minimize` for the
-different doublet counts (a search over one count is sequential: each candidate uses the
-generation before it). The results are those of a serial run, in the same order. Workers start from
-a `forkserver`, so a script needs the `if __name__ == "__main__":` guard; the first parallel call of
-a process pays the import of gemini once (about a second and a half) and every worker traces its
-own graphs, so a study of fewer than a dozen trials is faster serial.
+**Parallel trials.** `with gm.runtime.settings(processes=4):` splits the draws of `sample` and
+`sensitivity` into four consecutive parts, each one batch in its own worker process, and runs the
+searches of `minimize` for the different doublet counts in the processes (a search over one count
+is sequential after its first population: each candidate uses the generation before it). The
+results are those of a serial run, in the same order. Workers start from a `forkserver`, so a
+script needs the `if __name__ == "__main__":` guard; the first parallel call of a process pays the
+import of gemini once (about a second and a half) and every worker traces its own graphs, so a
+study of fewer than a dozen trials is faster serial.
 
 A metric is a KPI or total of `gm.evaluate.totals` or one of `lcoh`, `lcoc`, `lcts`,
 `annualised_cost`, `co2`; the economic ones read the economics of `case`, so they need a case with

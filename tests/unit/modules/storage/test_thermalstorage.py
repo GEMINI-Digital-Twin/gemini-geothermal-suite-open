@@ -326,3 +326,38 @@ def test_thermal_storage_update_matches_per_row():
     actual = advance(np.array(TEMPERATURES), *stacked.values(), ambient)
     assert_close(actual, expected, "temperature")
     assert expected[2] == 283.15
+
+
+def _json_stream(fluid, flow, temperature, pressure):
+    return {
+        "fluid": fluid._to_dict(),
+        "m_dot": {"value": flow, "unit": "kg/s"},
+        "T": {"value": temperature, "unit": "degC"},
+        "p": {"value": pressure, "unit": "bar"},
+    }
+
+
+def test_gm_call_takes_the_tank_fluid_from_the_inlet_stream():
+    """A tank called from JSON with ``state`` and ``dt`` and no stated fluid works on its stream."""
+    result = gm.call(
+        "ThermalStorage",
+        parameters={
+            "service": "hot",
+            "volume": {"value": 2, "unit": "m3"},
+            "heat_loss_conductance": {"value": 10, "unit": "W/K"},
+            "reference_temperature": {"value": 40, "unit": "degC"},
+            "charge_effectiveness": 1.0,
+            "discharge_effectiveness": 1.0,
+        },
+        inlets={
+            "charge_in": _json_stream(BRINE, 1.0, 80, 3),
+            "discharge_in": _json_stream(BRINE, 0.5, 40, 3),
+            "air_in": _json_stream(AIR, 0.0, 20, 1.01325),
+        },
+        controls={},
+        units="si",
+        state={"temperature": gm.units.Quantity(20, "degC")},
+        dt=gm.units.Quantity(10, "min"),
+    )
+    expected = _tank().step({"temperature": 293.15}, 600, _inlets())[0]["temperature"]
+    assert result["state"]["temperature"]["value"] == pytest.approx(expected, rel=1e-9)

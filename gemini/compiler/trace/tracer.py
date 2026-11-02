@@ -11,19 +11,25 @@ that writes an output is part of the graph; one that only reads, and any pre-hoo
 break: it is called on the module's real values, row by row.
 Anything the trace cannot follow raises ``TraceError`` inside the trace; a root that cannot be
 traced is never an error: ``Tracer.trace`` returns a graph with one **root break** (see
-``rootbreak``) whose reason is in ``graph.breaks``. So is a root that holds a stateful module
-when the run is ``stepped``: ``Module.step`` is the one implementation of a step.
+``rootbreak``) whose reason is in ``graph.breaks``.
+
+A ``stepped`` root that holds a stateful module is traced as one ``scan`` (``Graph.scan``): the
+body is one step, the same call followed by ``update`` of each stateful module it reached (see
+``states``), with every state a carry of the scan and the step length ``dt`` a graph input. A
+stateful root that is not stepped has no state to start from and is a root break.
 """
 
 import numbers
 
 from gemini import ops, runtime
+from gemini._utils.mappings import get_nested
 from gemini._utils.strings import join_path
-from gemini.compiler.ir import STREAM_FIELDS, Graph
+from gemini.compiler.ir import STREAM_FIELDS, Graph, traced_nodes
 from gemini.compiler.trace.breaks import record_break
 from gemini.compiler.trace.errors import TraceError
-from gemini.compiler.trace.limits import certain, check_declared_limits
+from gemini.compiler.trace.limits import certain, check_declared_limits, check_state_limits
 from gemini.compiler.trace.rootbreak import root_break_graph
+from gemini.compiler.trace.states import advance, leaf_unit, next_values, state_leaves, state_tree
 from gemini.modules.callrecord import CallRecord, current_call, outputs_enabled
 from gemini.modules.results import ModuleResult
 from gemini.plants._utils.plan import Solve
@@ -38,42 +44,78 @@ class Tracer:
         """Return the graph of one call of ``module``; ``fluids`` maps inlet names to fluids.
 
         ``stepped`` tells that the graph is evaluated with a time step and states: a stateful
-        module in the tree then makes the root a break, stepped by ``Module.step``. A root that
-        cannot be traced gives a root break graph; nothing is raised for it.
+        module in the tree then makes the graph a scan. A root that cannot be traced gives a root
+        break graph; nothing is raised for it.
         """
         module._prepare()
         reasons = _untraceable(module, stepped)
         reason = f"{module.path}: cannot be traced: {'; '.join(reasons)}" if reasons else None
         if reason is None:
             try:
-                return self._traced(module, fluids)
+                return self._traced(module, fluids, stepped)
             except TraceError as error:
                 reason = str(error)
         return root_break_graph(module, fluids, stepped, reason)
 
-    def _traced(self, module, fluids):
+    def _traced(self, module, fluids, stepped):
         graph = Graph(module.path)
         with ops.scope.tracing(graph):
+            if stepped and _stateful(module):
+                return self._record_scan(module, graph, fluids)
             return self._record(module, graph, fluids)
 
     def _record(self, module, graph, fluids):
         """Record the call of ``module`` into ``graph`` and return it."""
         trace = Trace(graph, module)
-        fed = {name: _inlet(graph, name, fluids[name]) for name in module._fed_inlets()}
-        inlets = Ports(fed | module._empty_ports(fed), path=module.path)
-        trace.limit_checks.extend(graph.checks)
-        outlets, call = trace.run(module, inlets, {}, None)
-        settled = module._settled_inlets(inlets, call)
-        graph.result = ModuleResult.of(
-            module, call.kept_outputs(), outlets, settled, call.inputs, call.call_records
-        )
+        fed = _fed(graph, module, fluids)
+        outlets, call, result = trace.call_root(fed, None)
         for port, value in outlets.items():
-            _record_outlet(graph, port, value)
+            _record_outlet(graph, port, value, _same)
         for name, value in call.kept_outputs().items():
             graph.output(f"outputs.{name}", value)
         if not graph.outputs:
             graph.result.mapped(_required(graph))
         certain(graph, trace.limit_checks + graph.unframed)
+        return graph
+
+    def _record_scan(self, module, graph, fluids):
+        """Record one step of ``module`` as the body of a scan over the rows; return the graph."""
+        trace = Trace(graph, module)
+        leaves = state_leaves(module)
+        names = [join_path("state", "/".join(leaf)) for leaf in leaves]
+        starts = [
+            graph.input(name, "state", leaf_unit(module, leaf)) for name, leaf in zip(names, leaves)
+        ]
+        dt = graph.input("dt", "dt", "s")
+        kept = {}
+
+        def around(carries):
+            state = state_tree(leaves, carries)
+            outlets, call, result = trace.call_root(_fed(graph, module, fluids), state)
+            advanced = advance(trace, module, result, dt)
+            before = len(graph.checks)
+            check_state_limits(module, advanced)
+            trace.limit_checks.extend(graph.checks[before:])
+            images = next_values(leaves, carries, advanced)
+            outputs = call.kept_outputs()
+            values = [*outputs.values(), *(v for v in outlets.values() if not isinstance(v, list))]
+            if not values:
+                result.mapped(_required(graph))
+            guarded = traced_nodes([*values, *images])
+            certain(graph, trace.limit_checks + graph.body.unframed, guarded)
+            flat = []
+            result.mapped(lambda value: flat.append(value) or value)
+            kept.update(outlets=outlets, outputs=outputs, result=result)
+            return images, [values, flat], values
+
+        graph.stepped = True
+        graph.finals, replace = graph.scan(starts, around)
+        graph.states = list(zip(leaves, names))
+        graph.result = kept["result"].mapped(replace)
+        for port, value in kept["outlets"].items():
+            _record_outlet(graph, port, value, replace)
+        for name, value in kept["outputs"].items():
+            graph.output(f"outputs.{name}", replace(value))
         return graph
 
 
@@ -117,20 +159,21 @@ class Trace:
     def child(self, module, inlets, supplied, parent):
         """Record one child call and return its ``ModuleResult`` of traced values.
 
-        A stateful or pre-hooked leaf, and a leaf whose trace raises ``TraceError``, become one
-        break node and the rest of the graph is kept; a composite child that cannot be
-        recorded raises ``TraceError`` instead.
+        A pre-hooked leaf without states, and a leaf without states whose trace raises
+        ``TraceError``, become one break node and the rest of the graph is kept; a composite
+        child, and a child with states, that cannot be recorded raises ``TraceError`` instead.
         """
-        reasons = _untraceable(module, False)
+        reasons = _untraceable(module, True)
+        state = self._state_of(module, parent)
         mark = self._mark()
         try:
             if reasons:
                 raise TraceError(f"{module.path}: {reasons[0]}")
-            outlets, call = self.run(module, inlets, supplied, parent)
+            outlets, call = self.run(module, inlets, supplied, parent, state)
             outputs, inputs, records = call.kept_outputs(), call.inputs, call.call_records
             settled = module._settled_inlets(inlets, call)
         except TraceError as error:
-            if not module.is_leaf:
+            if not module.is_leaf or module._states:
                 raise
             self._rollback(mark)
             outlets, outputs, inputs, settled = record_break(
@@ -143,14 +186,15 @@ class Trace:
                 str(error),
             )
             records = []
-        result = ModuleResult.of(module, outputs, outlets, settled, inputs, records)
+        result = ModuleResult.of(module, outputs, outlets, settled, inputs, records, state)
         if self._records():
             parent.call_records.append((module._relative_path(parent.module), result))
         return result
 
     def _records(self):
         """Return whether calls are recorded: those of the passes of a loop body are not."""
-        return outputs_enabled() and self.graph.body is None
+        body = self.graph.body
+        return outputs_enabled() and (body is None or body.scanned)
 
     def offer(self, module, inlets, parent):
         """Return the offered outlets of ``module`` on traced values; no call is recorded."""
@@ -160,7 +204,8 @@ class Trace:
             outputs={},
             recording=False,
             parent=parent,
-            parameters=self._call_parameters(module),
+            state=self._state_of(module, parent),
+            parameters=self.parameters(module),
             trace=self,
         )
         token = current_call.set(call)
@@ -176,15 +221,19 @@ class Trace:
         graph_mark, self._inputs, self._parameters = mark[0], mark[1], mark[2]
         self.graph.rollback(graph_mark)
 
-    def run(self, module, inlets, supplied, parent):
-        """Trace ``forward`` and the output step of ``module``; return its outlets and call."""
+    def run(self, module, inlets, supplied, parent, state):
+        """Trace ``forward`` and the output step of ``module``; return its outlets and call.
+
+        ``state`` is the state tree of the call, of traced values in a scan, else ``None``.
+        """
         call = CallRecord(
             module=module,
             inputs=self._call_inputs(module, supplied),
             outputs={},
             recording=self._records(),
             parent=parent,
-            parameters=self._call_parameters(module),
+            state=state,
+            parameters=self.parameters(module),
             trace=self,
         )
         token = current_call.set(call)
@@ -196,6 +245,43 @@ class Trace:
         finally:
             current_call.reset(token)
         return outlets, call
+
+    def call_root(self, fed, state):
+        """Record the call of the root on the traced inlets ``fed``; return outlets, call, result.
+
+        The result is also ``graph.result``. ``state`` is the state tree the call starts from.
+        """
+        module = self.root
+        call = CallRecord(
+            module=None,
+            inputs={},
+            outputs={},
+            parent=None,
+            recording=False,
+            trace=self,
+            state=state,
+        )
+        token = current_call.set(call)
+        try:
+            optional = module._empty_ports(fed, state)
+        finally:
+            current_call.reset(token)
+        inlets = Ports(fed | optional, path=module.path)
+        self.limit_checks.extend(self.graph.checks)
+        outlets, call = self.run(module, inlets, {}, None, state)
+        settled = module._settled_inlets(inlets, call)
+        result = ModuleResult.of(
+            module, call.kept_outputs(), outlets, settled, call.inputs, call.call_records, state
+        )
+        self.graph.result = result
+        return outlets, call, result
+
+    def _state_of(self, module, parent):
+        """Return the state tree of the call of ``module`` made inside ``parent``."""
+        if parent.module is None:
+            return parent.state
+        keys = tuple(module._relative_path(parent.module).split("."))
+        return get_nested(parent.state or {}, keys)
 
     def _prefix(self, module):
         """Return the path of ``module`` relative to the root; empty for the root itself."""
@@ -218,7 +304,7 @@ class Trace:
                 inputs[name] = self._inputs[module, name]
         return inputs
 
-    def _call_parameters(self, module):
+    def parameters(self, module):
         """Return traced numeric parameters by name; other values stay as they are (guards)."""
         if module not in self._parameters:
             self._parameters[module] = _parameters(self.graph, module, self._prefix(module))
@@ -240,17 +326,20 @@ class Trace:
 def _untraceable(module, stepped):
     """Return the reasons a call of ``module`` cannot be traced, empty when it can."""
     reasons = []
-    if stepped and any(member.stateful for member in module.modules()):
-        reasons.append("stateful (stepped, needs scan)")
-    elif module.stateful:
-        reasons.append("stateful (needs scan)")
+    if _stateful(module) and not stepped:
+        reasons.append("stateful and not stepped: a state has no value to start from")
     if module._pre_hooks:
         reasons.append("has forward pre-hooks")
     if _solves(module):
-        reasons.append("solves a constraint (needs scan)")
+        reasons.append("solves a constraint")
     if runtime.get_precision() != "float64":
         reasons.append("runtime precision is not float64")
     return reasons
+
+
+def _stateful(module):
+    """Return whether ``module`` or a module below it declares states."""
+    return any(member.stateful for member in module.modules())
 
 
 def _solves(module):
@@ -261,16 +350,28 @@ def _solves(module):
     return plan is None or any(isinstance(item, Solve) for item in plan().items)
 
 
-def _record_outlet(graph, port, value):
-    """Record the graph outputs of one outlet: the stream fields, or the power."""
+def _record_outlet(graph, port, value, replace):
+    """Record the graph outputs of one outlet: the stream fields, or the power.
+
+    ``replace`` maps a traced value to the one the output holds (see ``Graph.scan``).
+    """
     if isinstance(value, list):
         return
     if not isinstance(value, Stream):
-        graph.output(f"outlets.{port}", value)
+        graph.output(f"outlets.{port}", replace(value))
         return
     graph.outlet_fluids[port] = value.fluid
     for field, _ in STREAM_FIELDS:
-        graph.output(f"outlets.{port}.{field}", getattr(value, field))
+        graph.output(f"outlets.{port}.{field}", replace(getattr(value, field)))
+
+
+def _same(value):
+    return value
+
+
+def _fed(graph, module, fluids):
+    """Return the traced stream of every inlet a caller supplies, by name."""
+    return {name: _inlet(graph, name, fluids[name]) for name in module._fed_inlets()}
 
 
 def _inlet(graph, name, fluid):

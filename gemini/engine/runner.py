@@ -3,11 +3,12 @@
 ``Runner.run`` is what ``Engine.replay``, ``live``, ``simulate`` and ``resume`` all execute. A
 run is a list of twins (the equipment twins of a replay, the plant of a simulation) evaluated
 over **chunks** of ticks, each inside a stretch of ticks that share one dated parameter
-snapshot. A chunk is the whole stretch, except that it is one tick when a stateful module is
-stepped, a twin sits below another twin or a callback declares ``changes_run``. For each chunk
-and twin: the bound columns become SI arrays (``columns``), the twin is evaluated by the
-engine's executor on the selected backend (``outcome``), the health is assessed and the columns
-of the twin join one ``ResultChunk``.
+snapshot. A chunk is the whole stretch, except that it is one tick when a replay or a live run
+steps a stateful module, a twin sits below another twin, a callback declares ``changes_run`` or
+callbacks read the states of a stateful plant; a simulation of a stateful plant without callbacks
+is one chunk, which the executor scans. For each chunk and twin: the bound columns become SI
+arrays (``columns``), the twin is evaluated by the engine's executor on the selected backend
+(``twinresult``), the health is assessed and the columns of the twin join one ``ResultChunk``.
 
 Callbacks are replayed from the results of a chunk, tick by tick, seeing the engine as a tick
 loop would have left it: ``on_step_start``, the inputs of the tick, the results, the position and
@@ -20,7 +21,8 @@ import numpy as np
 
 from gemini.engine.chunks import ResultChunk
 from gemini.engine.columns import read
-from gemini.engine.twinresult import UNCHANGED, StepResults, evaluate_twin
+from gemini.engine.executor import driven
+from gemini.engine.twinresult import UNCHANGED, StepResults, twin_steps
 from gemini.errors import RunError
 from gemini.errors.rows import PHYSICAL_ROW_CODES, failed_row, row_code
 
@@ -41,16 +43,25 @@ class Runner:
         self.engine, self.plan, self.aligned = engine, plan, aligned
         self.callbacks = engine.callbacks
         changes_run = any(getattr(callback, "changes_run", False) for callback in self.callbacks)
-        self.single = plan.one_tick or changes_run
+        stepped = bool(self.callbacks) and plan.stepped
+        self.single = plan.one_tick or changes_run or stepped
         self.total = len(aligned.times)
         self.done = 0
 
     def run(self):
         """Evaluate and commit every tick, stretch by stretch."""
+        return driven(self.steps())
+
+    def steps(self):
+        """Run as ``run`` does, as a generator: it yields the ``Request`` of every executor call.
+
+        A caller that answers them (``gemini.engine.executor.driven``, or a study that answers
+        those of many runs together) gets the same run as ``run``.
+        """
         for start, stop in self.plan.parameter_stretches(self.aligned.times):
             size = 1 if self.single else stop - start
             for first in range(start, stop, size):
-                self._chunk(first, min(first + size, stop), first == start)
+                yield from self._chunk(first, min(first + size, stop), first == start)
 
     def _chunk(self, first, stop, opening):
         """Evaluate the ticks ``[first, stop)`` and commit what happened.
@@ -64,7 +75,7 @@ class Runner:
             self.engine._notify("on_step_start", self.aligned.sample(first))
         if opening:
             self.engine.plant._apply_params_at(self.aligned.times[first])
-        outcomes = self._evaluate(first, stop)
+        outcomes = yield from self._evaluate(first, stop)
         failure = self._failure(outcomes)
         count = failure.tick if failure is not None else stop - first
         if not single and not self.callbacks:
@@ -84,7 +95,7 @@ class Runner:
         engine._in_step = True
         try:
             for twin in self.plan.twins:
-                outcomes.append(self._twin(twin, first, stop))
+                outcomes.append((yield from self._twin(twin, first, stop)))
                 if self._halts(outcomes[-1], stop - first):
                     break
         finally:
@@ -97,7 +108,8 @@ class Runner:
         block = read(twin, self.aligned, first, stop)
         state = engine.module_states.get(twin.path)
         durations = self.aligned.durations[first:stop]
-        outcome = evaluate_twin(twin, block, engine._executor, durations, state)
+        steps = twin_steps(twin, block, engine._executor, durations, state, self._halts_on)
+        outcome = yield from steps
         self._note_breaks(outcome)
         if stop - first == 1:
             self._set(outcome, 0)
@@ -107,18 +119,23 @@ class Runner:
         """Whether a failing twin stops the single tick, as it stopped the tick loop."""
         return count == 1 and any(self._stops(outcome, tick) for tick in outcome.errors)
 
+    def _halts_on(self, error):
+        """Whether a stepped twin stops at a step that failed with ``error``."""
+        return self._raises(error, False)
+
     def _stops(self, outcome, tick):
         """Whether the failure of ``outcome`` at ``tick`` ends the run instead of being a row.
 
         Under ``on_error="raise"`` every failure does, except in a simulation the failures of a
         plant that cannot do what the case asks (``PHYSICAL_ROW_CODES``): those are its result.
         """
+        return self._raises(outcome.errors[tick], outcome.block.status[tick] < 0)
+
+    def _raises(self, error, inlet):
+        """Whether ``error``, from an inlet that broke the limits or not, ends the run."""
         if self.plan.on_error != "raise":
             return False
-        if self.plan.kind != "simulate":
-            return True
-        inlet = outcome.block.status[tick] < 0
-        return row_code(outcome.errors[tick], inlet) not in PHYSICAL_ROW_CODES
+        return self.plan.kind != "simulate" or row_code(error, inlet) not in PHYSICAL_ROW_CODES
 
     def _note_breaks(self, outcome):
         if outcome.evaluation is not None:

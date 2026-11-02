@@ -94,6 +94,19 @@ def shallow_plant(backup=None):
     return plant
 
 
+def simulation(function):
+    """Return a ``trial.simulation_steps`` that gives what ``function(plant, case, plan)`` returns.
+
+    The fake run asks the executor for nothing, so it is a generator that returns at once.
+    """
+
+    def fake_steps(plant, case, plan):
+        return function(plant, case, plan)
+        yield
+
+    return fake_steps
+
+
 def cost_model(plant, case, results, name):
     """Return a metric of a plant by a cost that is known by hand.
 
@@ -131,7 +144,7 @@ def runs(monkeypatch):
         calls.append((plant, case, plan))
         return make_results({"users": {"unmet_demand": [0.0]}})
 
-    monkeypatch.setattr(trial, "simulate", fake)
+    monkeypatch.setattr(trial, "simulation_steps", simulation(fake))
     monkeypatch.setattr(trial, "metric", cost_model)
     monkeypatch.setattr(trial, "verdict", clean_verdict)
     return calls
@@ -161,7 +174,7 @@ def failing_runs(runs, monkeypatch):
             results.commit(ResultChunk(later, [3600.0] * 2, {}, [{}] * 2, errors))
         return results
 
-    monkeypatch.setattr(trial, "simulate", fake)
+    monkeypatch.setattr(trial, "simulation_steps", simulation(fake))
     return runs
 
 

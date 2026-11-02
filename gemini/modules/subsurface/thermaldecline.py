@@ -48,8 +48,7 @@ class ThermalDecline(Module):
     drop is a correction of the open aquifer boundary, so the stream audit shows the residual
     m_dot cp (T_in - fluid_out_T), which is not heat lost to the environment.
 
-    NOTE(refactor): written with ops, but a graph break while the graph has no ``scan``: the
-    injected volume is a state.
+    The injected volume is a state, so the module is traced as the body of a scan.
     """
 
     def __init__(self):

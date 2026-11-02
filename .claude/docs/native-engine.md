@@ -49,7 +49,7 @@ Every op declares its kind. The kind is what later passes (fusion, masking) rely
 | interp | 1-D table interpolation; N-D interpolation | `np.interp`; SciPy for N-D |
 | check | validity checks producing per-row error codes | small own code |
 | solver | newton, brentq (per-element stopping) | `scipy.optimize.newton` (array), `scipy.optimize.elementwise.find_root` |
-| scan | time-stepping with carried state (stateful modules, time integrals, ODEs) | defined only; runs through a Python fallback loop for now |
+| scan | time-stepping with carried state (stateful modules, time integrals, ODEs) | one pass per step on arrays of the trials; the eager loop of `ops.control.scan` is the reference |
 
 Fusion (merging chains of elementwise ops into one loop) is postponed. The op kinds keep the
 door open. Likely later route: a Numba backend (fusion and scan as compiled loops), then measure,
@@ -68,7 +68,8 @@ engine treats it):
 
 - Parameters and Constants are named graph inputs, never baked-in numbers, so calibration and
   scenario batches reuse one graph. Giving a parameter a scenario dimension makes Monte Carlo
-  over parameters free.
+  over parameters free: the trials of a study are one array pass with a parameter per trial (see
+  [engine.md](engine.md#batched-trials)).
 - Only pure math and unit-conversion numbers (2, 60, pi, bar->Pa) are literals in the graph.
 - Physical constants are defined once as `Constant` in `gemini/physics/constants.py` and
   shared; the tracer creates one graph input per constant.
@@ -281,9 +282,23 @@ Where the implementation differs from sections 1 to 11, and why:
   trace and its value is a cache guard (`traced_shape` in `tracer.py`); use it for a numeric value
   that decides structure. `Declaration.schema` of a port is `{}`.
 - **Units** are recorded on graph inputs only; the unit-check pass is not implemented.
-- **Graph breaks** are stateful modules (no `scan` yet), modules with pre-hooks, float32 precision
-  and any `TraceError` from Python control flow or conversions; section 13 says at which level.
+- **Graph breaks** are modules with pre-hooks, float32 precision, a plant that solves a constraint
+  (`NodalDoublet`, `BoilerChpPlant`, `ParallelExchangerPlant`) and any `TraceError` from Python
+  control flow or conversions; section 13 says at which level. A stateful module is no break when
+  the call is stepped (next item); a call without a state to start from (`stepped=False`) is.
   A plant with a constraint breaks its whole root; a plant with loops is traced (next item).
+- **Scan.** A stepped call of a stateful plant or module traces to one `scan` node
+  (`Graph.scan`, `trace/states.py`, `interpret/scan.py`). The state tree (declared states by module
+  path, the `@previous` streams of state connections of a plant) is the carry: one `state` input
+  per leaf in `state_leaves` order, and the body is one `Module.step` on traced values, with `update`
+  run by `advance`. The part of the body that reads no carry is evaluated once on all rows
+  (`interpret/split.py`); the rest runs once per row. A row with an error in a watched node does
+  not advance the carries and is NaN with its code, as a failed step of the eager scan
+  (`ops.control.scan`); the first row's `@previous` values come from the engine
+  (`engine/rowwise.started`). Compiled equals eager to 1e-9 on every sample and storage plant
+  (`tests/unit/engine/test_scan.py`, `tests/unit/compiler/test_scan_plants.py`).
+  A text control with options (`AquiferStorage.mode`) enters the graph as its position among the
+  options (`graph_feeds`), the table and the plan keep the text.
 - **Loops.** `loops.close` in a trace records one `fixed_point` node (`compiler/ir.py`,
   `fixedpoint.py`). One pass around the loop is traced as its **body**, in the same graph:
   `carry` nodes stand for the tear stream fields, the body nodes refer freely to outer nodes (inputs,
@@ -324,9 +339,9 @@ Where the implementation differs from sections 1 to 11, and why:
   `call_records`, so the combinations of a plant (a ratio is `where(bottom == 0, None,
   truediv(top, bottom))`) work unchanged. Guards cover every
   module of the tree. This replaces section 2's "each Module is traced on its own".
-- **Breaks.** A stateful, pre-hooked or untraceable *leaf* child becomes one `break` node after the
-  graph is rolled back (`Graph.mark`, `Graph.rollback`). It runs `module(**row)` on the plain path
-  per row; a stateful child starts from its initial states, as a call outside `Module.step` does.
+- **Breaks.** A pre-hooked or untraceable *leaf* child (or a stateful one in a call that is not
+  stepped) becomes one `break` node after the graph is rolled back (`Graph.mark`,
+  `Graph.rollback`). It runs `module(**row)` on the plain path per row.
   Outputs and outlet fields are `break_output` nodes; a failing row is NaN with an error code, and
   `run` re-raises the child's exception. Outlet fluids come from a probe of `forward`; a row with
   another fluid fails. A composite child that cannot be traced breaks the whole root: its
@@ -345,8 +360,8 @@ Where the implementation differs from sections 1 to 11, and why:
   exact exception (`interpret.rowerror.row_error`: `failure()` for a check, `declaration.validate` for a
   declared limit, the module's own exception for a break); and `states` of a stepped root break.
 - **Root break.** `Tracer.trace` never raises for a root. A root that cannot be traced
-  (a plant with a constraint, float32), or a stepped root with a stateful module, is a graph with
-  one root break that runs the real module per row (`module(streams)` or `module.step`). Its rows are
+  (a plant with a constraint, float32) is a graph with one root break that runs the real module per
+  row (`module(streams)` or `module.step`). Its rows are
   real `ModuleResult` trees, so children and combinations stay exact. `GraphCache` stores
   graphs only, by a structure key (the guards: the root path, every module's class, declarations,
   output formulas, hooks, fluid and non-numeric or structural parameters, the connections and
@@ -363,7 +378,7 @@ Where the implementation differs from sections 1 to 11, and why:
 - **One runner.** `Engine._run` builds a `RunBindings` (one `Twin` per evaluated module: the twins of
   a replay, the plant in simulate) and gives the `Loader` arrays to `Runner`. A run is chunks of
   ticks inside stretches that share one dated parameter snapshot. A chunk is the whole stretch, except
-  one tick when a stateful module is stepped, a twin sits below another twin, or a callback sets
+  one tick when a replay steps a stateful module, a twin sits below another twin, or a callback sets
   `changes_run = True`; so stepping in time order and section 9's chunked callbacks are the same
   loop. Per chunk and twin: `columns.read` converts the bound columns to SI and gives each tick a
   status in the order a plain call meets its problems (the first missing column is a skip, an
@@ -382,7 +397,7 @@ Where the implementation differs from sections 1 to 11, and why:
   like a module without health: score 1, no alarm, `NOT_ASSESSED`, NaN metrics.
 - **A direct call is not a second implementation.** `esp(fluid_in=...)` is the same `forward` and the
   same ops on the Python backend, without a graph; a break node calls exactly that.
-- **Not done.** `scan`, the unit-check pass, `gm.explain`.
+- **Not done.** The unit-check pass, `gm.explain`.
 
 Validation stays off the hot path: `Declaration` has one cheap check for the common case, and
 everything else takes the unchanged full path. Traced rows are validated by `compiler/trace/limits.py`.
@@ -436,8 +451,9 @@ builds one with `add` and `connect`. There is one `forward`. JSON exists only as
   that gives a first guess, else the last in the connection list. The steps of a cycle are one item
   of the plan, placed by the order of what feeds them, and so are the steps between the free value
   and the target of a constraint. See [plants.md](plants.md#loops).
-- **State connections** stay in the plant dict, the schema and validation; running such a plant
-  raises `NotImplementedYet`, because the first step has no previous value until scan exists.
+- **State connections** order nothing: the target reads the value its source outlet gave at the
+  previous step, kept in the state of the plant (plants.md, engine.md), so the plant is stateful and
+  the engine scans it.
 - **Round trip.** `from_dict(p.to_dict())` rebuilds the same plant. The plant keeps what was stated:
   a stated parameter, fluid, binding or history stays as written while it equals the current value,
   otherwise the current SI value replaces it; a value that now differs from its starting value is

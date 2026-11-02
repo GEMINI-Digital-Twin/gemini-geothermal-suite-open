@@ -119,8 +119,15 @@ class _Numbering:
 
 
 def _certain_nodes(graph):
-    """Return the nodes whose errors reach a graph output on every row where they fire."""
+    """Return the nodes whose errors reach a graph output on every row where they fire.
+
+    A node whose error fails the step of a scan does: the watched nodes of a scan body stand for
+    the outputs of the graph there.
+    """
     certain = {operand for operand in graph.outputs.values() if isinstance(operand, Node)}
+    for body in graph.bodies:
+        if body.scanned:
+            certain.update(node for node in body.watch if isinstance(node, Node))
     for node in reversed(graph.nodes):
         if node in certain:
             operands = node.operands[:1] if node.op == "where" else node.operands

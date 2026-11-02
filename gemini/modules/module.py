@@ -194,6 +194,14 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         """
         self._set_own_fluid(value)
 
+    def _fluid_of(self, stream):
+        """Return the fluid of ``stream``, unless this module states its own (a design choice).
+
+        A module that works on the fluid of its inlet reads it here, so a call of the module alone
+        needs no fluid beyond the one its inlet stream carries.
+        """
+        return stream.fluid if self._fluid is None else self._fluid
+
     def _set_own_fluid(self, value):
         """Set the fluid of this module alone."""
         object.__setattr__(self, "_fluid", Fluid._of(value))
@@ -439,8 +447,9 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
 
     def _run(self, args, kwargs, state):
         """Evaluate one call from the state tree ``state``."""
-        self._prepare()
         parent = current_call.get()
+        if parent is None or not self._within(parent.module):
+            self._prepare()
         inlets, supplied = self._split_call_args(args, kwargs, state)
         if parent is not None and parent.trace is not None:
             return parent.trace.child(self, inlets, supplied, parent)
@@ -589,6 +598,15 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
                 self._record_output(name, value)
         self._check_outputs(call.outputs)
 
+    def _within(self, owner):
+        """Return whether this module is ``owner`` or below it, so the tree was checked with it."""
+        if self is owner:
+            return True
+        prefix = owner._path + "." if owner._path else ""
+        if not self._path or not self._path.startswith(prefix):
+            return False
+        return owner._find_submodule(self._path.removeprefix(prefix)) is self
+
     def _relative_path(self, owner):
         prefix = owner._path + "." if owner._path else ""
         return self._path.removeprefix(prefix) or self.name
@@ -603,14 +621,9 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
 
         A plant that closes a loop or solves a constraint evaluates trial passes with it, then
         calls each module once with the converged inlets, so its outputs and balances see only
-        that call. Pre-hooks run and forward hooks do not. A stateful module would evaluate at its
-        initial states, so it is refused.
+        that call. Pre-hooks run and forward hooks do not. A stateful module is called from the
+        state it is given and advances nothing.
         """
-        if self.stateful:
-            raise ValidationError(
-                f"{self.path}: stateful = True; expected a stateless module for a trial call",
-                code="invalid_design",
-            )
         token, trial = current_call.set(None), in_trial.set(True)
         try:
             with no_outputs():

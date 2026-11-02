@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import gemini as gm
+from gemini.study._utils import trial as trial_module
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
@@ -158,3 +159,17 @@ def test_a_draw_with_failed_steps_gives_no_value_and_is_counted(failing_runs):
     )
     again = gm.study.Sample.from_dict(json.loads(json.dumps(found.to_dict())))
     assert again["summary"]["lcts"]["failed"].value == len(bad)
+
+
+def test_the_draws_of_a_call_are_one_batch(monkeypatch, runs):
+    """All the draws run together; the batch is the draw set, not a setting."""
+    sizes = []
+    real = trial_module.run_trials
+
+    def counting(shared, case, plan, valued, names, judge):
+        sizes.append(len(valued))
+        return real(shared, case, plan, valued, names, judge)
+
+    monkeypatch.setattr(trial_module, "run_trials", counting)
+    gm.study.sample(shallow_plant(), declared_case(), ["co2"], 6, 3)
+    assert sizes == [6]

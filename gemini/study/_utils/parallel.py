@@ -44,3 +44,29 @@ def mapped(function, shared, items):
         count, mp_context=context, initializer=_start, initargs=initargs
     ) as pool:
         return list(pool.map(_call, [(function, item) for item in items]))
+
+
+def split(items):
+    """Return ``items`` as as many consecutive parts as the runtime has processes, none empty.
+
+    The parts keep the order, so ``mapped`` over them and a flattening of the answers is the
+    answer for ``items`` one by one.
+    """
+    count = max(1, min(runtime.get_processes(), len(items)))
+    size, extra = divmod(len(items), count)
+    parts, first = [], 0
+    for index in range(count):
+        stop = first + size + (1 if index < extra else 0)
+        parts.append(items[first:stop])
+        first = stop
+    return parts
+
+
+def mapped_batches(function, shared, items):
+    """Return ``[answer for each item]`` of ``function(shared, part)`` over the parts of ``items``.
+
+    ``function`` takes a list of items and gives a list of answers; the parts go to the processes
+    of the runtime, one each, and the answers join in the order of ``items``.
+    """
+    answers = mapped(function, shared, split(items))
+    return [answer for part in answers for answer in part]

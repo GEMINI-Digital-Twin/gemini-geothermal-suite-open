@@ -24,7 +24,7 @@ A package may import only the packages to its left:
 
 The complete table, with what each folder takes, gives and may call, is in
 [structure.md](structure.md); `tests/unit/test_package_boundaries.py` checks it from the real
-imports and lists the violations that the folder work has not yet removed.
+imports; the list of known violations is empty and stays so.
 
 The **run folders** are `modules`, `plants`, `case`, `physics`, `ops`, `runtime`, `engine`,
 `streams`, `units`, `errors` and `_utils`. They import none of `compiler`, `study`, `evaluate` and
@@ -35,7 +35,7 @@ The **run folders** are `modules`, `plants`, `case`, `physics`, `ops`, `runtime`
 executor when it is imported, and `gemini/__init__.py` imports it; the run works without it, see
 [engine.md](engine.md#folders-and-imports). `gemini.case` sits above `plants`, because it finds the
 units of a role by module class, and below `engine`: it imports none of `engine`, `evaluate`,
-`study`, `compiler`, `data` and `analysis` (`tests/unit/test_code_quality.py` enforces it).
+`study`, `compiler` and `analysis` (`tests/unit/test_code_quality.py` enforces it).
 
 `gemini/runtime.py` sits in a package lower in the order than its own place. It stays safe because
 neither `gemini/ops/kernels/__init__.py` nor `gemini/_utils/__init__.py` imports it, so importing
@@ -45,7 +45,7 @@ the lower package never loads it.
 ops; `gemini.compiler` sits above `gemini.modules` because its tracer runs module calls (see
 [native-engine.md](native-engine.md)).
 
-`gemini._utils` (its topic files, not `data/` and `legacy/`) and `gemini.errors` are leaf packages:
+`gemini._utils` (its topic files) and `gemini.errors` are leaf packages:
 they import only the standard library, installed dependencies and themselves, never another part
 of `gemini` (`tests/unit/test_package_boundaries.py` enforces this). One topic file differs:
 `registry.py` imports `gemini.errors`, the other leaf, because it refuses a name.
@@ -230,6 +230,32 @@ or `gm.study`, not in modules; a plant class belongs in `gemini/plants/`, never 
 12. Pre-hooks are exactly `(module, inputs, inlets, state)` and forward hooks are exactly
     `(module, inputs, inlets, state, outputs, outlets)`; a returned mapping replaces inputs
     or outputs.
+
+**Pure modules and the purity guard.** `forward` and `update` are pure functions of their
+arguments ([writing a module](writing-a-module.md)): a module holds only parameters, set before a
+run and fixed during it, so two trials can share one plant object, a batch of trials can run as one
+array pass, the compiler can trace a call, and time is one scan. Concretely:
+
+- the controls, boundaries and states of a step are read from `inputs` and `state`, never from
+  `self`; nothing is assigned to `self` (or to a child) in a call, and no call data is cached on it;
+- the inlets are the immutable `Ports`, the outputs and outlets are returned, and a missing or an
+  extra key is a `DefinitionError` naming the module and the key;
+- a per-step value is never `None` and never a structural marker: "none yet" is a value (a PID's
+  `previous_step = 0`), an output that is empty when off is NaN (declared `X | None` so a result
+  shows `None`), and a `None` that decides a branch is a parameter fixed for the whole run;
+- a value that changes per step decides with `ops.where`, `ops.minimum`, `ops.maximum`; a Python
+  `if` on it is a graph break.
+
+The guard is `tests/fixtures/purity.py`: `snapshot` freezes the `__dict__` of a module and of every
+child (plain values by value, arrays by bytes, declarations by their attributes, other objects by
+identity), `unchanged(module)` runs a block and fails naming the module and the attribute that the
+block wrote, replaced or added, and each class has a case (example parameters, inputs, inlets and
+state; `stateless_run`, `stateful_run`) in `CASES`. `tests/unit/test_purity.py` runs the guard on
+every registered class and on a plant of two loops. A new module class adds its case in the same
+commit (a fixture module of its own, `purity_flow.py`, `purity_thermal.py`,
+`purity_storage_exchangers.py`, holds the cases of a group of classes). The runtime side of the same
+rule is in the call itself: reading a control, boundary, state or output from `self` inside a call,
+or assigning one, raises an error that names the module and the value.
 
 Use dotted module paths consistently. Binding groups are `controls`, `boundaries`, `inlets`,
 `measured` and `state`. Reject unknown ports and parameters. In replay a missing observation

@@ -37,7 +37,7 @@ class Relay(Module):
         return outputs, outlets
 
 
-def _break_graph(tank, reason="stateful"):
+def _break_graph(tank, reason="hooked"):
     graph = Graph("test")
     inlets = Ports(
         {
@@ -55,13 +55,14 @@ def _break_graph(tank, reason="stateful"):
     return graph
 
 
-def test_record_break_adds_the_node_its_outputs_and_the_guarding_check(tank):
+def test_record_break_adds_the_node_its_outputs_and_the_guarding_check():
     """One break node, one output node per field plus the success mask, and one check."""
+    tank = Relay()
     graph = _break_graph(tank)
     ops_used = [node.op for node in graph.nodes if node.kind == "break"]
     assert ops_used == ["break"] + ["break_output"] * 5
     assert [node.op for node in graph.checks] == ["check"]
-    assert graph.breaks == [("tank", "stateful")]
+    assert graph.breaks == [("relay", "hooked")]
     assert PROBE["T"] == 300.0
 
 

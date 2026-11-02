@@ -18,10 +18,13 @@ checks the direction of imports (R4) from the real imports; `tests/unit/test_mir
   top-level `gemini/_utils/` holds only helpers used by two or more folders. Reason: a helper far
   from its user is read without its context and grows users it was not made for.
 - **R4 One direction of imports:** `units`, `errors`, `_utils` -> `ops` -> `physics` -> `streams`
-  -> `modules` -> `plants` -> `engine` -> `evaluate` -> `study`; `case` is read by `engine`,
-  `evaluate`, `study`; `analysis` sits on top; nothing imports `compiler`; `compiler` may import
-  everything above it. Reason: a cycle between folders means two folders are one idea or a file is in
-  the wrong place; one direction lets a reader and the compiler take any folder alone.
+  -> `runtime` -> `modules` -> `plants` -> `case` -> `engine` -> `evaluate` -> `study`, with
+  `analysis` on top of `plants` and read by `study`; nothing imports `compiler`, and `compiler` may
+  import everything. A folder imports the folders to its left in this chain and nothing
+  to its right; the four reasoned exceptions to that reading are listed under
+  [the exceptions of R4](#the-exceptions-of-r4). Reason: a cycle between folders means two folders
+  are one idea or a file is in the wrong place; one direction lets a reader and the compiler take
+  any folder alone.
 - **R5 A file belongs where its inputs belong:** code that reads or builds case inputs (series from
   CSV, synthetic profiles) is part of `case`; code that runs time is `engine`; code that judges
   results is `evaluate`. Reason: P1 of [inputs.md](inputs.md), one owner and one place for a thing.
@@ -60,16 +63,27 @@ and a quantity of it, and the table says which exist, so there is one table, own
 How the test reads the column "may call": a folder may import every folder to its left in the chain
 of R4 (`plants` imports `modules`, `streams`, `physics`, `ops`, `units`, `errors`, `_utils`), and
 the folders `case` and `runtime` as the table says. `runtime` is read by every folder from `streams`
-up, and it calls `ops` only to select a backend.
+up, and it calls `ops` only to select a backend. `MAY_IMPORT` in
+`tests/unit/test_package_boundaries.py` is the table in code, and the test fails when an import
+breaks it; the list of known violations is empty and no import is excused.
 
-`MAY_IMPORT` in `tests/unit/test_package_boundaries.py` is the table in code.
-The test fails when an import breaks the table; no exception is listed. (The runtime default fluid,
-the last one, is removed: the fluid is a case input.)
+### The exceptions of R4
 
-Three readings of the column "may call" that the code needs: `case` reads `physics` (a site gives
-its geotherm by the rule of `physics/ground.py`) and the role table of `plants`; `analysis` takes a
-plant to find its module, so it reads `plants`; `study` reads `analysis` (`size` uses the nodal
-solves). `engine` and `evaluate` never read `analysis`.
+The chain of R4 puts `case` between `plants` and `engine`, and `analysis` on top of `plants`. Four
+imports go against the plain reading of "to the left"; each has one reason and is the only one of
+its kind.
+
+| import | what it takes | why it is not a cycle or a smell |
+| --- | --- | --- |
+| `case -> plants` | the role table (`plants/roles.py`) only | a requirement names a role and a quantity of it, and the table of which exist describes the plant, so the plant owns it (P6 of [inputs.md](inputs.md)); a second copy in `case` would be two tables. `plants` never imports `case`: the case reaches a plant through `engine/apply.py` |
+| `case -> physics` | the geotherm of a site (`physics/ground.py`) | a site gives its temperature and pressure at a depth by one rule that `modules` also uses; `case` calls it instead of writing it again |
+| `analysis -> plants` | `plants/_utils/targets` and the plant classes, to find the module of a plant and to solve a constraint | the nodal analysis takes a plant and the module in it; it still runs no engine and uses no time or case |
+| `study -> analysis` | the nodal solves that `size` uses | `size` sizes a pump against the well curve, which is `analysis`; `engine` and `evaluate` never read `analysis` |
+
+Two readings that are not exceptions: `runtime` sits after `streams` in the chain because it holds a
+default for streams to read, and `ops` imports nothing from it (a backend is chosen through
+`_utils/context.py`, the one context mechanism); `physics/diagnostics.py` stays in `physics` because
+five modules call it from `health` and a module may not import `engine`.
 
 ### Study or analysis, the test
 
@@ -86,8 +100,8 @@ meets the pump curve) is `analysis`; corrosion and erosion computed from the res
   as a module declares them (`modules/bindings.py`, `ModuleBindings`): one meaning, the column of a
   dataset that feeds an input. The unit metadata of a dataset column is `ColumnInfo` of
   `case/dataset.py`, not a binding.
-- **graph**: the compiler's traced form (`compiler/ir.py`: the `Graph` and its nodes, with the kinds `op`
-  and `fixed_point` today and `scan` for a stateful plant).
+- **graph**: the compiler's traced form (`compiler/ir.py`: the `Graph` and its nodes, with the kinds `op`,
+  `fixed_point` for a loop and `scan` for a stateful plant).
 
 The compiler is split by the job of each part, as in a compiler textbook: capture (`trace/`: tracer,
 proxy, breaks, declared limits), the intermediate form (`ir.py`), transforms (`passes/`, one file
@@ -116,24 +130,27 @@ name means one thing in one folder.
 
 ## The tree
 
+As built (314 Python files in `gemini/`); `_utils/` of a folder holds that folder's private helpers
+(R3).
+
 ```text
 gemini/
   __init__.py        public top names; gm.streams is one of them
-  runtime.py         settings (processes, batch size, backend, precision, display units)
-  units/             Quantity, conversions, the unit rule, the return shapes, inputs.py (the shared input formats), display.py (quantity -> display unit)
-  errors/            error classes, issues, rows.py (the failed-row record)
-  _utils/            helpers used by two or more folders
-  ops/               math API, dispatch, kernels, failed rows
-  physics/           correlations and fluid properties only
-  streams/           Stream, Fluid, Ports, stream kinds
-  modules/           Module (split by job: callrecord, callargs, states, tree, values, display, classpath), declarations, containers, results, bindings, gm.call; one folder per module domain (a `_physics.py` only where code needs streams)
-  plants/            Plant, the plant classes, roles.py (the one owner), _utils/ (plan, loops, serialization, doublet design, resize)
-  case/              Case and its sections, economics, requirements, dataset.py, profile.py, demand_frame.py
-  engine/            simulate, replay, live, resume, Results, check, schedule/ (with its dispatch policy), runner, bindings, executor
+  runtime.py         settings (processes, backend, precision, display units)
+  units/             quantities.py, bare.py, conversions.py, shapes.py (the return shapes), inputs.py (the shared input formats), display.py (quantity -> display unit)
+  errors/            base.py (error classes, issues), lookup.py, rows.py (the failed-row record)
+  _utils/            helpers used by two or more folders, registry.py, context.py
+  ops/               math API, dispatch, kernels/ (python, numpy, scalars, solvers), failedrows.py, control.py (scan)
+  physics/           correlations and fluid properties only, one file per topic (pumps, steam, cycles, heat_transfer, ground, ...)
+  streams/           Stream (flows.py), Fluid, Ports, stream kinds
+  modules/           Module (split by job: callrecord, callargs, states, tree, values, display, classpath), declarations, container, results, bindings, call (gm.call), check; _utils/ (design, equipment, trace, description); one folder per category (subsurface, wells, pumps, treatment, exchangers, heating, cooling, power, storage, piping, grids, environment, control), with a `_physics.py` only where code needs streams
+  plants/            plant.py (Plant), the plant classes one file each, roles.py (the one owner of roles), _utils/ (plan, loops, delays, targets, serialization, doublet design, resize)
+  case/              Case and its sections (time, site, demand, utilities, economics, requirement), dataset.py, profile.py, demand_frame.py, _utils/ (node, schema, access, kinds)
+  engine/            simulate.py, engine.py, check.py, results.py, apply.py, schedule/ (schedule, dispatch, sources, limits, fleet), bindings, loader, columns, runner, lockstep, chunks, eager, rowwise, executor, checkpoint, callbacks
   evaluate/          costs, emissions, balances, verdict, summary, report; _utils/
-  study/             Study, size, minimize, sample, sensitivity, calibrate
-  analysis/          nodal.py, fits.py (and the pump curve), integrity.py
-  compiler/          compile.py, executor.py, ir.py, trace/, passes/, cache.py, interpret/, run.py
+  study/             study.py, size, minimize, sample, sensitivity, calibrate, result; _utils/ (trial, shared, parallel, variables, target)
+  analysis/          nodal.py, fits.py (the pump curve), integrity.py
+  compiler/          compile.py, executor.py, ir.py, trace/, passes/, cache.py, interpret/ (per backend, batch, scan), run.py
 ```
 
 **Folders with a single file:** none. `analysis/` (3 files), `errors/` (3) and `streams/` (4) are the
@@ -141,6 +158,24 @@ smallest, each with separate responsibilities.
 
 **Names that break R2:** `_utils` is the one private exception (R3). `ops` and `modules` are the
 words a user says (`gm.ops`, `gm.modules`).
+
+**Kept against a rule, and why.** Every one of these is a decision that was weighed, not an
+oversight:
+
+- `physics/diagnostics.py` (R5, `engine` would own it): five modules call it from `health`, and a
+  module may not import `engine`, so it stays in `physics`.
+- `modules/<category>/_physics.py` in `wells/` (R3, physics has no `Stream`), `heating/_burner.py`
+  and `cooling/_sorption.py`: code that needs a `Stream` or a module's declarations cannot move
+  into `physics`, which knows neither; the rule is in [conventions.md](conventions.md#module-rules).
+- `engine/executor.py` and `compiler/executor.py`: one name in two folders (below).
+- `evaluate/_utils/outcome.py` keeps its name though `Outcome` became `TwinResult` in `engine`: it
+  is the result of one cost function, a different thing (the word `outcome` has no other user).
+- `case/profile.py`, `case/dataset.py`, `case/demand_frame.py` are three files for the series of a
+  case, not one (below).
+- `engine/schedule/` is a folder inside `engine/` (R1: several files with one reason, the policy
+  of `gm.schedule`), not a top-level folder, since `gm.schedule` is a function of `gm`.
+- `gm.evaluate.call_energy_balance`, `call_mass_balance`, `collect_flows` and `call_emissions` and
+  the `gm.ops` names keep their public places (the freeze rule of [api.md](api.md#freeze-rule)).
 
 **What stays apart, and why.** `Profile` (`case/profile.py`: one validated SI series with
 `at`, `resample`), `Dataset` (`case/dataset.py`: a table of raw columns with unit metadata) and the
@@ -160,7 +195,9 @@ a long span is shown in years).
 ## Moves of the folder work
 
 `gemini/types/` mixed five jobs and was removed; each file went to the folder whose definition it
-meets. The later steps of the folder work append their rows here.
+meets. The table is complete for 0.4.0; the scan and batched-trial work of 0.5.1 added files
+(`ops/control.py`, `engine/lockstep.py`, `compiler/interpret/scan.py`, `batch.py`,
+`study/_utils/shared.py`) and moved none.
 
 | old | new | rule |
 | --- | --- | --- |

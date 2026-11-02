@@ -62,10 +62,9 @@ class IceStorage(Module):
     supercooling or nucleation delay, no ambient heat gain and no pressure loss. Suitable for
     hourly or 15-minute dispatch studies of the store's state of charge, not for coil design.
 
-    NOTE(refactor): the ice fraction and the temperature are states, so the module is a graph
-    break until ``scan`` exists; its arithmetic is written with ops all the same, and the segment
-    loop of ``heat_transfer.ice_advance`` runs its fixed ``MAX_SEGMENTS`` passes, a finished pass
-    keeping its state. The coil follows ``heat_transfer.ambient_effectiveness`` and
+    The ice fraction and the temperature are states, so the module is traced as the body of a
+    scan. The segment loop of ``heat_transfer.ice_advance`` runs its fixed ``MAX_SEGMENTS`` passes,
+    a finished pass keeping its state. The coil follows ``heat_transfer.ambient_effectiveness`` and
     ``circuit_conductance``; the segments are ``heat_transfer.ice_step``.
     """
 

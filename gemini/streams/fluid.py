@@ -255,7 +255,7 @@ class Fluid(BaseModel):
 
     def properties(self, p: Pressure, T: Temperature) -> FluidProperties:
         """Return cached constant SI properties; pressure and temperature are independent."""
-        return _properties(self)
+        return _properties_of(self)
 
     def density_at(self, p: Pressure, T: Temperature):
         """Return the density [kg/m3] of the fluid at ``p`` and ``T``, arrays or traced values too.
@@ -338,6 +338,22 @@ def _check_composition(composition):
         )
     if abs(sum(composition.values()) - 1) > gas.COMPOSITION_TOLERANCE:
         raise ValidationError("gas composition: mole fractions must sum to one")
+
+
+_SEEN = {}
+"""The properties of the fluids met lately by identity, so a repeated call hashes nothing."""
+
+
+def _properties_of(fluid):
+    """Return ``_properties(fluid)``, found by the identity of ``fluid`` when it was seen."""
+    found = _SEEN.get(id(fluid))
+    if found is not None and found[0] is fluid:
+        return found[1]
+    if len(_SEEN) >= 256:
+        _SEEN.clear()
+    properties = _properties(fluid)
+    _SEEN[id(fluid)] = (fluid, properties)
+    return properties
 
 
 @lru_cache(maxsize=256)

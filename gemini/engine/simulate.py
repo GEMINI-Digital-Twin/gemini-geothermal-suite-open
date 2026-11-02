@@ -83,6 +83,18 @@ def simulate(
         return engine._simulate(run_input, clock, None if case is None else started(case))
 
 
+def simulation_steps(plant, case, plan=None):
+    """Run ``simulate`` of ``plant`` on ``case`` as a generator of executor requests.
+
+    The generator returns the ``Results``. It is for a caller that answers the requests of many
+    simulations together (a study); ``gemini.engine.executor.driven`` answers them one at a time
+    and gives what ``simulate`` gives. The case is applied to a plant that is already a copy.
+    """
+    run_plant, run_input = _planned(plant, case, plan)
+    engine = Engine(run_plant, "numpy", None, "raise", True)
+    return engine._simulate_steps(run_input, None, started(case))
+
+
 def _planned(plant, case, plan):
     """Return the plant of the run, with the values of ``case``, and its run input."""
     if case is None:

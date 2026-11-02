@@ -23,7 +23,8 @@ from gemini.units.quantities import (
 class ThermalStorage(Equipment, Module):
     """Fully mixed (lumped) hot or chilled water tank with charge and discharge circuits.
 
-    The tank content is ``module.fluid`` at one uniform temperature, the state ``temperature``.
+    The tank content is the fluid of the charging inlet (``module.fluid`` when stated) at one
+    uniform temperature, the state ``temperature``.
     Each circuit exchanges heat with the tank through a constant effectiveness ``e``
     (``charge_effectiveness``, ``discharge_effectiveness``); ``e = 1`` is a direct
     connection, where the circuit leaves at the tank temperature. With ``C_i = m_dot_i * cp_i``
@@ -58,8 +59,7 @@ class ThermalStorage(Equipment, Module):
     and inlet temperatures constant over a step (use steps short against the tank time
     constant ``rho cp V / b`` when the inlets vary).
 
-    NOTE(refactor): the tank temperature is a state, so the module is a graph break until
-    ``scan`` exists; its arithmetic is written with ops all the same.
+    The tank temperature is a state, so the module is traced as the body of a scan.
     """
 
     equipment_kind = "thermal_storage"
@@ -130,9 +130,13 @@ class ThermalStorage(Equipment, Module):
 
         # Outlets
         charge_in, discharge_in = inlets.charge_in, inlets.discharge_in
-        charge_T = self._outlet_temperature(charge_in, self.charge_effectiveness, temperature)
+        charge_g = self._conductance(charge_in, self.charge_effectiveness)
+        discharge_g = self._conductance(discharge_in, self.discharge_effectiveness)
+        charge_T = self._outlet_temperature(
+            charge_in, charge_g, self.charge_effectiveness, temperature
+        )
         fluid_out_T = self._outlet_temperature(
-            discharge_in, self.discharge_effectiveness, temperature
+            discharge_in, discharge_g, self.discharge_effectiveness, temperature
         )
         charge_out = charge_in._with_si(T=charge_T)
         discharge_out = discharge_in._with_si(T=fluid_out_T)
@@ -142,8 +146,8 @@ class ThermalStorage(Equipment, Module):
         )
 
         # Outputs
-        charge = self._circuit_heat(charge_in, self.charge_effectiveness, temperature)
-        discharge = self._circuit_heat(discharge_in, self.discharge_effectiveness, temperature)
+        charge = heat_transfer.heat_rate(charge_g, charge_in.T - temperature)
+        discharge = heat_transfer.heat_rate(discharge_g, discharge_in.T - temperature)
         stored_energy, charge_duty, discharge_duty = heat_transfer.tank_service_report(
             self.service == "hot",
             self._capacity(charge_in, temperature),
@@ -185,8 +189,8 @@ class ThermalStorage(Equipment, Module):
         return {"temperature": relaxed}
 
     def _capacity(self, charge_in, temperature):
-        """Return the tank heat capacity rho * cp * V [J/K] of ``module.fluid``."""
-        properties = self.fluid.properties(charge_in.p, temperature)
+        """Return the tank heat capacity rho * cp * V [J/K] of the tank fluid."""
+        properties = self._fluid_of(charge_in).properties(charge_in.p, temperature)
         return heat_transfer.tank_capacity(properties.liquid_volumetric_heat_capacity, self.volume)
 
     def _conductance(self, stream, effectiveness):
@@ -194,16 +198,10 @@ class ThermalStorage(Equipment, Module):
         require_forward(self.path, "circuit m_dot", stream.m_dot)
         return heat_transfer.circuit_conductance(effectiveness, stream.heat_capacity_rate())
 
-    def _circuit_heat(self, stream, effectiveness, temperature):
-        """Return the heat flow [W] from a circuit into the start-of-step tank."""
-        return heat_transfer.heat_rate(
-            self._conductance(stream, effectiveness), stream.T - temperature
-        )
-
-    def _outlet_temperature(self, stream, effectiveness, temperature):
+    def _outlet_temperature(self, stream, conductance, effectiveness, temperature):
         """Return a circuit's outlet temperature [K]; a stopped circuit keeps its inlet value."""
         return ops.where(
-            self._conductance(stream, effectiveness) == 0,
+            conductance == 0,
             stream.T,
             heat_transfer.effectiveness_outlet_temperature(stream.T, effectiveness, temperature),
         )

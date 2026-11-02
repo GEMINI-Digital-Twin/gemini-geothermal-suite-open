@@ -15,7 +15,7 @@ import numpy as np
 from gemini import runtime
 from gemini.engine.chunkresult import ChunkResult, converter, typed
 from gemini.engine.executor import EAGER, Executor, register_executor
-from gemini.engine.rowwise import applied, inlet_feeds, run_rows, stacked
+from gemini.engine.rowwise import applied, call_rows, inlet_feeds
 from gemini.errors import RunError
 from gemini.ops import kernels
 from gemini.ops.failedrows import marking, merge
@@ -33,13 +33,13 @@ class Call(NamedTuple):
 
 
 class EagerExecutor(Executor):
-    """Evaluate a module as a direct call does, over arrays when it can."""
+    """Run a module as a direct call does, over arrays when it can."""
 
     def prepare(self, module, streams, inputs, stepped):
         """Keep the call; nothing is traced or compiled."""
         return Call(module, streams, inputs, stepped)
 
-    def evaluate(self, prepared, rows, context):
+    def run(self, prepared, rows, context):
         """Return the evaluation over ``rows``: one array call, else one call per row.
 
         A row that fails a check is a failed row of the array call. The array call falls back to
@@ -83,12 +83,10 @@ class EagerExecutor(Executor):
         stepped = call.stepped and any(member.stateful for member in module.modules())
         fluids = {port: stream.fluid for port, stream in call.streams.items()}
         feeds = inlet_feeds(call.streams) | call.inputs
-        results, errors, states = run_rows(module, fluids, feeds, rows, context, stepped)
-        failed = np.ones(rows, dtype=bool)
-        failed[list(results)] = False
-        result = stacked(results, rows)
-        tree = None if result is None else typed(result)
-        return ChunkResult(rows, failed, tree, errors.__getitem__, states, stepped)
+        tree, failed, error, states = call_rows(module, fluids, feeds, rows, context, stepped)
+        return ChunkResult(
+            rows, failed, None if tree is None else typed(tree), error, states, stepped
+        )
 
 
 def _failures(result, marked):
