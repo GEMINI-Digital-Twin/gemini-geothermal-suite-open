@@ -425,7 +425,9 @@ the input of the next `set_params`.
 ([inputs.md](inputs.md#6-what-gemini-checks-on-every-run-not-inputs)). It returns `{feasible,
 reasons}`; a reason is `{kind, name, message}` and, when it has them, `path`, `value`, `limit`,
 `worst_step`. `requirement`: a requirement of the case or the supply temperature of a service
-failed (`name` that of the requirement), no requirement could be checked, or a service the case
+failed (`name` that of the requirement), no requirement could be checked, a check that could not
+be judged beside a passed one and none failed (no `violation`; not an idle unit nor the supply of an
+undelivered service), or a service the case
 asks for is not delivered (`name` `heat_delivered` or `cold_delivered`). `failed_step`: failed or
 skipped rows (`failed_steps`). `numerical`: `mass_balance` below -1e-12 kg/s, `energy_balance`
 below -1e-9 W, a leaf residual above 1e-9 or the root above 1e-6 (`plant_balance`), a loop that did

@@ -953,11 +953,8 @@ def test_a_nan_tick_is_never_counted_as_a_violation_by_the_bounds():
     assert _outside(pd.Series([math.nan]), {"gt": 0.0, "lt": 1.0}) == 0
 
 
-def test_an_undecided_requirement_beside_a_passing_one_does_not_make_the_run_infeasible():
-    """Pinned for the owner (t2.md): a check of ``passed`` None beside a pass is no reason.
-
-    ``tally`` is True when any check passed.
-    """
+def test_an_undecided_requirement_beside_a_passing_one_makes_the_run_infeasible():
+    """A check of ``passed`` None beside a pass is a reason of its own, without a violation."""
     results = make_results(
         {"heat": {"unmet_demand": [1.0], "return_out.temperature": [300.0], "operating": [1.0]}}
     )
@@ -966,10 +963,44 @@ def test_an_undecided_requirement_beside_a_passing_one_does_not_make_the_run_inf
     both = make_case(count=1, requirements=[passing, absent])
     checks = gm.evaluate.requirements(heating_plant(), both, results)
     assert [item["passed"] for item in checks] == [True, None]
-    assert gm.evaluate.verdict(heating_plant(), both, results)["feasible"] is True
+    found = gm.evaluate.verdict(heating_plant(), both, results)
+    assert found["feasible"] is False
+    (item,) = found["reasons"]
+    assert item["kind"] == "requirement" and item["name"] == checks[1]["name"]
+    assert "violation" not in item and ranked(found) == []
     alone = make_case(count=1, requirements=[absent])
     found = gm.evaluate.verdict(heating_plant(), alone, results)
     assert kinds(found) == {"requirements": "requirement"}
+
+
+def test_a_requirement_on_a_unit_that_never_ran_beside_a_pass_stays_feasible():
+    """Nothing was asked of an idle unit: ``NO_FLOW`` is not an unknown."""
+    idle = run(operating=[0] * 4)
+    never = unmet(max=watts(1.0), when="running", name="idle_unmet")
+    case = make_case(count=4, requirements=[never, unmet(max=watts(99.0), name="loose")])
+    assert [item["passed"] for item in checked(never, results=idle)] == [None]
+    checks = gm.evaluate.requirements(heating_plant(), case, idle)
+    assert [item["passed"] for item in checks] == [None, True]
+    assert gm.evaluate.verdict(heating_plant(), case, idle)["feasible"] is True
+
+
+def test_a_supply_check_of_a_service_not_delivered_adds_no_second_reason():
+    """A heating plant asked for cold: the service reason is the only one for the cooling role."""
+    case = make_case(
+        supply={"heating": Quantity(60, "degC"), "cooling": Quantity(7, "degC")},
+        requirements=[
+            unmet(max=watts(1e12), name="heat_unmet"),
+            requirement("cooling_supply", "unmet", max=watts(1.0), name="cold_unmet"),
+        ],
+    )
+    results = day()
+    checks = gm.evaluate.requirements(heating_plant(), case, results)
+    assert {item["name"]: item["passed"] for item in checks}["cold_unmet"] is None
+    assert True in [item["passed"] for item in checks]
+    found = gm.evaluate.verdict(heating_plant(), case, results)
+    asked = [item["name"] for item in found["reasons"] if item["kind"] == "requirement"]
+    assert "cold_delivered" in asked
+    assert not {"cold_unmet", "cooling_supply_temperature"} & set(asked)
 
 
 def test_a_failed_requirement_beside_an_undecided_one_is_infeasible():
