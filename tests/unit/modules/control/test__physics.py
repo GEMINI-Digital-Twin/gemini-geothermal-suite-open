@@ -2,7 +2,7 @@
 
 import pytest
 
-from gemini.physics import control
+from gemini.modules.control import _physics as control
 from tests.fixtures.equivalence import assert_function_matches
 
 

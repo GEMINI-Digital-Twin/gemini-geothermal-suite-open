@@ -83,6 +83,16 @@ print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value
   ([no defaults](.claude/docs/conventions.md#no-defaults)).
 - *The input is a case, never a problem.* The word `problem` is only the return shape of an error;
   `tests/unit/test_code_quality.py` rejects it as a name in `gemini/`.
+- *Backward compatible from 0.5.0.* Nothing that exists in 0.5.0 may break: no public name
+  (`gm.*`, `gm.<folder>.*`) is renamed or removed, no signature loses or reorders a parameter or
+  changes a default or a kind, no output field or behaviour changes, no key of the case, economics,
+  plant or study JSON schemas disappears or becomes required, and the module-author contract
+  (`forward`, `update`, `State`) stays. Additions that break nothing are allowed, and the owner
+  decides them. What the competition runs (`examples/hackathon.py`, `examples/hackathon_2026`) stays
+  exactly the same. `tests/unit/test_api_compatibility.py` compares with the stored
+  `tests/fixtures/public_api_0_5_0.json`, a file written once and never regenerated (its hash is
+  pinned in the test), and `tests/e2e/test_competition_surface.py` pins the competition
+  ([freeze rule](.claude/docs/conventions.md#public-api-freeze)).
 - *Update the code, never wrap it.* When a refactor changes a name or a shape, every caller is
   changed in the same task, and no wrapper, alias or shim is written
   ([one implementation](.claude/docs/conventions.md#one-implementation-per-concept)).
@@ -130,8 +140,7 @@ Read every file in `.claude/docs/` before changing the repository:
 - [Utilities](.claude/docs/utils.md): the `gemini._utils` helpers and how to add one.
 
 When a commit changes behaviour, structure or conventions, update the relevant document in the
-same commit. The public API is frozen: a breaking change to a public name or return field raises the minor
-number of `gm.__version__` ([freeze rule](.claude/docs/conventions.md#public-api-freeze)).
+same commit. The public API is backward compatible from 0.5.0 ([freeze rule](.claude/docs/conventions.md#public-api-freeze)).
 
 ## Branching
 

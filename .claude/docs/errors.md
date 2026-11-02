@@ -40,7 +40,7 @@ issues and whose `issues` are the issues themselves. Readers append to the list 
 so one load reports everything wrong at once.
 
 **Checks are not errors.** The checks of `gm.evaluate` (`constraints`, `plant_balance`,
-`energy_balance`, `mass_balance`, `bounds`, `run_all`) always return check dicts with `passed`; a
+`energy_balance`, `mass_balance`, `bounds`) always return check dicts with `passed`; a
 violated limit never raises. A real failure inside a check (wrong input) still raises.
 
 ## The classes

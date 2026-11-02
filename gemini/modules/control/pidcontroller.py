@@ -4,9 +4,9 @@ from typing import Literal
 
 from gemini import ops
 from gemini.errors import ValidationError
+from gemini.modules.control import _physics as control
 from gemini.modules.declarations import Boundary, Control, Output, Parameter, State
 from gemini.modules.module import Module
-from gemini.physics import control
 from gemini.units.quantities import Dimensionless, Duration
 
 

@@ -513,11 +513,6 @@
     "case",
     "results"
    ],
-   "run_all": [
-    "plant",
-    "case",
-    "results"
-   ],
    "totals": [
     "plant",
     "case",
@@ -759,7 +754,6 @@
    "chemistry": "module",
    "combustion": "module",
    "constants": "module",
-   "control": "module",
    "corrosion": "module",
    "cycles": "module",
    "diagnostics": "module",
@@ -1002,5 +996,5 @@
   "study",
   "units"
  ],
- "version": "0.4.0"
+ "version": "0.5.0"
 }
