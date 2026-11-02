@@ -41,6 +41,9 @@ def check(plant, case):
     - when the plant states the dispatch ``least_cost``, the electricity price and, for a plant with
       a gas unit, the gas price in the economics (``missing``).
 
+    A case that is wrong by itself (``case.check()``, for example a value set with ``with_value`` of
+    another type than the quantity) is reported with its own issues and not applied to the plant.
+
     Parameters
     ----------
     plant : Module
@@ -55,6 +58,9 @@ def check(plant, case):
     """
     if case is None:
         return _parameters(plant)
+    own = case.check()
+    if own:
+        return own
     try:
         applied = apply_case(plant, _known_states(plant, case))
     except ValidationError as error:
@@ -129,7 +135,11 @@ def _absent(where, kind):
 
 
 def _kinds(plant, case):
-    """Return the issues of a capex or a fixed opex that the economics lacks for a kind."""
+    """Return the issues of a capex or a fixed opex that the economics lacks for a kind.
+
+    A module with a parameter still unset is skipped: its kind may depend on that parameter, and
+    ``_parameters`` already reports the missing value once.
+    """
     economics = case.economics
     if economics is None:
         return []
@@ -137,7 +147,7 @@ def _kinds(plant, case):
         {
             module.equipment_kind
             for _, module in plant.named_modules()
-            if getattr(module, "equipment_kind", None) is not None
+            if module.is_initialized and getattr(module, "equipment_kind", None) is not None
         }
     )
     fixed = (economics.opex.fixed if economics.opex is not None else None) or {}

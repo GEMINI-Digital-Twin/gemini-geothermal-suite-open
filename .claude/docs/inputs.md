@@ -866,6 +866,9 @@ docstring.
 - One name, `check`, everywhere. It returns a list of issues and never raises; an empty list means
   ready. `from_json` / `from_dict` run the object's own check and raise `ValidationError` carrying
   the same issues; `simulate` and every study function run `gm.check` first and raise the same way.
+  `gm.check` reports a case that is wrong by itself (`case.check()`) with its own issues and does
+  not apply it; a module with a parameter still unset is reported once (`params.<path>`) and its
+  equipment kind is not looked up, since a kind may depend on that parameter.
   The codes are those of [errors.md](errors.md): `missing_value`, `missing_assumption`,
   `invalid_unit`, `invalid_value`, `unknown_name`, `out_of_bounds`, `old_format`.
 

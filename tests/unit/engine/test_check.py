@@ -178,3 +178,34 @@ def test_without_a_case_only_the_parameters_of_the_plant_are_checked():
     found = gm.check(gm.Plant.from_dict(data), None)
     assert "params.peak_boiler.capacity" in paths(found)
     assert {item.kind for item in found} == {"missing"}
+
+
+def test_a_missing_parameter_that_names_the_kind_of_equipment_is_an_issue_not_an_error():
+    """The heat pump kind reads its mode; without a mode the check reports it and goes on."""
+    data = gm.Plant.from_json(SHALLOW_PLANT).to_dict()
+    del data["params"]["heat_pump"]["mode"]
+    found = gm.check(gm.Plant.from_dict(data), shallow_case())
+    assert paths(found) == ["params.heat_pump.mode"] and found[0].kind == "missing"
+
+
+def test_a_case_that_is_wrong_by_itself_gives_its_own_issues_and_is_not_applied():
+    """A value of another type, set with ``with_value``, is the issue of ``case.check``."""
+    plant, case = sample()
+    broken = case.with_value("site.ground.gradient", "zzz")
+    assert gm.check(plant, broken) == broken.check() != []
+    assert gm.check(plant, case.with_value("site.ground.gradient", Quantity(1, "m")))
+
+
+def test_a_plant_without_modules_and_a_storage_without_state_give_issues():
+    """An empty plant and a stateful plant with no initial state are judged, not refused."""
+    case = physics()
+    assert isinstance(gm.check(gm.Plant(), case), list)
+    assert paths(gm.check(storage_plant(), case)) == ["initial_state.storage.temperature"]
+
+
+def test_a_case_without_a_section_is_checked_on_every_plant_without_raising():
+    """Property: take each optional section out of the case in turn; the check returns a list."""
+    plant, case = sample()
+    for section in ("site", "demand", "utilities", "requirements", "economics"):
+        cut = revised(case, lambda data, section=section: data.pop(section, None))
+        assert isinstance(gm.check(plant, cut), list)
