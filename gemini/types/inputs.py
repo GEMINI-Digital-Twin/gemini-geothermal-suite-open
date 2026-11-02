@@ -280,12 +280,17 @@ def from_header(data, kind, path, issues):
             f"{path}: format = {data.get('format')!r}; expected {FORMAT}, header {form}",
             code="old_format",
         )
-    name = data.get("name")
-    if not isinstance(name, str) or not name:
-        _issue(issues, f"{path}.name", "missing", f"{path}: name = {name!r}; expected text")
+    _check_name(data.get("name"), path, issues)
     if len(issues) > before:
         return None
-    return Header(kind, name, data.get("about"))
+    return Header(kind, data["name"], data.get("about"))
+
+
+def _check_name(name, path, issues):
+    """Append the issue of a header ``name`` that is no text."""
+    if not isinstance(name, str) or not name:
+        place = f"{path}.name" if path else "name"
+        _issue(issues, place, "missing", f"{path}: name = {name!r}; expected text")
 
 
 def from_section(value, path, source, issues):

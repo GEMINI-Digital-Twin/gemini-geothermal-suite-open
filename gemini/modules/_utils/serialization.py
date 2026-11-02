@@ -171,6 +171,18 @@ def _history(root, stated):
     return to_plain(result)
 
 
+def bindings_dict(root):
+    """Return the flat bindings of every path of a tree, for a checkpoint: a file holds none."""
+    return _bindings(root, {})
+
+
+def set_bindings_dict(root, data):
+    """Set the flat ``bindings`` of ``bindings_dict`` on the tree."""
+    for path, value in data.items():
+        design.set_bindings(root, path, value)
+    return root
+
+
 def to_sections(root, stated=None, baselines=None):
     """Return the ``fluids``, ``boundary``, ``bindings`` and ``param_history`` of a tree.
 

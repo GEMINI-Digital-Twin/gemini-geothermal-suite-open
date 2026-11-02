@@ -332,6 +332,10 @@ class Module:
 
     repr_fields = ()
     offer_inlets = ()
+    operating_limits = ()
+    """``(output name, side, parameter name)`` of each limit; side is ``"min"`` or ``"max"``."""
+    plant_role = None
+    """The role this class plays in a plant for requirements, or ``None``; see ``case.roles()``."""
     _derived_params = frozenset()
     category = _FolderCategory()
     abstract = True
@@ -748,15 +752,14 @@ class Module:
         uninitialized = [name for name, value in self.named_parameters() if not value.initialized]
         return list(dict.fromkeys(self._missing_designs() + uninitialized))
 
-    def missing_parameters(self):
-        """Return what the tree still needs, as JSON: one entry per unset parameter.
+    def check(self):
+        """Return the issues of the tree, an empty list when it can run; it never raises.
 
-        Each entry has ``path`` (dotted, from this module), ``type``, ``quantity``, ``unit`` (SI),
-        ``units`` (every unit a value may be given in), ``minimum``, ``maximum``, ``enum`` and
-        ``description`` (the physical meaning). Design values a module still waits for come
-        first. An empty list means the tree can run.
+        One ``missing`` issue per unset parameter, with its path (dotted, from this module), its
+        quantity, the units a value may be given in and what it means. Design values a module still
+        waits for come first.
         """
-        return [description.missing_entry(path, self.get(path)) for path in self._missing_paths()]
+        return [description.missing_issue(path, self.get(path)) for path in self._missing_paths()]
 
     def _prepare(self):
         """Reject uninitialized parameters, before any call."""

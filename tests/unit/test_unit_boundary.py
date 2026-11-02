@@ -52,23 +52,18 @@ def test_no_package_code_reads_or_holds_unit_text():
     assert found == []
 
 
-def _plant_dict(**params):
+def _plant_file(params):
     return lambda: gm.Plant.from_dict(
-        {"format": 2, "type": "HeatingPlant", "params": params, "bindings": {}, "param_history": {}}
+        {"format": 1, "kind": "plant", "name": "test", "type": "HeatingPlant", "params": params}
     )
+
+
+def _plant_dict(**params):
+    return _plant_file(params)
 
 
 def _plant_input(value):
-    return lambda: gm.Plant.from_dict(
-        {
-            "format": 2,
-            "type": "HeatingPlant",
-            "params": {},
-            "inputs": {"peak_boiler.temperature_setpoint": value},
-            "bindings": {},
-            "param_history": {},
-        }
-    )
+    return _plant_file({"peak_boiler": {"temperature_setpoint": value}})
 
 
 def _minimize(bound):
@@ -104,7 +99,15 @@ RAW_NUMBERS = {
     "study bound": _minimize(2e5),
 }
 """Public inputs with a dimension, each called with a bare number."""
-FILE_INPUTS = ("price", "co2 price", "cost factor", "emission factor", "constraint bound")
+FILE_INPUTS = (
+    "price",
+    "co2 price",
+    "cost factor",
+    "emission factor",
+    "constraint bound",
+    "plant parameter",
+    "plant input",
+)
 """The inputs of the files of a case: a value with a dimension names its unit, so a bare number is
 ``invalid_unit`` and a text is a value that is no number."""
 

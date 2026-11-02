@@ -43,7 +43,7 @@ def test_the_cheapest_count_wins_with_its_plant(found):
     assert best.parts["parameters"]["depth"].value == pytest.approx(1500, abs=150)
     assert best.value == min(item.value for item in found["history"] if item.reason is None)
     design = best["plant"]
-    assert design.to_dict()["size"] == {"doublets": 2}
+    assert design.size == {"doublets": 2}
     assert design.depth == best.parts["parameters"]["depth"].value
 
 
@@ -114,7 +114,7 @@ def test_explicit_variables_replace_the_choices(runs):
     """Only the depth: the number of doublets stays."""
     result = gm.study.minimize(shallow_plant(), shallow_case(), "lcts", DEPTH, evaluations=5)
     assert result["evaluations"] == 5
-    assert result["best"]["plant"].to_dict()["size"] == {"doublets": 1}
+    assert result["best"]["plant"].size == {"doublets": 1}
 
 
 def test_a_constraint_rejects_trials(runs):

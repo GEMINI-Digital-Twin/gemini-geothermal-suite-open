@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+- The plant file is `kind: plant`, `format: 1`: `type` or `modules` and `connections`, `size` beside
+  `params`, `params` a tree of leaf objects `{value, unit, range, options, history}`; the keys `inputs`
+  and `bindings` are gone (a control is a leaf, bindings are set in memory). A file of `format: 2`
+  without `kind` raises `old_format`. `Plant.ranges`, `options`, `set_range`, `set_options`, `size`,
+  `check`; `Module.check` replaces `missing_parameters`; `gm.plants.validate` is removed.
+
 ### Removed
 - `gm.Plant.from_legacy`, `gemini.data.legacy`, `gemini/plants/_utils/legacy/`, `paths.legacy_project`
   and `Plant.validate`: the package reads no old project. Use

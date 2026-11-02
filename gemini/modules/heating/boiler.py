@@ -73,6 +73,7 @@ class Boiler(_BoilerBody):
     """
 
     equipment_kind = "boiler"
+    plant_role = "boiler"
 
     def __init__(self):
         """Declare boiler design data, ports and computed performance."""

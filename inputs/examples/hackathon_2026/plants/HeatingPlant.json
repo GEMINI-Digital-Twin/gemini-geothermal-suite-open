@@ -1,291 +1,458 @@
 {
-  "format": 2,
+  "format": 1,
+  "kind": "plant",
+  "name": "HeatingPlant",
   "type": "HeatingPlant",
   "size": {
-    "doublets": 2
+    "doublets": {
+      "value": 2,
+      "range": {
+        "min": 1,
+        "max": 3
+      }
+    }
   },
   "params": {
-    "d0.roughness": {
-      "value": 4.5e-05,
-      "unit": "m"
-    },
-    "d0.esp.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d1.roughness": {
-      "value": 4.5e-05,
-      "unit": "m"
-    },
-    "d1.esp.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d0.reservoir.decline_threshold": 0.15,
-    "d0.sink.decline_threshold": 0.15,
-    "d1.reservoir.decline_threshold": 0.15,
-    "d1.sink.decline_threshold": 0.15,
-    "filters.hot.clogging_pressure_drop": {
-      "value": 50000.0,
-      "unit": "Pa"
-    },
-    "filters.cold.clogging_pressure_drop": {
-      "value": 50000.0,
-      "unit": "Pa"
-    },
-    "heat_exchanger.fouling_threshold": 0.15,
-    "d0.drainage_radius": {
-      "value": 1000.0,
-      "unit": "m"
-    },
-    "d0.reservoir.skin": 0.0,
-    "d0.well.friction_correlation": "darcy_weisbach",
-    "d0.well.two_phase_friction_correlation": "BeggsBrill",
-    "d0.well.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d0.well.heat_transfer_coefficient": {
-      "value": 10.0,
-      "unit": "W/m2/K"
-    },
-    "d0.riser.friction_correlation": "darcy_weisbach",
-    "d0.riser.two_phase_friction_correlation": "BeggsBrill",
-    "d0.riser.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d0.riser.heat_transfer_coefficient": {
-      "value": 10.0,
-      "unit": "W/m2/K"
-    },
-    "d0.injector.friction_correlation": "darcy_weisbach",
-    "d0.injector.two_phase_friction_correlation": "BeggsBrill",
-    "d0.injector.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d0.injector.heat_transfer_coefficient": {
-      "value": 10.0,
-      "unit": "W/m2/K"
-    },
-    "d0.sink.skin": 0.0,
-    "d1.drainage_radius": {
-      "value": 1000.0,
-      "unit": "m"
-    },
-    "d1.reservoir.skin": 0.0,
-    "d1.well.friction_correlation": "darcy_weisbach",
-    "d1.well.two_phase_friction_correlation": "BeggsBrill",
-    "d1.well.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d1.well.heat_transfer_coefficient": {
-      "value": 10.0,
-      "unit": "W/m2/K"
-    },
-    "d1.riser.friction_correlation": "darcy_weisbach",
-    "d1.riser.two_phase_friction_correlation": "BeggsBrill",
-    "d1.riser.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d1.riser.heat_transfer_coefficient": {
-      "value": 10.0,
-      "unit": "W/m2/K"
-    },
-    "d1.injector.friction_correlation": "darcy_weisbach",
-    "d1.injector.two_phase_friction_correlation": "BeggsBrill",
-    "d1.injector.correction_factors": [
-      1.0,
-      0.0
-    ],
-    "d1.injector.heat_transfer_coefficient": {
-      "value": 10.0,
-      "unit": "W/m2/K"
-    },
-    "d1.sink.skin": 0.0,
-    "degasser.nominal_pressure_drop": {
-      "value": 14900.0,
-      "unit": "Pa"
-    },
-    "filters.hot.nominal_pressure_drop": {
-      "value": 1600.0,
-      "unit": "Pa"
-    },
-    "filters.hot.nominal_mass_flow": {
-      "value": 44.20333333333333,
-      "unit": "kg/s"
-    },
-    "filters.cold.nominal_pressure_drop": {
-      "value": 1600.0,
-      "unit": "Pa"
-    },
-    "filters.cold.nominal_mass_flow": {
-      "value": 44.20333333333333,
-      "unit": "kg/s"
-    },
-    "heat_exchanger.arrangement": "counterflow",
-    "heating_return_pipe.roughness": {
-      "value": 4.5e-05,
-      "unit": "m"
-    },
-    "heating_supply_pipe.roughness": {
-      "value": 4.5e-05,
-      "unit": "m"
-    },
-    "gas_grid.composition": {
-      "CH4": 0.8249507401227822,
-      "C2H6": 0.039549858193534584,
-      "C3H8": 0.012748086337494389,
-      "CO2": 0.011912342910726407,
-      "N2": 0.11083897243546233
-    },
-    "flare.combustion_efficiency": 0.98,
     "depth": {
       "value": 2500,
-      "unit": "m"
+      "unit": "m",
+      "range": {
+        "min": 2000.0,
+        "max": 3500.0
+      }
     },
-    "d0.well_diameter": {
-      "value": 0.244,
-      "unit": "m"
+    "d0": {
+      "nominal_flow": {
+        "value": 300,
+        "unit": "m3/h",
+        "range": {
+          "min": 50.0,
+          "max": 300.0
+        }
+      },
+      "well_diameter": {
+        "value": 0.244,
+        "unit": "m"
+      },
+      "drainage_radius": {
+        "value": 1000.0,
+        "unit": "m"
+      },
+      "roughness": {
+        "value": 4.5e-05,
+        "unit": "m"
+      },
+      "pump_efficiency": {
+        "value": 0.7
+      },
+      "nominal_wellhead_pressure": {
+        "value": 10,
+        "unit": "bar"
+      },
+      "reservoir": {
+        "skin": {
+          "value": 0.0
+        },
+        "decline_threshold": {
+          "value": 0.15
+        }
+      },
+      "well": {
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "heat_transfer_coefficient": {
+          "value": 10.0,
+          "unit": "W/m2/K"
+        }
+      },
+      "esp": {
+        "pump_type": {
+          "value": "unspecified"
+        },
+        "motor_efficiency": {
+          "value": 1.0
+        },
+        "minimum_flow": {
+          "value": 0,
+          "unit": "m3/s"
+        },
+        "maximum_flow": {
+          "value": 1,
+          "unit": "m3/s"
+        },
+        "best_efficiency_flow": {
+          "value": 0.04,
+          "unit": "m3/s"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "drift_threshold": {
+          "value": 0.1
+        }
+      },
+      "riser": {
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "heat_transfer_coefficient": {
+          "value": 10.0,
+          "unit": "W/m2/K"
+        }
+      },
+      "injector": {
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "heat_transfer_coefficient": {
+          "value": 10.0,
+          "unit": "W/m2/K"
+        }
+      },
+      "sink": {
+        "skin": {
+          "value": 0.0
+        },
+        "decline_threshold": {
+          "value": 0.15
+        }
+      }
     },
-    "d0.nominal_flow": {
-      "value": 300,
-      "unit": "m3/h"
+    "d1": {
+      "nominal_flow": {
+        "value": 300,
+        "unit": "m3/h",
+        "range": {
+          "min": 50.0,
+          "max": 300.0
+        }
+      },
+      "well_diameter": {
+        "value": 0.244,
+        "unit": "m"
+      },
+      "drainage_radius": {
+        "value": 1000.0,
+        "unit": "m"
+      },
+      "roughness": {
+        "value": 4.5e-05,
+        "unit": "m"
+      },
+      "pump_efficiency": {
+        "value": 0.7
+      },
+      "nominal_wellhead_pressure": {
+        "value": 10,
+        "unit": "bar"
+      },
+      "reservoir": {
+        "skin": {
+          "value": 0.0
+        },
+        "decline_threshold": {
+          "value": 0.15
+        }
+      },
+      "well": {
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "heat_transfer_coefficient": {
+          "value": 10.0,
+          "unit": "W/m2/K"
+        }
+      },
+      "esp": {
+        "pump_type": {
+          "value": "unspecified"
+        },
+        "motor_efficiency": {
+          "value": 1.0
+        },
+        "minimum_flow": {
+          "value": 0,
+          "unit": "m3/s"
+        },
+        "maximum_flow": {
+          "value": 1,
+          "unit": "m3/s"
+        },
+        "best_efficiency_flow": {
+          "value": 0.04,
+          "unit": "m3/s"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "drift_threshold": {
+          "value": 0.1
+        }
+      },
+      "riser": {
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "heat_transfer_coefficient": {
+          "value": 10.0,
+          "unit": "W/m2/K"
+        }
+      },
+      "injector": {
+        "friction_correlation": {
+          "value": "darcy_weisbach"
+        },
+        "two_phase_friction_correlation": {
+          "value": "BeggsBrill"
+        },
+        "correction_factors": {
+          "value": [
+            1.0,
+            0.0
+          ]
+        },
+        "heat_transfer_coefficient": {
+          "value": 10.0,
+          "unit": "W/m2/K"
+        }
+      },
+      "sink": {
+        "skin": {
+          "value": 0.0
+        },
+        "decline_threshold": {
+          "value": 0.15
+        }
+      }
     },
-    "d0.pump_efficiency": 0.7,
-    "d0.esp.pump_type": "unspecified",
-    "d0.esp.motor_efficiency": 1.0,
-    "d0.esp.minimum_flow": {
-      "value": 0,
-      "unit": "m3/s"
+    "control": {
+      "dispatch": {
+        "value": "least_cost"
+      },
+      "outages": {
+        "value": "lowest_demand"
+      }
     },
-    "d0.esp.maximum_flow": {
-      "value": 1,
-      "unit": "m3/s"
+    "backup": {
+      "value": "peak"
     },
-    "d0.esp.best_efficiency_flow": {
-      "value": 0.04,
-      "unit": "m3/s"
+    "degasser": {
+      "nominal_pressure_drop": {
+        "value": 14900.0,
+        "unit": "Pa"
+      },
+      "separation_efficiency": {
+        "value": 1.0
+      }
     },
-    "d0.esp.drift_threshold": 0.1,
-    "d0.nominal_wellhead_pressure": {
-      "value": 10,
-      "unit": "bar"
+    "filters": {
+      "hot": {
+        "nominal_pressure_drop": {
+          "value": 1600.0,
+          "unit": "Pa"
+        },
+        "nominal_mass_flow": {
+          "value": 44.20333333333333,
+          "unit": "kg/s"
+        },
+        "clogging_pressure_drop": {
+          "value": 50000.0,
+          "unit": "Pa"
+        }
+      },
+      "cold": {
+        "nominal_pressure_drop": {
+          "value": 1600.0,
+          "unit": "Pa"
+        },
+        "nominal_mass_flow": {
+          "value": 44.20333333333333,
+          "unit": "kg/s"
+        },
+        "clogging_pressure_drop": {
+          "value": 50000.0,
+          "unit": "Pa"
+        }
+      }
     },
-    "d1.well_diameter": {
-      "value": 0.244,
-      "unit": "m"
+    "heat_exchanger": {
+      "thermal_conductance": {
+        "value": 1500000,
+        "unit": "W/K"
+      },
+      "arrangement": {
+        "value": "counterflow"
+      },
+      "hot_nominal_pressure_drop": {
+        "value": 0,
+        "unit": "bar"
+      },
+      "cold_nominal_pressure_drop": {
+        "value": 0,
+        "unit": "bar"
+      },
+      "hot_nominal_mass_flow": {
+        "value": 171.7,
+        "unit": "kg/s"
+      },
+      "cold_nominal_mass_flow": {
+        "value": 178,
+        "unit": "kg/s"
+      },
+      "fouling_threshold": {
+        "value": 0.15
+      }
     },
-    "d1.nominal_flow": {
-      "value": 300,
-      "unit": "m3/h"
+    "injection_pump": {
+      "pump_type": {
+        "value": "unspecified"
+      },
+      "efficiency": {
+        "value": 0.7
+      },
+      "nominal_flow": {
+        "value": 600,
+        "unit": "m3/h"
+      },
+      "nominal_head": {
+        "value": 15.74,
+        "unit": "bar"
+      },
+      "pressure_setpoint": {
+        "value": 60,
+        "unit": "bar"
+      }
     },
-    "d1.pump_efficiency": 0.7,
-    "d1.esp.pump_type": "unspecified",
-    "d1.esp.motor_efficiency": 1.0,
-    "d1.esp.minimum_flow": {
-      "value": 0,
-      "unit": "m3/s"
+    "heating_return_pipe": {
+      "length": {
+        "value": 100,
+        "unit": "m"
+      },
+      "inner_diameter": {
+        "value": 0.5,
+        "unit": "m"
+      },
+      "roughness": {
+        "value": 4.5e-05,
+        "unit": "m"
+      },
+      "elevation_change": {
+        "value": 0,
+        "unit": "m"
+      },
+      "heat_transfer_coefficient": {
+        "value": 0.0,
+        "unit": "W/m2/K"
+      }
     },
-    "d1.esp.maximum_flow": {
-      "value": 1,
-      "unit": "m3/s"
+    "peak_boiler": {
+      "capacity": {
+        "value": 30,
+        "unit": "MW"
+      },
+      "efficiency": {
+        "value": 0.9
+      },
+      "temperature_setpoint": {
+        "value": 100,
+        "unit": "degC"
+      }
     },
-    "d1.esp.best_efficiency_flow": {
-      "value": 0.04,
-      "unit": "m3/s"
+    "heating_supply_pipe": {
+      "length": {
+        "value": 100,
+        "unit": "m"
+      },
+      "inner_diameter": {
+        "value": 0.5,
+        "unit": "m"
+      },
+      "roughness": {
+        "value": 4.5e-05,
+        "unit": "m"
+      },
+      "elevation_change": {
+        "value": 0,
+        "unit": "m"
+      },
+      "heat_transfer_coefficient": {
+        "value": 0.0,
+        "unit": "W/m2/K"
+      }
     },
-    "d1.esp.drift_threshold": 0.1,
-    "d1.nominal_wellhead_pressure": {
-      "value": 10,
-      "unit": "bar"
+    "heating_consumer": {
+      "return_pressure": {
+        "value": 6,
+        "unit": "bar"
+      }
     },
-    "degasser.separation_efficiency": 1.0,
-    "heat_exchanger.thermal_conductance": {
-      "value": 1500000,
-      "unit": "W/K"
+    "gas_grid": {
+      "composition": {
+        "value": {
+          "CH4": 0.8249507401227822,
+          "C2H6": 0.039549858193534584,
+          "C3H8": 0.012748086337494389,
+          "CO2": 0.011912342910726407,
+          "N2": 0.11083897243546233
+        }
+      }
     },
-    "heat_exchanger.hot_nominal_pressure_drop": {
-      "value": 0,
-      "unit": "bar"
-    },
-    "heat_exchanger.cold_nominal_pressure_drop": {
-      "value": 0,
-      "unit": "bar"
-    },
-    "heat_exchanger.hot_nominal_mass_flow": {
-      "value": 171.7,
-      "unit": "kg/s"
-    },
-    "heat_exchanger.cold_nominal_mass_flow": {
-      "value": 178,
-      "unit": "kg/s"
-    },
-    "injection_pump.efficiency": 0.7,
-    "injection_pump.pump_type": "unspecified",
-    "injection_pump.nominal_flow": {
-      "value": 600,
-      "unit": "m3/h"
-    },
-    "injection_pump.nominal_head": {
-      "value": 15.74,
-      "unit": "bar"
-    },
-    "peak_boiler.capacity": {
-      "value": 30,
-      "unit": "MW"
-    },
-    "peak_boiler.efficiency": 0.9,
-    "heating_consumer.return_pressure": {
-      "value": 6,
-      "unit": "bar"
-    },
-    "heating_return_pipe.length": {
-      "value": 100,
-      "unit": "m"
-    },
-    "heating_return_pipe.inner_diameter": {
-      "value": 0.5,
-      "unit": "m"
-    },
-    "heating_return_pipe.elevation_change": {
-      "value": 0,
-      "unit": "m"
-    },
-    "heating_return_pipe.heat_transfer_coefficient": {
-      "value": 0.0,
-      "unit": "W/m2/K"
-    },
-    "heating_supply_pipe.length": {
-      "value": 100,
-      "unit": "m"
-    },
-    "heating_supply_pipe.inner_diameter": {
-      "value": 0.5,
-      "unit": "m"
-    },
-    "heating_supply_pipe.elevation_change": {
-      "value": 0,
-      "unit": "m"
-    },
-    "heating_supply_pipe.heat_transfer_coefficient": {
-      "value": 0.0,
-      "unit": "W/m2/K"
+    "flare": {
+      "combustion_efficiency": {
+        "value": 0.98
+      }
     }
-  },
-  "inputs": {
-    "peak_boiler.temperature_setpoint": {
-      "value": 100,
-      "unit": "degC"
-    },
-    "injection_pump.pressure_setpoint": {
-      "value": 60,
-      "unit": "bar"
-    }
-  },
-  "bindings": {},
-  "param_history": {}
+  }
 }

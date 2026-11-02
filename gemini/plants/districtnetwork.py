@@ -28,6 +28,7 @@ class DistrictNetwork(Plant):
     """
 
     purpose = "both"
+    size_choices = {"service": tuple(SUBSTATIONS)}
 
     def __init__(self, consumers=2, service="heating"):
         """Build a network of the given size; both are structural arguments."""

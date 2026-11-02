@@ -38,7 +38,7 @@ def test_minimize_over_the_doublets_finds_the_cheapest_of_three_runs(case):
     assert found["evaluations"] == 3
     assert found["best"].parts["parameters"]["size.doublets"].value == cheapest
     assert found["best"].value == pytest.approx(costs[cheapest])
-    assert found["best"]["plant"].to_dict()["size"] == {"doublets": cheapest}
+    assert found["best"]["plant"].size == {"doublets": cheapest}
 
 
 def test_sensitivity_orders_the_prices_by_their_effect(case):

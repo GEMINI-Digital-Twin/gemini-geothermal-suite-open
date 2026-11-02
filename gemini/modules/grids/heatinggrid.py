@@ -45,6 +45,8 @@ class HeatingGrid(Module):
     Handbook - HVAC Systems and Equipment (2020), chapter 13, "Hydronic heating and cooling".
     """
 
+    plant_role = "heating_supply"
+
     def __init__(self):
         """Declare the consumer's return limit, demand boundary and delivered heat."""
         super().__init__()

@@ -120,7 +120,7 @@ def _counts(plant, item, fixed):
             path=STRUCTURE,
             code="out_of_bounds",
         )
-    if (plant.to_dict().get("size") or {}).get("doublets") is None:
+    if plant.size.get("doublets") is None:
         count = len(units_of(plant, "doublet"))
         reason = f"{type(plant).__name__} takes no structural size 'doublets'"
         fixed.append({"name": STRUCTURE, "value": units.Quantity(count, "-"), "reason": reason})

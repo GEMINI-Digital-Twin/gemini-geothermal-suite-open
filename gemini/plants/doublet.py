@@ -59,6 +59,7 @@ class Doublet(Equipment, Plant):
     """
 
     equipment_kind = "production_pump"
+    plant_role = "doublet"
 
     def __init__(self):
         """Declare the limbs, the design values, the ports and the connections."""

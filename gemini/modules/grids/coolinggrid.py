@@ -60,6 +60,8 @@ class CoolingGrid(Module):
     with a relative humidity in (0, 1].
     """
 
+    plant_role = "cooling_supply"
+
     def __init__(self):
         """Declare the consumer's limits, indoor conditions, loads and absorbed heat."""
         super().__init__()

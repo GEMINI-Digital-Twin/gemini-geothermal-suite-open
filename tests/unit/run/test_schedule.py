@@ -415,9 +415,11 @@ def split_sources():
     spec = plant.to_dict()
     drop = ("production", "degasser", "injection")
     spec["modules"] = {name: item for name, item in spec["modules"].items() if name not in drop}
-    spec["modules"]["heat_pump"] = {
-        "type": "HeatPump",
-        "params": {"mode": "heating", "capacity": {"value": 10, "unit": "MW"}},
+    spec["params"] = {name: item for name, item in spec["params"].items() if name not in drop}
+    spec["modules"]["heat_pump"] = {"type": "HeatPump"}
+    spec["params"]["heat_pump"] = {
+        "mode": {"value": "heating"},
+        "capacity": {"value": 10, "unit": "MW"},
     }
     spec.pop("outlets", None)
     spec["inlets"] = {"power_in": ["d0.power_in", "d1.power_in", "heat_pump.power_in"]}

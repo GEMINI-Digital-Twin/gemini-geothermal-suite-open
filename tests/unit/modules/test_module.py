@@ -227,7 +227,7 @@ def test_output_records_are_nested_per_call():
 def test_uninitialized_and_hooks():
     """Uninitialized parameters and hook ordering have clear behavior."""
     module = PassThrough()
-    assert [item["path"] for item in module.missing_parameters()] == ["value"]
+    assert [item.path for item in module.check()] == ["value"]
     with raises(gm.errors.ValidationError, "missing_value", match="uninitialized"):
         module(
             fluid_in=Stream(
@@ -788,7 +788,7 @@ PUBLIC_METHODS = {
     "param_history",
     "set_bindings",
     "bindable",
-    "missing_parameters",
+    "check",
     "get",
     "forward",
     "register_forward_pre_hook",

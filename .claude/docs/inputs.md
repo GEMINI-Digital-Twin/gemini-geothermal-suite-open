@@ -592,6 +592,40 @@ one-at-a-time sensitivity are `min` and `max` of the uncertainty, else the value
 `std`. `Well.capex` is the length times `economics.drilling_cost_per_metre(length)`, the constant or
 the depth table. The module glossary has the word `reinjection`, for `Doublet.reinjection_ratio`.
 
+**7.46 The plant file as built** (rule: P6, 7.11, 7.12, 7.15, 7.16). `gemini/plants/_utils/form.py`
+converts the file to the flat plant dict the reader builds a plant from, and back, so there is one
+reader and one writer of the flat dict (the private form a checkpoint also uses for a tree that is
+no plant); `leaves.py` reads every leaf against the declaration it sets, with the readers of
+`gemini/types/inputs.py`, collecting all issues. (a) `type` with `modules`/`connections` is read as
+the class and the structure is compared with the class's (`modules` issue when they differ);
+`to_json(structure=True)` writes both. (b) `size` is one leaf per structural argument, an integer
+at least 1, or a choice of the class (`DistrictNetwork.service`, `size_choices`); `plant.size` is the
+plain mapping. The constructor defaults of 7.12 are not removed yet. (c) `params.control.dispatch`
+and `params.control.outages` are the plant parameters `dispatch` and `outages` of any plant at any
+depth; `backup` and `depth` sit at the top. (d) A leaf may carry no value (a template): its issue
+`missing` at `...value` is not raised by `from_dict`, which raises every other issue, and
+`check()` lists the parameters without a value as `missing`, with a path `params.<path>`. A leaf
+with `history` and no value is a dated parameter whose current value is the history's. (e) A leaf
+that names a control or a boundary of a module, or a field of a plant inlet (`return_in.T`), sets
+a plant input; the `inputs` key is refused. (f) `bindings` is refused in a file (7.15); they stay in
+memory, a checkpoint stores them in its own `bindings` key, and the bindings of the measured
+examples are `inputs/doublet_heat/bindings.json`, read by the test fixture. (g) `fluids` and
+`boundary` stay keys by module path (7.27 is not built). (h) A string parameter without a `Literal`
+is a free label (`pump_type`, a pump catalogue name): it has no closed list and no options; every
+other string parameter of the modules and plants declares its list as a `Literal`. (i) The search
+rule below.
+
+**The variable of a search** (for `gm.study.minimize`, worker F). `plant.ranges` and
+`plant.options` give the leaves in file order. A variable is the set of leaves with the same
+parameter name (the last part of the path), the same role of the module that owns it (the roles of
+`gm.case.roles()`; the plant itself is the role `plant`) and an equal range in SI; options are
+grouped the same way, with equal options. Three chillers of one plant with the same `capacity` range
+are one variable; `depth` and `nominal_flow` of `d0` and `d1` are one variable each; the `depth` of
+the plant is tied to the doublets by the class. The order of the variables is the first appearance
+of a member in the file order of `plant.ranges` and `plant.options`, `size.doublets` first. A leaf
+with a range and one without the same name and role are not tied: only the leaves that state a
+range are variables.
+
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is
 built for `case.initial_state` and its check in `gm.check`; the removal of the `State` defaults and

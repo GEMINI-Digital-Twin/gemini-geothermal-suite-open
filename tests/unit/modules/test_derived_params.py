@@ -7,6 +7,7 @@ from gemini._utils import registry
 from gemini.physics import hydraulics
 from tests.fixtures import si
 from tests.fixtures.deriving import Column
+from tests.fixtures.plant_files import leaves
 
 HEIGHT, DENSITY = 2500.0, 1030.0
 PRESSURE = hydraulics.hydrostatic_dp(DENSITY, HEIGHT)
@@ -76,7 +77,7 @@ def test_from_dict_derives_and_keeps_only_what_was_stated():
     """The file holds own and explicit child values; reading it derives the rest."""
     plant = plant_with(GIVEN)
     spec = plant.to_dict()
-    assert spec["modules"]["column"]["params"] == GIVEN
+    assert {k[7:]: v for k, v in leaves(spec).items() if k.startswith("column.")} == GIVEN
     assert gm.Plant.from_dict(spec).column.reservoir.pressure == PRESSURE
 
 
@@ -87,7 +88,7 @@ def test_an_explicit_child_value_in_the_same_call_wins():
     si.set_params(plant, "column", {"height": 1000.0})
     assert plant.column.reservoir.pressure == 1e7
     spec = plant.to_dict()
-    assert spec["modules"]["column"]["params"]["reservoir.pressure"] == {
+    assert leaves(spec)["column.reservoir.pressure"] == {
         "value": 100,
         "unit": "bar",
     }
@@ -127,7 +128,7 @@ def test_param_history_is_derived_and_written_without_the_derived_values():
     plant = plant_with(GIVEN)
     si.set_params(plant, "column", {"height": 1000.0}, valid_from="2030-01-01")
     spec = plant.to_dict()
-    assert "column.reservoir" not in spec["param_history"]
+    assert "reservoir" not in spec["params"]["column"]
     rebuilt = gm.Plant.from_dict(spec)
     assert rebuilt.params_at("column.reservoir", "2031-01-01")["pressure"] == pytest.approx(
         hydraulics.hydrostatic_dp(DENSITY, 1000.0)
@@ -140,5 +141,5 @@ def test_a_handwritten_root_stores_no_derived_value():
     column = Column()
     column.set_params("", GIVEN)
     spec = column.to_dict()
-    assert "reservoir.pressure" not in spec["params"]
+    assert "reservoir.pressure" not in leaves(spec)
     assert gm.Plant.from_dict(spec).reservoir.pressure == PRESSURE

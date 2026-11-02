@@ -66,8 +66,13 @@ NEW_PARAMS = {
     }
     | {"drainage_radius": 1000.0, "roughness": 4.5e-05},
     "injection_pump": {"nominal_flow": None, "nominal_head": None},
+    "doublet.esp": {"minimum_intake_pressure": None, "maximum_gas_fraction": None},
 }
 """Parameters added after phase 0, as ``None`` (unset), plus the two explicit values."""
+PLANT_CONTROLS = {"dispatch": None, "outages": None, "backup": None}
+"""The plant-level choices every plant gained, unset."""
+PLANTS = ("", "doublet")
+"""The paths of the plants in the baseline: the root and the doublet."""
 
 
 def _baseline_frame(directory, name):
@@ -152,7 +157,8 @@ def test_state_and_full_results_match_phase_zero(dataset_name, selected_dataset,
                 f"section_{name}": [section[field] for section in sections]
                 for name, field in SECTION_FIELDS.items()
             }
-        assert old_params | NEW_PARAMS.get(old_path, {}) == new["params"]
+        added = NEW_PARAMS.get(old_path, {}) | (PLANT_CONTROLS if old_path in PLANTS else {})
+        assert old_params | added == new["params"]
         assert fluid_names(old["fluid"]) == new["fluid"]
 
     replay = path_frame(gm.replay(plant, selected_dataset))

@@ -122,7 +122,7 @@ On an instance of `Module`; a class answers through a new instance, `gm.modules.
 | `parameter_schema()` | JSON Schema draft 2020-12; each property has `unit`, `quantity`; dotted child names | real |
 | `validate_params(params, on_error="raise")` | `[]`, or raises every problem; with `"record"` the list of problems; a bare dimensioned number is one problem `invalid_value` | real |
 | `help()` | text, on the class too | real |
-| `missing_parameters()` | JSON list, one dict per unset parameter: `{path, type, quantity, unit, units, minimum, maximum, enum, description}`; `[]` when the tree can run | real |
+| `check()` | list of `Issue`, one `missing` issue per unset parameter (`path`, `quantity`, `accepted` units, the meaning in `message`); `[]` when the tree can run; never raises. A plant also reports the issues of its file: units, ranges inside bounds, options allowed, connections valid | real |
 | `get(path)` | the declaration at a dotted path, whatever its kind | real |
 | `get_submodule(path)`, `named_modules()`, `modules()`, `children()`, `named_children()` | a module, or the tree | real |
 | `state_dict()`, `set_state_dict(state, strict=True)` | the state tree of a stateful module, and its restore | real |
@@ -152,8 +152,11 @@ are in `gm.plants`, not in `gm.modules`; `gm.modules` never imports `gm.plants`.
 | Name | Returns | Status |
 | --- | --- | --- |
 | `gm.Plant(name)` | an empty plant; subclass it for a plant class | real |
-| `gm.Plant.from_dict(data)` | a plant of a class or without one; one `ValidationError` carries every problem in `problems` | real |
-| `gm.Plant.from_json(path)`, `p.to_json(path)` | reads or writes the plant dict as JSON | real |
+| `gm.Plant.from_dict(data)` | a plant of a class or without one, from a plant file (`kind: plant`, `format: 1`); one `ValidationError` carries every issue in `issues`, except a parameter or size without a value, which `size` completes | real |
+| `gm.Plant.from_json(path)`, `p.to_json(path, structure=False)` | reads or writes the plant file as JSON; `structure=True` writes the full form, the class and its modules and connections | real |
+| `p.size` | the structural size as a plain mapping, `{"doublets": 2}` | real |
+| `p.ranges`, `p.options` | the search space the file states: `{path: Range}` in SI and `{path: tuple}`, in file order, `size.doublets` first | real |
+| `p.set_range(path, min=None, max=None)`, `p.set_options(path, options)` | the plant; checked as a file's range and options are | real |
 | `p.add(type, name=None, params=None)` | the added module; `type` is a registry name or a class, `params` the dict `set_params` takes (quantities for what has a dimension) | real |
 | `p.connect(source, target, type=None)` | nothing; `ValidationError` with candidates, see [plants.md](plants.md) | real |
 | `p.constrain(target, by, bounds, equals=None, at_least=None)` | nothing; the engine solves `by` so that `target` reaches its value, see [plants.md](plants.md#constraints) | real |
@@ -163,10 +166,9 @@ are in `gm.plants`, not in `gm.modules`; `gm.modules` never imports `gm.plants`.
 | `p.input_value(path)` | the input in SI, or `None` when it has no value | real |
 | `p.target_of(source)`, `p.source_of(target)` | the `"path.port"` an outlet feeds, or that feeds an inlet; `None` for a plant port | real |
 | `p.feeds(source)` | the paths of the modules an outlet reaches through its circuit, nearest first; it ends at a grid or a plant port | real |
-| `p.to_dict(structure=False)` | the plant dict; `structure=True` gives the modules and connections of a plant of a class | real |
+| `p.to_dict(structure=False)` | the plant file; `structure=True` gives the modules and connections of a plant of a class as well | real |
 | `Output.difference(a, b)`, `Output.ratio(a, b)`, `Output.sum(a, b, ...)` | the outputs of a plant, combinations of paths, see [plants.md](plants.md#outputs) | real |
-| `gm.plants.validate(plant, on_error="raise")` | `[]`, or raises every problem; with `"record"` the list of problems, paths such as `connections[1].target`; takes a `Plant` or a plant dict and checks the same | real |
-| `gm.plants.schema()` | JSON Schema of the plant dict, generated from the code | real |
+| `gm.plants.schema()` | JSON Schema of the plant file, generated from the code | real |
 | `gm.plants.names(category=None)` | plant names; `category` is `heating`, `cooling` or `both`, what a plant serves | real |
 | `gm.plants.get(name)` | a new plant without values | real |
 | `gm.plants.capabilities()` | `{plant class: {roles, schedulable, choices}}`, built from the code | real |
@@ -413,8 +415,8 @@ of the flow, with its signature and its return shape. `python examples/hackathon
 | --- | --- | --- |
 | Read the case | `gm.Case.from_json(path)` | `gm.Case`. `ValidationError` with `path` and `code` for a wrong file |
 | Read a candidate | `gm.Plant.from_json(path)` | `gm.Plant`. `plant.to_dict()` is the plant dict |
-| Fill a plant | `gm.plants.<Class>(...)`, then `plant.missing_parameters()` and `plant.set_params("", values)`, a value with a dimension a `Quantity` | a list of `{path, type, quantity, unit, units, minimum, maximum, enum, description}`, one per value still unset (the reservoir and the wells that the case gives are in it until a run); a run with a value missing raises `missing_value` naming all of them |
-| Check a plant | `gm.plants.validate(plant, on_error="raise")` | `[]`, or one `ValidationError` that carries every problem; a `Plant` and its dict give the same result |
+| Fill a plant | `gm.plants.<Class>(...)`, then `plant.check()` and `plant.set_params("", values)`, a value with a dimension a `Quantity` | a list of `missing` issues, one per value still unset (the reservoir and the wells that the case gives are in it until a run); a run with a value missing raises `missing_value` naming all of them |
+| Check a plant | `plant.check()` | `[]`, or the issues; it never raises. `gm.Plant.from_dict` raises one `ValidationError` with the same issues |
 | Make a value | `gm.units.Quantity(value, unit)`, with `unit` a text of the `Unit` table | `Quantity`: `.value`, `.unit`, `.si`, `.to(unit)`, `to_dict()` |
 | Size | `gm.study.size(plant, case, backup)` | a new `gm.Plant`; `plant.sizing` is `{"sized": [{path, value, reason}], "unchanged": [{path, reason}], "broken": [{unit_path, role, quantity, value, limit, worst_step}], "simulation": str}` |
 | Search | `gm.study.minimize(plant, case, objective, variables=None, constraints=None, evaluations=100, *, plan=None)`, called as `minimize(sized, case, "lcts", variables, evaluations=15)`, `variables` a list of `{path, parameter, lower, upper}` | `{"best": Value, "feasible": bool, "fixed": [{name, value, reason}], "history": [...], "evaluations": int}`; `result["best"]["plant"]` is the best `gm.Plant`, `best.parts["parameters"]` is `{name: Quantity}`. `feasible` says whether `best` passes every constraint of the case and has no failed step; with no feasible trial `best` is the least violating one that ran. `fixed` lists the variables the plant could not take (a role it lacks, `size.doublets` on a plant without it). Each `history` item is a `Value` whose `reason` is `None` for a feasible trial, else the first failed check of `gm.evaluate.constraints` (a dict) or a text for a metric limit or a failed run, and whose `parts["violation"]` is the relative violation. `ValidationError` code `invalid_design` when nothing is left to search |
@@ -604,7 +606,7 @@ Names removed or renamed in the unreleased changes of 0.2.0:
 | `Plant.save(path)`, `gm.Plant.load(path)` | `Plant.to_json(path)`, `gm.Plant.from_json(path)` |
 | `Results.save(path)`, `gm.Results.load(path)` | `Results.to_npz(path)`, `gm.Results.from_npz(path)` |
 | `gm.plants.convert_legacy(folder)`, `gm.Plant.from_legacy(folder)` | removed; the reader of the old project folder is `scripts/legacy/` and builds no plant, see [legacy.md](legacy.md) |
-| `p.validate(on_error="raise")` | `gm.plants.validate(p, on_error="raise")`; a plant dict is still accepted |
+| `p.validate(on_error="raise")`, `gm.plants.validate(p)` | `p.check()` |
 | `Engine.save_checkpoint`, `Engine.load_checkpoint` | `Engine.to_checkpoint`, `Engine.from_checkpoint` |
 | `Module.load_state_dict` | `Module.set_state_dict` |
 | `gm.runtime.load_state`; `set_precision`, `set_display_units`, `set_default_fluid` and the getters | internal `set_state`; `gm.runtime.settings(...)` and `gm.runtime.state()` |

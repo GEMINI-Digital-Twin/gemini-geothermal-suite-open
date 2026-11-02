@@ -173,7 +173,7 @@ def _validation_entries(plant):
         "validate_params": lambda: gm.modules.Valve().validate_params(
             {"nope": 1}, on_error="record"
         ),
-        "plants.validate": lambda: gm.plants.validate({"format": 2, "name": 3}, on_error="record"),
+        "plant.check": lambda: [item.problem() for item in gm.plants.Doublet().check()],
         "to_dict": lambda: [gm.errors.ValidationError("bad", code="invalid_unit").to_dict()],
     }
 

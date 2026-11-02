@@ -82,8 +82,9 @@ def test_every_template_takes_one_to_three_doublets(name, count):
     assert [hasattr(plant, f"d{index}") for index in range(4)] == [
         index < count for index in range(4)
     ]
-    assert gm.plants.validate(plant, on_error="record") == []
-    assert plant.to_dict()["size"] == {"doublets": count}
+    assert [item for item in plant.check() if item.kind != "missing"] == []
+    assert plant.to_dict()["size"] == {"doublets": {"value": count}}
+    assert plant.size == {"doublets": count}
 
 
 @pytest.mark.parametrize("count", [0, 4])
@@ -103,7 +104,7 @@ def stored(request):
 def test_a_plant_round_trips(stored):
     """The plant read from the dict of each size writes the same dict."""
     count, data, built = stored
-    assert data["size"] == {"doublets": count}
+    assert data["size"] == {"doublets": {"value": count}}
     assert built.to_dict() == data
 
 

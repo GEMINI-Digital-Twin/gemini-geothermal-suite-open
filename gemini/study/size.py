@@ -54,7 +54,7 @@ def _note(notes, path, value, unit, reason):
 
 def _takes_doublets(plant):
     """Whether the class of the plant takes the structural size ``doublets``."""
-    return "doublets" in (plant.to_dict().get("size") or {})
+    return "doublets" in plant.size
 
 
 def _doublets(plant, case, peak, notes):

@@ -10,6 +10,7 @@ from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.heating_cooling import days_case
 from tests.fixtures.json_schema import check as check_schema
+from tests.fixtures.plant_files import issues, leaves
 
 SETPOINT = {"pump_heater.temperature_setpoint": {"value": 100, "unit": "degC"}}
 
@@ -61,7 +62,8 @@ def test_inputs_round_trip_in_both_dict_forms(structure):
     path = "peak_boiler.temperature_setpoint"
     plant.set_inputs({path: {"value": 100, "unit": "degC"}})
     data = plant.to_dict(structure=structure)
-    assert data["inputs"] == {path: {"value": 100, "unit": "degC"}}
+    assert "inputs" not in data
+    assert leaves(data)[path] == {"value": 100, "unit": "degC"}
     built = gm.Plant.from_dict(data)
     assert built.get_submodule("peak_boiler").temperature_setpoint == pytest.approx(373.15)
     assert built.to_dict(structure=structure) == data
@@ -69,14 +71,18 @@ def test_inputs_round_trip_in_both_dict_forms(structure):
 
 def test_a_plant_without_inputs_has_no_key():
     """Stored plants that set nothing keep the dict they had."""
-    assert "inputs" not in with_values(gm.plants.get("HeatingPlant")).to_dict()
+    assert not [
+        name
+        for name in leaves(with_values(gm.plants.get("HeatingPlant")).to_dict())
+        if name.endswith("setpoint")
+    ]
 
 
 def test_a_run_does_not_become_a_stored_input():
     """A value only the engine persisted is the last tick of a run, not part of the design."""
     plant = boiler_plant()
     plant._set_inputs({"pump_heater.temperature_setpoint": 350.0})
-    assert "inputs" not in plant.to_dict()
+    assert "pump_heater.temperature_setpoint" not in leaves(plant.to_dict())
 
 
 def test_a_plant_inlet_field_is_an_input():
@@ -107,28 +113,34 @@ def test_from_dict_then_schedule_needs_no_extra_call():
 def test_a_bad_path_gives_unknown_name_with_suggestions():
     """``from_dict`` says where the path is in the dict and what was meant."""
     data = boiler_plant().to_dict()
-    data["inputs"] = {"pump_heater.temperature_setpoin": {"value": 100, "unit": "degC"}}
+    data["params"].setdefault("pump_heater", {})["temperature_setpoin"] = {
+        "value": 100,
+        "unit": "degC",
+    }
     with raises(ValidationError, "unknown_name") as caught:
         gm.Plant.from_dict(data)
     found = caught.value.problems[0]
-    assert found["path"] == "inputs.pump_heater.temperature_setpoin"
-    assert found["suggestions"] == ["pump_heater.temperature_setpoint"]
+    assert found["path"] == "params.pump_heater.temperature_setpoin"
+    assert "temperature_setpoint" in found["suggestions"][0]
 
 
 @pytest.mark.parametrize(
-    ("inputs", "code"),
+    ("path", "leaf", "code"),
     [
-        ({"pump_heater.temperature_setpoint": {"value": 100, "unit": "bar"}}, "invalid_unit"),
-        ({"pump_heater.capacity": {"value": 1, "unit": "MW"}}, "unknown_name"),
-        ({"nothing.T": 300}, "unknown_name"),
+        ("pump_heater.temperature_setpoint", {"value": 100, "unit": "bar"}, "invalid_unit"),
+        ("nothing.T", {"value": 300}, "unknown_name"),
     ],
-    ids=["wrong unit", "a parameter", "no such port"],
+    ids=["wrong unit", "no such port"],
 )
-def test_validate_reports_what_does_not_fit(inputs, code):
-    """A wrong unit, a path that is no input and an unknown one are problems on the dict."""
-    data = boiler_plant().to_dict() | {"inputs": inputs}
-    found = gm.plants.validate(data, on_error="record")
-    assert [item["code"] for item in found if item["path"].startswith("inputs.")] == [code]
+def test_check_reports_what_does_not_fit(path, leaf, code):
+    """A wrong unit and an unknown path are issues of the file, at the path of the leaf."""
+    data = boiler_plant().to_dict()
+    module, _, name = path.rpartition(".")
+    data["params"].setdefault(module, {})[name] = leaf
+    found = issues(data)
+    assert [
+        item.problem()["code"] for item in found if item.path.startswith(f"params.{module}")
+    ] == [code]
 
 
 def test_a_parameter_path_says_so():
@@ -145,13 +157,16 @@ def test_set_inputs_changes_nothing_when_one_path_fails():
     assert plant.input_value("pump_heater.temperature_setpoint") is None
 
 
-def test_the_schema_knows_the_key():
-    """Both forms of the plant dict take ``inputs`` in the schema."""
+def test_the_schema_has_no_inputs_key_and_a_control_is_a_leaf_of_params():
+    """Both forms of the plant file hold a control as a leaf, which the schema accepts."""
     document = with_values(gm.plants.get("HeatingPlant")).set_inputs(
         {"peak_boiler.temperature_setpoint": {"value": 100, "unit": "degC"}}
     )
+    assert "inputs" not in schema()["properties"]
     for structure in (False, True):
-        assert check_schema(document.to_dict(structure=structure), schema(), schema()) == []
+        data = document.to_dict(structure=structure)
+        assert data["params"]["peak_boiler"]["temperature_setpoint"]["unit"] == "degC"
+        assert check_schema(data, schema(), schema()) == []
 
 
 def test_a_unit_string_is_refused_as_an_input_and_as_a_parameter():

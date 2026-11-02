@@ -1,0 +1,118 @@
+{
+  "Doublet": {
+    "esp": {
+      "frequency": "doublet.esp.frequency",
+      "head": "doublet.esp.head",
+      "discharge_pressure": "doublet.esp.discharge_pressure",
+      "power": "doublet.esp.power",
+      "fluid_in.m_dot": {
+        "column": "doublet.esp.suction.m_dot",
+        "unit": "m3/s"
+      },
+      "fluid_in.p": "doublet.esp.suction.p",
+      "fluid_in.T": "doublet.esp.suction.T"
+    },
+    "injector": {
+      "wellhead_in.m_dot": {
+        "column": "doublet.injector.wellhead.m_dot",
+        "unit": "m3/s"
+      },
+      "wellhead_in.p": "doublet.injector.wellhead.p",
+      "wellhead_in.T": "doublet.injector.wellhead.T"
+    },
+    "reservoir": {
+      "production_rate": {
+        "column": "doublet.reservoir.production_rate",
+        "unit": "m3/s"
+      }
+    }
+  },
+  "DoubletHeatPlant": {
+    "degasser": {
+      "fluid_in.m_dot": {
+        "column": "degasser.inlet.m_dot",
+        "unit": "m3/s"
+      },
+      "fluid_in.p": "degasser.inlet.p",
+      "fluid_in.T": "degasser.inlet.T"
+    },
+    "doublet.esp": {
+      "frequency": "doublet.esp.frequency",
+      "head": "doublet.esp.head",
+      "discharge_pressure": "doublet.esp.discharge_pressure",
+      "power": "doublet.esp.power",
+      "fluid_in.m_dot": {
+        "column": "doublet.esp.suction.m_dot",
+        "unit": "m3/s"
+      },
+      "fluid_in.p": "doublet.esp.suction.p",
+      "fluid_in.T": "doublet.esp.suction.T"
+    },
+    "filters.cold": {
+      "pressure_drop": "filters.cold.pressure_drop",
+      "fluid_in.m_dot": {
+        "column": "filters.cold.inlet.m_dot",
+        "unit": "m3/s"
+      },
+      "fluid_in.p": "filters.cold.inlet.p",
+      "fluid_in.T": "filters.cold.inlet.T"
+    },
+    "filters.hot": {
+      "pressure_drop": "filters.hot.pressure_drop",
+      "fluid_in.m_dot": {
+        "column": "filters.hot.inlet.m_dot",
+        "unit": "m3/s"
+      },
+      "fluid_in.p": "filters.hot.inlet.p",
+      "fluid_in.T": "filters.hot.inlet.T"
+    },
+    "heat_exchanger": {
+      "hot_out_T": "heat_exchanger.hot_out_T",
+      "cold_out_T": "heat_exchanger.cold_out_T",
+      "duty": "heat_exchanger.duty",
+      "hot_pressure_drop": "heat_exchanger.dp_hot",
+      "hot_in.m_dot": {
+        "column": "heat_exchanger.hot_in.m_dot",
+        "unit": "m3/s"
+      },
+      "hot_in.p": "heat_exchanger.hot_in.p",
+      "hot_in.T": "heat_exchanger.hot_in.T",
+      "cold_in.m_dot": {
+        "column": "heat_exchanger.cold_in.m_dot",
+        "unit": "m3/s"
+      },
+      "cold_in.T": "heat_exchanger.cold_in.T"
+    },
+    "injection_pump": {
+      "pressure_setpoint": "injection_pump.pressure_setpoint",
+      "power": "injection_pump.power",
+      "fluid_in.m_dot": {
+        "column": "injection_pump.suction.m_dot",
+        "unit": "m3/s"
+      },
+      "fluid_in.p": "injection_pump.suction.p",
+      "fluid_in.T": "injection_pump.suction.T"
+    },
+    "doublet.injector": {
+      "wellhead_in.m_dot": {
+        "column": "doublet.injector.wellhead.m_dot",
+        "unit": "m3/s"
+      },
+      "wellhead_in.p": "doublet.injector.wellhead.p",
+      "wellhead_in.T": "doublet.injector.wellhead.T"
+    },
+    "doublet.reservoir": {
+      "production_rate": {
+        "column": "doublet.reservoir.production_rate",
+        "unit": "m3/s"
+      }
+    },
+    "": {
+      "return_in.m_dot": {
+        "column": "secondary_in.m_dot",
+        "unit": "m3/s"
+      },
+      "return_in.T": "secondary_in.T"
+    }
+  }
+}

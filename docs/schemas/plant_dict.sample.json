@@ -1,92 +1,4 @@
 {
-  "bindings": {
-    "": {
-      "return_in.T": "secondary_in.T",
-      "return_in.m_dot": {
-        "column": "secondary_in.m_dot",
-        "unit": "m3/s"
-      }
-    },
-    "degasser": {
-      "fluid_in.T": "degasser.inlet.T",
-      "fluid_in.m_dot": {
-        "column": "degasser.inlet.m_dot",
-        "unit": "m3/s"
-      },
-      "fluid_in.p": "degasser.inlet.p"
-    },
-    "doublet.esp": {
-      "discharge_pressure": "doublet.esp.discharge_pressure",
-      "fluid_in.T": "doublet.esp.suction.T",
-      "fluid_in.m_dot": {
-        "column": "doublet.esp.suction.m_dot",
-        "unit": "m3/s"
-      },
-      "fluid_in.p": "doublet.esp.suction.p",
-      "frequency": "doublet.esp.frequency",
-      "head": "doublet.esp.head",
-      "power": "doublet.esp.power"
-    },
-    "doublet.injector": {
-      "wellhead_in.T": "doublet.injector.wellhead.T",
-      "wellhead_in.m_dot": {
-        "column": "doublet.injector.wellhead.m_dot",
-        "unit": "m3/s"
-      },
-      "wellhead_in.p": "doublet.injector.wellhead.p"
-    },
-    "doublet.reservoir": {
-      "production_rate": {
-        "column": "doublet.reservoir.production_rate",
-        "unit": "m3/s"
-      }
-    },
-    "filters.cold": {
-      "fluid_in.T": "filters.cold.inlet.T",
-      "fluid_in.m_dot": {
-        "column": "filters.cold.inlet.m_dot",
-        "unit": "m3/s"
-      },
-      "fluid_in.p": "filters.cold.inlet.p",
-      "pressure_drop": "filters.cold.pressure_drop"
-    },
-    "filters.hot": {
-      "fluid_in.T": "filters.hot.inlet.T",
-      "fluid_in.m_dot": {
-        "column": "filters.hot.inlet.m_dot",
-        "unit": "m3/s"
-      },
-      "fluid_in.p": "filters.hot.inlet.p",
-      "pressure_drop": "filters.hot.pressure_drop"
-    },
-    "heat_exchanger": {
-      "cold_in.T": "heat_exchanger.cold_in.T",
-      "cold_in.m_dot": {
-        "column": "heat_exchanger.cold_in.m_dot",
-        "unit": "m3/s"
-      },
-      "cold_out_T": "heat_exchanger.cold_out_T",
-      "duty": "heat_exchanger.duty",
-      "hot_in.T": "heat_exchanger.hot_in.T",
-      "hot_in.m_dot": {
-        "column": "heat_exchanger.hot_in.m_dot",
-        "unit": "m3/s"
-      },
-      "hot_in.p": "heat_exchanger.hot_in.p",
-      "hot_out_T": "heat_exchanger.hot_out_T",
-      "hot_pressure_drop": "heat_exchanger.dp_hot"
-    },
-    "injection_pump": {
-      "fluid_in.T": "injection_pump.suction.T",
-      "fluid_in.m_dot": {
-        "column": "injection_pump.suction.m_dot",
-        "unit": "m3/s"
-      },
-      "fluid_in.p": "injection_pump.suction.p",
-      "power": "injection_pump.power",
-      "pressure_setpoint": "injection_pump.pressure_setpoint"
-    }
-  },
   "boundary": {
     "": {
       "assumptions": [
@@ -421,7 +333,7 @@
       }
     }
   },
-  "format": 2,
+  "format": 1,
   "inlets": {
     "power_in": [
       "doublet.power_in",
@@ -429,472 +341,29 @@
     ],
     "return_in": "heat_exchanger.cold_in"
   },
-  "inputs": {
-    "injection_pump.pressure_setpoint": {
-      "unit": "Pa",
-      "value": 5150000.0
-    },
-    "return_in.T": {
-      "unit": "K",
-      "value": 293.15
-    },
-    "return_in.fluid": {
-      "co2_mass_fraction": 0.0,
-      "density": {
-        "unit": "kg/m3",
-        "value": 1068.0
-      },
-      "gas_composition": null,
-      "gas_liquid_ratio": null,
-      "gas_mass_fraction": 0.0,
-      "glycol_fraction": 0.0,
-      "grid_composition": null,
-      "kind": "brine",
-      "property_model": "constant_stp",
-      "salinity": 0.0,
-      "specific_heat": {
-        "unit": "J/kg/K",
-        "value": 4129.213483146067
-      },
-      "thermal_conductivity": null,
-      "viscosity": {
-        "unit": "Pa.s",
-        "value": 0.00065
-      }
-    },
-    "return_in.m_dot": {
-      "unit": "kg/s",
-      "value": 40
-    },
-    "return_in.p": {
-      "unit": "Pa",
-      "value": 500000.0
-    }
-  },
+  "kind": "plant",
   "modules": {
     "degasser": {
-      "params": {
-        "heat_transfer_coefficient": {
-          "unit": "W/K",
-          "value": 100000.0
-        },
-        "nominal_pressure_drop": {
-          "unit": "Pa",
-          "value": 14900.0
-        },
-        "separation_efficiency": 0.0
-      },
       "type": "Degasser"
     },
     "doublet": {
-      "params": {
-        "drainage_radius": {
-          "unit": "m",
-          "value": 1000.0
-        },
-        "esp.best_efficiency_flow": {
-          "unit": "m3/s",
-          "value": 0.03610555555555555
-        },
-        "esp.correction_factors": [
-          1.0,
-          0.0
-        ],
-        "esp.drift_threshold": 0.1,
-        "esp.head_coefficients": [
-          125.518426,
-          -0.0020852856,
-          2.28955651e-07,
-          -1.45640214e-11,
-          2.37859645e-16,
-          -1.18258356e-21
-        ],
-        "esp.maximum_flow": {
-          "unit": "m3/s",
-          "value": 0.049444444444444444
-        },
-        "esp.minimum_flow": {
-          "unit": "m3/s",
-          "value": 0.02277777777777778
-        },
-        "esp.motor_efficiency": 1.0,
-        "esp.power_coefficients": [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
-        ],
-        "esp.pump_type": "DEFAULT-PUMP",
-        "esp.setting_depth": {
-          "unit": "m",
-          "value": 600.0
-        },
-        "esp.stage_count": 15,
-        "esp.tubing": {
-          "unit": "m",
-          "value": 0.1778
-        },
-        "injector.correction_factors": [
-          1.0,
-          0.0
-        ],
-        "injector.friction_correlation": "darcy_weisbach",
-        "injector.heat_transfer_coefficient": {
-          "unit": "W/m2/K",
-          "value": 10.0
-        },
-        "injector.section_diameter": {
-          "unit": "m",
-          "value": [
-            0.1778,
-            0.1778,
-            0.1778
-          ]
-        },
-        "injector.section_inclination": {
-          "unit": "rad",
-          "value": [
-            1.5707963267948966,
-            1.5707963267948966,
-            1.5707963267948966
-          ]
-        },
-        "injector.section_length": {
-          "unit": "m",
-          "value": [
-            500.0,
-            500.0,
-            1000.0
-          ]
-        },
-        "injector.section_roughness": {
-          "unit": "m",
-          "value": [
-            2e-05,
-            2e-05,
-            2e-05
-          ]
-        },
-        "injector.soil_temperature": {
-          "unit": "K",
-          "value": 288.15
-        },
-        "injector.two_phase_friction_correlation": "BeggsBrill",
-        "reservoir.aquifer_thickness": {
-          "unit": "m",
-          "value": 45.0
-        },
-        "reservoir.decline_threshold": 0.15,
-        "reservoir.drainage_radius": {
-          "unit": "m",
-          "value": 1000.0
-        },
-        "reservoir.permeability": {
-          "unit": "m2",
-          "value": 9.869233e-12
-        },
-        "reservoir.pressure": {
-          "unit": "Pa",
-          "value": 22000000.0
-        },
-        "reservoir.productivity_index": {
-          "unit": "m3/s/Pa",
-          "value": 5.833333333333333e-08
-        },
-        "reservoir.skin": 0.0,
-        "reservoir.temperature": {
-          "unit": "K",
-          "value": 353.15
-        },
-        "reservoir.top_depth": {
-          "unit": "m",
-          "value": 1800.0
-        },
-        "reservoir.wellbore_radius": {
-          "unit": "m",
-          "value": 0.0765
-        },
-        "riser.correction_factors": [
-          1.0,
-          0.0
-        ],
-        "riser.esp_depth": {
-          "unit": "m",
-          "value": 600.0
-        },
-        "riser.friction_correlation": "darcy_weisbach",
-        "riser.heat_transfer_coefficient": {
-          "unit": "W/m2/K",
-          "value": 10.0
-        },
-        "riser.section_diameter": {
-          "unit": "m",
-          "value": [
-            0.1778,
-            0.1778,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.1778,
-            0.1778
-          ]
-        },
-        "riser.section_inclination": {
-          "unit": "rad",
-          "value": [
-            1.5707963267948966,
-            1.5707963267948966,
-            1.5707963267948966,
-            1.312662130424935,
-            0.9238027730805987,
-            1.5707963267948966,
-            0.9272934315845873,
-            0.814370628980554,
-            0.9272934315845873,
-            0.5235987755982988,
-            0.5235987755982988
-          ]
-        },
-        "riser.section_length": {
-          "unit": "m",
-          "value": [
-            400.0,
-            150.0,
-            150.0,
-            362.0,
-            188.0,
-            100.0,
-            250.0,
-            550.0,
-            250.0,
-            100.0,
-            300.0
-          ]
-        },
-        "riser.section_roughness": {
-          "unit": "m",
-          "value": [
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05
-          ]
-        },
-        "riser.segment": "above_esp",
-        "riser.soil_temperature": {
-          "unit": "K",
-          "value": 288.15
-        },
-        "riser.two_phase_friction_correlation": "BeggsBrill",
-        "roughness": {
-          "unit": "m",
-          "value": 4.5e-05
-        },
-        "sink.aquifer_thickness": {
-          "unit": "m",
-          "value": 45.0
-        },
-        "sink.decline_threshold": 0.15,
-        "sink.drainage_radius": {
-          "unit": "m",
-          "value": 0.0
-        },
-        "sink.injectivity_index": {
-          "unit": "m3/s/Pa",
-          "value": 5.5555555555555555e-08
-        },
-        "sink.permeability": {
-          "unit": "m2",
-          "value": 9.869233e-12
-        },
-        "sink.pressure": {
-          "unit": "Pa",
-          "value": 22000000.0
-        },
-        "sink.skin": 0.0,
-        "sink.temperature": {
-          "unit": "K",
-          "value": 353.15
-        },
-        "sink.top_depth": {
-          "unit": "m",
-          "value": 0.0
-        },
-        "sink.wellbore_radius": {
-          "unit": "m",
-          "value": 0.0765
-        },
-        "well.correction_factors": [
-          1.0,
-          0.0
-        ],
-        "well.esp_depth": {
-          "unit": "m",
-          "value": 600.0
-        },
-        "well.friction_correlation": "darcy_weisbach",
-        "well.heat_transfer_coefficient": {
-          "unit": "W/m2/K",
-          "value": 10.0
-        },
-        "well.section_diameter": {
-          "unit": "m",
-          "value": [
-            0.1778,
-            0.1778,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.273,
-            0.1778,
-            0.1778
-          ]
-        },
-        "well.section_inclination": {
-          "unit": "rad",
-          "value": [
-            1.5707963267948966,
-            1.5707963267948966,
-            1.5707963267948966,
-            1.312662130424935,
-            0.9238027730805987,
-            1.5707963267948966,
-            0.9272934315845873,
-            0.814370628980554,
-            0.9272934315845873,
-            0.5235987755982988,
-            0.5235987755982988
-          ]
-        },
-        "well.section_length": {
-          "unit": "m",
-          "value": [
-            400.0,
-            150.0,
-            150.0,
-            362.0,
-            188.0,
-            100.0,
-            250.0,
-            550.0,
-            250.0,
-            100.0,
-            300.0
-          ]
-        },
-        "well.section_roughness": {
-          "unit": "m",
-          "value": [
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05,
-            2e-05
-          ]
-        },
-        "well.segment": "below_esp",
-        "well.soil_temperature": {
-          "unit": "K",
-          "value": 288.15
-        },
-        "well.two_phase_friction_correlation": "BeggsBrill"
-      },
       "type": "Doublet"
     },
     "filters": {
       "modules": {
         "cold": {
-          "params": {
-            "clogging_pressure_drop": {
-              "unit": "Pa",
-              "value": 50000.0
-            },
-            "nominal_mass_flow": {
-              "unit": "kg/s",
-              "value": 44.20333333333333
-            },
-            "nominal_pressure_drop": {
-              "unit": "Pa",
-              "value": 1600.0
-            }
-          },
           "type": "Filter"
         },
         "hot": {
-          "params": {
-            "clogging_pressure_drop": {
-              "unit": "Pa",
-              "value": 50000.0
-            },
-            "nominal_mass_flow": {
-              "unit": "kg/s",
-              "value": 44.20333333333333
-            },
-            "nominal_pressure_drop": {
-              "unit": "Pa",
-              "value": 1600.0
-            }
-          },
           "type": "Filter"
         }
       },
       "type": "ModuleDict"
     },
     "heat_exchanger": {
-      "params": {
-        "arrangement": "counterflow",
-        "cold_nominal_mass_flow": {
-          "unit": "kg/s",
-          "value": 1.0
-        },
-        "cold_nominal_pressure_drop": {
-          "unit": "Pa",
-          "value": 0.0
-        },
-        "fouling_threshold": 0.15,
-        "hot_nominal_mass_flow": {
-          "unit": "kg/s",
-          "value": 1.0
-        },
-        "hot_nominal_pressure_drop": {
-          "unit": "Pa",
-          "value": 0.0
-        },
-        "thermal_conductance": {
-          "unit": "W/K",
-          "value": 100000.0
-        }
-      },
       "type": "HeatExchanger"
     },
     "injection_pump": {
-      "params": {
-        "efficiency": 0.8,
-        "pump_type": "DEFAULT-PUMP",
-        "stage_count": 10
-      },
       "type": "InjectionPump"
     }
   },
@@ -903,474 +372,1225 @@
     "gas_out": "degasser.gas_out",
     "supply_out": "heat_exchanger.cold_out"
   },
-  "param_history": {
-    "degasser": [
-      {
-        "params": {
-          "heat_transfer_coefficient": {
-            "unit": "W/K",
+  "params": {
+    "degasser": {
+      "heat_transfer_coefficient": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
             "value": 100000.0
-          },
-          "nominal_pressure_drop": {
-            "unit": "Pa",
+          }
+        ],
+        "unit": "W/K",
+        "value": 100000.0
+      },
+      "nominal_pressure_drop": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
             "value": 14900.0
-          },
-          "outlet_pressure": null,
-          "separation_efficiency": 0.0
-        },
-        "valid_from": "2020-01-01T00:00:00Z"
+          }
+        ],
+        "unit": "Pa",
+        "value": 14900.0
+      },
+      "outlet_pressure": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": null
+          }
+        ]
+      },
+      "separation_efficiency": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": 0.0
+          }
+        ],
+        "value": 0.0
       }
-    ],
-    "doublet.esp": [
-      {
-        "params": {
-          "best_efficiency_flow": {
-            "unit": "m3/s",
-            "value": 0.03610555555555555
-          },
-          "correction_factors": [
+    },
+    "doublet": {
+      "drainage_radius": {
+        "unit": "m",
+        "value": 1000.0
+      },
+      "esp": {
+        "best_efficiency_flow": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.03610555555555555
+            }
+          ],
+          "unit": "m3/s",
+          "value": 0.03610555555555555
+        },
+        "correction_factors": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                1.0,
+                0.0
+              ]
+            }
+          ],
+          "value": [
             1.0,
             0.0
+          ]
+        },
+        "drift_threshold": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.1
+            }
           ],
-          "drift_threshold": 0.1,
-          "head_coefficients": [
+          "value": 0.1
+        },
+        "head_coefficients": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                125.518426,
+                -0.0020852856,
+                2.28955651e-07,
+                -1.45640214e-11,
+                2.37859645e-16,
+                -1.18258356e-21
+              ]
+            }
+          ],
+          "value": [
             125.518426,
             -0.0020852856,
             2.28955651e-07,
             -1.45640214e-11,
             2.37859645e-16,
             -1.18258356e-21
+          ]
+        },
+        "maximum_flow": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.049444444444444444
+            }
           ],
-          "maximum_flow": {
-            "unit": "m3/s",
-            "value": 0.049444444444444444
-          },
-          "minimum_flow": {
-            "unit": "m3/s",
-            "value": 0.02277777777777778
-          },
-          "motor_efficiency": 1.0,
-          "power_coefficients": [
+          "unit": "m3/s",
+          "value": 0.049444444444444444
+        },
+        "minimum_flow": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.02277777777777778
+            }
+          ],
+          "unit": "m3/s",
+          "value": 0.02277777777777778
+        },
+        "motor_efficiency": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 1.0
+            }
+          ],
+          "value": 1.0
+        },
+        "power_coefficients": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "value": [
             0.0,
             0.0,
             0.0,
             0.0,
             0.0,
             0.0
-          ],
-          "pump_type": "DEFAULT-PUMP",
-          "setting_depth": {
-            "unit": "m",
-            "value": 600.0
-          },
-          "stage_count": 15,
-          "tubing": {
-            "unit": "m",
-            "value": 0.1778
-          }
+          ]
         },
-        "valid_from": "2020-01-01T00:00:00Z"
-      }
-    ],
-    "doublet.injector": [
-      {
-        "params": {
-          "correction_factors": [
+        "pump_type": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "DEFAULT-PUMP"
+            }
+          ],
+          "value": "DEFAULT-PUMP"
+        },
+        "setting_depth": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 600.0
+            }
+          ],
+          "unit": "m",
+          "value": 600.0
+        },
+        "stage_count": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 15
+            }
+          ],
+          "value": 15
+        },
+        "tubing": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.1778
+            }
+          ],
+          "unit": "m",
+          "value": 0.1778
+        }
+      },
+      "injector": {
+        "correction_factors": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                1.0,
+                0.0
+              ]
+            }
+          ],
+          "value": [
             1.0,
             0.0
+          ]
+        },
+        "friction_correlation": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "darcy_weisbach"
+            }
           ],
-          "friction_correlation": "darcy_weisbach",
-          "heat_transfer_coefficient": {
-            "unit": "W/m2/K",
-            "value": 10.0
-          },
-          "section_diameter": {
-            "unit": "m",
-            "value": [
-              0.1778,
-              0.1778,
-              0.1778
-            ]
-          },
-          "section_inclination": {
-            "unit": "rad",
-            "value": [
-              1.5707963267948966,
-              1.5707963267948966,
-              1.5707963267948966
-            ]
-          },
-          "section_length": {
-            "unit": "m",
-            "value": [
-              500.0,
-              500.0,
-              1000.0
-            ]
-          },
-          "section_roughness": {
-            "unit": "m",
-            "value": [
-              2e-05,
-              2e-05,
-              2e-05
-            ]
-          },
-          "soil_temperature": {
-            "unit": "K",
-            "value": 288.15
-          },
-          "two_phase_friction_correlation": "BeggsBrill"
+          "value": "darcy_weisbach"
         },
-        "valid_from": "2020-01-01T00:00:00Z"
-      }
-    ],
-    "doublet.reservoir": [
-      {
-        "params": {
-          "aquifer_thickness": {
-            "unit": "m",
-            "value": 45.0
-          },
-          "decline_threshold": 0.15,
-          "drainage_radius": {
-            "unit": "m",
-            "value": 1000.0
-          },
-          "injectivity_index": null,
-          "permeability": {
-            "unit": "m2",
-            "value": 9.869233e-12
-          },
-          "pressure": {
-            "unit": "Pa",
-            "value": 22000000.0
-          },
-          "productivity_index": {
-            "unit": "m3/s/Pa",
-            "value": 5.833333333333333e-08
-          },
-          "role": "production",
-          "skin": 0.0,
-          "temperature": {
-            "unit": "K",
-            "value": 353.15
-          },
-          "top_depth": {
-            "unit": "m",
-            "value": 1800.0
-          },
-          "wellbore_radius": {
-            "unit": "m",
-            "value": 0.0765
-          }
+        "heat_transfer_coefficient": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 10.0
+            }
+          ],
+          "unit": "W/m2/K",
+          "value": 10.0
         },
-        "valid_from": "2020-01-01T00:00:00Z"
-      }
-    ],
-    "doublet.riser": [
-      {
-        "params": {
-          "correction_factors": [
+        "section_diameter": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                0.1778,
+                0.1778,
+                0.1778
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            0.1778,
+            0.1778,
+            0.1778
+          ]
+        },
+        "section_inclination": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                1.5707963267948966,
+                1.5707963267948966,
+                1.5707963267948966
+              ]
+            }
+          ],
+          "unit": "rad",
+          "value": [
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966
+          ]
+        },
+        "section_length": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                500.0,
+                500.0,
+                1000.0
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            500.0,
+            500.0,
+            1000.0
+          ]
+        },
+        "section_roughness": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                2e-05,
+                2e-05,
+                2e-05
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            2e-05,
+            2e-05,
+            2e-05
+          ]
+        },
+        "soil_temperature": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 288.15
+            }
+          ],
+          "unit": "K",
+          "value": 288.15
+        },
+        "two_phase_friction_correlation": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "BeggsBrill"
+            }
+          ],
+          "value": "BeggsBrill"
+        }
+      },
+      "reservoir": {
+        "aquifer_thickness": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 45.0
+            }
+          ],
+          "unit": "m",
+          "value": 45.0
+        },
+        "decline_threshold": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.15
+            }
+          ],
+          "value": 0.15
+        },
+        "drainage_radius": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 1000.0
+            }
+          ],
+          "unit": "m",
+          "value": 1000.0
+        },
+        "injectivity_index": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": null
+            }
+          ]
+        },
+        "permeability": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 9.869233e-12
+            }
+          ],
+          "unit": "m2",
+          "value": 9.869233e-12
+        },
+        "pressure": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 22000000.0
+            }
+          ],
+          "unit": "Pa",
+          "value": 22000000.0
+        },
+        "productivity_index": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 5.833333333333333e-08
+            }
+          ],
+          "unit": "m3/s/Pa",
+          "value": 5.833333333333333e-08
+        },
+        "role": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "production"
+            }
+          ]
+        },
+        "skin": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.0
+            }
+          ],
+          "value": 0.0
+        },
+        "temperature": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 353.15
+            }
+          ],
+          "unit": "K",
+          "value": 353.15
+        },
+        "top_depth": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 1800.0
+            }
+          ],
+          "unit": "m",
+          "value": 1800.0
+        },
+        "wellbore_radius": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.0765
+            }
+          ],
+          "unit": "m",
+          "value": 0.0765
+        }
+      },
+      "riser": {
+        "correction_factors": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                1.0,
+                0.0
+              ]
+            }
+          ],
+          "value": [
             1.0,
             0.0
+          ]
+        },
+        "esp_depth": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 600.0
+            }
           ],
-          "esp_depth": {
-            "unit": "m",
-            "value": 600.0
-          },
-          "friction_correlation": "darcy_weisbach",
-          "heat_transfer_coefficient": {
-            "unit": "W/m2/K",
-            "value": 10.0
-          },
-          "section_diameter": {
-            "unit": "m",
-            "value": [
-              0.1778,
-              0.1778,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.1778,
-              0.1778
-            ]
-          },
-          "section_inclination": {
-            "unit": "rad",
-            "value": [
-              1.5707963267948966,
-              1.5707963267948966,
-              1.5707963267948966,
-              1.312662130424935,
-              0.9238027730805987,
-              1.5707963267948966,
-              0.9272934315845873,
-              0.814370628980554,
-              0.9272934315845873,
-              0.5235987755982988,
-              0.5235987755982988
-            ]
-          },
-          "section_length": {
-            "unit": "m",
-            "value": [
-              400.0,
-              150.0,
-              150.0,
-              362.0,
-              188.0,
-              100.0,
-              250.0,
-              550.0,
-              250.0,
-              100.0,
-              300.0
-            ]
-          },
-          "section_roughness": {
-            "unit": "m",
-            "value": [
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05
-            ]
-          },
-          "segment": "above_esp",
-          "soil_temperature": {
-            "unit": "K",
-            "value": 288.15
-          },
-          "two_phase_friction_correlation": "BeggsBrill"
+          "unit": "m",
+          "value": 600.0
         },
-        "valid_from": "2020-01-01T00:00:00Z"
-      }
-    ],
-    "doublet.sink": [
-      {
-        "params": {
-          "aquifer_thickness": {
-            "unit": "m",
-            "value": 45.0
-          },
-          "decline_threshold": 0.15,
-          "drainage_radius": {
-            "unit": "m",
-            "value": 0.0
-          },
-          "injectivity_index": {
-            "unit": "m3/s/Pa",
-            "value": 5.5555555555555555e-08
-          },
-          "permeability": {
-            "unit": "m2",
-            "value": 9.869233e-12
-          },
-          "pressure": {
-            "unit": "Pa",
-            "value": 22000000.0
-          },
-          "productivity_index": null,
-          "role": "injection",
-          "skin": 0.0,
-          "temperature": {
-            "unit": "K",
-            "value": 353.15
-          },
-          "top_depth": {
-            "unit": "m",
-            "value": 0.0
-          },
-          "wellbore_radius": {
-            "unit": "m",
-            "value": 0.0765
-          }
+        "friction_correlation": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "darcy_weisbach"
+            }
+          ],
+          "value": "darcy_weisbach"
         },
-        "valid_from": "2020-01-01T00:00:00Z"
-      }
-    ],
-    "doublet.well": [
-      {
-        "params": {
-          "correction_factors": [
+        "heat_transfer_coefficient": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 10.0
+            }
+          ],
+          "unit": "W/m2/K",
+          "value": 10.0
+        },
+        "section_diameter": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                0.1778,
+                0.1778,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.1778,
+                0.1778
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            0.1778,
+            0.1778,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.1778,
+            0.1778
+          ]
+        },
+        "section_inclination": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                1.5707963267948966,
+                1.5707963267948966,
+                1.5707963267948966,
+                1.312662130424935,
+                0.9238027730805987,
+                1.5707963267948966,
+                0.9272934315845873,
+                0.814370628980554,
+                0.9272934315845873,
+                0.5235987755982988,
+                0.5235987755982988
+              ]
+            }
+          ],
+          "unit": "rad",
+          "value": [
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966,
+            1.312662130424935,
+            0.9238027730805987,
+            1.5707963267948966,
+            0.9272934315845873,
+            0.814370628980554,
+            0.9272934315845873,
+            0.5235987755982988,
+            0.5235987755982988
+          ]
+        },
+        "section_length": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                400.0,
+                150.0,
+                150.0,
+                362.0,
+                188.0,
+                100.0,
+                250.0,
+                550.0,
+                250.0,
+                100.0,
+                300.0
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            400.0,
+            150.0,
+            150.0,
+            362.0,
+            188.0,
+            100.0,
+            250.0,
+            550.0,
+            250.0,
+            100.0,
+            300.0
+          ]
+        },
+        "section_roughness": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05
+          ]
+        },
+        "segment": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "above_esp"
+            }
+          ],
+          "value": "above_esp"
+        },
+        "soil_temperature": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 288.15
+            }
+          ],
+          "unit": "K",
+          "value": 288.15
+        },
+        "two_phase_friction_correlation": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "BeggsBrill"
+            }
+          ],
+          "value": "BeggsBrill"
+        }
+      },
+      "roughness": {
+        "unit": "m",
+        "value": 4.5e-05
+      },
+      "sink": {
+        "aquifer_thickness": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 45.0
+            }
+          ],
+          "unit": "m",
+          "value": 45.0
+        },
+        "decline_threshold": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.15
+            }
+          ],
+          "value": 0.15
+        },
+        "drainage_radius": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.0
+            }
+          ],
+          "unit": "m",
+          "value": 0.0
+        },
+        "injectivity_index": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 5.5555555555555555e-08
+            }
+          ],
+          "unit": "m3/s/Pa",
+          "value": 5.5555555555555555e-08
+        },
+        "permeability": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 9.869233e-12
+            }
+          ],
+          "unit": "m2",
+          "value": 9.869233e-12
+        },
+        "pressure": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 22000000.0
+            }
+          ],
+          "unit": "Pa",
+          "value": 22000000.0
+        },
+        "productivity_index": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": null
+            }
+          ]
+        },
+        "role": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "injection"
+            }
+          ]
+        },
+        "skin": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.0
+            }
+          ],
+          "value": 0.0
+        },
+        "temperature": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 353.15
+            }
+          ],
+          "unit": "K",
+          "value": 353.15
+        },
+        "top_depth": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.0
+            }
+          ],
+          "unit": "m",
+          "value": 0.0
+        },
+        "wellbore_radius": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 0.0765
+            }
+          ],
+          "unit": "m",
+          "value": 0.0765
+        }
+      },
+      "well": {
+        "correction_factors": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                1.0,
+                0.0
+              ]
+            }
+          ],
+          "value": [
             1.0,
             0.0
+          ]
+        },
+        "esp_depth": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 600.0
+            }
           ],
-          "esp_depth": {
-            "unit": "m",
-            "value": 600.0
-          },
-          "friction_correlation": "darcy_weisbach",
-          "heat_transfer_coefficient": {
-            "unit": "W/m2/K",
-            "value": 10.0
-          },
-          "section_diameter": {
-            "unit": "m",
-            "value": [
-              0.1778,
-              0.1778,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.273,
-              0.1778,
-              0.1778
-            ]
-          },
-          "section_inclination": {
-            "unit": "rad",
-            "value": [
-              1.5707963267948966,
-              1.5707963267948966,
-              1.5707963267948966,
-              1.312662130424935,
-              0.9238027730805987,
-              1.5707963267948966,
-              0.9272934315845873,
-              0.814370628980554,
-              0.9272934315845873,
-              0.5235987755982988,
-              0.5235987755982988
-            ]
-          },
-          "section_length": {
-            "unit": "m",
-            "value": [
-              400.0,
-              150.0,
-              150.0,
-              362.0,
-              188.0,
-              100.0,
-              250.0,
-              550.0,
-              250.0,
-              100.0,
-              300.0
-            ]
-          },
-          "section_roughness": {
-            "unit": "m",
-            "value": [
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05,
-              2e-05
-            ]
-          },
-          "segment": "below_esp",
-          "soil_temperature": {
-            "unit": "K",
-            "value": 288.15
-          },
-          "two_phase_friction_correlation": "BeggsBrill"
+          "unit": "m",
+          "value": 600.0
         },
-        "valid_from": "2020-01-01T00:00:00Z"
+        "friction_correlation": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "darcy_weisbach"
+            }
+          ],
+          "value": "darcy_weisbach"
+        },
+        "heat_transfer_coefficient": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 10.0
+            }
+          ],
+          "unit": "W/m2/K",
+          "value": 10.0
+        },
+        "section_diameter": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                0.1778,
+                0.1778,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.273,
+                0.1778,
+                0.1778
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            0.1778,
+            0.1778,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.273,
+            0.1778,
+            0.1778
+          ]
+        },
+        "section_inclination": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                1.5707963267948966,
+                1.5707963267948966,
+                1.5707963267948966,
+                1.312662130424935,
+                0.9238027730805987,
+                1.5707963267948966,
+                0.9272934315845873,
+                0.814370628980554,
+                0.9272934315845873,
+                0.5235987755982988,
+                0.5235987755982988
+              ]
+            }
+          ],
+          "unit": "rad",
+          "value": [
+            1.5707963267948966,
+            1.5707963267948966,
+            1.5707963267948966,
+            1.312662130424935,
+            0.9238027730805987,
+            1.5707963267948966,
+            0.9272934315845873,
+            0.814370628980554,
+            0.9272934315845873,
+            0.5235987755982988,
+            0.5235987755982988
+          ]
+        },
+        "section_length": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                400.0,
+                150.0,
+                150.0,
+                362.0,
+                188.0,
+                100.0,
+                250.0,
+                550.0,
+                250.0,
+                100.0,
+                300.0
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            400.0,
+            150.0,
+            150.0,
+            362.0,
+            188.0,
+            100.0,
+            250.0,
+            550.0,
+            250.0,
+            100.0,
+            300.0
+          ]
+        },
+        "section_roughness": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": [
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05,
+                2e-05
+              ]
+            }
+          ],
+          "unit": "m",
+          "value": [
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05,
+            2e-05
+          ]
+        },
+        "segment": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "below_esp"
+            }
+          ],
+          "value": "below_esp"
+        },
+        "soil_temperature": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 288.15
+            }
+          ],
+          "unit": "K",
+          "value": 288.15
+        },
+        "two_phase_friction_correlation": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": "BeggsBrill"
+            }
+          ],
+          "value": "BeggsBrill"
+        }
       }
-    ],
-    "filters.cold": [
-      {
-        "params": {
-          "clogging_pressure_drop": {
-            "unit": "Pa",
-            "value": 50000.0
-          },
-          "nominal_mass_flow": {
-            "unit": "kg/s",
-            "value": 44.20333333333333
-          },
-          "nominal_pressure_drop": {
-            "unit": "Pa",
-            "value": 1600.0
+    },
+    "filters": {
+      "cold": {
+        "clogging_pressure_drop": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 50000.0
+            }
+          ],
+          "unit": "Pa",
+          "value": 50000.0
+        },
+        "nominal_mass_flow": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 44.20333333333333
+            }
+          ],
+          "unit": "kg/s",
+          "value": 44.20333333333333
+        },
+        "nominal_pressure_drop": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 1600.0
+            }
+          ],
+          "unit": "Pa",
+          "value": 1600.0
+        }
+      },
+      "hot": {
+        "clogging_pressure_drop": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 50000.0
+            }
+          ],
+          "unit": "Pa",
+          "value": 50000.0
+        },
+        "nominal_mass_flow": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 44.20333333333333
+            }
+          ],
+          "unit": "kg/s",
+          "value": 44.20333333333333
+        },
+        "nominal_pressure_drop": {
+          "history": [
+            {
+              "valid_from": "2020-01-01T00:00:00Z",
+              "value": 1600.0
+            }
+          ],
+          "unit": "Pa",
+          "value": 1600.0
+        }
+      }
+    },
+    "heat_exchanger": {
+      "arrangement": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": "counterflow"
           }
-        },
-        "valid_from": "2020-01-01T00:00:00Z"
-      }
-    ],
-    "filters.hot": [
-      {
-        "params": {
-          "clogging_pressure_drop": {
-            "unit": "Pa",
-            "value": 50000.0
-          },
-          "nominal_mass_flow": {
-            "unit": "kg/s",
-            "value": 44.20333333333333
-          },
-          "nominal_pressure_drop": {
-            "unit": "Pa",
-            "value": 1600.0
-          }
-        },
-        "valid_from": "2020-01-01T00:00:00Z"
-      }
-    ],
-    "heat_exchanger": [
-      {
-        "params": {
-          "arrangement": "counterflow",
-          "cold_nominal_mass_flow": {
-            "unit": "kg/s",
+        ],
+        "value": "counterflow"
+      },
+      "cold_nominal_mass_flow": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
             "value": 1.0
-          },
-          "cold_nominal_pressure_drop": {
-            "unit": "Pa",
+          }
+        ],
+        "unit": "kg/s",
+        "value": 1.0
+      },
+      "cold_nominal_pressure_drop": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
             "value": 0.0
-          },
-          "fouling_threshold": 0.15,
-          "hot_nominal_mass_flow": {
-            "unit": "kg/s",
+          }
+        ],
+        "unit": "Pa",
+        "value": 0.0
+      },
+      "fouling_threshold": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": 0.15
+          }
+        ],
+        "value": 0.15
+      },
+      "hot_nominal_mass_flow": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
             "value": 1.0
-          },
-          "hot_nominal_pressure_drop": {
-            "unit": "Pa",
+          }
+        ],
+        "unit": "kg/s",
+        "value": 1.0
+      },
+      "hot_nominal_pressure_drop": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
             "value": 0.0
-          },
-          "thermal_conductance": {
-            "unit": "W/K",
+          }
+        ],
+        "unit": "Pa",
+        "value": 0.0
+      },
+      "thermal_conductance": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
             "value": 100000.0
           }
-        },
-        "valid_from": "2020-01-01T00:00:00Z"
+        ],
+        "unit": "W/K",
+        "value": 100000.0
       }
-    ],
-    "injection_pump": [
-      {
-        "params": {
-          "efficiency": 0.8,
-          "head_coefficients": null,
-          "nominal_flow": null,
-          "nominal_head": null,
-          "power_coefficients": null,
-          "pump_type": "DEFAULT-PUMP",
-          "stage_count": 10
-        },
-        "valid_from": "2020-01-01T00:00:00Z"
+    },
+    "injection_pump": {
+      "efficiency": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": 0.8
+          }
+        ],
+        "value": 0.8
+      },
+      "head_coefficients": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": null
+          }
+        ]
+      },
+      "nominal_flow": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": null
+          }
+        ]
+      },
+      "nominal_head": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": null
+          }
+        ]
+      },
+      "power_coefficients": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": null
+          }
+        ]
+      },
+      "pressure_setpoint": {
+        "unit": "Pa",
+        "value": 5150000.0
+      },
+      "pump_type": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": "DEFAULT-PUMP"
+          }
+        ],
+        "value": "DEFAULT-PUMP"
+      },
+      "stage_count": {
+        "history": [
+          {
+            "valid_from": "2020-01-01T00:00:00Z",
+            "value": 10
+          }
+        ],
+        "value": 10
       }
-    ]
-  }
+    },
+    "return_in": {
+      "T": {
+        "unit": "K",
+        "value": 293.15
+      },
+      "fluid": {
+        "value": {
+          "co2_mass_fraction": 0.0,
+          "density": {
+            "unit": "kg/m3",
+            "value": 1068.0
+          },
+          "gas_composition": null,
+          "gas_liquid_ratio": null,
+          "gas_mass_fraction": 0.0,
+          "glycol_fraction": 0.0,
+          "grid_composition": null,
+          "kind": "brine",
+          "property_model": "constant_stp",
+          "salinity": 0.0,
+          "specific_heat": {
+            "unit": "J/kg/K",
+            "value": 4129.213483146067
+          },
+          "thermal_conductivity": null,
+          "viscosity": {
+            "unit": "Pa.s",
+            "value": 0.00065
+          }
+        }
+      },
+      "m_dot": {
+        "unit": "kg/s",
+        "value": 40
+      },
+      "p": {
+        "unit": "Pa",
+        "value": 500000.0
+      }
+    }
+  },
+  "type": "DoubletHeatPlant"
 }
