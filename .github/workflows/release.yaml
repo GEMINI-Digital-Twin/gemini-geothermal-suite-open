@@ -94,7 +94,11 @@ jobs:
       run: |
         echo "$GH_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
         docker build -f docker/sandbox.Dockerfile -t "$IMAGE:$VERSION" .
-        docker push "$IMAGE:$VERSION"
+        docker push "$IMAGE:$VERSION" 2>&1 | tee push.log
+        if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+          echo "::error::$(tail -1 push.log)"
+          exit 1
+        fi
     - name: Take the notes of this version from the changelog
       run: |
         awk -v head="## [$VERSION]" 'index($0, head) == 1 {found = 1; next} /^## \[/ {found = 0} found' \
