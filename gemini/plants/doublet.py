@@ -126,6 +126,7 @@ class Doublet(Equipment, Plant):
         self.nominal_flow = Parameter(
             VolumeFlow | None,
             default=None,
+            gt=0,
             description="Production flow the doublet and its pump are designed for",
         )
         self.pump_efficiency = Parameter(

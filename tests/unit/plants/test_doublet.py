@@ -361,3 +361,17 @@ def test_the_reinjection_ratio_without_production_is_none():
     """No produced liquid: the ratio does not exist."""
     doublet = _doublet_at(0.0)
     assert doublet(return_in=_returned(doublet, 0.0)).outputs.reinjection_ratio is None
+
+
+@pytest.mark.parametrize("flow", [0, -0.1])
+def test_a_nominal_flow_of_zero_or_below_is_refused(flow):
+    """A doublet designed for no flow would price its pump as free, so the door refuses it."""
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        designed(nominal_flow={"value": flow, "unit": "m3/s"})
+    assert caught.value.code == "out_of_bounds" and "nominal_flow" in str(caught.value)
+
+
+def test_a_doublet_may_have_no_nominal_flow():
+    """``None`` still means not sized."""
+    _, doublet = designed()
+    assert doublet.nominal_flow is None

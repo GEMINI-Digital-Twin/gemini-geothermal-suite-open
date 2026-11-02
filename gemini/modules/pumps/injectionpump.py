@@ -71,6 +71,7 @@ class InjectionPump(Equipment, Module):
         self.nominal_flow = Parameter(
             VolumeFlow | None,
             default=None,
+            gt=0,
             description=(
                 "Design volume flow of the pump, the basis of its price; empty when not sized"
             ),
