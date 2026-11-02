@@ -57,7 +57,7 @@ def test_a_breach_of_an_operating_limit_is_an_infeasible_trial_with_a_bound_reas
     plant.boiler.capacity = Quantity(1e6, "W")
     plant.boiler.operating_limits = (("fuel", "max", "capacity"),)
     reason, violation = trial.judged(plant, make_case(), run)
-    assert reason["kind"] == "bound" and reason["name"] == "fuel" and reason["passed"] is False
-    assert 0.0 < violation < trial.LARGEST_VIOLATION
+    assert reason["kind"] == "bound" and reason["name"] == "fuel"
+    assert reason["violation"] == violation and 0.0 < violation < trial.LARGEST_VIOLATION
     plant.boiler.capacity = Quantity(20e6, "W")
     assert trial.judged(plant, make_case(), run) == (None, 0.0)

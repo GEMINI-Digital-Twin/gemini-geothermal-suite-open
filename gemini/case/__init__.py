@@ -3,8 +3,8 @@
 ``gm.Case`` and the classes of its sections, in the order of ``case.json``: ``Time``, ``Site``
 (``Ground``, ``Reservoir``, ``Fluid``, ``Air``), ``Demand`` (``Service``, ``CoolingService``),
 ``Utilities`` (``Electricity``, ``Gas``), ``Economics`` (its own file, ``economics.json``, with
-``Capex``, ``Opex``, ``Energy``, ``Carbon``, ``Revenue``, ``Accounting``), ``Requirement`` and
-``Choices``. ``Range`` and ``Uncertainty`` are the shared objects of ``gemini.types.inputs``.
+``Capex``, ``Opex``, ``Energy``, ``Carbon``, ``Revenue``, ``Accounting``) and
+``Requirement``. ``Range`` and ``Uncertainty`` are the shared objects of ``gemini.types.inputs``.
 ``roles()`` lists the roles and quantities a ``Requirement`` may name. The case sits above
 ``gm.plants`` and below ``gm.run``.
 """
@@ -12,7 +12,6 @@
 from gemini.types.inputs import Range, Uncertainty
 
 from .case import Case
-from .choices import Choices
 from .demand import CoolingService, Demand, Service
 from .economics import (
     Accounting,
@@ -57,7 +56,6 @@ __all__ = [
     "Accounting",
     "Gwp",
     "Requirement",
-    "Choices",
     "Range",
     "Uncertainty",
     "roles",

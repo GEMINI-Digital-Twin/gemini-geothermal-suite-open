@@ -10,7 +10,7 @@ measured data. Only `examples/` and `tests/` read this folder, and nothing under
 | File | Holds |
 | --- | --- |
 | `demand.csv` | 504 hourly rows from 2026-01-12: `timestamp`, `heat_kw`, `cool_kw`, a daily cycle with a morning peak, lower at night and at the weekend; written once from a formula |
-| `case.json` | The case: time, site, brine, demand (kW), choices (1 to 2 doublets, 1000 to 1800 m), constraints and assumptions |
+| `case.json` | The case: time, site, brine, demand (kW), requirements and economics (the ranges of 1 to 2 doublets and 1000 to 1800 m are in `plant.json`) |
 | `plant.json` | A plant dict of class `HeatingHeatPumpCoolingPlant` on one doublet: design values only |
 
 ## Values

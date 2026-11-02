@@ -95,10 +95,3 @@ def time():
     step = leaf(Field("duration"))
     properties = {"start": {"type": "string"}, "end": {"type": "string"}, "step": step}
     return closed(properties, list(properties))
-
-
-def choices():
-    """Return the schema of the ``choices`` section."""
-    count = closed({"min": {"type": "integer"}, "max": {"type": "integer"}})
-    length = closed({"min": leaf(Field("length")), "max": leaf(Field("length"))})
-    return closed({"doublets": count, "depth": length})

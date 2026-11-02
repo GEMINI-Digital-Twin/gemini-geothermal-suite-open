@@ -134,7 +134,7 @@ Sections of `case.json`:
 | `utilities` | `electricity` (`co2_intensity`, `import_limit`, `export_limit`), `gas` (`composition` over `CH4`, `C2H6`, `C3H8`, `CO2`, `N2`, `O2`, the species of `gemini.physics.gas`; `heating_value`) |
 | `economics` | an object or the path of an `economics.json`, see below |
 | `requirements` | a list of `{name, on, quantity, unit?, over?, when?, min?, max?}` |
-| `choices` | what a study may vary: `doublets` and `depth`, each `{min, max}` |
+| (`choices`) | removed: the search ranges are `range` leaves of the plant (`size.doublets`, `params.depth`); a case with the key is refused with `old_format` naming them |
 
 `apply_case` (see [engine.md](engine.md#how-the-case-reaches-the-modules)) reads `site.air.pressure`
 for every `Atmosphere`, `utilities.gas.composition` for every `GasGrid` (both required where the

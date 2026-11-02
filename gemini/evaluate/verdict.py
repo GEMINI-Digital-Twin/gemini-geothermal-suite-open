@@ -15,6 +15,9 @@ from gemini.types.shapes import measure
 SERVICES = {"heating": "heat_delivered", "cooling": "cold_delivered"}
 """The figure that shows a service of the case being delivered."""
 
+LARGEST_VIOLATION = 1e6
+"""The violation of a failed step: above that of any design that ran."""
+
 NOT_CONVERGED = "loop_not_converged"
 """The code of a failed row that is a numerical failure: an iteration that did not converge."""
 
@@ -80,11 +83,39 @@ def judged(plant, case, results, checks, edge):
         *_balances(plant, case, results, rows),
         *_bounds(plant, case, results),
     ]
+    found = _distinct(found)
     return Verdict(feasible=not found, reasons=found)
 
 
+def _distinct(found):
+    """Return the reasons with one for each name, the first; a missing service says it once."""
+    names = {}
+    for item in found:
+        names.setdefault(item["name"], item)
+    return list(names.values())
+
+
+def ranked(found):
+    """Return the reasons of a verdict that a design variable can change: those with a violation.
+
+    A search ranks a trial by the ``violation`` of these (their sum, at most
+    ``LARGEST_VIOLATION``). A reason without one is structural, such as a service the plant has no
+    unit for, and stays in the verdict of the run without ranking the trials of a search.
+    """
+    return [item for item in found["reasons"] if "violation" in item]
+
+
+def excess(value, limit):
+    """Return how far ``value`` is from ``limit``, relative to the larger of the two."""
+    return abs(value.value - limit.value) / (max(abs(value.value), abs(limit.value)) or 1.0)
+
+
 def reason(kind, name, message, **parts):
-    """Return one reason: ``kind``, ``name`` and ``message``, then the parts that are given."""
+    """Return one reason: ``kind``, ``name`` and ``message``, then the parts that are given.
+
+    ``violation`` is the relative size of the breach for a reason a design can change, absent for
+    a structural one.
+    """
     return {"kind": kind, "name": name, "message": message} | {
         key: item for key, item in parts.items() if item is not None
     }
@@ -126,6 +157,7 @@ def _failed(item):
         worst_step=item["worst_step"],
         role=item["role"],
         quantity=item["quantity"],
+        violation=excess(item["value"], item["limit"]),
     )
 
 
@@ -135,7 +167,15 @@ def _failed_rows(rows):
     if not count:
         return []
     message = f"{count} steps failed"
-    return [reason("failed_step", "failed_steps", message, value=measure(count, "-"))]
+    return [
+        reason(
+            "failed_step",
+            "failed_steps",
+            message,
+            value=measure(count, "-"),
+            violation=LARGEST_VIOLATION,
+        )
+    ]
 
 
 def _balances(plant, case, results, rows):
@@ -144,7 +184,15 @@ def _balances(plant, case, results, rows):
     found = []
     if loops:
         message = f"{loops} steps did not converge"
-        found.append(reason("numerical", NOT_CONVERGED, message, value=measure(loops, "-")))
+        found.append(
+            reason(
+                "numerical",
+                NOT_CONVERGED,
+                message,
+                value=measure(loops, "-"),
+                violation=LARGEST_VIOLATION,
+            )
+        )
     checks = [
         mass_balance(plant, case, results),
         energy_balance(plant, case, results),
@@ -154,7 +202,14 @@ def _balances(plant, case, results, rows):
         if item["passed"] is False:
             message = f"{item['name']}: {_text(item['value'])} above {_text(item['limit'])}"
             found.append(
-                reason("numerical", item["name"], message, value=item["value"], limit=item["limit"])
+                reason(
+                    "numerical",
+                    item["name"],
+                    message,
+                    value=item["value"],
+                    limit=item["limit"],
+                    violation=excess(item["value"], item["limit"]),
+                )
             )
     return found
 
@@ -166,7 +221,7 @@ def _bounds(plant, case, results):
     if declared["passed"] is False:
         count = int(declared["value"].value)
         message = f"{count} recorded values are outside the limits their module declares"
-        found.append(reason("bound", "bounds", message, value=declared["value"]))
+        found.append(reason("bound", "bounds", message, value=declared["value"], violation=1.0))
     for breach in breaches(plant, results.to_frame()):
         found.append(_breach(breach))
     return found
@@ -188,4 +243,5 @@ def _breach(breach):
         value=breach["worst"],
         limit=breach["limit"],
         worst_step=step,
+        violation=excess(breach["worst"], breach["limit"]),
     )

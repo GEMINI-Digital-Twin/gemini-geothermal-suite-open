@@ -127,10 +127,6 @@ def data():
         "utilities": {"electricity": {"co2_intensity": {"value": 300, "unit": "g/kWh"}}},
         "economics": economics(),
         "requirements": requirements(),
-        "choices": {
-            "doublets": {"min": 1, "max": 3},
-            "depth": {"min": {"value": 2000, "unit": "m"}, "max": {"value": 3500, "unit": "m"}},
-        },
     }
 
 

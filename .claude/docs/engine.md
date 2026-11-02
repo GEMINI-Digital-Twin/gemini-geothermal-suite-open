@@ -55,8 +55,9 @@ print(results.summary(units={"power": "MW", "temperature": "degC"}))
 
 `gm.simulate(plant, case=None, plan=None, ...)` sets the values of the case on a copy of the plant
 ([the case reaches the modules by class](#how-the-case-reaches-the-modules)), schedules the demand
-unless a `plan` is given and runs the plan. A building block has no demand: `case` may be `None`
-only with a `plan`, else `ValidationError` (code `missing_value`).
+unless a `plan` is given and runs the plan. `gm.check(plant, case)` runs first on the plant with the
+case applied and `simulate` raises its issues (a run with no case skips it). A building block has no
+demand: `case` may be `None` only with a `plan`, else `ValidationError` (code `missing_value`).
 
 No object is kept between calls of the functions, except the traced graphs of the compiled
 executor, which the process holds (`gemini.compiler.graph.graph_cache`, at most 16 graphs, the least
@@ -131,7 +132,10 @@ written in the case:
   `plant.feeds`, `gemini/plants/_utils/roles.py` `supply_service`): the `temperature_setpoint` is
   the supply temperature of the service plus the unit's `supply_margin` (minus it for cold), set
   as an input. A unit without a margin keeps the setpoint the plant gives; a margin on a unit on
-  no supply line is `invalid_design`.
+  no supply line is `invalid_design`;
+- every stateful module named in `case.initial_state` starts from the states given there
+  (`Module._start_from`, which `initial_state()` and the engine read first): `gm.check` asks for
+  every state of every stateful module, and a state or module the plant lacks is `unknown_name`.
 
 A parameter or boundary that the case sets is declared with `Parameter(..., case="site.ground.gradient")`
 or `Boundary(..., case="demand.cooling.indoor_temperature")`; a plant dict that states it is refused

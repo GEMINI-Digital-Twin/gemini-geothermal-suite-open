@@ -39,7 +39,7 @@ Before adding or moving an input, apply the placement test of [inputs](.claude/d
 one owner, one file, and the reason is written there.
 
 One `gm.Case` carries what a plant is asked to do, for every call: the sections `time`,
-`site`, `demand`, `utilities`, `economics`, `requirements` and `choices`, strict and typed, read from a
+`site`, `demand`, `utilities`, `economics` and `requirements`, strict and typed, read from a
 `case.json` with `gm.Case.from_json` ([case](.claude/docs/data.md#the-case)). A plant dict holds only the
 plant. Run a plant with `gm.simulate(plant, case)`, `gm.replay`, `gm.live` and `gm.resume`; keep
 `gm.Engine` for complex tasks ([functions or engine](.claude/docs/engine.md#functions-or-engine)).
@@ -48,7 +48,8 @@ constant step: sources load from the cheapest to the dearest, limits and outages
 constraints, and the role of each unit is read from the wiring
 ([schedule](.claude/docs/engine.md#schedule)). The `gm.evaluate` functions take
 `(plant, case, results)`: `totals`, `constraints`, the costs, `report` and `compare`. `gm.study`
-sizes (`size`), searches (`minimize`), samples and ranks the influence of a value (`sensitivity`).
+sizes (`size`), searches (`minimize`), samples and ranks the influence of a value (`sensitivity`);
+`gm.Study` runs them from a `study.json`; `gm.check(plant, case)` lists what is missing first.
 
 gemini is a general package and knows no sample: `inputs/examples/` holds sample cases, each a
 `case.json`, a demand CSV and the plant dicts, and only `examples/` and `tests/` read them
@@ -155,12 +156,12 @@ gemini/
 ├── runtime/          # context-local backend, precision, display units and default fluid
 ├── modules/          # module.py, declarations.py, container.py, call.py, check.py, _utils/; one folder per category with its _physics.py
 ├── plants/           # plant.py (Plant) and the plant classes, one file each; _utils/ holds the plant tools
-├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements, choices), roles; _utils/ (node: the one reader of a section, schema, access, kinds)
+├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements), roles; _utils/ (node: the one reader of a section, schema, access, kinds)
 ├── engine/           # Engine, Clock, executor.py, eager.py, rows.py, loader, runner, chunks, checkpoint, callbacks
-├── run/              # schedule, simulate, replay, live, resume, call, Results, Dataset; _utils/ (apply: the case on a plant copy, roles, limits, sources)
+├── run/              # check, schedule, simulate, replay, live, resume, call, Results, Dataset; _utils/ (apply: the case on a plant copy, roles, limits, sources)
 ├── compiler/         # graph/ (Tracer, Graph, passes, cache), executor.py, gm.compiler.compile; optional, registers itself
 ├── data/             # from_csv, from_values, profile_schema
-├── study/            # size, minimize, sample, sensitivity; _utils/ (trial, choices, target)
+├── study/            # size, minimize, sample, sensitivity, Study; _utils/ (trial, variables, execute, target)
 ├── evaluate/         # totals, constraints, balances, bounds, run_all, capex, opex, lcoh, lcoc, lcts, annualised_cost, co2, npv, payback; capacities, report, compare
 └── analysis/         # calibrate, nodal, pump curve, corrosion forecast, fits
 docs/schemas/         # generated JSON Schemas and samples of the exchanged documents

@@ -19,7 +19,6 @@ from gemini.case._utils.node import (
     refuse_replaced,
     write,
 )
-from gemini.case.choices import Choices
 from gemini.case.demand import Demand
 from gemini.case.economics import Economics
 from gemini.case.requirement import Requirement
@@ -32,11 +31,12 @@ from gemini.types import inputs
 
 HEADER = ("format", "kind", "name")
 SECTIONS = {"site": Site, "demand": Demand, "utilities": Utilities}
-KEYS = (*HEADER, "time", "initial_state", *SECTIONS, "economics", "requirements", "choices")
+KEYS = (*HEADER, "time", "initial_state", *SECTIONS, "economics", "requirements")
 OLD = {
     "environment": '"site" (and "fluid.gas" is "site.fluid.dissolved_gas")',
     "constraints": '"requirements", each {"name", "on", "quantity", "over"?, "min"?, "max"?}',
     "assumptions": '"economics" (a file or an object) and "utilities.electricity.co2_intensity"',
+    "choices": 'a "range" on the plant leaves "size.doublets" and "params.depth"',
 }
 
 
@@ -44,7 +44,7 @@ class Case(Frozen):
     """The outside conditions over one period and the rules of third parties: ``(plant, case)``.
 
     Sections, in the order of ``case.json``: ``time``, ``initial_state``, ``site``, ``demand``,
-    ``utilities``, ``economics``, ``requirements`` and ``choices``. Everything is stored in SI as
+    ``utilities``, ``economics`` and ``requirements``. Everything is stored in SI as
     plain numbers or arrays on ``time.index``; ``to_dict`` and ``to_json`` write each value as it
     was read, with its unit, and a series as a reference to its CSV file. Nothing has a default: a
     value that is absent is ``None``, and a call that needs it raises ``missing_value``
@@ -66,8 +66,6 @@ class Case(Frozen):
     utilities : Utilities or None
     economics : Economics or None
     requirements : tuple of Requirement or None
-    choices : Choices or None
-        What a study may vary: ``doublets`` and ``depth``.
     """
 
     where = "case"
@@ -125,9 +123,6 @@ class Case(Frozen):
         found["initial_state"] = (
             _state(data["initial_state"], issues) if "initial_state" in data else None
         )
-        found["choices"] = (
-            Choices.read(data["choices"], "choices", issues) if "choices" in data else None
-        )
         return cls(**found) if len(issues) == before else None
 
     @classmethod
@@ -139,7 +134,6 @@ class Case(Frozen):
             "initial_state": {"type": "object", "additionalProperties": {"type": "object"}},
             "economics": {"anyOf": [{"type": "string"}, Economics.schema()]},
             "requirements": {"type": "array", "items": schema.requirement()},
-            "choices": schema.choices(),
         }
         return {"$schema": schema.DRAFT, "title": cls.__name__} | schema.closed(
             schema.HEADER | {"about": {"type": "object"}} | properties,
@@ -162,8 +156,6 @@ class Case(Frozen):
             data["economics"] = self._reference or self.economics.to_dict()
         if self.requirements is not None:
             data["requirements"] = [item.to_dict() for item in self.requirements]
-        if self.choices is not None:
-            data["choices"] = self.choices.to_dict()
         return data
 
     def files(self):

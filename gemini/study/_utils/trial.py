@@ -5,10 +5,10 @@ from copy import deepcopy
 from gemini import units
 from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import GeminiError, ValidationError
-from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, requirements, totals
-from gemini.evaluate._utils.operating import breaches
+from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, totals, verdict
 from gemini.evaluate.failures import failures
 from gemini.evaluate.totals import KPI_NAMES
+from gemini.evaluate.verdict import LARGEST_VIOLATION, ranked
 from gemini.run._utils.apply import applied_in_place
 from gemini.run.simulate import simulate
 from gemini.study._utils.target import is_case_name, with_case_values
@@ -22,10 +22,6 @@ ECONOMICS = {
     "co2": co2,
 }
 """The economic metrics of ``gm.evaluate``; the others are the KPIs of ``gm.evaluate.totals``."""
-
-
-LARGEST_VIOLATION = 1e6
-"""The violation of a trial that failed: above that of any design that ran."""
 
 
 def checked_metric(name):
@@ -109,44 +105,20 @@ def run_trial(plant, case, plan, values, names):
         return {}, str(error)
 
 
-def _excess(check):
-    """Return how far a failed check is out of its limit, relative to the larger of the two."""
-    found, limit = check["value"].value, check["limit"].value
-    return abs(found - limit) / (max(abs(found), abs(limit)) or 1.0)
-
-
-def _breach_check(breach):
-    """Return an operating-limit breach as a failed check: its ``name``, ``value`` and ``limit``."""
-    return {
-        "name": breach["output"],
-        "kind": "bound",
-        "unit_path": breach["path"],
-        "passed": False,
-        "value": breach["worst"],
-        "limit": breach["limit"],
-        "worst_step": breach["step"].isoformat(),
-    }
-
-
 def judged(plant, case, results):
-    """Return ``(reason, violation)`` of a finished run against the rules of the verdict.
+    """Return ``(reason, violation)`` of a finished run from its ``gm.evaluate.verdict``.
 
-    A trial is judged by what ``gm.evaluate.verdict`` judges that a search can move: the checks of
-    ``gm.evaluate.requirements`` (the supply temperatures of the services included) and the
-    operating limits of the modules (``Module.operating_limits``, as a bound reason). A run with a
-    failed step is infeasible with ``LARGEST_VIOLATION``. Otherwise the ``violation`` is the sum
-    of the relative excess of every failed check and breach, and the ``reason`` is the first
-    failed check itself (the dict of ``gm.evaluate.requirements``, or the breach in the same
-    form with ``kind`` ``bound``). A feasible run is ``(None, 0.0)``; a check with nothing to
-    judge does not fail.
+    The reasons a design variable can change are the ones with a ``violation`` (``ranked``): a
+    failed requirement, an operating limit, a failed step, a balance out of its tolerance. The
+    ``violation`` is their sum, at most ``LARGEST_VIOLATION``, and the ``reason`` is the first of
+    them. A reason with none is structural (a service the plant has no unit for) and does not rank
+    the trials: it stays in the verdict of the run that ``report`` gives. A feasible run is
+    ``(None, 0.0)``.
     """
-    if results.failures:
-        return failure_reason(results), LARGEST_VIOLATION
-    failed = [item for item in requirements(plant, case, results) if item["passed"] is False]
-    failed += [_breach_check(item) for item in breaches(plant, results.to_frame())]
-    if not failed:
+    found = ranked(verdict(plant, case, results))
+    if not found:
         return None, 0.0
-    return failed[0], min(sum(map(_excess, failed)), LARGEST_VIOLATION)
+    return found[0], min(sum(item["violation"] for item in found), LARGEST_VIOLATION)
 
 
 def run_judged(plant, case, plan, values, names):

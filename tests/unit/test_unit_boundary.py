@@ -10,7 +10,6 @@ from gemini import units
 from gemini.units import Quantity
 from tests.fixtures import ROOT
 from tests.fixtures.errors import raises
-from tests.unit.study.conftest import shallow_case, shallow_plant
 
 TEXT = re.compile(r"\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\s+(\S+)\s*")
 QUOTED = re.compile(r"[\"'][+-]?[.\d][^\"'\n]* \S+[\"']")
@@ -66,14 +65,6 @@ def _plant_input(value):
     return _plant_file({"peak_boiler": {"temperature_setpoint": value}})
 
 
-def _minimize(bound):
-    def call():
-        variables = [{"path": "", "parameter": "depth", "lower": bound, "upper": 3e3}]
-        return gm.study.minimize(shallow_plant(), shallow_case(), "lcts", variables)
-
-    return call
-
-
 def _economics(**sections):
     return gm.case.Economics.from_dict(
         {"format": 1, "kind": "economics", "name": "test"} | sections
@@ -96,7 +87,6 @@ RAW_NUMBERS = {
     "constraint bound": lambda: _requirement(max=3.0),
     "plant parameter": _plant_dict(depth=2500.0),
     "plant input": _plant_input(373.15),
-    "study bound": _minimize(2e5),
 }
 """Public inputs with a dimension, each called with a bare number."""
 FILE_INPUTS = (

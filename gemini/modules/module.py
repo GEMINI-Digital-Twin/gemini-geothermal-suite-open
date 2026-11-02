@@ -354,6 +354,7 @@ class Module:
         object.__setattr__(self, "_pre_hooks", {})
         object.__setattr__(self, "_hooks", {})
         object.__setattr__(self, "_input_values", {})
+        object.__setattr__(self, "_started", {})
         object.__setattr__(self, "_path", "")
         object.__setattr__(self, "_parent", None)
         object.__setattr__(self, "_fluid", runtime.get_default_fluid())
@@ -1244,8 +1245,14 @@ class Module:
         """Return the validated initial value of every declared state."""
         return {name: self._initial_state(name, state) for name, state in self._states.items()}
 
+    def _start_from(self, values):
+        """Start the states in ``values`` (SI, by name) from them, as the case states them."""
+        self._started.update(values)
+
     def _initial_state(self, name, state):
-        """Return the initial value of one state: its reference default, else its parameter."""
+        """Return the initial value of one state: the case's, its default, else its parameter."""
+        if name in self._started:
+            return state.validate(self._started[name])
         if state.default is not UNSET:
             return state.default_value()
         return state.validate(self._parameter_value(f"initial_{name}"))

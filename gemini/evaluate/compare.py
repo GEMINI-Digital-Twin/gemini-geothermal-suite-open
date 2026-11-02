@@ -84,14 +84,14 @@ def compare(reports, by):
     """Rank reports by the given metrics and mark the Pareto front of the feasible ones.
 
     A report is feasible when its ``verdict`` (``gm.evaluate.verdict``) has no reason; compare
-    decides nothing itself. A dict without a ``verdict``, such as a plain table of figures, is
-    feasible. Feasible reports rank before all infeasible ones; the infeasible are
+    decides nothing itself. A dict without a ``verdict`` raises ``missing_value``: there is no
+    silent feasible. Feasible reports rank before all infeasible ones; the infeasible are
     ordered by their number of reasons, then by the metrics.
 
     Parameters
     ----------
     reports : list of dict
-        Reports as ``gm.evaluate.report`` returns them, or any dicts whose ``by`` keys are values.
+        Reports as ``gm.evaluate.report`` returns them, each with its ``verdict``.
     by : str, list of str or dict
         The metrics, keys of the reports whose value is a ``Quantity`` or a number. A name or a list
         prefers the smaller value of each; a dict ``{metric: "min" or "max"}`` says which. A report
@@ -112,7 +112,7 @@ def compare(reports, by):
     senses = _senses(by, reports)
     values = {name: [_value(report, name) for report in reports] for name in senses}
     quantities = {name: [_quantity(report, name) for report in reports] for name in senses}
-    reasons = [_reasons(report) for report in reports]
+    reasons = [_reasons(report, position) for position, report in enumerate(reports)]
     feasible = [not found for found in reasons]
     ranks = {name: _ranks(values[name], senses[name], reasons) for name in senses}
     front = _front(values, senses, feasible)
@@ -129,10 +129,16 @@ def compare(reports, by):
     )
 
 
-def _reasons(report):
-    """Return why a report is not feasible: the reasons of its verdict, none for a plain table."""
+def _reasons(report, position):
+    """Return why a report is not feasible: the reasons of its verdict; a report needs one."""
     found = report.get("verdict")
-    return [] if found is None else list(found["reasons"])
+    if found is None:
+        raise ValidationError(
+            f"reports[{position}]: verdict is missing; expected the report of gm.evaluate.report",
+            path=f"reports[{position}].verdict",
+            code="missing_value",
+        )
+    return list(found["reasons"])
 
 
 def _senses(by, reports):

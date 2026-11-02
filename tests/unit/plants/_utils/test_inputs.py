@@ -103,7 +103,7 @@ def test_from_dict_then_schedule_needs_no_extra_call():
     """A stored design with a setpoint schedules and runs as it is read."""
     plant = boiler_plant().set_inputs(SETPOINT)
     built = gm.Plant.from_dict(plant.to_dict())
-    case = days_case([1e5, 2e5], start="2027-01-01")
+    case = days_case([1e5, 2e5], start="2027-01-01", requirements=[])
     plan = gm.schedule(built, case)
     assert plan["pump_heater.temperature_setpoint"].iloc[0] == pytest.approx(373.15)
     results = gm.simulate(built, case, plan=plan)
