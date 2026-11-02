@@ -4,9 +4,12 @@ import pandas as pd
 import pytest
 
 import gemini as gm
+from gemini.engine.lockstep import Lane, lockstep
+from gemini.engine.simulate import simulation_steps
 from gemini.errors import DefinitionError, PhysicsError
 from gemini.errors.rows import PHYSICAL_ROW_CODES
-from gemini.study._utils.trial import run_judged
+from gemini.study._utils.shared import Shared
+from gemini.study._utils.trial import run_trials
 from gemini.units import Quantity
 from tests.fixtures.engine_tank import ROW, TIME, Tank, tank
 from tests.unit.engine.schedule.test_schedule import FULL, case_of, demand, plant_of_two
@@ -56,9 +59,8 @@ def test_a_normal_case_has_no_failed_rows():
 def test_the_study_reads_the_failed_run_as_infeasible():
     """A trial of a study on a cold reservoir is infeasible with a reason, not an exception."""
     plant, case = _cold(0.03)
-    metrics, reason, violation = run_judged(
-        plant, case, None, {"case.site.ground.gradient": COLD}, ["lcts"]
-    )
+    values = {"case.site.ground.gradient": COLD}
+    [(metrics, reason, violation)] = run_trials(Shared(plant), case, None, [values], ["lcts"], True)
     assert reason["kind"] == "failed_step" and violation > 0
 
 
@@ -110,3 +112,16 @@ def test_the_physical_codes_are_row_codes():
     """Every physical failure is a code of ``ROW_CODES``."""
     assert PHYSICAL_ROW_CODES <= set(gm.errors.ROW_CODES)
     assert "module_error" not in PHYSICAL_ROW_CODES
+
+
+def test_trials_run_together_with_one_failing_give_the_rows_each_gives_alone():
+    """A cold trial next to normal ones, in one array pass: the same failed rows as run alone."""
+    gradients = [0.03, COLD, COOL]
+    trials = [_cold(gradient) for gradient in gradients]
+    lanes = [Lane(simulation_steps(plant, case)) for plant, case in trials]
+    together = lockstep(lanes)
+    for (plant, case), found in zip(trials, together):
+        alone = gm.simulate(plant, case)
+        assert found.errors() == alone.errors()
+        pd.testing.assert_frame_equal(found.to_frame(), alone.to_frame())
+    assert [len(found.errors()) for found in together] == [0, 3, 1]

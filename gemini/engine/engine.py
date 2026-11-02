@@ -16,7 +16,7 @@ from gemini.engine import checkpoint as storage
 from gemini.engine import eager  # noqa: F401
 from gemini.engine.bindings import RunBindings
 from gemini.engine.clock import Clock
-from gemini.engine.executor import executor_for
+from gemini.engine.executor import driven, executor_for
 from gemini.engine.loader import Loader
 from gemini.engine.results import Results, declared_quantities, declared_units
 from gemini.engine.runner import Runner
@@ -222,6 +222,21 @@ class Engine:
 
     def _run(self, kind, dataset, clock, only=None, continuing=False, max_gap=None, state=None):
         """Run the unfinished ticks of ``clock``; ``max_gap`` overrides the Loader default."""
+        steps = self._run_steps(kind, dataset, clock, only, continuing, max_gap, state)
+        return driven(steps)
+
+    def _simulate_steps(self, profile, clock, state):
+        """Run ``_simulate`` as a generator of the requests of its executor calls.
+
+        The generator returns the ``Results``; ``driven`` answers the requests one at a time, and
+        a study answers those of many simulations together.
+        """
+        dataset = as_dataset(profile)
+        clock = clock if clock is not None else Clock.from_data(dataset)
+        return self._run_steps("simulate", dataset, clock, None, False, None, state)
+
+    def _run_steps(self, kind, dataset, clock, only, continuing, max_gap, state):
+        """Run the unfinished ticks of ``clock`` as a generator (see ``_simulate_steps``)."""
         plant = self.plant
         plant._check_design()
         if not continuing:
@@ -250,7 +265,7 @@ class Engine:
         try:
             with runtime.settings(backend=self.backend):
                 self._notify("on_run_start")
-                Runner(self, plan, loader.arrays()).run()
+                yield from Runner(self, plan, loader.arrays()).steps()
                 self._notify("on_run_end")
         except BaseException as exc:
             self._in_step = False

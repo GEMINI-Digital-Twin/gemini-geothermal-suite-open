@@ -14,7 +14,8 @@ The run lives in `engine/`, one folder for one plant on one case over time:
 - the bindings (below): `bindings.py` (`RunBindings`), `loader.py` and `columns.py` (align the data to ticks);
 - the executors: `executor.py` (the interface), `eager.py`, `chunkresult.py` (`ChunkResult`, what an
   executor gives for one module over the rows of a chunk), `twinresult.py` (`TwinResult`, what one twin
-  gave over a chunk), `rowwise.py` (call a module for real, row by row).
+  gave over a chunk), `rowwise.py` (call a module for real, row by row), `lockstep.py` (many runs
+  side by side, their executor calls answered together: [batched trials](#batched-trials)).
 
 `Dataset` is a series of the case (`gemini/case/dataset.py`); the engine only aligns it to the ticks.
 
@@ -82,14 +83,46 @@ depth and the pipe path of a well are numeric, so a study over depths shares one
 executor keeps nothing.
 
 A study (`gm.study.minimize`, `sample`, `sensitivity`) therefore compiles one graph and every trial
-reuses it: the case is applied to a plant once, a trial copies it once, sets only the values it
-changes and reads every metric from the arrays of its results, so a trial costs about two
-`gm.simulate` of the same plant and case. Trials are independent, so
-`gm.runtime.settings(processes=n)` runs them in `n` worker processes (`minimize`: one search per
-doublet count; `sample` and `sensitivity`: one trial each), started from a `forkserver`. Each
-worker traces its own graph once, applies the settings of its parent with one process and loads its
-own plant, as above; the numbers and their order equal a serial run. The first parallel call of a
-process pays about 1.5 s to start the pool.
+reuses it, and the trials of a batch run as **one array pass** (next section). Trials are
+independent, so `gm.runtime.settings(processes=n)` splits the draws of `sample` and `sensitivity`
+into `n` consecutive parts, one process each, and runs the searches of `minimize` for the different
+doublet counts in `n` processes (started from a `forkserver`). Each worker traces its own graph
+once, applies the settings of its parent with one process and loads its own plant, as above; the
+numbers and their order equal a serial run. The first parallel call of a process pays about 1.5 s
+to start the pool.
+
+### Batched trials
+
+A run is a generator of `Request` objects (`gemini/engine/executor.py`): `Runner.steps()` and
+`Engine._simulate_steps` yield one for each executor call (`prepared`, `rows`, `context`) and
+receive its result; `driven(steps)` answers them one at a time, which is `Engine.simulate`.
+`gemini/engine/lockstep.py` runs many such generators side by side (`lockstep(lanes)`, a `Lane`
+for each run, in a context of its own): it collects the request each run stops at, hands those of
+an executor that is `batchable` to `Executor.run_batch`, runs the others alone, and sends each run
+its answer. The compiled executor (`GraphExecutor.run_batch`) evaluates the calls that share a graph
+and a row count as one pass: `gemini/compiler/interpret/batch.py` stacks the feeds so that trial `i`
+owns the rows `[i * rows, (i + 1) * rows)` (a parameter or control becomes a column, the vector
+parameters `(trials * rows, n)`, which `getitem` indexes on the last axis; an input all the trials
+share stays as it is), runs the interpreter once and gives each trial its own `GraphResult`, its
+errors worded with its own feeds. The rows of a graph do not depend on each other (a `fixed_point`
+iterates every row under its own mask), and a `scan` takes one row of each trial at every step with
+its own carries, error codes and failed rows (`Interpreter.trials`), so a trial gives the numbers,
+the failed rows and the exceptions it gives alone. A call with a graph break (a module run for
+real: a pre-hook, a root solve such as `NodalDoublet`), the Python backend and a batch that raises
+run one call at a time, by itself. One pass holds at most `MAX_ROWS` (40,000) rows, a memory limit
+inside the executor, never a setting and never a change of results.
+
+The study side is `gemini/study/_utils/`: `shared.py` holds one copy of the plant for all the
+trials of a batch (`Shared`; `reset` puts it back as the copy was made, `capture` and
+`Held.restore` keep and put back the state one trial has: parameters and their history, persisted
+controls and boundaries, fluids and the records of what was stated), `trial.py` the pipeline of
+one trial (set the values, `applied_in_place`, plan and prepare the run, wait for the pass, read the
+metrics) as a `Lane`, and `run_trials` runs a list of trials. No plant is copied for a trial.
+`minimize` evaluates its first population as one batch (the points are those a search of zero
+generations records); the generations after it build each candidate from the members replaced
+before it (`updating="immediate"`, the trial sequence of every release), so they run one by one.
+`sample` and `sensitivity` run all their draws as one batch for each process. There is no
+batch-size setting.
 
 The arguments are those of `Engine` and of the matching method, with `plant` first. On `simulate`
 and `replay`, `checkpoint=path` writes a checkpoint at the end of the run, also one that stops

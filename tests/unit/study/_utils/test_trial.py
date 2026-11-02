@@ -2,12 +2,13 @@
 
 import gemini as gm
 from gemini.study._utils import trial
+from gemini.study._utils.shared import Shared
 from gemini.units import Quantity
 from tests.fixtures.cases import make_case
 from tests.fixtures.errors import raises
 from tests.fixtures.result_tables import make_results
 from tests.unit.evaluate.test_summary import overflowing
-from tests.unit.study.conftest import shallow_case, shallow_plant
+from tests.unit.study.conftest import shallow_case, shallow_plant, simulation
 
 PRICE = "case.economics.energy.electricity"
 
@@ -28,11 +29,13 @@ def test_a_trial_sets_the_values_on_copies_and_runs_them(monkeypatch):
         seen.append((plant, case))
         return make_results({"users": {"unmet_demand": [0.0]}})
 
-    monkeypatch.setattr(trial, "simulate", fake)
+    monkeypatch.setattr(trial, "simulation_steps", simulation(fake))
     monkeypatch.setattr(trial, "metric", lambda plant, case, results, name: name)
     plant, case = shallow_plant(), shallow_case()
     values = {"peak_boiler.capacity": 1e6, PRICE: 2e-8}
-    metrics, reason = trial.run_trial(plant, case, None, values, ["peak_heat"])
+    [(metrics, reason)] = trial.run_trials(
+        Shared(plant), case, None, [values], ["peak_heat"], False
+    )
     assert reason is None and metrics == {"peak_heat": "peak_heat"}
     assert seen[0][0].get_submodule("peak_boiler").capacity == 1e6
     assert seen[0][1].economics.energy.electricity == 2e-8
@@ -46,8 +49,9 @@ def test_a_trial_that_fails_gives_its_reason(monkeypatch):
     def fake(plant, case=None, plan=None):
         raise gm.errors.ValidationError("no run", code="invalid_value")
 
-    monkeypatch.setattr(trial, "simulate", fake)
-    metrics, reason = trial.run_trial(shallow_plant(), shallow_case(), None, {}, ["peak_heat"])
+    monkeypatch.setattr(trial, "simulation_steps", simulation(fake))
+    shared = Shared(shallow_plant())
+    [(metrics, reason)] = trial.run_trials(shared, shallow_case(), None, [{}], ["peak_heat"], False)
     assert metrics == {} and reason == "no run"
 
 

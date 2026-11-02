@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from gemini.engine.chunks import PathColumns
+from gemini.engine.executor import Request, driven
 from gemini.engine.health import assess
 from gemini.streams.flows import STREAM_FIELDS, Stream
 
@@ -52,6 +53,15 @@ def evaluate_twin(twin, block, executor, durations, state, halt=None):
     twin starts from (``None`` for its initial states). ``executor`` is the engine's ``Executor``.
     ``halt(error)`` tells a stepped twin which failed step ends its scan.
     """
+    return driven(twin_steps(twin, block, executor, durations, state, halt))
+
+
+def twin_steps(twin, block, executor, durations, state, halt=None):
+    """Evaluate ``twin`` as ``evaluate_twin`` does, as a generator: it yields the ``Request``.
+
+    The generator receives the evaluation the executor gives and returns the ``Outcome``; a run
+    that answers the requests itself is ``evaluate_twin``.
+    """
     selected = block.selected
     outcome = Outcome(twin, block, selected)
     for tick in np.flatnonzero(block.status < 0):
@@ -68,7 +78,7 @@ def evaluate_twin(twin, block, executor, durations, state, halt=None):
         "states": _start_state(twin, block, selected, state),
         "halt": halt,
     }
-    evaluation = executor.run(prepared, len(selected), context)
+    evaluation = yield Request(executor, prepared, len(selected), context)
     outcome.evaluation = evaluation
     for position in np.flatnonzero(evaluation.failed):
         outcome.errors[int(selected[position])] = evaluation.error(int(position))

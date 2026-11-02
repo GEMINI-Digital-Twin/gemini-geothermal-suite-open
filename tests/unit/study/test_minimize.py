@@ -1,5 +1,6 @@
 """``gm.study.minimize`` on the shallow plant, with the run replaced by a known cost."""
 
+import importlib
 import json
 
 import pytest
@@ -13,8 +14,9 @@ from gemini.units import Quantity
 from gemini.units.shapes import measure
 from tests.fixtures import si
 from tests.fixtures.errors import raises
-from tests.unit.study.conftest import clean_verdict, shallow_case, shallow_plant
+from tests.unit.study.conftest import clean_verdict, shallow_case, shallow_plant, simulation
 
+minimize_module = importlib.import_module("gemini.study.minimize")
 DEPTH = {"depth": (Quantity(1000, "m"), Quantity(2000, "m"))}
 COUNT = {"size.doublets": (1, 3)}
 
@@ -162,7 +164,7 @@ def test_every_trial_failing_leaves_no_best(monkeypatch, runs):
     def failing(plant, case, plan=None):
         raise gm.errors.ValidationError("no run", code="invalid_value")
 
-    monkeypatch.setattr(trial, "simulate", failing)
+    monkeypatch.setattr(trial, "simulation_steps", simulation(failing))
     result = minimized(searching(DEPTH))
     assert result["best"].value is None and result["best"].plant is None
     assert "every trial" in result["best"].reason
@@ -301,3 +303,37 @@ def test_a_trial_with_failed_steps_is_infeasible_and_never_the_best(failing_runs
     assert deep and all(i.reason["kind"] == "failed_step" for i in deep)
     assert all(i.parts["violation"] == trial.LARGEST_VIOLATION for i in deep)
     assert result["feasible"] and result["best"].parts["parameters"]["depth"].value <= 1700
+
+
+def test_the_first_population_is_one_batch_and_the_trials_after_it_run_one_by_one(
+    monkeypatch, runs
+):
+    """Each candidate of a later generation is built from the members replaced before it."""
+    sizes = []
+    real = minimize_module.run_trials
+
+    def counting(shared, case, plan, valued, names, judge):
+        sizes.append(len(valued))
+        return real(shared, case, plan, valued, names, judge)
+
+    monkeypatch.setattr(minimize_module, "run_trials", counting)
+    found = minimized(searching(DEPTH), evaluations=10)
+    assert sizes[0] == 5 and set(sizes[1:]) == {1} and sum(sizes) == found["evaluations"] == 10
+
+
+def test_a_search_with_batches_has_the_history_of_a_search_that_runs_every_trial_alone(
+    monkeypatch, runs
+):
+    """The same trials in the same order with the same objectives, whatever the batches."""
+    batched = minimized(searching(DEPTH), evaluations=10, seed=4)
+    real = minimize_module.run_trials
+
+    def alone(shared, case, plan, valued, names, judge):
+        return [real(shared, case, plan, [values], names, judge)[0] for values in valued]
+
+    monkeypatch.setattr(minimize_module, "run_trials", alone)
+    single = minimized(searching(DEPTH), evaluations=10, seed=4)
+    assert [item.to_dict() for item in batched["history"]] == [
+        item.to_dict() for item in single["history"]
+    ]
+    assert batched["best"].to_dict() == single["best"].to_dict()

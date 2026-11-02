@@ -91,6 +91,14 @@ def applied_in_place(plant, case):
     return applied
 
 
+def remember_case(plant, case):
+    """Record that ``plant`` carries the values of ``case``, as ``applied_in_place`` does.
+
+    For a plant whose state was put back after a run, such as the shared plant of a study.
+    """
+    _APPLIED[plant] = weakref.ref(case)
+
+
 def _outside(path, doublets):
     """Return whether the module at ``path`` is no part of a doublet."""
     return not any(path.startswith(f"{doublet}.") for doublet in doublets)

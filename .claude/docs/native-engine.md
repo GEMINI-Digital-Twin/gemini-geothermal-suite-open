@@ -68,7 +68,8 @@ engine treats it):
 
 - Parameters and Constants are named graph inputs, never baked-in numbers, so calibration and
   scenario batches reuse one graph. Giving a parameter a scenario dimension makes Monte Carlo
-  over parameters free.
+  over parameters free: the trials of a study are one array pass with a parameter per trial (see
+  [engine.md](engine.md#batched-trials)).
 - Only pure math and unit-conversion numbers (2, 60, pi, bar->Pa) are literals in the graph.
 - Physical constants are defined once as `Constant` in `gemini/physics/constants.py` and
   shared; the tracer creates one graph input per constant.

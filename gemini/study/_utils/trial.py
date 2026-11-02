@@ -1,14 +1,20 @@
-"""One trial of a search: a copy of the plant and the case with new values, run and read."""
+"""Trials of a search: the plant and the case with new values, run and read.
 
-from copy import deepcopy
+The trials of a batch share one plant (``gemini.study._utils.shared``) and run side by side
+(``gemini.engine.lockstep``): each one sets its values, plans and prepares its run, the array
+passes of all of them are one, and each reads its metrics from its own results. A trial alone
+is a batch of one and gives the same numbers.
+"""
 
 from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.engine.apply import applied_in_place
-from gemini.engine.simulate import simulate
+from gemini.engine.lockstep import Lane, lockstep
+from gemini.engine.simulate import simulation_steps
 from gemini.errors import GeminiError, ValidationError
 from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, totals, verdict
 from gemini.evaluate.summary import KPI_NAMES
 from gemini.evaluate.verdict import LARGEST_VIOLATION, failures, ranked
+from gemini.study._utils.shared import Shared
 from gemini.study._utils.target import is_case_name, with_case_values
 from gemini.units.shapes import measure
 
@@ -43,18 +49,6 @@ def metric(plant, case, results, name):
     return totals(plant, case, results)[name]
 
 
-def _run(plant, case, plan, values):
-    """Return ``(copy, case, results)`` of one run of a copy of ``plant`` with ``values`` set."""
-    trial = deepcopy(plant)
-    for name, number in values.items():
-        if not is_case_name(name):
-            path, _, parameter = name.rpartition(".")
-            trial._set_si_params(path, {parameter: number})
-    changed = with_case_values(case, {k: v for k, v in values.items() if is_case_name(k)})
-    trial = applied_in_place(trial, changed)
-    return trial, changed, simulate(trial, changed, plan=plan)
-
-
 def failure_reason(results):
     """Return the reason of a run with failed steps: their count and the most frequent failure.
 
@@ -66,25 +60,6 @@ def failure_reason(results):
         f"{len(results.failures)} steps failed; most frequent: {top['path']} {top['code']} "
         f"({top['count']} rows): {top['message']}"
     )
-
-
-def run_trial(plant, case, plan, values, names):
-    """Return ``(metrics, reason)`` of one run of a copy; a run that fails has its reason.
-
-    A run with a failed step is no valid design: every metric is ``None`` with the reason
-    ``failure_reason``.
-
-    ``values`` are SI numbers by name: a parameter of the plant, or ``case.<path>`` for a number of
-    the case, which the copy of the case takes.
-    """
-    try:
-        trial, changed, results = _run(plant, case, plan, values)
-        if results.failures:
-            reason = failure_reason(results)
-            return {item: measure(None, "-", reason) for item in names}, reason
-        return {item: metric(trial, changed, results, item) for item in names}, None
-    except GeminiError as error:
-        return {}, str(error)
 
 
 def judged(plant, case, results):
@@ -103,24 +78,76 @@ def judged(plant, case, results):
     return found[0], min(sum(item["violation"] for item in found), LARGEST_VIOLATION)
 
 
-def run_judged(plant, case, plan, values, names):
-    """Return ``(metrics, reason, violation)`` of one run of a copy, judged against the case.
+class _Trial:
+    """One trial of a batch: its values, its metrics to read and the lane it runs in."""
 
-    A run that raises is infeasible with its message as the reason and ``LARGEST_VIOLATION``;
-    ``values`` are as for ``run_trial``.
+    def __init__(self, shared, case, plan, values, names, judge):
+        """Prepare the trial of ``values`` on ``shared``; ``judge`` adds the verdict to the read."""
+        self.shared, self.case, self.plan = shared, case, plan
+        self.values, self.names, self.judge = values, names, judge
+        self.held = None
+        self.lane = Lane(self._steps(), self._restore)
+
+    def _restore(self):
+        """Put the shared plant back as this trial has it."""
+        if self.held is not None:
+            self.held.restore()
+
+    def _steps(self):
+        """Run the trial; return ``(metrics, reason)`` or, judged, ``(metrics, reason, violation)``.
+
+        A run that fails has its reason (``failure_reason`` for a failed step, with every metric
+        ``None``) and, judged, the largest violation.
+        """
+        try:
+            trial, changed, results = yield from self._simulated()
+            if self.judge:
+                metrics = {item: metric(trial, changed, results, item) for item in self.names}
+                return (metrics, *judged(trial, changed, results))
+            if results.failures:
+                reason = failure_reason(results)
+                return {item: measure(None, "-", reason) for item in self.names}, reason
+            return {item: metric(trial, changed, results, item) for item in self.names}, None
+        except GeminiError as error:
+            return ({}, str(error), LARGEST_VIOLATION) if self.judge else ({}, str(error))
+
+    def _simulated(self):
+        """Set the values on the shared plant and run it; return ``(plant, case, results)``.
+
+        ``values`` are SI numbers by name: a parameter of the plant, or ``case.<path>`` for a
+        number of the case, which this trial's copy of the case takes.
+        """
+        self.shared.reset()
+        plant = self.shared.plant
+        for name, number in self.values.items():
+            if not is_case_name(name):
+                path, _, parameter = name.rpartition(".")
+                plant._set_si_params(path, {parameter: number})
+        changed = with_case_values(
+            self.case, {k: v for k, v in self.values.items() if is_case_name(k)}
+        )
+        plant = applied_in_place(plant, changed)
+        self.held = self.shared.capture(changed)
+        results = yield from simulation_steps(plant, changed, self.plan)
+        return plant, changed, results
+
+
+def run_trials(shared, case, plan, valued, names, judge):
+    """Return the outcome of each of the trials ``valued`` (a list of ``{name: SI number}``).
+
+    The outcome is ``(metrics, reason)``, or ``(metrics, reason, violation)`` when ``judge``: a
+    run that fails is infeasible with its message as the reason and ``LARGEST_VIOLATION``. The
+    trials run together on ``shared`` (a ``Shared``) and each gives what it gives alone.
     """
-    try:
-        trial, changed, results = _run(plant, case, plan, values)
-        metrics = {item: metric(trial, changed, results, item) for item in names}
-        return (metrics, *judged(trial, changed, results))
-    except GeminiError as error:
-        return {}, str(error), LARGEST_VIOLATION
+    trials = [_Trial(shared, case, plan, values, names, judge) for values in valued]
+    return lockstep([trial.lane for trial in trials])
 
 
-def drawn_trial(shared, values):
-    """Return ``run_trial`` of ``values`` with the ``(plant, case, plan, names)`` it shares.
+def drawn_trials(shared, valued):
+    """Return ``run_trials`` of ``valued`` with the ``(plant, case, plan, names)`` it shares.
 
-    The function ``gemini.study._utils.parallel.mapped`` runs in a worker process.
+    The function ``gemini.study._utils.parallel.mapped`` runs in a worker process, which copies
+    the plant once for its trials.
     """
     plant, case, plan, names = shared
-    return run_trial(plant, case, plan, values, names)
+    return run_trials(Shared(plant), case, plan, valued, names, False)

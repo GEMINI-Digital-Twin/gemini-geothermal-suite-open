@@ -8,9 +8,9 @@ from gemini.engine.check import check
 from gemini.errors.base import raise_issues
 from gemini.evaluate._utils.display import display_units, in_unit
 from gemini.evaluate._utils.display import shown as displayed
-from gemini.study._utils.parallel import mapped
+from gemini.study._utils.parallel import mapped_batches
 from gemini.study._utils.target import quantities
-from gemini.study._utils.trial import checked_metric, drawn_trial
+from gemini.study._utils.trial import checked_metric, drawn_trials
 from gemini.study._utils.uncertain import declared, tried_ends
 from gemini.study.sample import value_of
 from gemini.units.display import by_si_unit
@@ -150,7 +150,7 @@ def sensitivity(plant, case, metrics, *, plan=None):
     names = [checked_metric(name) for name in metrics]
     limits = [(name, tried_ends(un, value)) for name, un, value in declared(case, "sensitivity")]
     jobs = [{name: end} for name, ends in limits for end in ends]
-    runs = mapped(drawn_trial, (plant, case, plan, names), jobs)
+    runs = mapped_batches(drawn_trials, (plant, case, plan, names), jobs)
     rows = []
     for index, (name, ends) in enumerate(limits):
         pair = runs[2 * index : 2 * index + 2]

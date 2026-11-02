@@ -26,15 +26,18 @@ from gemini.ops import kernels
 class Interpreter:
     """Run one graph on one backend."""
 
-    def __init__(self, graph, backend, module=None, rows=1):
+    def __init__(self, graph, backend, module=None, rows=1, trials=1):
         """Prepare to run ``graph`` on the backend object ``backend``, for the root ``module``.
 
-        ``rows`` is the number of rows the feeds hold; a ``scan`` needs it to know its steps.
+        ``rows`` is the number of rows of one trial and ``trials`` the number of trials the feeds
+        hold one after the other (a study runs its trials together); a ``scan`` needs both to
+        know its steps.
         """
         self.graph = graph
         self.backend = backend
         self.module = module
         self.rows = rows
+        self.trials = trials
         self.scalar = backend is kernels.get("python")
         self.outer = [node for node in graph.nodes if node.body is None]
         self.seeds = {}

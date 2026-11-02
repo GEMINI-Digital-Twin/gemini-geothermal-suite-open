@@ -20,7 +20,8 @@ import numpy as np
 
 from gemini.engine.chunks import ResultChunk
 from gemini.engine.columns import read
-from gemini.engine.twinresult import UNCHANGED, StepResults, evaluate_twin
+from gemini.engine.executor import driven
+from gemini.engine.twinresult import UNCHANGED, StepResults, twin_steps
 from gemini.errors import RunError
 from gemini.errors.rows import PHYSICAL_ROW_CODES, failed_row, row_code
 
@@ -48,10 +49,18 @@ class Runner:
 
     def run(self):
         """Evaluate and commit every tick, stretch by stretch."""
+        return driven(self.steps())
+
+    def steps(self):
+        """Run as ``run`` does, as a generator: it yields the ``Request`` of every executor call.
+
+        A caller that answers them (``gemini.engine.executor.driven``, or a study that answers
+        those of many runs together) gets the same run as ``run``.
+        """
         for start, stop in self.plan.parameter_stretches(self.aligned.times):
             size = 1 if self.single else stop - start
             for first in range(start, stop, size):
-                self._chunk(first, min(first + size, stop), first == start)
+                yield from self._chunk(first, min(first + size, stop), first == start)
 
     def _chunk(self, first, stop, opening):
         """Evaluate the ticks ``[first, stop)`` and commit what happened.
@@ -65,7 +74,7 @@ class Runner:
             self.engine._notify("on_step_start", self.aligned.sample(first))
         if opening:
             self.engine.plant._apply_params_at(self.aligned.times[first])
-        outcomes = self._evaluate(first, stop)
+        outcomes = yield from self._evaluate(first, stop)
         failure = self._failure(outcomes)
         count = failure.tick if failure is not None else stop - first
         if not single and not self.callbacks:
@@ -85,7 +94,7 @@ class Runner:
         engine._in_step = True
         try:
             for twin in self.plan.twins:
-                outcomes.append(self._twin(twin, first, stop))
+                outcomes.append((yield from self._twin(twin, first, stop)))
                 if self._halts(outcomes[-1], stop - first):
                     break
         finally:
@@ -98,7 +107,8 @@ class Runner:
         block = read(twin, self.aligned, first, stop)
         state = engine.module_states.get(twin.path)
         durations = self.aligned.durations[first:stop]
-        outcome = evaluate_twin(twin, block, engine._executor, durations, state, self._halts_on)
+        steps = twin_steps(twin, block, engine._executor, durations, state, self._halts_on)
+        outcome = yield from steps
         self._note_breaks(outcome)
         if stop - first == 1:
             self._set(outcome, 0)
