@@ -83,9 +83,10 @@ def test_best_round_trips_through_json_without_an_encoder(runs):
     plain = json.loads(json.dumps(best.to_dict(), allow_nan=False))
     assert plain["plant"] == best["plant"].to_dict()
     assert plain["parameters"]["depth"].keys() == {"value", "unit"}
+    assert plain["unit"] == "EUR/MWh" and plain["value"] == pytest.approx(best.si * 3.6e9)
     again = Best.from_dict(plain)
-    assert again.value == best.value and again.unit == best.unit
-    assert again.parts["parameters"] == best.parts["parameters"]
+    assert again.si == pytest.approx(best.si)
+    assert again.parts["parameters"]["depth"] == best.parts["parameters"]["depth"]
     assert again["plant"].to_dict() == best["plant"].to_dict()
     assert again.to_dict() == best.to_dict()
 

@@ -39,3 +39,19 @@ def test_the_caller_adjusts_the_table_of_a_name():
 
     found = shown({"span": Quantity(60.0, "s"), "t": Quantity(300.0, "K")}, by_si_unit(), adjust)
     assert str(found["span"].unit) == "s" and str(found["t"].unit) == "degC"
+
+
+def test_displayed_values_give_a_quantity_in_the_display_unit():
+    """A power in W is MW, a difference keeps K, a value without a display unit stays in SI."""
+    from gemini.units.display import DisplayedValues
+
+    values = DisplayedValues()
+    assert (values.value(2e6, "W", "power").value, values.value(2e6, "W", "power").unit) == (
+        2.0,
+        "MW",
+    )
+    assert values.value(5.0, "K", "temperature_difference").unit == "K"
+    assert values.value(5.0, "K", "temperature").unit == "degC"
+    assert values.value(5.0, "m", "length").unit == "m"
+    missing = values.value(None, "W", "power", "no run")
+    assert missing.value is None and missing.reason == "no run"

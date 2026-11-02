@@ -7,7 +7,18 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+- `gm.call(..., state=, dt=)`: a module with state takes the state at the start and the step, and
+  the result has the key `state` with the state at the end of the step.
+- The quantity `gas_burned` (kg/s) of the role `plant`: the co-produced gas burned by the boilers
+  and flares of the plant, so a requirement can limit it.
+
 ### Changed
+- `gm.call(module, parameters, inlets, controls, units, ...)`: `units` is required and is `"si"`
+  (plain `{value, unit}` in SI) or `"display"` (`Quantity` in the display units of the report);
+  the map `{quantity: unit}` is no longer taken by `gm.call`.
+- `Best.to_dict()`, `Sample.to_dict()`, the history of a search and the notes of `gm.study.size`
+  show the display units of the report instead of bare SI; `from_dict` reads them back.
 - `gm.runtime.settings(default_fluid=...)` and `gm.runtime.state()["default_fluid"]` are removed: the
   fluid is a case input (`site.fluid`) or an entry of the plant `fluids`. A module or a `Stream`
   without a fluid raises `missing_value` naming its path; `gm.Stream(...)` requires `fluid`.

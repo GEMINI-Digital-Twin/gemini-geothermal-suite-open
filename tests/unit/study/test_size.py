@@ -119,7 +119,20 @@ def test_the_shallow_sample_needs_one_doublet_and_covers_its_peak(base):
 
 def test_a_doublet_is_rated_for_the_flow_limit_of_the_case(base):
     """The largest flow the case lets it run: 180 m3/h on the sample."""
-    assert base.by_path["d0.nominal_flow"]["value"].value == pytest.approx(180 / 3600)
+    note = base.by_path["d0.nominal_flow"]["value"]
+    assert (note.value, note.unit) == (pytest.approx(180.0), "m3/h")
+    assert note.si == pytest.approx(180 / 3600)
+
+
+def test_the_notes_show_the_display_units_in_their_values_and_in_their_reasons(base):
+    """A capacity is in MW, and the reason says MW and m3/h, not W and m3/s."""
+    boiler = base.by_path["peak_boiler.capacity"]
+    assert boiler["value"].unit == "MW"
+    assert boiler["value"].si == pytest.approx(base.capacity("peak_boiler"))
+    assert " W " not in boiler["reason"] and "MW" in boiler["reason"]
+    doublets = base.by_path["size.doublets"]["reason"]
+    assert "m3/h" in doublets and "m3/s" not in doublets and "MW each" in doublets
+    assert "brine cooling limit" in doublets and " K " in doublets
 
 
 def share_of(case, depth_m):
@@ -224,7 +237,7 @@ def test_a_searched_capacity_replaces_the_sized_one(runs, base):
 def pump_notes(sized):
     """Return the sized value of each note of the injection pump, in SI."""
     return {
-        path: item["value"].value
+        path: item["value"].si
         for path, item in sized.by_path.items()
         if path.startswith("injection_pump.")
     }

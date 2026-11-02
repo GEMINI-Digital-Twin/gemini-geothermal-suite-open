@@ -83,6 +83,7 @@ TABLE = {
         "gas_bought": Reads("power", "gas_bought", "plant", True),
         "heat_surplus": Reads("power", "heat_surplus", "plant", True),
         "co2": Reads("mass", "co2", "plant", True),
+        "gas_burned": Reads("mass_flow", "gas_burned", "plant", True),
     },
 }
 """``{role: {quantity: Reads}}``: the one table of roles."""
@@ -108,6 +109,8 @@ def roles():
     in kg of CO2-equivalent emitted in each step, as ``gm.evaluate.co2`` sums it, so ``over:
     sum`` of it is the mass of the run (``over: each`` judges the mass of a step, which depends
     on its length). ``sum`` of a power adds the step values, as for every other power.
+    ``gas_burned`` of ``plant`` is the co-produced gas burned in the plant, in kg/s: what its
+    gas makeups give to a burner and what its flares burn, from the mass flows of their ports.
     """
     return {
         role: {

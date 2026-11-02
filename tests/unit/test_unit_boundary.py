@@ -111,7 +111,7 @@ TEXTS = {
         fluid=BRINE, flow="150 m3/h", T=Quantity(300, "K"), p=Quantity(1e5, "Pa")
     ),
     "fluid": lambda: gm.Fluid(density="1000 kg/m3"),
-    "call": lambda: gm.call("Pipe", {"length": "10 m"}, {}, {}),
+    "call": lambda: gm.call("Pipe", {"length": "10 m"}, {}, {}, "si"),
 }
 """Public inputs called with unit text."""
 
@@ -226,13 +226,13 @@ def test_call_converts_quantities_and_refuses_bare_numbers_with_a_dimension():
         "elevation_change": Quantity(0, "m"),
         "heat_transfer_coefficient": Quantity(0, "W/m2/K"),
     }
-    result = gm.call("Pipe", params, {"fluid_in": inlet, "air_in": inlet}, {})
+    result = gm.call("Pipe", params, {"fluid_in": inlet, "air_in": inlet}, {}, "si")
     assert result["errors"] == []
     for parameters, inlets in (
         (params | {"length": 1000.0}, {"fluid_in": inlet, "air_in": inlet}),
         (params, {"fluid_in": inlet | {"T": 293.15}, "air_in": inlet}),
     ):
-        recorded = gm.call("Pipe", parameters, inlets, {}, on_error="record")["errors"]
+        recorded = gm.call("Pipe", parameters, inlets, {}, "si", on_error="record")["errors"]
         assert [item["code"] for item in recorded] == ["invalid_value"]
 
 

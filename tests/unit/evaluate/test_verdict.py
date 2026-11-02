@@ -616,6 +616,60 @@ def test_co2_is_the_mass_of_each_step_and_sums_to_the_co2_of_the_run():
     assert found["passed"] == (total <= 1.0)
 
 
+GAS = {
+    "gas_makeup": {
+        "gas_in.mass_flow": [0.4, 0.2, 0.0, 0.5],
+        "excess_out.mass_flow": [0.1, 0.0, 0.0, 0.3],
+        "operating": [1.0] * 4,
+    },
+    "flare": {"burned_mass_flow": [0.1, 0.0, 0.0, 0.3], "operating": [1.0] * 4},
+}
+"""A run that makes 0.4, 0.2, 0, 0.5 kg/s of gas: the boiler burns what the flare does not."""
+
+
+def burned(rule):
+    """Return the check of ``rule`` on a run with co-produced gas."""
+    (found,) = verdicts(rule, results=run_requirements_outputs(**GAS))
+    return found
+
+
+def test_the_co_produced_gas_burned_is_a_mass_flow_of_the_plant():
+    """The boiler burns 0.3, 0.2, 0 and 0.2 kg/s, the flare 0.1, 0, 0 and 0.3: 0.5 kg/s at most."""
+    assert gm.plants.roles()["plant"]["gas_burned"] == {"dimension": "mass_flow", "over": True}
+    rule = requirement("plant", "gas_burned", over="max", max=Quantity(0.55, "kg/s"))
+    found = burned(rule)
+    assert found["passed"] is True and found["value"].unit == "kg/s"
+    assert found["value"].value == pytest.approx(0.5)
+
+
+def test_a_requirement_on_the_gas_burned_fails_above_its_limit():
+    """0.5 kg/s in the last step is above 0.45 kg/s; the mean 0.275 kg/s is below it."""
+    over = requirement("plant", "gas_burned", over="max", max=Quantity(0.45, "kg/s"))
+    found = burned(over)
+    assert found["passed"] is False
+    mean = requirement("plant", "gas_burned", over="mean", max=Quantity(0.45, "kg/s"))
+    assert burned(mean)["passed"] is True
+    in_tonnes = requirement("plant", "gas_burned", over="max", max=Quantity(1.2, "t/h"))
+    assert burned(in_tonnes)["passed"] is False
+
+
+def test_a_flare_alone_burns_gas_too():
+    """A plant that sends its gas to a flare without a makeup reports the flare's mass flow."""
+    results = run_requirements_outputs(
+        flare={"burned_mass_flow": [0.2, 0.2, 0.2, 0.2], "operating": [1.0] * 4}
+    )
+    rule = requirement("plant", "gas_burned", over="sum", max=Quantity(1.0, "kg/s"))
+    (found,) = verdicts(rule, results=results)
+    assert found["value"].value == pytest.approx(0.8)
+
+
+def test_a_plant_that_burns_no_gas_gives_no_value():
+    """The run holds no gas column: undecided, not a crash."""
+    rule = requirement("plant", "gas_burned", over="max", max=Quantity(1.0, "kg/s"))
+    (found,) = verdicts(rule)
+    assert found["passed"] is None and "no_value" in found["value"].reason
+
+
 def test_the_plant_role_is_listed():
     """The table and the capabilities name it."""
     assert list(gm.plants.roles()["plant"]) == [
@@ -623,6 +677,7 @@ def test_the_plant_role_is_listed():
         "gas_bought",
         "heat_surplus",
         "co2",
+        "gas_burned",
     ]
     assert all("plant" in item["roles"] for item in gm.plants.capabilities().values())
 

@@ -10,7 +10,7 @@ from collections.abc import Mapping
 
 from gemini.units import conversions
 from gemini.units.conversions import Quantity
-from gemini.units.shapes import Value
+from gemini.units.shapes import Value, measure
 
 DISPLAY_UNITS = {
     "energy": "MWh",
@@ -36,6 +36,28 @@ def by_si_unit(table=None):
     return {conversions.si_unit(unit): unit for unit in source.values()}
 
 
+def without_offsets(table):
+    """Return ``table`` without the units that shift a number: a difference keeps its SI unit."""
+    return {unit: shown_unit for unit, shown_unit in table.items() if unit != "K"}
+
+
+class DisplayedValues:
+    """The leaves of a public return as ``Quantity`` values in the units of ``DISPLAY_UNITS``.
+
+    It stands where ``OutputUnits`` stands, with the same ``value(number, unit, quantity)``: the
+    number is stored in the SI ``unit`` of ``quantity`` and comes out as a ``Value`` in the
+    display unit of that SI unit, or in SI when the table has none. A difference (a quantity whose
+    name ends in ``_difference``) keeps its SI unit, so a temperature lift stays in K.
+    """
+
+    def value(self, number, unit, quantity, reason=None, **details):
+        """Return the ``Value`` of ``number``, stored in ``unit``, in its display unit."""
+        table = by_si_unit()
+        if quantity is not None and quantity.endswith("_difference"):
+            table = without_offsets(table)
+        return shown(measure(number, unit, reason, **details), table)
+
+
 def shown(found, table, adjust=None):
     """Return ``found`` with every ``Quantity`` in it converted by ``table``, ``{SI unit: unit}``.
 
@@ -46,7 +68,8 @@ def shown(found, table, adjust=None):
     """
     if isinstance(found, Quantity):
         target = table.get(conversions.si_unit(str(found.unit)))
-        converted = found if target is None else found.to(target)
+        keep = target is None or target == str(found.unit)
+        converted = found if keep else found.to(target)
         if isinstance(found, Value):
             return Value(
                 converted.value, converted.unit, found.reason, shown(found.parts, table, adjust)

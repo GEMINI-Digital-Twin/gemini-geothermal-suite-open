@@ -100,3 +100,15 @@ def test_the_years_a_result_carries_stay_years():
 
     npv = measure(1.0, "currency", analysis_period=measure(25.0, "yr"))
     assert shown({"npv": npv}, by_si_unit())["npv"].parts["analysis_period"].unit == "yr"
+
+
+def test_adjusted_table_for_a_dotted_name():
+    """The last part of the name decides the years, and a difference loses the offset unit."""
+    from gemini.evaluate._utils.display import adjusted
+    from gemini.units.display import by_si_unit
+
+    table = by_si_unit()
+    assert adjusted("case.economics.payback", table)["s"] == "yr"
+    assert adjusted("case.demand.power", table)["s"] == "d"
+    assert "K" not in adjusted("x.approach", table, difference=True)
+    assert adjusted("x.outlet", table)["K"] == "degC"

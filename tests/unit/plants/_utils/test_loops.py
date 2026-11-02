@@ -200,7 +200,7 @@ def test_a_loop_runs_the_same_on_every_backend():
     results = {}
     for backend in BACKENDS:
         with runtime.settings(backend=backend):
-            results[backend] = gm.call(plant, {}, {}, {})
+            results[backend] = gm.call(plant, {}, {}, {}, "si")
     assert all(result == results[BACKENDS[0]] for result in results.values())
 
 

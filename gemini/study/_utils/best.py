@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from gemini.plants.plant import Plant
+from gemini.study._utils.shown import shown
 from gemini.units import Quantity
 from gemini.units.shapes import Value
 
@@ -14,8 +15,9 @@ class Best(Value):
 
     ``best["plant"]`` is the plant too. ``to_dict`` is plain JSON: the plant as its plant dict
     (``None`` with no plant), the parameters of the trial as ``{value, unit}`` (an option as its
-    text); ``from_dict`` reads
-    it back.
+    text), all in the display units of ``gm.units.display``; ``from_dict`` reads it back to the
+    same values. ``parts["differences"]``, when present, names the parameters that are
+    differences of temperature: they stay in K.
     """
 
     plant: Any = None
@@ -30,9 +32,10 @@ class Best(Value):
         return Best(converted.value, converted.unit, converted.reason, converted.parts, self.plant)
 
     def to_dict(self):
-        """Return the JSON value of the objective with the ``plant`` as its plant dict."""
+        """Return the JSON value in display units with the ``plant`` as its plant dict."""
         plant = None if self.plant is None else self.plant.to_dict()
-        return super().to_dict() | {"plant": plant}
+        plain = Value(self.value, self.unit, self.reason, self.parts)
+        return shown(plain, self.parts.get("differences", ())).to_dict() | {"plant": plant}
 
     @classmethod
     def from_dict(cls, data):

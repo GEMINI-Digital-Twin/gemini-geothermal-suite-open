@@ -14,7 +14,7 @@ from gemini.errors.rows import SKIPPED
 from gemini.evaluate._utils.co2_steps import emitted_steps
 from gemini.evaluate._utils.columns import field_of, fields, is_parameter, parameter_values, series
 from gemini.evaluate._utils.operating import breaches
-from gemini.evaluate._utils.series import edge_power
+from gemini.evaluate._utils.series import burned_gas, edge_power
 from gemini.evaluate._utils.tally import tally
 from gemini.evaluate.balances import energy_balance, mass_balance, plant_balance
 from gemini.evaluate.summary import totals
@@ -375,10 +375,11 @@ def _plant_values(plant, case, results, frame, name):
     """Return ``(values, active, unit)`` of a figure of the plant as a whole."""
     if name == "co2":
         return emitted_steps(plant, case, results), _leaf_flags(plant, frame), "kg"
-    found = edge_power(plant, frame, name)
+    unit = "kg/s" if name == "gas_burned" else "W"
+    found = burned_gas(plant, frame) if name == "gas_burned" else edge_power(plant, frame, name)
     if found is None:
-        return np.empty(0), np.empty(0, dtype=bool), "W"
-    return found.to_numpy(dtype=float), _leaf_flags(plant, frame), "W"
+        return np.empty(0), np.empty(0, dtype=bool), unit
+    return found.to_numpy(dtype=float), _leaf_flags(plant, frame), unit
 
 
 def _delivery_values(plant, frame, requirement, path):

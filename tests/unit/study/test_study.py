@@ -137,6 +137,14 @@ def test_run_runs_every_plant_on_every_case_and_ranks_them(folder, fake_runs):
     assert first.plant is not first.source and first.plant.depth != first.source.depth
 
 
+def test_a_search_is_written_in_display_units(folder, fake_runs):
+    """The best trial and the history of the result JSON are in EUR/MWh, not currency/J."""
+    result = gm.Study.from_dict(settings(plants=["one.json"]), folder=folder).run()
+    found = result.to_dict()["runs"][0]["found"]
+    assert found["best"]["unit"] == "EUR/MWh"
+    assert {item["unit"] for item in found["history"]} == {"EUR/MWh"}
+
+
 def test_the_plants_can_be_given_in_memory(folder, fake_runs):
     """A later study samples the best design of an earlier one."""
     study = gm.Study.from_dict(run_settings(), folder=folder)

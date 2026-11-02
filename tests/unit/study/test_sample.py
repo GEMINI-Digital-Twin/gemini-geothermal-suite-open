@@ -121,9 +121,23 @@ def test_the_result_round_trips_through_json(sampled):
     text = json.dumps(first.to_dict(), allow_nan=False)
     again = gm.study.Sample.from_dict(json.loads(text))
     assert isinstance(again, gm.study.Sample)
-    assert again["summary"] == first["summary"]
-    assert again["samples"] == first["samples"]
-    assert json.loads(text)["samples"][0]["parameters"][PRICE]["unit"] == "currency/J"
+    for key, spread in first["summary"].items():
+        for name in ("mean", "p5", "p50", "p95"):
+            assert again["summary"][key][name].si == pytest.approx(spread[name].si)
+    for one, other in zip(again["samples"], first["samples"]):
+        assert one["parameters"].keys() == other["parameters"].keys()
+        for name, found in other["parameters"].items():
+            assert one["parameters"][name].si == pytest.approx(found.si)
+
+
+def test_the_json_shows_the_display_units(sampled):
+    """The prices are in EUR/MWh and the metrics in kt and EUR/MWh, not the SI of the run."""
+    plain = sampled[0].to_dict()
+    draw = plain["samples"][0]
+    assert draw["parameters"][PRICE]["unit"] == "EUR/MWh"
+    assert 90 <= draw["parameters"][PRICE]["value"] <= 150
+    assert draw["metrics"]["co2"]["unit"] == "kt"
+    assert plain["summary"]["lcts"]["p50"]["unit"] == "EUR/MWh"
 
 
 def test_a_draw_with_failed_steps_gives_no_value_and_is_counted(failing_runs):

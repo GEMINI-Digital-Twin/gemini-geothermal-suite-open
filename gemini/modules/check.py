@@ -60,7 +60,10 @@ def _call(cls, instance, example):
         example.get("parameters"),
         example.get("inlets"),
         example.get("controls"),
+        "si",
         on_error="record",
+        state=example.get("state"),
+        dt=example.get("dt"),
     )
     if not result["errors"]:
         return True, f"one call returned {len(result['outputs'])} outputs"
@@ -99,8 +102,9 @@ def check(cls, example=None):
         The class to check.
     example : dict, optional
         Values for the ``call`` check, the arguments of ``gm.call``:
-        ``{"parameters": {...}, "inlets": {...}, "controls": {...}}``, with quantities for the
-        values with a dimension, as ``gm.call`` takes them. Without it the call uses the declared
+        ``{"parameters": {...}, "inlets": {...}, "controls": {...}}`` and, for a module with
+        state, ``"state"`` and ``"dt"``, with quantities for the values with a dimension, as
+        ``gm.call`` takes them. Without it the call uses the declared
         defaults, and a module that needs a value gets ``passed`` ``None``.
 
     Returns

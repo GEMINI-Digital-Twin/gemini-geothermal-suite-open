@@ -103,8 +103,21 @@ the budget, skip a test or mark it flaky to get under it.
 CPU time is much steadier than elapsed time but not immune to load: on an oversubscribed
 machine (load average several times the core count) the same work can use up to about 2.5 times
 the CPU seconds, because threads land on slower cores and share caches. A test that needs 0.4 s
-alone can then read 1.0 s. Keep tests well under half a second of CPU time alone, and rerun a
-borderline failure on a quiet machine before believing it.
+alone can then read 1.0 s. So the budget measures the code, not the machine: it is one second of
+CPU **on a machine at reference speed**, and it is scaled by how slow the machine is right now,
+read in the same worker (`MachineSpeed` in `tests/cpu_budget.py`). The reading is the CPU time of
+a fixed workload (`reference_work`: Python loops, array operations and a dense product, about
+27 ms) over its time on the reference machine (`REFERENCE_S`, measured idle). A worker takes a
+reading before a test call at most every 5 s (outside the measured block, so the test is not
+charged for it), and only a test that is over one second of CPU is judged against the budget
+times the largest slowdown of the last 30 s and of a reading taken at that moment (the median of
+three runs, at least 1, at most 4). On an idle machine the slowdown is 1 and the rule is exactly
+one second; a test that is slow on an idle machine still fails; a machine more than four times
+slower than the reference still fails. The failure message shows the slowdown and the scaled
+budget. The scaling is tested with a fake clock in `tests/unit/test_cpu_budget.py`. Re-measure
+`REFERENCE_S` only when `reference_work` changes, on an idle machine (the median of 41 runs).
+Keep tests well under half a second of CPU time alone: the scaling covers load, not heavy tests.
+A test that times work in the e2e tier (`tests/e2e/test_year_time.py`) does the same: it measures CPU seconds with `measure_cpu` and, when over its limit, scales the limit by `MACHINE_SPEED.slowdown()`; elapsed time is never the measure.
 
 To see how close tests are, run `--durations=10` (wall time, serial with `-n 0` for stable
 numbers). Parse-heavy checks cache per process: `functions(path)` in

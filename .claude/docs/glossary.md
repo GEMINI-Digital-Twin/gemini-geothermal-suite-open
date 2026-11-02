@@ -40,6 +40,7 @@ into the vocabulary in the commit that first uses it, only if it is a full word 
 | depth of a borehole | `borehole_depth` | a bare `depth` |
 | pressure of the stream where it enters a pump | `intake_pressure` | `suction_pressure`, `pip` |
 | free-gas share of the volume of the stream at a pump intake | `gas_volume_fraction`; on a role, `intake_gas_fraction` | `gvf`, `void_fraction` |
+| co-produced gas that a boiler or a flare burns, as a mass flow of the plant | `gas_burned`; on a role, `plant.gas_burned` | `gas_flared` (the boiler burns it too), `burnt_gas`, `flare_gas` |
 | design of a doublet from its depth | `depth`, `thickness`, `gradient`, on `Doublet` and, `depth` alone, on the plants of `DoubletsPlant` | |
 
 Four short forms stay because the full word would be longer and no clearer in this field: `T` (see

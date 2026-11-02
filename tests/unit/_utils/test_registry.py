@@ -185,6 +185,7 @@ def test_importing_a_file_registers_the_classes_that_state_a_category(monkeypatc
             }
         },
         {},
+        "si",
     )
     assert result["outlets"]["fluid_out"]["p"]["value"] == pytest.approx(3e5)
 
