@@ -14,6 +14,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   and flares of the plant, so a requirement can limit it.
 
 ### Changed
+- Module contract: `forward(self, inputs, inlets, state)` is pure (it reads parameters on `self`
+  and nothing else, writes nothing, returns `(outputs, outlets)`) and a stateful module has a pure
+  `update(self, inputs, inlets, outlets, state, dt)` that returns the next state. A state has no
+  default: it comes from `case.initial_state`. A stateful plant still runs one tick at a time.
+- Hooks: a pre-hook is called `(module, inputs, inlets, state)` and a forward hook
+  `(module, inputs, inlets, state, outputs, outlets)`; a hook that returns a mapping replaces the
+  controls and boundaries (pre-hook) or the outputs (forward hook) of that call, `None` observes.
+- `gm.simulate` and the engine: a physical failure of a step (`invalid_inlet`, `out_of_bounds`,
+  `out_of_range`, `no_convergence`) is a failed row whatever `on_error` says, and the run finishes;
+  every other failure follows `on_error`. A trial of a search whose plant fails a step is
+  infeasible (violation 1e6) instead of raising, and a NaN value counts as the largest violation.
 - `gm.call(module, parameters, inlets, controls, units, ...)`: `units` is required and is `"si"`
   (plain `{value, unit}` in SI) or `"display"` (`Quantity` in the display units of the report);
   the map `{quantity: unit}` is no longer taken by `gm.call`.
