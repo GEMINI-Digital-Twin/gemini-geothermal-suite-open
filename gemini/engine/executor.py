@@ -25,7 +25,7 @@ class Executor:
         """Return what ``evaluate`` needs for ``module`` on the given inlets and inputs."""
         raise NotImplementedError(f"{type(self).__name__} does not prepare")
 
-    def evaluate(self, prepared, rows, context):
+    def run(self, prepared, rows, context):
         """Return the ``ChunkResult`` of the prepared call over ``rows`` rows."""
         raise NotImplementedError(f"{type(self).__name__} does not evaluate")
 

@@ -71,7 +71,7 @@ def test_rows_that_all_work_are_one_array_call(monkeypatch):
     monkeypatch.setattr(EagerExecutor, "_rows", None)
     executor = EagerExecutor()
     prepared = executor.prepare(Booster(), _streams(), {"level": np.array([1.0, 2.0, 3.0])}, False)
-    evaluation = executor.evaluate(prepared, 3, {})
+    evaluation = executor.run(prepared, 3, {})
     assert not evaluation.failed.any() and evaluation.breaks == []
     assert evaluation.result.outputs["rise"].tolist() == [2.0, 4.0, 6.0]
     assert evaluation.result.row(1).outputs.rise == 4.0
@@ -122,7 +122,7 @@ def _evaluations(module, levels):
     prepared = executor.prepare(module, _streams(len(levels)), {"level": np.array(levels)}, False)
     rows = executor._rows(prepared, len(levels), {})
     executor._rows = None
-    return executor.evaluate(prepared, len(levels), {}), rows
+    return executor.run(prepared, len(levels), {}), rows
 
 
 def test_rows_that_fail_a_check_are_failed_rows_of_one_array_call():
@@ -145,7 +145,7 @@ def test_an_inline_check_leaves_out_its_rows_and_the_others_stay_on_arrays():
     prepared = executor.prepare(module, _streams(), {"level": np.array([1.0, -1.0, 2.0])}, False)
     rows = executor._rows(prepared, 3, {})
     executor._rows = None
-    evaluation = executor.evaluate(prepared, 3, {})
+    evaluation = executor.run(prepared, 3, {})
     assert evaluation.failed.tolist() == rows.failed.tolist() == [False, True, False]
     assert str(evaluation.error(1)) == str(rows.error(1)) and "level = -1.0" in str(rows.error(1))
     assert evaluation.result.outputs["rise"][[0, 2]].tolist() == [2.0, 4.0]
@@ -160,7 +160,7 @@ def test_an_array_call_that_cannot_run_falls_back_to_the_rows_and_says_why(monke
     )
     executor = EagerExecutor()
     prepared = executor.prepare(module, _streams(), {"level": np.array([1.0, 1.0, 2.0])}, False)
-    evaluation = executor.evaluate(prepared, 3, {})
+    evaluation = executor.run(prepared, 3, {})
     assert evaluation.failed.all()
     assert evaluation.breaks[0][0] == module.path
     assert "array call raised" in evaluation.breaks[0][1]
@@ -202,7 +202,7 @@ def test_a_plant_with_a_loop_runs_on_arrays_with_the_numbers_of_its_rows(monkeyp
     prepared = executor.prepare(ring, {}, inputs, False)
     rows = executor._rows(prepared, 5, {})
     monkeypatch.setattr(EagerExecutor, "_rows", None)
-    evaluation = executor.evaluate(prepared, 5, {})
+    evaluation = executor.run(prepared, 5, {})
     assert evaluation.breaks == [] and not evaluation.failed.any()
     found = evaluation.result.children["carrier"].inlets.fluid_in.T
     assert found.tolist() == rows.result.children["carrier"].inlets.fluid_in.T.tolist()
@@ -232,8 +232,8 @@ def test_a_plant_with_a_loop_runs_on_arrays_eager_and_compiled_with_the_numbers_
     monkeypatch.setattr(EagerExecutor, "_rows", None)
     started = time.perf_counter()
     arrays = {
-        "eager": eager.evaluate(prepared["eager"], 40, {}),
-        "compiled": compiled.evaluate(prepared["compiled"], 40, {}),
+        "eager": eager.run(prepared["eager"], 40, {}),
+        "compiled": compiled.run(prepared["compiled"], 40, {}),
     }
     assert time.perf_counter() - started < 1.0
     expected = by_rows.result.children["carrier"].inlets.fluid_in.T

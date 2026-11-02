@@ -5,12 +5,15 @@ import numpy as np
 from gemini.compiler.interpret.graphresult import assembled
 from gemini.compiler.interpret.interpreter import Interpreter
 from gemini.compiler.interpret.rowerror import RowView, row_error
+from gemini.compiler.interpret.scanresult import scan_result
 from gemini.engine.rowwise import stack_column
 from gemini.ops import kernels
 
 
 def python_result(graph, module, feeds, rows):
     """Return the ``GraphResult`` of ``graph`` evaluated on Python scalars, one row at a time."""
+    if graph.states:
+        return scan_result(graph, module, feeds, rows, kernels.get("python"))
     interpreter = Interpreter(graph, kernels.get("python"), module)
     row_values, row_codes = [], []
     for row in range(rows):

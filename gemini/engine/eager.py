@@ -39,7 +39,7 @@ class EagerExecutor(Executor):
         """Keep the call; nothing is traced or compiled."""
         return Call(module, streams, inputs, stepped)
 
-    def evaluate(self, prepared, rows, context):
+    def run(self, prepared, rows, context):
         """Return the evaluation over ``rows``: one array call, else one call per row.
 
         A row that fails a check is a failed row of the array call. The array call falls back to

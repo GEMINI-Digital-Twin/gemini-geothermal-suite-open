@@ -105,12 +105,12 @@ def test_only_selects_twins():
     assert "first" not in results.to_frame().columns.get_level_values(0)
 
 
-def test_a_stateful_twin_is_a_root_break_stepped_next_to_the_traced_twins():
-    """The stateful twin has a reason in ``graph_breaks``; its state is carried as before."""
+def test_a_stateful_twin_is_a_scan_next_to_the_traced_twins():
+    """The stateful twin is traced as a scan, without a break; its state is carried."""
     engine, results = assert_same(
         pair_frame(), make=lambda: pair_plant(with_tank=True), state=TANK_START
     )
-    assert "stateful" in engine.graph_breaks["tank"][0] and engine.graph_breaks["first"] == []
+    assert engine.graph_breaks["tank"] == [] and engine.graph_breaks["first"] == []
     assert engine.module_states["tank"]["total"] == pytest.approx(results["tank"].content.iloc[-1])
 
 

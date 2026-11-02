@@ -63,7 +63,7 @@ def evaluate_twin(twin, block, executor, durations, state):
         outcome.errors.update(dict.fromkeys(map(int, selected), error))
         return outcome
     context = {"dt": durations[selected], "states": _start_state(twin, block, selected, state)}
-    evaluation = executor.evaluate(prepared, len(selected), context)
+    evaluation = executor.run(prepared, len(selected), context)
     outcome.evaluation = evaluation
     for position in np.flatnonzero(evaluation.failed):
         outcome.errors[int(selected[position])] = evaluation.error(int(position))

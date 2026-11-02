@@ -83,6 +83,7 @@ def test_controls_are_applied_for_the_call_only():
 def test_a_stepped_break_carries_the_states_row_to_row():
     """``Module.step`` runs per row with the context's dt and states; failed rows keep them."""
     tank = Tank()
+    tank.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     context = {"dt": 60.0, "states": {"level": 0.0}}
     graph, evaluation = _evaluate(tank, {}, 3, stepped=True, context=context)
     assert graph.root_break and graph.stepped
