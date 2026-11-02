@@ -199,3 +199,13 @@ def test_raise_issues_carries_issues_and_problems_and_is_silent_when_empty():
     assert caught.value.issues == tuple(issues)
     assert [p["path"] for p in caught.value.problems] == ["a", "b"]
     assert caught.value.code == "missing_value"
+
+
+def test_a_warning_issue_is_reported_but_never_raised():
+    """A ``deprecated`` issue is a warning: ``raise_issues`` leaves it out and raises the rest."""
+    warning = base.Issue("a.range", "deprecated", "old")
+    assert warning.is_warning and warning.problem()["code"] == "deprecated"
+    base.raise_issues([warning])
+    with pytest.raises(errors.ValidationError) as caught:
+        base.raise_issues([warning, base.Issue("b", "missing", "one")])
+    assert [item.path for item in caught.value.issues] == ["b"]
