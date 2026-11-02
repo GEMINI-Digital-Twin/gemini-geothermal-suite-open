@@ -6,13 +6,13 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, psychrometrics
-from gemini.types import (
-    WATER,
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER
+from gemini.units.quantities import (
     Fraction,
     MassFlow,
     Power,
     Pressure,
-    Stream,
     Temperature,
     TemperatureDifference,
 )
@@ -52,7 +52,7 @@ class CoolingGrid(Module):
     On a closed loop ``return_temperature``, ``return_pressure`` and the control ``flow`` set the
     return water: ``return_out`` is offered before the other modules run, and the loads met are
     those the rise of the water up to the return temperature takes. Bind the demand to
-    a ``gm.data.from_csv`` column. Without them the return follows from the loads, as in a
+    a ``gm.case.from_csv`` column. Without them the return follows from the loads, as in a
     substation. Unmet loads are reported, never an error.
 
     Simplifications: steady state, constant fluid properties (the inlet ``cp``), no pressure
@@ -161,71 +161,82 @@ class CoolingGrid(Module):
         # Outlets
         self.return_out = Outlet(Stream, kind="chilled_water", offered=True)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the supply stream warmed by the absorbed building heat."""
 
         # Outlets
         supply_in = inlets.supply_in
         if self.return_temperature is None:
-            sensible, latent = self._met_loads(supply_in)
+            sensible, latent = self._met_loads(inputs, supply_in)
             return_out = supply_in._with_si(
-                T=self._warmed_temperature(supply_in, sensible + latent)
+                T=self._warmed_temperature(inputs, supply_in, sensible + latent)
             )
             surplus = 0.0
         else:
-            return_out = self._offer(inlets)["return_out"]
-            sensible, latent = self._met_loads(supply_in, return_out)
-            surplus = self._available(supply_in, return_out) - sensible - latent
+            return_out = self._offer(inputs, inlets, state)["return_out"]
+            sensible, latent = self._met_loads(inputs, supply_in, return_out)
+            surplus = self._available(inputs, supply_in, return_out) - sensible - latent
 
         # Outputs
-        self.unmet_sensible = self.sensible_cooling_demand - sensible
-        self.unmet_latent = self.latent_cooling_demand - latent
-        self.surplus = surplus
-        self.dew_point = psychrometrics.dew_point(
-            self.indoor_temperature, self.indoor_relative_humidity
+        unmet_sensible = inputs["sensible_cooling_demand"] - sensible
+        unmet_latent = inputs["latent_cooling_demand"] - latent
+        outputs = dict(
+            unmet_sensible=unmet_sensible,
+            unmet_latent=unmet_latent,
+            surplus=surplus,
+            dew_point=psychrometrics.dew_point(
+                inputs["indoor_temperature"], inputs["indoor_relative_humidity"]
+            ),
+            is_unmet=ops.logical_or(unmet_sensible > 0, unmet_latent > 0),
         )
-        self.is_unmet = ops.logical_or(self.unmet_sensible > 0, self.unmet_latent > 0)
 
         outlets = dict(return_out=return_out)
-        return outlets
+        return outputs, outlets
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         """Start a building loop at the warmest return temperature."""
-        return min(self.maximum_return_temperature, self.indoor_temperature)
+        return ops.minimum(self.maximum_return_temperature, inputs["indoor_temperature"])
 
     def _offers(self):
         """Offer only on a closed loop; otherwise the outlet follows from the inlet."""
         return self.return_temperature is not None
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         """Offer the return water of a closed loop, at the fixed temperature and the given flow."""
-        if self.return_temperature is None or self.return_pressure is None or self.flow is None:
+        if (
+            self.return_temperature is None
+            or self.return_pressure is None
+            or inputs["flow"] is None
+        ):
             raise ValidationError(
                 f"{self.path}: return_temperature, return_pressure and flow are needed to offer "
                 "return_out; expected all three on a closed loop",
                 code="invalid_design",
             )
         offered = Stream._si(
-            m_dot=self.flow, T=self.return_temperature, p=self.return_pressure, fluid=self.fluid
+            m_dot=inputs["flow"],
+            T=self.return_temperature,
+            p=self.return_pressure,
+            fluid=self.fluid,
         )
         return {"return_out": offered}
 
-    def _warmed_temperature(self, supply_in, absorbed):
+    def _warmed_temperature(self, inputs, supply_in, absorbed):
         """Return the return temperature [K] after the building gave ``absorbed`` [W] to it."""
         warmed = ops.minimum(
-            self._return_limit(),
+            self._return_limit(inputs),
             supply_in.T
             + heat_transfer.temperature_change(absorbed, supply_in.heat_capacity_rate()),
         )
         return ops.where(absorbed == 0, supply_in.T, warmed)
 
-    def _available(self, supply_in, return_out=None):
+    def _available(self, inputs, supply_in, return_out=None):
         """Return the cold [W] the water takes up to its return limit."""
         return heat_transfer.setpoint_duty(
-            supply_in.heat_capacity_rate(), self._return_limit(return_out) - supply_in.T
+            supply_in.heat_capacity_rate(), self._return_limit(inputs, return_out) - supply_in.T
         )
 
-    def _met_loads(self, supply_in, return_out=None):
+    def _met_loads(self, inputs, supply_in, return_out=None):
         """Return the met sensible and latent loads [W]; the rise of the water on a closed loop."""
         require_forward(self.path, "supply_in.m_dot", supply_in.m_dot)
         if self.dew_point_margin is None:
@@ -235,15 +246,17 @@ class CoolingGrid(Module):
                 path="demand.cooling.dew_point_margin",
                 code="missing_value",
             )
-        available = self._available(supply_in, return_out)
-        dew_point = psychrometrics.dew_point(self.indoor_temperature, self.indoor_relative_humidity)
+        available = self._available(inputs, supply_in, return_out)
+        dew_point = psychrometrics.dew_point(
+            inputs["indoor_temperature"], inputs["indoor_relative_humidity"]
+        )
         dry = supply_in.T > dew_point - self.dew_point_margin
         return heat_transfer.sensible_latent_loads(
-            available, self.sensible_cooling_demand, self.latent_cooling_demand, dry
+            available, inputs["sensible_cooling_demand"], inputs["latent_cooling_demand"], dry
         )
 
-    def _return_limit(self, return_out=None):
+    def _return_limit(self, inputs, return_out=None):
         """Return the warmest return temperature [K]: the fixed one, the parameter or indoor air."""
         if self.return_temperature is not None and return_out is not None:
             return return_out.T
-        return ops.minimum(self.maximum_return_temperature, self.indoor_temperature)
+        return ops.minimum(self.maximum_return_temperature, inputs["indoor_temperature"])

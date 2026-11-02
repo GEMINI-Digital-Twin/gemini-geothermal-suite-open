@@ -8,11 +8,15 @@ import pytest
 
 import gemini as gm
 from gemini.engine.chunks import PathColumns, ResultChunk
+from gemini.engine.results import Results
 from gemini.modules import Module
 from gemini.modules.declarations import Output
-from gemini.run.results import Results
-from gemini.types import Health, ModuleResult, Ports, Ratio, Stream, Values
-from gemini.types.shapes import problem
+from gemini.modules.results import Health, ModuleResult, Values
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
+from gemini.streams.ports import Ports
+from gemini.units.quantities import Ratio
+from gemini.units.shapes import problem
 from tests.fixtures.errors import raises
 from tests.fixtures.frames import path_frame
 
@@ -72,6 +76,7 @@ CUTS = [[8], [1] * 8, [3, 5], [2, 2, 4], [4, 1, 3], [7, 1]]
 def stream(flow):
     """Return a stream whose mass flow is the given scalar or array."""
     return Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(flow, "kg/s"),
         T=gm.units.Quantity(np.full_like(np.asarray(flow, dtype=float), 300.0), "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -362,11 +367,12 @@ class Share(Module):
         self.share = Output(Ratio | None)
         self.plain = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
+        outputs = dict(share=None, plain=0.0)
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
 
 def test_a_declared_optional_float_output_reads_nan_as_none():

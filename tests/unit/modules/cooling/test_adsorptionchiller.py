@@ -3,9 +3,10 @@
 import pytest
 
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.cooling import AdsorptionChiller
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -14,9 +15,15 @@ from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 CP = 4217.4
-GENERATOR = Stream(m_dot=Quantity(5, "kg/s"), T=Quantity(343.15, "K"), p=Quantity(3e5, "Pa"))
-CHILLED = Stream(m_dot=Quantity(5, "kg/s"), T=Quantity(291.15, "K"), p=Quantity(3e5, "Pa"))
-COOLING = Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(300.15, "K"), p=Quantity(3e5, "Pa"))
+GENERATOR = Stream(
+    fluid=BRINE, m_dot=Quantity(5, "kg/s"), T=Quantity(343.15, "K"), p=Quantity(3e5, "Pa")
+)
+CHILLED = Stream(
+    fluid=BRINE, m_dot=Quantity(5, "kg/s"), T=Quantity(291.15, "K"), p=Quantity(3e5, "Pa")
+)
+COOLING = Stream(
+    fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(300.15, "K"), p=Quantity(3e5, "Pa")
+)
 
 
 def chiller(**params):
@@ -52,8 +59,8 @@ def test_characteristic_hand_value_and_closure():
     assert out.generator_duty == pytest.approx(expected / 0.55)
     assert out.adsorber_condenser_duty == pytest.approx(expected * ratio)
     assert out.generator_out_T == pytest.approx(GENERATOR.T - expected / 0.55 / (5 * CP))
-    assert energy_balance(machine, result)["relative_residual"] < 1e-12
-    assert mass_balance(machine, result)["residual"] == 0
+    assert call_energy_balance(machine, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(machine, result)["residual"] == 0
 
 
 def test_setpoint_and_capacity():
@@ -120,13 +127,16 @@ def test_a_stopped_drive_circuit_has_no_driving_temperature():
     )
     result = chiller(
         generator_in=Stream(
-            m_dot=Quantity(0.0, "kg/s"), T=Quantity(373.15, "K"), p=Quantity(3e5, "Pa")
+            fluid=BRINE, m_dot=Quantity(0.0, "kg/s"), T=Quantity(373.15, "K"), p=Quantity(3e5, "Pa")
         ),
         chilled_in=Stream(
-            m_dot=Quantity(5.0, "kg/s"), T=Quantity(291.15, "K"), p=Quantity(3e5, "Pa")
+            fluid=BRINE, m_dot=Quantity(5.0, "kg/s"), T=Quantity(291.15, "K"), p=Quantity(3e5, "Pa")
         ),
         cooling_in=Stream(
-            m_dot=Quantity(10.0, "kg/s"), T=Quantity(300.15, "K"), p=Quantity(3e5, "Pa")
+            fluid=BRINE,
+            m_dot=Quantity(10.0, "kg/s"),
+            T=Quantity(300.15, "K"),
+            p=Quantity(3e5, "Pa"),
         ),
         temperature_setpoint=285.15,
     )

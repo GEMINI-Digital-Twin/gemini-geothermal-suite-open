@@ -3,8 +3,9 @@
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.treatment import _physics
-from gemini.types import Fraction, MassFlow, Stream
+from gemini.physics import separation
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction, MassFlow
 
 
 class InhibitorDosing(Module):
@@ -49,21 +50,20 @@ class InhibitorDosing(Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="brine")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the treated stream through unchanged."""
 
         # Outlets
         inlet = inlets.fluid_in
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
-        product, _ = _physics.dosing_flows(self.dose, inlet.m_dot, self.product_concentration)
+        product, active = separation.dosing_flows(
+            inputs["dose"], inlet.m_dot, self.product_concentration
+        )
         outlet = inlet._with_si(m_dot=inlet.m_dot + product)
         chemical_in = inlets.chemical_in._with_si(m_dot=product, T=inlet.T)
 
         # Outputs
-        product, active = _physics.dosing_flows(
-            self.dose, inlets.fluid_in.m_dot, self.product_concentration
-        )
-        self.active_mass_flow = active
+        outputs = dict(active_mass_flow=active)
 
         outlets = dict(fluid_out=outlet, chemical_in=chemical_in)
-        return outlets
+        return outputs, outlets

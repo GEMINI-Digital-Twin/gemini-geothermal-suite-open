@@ -4,15 +4,18 @@ import pytest
 
 import gemini as gm
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules import CoolingGrid, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import CoolingGrid
 from gemini.physics import psychrometrics
-from gemini.types import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 CP = 4217.4
 SUPPLY = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2.0, "kg/s"),
     T=gm.units.Quantity(280.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
@@ -52,9 +55,9 @@ def test_met_loads_warm_the_return_and_close_the_balance():
     assert out.dew_point == pytest.approx(psychrometrics.dew_point(297.15, 0.5))
     assert out.dew_point - 273.15 == pytest.approx(12.95, abs=0.01)
     assert return_out.m_dot == SUPPLY.m_dot and return_out.p == SUPPLY.p
-    balance = energy_balance(consumer, result)
+    balance = call_energy_balance(consumer, result)
     assert balance["relative_residual"] < 1e-12
-    assert mass_balance(consumer, result)["residual"] == 0
+    assert call_mass_balance(consumer, result)["residual"] == 0
 
 
 def test_short_capacity_serves_the_sensible_load_first():
@@ -67,7 +70,7 @@ def test_short_capacity_serves_the_sensible_load_first():
     result = _call(consumer, sensible=1e5, latent=2e4)
     assert result.outputs.unmet_sensible == pytest.approx(1e5 - AVAILABLE)
     assert result.outputs.unmet_latent == 2e4
-    assert energy_balance(consumer, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(consumer, result)["relative_residual"] < 1e-12
 
 
 def test_supply_above_the_dew_point_margin_leaves_the_latent_load_unmet():
@@ -98,7 +101,7 @@ def test_zero_flow_and_zero_demand():
     result = _call(consumer, supply=SUPPLY._with_si(m_dot=0))
     assert reading(result).heat_absorbed == 0 and result.outlets.return_out.T == SUPPLY.T
     assert result.outputs.unmet_sensible == 5e4 and result.outputs.unmet_latent == 1e4
-    assert energy_balance(consumer, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(consumer, result)["relative_residual"] < 1e-12
     out = reading(_call(consumer, sensible=0, latent=0))
     assert out.heat_absorbed == 0 and not out.is_unmet and out.return_out_T == SUPPLY.T
 
@@ -123,6 +126,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             supply_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(T, "K"),
                 p=gm.units.Quantity(3e5, "Pa"),

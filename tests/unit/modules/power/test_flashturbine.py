@@ -4,10 +4,13 @@ import pytest
 
 import gemini as gm
 from gemini.errors import PhysicsError
-from gemini.modules import Module, mass_balance
+from gemini.evaluate import call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet
-from gemini.modules.power import FlashTurbine, Separator, _physics
-from gemini.types import STEAM, WATER, Stream
+from gemini.modules.power import FlashTurbine, Separator
+from gemini.physics import steam
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE, STEAM, WATER
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
@@ -43,13 +46,13 @@ def test_closed_in_steam_enthalpies_and_condensate():
     module = turbine()
     result = module(fluid_in=STEAM_FEED)
     out, outlet = reading(result), result.outlets.fluid_out
-    condenser = _physics.saturation_properties(1e4)
-    incoming = 20 * _physics.saturation_properties(6e5).vapour_enthalpy
+    condenser = steam.saturation_properties(1e4)
+    incoming = 20 * steam.saturation_properties(6e5).vapour_enthalpy
     outgoing = out.electricity_generated + out.heat_loss + 20 * condenser.liquid_enthalpy
     assert outgoing == pytest.approx(incoming, rel=1e-12)
     assert out.heat_loss == pytest.approx(out.condenser_duty + 0.02 * out.gross_power)
     assert outlet.fluid == WATER and outlet.p == 1e4 and outlet.T == condenser.temperature
-    assert mass_balance(module, result)["residual"] == 0
+    assert call_mass_balance(module, result)["residual"] == 0
 
 
 def test_zero_flow_and_invalid_inlets():
@@ -83,7 +86,7 @@ class SingleFlash(Module):
         self.fluid_out = Outlet(Stream)
         self.condensate_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Separate, then expand the steam."""
 
         # Modules
@@ -95,13 +98,14 @@ class SingleFlash(Module):
         condensate_out = expanded.outlets.fluid_out
 
         outlets = dict(fluid_out=fluid_out, condensate_out=condensate_out)
-        return outlets
+        return {}, outlets
 
 
 def test_single_flash_plant_closure():
     """A 250 degC, 100 kg/s feed yields about 9.5 MW; the plant closes in IF97 enthalpies."""
     plant = SingleFlash()
     feed = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(100, "kg/s"),
         T=gm.units.Quantity(523.15, "K"),
         p=gm.units.Quantity(40e5, "Pa"),
@@ -111,12 +115,12 @@ def test_single_flash_plant_closure():
     net_power = result.children["turbine"].outlets.power_out
     assert net_power == pytest.approx(9.53e6, rel=2e-3)
     assert brine.m_dot + condensate.m_dot == pytest.approx(100, rel=1e-15)
-    incoming = 100 * _physics.liquid_enthalpy(feed.p, feed.T)
+    incoming = 100 * steam.liquid_enthalpy(feed.p, feed.T)
     outgoing = (
         net_power
         + reading(result.children["turbine"]).heat_loss
-        + brine.m_dot * _physics.saturation_properties(6e5).liquid_enthalpy
-        + condensate.m_dot * _physics.saturation_properties(1e4).liquid_enthalpy
+        + brine.m_dot * steam.saturation_properties(6e5).liquid_enthalpy
+        + condensate.m_dot * steam.saturation_properties(1e4).liquid_enthalpy
     )
     assert outgoing == pytest.approx(incoming, rel=1e-12)
 

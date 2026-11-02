@@ -6,6 +6,7 @@ import pytest
 
 import gemini as gm
 from gemini._utils.jsonable import to_plain
+from gemini.streams import kinds
 from tests.fixtures.cases import make_case
 from tests.fixtures.sample_cases import example_plant
 
@@ -26,7 +27,7 @@ def results(plant, fast_dataset):
 CALLS = {
     "modules.names": lambda plant, results: gm.modules.names(),
     "modules.categories": lambda plant, results: gm.modules.categories(),
-    "streams.names": lambda plant, results: gm.types.streams.names(),
+    "streams.names": lambda plant, results: kinds.names(),
     "units.names": lambda plant, results: gm.units.names("pressure"),
     "quantity.to_dict": lambda plant, results: gm.units.Quantity(150, "m3/h").to_dict(),
     "describe": lambda plant, results: plant.describe(),
@@ -38,7 +39,7 @@ CALLS = {
     "plants.names": lambda plant, results: gm.plants.names(),
     "plant.check": lambda plant, results: [item.problem() for item in plant.check()],
     "schema": lambda plant, results: gm.plants.schema(),
-    "profile_schema": lambda plant, results: gm.data.profile_schema(),
+    "profile_schema": lambda plant, results: gm.case.profile_schema(),
     "bindable": lambda plant, results: plant.bindable("heat_exchanger"),
     "params_at": lambda plant, results: plant.params_at("heat_exchanger"),
     "param_history": lambda plant, results: plant.param_history("heat_exchanger"),
@@ -48,7 +49,7 @@ CALLS = {
     "results.errors": lambda plant, results: results.errors(),
     "results.to_dict": lambda plant, results: results.to_dict(),
     "results.end_state": lambda plant, results: results.end_state,
-    "evaluate": lambda plant, results: gm.call("Valve", {}, {}, {}, on_error="record"),
+    "evaluate": lambda plant, results: gm.call("Valve", {}, {}, {}, "si", on_error="record"),
     "kpi": lambda plant, results: gm.evaluate.totals(plant, make_case(), results),
     "checks.run_all": lambda plant, results: gm.evaluate.run_all(plant, make_case(), results),
     "economics.capex": lambda plant, results: gm.evaluate.capex(

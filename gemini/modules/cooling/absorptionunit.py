@@ -3,17 +3,17 @@
 from typing import Literal
 
 from gemini import ops
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.supply import supply_margin
-from gemini.modules.cooling import _physics, _sorption
+from gemini.modules.cooling import _sorption
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, refrigeration
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Dimensionless,
     Power,
     Ratio,
-    Stream,
     Temperature,
     TemperatureDifference,
     ThermalConductance,
@@ -24,7 +24,7 @@ class AbsorptionUnit(Equipment, Module):
     """Single-effect water/LiBr absorption chiller or heat pump driven by hot water.
 
     On a supply line the chilled setpoint is the supply temperature of ``demand.cooling`` minus the
-    ``supply_margin`` the plant states (``gm.run.apply_case``).
+    ``supply_margin`` the plant states (``gemini.engine.apply.apply_case``).
 
     Three circuits: ``generator_in`` carries the driving hot water (the geothermal heat),
     ``chilled_in`` the evaporator water and ``cooling_in`` the cooling water of absorber and
@@ -37,7 +37,7 @@ class AbsorptionUnit(Equipment, Module):
     Ziegler 1999; Kuehn and Ziegler 2005) Q_E = s * (ddt - ddt_min) with
     ddt = t_G - a * t_AC + r * t_E at the arithmetic mean circuit temperatures in degC, solved
     in closed form from the inlet temperatures
-    (``_physics.sorption_evaporator_capacity``). The delivered evaporator duty is the
+    (``refrigeration.sorption_evaporator_capacity``). The delivered evaporator duty is the
     smallest of that, the setpoint request and the capacity. Q_G = Q_E / thermal_cop, the
     solution pump electricity is auxiliary_power_ratio * Q_E and Q_AC = Q_G + Q_E +
     electricity, so the model is first-law closed. Below ``minimum_driving_temperature`` at the
@@ -138,15 +138,17 @@ class AbsorptionUnit(Equipment, Module):
         self.chilled_out = Outlet(Stream, kind="chilled_water")
         self.cooling_out = Outlet(Stream, kind="hot_water")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Cool the generator and chilled circuits and heat the cooling circuit."""
 
         # Outlets
-        values = self._performance(inlets)
+        values = self._performance(inputs, inlets)
         generator_out, chilled_out, cooling_out = _sorption.outlet_streams(inlets, values)
 
         # Outputs
-        _sorption.assign_outputs(self, inlets, (generator_out, chilled_out, cooling_out), values)
+        outputs = _sorption.machine_outputs(
+            self, inlets, (generator_out, chilled_out, cooling_out), values
+        )
 
         outlets = dict(
             generator_out=generator_out,
@@ -154,13 +156,13 @@ class AbsorptionUnit(Equipment, Module):
             cooling_out=cooling_out,
             power_in=values["electricity"],
         )
-        return outlets
+        return outputs, outlets
 
-    def capex(self, economics):
-        """Return the cost of the absorption unit from its capacity."""
-        return self.capex_of(economics, self.capacity)
+    def cost_size(self):
+        """Return the size that the cost of the absorption unit scales with: capacity."""
+        return self.capacity
 
-    def _performance(self, inlets):
+    def _performance(self, inputs, inlets):
         """Return the duties [W], COP and outlet temperatures [K] of one operating point."""
         generator_in, chilled_in, cooling_in = (
             inlets.generator_in,
@@ -171,26 +173,25 @@ class AbsorptionUnit(Equipment, Module):
         if self.mode == "chiller":
             useful_ratio = 1.0
             requested = heat_transfer.setpoint_duty(
-                rates["chilled_in"], chilled_in.T - self.temperature_setpoint
+                rates["chilled_in"], chilled_in.T - inputs["temperature_setpoint"]
             )
         else:
-            useful_ratio = _physics.sorption_rejection_ratio(
+            useful_ratio = refrigeration.sorption_rejection_ratio(
                 self.thermal_cop, self.auxiliary_power_ratio
             )
             requested = heat_transfer.setpoint_duty(
-                rates["cooling_in"], self.temperature_setpoint - cooling_in.T
+                rates["cooling_in"], inputs["temperature_setpoint"] - cooling_in.T
             )
-        evaporator, is_capped = _physics.sorption_delivered_duty(
+        evaporator, is_capped = refrigeration.sorption_delivered_duty(
             requested, self._available_duty(inlets, rates), self.capacity, useful_ratio
         )
-        generator, electricity, rejection = _physics.sorption_duties(
+        generator, electricity, rejection = refrigeration.sorption_duties(
             evaporator, self.thermal_cop, self.auxiliary_power_ratio
         )
         useful = evaporator if self.mode == "chiller" else rejection
+        cop = refrigeration.coefficient_of_performance(useful, generator)
         return {
-            "cop": ops.where(
-                evaporator != 0, refrigeration.coefficient_of_performance(useful, generator), None
-            ),
+            "cop": ops.where(evaporator != 0, cop, float("nan")),
             "useful_duty": useful,
             "generator_duty": generator,
             "evaporator_duty": evaporator,

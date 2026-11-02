@@ -1,7 +1,7 @@
 """Ambient air for a direct call of a module that exchanges heat with it."""
 
-from gemini.types import Stream
-from gemini.types.fluid import AIR
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import AIR
 from tests.fixtures import si
 
 

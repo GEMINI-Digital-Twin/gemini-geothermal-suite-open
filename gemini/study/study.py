@@ -6,15 +6,15 @@ from pathlib import Path
 
 from gemini._utils.files import to_json
 from gemini.case import Case
+from gemini.engine.check import check
 from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import Issue, raise_issues
 from gemini.evaluate import compare
 from gemini.plants import Plant
-from gemini.run import check
 from gemini.study._utils.execute import executed
 from gemini.study._utils.trial import checked_metric
 from gemini.study.result import Run, StudyResult
-from gemini.types import inputs
+from gemini.units import inputs
 
 HEADER = ("format", "kind", "name")
 METHODS = ("run", "minimize", "sample", "sensitivity")

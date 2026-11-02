@@ -2,7 +2,7 @@
 
 from gemini.modules.declarations import Inlet
 from gemini.modules.module import Module
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 
 class WasteGrid(Module):
@@ -19,8 +19,9 @@ class WasteGrid(Module):
         # Inlets
         self.waste_in = Inlet(Stream, kind="waste", many=True)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """End the flows here."""
 
+        outputs = dict()
         outlets = dict()
-        return outlets
+        return outputs, outlets

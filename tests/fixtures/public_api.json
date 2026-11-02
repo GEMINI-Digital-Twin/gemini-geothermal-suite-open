@@ -4,8 +4,10 @@
   "parameters",
   "inlets",
   "controls",
+  "units",
   "on_error",
-  "units"
+  "state",
+  "dt"
  ],
  "classes": {
   "Case": {
@@ -291,24 +293,8 @@
   "check": [
    "example"
   ],
-  "collect_flows": [
-   "result_tree"
-  ],
-  "emissions": [
-   "result_tree",
-   "fuel_factor",
-   "electricity_factor"
-  ],
-  "energy_balance": [
-   "module",
-   "result"
-  ],
   "get": [
    "name"
-  ],
-  "mass_balance": [
-   "module",
-   "result"
   ],
   "names": [
    "category"
@@ -321,16 +307,6 @@
  },
  "namespaces": {
   "analysis": {
-   "CalibrationResult": "class",
-   "calibrate": [
-    "plant",
-    "dataset",
-    "params",
-    "start",
-    "end",
-    "backend",
-    "apply"
-   ],
    "corrosion_forecast": [
     "model",
     "until",
@@ -406,14 +382,6 @@
    "Time": "class",
    "Uncertainty": "class",
    "Utilities": "class",
-   "roles": []
-  },
-  "compiler": {
-   "compile": [
-    "plant"
-   ]
-  },
-  "data": {
    "from_csv": [
     "path",
     "columns",
@@ -428,6 +396,11 @@
    ],
    "profile_schema": []
   },
+  "compiler": {
+   "compile": [
+    "plant"
+   ]
+  },
   "evaluate": {
    "annualised_cost": [
     "plant",
@@ -439,6 +412,19 @@
     "plant",
     "case",
     "results"
+   ],
+   "call_emissions": [
+    "result_tree",
+    "fuel_factor",
+    "electricity_factor"
+   ],
+   "call_energy_balance": [
+    "module",
+    "result"
+   ],
+   "call_mass_balance": [
+    "module",
+    "result"
    ],
    "capacities": [
     "plant",
@@ -455,6 +441,9 @@
     "case",
     "results",
     "on_error"
+   ],
+   "collect_flows": [
+    "result_tree"
    ],
    "compare": [
     "reports",
@@ -770,11 +759,10 @@
    "chemistry": "module",
    "combustion": "module",
    "constants": "module",
+   "control": "module",
    "corrosion": "module",
-   "costs": "module",
+   "cycles": "module",
    "diagnostics": "module",
-   "dispatch": "module",
-   "doublet": "module",
    "energy": "module",
    "erosion": "module",
    "fluid": "module",
@@ -786,7 +774,8 @@
    "psychrometrics": "module",
    "pumps": "module",
    "refrigeration": "module",
-   "separation": "module"
+   "separation": "module",
+   "steam": "module"
   },
   "plants": {
    "ATESPlant": "class",
@@ -813,6 +802,7 @@
    "names": [
     "category"
    ],
+   "roles": [],
    "schema": []
   },
   "runtime": {
@@ -822,12 +812,31 @@
    ],
    "state": []
   },
+  "streams": {
+   "BRINE": "Fluid",
+   "Fluid": "class",
+   "GLYCOL_30": "Fluid",
+   "Ports": "class",
+   "STEAM": "Fluid",
+   "Stream": "class",
+   "WATER": "Fluid"
+  },
   "study": {
+   "CalibrationResult": "class",
    "Run": "class",
    "Sample": "class",
    "Study": "class",
    "StudyResult": "class",
    "Tornado": "class",
+   "calibrate": [
+    "plant",
+    "dataset",
+    "params",
+    "start",
+    "end",
+    "backend",
+    "apply"
+   ],
    "minimize": [
     "plant",
     "case",
@@ -933,7 +942,7 @@
   ]
  },
  "schemas": {
-  "case.schema.json": "1fe33a97cf09b7e4f0cac8f33f98f1e4f1cf9f62ceac6973a3276689f4667b87",
+  "case.schema.json": "752e6146cf4222a966d5c8d711a51388cca9eb375989445fd8deb76eab9c5510",
   "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
   "economics.schema.json": "166d294b4733b11a680c50406b41b53e3f0227cf45ceba076a47d7aa1c91e7dd",
   "module_description.schema.json": "f40388d592d69073cba6a90dc83a23e69e7b3a8c7f9e88d48fdd3e19c6d1779e",
@@ -977,7 +986,6 @@
   "case",
   "check",
   "compiler",
-  "data",
   "errors",
   "evaluate",
   "live",
@@ -990,8 +998,9 @@
   "runtime",
   "schedule",
   "simulate",
+  "streams",
   "study",
   "units"
  ],
- "version": "0.3.0"
+ "version": "0.4.0"
 }

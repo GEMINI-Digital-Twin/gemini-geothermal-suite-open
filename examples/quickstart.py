@@ -10,7 +10,7 @@ from pathlib import Path
 
 import gemini as gm
 
-SAMPLE = Path(__file__).resolve().parents[1] / "inputs/examples/shallow_district"
+SAMPLE = Path(__file__).resolve().parent / "shallow_district"
 
 
 def show(label, quantity, unit):

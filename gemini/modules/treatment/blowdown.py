@@ -4,7 +4,8 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet
 from gemini.modules.module import Module
 from gemini.physics import separation
-from gemini.types import Fraction, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction
 
 
 class Blowdown(Module):
@@ -44,15 +45,16 @@ class Blowdown(Module):
         self.fluid_out = Outlet(Stream, kind="brine")
         self.waste_out = Outlet(Stream, kind="waste")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Split the commanded bleed from the feed."""
 
         # Outlets
         fluid_in = inlets.fluid_in
         require_forward(self.path, "fluid_in.m_dot", fluid_in.m_dot)
-        retained, bleed = separation.split_flow(fluid_in.m_dot, self.blowdown_fraction)
+        retained, bleed = separation.split_flow(fluid_in.m_dot, inputs["blowdown_fraction"])
         fluid_out = fluid_in._with_si(m_dot=retained)
         waste_out = fluid_in._with_si(m_dot=bleed)
 
+        outputs = dict()
         outlets = dict(fluid_out=fluid_out, waste_out=waste_out)
-        return outlets
+        return outputs, outlets

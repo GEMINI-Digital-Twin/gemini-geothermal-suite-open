@@ -3,7 +3,7 @@
 import pytest
 
 import gemini as gm
-from gemini.study._utils.resize import resized
+from gemini.plants._utils.resize import resized
 from gemini.units import Quantity
 from tests.unit.study.conftest import shallow_case, shallow_plant
 

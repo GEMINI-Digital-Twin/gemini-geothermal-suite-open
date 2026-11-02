@@ -29,7 +29,7 @@ def mapped(function, shared, items):
     ``runtime.settings(processes=n)`` sets how many worker processes run the items; with one, or
     one item, they run here in turn. The items are independent and the results come back in the
     order of ``items``, the same numbers as a serial run: a worker applies the settings of its
-    parent (the backend, the precision, the display units, the default fluid) with one process, so
+    parent (the backend, the precision, the display units) with one process, so
     it starts no pool of its own. ``function`` is a module level function, and ``shared`` and
     every item and result can be pickled. A worker starts from a ``forkserver`` that has imported
     gemini, so a call pays that import once for the process, not for every worker.

@@ -1,42 +1,41 @@
 """The unit in which a metric is shown in a table, and the conversion of a number to it."""
 
-from collections.abc import Mapping
-
 from gemini import units as _units
 from gemini._utils.strings import close_matches, did_you_mean, join_names
-from gemini.case.roletable import TABLE
 from gemini.errors import ValidationError
-from gemini.types.shapes import Value
+from gemini.plants.roles import TABLE
+from gemini.units import display
+from gemini.units.display import without_offsets
 
-DISPLAY = {
-    "heat_delivered": ("energy", "MWh"),
-    "cold_delivered": ("energy", "MWh"),
-    "boiler_heat": ("energy", "MWh"),
-    "electricity_bought": ("energy", "MWh"),
-    "electricity_sold": ("energy", "MWh"),
-    "gas_bought": ("energy", "MWh"),
-    "peak_heat": ("power", "MW"),
-    "peak_cold": ("power", "MW"),
-    "capex": ("money", "MEUR"),
-    "opex": ("annual_money", "MEUR/yr"),
-    "annualised_cost": ("annual_money", "MEUR/yr"),
-    "lcts": ("money_per_energy", "EUR/MWh"),
-    "lcoh": ("money_per_energy", "EUR/MWh"),
-    "lcoc": ("money_per_energy", "EUR/MWh"),
-    "annual_energy": ("annual_energy", "MWh/yr"),
-    "duration": ("duration", "d"),
-    "analysis_period": ("duration", "yr"),
-    "payback": ("duration", "yr"),
-    "co2": ("mass", "kt"),
-    "co2_emitted": ("mass", "kt"),
-    "methane_emitted": ("mass", "kt"),
-    "permeability": ("permeability", "mD"),
-    "temperature_gradient": ("temperature_gradient", "K/km"),
-    "price_per_mass": ("money_per_mass", "EUR/t"),
-    "flow": ("volume_flow", "m3/h"),
-    "temperature": ("temperature", "degC"),
+METRICS = {
+    "heat_delivered": "energy",
+    "cold_delivered": "energy",
+    "boiler_heat": "energy",
+    "electricity_bought": "energy",
+    "electricity_sold": "energy",
+    "gas_bought": "energy",
+    "peak_heat": "power",
+    "peak_cold": "power",
+    "capex": "money",
+    "opex": "annual_money",
+    "annualised_cost": "annual_money",
+    "lcts": "money_per_energy",
+    "lcoh": "money_per_energy",
+    "lcoc": "money_per_energy",
+    "annual_energy": "annual_energy",
+    "duration": "duration",
+    "analysis_period": "duration",
+    "payback": "duration",
+    "co2": "mass",
+    "co2_emitted": "mass",
+    "methane_emitted": "mass",
+    "permeability": "permeability",
+    "temperature_gradient": "temperature_gradient",
+    "price_per_mass": "money_per_mass",
+    "flow": "volume_flow",
+    "temperature": "temperature",
 }
-"""For each metric its quantity and the unit it is shown in; a metric not listed is shown in SI.
+"""The quantity of each metric of a table; the unit comes from ``gm.units.display``.
 
 The values of a case that a study moves (permeability, gradient, prices) are shown by the unit of
 their SI unit (``by_si_unit``), through the entries named after their quantity.
@@ -44,8 +43,8 @@ their SI unit (``by_si_unit``), through the entries named after their quantity.
 Durations are shown in ``d`` (the time a requirement counts, the running time) except the names of
 ``YEARS``, which are long and shown in ``yr``.
 
-The one display table of ``gm.evaluate``: ``flow`` and ``temperature`` stand for the quantities of
-the capacities and requirements of a report, which are shown by their SI unit (``by_si_unit``).
+``flow`` and ``temperature`` stand for the quantities of the capacities and requirements of a
+report, which are shown by their SI unit (``by_si_unit``).
 """
 
 YEARS = ("analysis_period", "payback")
@@ -54,10 +53,11 @@ YEARS = ("analysis_period", "payback")
 DIFFERENCES = ("temperature_difference",)
 """The dimensions of a difference: its unit is the SI unit itself, never the offset unit."""
 
-
-def by_si_unit():
-    """Return ``{SI unit: display unit}`` derived from ``DISPLAY``: ``J`` shows in ``MWh``."""
-    return {_units.si_unit(unit): unit for name, (_, unit) in DISPLAY.items() if name not in YEARS}
+DISPLAY = {
+    name: (quantity, "yr" if name in YEARS else display.DISPLAY_UNITS[quantity])
+    for name, quantity in METRICS.items()
+}
+"""For each metric its quantity and the unit it is shown in; a metric not listed is shown in SI."""
 
 
 def _on_difference(found):
@@ -65,6 +65,32 @@ def _on_difference(found):
     role, quantity = found.get("role"), found.get("quantity")
     read = TABLE.get(role, {}).get(quantity)
     return read is not None and read.dimension in DIFFERENCES
+
+
+def adjusted(name, table, difference=False):
+    """Return the table for the value called ``name``: no offset in a difference, yr for a span.
+
+    ``name`` may be a dotted path; its last part is the name. ``difference`` is whether the value
+    is a difference, whose temperature unit is the SI unit itself, never the offset unit.
+    """
+    kept = without_offsets(table) if difference else table
+    if str(name).rpartition(".")[2] in YEARS:
+        return kept | {_units.si_unit("yr"): "yr"}
+    return kept
+
+
+def _adjust(owner, key, table):
+    """Return the table for ``owner[key]``; a check ``owner`` may judge a difference."""
+    return adjusted(key, table, _on_difference(owner))
+
+
+def shown(found, table):
+    """Return ``found`` with every ``Quantity`` in it converted by ``table``, ``{SI unit: unit}``.
+
+    See ``gm.units.display.shown``: a difference keeps its SI unit and the names of ``YEARS``
+    are shown in ``yr``.
+    """
+    return display.shown(found, table, _adjust)
 
 
 def display_units(metrics, units=None):
@@ -105,35 +131,3 @@ def in_unit(metric, number, unit):
         return None
     quantity, default = DISPLAY[metric]
     return _units.convert(number, _units.si_unit(default), unit, quantity)
-
-
-def shown(found, table):
-    """Return ``found`` with every ``Quantity`` in it converted by ``table``, ``{SI unit: unit}``.
-
-    Mappings and lists are walked, and so are the parts of a ``Value``; a quantity whose SI unit
-    is not in the table, and anything that is not a quantity, stays as it is.
-    """
-    if isinstance(found, _units.Quantity):
-        target = table.get(_units.si_unit(str(found.unit)))
-        converted = found if target is None else found.to(target)
-        if isinstance(found, Value):
-            return Value(converted.value, converted.unit, found.reason, shown(found.parts, table))
-        return converted
-    if isinstance(found, Mapping):
-        kept = _without_offsets(table) if _on_difference(found) else table
-        return {key: _named(key, item, kept) for key, item in found.items()}
-    if isinstance(found, (list, tuple)):
-        return [shown(item, table) for item in found]
-    return found
-
-
-def _without_offsets(table):
-    """Return ``table`` without the units that shift a number: a difference keeps its SI unit."""
-    return {unit: shown_unit for unit, shown_unit in table.items() if unit != "K"}
-
-
-def _named(key, item, table):
-    """Return ``item`` shown by ``table``, with seconds in ``yr`` when ``key`` is a long span."""
-    if key in YEARS:
-        return shown(item, table | {_units.si_unit("yr"): "yr"})
-    return shown(item, table)

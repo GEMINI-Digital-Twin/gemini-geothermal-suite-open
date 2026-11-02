@@ -4,8 +4,9 @@ from gemini.errors import ValidationError
 from gemini.modules.declarations import Outlet, Parameter
 from gemini.modules.module import Module
 from gemini.physics import gas
-from gemini.types import Fraction, Stream
-from gemini.types.fluid import grid_gas
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import grid_gas
+from gemini.units.quantities import Fraction
 
 
 class GasGrid(Module):
@@ -36,7 +37,7 @@ class GasGrid(Module):
         # Outlets
         self.gas_out = Outlet(Stream, kind="gas", offered=True, drawn=True)
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         """Offer the grid gas at normal conditions."""
         if self.composition is None:
             raise ValidationError(
@@ -53,8 +54,9 @@ class GasGrid(Module):
         )
         return {"gas_out": offered}
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Nothing but what the taker draws leaves the grid."""
 
+        outputs = dict()
         outlets = dict()
-        return outlets
+        return outputs, outlets

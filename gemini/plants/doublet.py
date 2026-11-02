@@ -1,21 +1,22 @@
 """A doublet: production and injection limbs, designed from its depth or set by hand."""
 
 from gemini.errors import ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules.declarations import UNSET, Inlet, Outlet, Output, Parameter
 from gemini.modules.environment import Formation
 from gemini.modules.pumps import ESP
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
-from gemini.physics import constants, doublet, pumps
+from gemini.physics import constants, pumps
+from gemini.plants._utils import doublet_design
 from gemini.plants.plant import Plant
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Efficiency,
     Length,
     Permeability,
     Power,
     Pressure,
-    Stream,
     Temperature,
     TemperatureGradient,
     VolumeFlow,
@@ -27,7 +28,7 @@ class Doublet(Equipment, Plant):
 
     ``depth`` is the true vertical depth of the reservoir midpoint, ``thickness`` its gross
     thickness and ``well_diameter`` the inner diameter of both vertical wells. ``set_params``
-    derives, through ``gemini/physics/doublet.py``:
+    derives, through ``gemini/plants/_utils/doublet_design.py``:
 
     - from ``depth``, ``gradient`` and ``surface_temperature``: a depth waits for the other two,
       which the case holds (``site.ground``) and sets for a run on a copy; a run that
@@ -173,17 +174,23 @@ class Doublet(Equipment, Plant):
         )
 
     def _set_si_params(self, path, params, valid_from=None):
-        """Derive the children's values from the design, unless the same call states them."""
+        """Derive the children's values from the design, unless the same call states them.
+
+        Without a fluid nothing is derived: setting the fluid derives again.
+        """
         if path:
             return super()._set_si_params(path, params, valid_from)
+        if self._fluid is None:
+            self._keep_derived({}, params)
+            return super()._set_si_params("", params, valid_from)
         fluid = self.fluid.properties(0, 0)
         values = {"drainage_radius": None, "roughness": None} | self._own_values(params, valid_from)
         if self._lacking(values):
             return super()._set_si_params("", params, valid_from)
         skins = self._skins(params)
         if values["drainage_radius"] is None or None in skins.values():
-            values = values | dict.fromkeys(doublet.FLOW_PATH)
-        derived = doublet.design(
+            values = values | dict.fromkeys(doublet_design.FLOW_PATH)
+        derived = doublet_design.design(
             values, fluid.rho_l, fluid.mu_l, skins, self._stated_pressure(params)
         )
         return super()._set_si_params("", self._keep_derived(derived, params) | params, valid_from)
@@ -191,7 +198,7 @@ class Doublet(Equipment, Plant):
     def _skins(self, params):
         """Return the skin of each reservoir: stated by this call, else stored, else ``None``."""
         skins = {}
-        for name in doublet.RESERVOIRS:
+        for name in doublet_design.RESERVOIRS:
             skin = self.get(f"{name}.skin")
             stated = params.get(f"{name}.skin", skin.value)
             skins[name] = None if stated is UNSET else skin.validate(stated)
@@ -201,7 +208,7 @@ class Doublet(Equipment, Plant):
         """Return the names of the geotherm a ``depth`` waits for, which the case gives."""
         if values["depth"] is None:
             return []
-        return [name for name in doublet.COLUMN[1:] if values[name] is None]
+        return [name for name in doublet_design.COLUMN[1:] if values[name] is None]
 
     def _missing_design(self):
         """Return the geotherm of a ``depth`` that is still missing: a run cannot start without."""
@@ -215,8 +222,8 @@ class Doublet(Equipment, Plant):
             self.reservoir.pressure if "reservoir.pressure" in self._stated_child_params else None
         )
 
-    def capex(self, economics):
-        """Return the cost of the production pump from its shaft power at the nominal flow.
+    def cost_size(self):
+        """Return the shaft power [W] at the nominal flow, the size the cost scales with.
 
         The doublet is equipment of the kind ``production_pump`` because it alone knows the flow
         its pump is designed for; its wells are drilled by their own modules. A doublet without a
@@ -234,4 +241,4 @@ class Doublet(Equipment, Plant):
             self.esp.stage_count,
             self.esp.power_coefficients,
         )
-        return self.capex_of(economics, power)
+        return power

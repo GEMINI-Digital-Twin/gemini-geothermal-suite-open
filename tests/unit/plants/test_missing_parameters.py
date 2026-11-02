@@ -85,10 +85,9 @@ def test_a_switch_is_empty_and_means_off_until_it_is_set():
     assert not {"heat_exchanger.fouling_threshold", "d0.reservoir.decline_threshold"} & paths
 
 
-def test_the_start_of_a_design_state_is_a_parameter_that_can_be_missing():
-    """A tank starts at the temperature its plant states; without it a run raises."""
+def test_a_tank_has_no_start_of_its_own():
+    """The start of a tank is a state of the case, not a parameter: without it a run raises."""
     tank = gm.modules.ThermalStorage()
-    with raises(gm.errors.ValidationError, "missing_value", match="initial_temperature"):
+    assert "initial_temperature" not in dict(tank.named_parameters())
+    with raises(gm.errors.ValidationError, "missing_value", match="case.initial_state"):
         tank.initial_state()
-    tank.set_params("", {"initial_temperature": gm.units.Quantity(300.0, "K")})
-    assert tank.initial_state() == {"temperature": 300.0}

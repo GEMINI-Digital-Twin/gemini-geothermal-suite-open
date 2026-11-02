@@ -18,9 +18,10 @@ import pandas as pd
 
 import gemini as gm
 from gemini import runtime
-from gemini._utils import paths
-from gemini.compiler.graph import GraphCache, run
-from gemini.types.flows import Stream
+from gemini.compiler.cache import GraphCache
+from gemini.compiler.run import run
+from gemini.streams.flows import Stream
+from tests.fixtures import paths
 from tests.fixtures.parity import BACKENDS, RTOL
 from tests.fixtures.sample_cases import example_plant
 

@@ -5,15 +5,18 @@ import pytest
 
 import gemini as gm
 from gemini._utils import registry
-from gemini.compiler.graph import run
+from gemini.compiler.run import run
 from gemini.errors import ValidationError
 from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.physics import energy
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
+from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 
 STREAM = gm.Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2.0, "kg/s"),
     T=gm.units.Quantity(300.0, "K"),
     p=gm.units.Quantity(2e5, "Pa"),
@@ -44,15 +47,15 @@ class Consumer(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Draw what the flow needs."""
 
         # Outlets
         power_in = energy.total_power([self.rating * inlets.fluid_in.m_dot])
 
+        outputs = dict(drawn=power_in)
         outlets = dict(fluid_out=inlets.fluid_in, power_in=power_in)
-        self.drawn = power_in
-        return outlets
+        return outputs, outlets
 
 
 class Bus(Module):
@@ -75,12 +78,13 @@ class Bus(Module):
         # Outlets
         self.power_out = Outlet(Power, kind="electricity", many=True)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Nothing leaves but what its takers draw."""
 
         outlets = dict()
-        self.net = energy.total_power(inlets.power_out) - energy.total_power(inlets.power_in)
-        return outlets
+        net = energy.total_power(inlets.power_out) - energy.total_power(inlets.power_in)
+        outputs = dict(net=net)
+        return outputs, outlets
 
 
 class Source(Module):
@@ -106,24 +110,25 @@ class Source(Module):
         # Outlets
         self.fluid_out = Outlet(Stream, offered=True)
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         return {
             "fluid_out": gm.Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(1.0, "kg/s"),
                 T=gm.units.Quantity(self.temperature, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
             )
         }
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Give the same stream again."""
 
         # Outlets
-        fluid_out = self._offer(inlets)["fluid_out"]
+        fluid_out = self._offer(inputs, inlets, state)["fluid_out"]
 
+        outputs = dict(back=inlets.fluid_in.m_dot)
         outlets = dict(fluid_out=fluid_out)
-        self.back = inlets.fluid_in.m_dot
-        return outlets
+        return outputs, outlets
 
 
 class Taker(Module):
@@ -143,14 +148,14 @@ class Taker(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Draw half of the offer."""
 
         # Outlets
         taken = inlets.fluid_in._with_si(m_dot=inlets.fluid_in.m_dot / 2)
 
         outlets = dict(fluid_out=taken, fluid_in=taken)
-        return outlets
+        return dict(), outlets
 
 
 class Offer(Module):
@@ -170,21 +175,22 @@ class Offer(Module):
         # Outlets
         self.fluid_out = Outlet(Stream, offered=True, drawn=True)
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         return {
             "fluid_out": gm.Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(8.0, "kg/s"),
                 T=gm.units.Quantity(320.0, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
             )
         }
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Nothing to give but the offer."""
 
+        outputs = dict(taken=inlets.fluid_out.m_dot)
         outlets = dict()
-        self.taken = inlets.fluid_out.m_dot
-        return outlets
+        return outputs, outlets
 
 
 def consumer(rating):
@@ -233,6 +239,7 @@ def test_the_same_plant_is_one_graph_on_every_backend():
     """A power port is traced like a stream; a graph gives the numbers of a direct call."""
     plant = wired()
     stream = gm.Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(np.array([1.0, 2.0]), "kg/s"),
         T=gm.units.Quantity(300.0, "K"),
         p=gm.units.Quantity(2e5, "Pa"),

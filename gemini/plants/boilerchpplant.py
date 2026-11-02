@@ -9,7 +9,7 @@ from gemini.modules.piping import Mixer, Splitter
 from gemini.modules.treatment import Degasser, Filter
 from gemini.plants.nodaldoublet import NodalDoublet
 from gemini.plants.plant import Plant
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 
 class BoilerChpPlant(Plant):
@@ -20,7 +20,7 @@ class BoilerChpPlant(Plant):
     filter, the heat exchanger and a second filter, and the injector is solved for the pump head
     it needs. The secondary water is split in two: one part is heated by the exchanger and topped
     up by a gas boiler, the other is heated by a gas-engine CHP, and both are mixed again.
-    ``inputs/plants/BoilerChpPlant.json`` carries the well, reservoir and ESP data of the
+    ``tests/fixtures/plants/BoilerChpPlant.json`` carries the well, reservoir and ESP data of the
     upstream example.
 
     Not schedulable: its doublet is a ``NodalDoublet``, solved for its wellhead pressure, and a run

@@ -1,7 +1,7 @@
 """One plant on one case through the method of a study, with the same functions a caller uses."""
 
+from gemini.engine.simulate import simulate
 from gemini.evaluate import report as reported
-from gemini.run import simulate
 from gemini.study._utils.variables import searchable
 from gemini.study.minimize import minimize
 from gemini.study.sample import sample

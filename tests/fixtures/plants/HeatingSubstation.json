@@ -1,0 +1,82 @@
+{
+  "format": 1,
+  "kind": "plant",
+  "name": "HeatingSubstation",
+  "type": "HeatingSubstation",
+  "params": {
+    "valve": {
+      "flow_coefficient": {
+        "value": 1.756820922315766e-05,
+        "unit": "m3/s/Pa^0.5"
+      },
+      "characteristic": {
+        "value": "equal_percentage"
+      },
+      "rangeability": {
+        "value": 50.0
+      }
+    },
+    "heat_exchanger": {
+      "thermal_conductance": {
+        "value": 20000,
+        "unit": "W/K"
+      },
+      "arrangement": {
+        "value": "counterflow"
+      },
+      "hot_nominal_pressure_drop": {
+        "value": 0.2,
+        "unit": "bar"
+      },
+      "cold_nominal_pressure_drop": {
+        "value": 0.2,
+        "unit": "bar"
+      },
+      "hot_nominal_mass_flow": {
+        "value": 2,
+        "unit": "kg/s"
+      },
+      "cold_nominal_mass_flow": {
+        "value": 3,
+        "unit": "kg/s"
+      },
+      "fouling_threshold": {
+        "value": 0.15
+      }
+    },
+    "pump": {
+      "flow": {
+        "value": 3,
+        "unit": "kg/s"
+      },
+      "pressure_rise": {
+        "value": 0.5,
+        "unit": "bar"
+      },
+      "loop_pressure": {
+        "value": 3,
+        "unit": "bar"
+      },
+      "efficiency": {
+        "value": 0.55
+      }
+    }
+  },
+  "fluids": {
+    "pump": {
+      "kind": "brine",
+      "salinity": 0.0,
+      "co2_mass_fraction": 0.0,
+      "gas_mass_fraction": 0.0,
+      "gas_liquid_ratio": null,
+      "gas_composition": null,
+      "grid_composition": null,
+      "glycol_fraction": 0.0,
+      "property_model": "constant_stp",
+      "density": null,
+      "viscosity": null,
+      "specific_heat": null,
+      "thermal_conductivity": null
+    }
+  }
+}

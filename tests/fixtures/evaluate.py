@@ -15,8 +15,8 @@ from gemini.modules.pumps import ESP
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.physics import chemistry, corrosion, erosion, geometry, heat_transfer, hydraulics
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units import Quantity
 from tests.fixtures import FIXTURES, si
 from tests.fixtures.designs import WELL
@@ -55,6 +55,7 @@ def assert_values(actual, expected):
 def configured(module_class, parameters):
     """Build a standalone module and set its parameters as explicit values."""
     module = module_class()
+    module.fluid = BRINE
     si.set_params(
         module, "", {RENAMED_NAMES.get(key, key): value for key, value in parameters.items()}
     )
@@ -93,6 +94,7 @@ def _esp(parameters, inputs):
     outputs = configured(ESP, ESP_MODULE | parameters)(
         frequency=inputs["pump_freq"],
         fluid_in=Stream(
+            fluid=BRINE,
             m_dot=Quantity(inputs["pump_flow"] * 1000, "kg/s"),
             T=Quantity(300, "K"),
             p=Quantity(1e5, "Pa"),
@@ -122,6 +124,7 @@ def _injection_ipr(inputs):
     reservoir = configured(InjectionReservoir, _reservoir_parameters())
     outputs = reservoir(
         sandface_in=Stream(
+            fluid=BRINE,
             m_dot=Quantity(inputs["flow"] * 1000, "kg/s"),
             T=Quantity(300, "K"),
             p=Quantity(23e6, "Pa"),
@@ -214,6 +217,7 @@ def _well(is_production, parameters, inputs):
         ),
     )
     stream = Stream(
+        fluid=BRINE,
         m_dot=Quantity(inputs["flowrate"] * 1000, "kg/s"),
         p=Quantity(inputs["pressure"], "Pa"),
         T=Quantity(inputs["temperature"], "K"),

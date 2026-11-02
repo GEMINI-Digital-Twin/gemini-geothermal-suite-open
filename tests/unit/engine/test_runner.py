@@ -8,6 +8,7 @@ import gemini as gm
 from gemini.engine.callbacks import AutoCheckpoint, Callback, EventLog
 from gemini.errors import PhysicsError, RunError
 from tests.fixtures.engine_plants import (
+    TANK_START,
     TICKS,
     dated_pair_plant,
     holder_plant,
@@ -106,7 +107,9 @@ def test_only_selects_twins():
 
 def test_a_stateful_twin_is_a_root_break_stepped_next_to_the_traced_twins():
     """The stateful twin has a reason in ``graph_breaks``; its state is carried as before."""
-    engine, results = assert_same(pair_frame(), make=lambda: pair_plant(with_tank=True))
+    engine, results = assert_same(
+        pair_frame(), make=lambda: pair_plant(with_tank=True), state=TANK_START
+    )
     assert "stateful" in engine.graph_breaks["tank"][0] and engine.graph_breaks["first"] == []
     assert engine.module_states["tank"]["total"] == pytest.approx(results["tank"].content.iloc[-1])
 

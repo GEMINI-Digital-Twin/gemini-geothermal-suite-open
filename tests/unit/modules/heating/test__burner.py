@@ -3,8 +3,8 @@
 import pytest
 
 from gemini.modules.heating import _burner
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units import Quantity
 from tests.fixtures.gas import GRID_COMPOSITION
 
@@ -17,7 +17,12 @@ def test_the_fuel_of_a_stream_is_its_mass_times_its_heating_value():
     assert _burner.available_fuel(FUEL) == pytest.approx(0.1 * FLUID.heating_value())
     assert (
         _burner.available_fuel(
-            Stream(m_dot=Quantity(0.1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e5, "Pa"))
+            Stream(
+                fluid=BRINE,
+                m_dot=Quantity(0.1, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(2e5, "Pa"),
+            )
         )
         == 0
     )

@@ -1,17 +1,17 @@
 """Circulation pump of a closed circuit: a fixed flow, a pressure rise and an efficiency."""
 
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import energy, fluid, pumps
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Efficiency,
     HydraulicPower,
     MassFlow,
     Power,
     Pressure,
     PressureDifference,
-    Stream,
 )
 
 
@@ -61,7 +61,7 @@ class CirculationPump(Equipment, Module):
         self.fluid_out = Outlet(Stream)
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Set the flow and the pressure of the circuit and draw the electricity."""
 
         # Outlets
@@ -70,13 +70,13 @@ class CirculationPump(Equipment, Module):
         power_in = energy.input_power(hydraulic, self.efficiency)
 
         # Outputs
-        self.pumping_power = hydraulic
+        outputs = dict(pumping_power=hydraulic)
 
         outlets = dict(fluid_out=discharge, loss_out=power_in, power_in=power_in)
-        return outlets
+        return outputs, outlets
 
-    def capex(self, economics):
-        """Return the cost of the pump from its shaft power at the nominal flow."""
+    def cost_size(self):
+        """Return the shaft power [W] at the nominal flow, the size the cost scales with."""
         volume_flow = fluid.volume_flow(self.flow, self.fluid.properties(0, 0).rho_l)
         hydraulic = pumps.hydraulic_power(volume_flow, self.pressure_rise)
-        return self.capex_of(economics, energy.input_power(hydraulic, self.efficiency))
+        return energy.input_power(hydraulic, self.efficiency)

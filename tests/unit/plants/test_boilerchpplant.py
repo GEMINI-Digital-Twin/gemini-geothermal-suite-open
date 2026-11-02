@@ -34,7 +34,7 @@ def run():
 def test_the_call_reproduces_the_case(run):
     """The solved rate, the duty, the mixed outlet and the energy flows of the case."""
     _, result = run
-    flows = gm.modules.collect_flows(result)
+    flows = gm.evaluate.collect_flows(result)
     assert round(result.children["doublet.riser"].outlets.wellhead_out.m_dot * 3.6, 2) == 129.02
     assert round(result.children["heat_exchanger"].outputs.get("duty", unit="MW"), 3) == 3.961
     assert round(gm.units.convert(result.outlets.supply_out.T, "K", "degC"), 2) == 47.74
@@ -56,4 +56,4 @@ def test_the_call_closes(run):
 def test_the_emissions_charge_the_fuel_and_the_grid_electricity(run):
     """The case emits 5742 kg of CO2 a day at 56.6 kg/GJ of gas and 0.3 kg/kWh of grid power."""
     _, result = run
-    assert round(gm.modules.emissions(result, GAS_FACTOR, GRID_FACTOR) * 86400) == 5742
+    assert round(gm.evaluate.call_emissions(result, GAS_FACTOR, GRID_FACTOR) * 86400) == 5742

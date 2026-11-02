@@ -44,7 +44,7 @@ class BalanceAudit(Callback):
         self.inlets = None
         self.balances = []
 
-    def capture(self, module, inlets):
+    def capture(self, module, inputs, inlets, state):
         """Keep the root inlets of the current step."""
         self.inlets = inlets
 
@@ -57,8 +57,8 @@ class BalanceAudit(Callback):
 
 def _balance_sample(plant, result):
     """Assert per-module mass and thermal closure and return the plant-level residuals."""
-    mass = gm.modules.mass_balance(plant, result)
-    energy = gm.modules.energy_balance(plant, result)
+    mass = gm.evaluate.call_mass_balance(plant, result)
+    energy = gm.evaluate.call_energy_balance(plant, result)
     assert all(abs(module["residual"]) < 1e-6 for module in mass["modules"].values())
     assert all(module["relative_thermal_residual"] < 1e-6 for module in energy["modules"].values())
     return {
@@ -102,7 +102,7 @@ def _twin_errors(frame, data, normal):
 
 def _holdout(plant, dataset, engine, data):
     """Fit heat-exchanger UA on the first week, then replay it alone on the held-out rows."""
-    fit = gm.analysis.calibrate(
+    fit = gm.study.calibrate(
         plant,
         dataset,
         params=[plant.get("heat_exchanger.thermal_conductance")],

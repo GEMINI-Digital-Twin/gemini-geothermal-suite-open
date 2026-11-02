@@ -4,15 +4,16 @@
 (``Ground``, ``Reservoir``, ``Fluid``, ``Air``), ``Demand`` (``Service``, ``CoolingService``),
 ``Utilities`` (``Electricity``, ``Gas``), ``Economics`` (its own file, ``economics.json``, with
 ``Capex``, ``Opex``, ``Energy``, ``Carbon``, ``Revenue``, ``Accounting``) and
-``Requirement``. ``Range`` and ``Uncertainty`` are the shared objects of ``gemini.types.inputs``.
-``roles()`` lists the roles and quantities a ``Requirement`` may name. The case sits above
-``gm.plants`` and below ``gm.run``.
+``Requirement``. ``Range`` and ``Uncertainty`` are the shared objects of ``gemini.units.inputs``.
+``gm.plants.roles()`` lists the roles and quantities a ``Requirement`` may name; the case reads
+only that table of ``gm.plants`` and sits below ``gm.engine``.
 """
 
-from gemini.types.inputs import Range, Uncertainty
+from gemini.units.inputs import Range, Uncertainty
 
 from .case import Case
 from .demand import CoolingService, Demand, Service
+from .demand_frame import from_csv, from_values, profile_schema
 from .economics import (
     Accounting,
     Capex,
@@ -26,7 +27,6 @@ from .economics import (
     Subsidy,
 )
 from .requirement import Requirement
-from .roletable import roles
 from .site import Air, Fluid, Ground, Reservoir, Site
 from .time import Time
 from .utilities import Electricity, Gas, Utilities
@@ -58,5 +58,7 @@ __all__ = [
     "Requirement",
     "Range",
     "Uncertainty",
-    "roles",
+    "from_csv",
+    "from_values",
+    "profile_schema",
 ]

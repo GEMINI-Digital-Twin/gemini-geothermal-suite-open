@@ -7,9 +7,9 @@ import re
 from gemini import units
 from gemini._utils.strings import close_matches, join_names
 from gemini.case._utils.node import Frozen, issue, plain, refuse_replaced
-from gemini.case.roletable import TABLE, dimension
 from gemini.errors.base import raise_issues
-from gemini.types import inputs
+from gemini.plants.roles import TABLE, dimension
+from gemini.units import inputs
 
 KEYS = ("name", "on", "quantity", "unit", "over", "when", "min", "max")
 OVERS = ("each", "sum", "mean", "max", "min", "duration")
@@ -20,7 +20,7 @@ NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 class Requirement(Frozen):
     """A rule on a quantity of a role; it applies to every unit of the role on its own.
 
-    ``on`` and ``quantity`` come from ``gm.case.roles()``. A per-step quantity states ``over``:
+    ``on`` and ``quantity`` come from ``gm.plants.roles()``. A per-step quantity states ``over``:
     ``each`` (every step), ``sum``, ``mean``, ``max`` or ``min`` (one figure of the run) or
     ``duration`` (the total time of the steps where ``when`` holds, with bounds that are durations),
     and may state ``when``: ``always`` or ``running``, the steps where the unit carries flow, and

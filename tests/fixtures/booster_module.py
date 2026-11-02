@@ -2,7 +2,8 @@
 
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.types import Pressure, PressureDifference, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Pressure, PressureDifference
 
 
 class Booster(Module):
@@ -27,20 +28,23 @@ class Booster(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the suction stream at a pressure raised by the gain."""
 
         # Outlets
         discharge = inlets.fluid_in._with_si(p=inlets.fluid_in.p + self.gain)
 
+        # Outputs
+        outputs = dict(head=self.gain)
+
         outlets = dict(fluid_out=discharge)
-        self.head = self.gain
-        return outlets
+        return outputs, outlets
 
 
 EXAMPLE = {
     "inlets": {
         "fluid_in": {
+            "fluid": {"kind": "brine"},
             "m_dot": {"value": 10, "unit": "kg/s"},
             "T": {"value": 50, "unit": "degC"},
             "p": {"value": 2, "unit": "bar"},

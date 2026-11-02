@@ -3,8 +3,8 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
-from gemini.types import Stream
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.errors import raises
@@ -54,9 +54,9 @@ def test_two_producers_mix_into_the_supply(fresh_plant):
     assert sum(result.children["formation"].inlets.heat_in) == pytest.approx(
         sum(leaf.outlets.loss_out for leaf in leaves if "loss_out" in leaf.outlets)
     )
-    audit = energy_balance(field, result)
+    audit = call_energy_balance(field, result)
     assert audit["relative_thermal_residual"] < 1e-12
-    assert mass_balance(field, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(field, result)["relative_residual"] < 1e-12
 
 
 def test_splitters_share_the_return_over_three_injectors(fresh_plant):
@@ -76,7 +76,7 @@ def test_splitters_share_the_return_over_three_injectors(fresh_plant):
     riser = result.children["producers.0.riser"]
     assert result.outlets.supply_out.T == reading(riser).wellhead_temperature
     assert len(field.mixers) == 0
-    assert mass_balance(field, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(field, result)["relative_residual"] < 1e-12
 
 
 def test_invalid_structure_raises():

@@ -4,14 +4,15 @@ import numpy as np
 
 from gemini import units
 from gemini._utils.jsonable import to_plain
+from gemini.engine.check import check
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
-from gemini.run import check
 from gemini.study._utils.parallel import mapped
-from gemini.study._utils.target import quantities
+from gemini.study._utils.shown import difference_names, shown
+from gemini.study._utils.target import quantities, quantity_of
 from gemini.study._utils.trial import checked_metric, drawn_trial
 from gemini.study._utils.uncertain import declared
-from gemini.types.shapes import measure
+from gemini.units.shapes import measure
 
 ATTEMPTS = 10000
 """Draws of a truncated normal before its bounds are judged out of reach."""
@@ -20,20 +21,29 @@ SUMMARY = ("mean", "p5", "p50", "p95")
 
 
 class Sample(dict):
-    """The result of ``sample``: ``{samples, summary}``, with ``to_dict`` and ``from_dict``."""
+    """The result of ``sample``: ``{samples, summary}``, with ``to_dict`` and ``from_dict``.
+
+    ``differences``, when present, names the drawn values that are differences of temperature.
+    """
 
     def to_dict(self):
-        """Return the result as plain JSON: quantities and values as ``{"value", "unit"}``."""
+        """Return the result as plain JSON in the display units of ``gm.units.display``.
+
+        Quantities and values are ``{"value", "unit"}``; the differences of temperature stay in K,
+        and ``from_dict`` reads the result back to the same values.
+        """
+        names = self.get("differences", ())
         samples = [
             {
-                "parameters": to_plain(draw["parameters"]),
-                "metrics": to_plain(draw["metrics"]),
+                "parameters": to_plain(shown(draw["parameters"], names)),
+                "metrics": to_plain(shown(draw["metrics"])),
                 **({"reason": draw["reason"]} if "reason" in draw else {}),
             }
             for draw in self["samples"]
         ]
-        summary = {metric: to_plain(spread) for metric, spread in self["summary"].items()}
-        return {"samples": samples, "summary": summary}
+        summary = {metric: to_plain(shown(spread)) for metric, spread in self["summary"].items()}
+        extra = {"differences": list(names)} if names else {}
+        return {"samples": samples, "summary": summary} | extra
 
     @classmethod
     def from_dict(cls, data):
@@ -52,7 +62,8 @@ class Sample(dict):
             metric: {key: value_of(item) for key, item in spread.items()}
             for metric, spread in data["summary"].items()
         }
-        return cls(samples=samples, summary=summary)
+        extra = {"differences": data["differences"]} if data.get("differences") else {}
+        return cls(samples=samples, summary=summary, **extra)
 
 
 def _is_value(item):
@@ -166,4 +177,8 @@ def sample(plant, case, metrics, samples, seed, *, plan=None):
         failed = {"reason": reason} if reason else {}
         drawn_runs.append({"parameters": quantities(plant, case, drawn), "metrics": run, **failed})
     summary = {name: _spread(drawn_runs, name) for name in names}
-    return Sample(samples=drawn_runs, summary=summary)
+    lifts = difference_names(
+        quantities(plant, case, draws[0]), lambda name: quantity_of(plant, case, name)
+    )
+    extra = {"differences": lifts} if lifts else {}
+    return Sample(samples=drawn_runs, summary=summary, **extra)

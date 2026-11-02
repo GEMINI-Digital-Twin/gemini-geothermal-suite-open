@@ -92,6 +92,21 @@
         "value": 0.00065
       }
     },
+    "doublet": {
+      "co2_mass_fraction": 0.0,
+      "density": null,
+      "gas_composition": null,
+      "gas_liquid_ratio": null,
+      "gas_mass_fraction": 0.0,
+      "glycol_fraction": 0.0,
+      "grid_composition": null,
+      "kind": "brine",
+      "property_model": "constant_stp",
+      "salinity": 0.0,
+      "specific_heat": null,
+      "thermal_conductivity": null,
+      "viscosity": null
+    },
     "doublet.esp": {
       "co2_mass_fraction": 0.0,
       "density": {

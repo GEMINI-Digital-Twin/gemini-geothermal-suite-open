@@ -178,12 +178,14 @@ def test_importing_a_file_registers_the_classes_that_state_a_category(monkeypatc
         {},
         {
             "fluid_in": {
+                "fluid": {"kind": "brine"},
                 "m_dot": gm.units.Quantity(10, "kg/s"),
                 "T": gm.units.Quantity(300, "K"),
                 "p": gm.units.Quantity(2e5, "Pa"),
             }
         },
         {},
+        "si",
     )
     assert result["outlets"]["fluid_out"]["p"]["value"] == pytest.approx(3e5)
 

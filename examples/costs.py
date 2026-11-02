@@ -15,7 +15,7 @@ from pathlib import Path
 
 import gemini as gm
 
-SAMPLE = Path(__file__).resolve().parents[1] / "inputs/examples/hackathon_2026"
+SAMPLE = Path(__file__).resolve().parent / "hackathon_2026"
 MISSING = "heat_pump"
 BOUGHT = {
     "name": "electricity_bought_limit",

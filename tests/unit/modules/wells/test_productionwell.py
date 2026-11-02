@@ -3,10 +3,12 @@
 import numpy as np
 import pytest
 
-from gemini.compiler.graph import GraphCache, run
+from gemini.compiler.cache import GraphCache
+from gemini.compiler.run import run
 from gemini.modules.wells import ProductionWell
-from gemini.types.flows import Stream
-from gemini.types.fluid import BRINE as DEFAULT_FLUID
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from gemini.units import Quantity
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si
@@ -24,7 +26,9 @@ def test_split_esp_traversal():
             esp_property=mapping.from_property(OLD_PROJECT / "esp_1ee3.param"),
         ),
     )
-    stream = Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(353.15, "K"), p=Quantity(25e6, "Pa"))
+    stream = Stream(
+        fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(353.15, "K"), p=Quantity(25e6, "Pa")
+    )
     intake = c.intake_conditions(stream)
     out = c.wellhead_from_discharge(intake._with_si(p=intake.p + 3e6))
     passive = c.wellhead_from_discharge(intake)
@@ -79,17 +83,26 @@ def test_production_well_traces_with_its_section_profiles():
     rows = [
         {
             "bottom_in": Stream(
-                m_dot=Quantity(40.0, "kg/s"), T=Quantity(353.15, "K"), p=Quantity(25e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(40.0, "kg/s"),
+                T=Quantity(353.15, "K"),
+                p=Quantity(25e6, "Pa"),
             )
         },
         {
             "bottom_in": Stream(
-                m_dot=Quantity(10.0, "kg/s"), T=Quantity(340.0, "K"), p=Quantity(20e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(10.0, "kg/s"),
+                T=Quantity(340.0, "K"),
+                p=Quantity(20e6, "Pa"),
             )
         },
         {
             "bottom_in": Stream(
-                m_dot=Quantity(25.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(5e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(25.0, "kg/s"),
+                T=Quantity(300.0, "K"),
+                p=Quantity(5e6, "Pa"),
             )
         },
     ]
@@ -98,6 +111,7 @@ def test_production_well_traces_with_its_section_profiles():
         _well(),
         {
             "bottom_in": Stream(
+                fluid=BRINE,
                 m_dot=Quantity(np.array([40.0, 10.0]), "kg/s"),
                 T=Quantity(np.array([353.15, 340.0]), "K"),
                 p=Quantity(np.array([25e6, 20e6]), "Pa"),
@@ -121,7 +135,10 @@ def test_another_esp_depth_and_path_length_reuse_the_graph():
         [
             {
                 "bottom_in": Stream(
-                    m_dot=Quantity(40.0, "kg/s"), T=Quantity(353.15, "K"), p=Quantity(25e6, "Pa")
+                    fluid=BRINE,
+                    m_dot=Quantity(40.0, "kg/s"),
+                    T=Quantity(353.15, "K"),
+                    p=Quantity(25e6, "Pa"),
                 )
             }
         ],

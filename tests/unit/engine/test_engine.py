@@ -6,8 +6,8 @@ import pytest
 import gemini as gm
 from gemini import runtime
 from gemini.modules import Module
+from gemini.modules.bindings import Binding, ModuleBindings
 from gemini.modules.declarations import Control, Output
-from gemini.types.bindings import Binding, ModuleBindings
 from tests.fixtures.errors import raises
 
 
@@ -24,12 +24,12 @@ class Precision(Module):
         # Outputs
         self.float32 = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
         outlets = dict()
-        self.float32 = float(runtime.get_precision() == "float32")
-        return outlets
+        outputs = dict(float32=float(runtime.get_precision() == "float32"))
+        return outputs, outlets
 
 
 @pytest.fixture

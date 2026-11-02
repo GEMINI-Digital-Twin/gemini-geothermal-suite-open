@@ -6,16 +6,17 @@ import numpy as np
 from scipy.optimize import differential_evolution
 
 from gemini import units
+from gemini.engine.check import check
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
-from gemini.run import check
+from gemini.plants._utils.resize import resized
 from gemini.study._utils.best import Best
 from gemini.study._utils.parallel import mapped
-from gemini.study._utils.resize import resized
-from gemini.study._utils.target import unit_of
+from gemini.study._utils.shown import difference_names
+from gemini.study._utils.target import quantity_of, unit_of
 from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, run_judged
 from gemini.study._utils.variables import DOUBLETS, counts, variables
-from gemini.types.shapes import Value, measure
+from gemini.units.shapes import Value, measure
 
 POPULATION_PER_VARIABLE = 5
 """Candidates of a generation per variable: a small budget still sees several generations."""
@@ -35,14 +36,18 @@ def _ranked(sign, number, reason, violation):
     return 2 + violation / (1 + violation)
 
 
-def _entry(parameters, metrics, name, reason, violation):
-    """Return one line of the history: the objective, with the parameters and the violation."""
+def _entry(parameters, metrics, name, reason, violation, lifts):
+    """Return one line of the history: the objective, with the parameters and the violation.
+
+    ``lifts`` names the parameters that are differences of temperature, listed when there are any.
+    """
     metric = metrics.get(name, measure(None, "-", reason))
+    extra = {"differences": lifts} if lifts else {}
     return Value(
         metric.value,
         metric.unit,
         reason or metric.reason,
-        metric.parts | {"parameters": parameters, "violation": violation},
+        metric.parts | {"parameters": parameters, "violation": violation} | extra,
     )
 
 
@@ -83,6 +88,15 @@ def _shown(plant, case, found, point):
             chosen = units.Quantity(chosen, unit_of(plant, case, variable.paths[0]))
         shown[variable.name] = chosen
     return shown
+
+
+def _lifts(plant, case, found):
+    """Return the names of the variables that are differences of temperature."""
+    paths = {item.name: item.paths[0] for item in found if item.options is None}
+    parameters = {
+        name: units.Quantity(0.0, unit_of(plant, case, path)) for name, path in paths.items()
+    }
+    return difference_names(parameters, lambda name: quantity_of(plant, case, paths[name]))
 
 
 def _design(plant, parameters):
@@ -175,6 +189,7 @@ def _counted(shared, count):
     chosen = {} if count is None else {DOUBLETS: units.Quantity(count, "-")}
     found = variables(design)
     history = []
+    lifts = _lifts(design, case, found)
 
     def evaluated(point):
         values = _values(found, point)
@@ -182,7 +197,7 @@ def _counted(shared, count):
         if reason is None and metrics[name].value is None:
             reason, violation = metrics[name].reason, LARGEST_VIOLATION
         shown = chosen | _shown(design, case, found, point)
-        history.append(_entry(shown, metrics, name, reason, violation))
+        history.append(_entry(shown, metrics, name, reason, violation, lifts))
         return _ranked(sign, history[-1].value, reason, violation)
 
     _search(evaluated, found, evaluations, _start(design, found), seed)

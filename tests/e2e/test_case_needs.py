@@ -11,8 +11,8 @@ import pytest
 
 import gemini as gm
 from gemini.case._utils.kinds import EQUIPMENT_KINDS
-from gemini.case.roletable import reads
-from gemini.run._utils.apply import apply_case
+from gemini.engine.apply import apply_case
+from gemini.plants.roles import reads
 from gemini.units import Quantity
 from tests.fixtures.cases import requirement
 from tests.fixtures.sample_cases import sample_case, template_dict

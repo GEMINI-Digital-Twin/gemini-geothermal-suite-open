@@ -4,16 +4,17 @@ import pandas as pd
 
 from gemini import units
 from gemini._utils.jsonable import to_plain
+from gemini.engine.check import check
 from gemini.errors.base import raise_issues
-from gemini.evaluate._utils.display import by_si_unit, display_units, in_unit
+from gemini.evaluate._utils.display import display_units, in_unit
 from gemini.evaluate._utils.display import shown as displayed
-from gemini.run import check
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.target import quantities
 from gemini.study._utils.trial import checked_metric, drawn_trial
 from gemini.study._utils.uncertain import declared, tried_ends
 from gemini.study.sample import value_of
-from gemini.types.shapes import measure
+from gemini.units.display import by_si_unit
+from gemini.units.shapes import measure
 
 
 class Tornado(list):

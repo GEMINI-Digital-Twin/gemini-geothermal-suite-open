@@ -5,8 +5,10 @@ from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.power import _physics
-from gemini.types import WATER, Efficiency, Fraction, Power, Pressure, Ratio, Stream
+from gemini.physics import steam
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER
+from gemini.units.quantities import Efficiency, Fraction, Power, Pressure, Ratio
 
 
 class FlashTurbine(Module):
@@ -16,7 +18,7 @@ class FlashTurbine(Module):
     the inlet pressure; the inlet temperature is not used because the pressure fixes the
     saturated state. The steam expands to ``condenser_pressure`` with the Baumann rule:
     eta = eta_dry (1 - a (1 - x_out) / 2) for the mean exhaust moisture (see
-    ``_physics.baumann_expansion``). The generator converts ``gross_power`` (shaft power)
+    ``steam.baumann_expansion``). The generator converts ``gross_power`` (shaft power)
     with ``generator_efficiency``. The condenser condenses the exhaust to saturated liquid at
     the condenser pressure, which leaves through ``outlet`` as water.
 
@@ -70,34 +72,36 @@ class FlashTurbine(Module):
         self.power_out = Outlet(Power, kind="electricity")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expand the steam and return the condensate at the condenser saturation state."""
 
         # Outlets
         inlet = inlets.fluid_in
-        condenser = _physics.saturation_properties(self.condenser_pressure)
+        condenser = steam.saturation_properties(self.condenser_pressure)
 
         outlet = inlet._with_si(T=condenser.temperature, p=self.condenser_pressure, fluid=WATER)
         expansion = self._expansion(inlet)
         balance = self._balance(inlet, expansion)
 
         # Outputs
-        self.gross_power = balance.gross_power
-        self.condenser_duty = balance.condenser_duty
-        self.exhaust_quality = expansion.outlet_quality
+        outputs = dict(
+            gross_power=balance.gross_power,
+            condenser_duty=balance.condenser_duty,
+            exhaust_quality=expansion.outlet_quality,
+        )
 
         outlets = dict(
             fluid_out=outlet, power_out=balance.electricity_generated, loss_out=balance.heat_loss
         )
-        return outlets
+        return outputs, outlets
 
     def _balance(self, inlet, expansion):
         """Return the enthalpy balance of the turbine, generator and condenser."""
-        return _physics.turbine_balance(
+        return steam.turbine_balance(
             inlet.m_dot,
             expansion.inlet_enthalpy,
             expansion.outlet_enthalpy,
-            _physics.saturation_properties(self.condenser_pressure).liquid_enthalpy,
+            steam.saturation_properties(self.condenser_pressure).liquid_enthalpy,
             self.generator_efficiency,
         )
 
@@ -121,6 +125,6 @@ class FlashTurbine(Module):
             p=inlet.p,
             condenser_pressure=self.condenser_pressure,
         )
-        return _physics.baumann_expansion(
+        return steam.baumann_expansion(
             inlet.p, self.condenser_pressure, self.isentropic_efficiency, self.baumann_factor
         )

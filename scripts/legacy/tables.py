@@ -17,9 +17,12 @@ from gemini.modules.pumps import ESP, InjectionPump
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.treatment import Degasser, Filter
 from gemini.modules.wells import InjectionWell, ProductionWell
-from gemini.physics import geometry, separation
-from gemini.types.fluid import Fluid
+from gemini.physics import geometry
+from gemini.streams.fluid import Fluid
 from gemini.units import Quantity
+
+FILTER_CLOGGING_BAR = 0.5
+"""The clogging pressure-loss limit [bar] the old project gave a filter that stated none."""
 
 PORTS = {
     "production_reservoir": {"out": "sandface_out"},
@@ -158,7 +161,7 @@ DEFAULTS = {
         "m_dot_hot_nominal": 1,
         "m_dot_cold_nominal": 1,
     },
-    "filter": {"clogging_dp": separation.FILTER_CLOGGING_BAR},
+    "filter": {"clogging_dp": FILTER_CLOGGING_BAR},
 }
 """The value each converter takes for an old property that a project does not state.
 

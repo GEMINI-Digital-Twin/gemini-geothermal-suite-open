@@ -10,9 +10,9 @@ from pydantic_core import to_jsonable_python
 import gemini as gm
 from gemini.engine.callbacks import AutoCheckpoint, EventLog
 from gemini.modules import Module
+from gemini.modules.bindings import Binding, ModuleBindings
 from gemini.modules.declarations import Control, Output
-from gemini.types import Ports
-from gemini.types.bindings import Binding, ModuleBindings
+from gemini.streams.ports import Ports
 
 
 class Gauge(Module):
@@ -28,14 +28,14 @@ class Gauge(Module):
         # Outputs
         self.value = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
         outlets = dict()
-        if self.level < 0:
+        if inputs["level"] < 0:
             raise ValueError("negative level")
-        self.value = self.level
-        return outlets
+        outputs = dict(value=inputs["level"])
+        return outputs, outlets
 
 
 def run(levels, *callbacks):

@@ -3,11 +3,11 @@
 import pytest
 
 from gemini.errors import PhysicsError, ValidationError
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules import GasGrid
-from gemini.modules._utils.balance import energy_balance, mass_balance
 from gemini.modules.heating import CHP
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -17,7 +17,9 @@ from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.reading import reading
 
 CP = 4217.4
-WATER = Stream(m_dot=Quantity(20, "kg/s"), T=Quantity(333.15, "K"), p=Quantity(3e5, "Pa"))
+WATER = Stream(
+    fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(333.15, "K"), p=Quantity(3e5, "Pa")
+)
 GRID_GAS = with_values(GasGrid())._offered()["gas_out"]
 
 
@@ -42,8 +44,8 @@ def test_full_load_hand_value_and_closure():
     assert out.heat_loss == pytest.approx(0.375e6)
     assert out.fluid_out_T == pytest.approx(WATER.T + 1.125e6 / (20 * CP))
     assert result.outlets.fluid_out.p == WATER.p
-    assert energy_balance(unit, result)["relative_residual"] < 1e-12
-    assert mass_balance(unit, result)["residual"] == 0
+    assert call_energy_balance(unit, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(unit, result)["residual"] == 0
 
 
 def test_part_load_willans_line():
@@ -54,7 +56,7 @@ def test_part_load_willans_line():
     assert out.fuel == pytest.approx(2.5e6 * (0.1 + 0.9 * 0.5))
     assert out.electricity_generated / out.fuel == pytest.approx(0.4 * 0.5 / 0.55)
     assert out.heat_recovered == pytest.approx(0.45 * out.fuel)
-    assert energy_balance(unit, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(unit, result)["relative_residual"] < 1e-12
     constant = reading(engine()(fluid_in=WATER, fuel_in=GRID_GAS, load_fraction=0.5))
     assert constant.electricity_generated / constant.fuel == pytest.approx(0.4)
 
@@ -69,7 +71,7 @@ def test_heat_dumping_and_engine_off():
     unit = engine()
     result = unit(fluid_in=WATER._with_si(m_dot=0), fuel_in=GRID_GAS, load_fraction=1)
     assert reading(result).heat_recovered == 0 and reading(result).heat_loss == pytest.approx(1.5e6)
-    assert energy_balance(unit, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(unit, result)["relative_residual"] < 1e-12
     off = reading(engine()(fluid_in=WATER, fuel_in=GRID_GAS, load_fraction=0))
     assert off.fuel == off.heat_loss == off.electricity_generated == 0
     assert off.fluid_out_T == WATER.T
@@ -91,7 +93,10 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(T, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(T, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             fuel_in=GRID_GAS,
             load_fraction=load,

@@ -3,9 +3,10 @@
 import pytest
 
 from gemini.errors import PhysicsError
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.cooling import AbsorptionUnit
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -13,9 +14,15 @@ from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
 
 CP = 4217.4
-GENERATOR = Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(361.15, "K"), p=Quantity(3e5, "Pa"))
-CHILLED = Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(285.15, "K"), p=Quantity(3e5, "Pa"))
-COOLING = Stream(m_dot=Quantity(25, "kg/s"), T=Quantity(303.15, "K"), p=Quantity(3e5, "Pa"))
+GENERATOR = Stream(
+    fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(361.15, "K"), p=Quantity(3e5, "Pa")
+)
+CHILLED = Stream(
+    fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(285.15, "K"), p=Quantity(3e5, "Pa")
+)
+COOLING = Stream(
+    fluid=BRINE, m_dot=Quantity(25, "kg/s"), T=Quantity(303.15, "K"), p=Quantity(3e5, "Pa")
+)
 
 
 def unit(mode="chiller", **params):
@@ -54,8 +61,8 @@ def test_chiller_characteristic_hand_value_and_closure():
     assert out.absorber_condenser_duty == pytest.approx(expected * ratio)
     assert out.chilled_out_T == pytest.approx(CHILLED.T - expected / (10 * CP))
     assert out.cooling_out_T == pytest.approx(COOLING.T + expected * ratio / (25 * CP))
-    assert energy_balance(machine, result)["relative_residual"] < 1e-12
-    assert mass_balance(machine, result)["residual"] == 0
+    assert call_energy_balance(machine, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(machine, result)["residual"] == 0
 
 
 def test_chiller_follows_setpoint_and_capacity():
@@ -75,7 +82,7 @@ def test_heat_pump_mode_delivers_heat_on_the_cooling_circuit():
     assert out.cooling_out_T == pytest.approx(COOLING.T + 1)
     assert out.absorber_condenser_duty == pytest.approx(25 * CP)
     assert out.cop == pytest.approx(0.7 * (1 + 1 / 0.7 + 0.01))
-    assert energy_balance(machine, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(machine, result)["relative_residual"] < 1e-12
     capped = reading(call(unit("heat_pump", capacity=5e4), COOLING.T + 1))
     assert capped.absorber_condenser_duty == pytest.approx(5e4) and capped.is_capped
 

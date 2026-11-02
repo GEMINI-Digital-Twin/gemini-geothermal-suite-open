@@ -6,7 +6,7 @@ import numpy as np
 
 import gemini as gm
 from gemini.case._utils.kinds import EQUIPMENT_KINDS
-from gemini.case.roletable import TABLE
+from gemini.plants.roles import TABLE
 from gemini.units import Quantity
 from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.result_tables import START

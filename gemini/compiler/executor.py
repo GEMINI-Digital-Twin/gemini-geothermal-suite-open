@@ -1,14 +1,15 @@
 """The graph executor: trace a plant once, then evaluate whole time series of it.
 
-``compile(plant)`` returns the ``GraphExecutor`` of ``plant``, which the engine runs when it is
-built with ``compile=True``. The executor keeps the traced graphs in the process-wide
-``GraphCache`` (``graph_cache``), which holds a graph by the structure of the plant: a second
-executor, a second engine and a copy of the plant with other numeric values trace nothing again
-until a guard of the cache changes. A prepared call keeps the plant it was prepared for, and the
-graph is evaluated for that plant.
+``compile(plant)`` (``compile.py``) returns the ``GraphExecutor`` of ``plant``, which the engine
+runs when it is built with ``compile=True``. The executor keeps the traced graphs in the
+process-wide ``GraphCache`` (``graph_cache``), which holds a graph by the structure of the
+plant: a second executor, a second engine and a copy of the plant with other numeric values trace
+nothing again until a guard of the cache changes. A prepared call keeps the plant it was prepared
+for, and the graph is evaluated for that plant.
 """
 
-from gemini.compiler.graph import evaluate, graph_cache, graph_feeds
+from gemini.compiler.interpret.run_graph import run_graph
+from gemini.compiler.run import graph_feeds
 from gemini.engine.executor import Executor
 
 
@@ -26,11 +27,6 @@ class GraphExecutor(Executor):
         return graph, graph_feeds(graph, module, streams, inputs), module
 
     def evaluate(self, prepared, rows, context):
-        """Return the ``Evaluation`` of the graph over ``rows`` rows."""
+        """Return the ``GraphResult`` of the graph over ``rows`` rows."""
         graph, feeds, module = prepared
-        return evaluate(graph, feeds, rows, context, module)
-
-
-def compile(plant):
-    """Return the executor that runs ``plant`` through its computation graphs."""
-    return GraphExecutor(graph_cache())
+        return run_graph(graph, feeds, rows, context, module)

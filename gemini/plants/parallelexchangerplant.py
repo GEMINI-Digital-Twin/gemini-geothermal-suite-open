@@ -6,10 +6,10 @@ from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.grids import ElectricityGrid
 from gemini.modules.piping import Mixer, Splitter
 from gemini.modules.treatment import Degasser, Filter
-from gemini.plants._utils.wiring import mix_chain
+from gemini.plants._utils.cascades import mix_chain
 from gemini.plants.nodaldoublet import NodalDoublet
 from gemini.plants.plant import Plant
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 EXCHANGERS = 3
 """The heat exchangers in parallel; the share of the flow each takes is the ``split_fraction`` of
@@ -28,8 +28,8 @@ class ParallelExchangerPlant(Plant):
     in the same way and remixed after the exchangers. The shares are the designer's: the
     ``split_fraction`` of the two splitter cascades, stated in the plant file (a splitter sends
     that share of its feed to its second branch, the last exchanger takes the rest).
-    ``inputs/plants/ParallelExchangerPlant.json`` carries the shares and the well, reservoir, ESP
-    and exchanger data of the upstream example.
+    ``tests/fixtures/plants/ParallelExchangerPlant.json`` carries the shares and the well,
+    reservoir, ESP and exchanger data of the upstream example.
 
     Not schedulable: its doublet is a ``NodalDoublet``, and a run sets its splits and setpoints.
     """

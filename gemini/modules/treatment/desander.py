@@ -5,9 +5,9 @@ from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.treatment import _physics
-from gemini.physics import fluid, hydraulics
-from gemini.types import Fraction, MassConcentration, MassFlow, PressureDifference, Stream
+from gemini.physics import fluid, hydraulics, separation
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction, MassConcentration, MassFlow, PressureDifference
 
 
 class Desander(Module):
@@ -76,30 +76,30 @@ class Desander(Module):
         self.fluid_out = Outlet(Stream, kind="brine")
         self.waste_out = Outlet(Stream, kind="waste")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Apply the quadratic cyclone pressure loss."""
 
         # Outlets
         inlet = inlets.fluid_in
-        removed, residual = self._sand(inlet)
+        removed, residual = self._sand(inputs, inlet)
         drop = self._pressure_drop(inlet)
         outlet = inlet._with_si(m_dot=inlet.m_dot - removed, p=inlet.p - drop)
         waste_out = inlet._with_si(m_dot=removed)
 
         # Outputs
-        self.pressure_drop = drop
-        self.sand_removal_rate = removed
-        self.residual_sand_concentration = residual
+        outputs = dict(
+            pressure_drop=drop, sand_removal_rate=removed, residual_sand_concentration=residual
+        )
 
         outlets = dict(fluid_out=outlet, waste_out=waste_out)
-        return outlets
+        return outputs, outlets
 
-    def _sand(self, inlet):
+    def _sand(self, inputs, inlet):
         """Return the sand removal rate [kg/s] and the residual sand concentration [kg/m3]."""
         properties = inlet.fluid.properties(inlet.p, inlet.T)
         liquid_flow = fluid.liquid_volume_flow(inlet.m_dot, properties.gmf, properties.rho_l)
-        return _physics.cyclone_sand(
-            self.separation_efficiency, self.sand_concentration, liquid_flow
+        return separation.cyclone_sand(
+            self.separation_efficiency, inputs["sand_concentration"], liquid_flow
         )
 
     def _pressure_drop(self, inlet):

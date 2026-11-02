@@ -1,10 +1,11 @@
 """Degasser separating a share of the free gas from the liquid, with a pressure loss."""
 
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.treatment import _physics
-from gemini.types import Fraction, Pressure, PressureDifference, Stream, ThermalConductance
+from gemini.physics import separation
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction, Pressure, PressureDifference, ThermalConductance
 
 
 class Degasser(Equipment, Module):
@@ -89,7 +90,7 @@ class Degasser(Equipment, Module):
         self.liquid_out = Outlet(Stream, kind="brine")
         self.gas_out = Outlet(Stream, kind="gas")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Split the separated free gas from the liquid at the vessel pressure."""
 
         # Outlets
@@ -99,7 +100,7 @@ class Degasser(Equipment, Module):
             if self.outlet_pressure is not None
             else inlet.p - self.nominal_pressure_drop
         )
-        liquid_flow, gas_flow, remaining = _physics.degasser_split(
+        liquid_flow, gas_flow, remaining = separation.degasser_split(
             inlet.m_dot, inlet.fluid.gas_mass_fraction, self.separation_efficiency
         )
         liquid = inlet._with_si(
@@ -108,11 +109,11 @@ class Degasser(Equipment, Module):
         gas = liquid._with_si(m_dot=gas_flow, fluid=inlet.fluid.free_gas())
 
         # Outputs
-        self.pressure_drop = inlet.p - liquid.p
+        outputs = dict(pressure_drop=inlet.p - liquid.p)
 
         outlets = dict(liquid_out=liquid, gas_out=gas)
-        return outlets
+        return outputs, outlets
 
-    def capex(self, economics):
-        """Return the cost of the degasser, a fixed item."""
-        return self.capex_of(economics, 1)
+    def cost_size(self):
+        """Return the size that the cost of the degasser scales with: 1, a fixed item."""
+        return 1

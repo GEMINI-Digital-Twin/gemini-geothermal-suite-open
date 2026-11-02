@@ -9,9 +9,9 @@ import pandas as pd
 import pytest
 
 import gemini as gm
-from gemini._utils import paths
 from gemini.modules import Module
-from tests.cpu_budget import BUDGET_S, exceeds_budget, measure_cpu
+from tests.cpu_budget import BUDGET_S, MACHINE_SPEED, exceeds_budget, measure_cpu
+from tests.fixtures import paths
 from tests.fixtures.sample_cases import example_plant
 
 TIER_MARKERS = {
@@ -127,7 +127,11 @@ def pytest_collection_modifyitems(items):
 
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_call(item):
-    """Record the CPU time of the test call itself, without fixture setup or teardown."""
+    """Record the CPU time of the test call itself, without fixture setup or teardown.
+
+    The machine speed is read before the measured block, so the reading is not charged to the test.
+    """
+    MACHINE_SPEED.sample()
     try:
         with measure_cpu() as cpu:
             return (yield)
@@ -153,12 +157,15 @@ def pytest_runtest_makereport(item, call):
         and item.config.getoption("--profile") == "development"
         and not markers.intersection({"e2e", "slow"})
     ):
-        report.outcome = "failed"
-        report.longrepr = (
-            f"Fast-tier test used {cpu_seconds:.2f}s of CPU time in {report.duration:.2f}s "
-            f"elapsed (budget: {BUDGET_S:.2f}s CPU). "
-            "Move it to slow or make it faster, see .claude/docs/testing.md."
-        )
+        slowdown = MACHINE_SPEED.slowdown()
+        if exceeds_budget(cpu_seconds, slowdown):
+            report.outcome = "failed"
+            report.longrepr = (
+                f"Fast-tier test used {cpu_seconds:.2f}s of CPU time in {report.duration:.2f}s "
+                f"elapsed (budget: {BUDGET_S:.2f}s CPU at reference speed, {slowdown:.2f} times "
+                f"slower now, so {BUDGET_S * slowdown:.2f}s). "
+                "Move it to slow or make it faster, see .claude/docs/testing.md."
+            )
 
 
 class DevelopmentBudget:

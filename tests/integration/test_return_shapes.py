@@ -93,19 +93,22 @@ def _run_entries(plant, results):
             },
             {
                 "hot_in": {
+                    "fluid": {"kind": "brine"},
                     "m_dot": gm.units.Quantity(40.0, "kg/s"),
                     "T": {"value": 90, "unit": "degC"},
                     "p": {"value": 5, "unit": "bar"},
                 },
                 "cold_in": {
+                    "fluid": {"kind": "brine"},
                     "m_dot": gm.units.Quantity(40.0, "kg/s"),
                     "T": {"value": 40, "unit": "degC"},
                     "p": {"value": 5, "unit": "bar"},
                 },
             },
             {},
+            "si",
         ),
-        "evaluate.record": lambda: gm.call("Boilr", {}, {}, {}, on_error="record"),
+        "evaluate.record": lambda: gm.call("Boilr", {}, {}, {}, "si", on_error="record"),
         "get": lambda: results.get("heat_exchanger", "duty"),
         "summary": results.summary,
         "errors": results.errors,
@@ -291,6 +294,10 @@ def test_every_data_entry_of_the_page_is_walked(entries):
         "report",
         "compare",
         "failures",
+        "call_energy_balance",
+        "call_mass_balance",
+        "call_emissions",
+        "collect_flows",
     }
     assert listed - later <= entries.keys()
 

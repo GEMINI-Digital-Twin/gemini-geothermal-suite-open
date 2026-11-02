@@ -3,23 +3,28 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.plants import ATESPlant
-from gemini.types import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
-from tests.fixtures.designs import with_values
+from tests.fixtures.designs import EMPTY_AQUIFER, with_values
 from tests.fixtures.reading import reading
 
 CP = 4217.4
 HOUR = 3600.0
 SUMMER = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(40.0, "kg/s"),
     T=gm.units.Quantity(290.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
 )
 WINTER = SUMMER._with_si(T=303.15)
+STORED = {"storage": EMPTY_AQUIFER}
+"""The state of the plant before any charge."""
 
 
 def _season(plant, mode):
@@ -74,17 +79,17 @@ def _plant(mode="charge"):
 
 def _check_balances(plant, result):
     """Check that the audit closes except for the pump's flow work and that mass is conserved."""
-    audit = energy_balance(plant, result)
+    audit = call_energy_balance(plant, result)
     hydraulic = result.children["pump"].outputs.hydraulic_power
     assert abs(audit["residual"] - hydraulic) / audit["in"] < 1e-12
-    assert mass_balance(plant, result)["residual"] == 0
+    assert call_mass_balance(plant, result)["residual"] == 0
     assert_plant_closes(plant, result)
 
 
 def test_charge_cools_the_building_with_native_groundwater():
     """Empty stores produce at the aquifer temperature; the exchanger cools the building."""
     plant = _plant()
-    result = plant(return_in=SUMMER)
+    result = plant(return_in=SUMMER, state=STORED)
     exchanger = result.children["heat_exchanger"]
     groundwater = exchanger.inlets.cold_in
     assert result.children["storage"].outlets.production_out.T == 284.15 and groundwater.T > 284.15
@@ -106,7 +111,7 @@ def test_two_charge_steps_fill_the_warm_store():
     The conduction loss that sets in during the first hour takes about 0.15 %.
     """
     plant = _plant()
-    state, first = plant.step(None, HOUR, {"return_in": SUMMER})
+    state, first = plant.step(STORED, HOUR, {"return_in": SUMMER})
     state, second = plant.step(state, HOUR, {"return_in": SUMMER})
     assert state["storage"]["warm_volume"] == pytest.approx(2 * 30 / 1000 * HOUR)
     assert state["storage"]["warm_temperature_change"] > 0
@@ -119,7 +124,7 @@ def test_two_charge_steps_fill_the_warm_store():
 def test_discharge_feeds_the_heat_pump_from_the_warm_store():
     """After charging, the warm store feeds the evaporator and the condenser heats the building."""
     plant = _plant()
-    state, _ = plant.step(None, 6 * HOUR, {"return_in": SUMMER})
+    state, _ = plant.step(STORED, 6 * HOUR, {"return_in": SUMMER})
     warm = 284.15 + state["storage"]["warm_temperature_change"]
     _season(plant, "discharge")
     state, result = plant.step(state, HOUR, {"return_in": WINTER})
@@ -145,12 +150,12 @@ def test_idle_moves_no_groundwater_and_flow_is_required_to_stop():
     """Idle passes the building circuit; idle with groundwater flow raises."""
     plant = _plant("idle")
     si.assign(plant.storage, "groundwater_flow", 0.0)
-    result = plant(return_in=SUMMER)
+    result = plant(return_in=SUMMER, state=STORED)
     assert result.outlets.supply_out.T == SUMMER.T
     assert reading(result).electricity == 0
     si.assign(plant.storage, "groundwater_flow", 30.0)
     with pytest.raises(gm.errors.PhysicsError, match="idle"):
-        plant(return_in=SUMMER)
+        plant(return_in=SUMMER, state=STORED)
 
 
 class Campus(Module):
@@ -172,26 +177,26 @@ class Campus(Module):
         # Outlets
         self.supply_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Cool the building return."""
 
         # Modules
-        served = self.ates(return_in=inlets.return_in)
+        served = self.ates(return_in=inlets.return_in, state=state["ates"])
 
         # Outputs
-        self.stored_energy = served.children["storage"].outputs.stored_energy
+        outputs = dict(stored_energy=served.children["storage"].outputs.stored_energy)
 
         # Outlets
         supply_out = served.outlets.supply_out
 
         outlets = dict(supply_out=supply_out)
-        return outlets
+        return outputs, outlets
 
 
 def test_nested_plant_steps_through_its_parent():
     """A parent composite steps the ATES storage two levels down."""
     campus = Campus()
-    state, _ = campus.step(None, HOUR, {"return_in": SUMMER})
+    state, _ = campus.step({"ates": STORED}, HOUR, {"return_in": SUMMER})
     state, result = campus.step(state, HOUR, {"return_in": SUMMER})
     assert state["ates"]["storage"]["warm_volume"] == pytest.approx(2 * 30 / 1000 * HOUR)
     assert result.outputs.stored_energy > 0

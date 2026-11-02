@@ -40,6 +40,7 @@ into the vocabulary in the commit that first uses it, only if it is a full word 
 | depth of a borehole | `borehole_depth` | a bare `depth` |
 | pressure of the stream where it enters a pump | `intake_pressure` | `suction_pressure`, `pip` |
 | free-gas share of the volume of the stream at a pump intake | `gas_volume_fraction`; on a role, `intake_gas_fraction` | `gvf`, `void_fraction` |
+| co-produced gas that a boiler or a flare burns, as a mass flow of the plant | `gas_burned`; on a role, `plant.gas_burned` | `gas_flared` (the boiler burns it too), `burnt_gas`, `flare_gas` |
 | design of a doublet from its depth | `depth`, `thickness`, `gradient`, on `Doublet` and, `depth` alone, on the plants of `DoubletsPlant` | |
 
 Four short forms stay because the full word would be longer and no clearer in this field: `T` (see
@@ -141,7 +142,7 @@ Not names of module declarations, so not in the list above; the one meaning of e
 | Term | Meaning |
 | --- | --- |
 | case | `gm.Case`: everything a plant is asked to do and the world around it, in the sections `time`, `site`, `demand`, `utilities`, `economics`, `requirements` |
-| role | a kind of unit found in a plant by class and wiring (`doublet`, `heat_pump`, `boiler`, `chp`, `chiller`, `heat_exchanger`, `heating_supply`, `cooling_supply`, and `plant` for the plant as a whole); `gm.case.roles()` |
+| role | a kind of unit found in a plant by class and wiring (`doublet`, `heat_pump`, `boiler`, `chp`, `chiller`, `heat_exchanger`, `heating_supply`, `cooling_supply`, and `plant` for the plant as a whole); `gm.plants.roles()` |
 | quantity of a role | what a requirement limits on every unit of the role (`production_flow`, `brine_cooling`, `cop`, `heat_output`, `electricity_bought`, ...) |
 | equipment kind | the key of `capex` and `opex.fixed` in the case (`drilling`, `heat_pump`, `boiler`, ...); a module that is equipment declares `equipment_kind` |
 | capex factor | the unit cost of a kind in the case, times the size of the equipment |

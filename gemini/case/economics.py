@@ -12,7 +12,7 @@ from gemini.case._utils.kinds import EQUIPMENT_KINDS
 from gemini.case._utils.node import Field, Frozen, Node, issue, load, write
 from gemini.case.site import FRACTION, POSITIVE
 from gemini.errors import ValidationError
-from gemini.types import inputs
+from gemini.units import inputs
 
 HEADER = ("format", "kind", "name")
 TABLE_KEYS = ("depth", "cost_per_metre")

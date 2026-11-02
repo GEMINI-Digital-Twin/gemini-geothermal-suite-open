@@ -10,6 +10,7 @@ from gemini.evaluate.verdict import Verdict, reason
 from gemini.study._utils import trial
 from gemini.study._utils.best import Best
 from gemini.units import Quantity
+from gemini.units.shapes import measure
 from tests.fixtures import si
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import clean_verdict, shallow_case, shallow_plant
@@ -82,9 +83,10 @@ def test_best_round_trips_through_json_without_an_encoder(runs):
     plain = json.loads(json.dumps(best.to_dict(), allow_nan=False))
     assert plain["plant"] == best["plant"].to_dict()
     assert plain["parameters"]["depth"].keys() == {"value", "unit"}
+    assert plain["unit"] == "EUR/MWh" and plain["value"] == pytest.approx(best.si * 3.6e9)
     again = Best.from_dict(plain)
-    assert again.value == best.value and again.unit == best.unit
-    assert again.parts["parameters"] == best.parts["parameters"]
+    assert again.si == pytest.approx(best.si)
+    assert again.parts["parameters"]["depth"] == best.parts["parameters"]["depth"]
     assert again["plant"].to_dict() == best["plant"].to_dict()
     assert again.to_dict() == best.to_dict()
 
@@ -121,7 +123,7 @@ def test_an_option_is_a_discrete_variable(runs, monkeypatch):
 
     def dearer_in_parallel(plant, case, results, name):
         extra = 5.0 if plant.heat_exchanger.arrangement == "parallel" else 0.0
-        return gm.types.shapes.measure(cost(plant, case, results, name).value + extra, "currency/J")
+        return measure(cost(plant, case, results, name).value + extra, "currency/J")
 
     monkeypatch.setattr(trial, "metric", dearer_in_parallel)
     result = minimized(plant)

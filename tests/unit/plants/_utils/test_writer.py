@@ -1,7 +1,7 @@
 """Writing a built plant: stated values stay as written while they are true."""
 
 import gemini as gm
-from gemini.modules._utils.serialization import tree_params
+from gemini.plants._utils.serialization import tree_params
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 

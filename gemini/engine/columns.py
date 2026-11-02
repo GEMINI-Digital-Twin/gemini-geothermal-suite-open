@@ -13,9 +13,9 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from gemini import units
-from gemini.engine.step import VOLUMETRIC_UNITS
-from gemini.types import Fluid, Stream
-from gemini.types.flows import STREAM_FIELDS, mass_flow, stream_valid
+from gemini.engine.bindings import VOLUMETRIC_UNITS
+from gemini.streams.flows import STREAM_FIELDS, Stream, mass_flow, stream_valid
+from gemini.streams.fluid import Fluid
 
 
 @dataclass
@@ -114,7 +114,9 @@ def _check_stream(block, twin, port, defaults):
     """Complete the fields of an inlet from its defaults and mark the ticks it refuses."""
     for name, value in defaults.items():
         block.fields.setdefault((port, name), np.full(block.size, value))
-    fluid = twin.defaults.get(port, {}).get("fluid", twin.module.fluid)
+    fluid = twin.defaults.get(port, {}).get("fluid")
+    if fluid is None:
+        fluid = twin.module.fluid
     block.fluids[port] = Fluid._of(fluid)
     present = [(port, name) in block.fields for name in STREAM_FIELDS]
     if not all(present):

@@ -3,7 +3,7 @@
 import numpy as np
 
 from gemini.evaluate._utils.columns import fields, parameter_values, series
-from gemini.types.shapes import measure
+from gemini.units.shapes import measure
 
 TOLERANCE = 1e-9
 """Relative margin of an operating limit: a value on the limit passes through its rounding."""

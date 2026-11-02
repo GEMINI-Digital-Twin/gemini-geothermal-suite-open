@@ -1,6 +1,6 @@
 """The names of the first stored plants, which the oldest golden files still hold."""
 
-from gemini.types.fluid import Fluid
+from gemini.streams.fluid import Fluid
 
 RENAMED_NAMES = {
     "approach_T": "approach_temperature",

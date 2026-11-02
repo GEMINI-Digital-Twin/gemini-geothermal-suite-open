@@ -5,19 +5,20 @@ from copy import deepcopy
 import numpy as np
 
 from gemini import units
-from gemini.analysis import solves
-from gemini.analysis.wells import WELLHEAD_PRESSURES
+from gemini.analysis.nodal import WELLHEAD_PRESSURES, solve_injection_pressure
 from gemini.case._utils.access import require
+from gemini.engine.apply import apply_case
+from gemini.engine.check import check
+from gemini.engine.simulate import simulate
 from gemini.errors import PhysicsError, RunError, ValidationError
 from gemini.errors.base import raise_issues
 from gemini.evaluate import requirements
 from gemini.modules.pumps import InjectionPump
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
-from gemini.plants._utils.roles import units_of
-from gemini.run import check, simulate
-from gemini.run._utils.apply import apply_case
-from gemini.study._utils.resize import resized
-from gemini.types import Stream
+from gemini.plants._utils.resize import resized
+from gemini.plants.roles import units_of
+from gemini.streams.flows import Stream
+from gemini.study._utils.shown import display_quantity, display_text
 
 POLICIES = ("none", "peak")
 """The backup policies of ``size``."""
@@ -52,7 +53,7 @@ def _peak(case, service):
 
 def _note(notes, path, value, unit, reason):
     """Record one size and the reason for it."""
-    notes["sized"].append({"path": path, "value": units.Quantity(value, unit), "reason": reason})
+    notes["sized"].append({"path": path, "value": display_quantity(value, unit), "reason": reason})
 
 
 def _takes_doublets(plant):
@@ -97,9 +98,10 @@ def _doublets(plant, case, peak, notes):
         {
             "path": "size.doublets",
             "value": units.Quantity(count, "-"),
-            "reason": f"{count} doublet(s) of {heat:.4g} W each at the flow limit {flow_max:.4g} "
-            f"m3/s and the brine cooling limit {cooling_max:.4g} K {covered} the heating peak "
-            f"of {peak:.4g} W",
+            "reason": f"{count} doublet(s) of {display_text(heat, 'W')} each at the flow limit "
+            f"{display_text(flow_max, 'm3/s')} and the brine cooling limit "
+            f"{display_text(cooling_max, 'K', difference=True)} {covered} the heating peak "
+            f"of {display_text(peak, 'W')}",
         }
     )
     for path in units_of(design, "doublet"):
@@ -189,12 +191,12 @@ def _capacities(design, case, notes, backup, cover):
             if role == "chiller" and _closes_series(design, path):
                 value, reason = (
                     peak,
-                    f"the whole {service} peak of {peak:.4g} W: it closes the series",
+                    f"the whole {service} peak of {display_text(peak, 'W')}: it closes the series",
                 )
             else:
                 value = duty / len(paths)
                 reason = (
-                    f"{part:.3g} of the {service} peak of {peak:.4g} W "
+                    f"{part:.3g} of the {service} peak of {display_text(peak, 'W')} "
                     f"shared by {len(paths)} {role} unit(s)"
                 )
             design._set_si_params(path, {"capacity": value})
@@ -219,7 +221,7 @@ def _injection_head(applied, case, path):
         m_dot=rate, T=temperature, p=doublet.nominal_wellhead_pressure, fluid=doublet.fluid
     )
     low = float(doublet.nominal_wellhead_pressure)
-    needed = solves.solve_injection_pressure(
+    needed = solve_injection_pressure(
         doublet.injector, doublet.sink, stream, (low, WELLHEAD_PRESSURES[1])
     )
     return 0.0 if needed is None else needed - low

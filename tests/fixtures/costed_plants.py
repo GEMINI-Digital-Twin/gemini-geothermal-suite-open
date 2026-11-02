@@ -5,7 +5,7 @@ The consumers join the plant with ``add_module``, so the test classes stay out o
 
 import gemini as gm
 from gemini.modules import CoolingGrid, ElectricityGrid, GasGrid, HeatingGrid
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from tests.fixtures.result_tables import make_results
 
 HOURS = 24
@@ -17,9 +17,9 @@ class CostedHeatingGrid(Equipment, HeatingGrid):
 
     equipment_kind = "degasser"
 
-    def capex(self, economics):
-        """Return the capex factor of the kind."""
-        return self.capex_of(economics, 1)
+    def cost_size(self):
+        """Return 1, a fixed item."""
+        return 1
 
 
 class CostedCoolingGrid(Equipment, CoolingGrid):
@@ -27,9 +27,9 @@ class CostedCoolingGrid(Equipment, CoolingGrid):
 
     equipment_kind = "flare"
 
-    def capex(self, economics):
-        """Return the capex factor of the kind."""
-        return self.capex_of(economics, 1)
+    def cost_size(self):
+        """Return 1, a fixed item."""
+        return 1
 
 
 def _with_grids(plant):

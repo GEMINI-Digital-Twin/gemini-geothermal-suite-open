@@ -6,7 +6,8 @@ import gemini as gm
 from gemini.modules import GasGrid
 from gemini.modules.heating import Boiler, ElectricBoiler
 from gemini.physics import gas
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.gas import GRID_COMPOSITION
@@ -15,6 +16,7 @@ from tests.fixtures.reading import reading
 GRID_GAS = with_values(GasGrid())._offered()["gas_out"]
 COPRODUCED = gm.Fluid(kind="gas", gas_composition={"CH4": 0.8, "CO2": 0.2})
 WATER = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(10, "kg/s"),
     T=gm.units.Quantity(300, "K"),
     p=gm.units.Quantity(1e6, "Pa"),
@@ -25,6 +27,7 @@ def test_capacity_balance_and_no_cooling():
     """Capacity caps heat, energy input accounts for efficiency, and the boiler never cools."""
     c = Boiler().set_params("", {"capacity": gm.units.Quantity(100000, "W"), "efficiency": 0.8})
     s = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(10, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e6, "Pa"),
@@ -47,6 +50,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e6, "Pa"),
@@ -63,6 +67,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e6, "Pa"),

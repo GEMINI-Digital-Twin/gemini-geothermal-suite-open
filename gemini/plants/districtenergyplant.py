@@ -6,7 +6,7 @@ from gemini.modules.grids import ElectricityGrid
 from gemini.plants.atesplant import ATESPlant
 from gemini.plants.districtnetwork import DistrictNetwork
 from gemini.plants.plant import Plant
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 
 class DistrictEnergyPlant(Plant):

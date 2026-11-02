@@ -3,9 +3,9 @@
 Run from the repository root after a change to a shape: ``python scripts/write_schemas.py``. The
 schemas of the case, the economics, the plant file, the study and the profile come from
 ``gm.Case.schema()``, ``gm.case.Economics.schema()``, ``gm.plants.schema()``, ``gm.Study.schema()``
-and ``gm.data.profile_schema()`` and those
-of the three return shapes from ``gemini.types.shapes``; the others are written by hand. The
-samples come from the example plant and from the case of a project of ``inputs/examples``, so
+and ``gm.case.profile_schema()`` and those
+of the three return shapes from ``gemini.units.shapes``; the others are written by hand. The
+samples come from the example plant and from the case of a project of ``examples/``, so
 other repositories can build against real documents.
 """
 
@@ -15,9 +15,9 @@ from pathlib import Path
 import pandas as pd
 
 import gemini as gm
-from gemini._utils import paths
 from gemini._utils.jsonable import to_plain
-from gemini.types import shapes
+from gemini.units import shapes
+from tests.fixtures import paths
 from tests.fixtures.sample_cases import SHALLOW_DISTRICT, example_plant, shallow_case
 
 ROOT = Path(__file__).parents[1]
@@ -52,7 +52,7 @@ def _case():
 
 def _profile_sample():
     """Return a short heating profile of made-up values, in the document form of a profile."""
-    frame = gm.data.from_values(PROFILE_VALUES, "kW", "2030-01-01", "1 h", PROFILE)
+    frame = gm.case.from_values(PROFILE_VALUES, "kW", "2030-01-01", "1 h", PROFILE)
     return {
         "columns": {
             PROFILE: {
@@ -90,7 +90,7 @@ def documents():
         "economics.schema.json": gm.case.Economics.schema(),
         "plant.schema.json": gm.plants.schema(),
         "study.schema.json": gm.Study.schema(),
-        "profile.schema.json": gm.data.profile_schema(),
+        "profile.schema.json": gm.case.profile_schema(),
         **{f"{name}.schema.json": schema for name, schema in shapes.SCHEMAS.items()},
         "module_description.sample.json": example_plant("Doublet").describe(),
         "case.sample.json": sample.to_dict(),

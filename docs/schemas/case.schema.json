@@ -4502,6 +4502,7 @@
               "electricity_bought",
               "fuel_input",
               "gas_bought",
+              "gas_burned",
               "heat_output",
               "heat_surplus",
               "injection_temperature",

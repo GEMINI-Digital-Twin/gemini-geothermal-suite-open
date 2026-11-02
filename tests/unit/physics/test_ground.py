@@ -229,7 +229,7 @@ def test_doublet_drop_and_time_by_hand():
     assert ground.doublet_temperature_drop(10, 100, 370, 300) == 0
     assert ground.doublet_temperature_drop(300, 100, 370, 300) == pytest.approx(35, abs=1e-9)
     assert ground.doublet_breakthrough_time(1000, 0.5) == 2000
-    assert ground.doublet_breakthrough_time(1000, 0) is None
+    assert math.isnan(ground.doublet_breakthrough_time(1000, 0))
     rows = [(10.0, 100.0, 370.0, 300.0), (300.0, 100.0, 370.0, 300.0), (1e5, 100.0, 370.0, 300.0)]
     assert_function_matches(ground.doublet_temperature_drop, rows)
     assert_function_matches(ground.doublet_breakthrough_time, [(1000.0, 0.5), (1000.0, 0.0)])
@@ -243,7 +243,7 @@ def test_aquifer_store_relations_by_hand():
     assert ground.stored_heat(4e6, 10, 5) == 2e8
     assert ground.aquifer_stored_energy(4e6, 10, 5, 20, -2) == 4e6 * (50 - 40)
     assert ground.thermal_recovery(1.0, 4.0) == 0.25
-    assert ground.thermal_recovery(1.0, 0.0) is None
+    assert math.isnan(ground.thermal_recovery(1.0, 0.0))
     assert ground.store_relaxation(8.0, 0.0, 0.0, 10.0, 4e6) == 0
     assert ground.store_relaxation(8.0, 1.0, 4e6, 1.0, 4e6) == pytest.approx(8.0 / math.e)
     assert ground.store_conductance(1e5, 2.0, 0.2, 4.2e6, 2.5e6, 50, 1.5e7) == pytest.approx(

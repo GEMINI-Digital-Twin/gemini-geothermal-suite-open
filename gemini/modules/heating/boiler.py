@@ -1,21 +1,22 @@
 """Auxiliary boilers with a steady first-law heat balance: gas-fired and electric."""
 
 from gemini import ops
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules._utils.supply import supply_margin
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.heating import _burner
 from gemini.modules.module import Module
 from gemini.physics import energy, heat_transfer
-from gemini.types import Efficiency, Fuel, Power, Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Efficiency, Fuel, Power, Temperature
 
 
 class _BoilerBody(Equipment, Module):
     """Water side of a boiler: heat a forward stream to its setpoint, up to a duty limit.
 
     On a supply line the setpoint is the supply temperature of ``demand.heating`` plus the
-    ``supply_margin`` the plant states (``gm.run.apply_case``).
+    ``supply_margin`` the plant states (``gemini.engine.apply.apply_case``).
     """
 
     abstract = True
@@ -48,15 +49,15 @@ class _BoilerBody(Equipment, Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="hot_water")
 
-    def capex(self, economics):
-        """Return the cost of the boiler from its capacity."""
-        return self.capex_of(economics, self.capacity)
+    def cost_size(self):
+        """Return the size that the cost of the boiler scales with: capacity."""
+        return self.capacity
 
-    def _requested_duty(self, inlet):
+    def _requested_duty(self, inputs, inlet):
         """Return the duty [W] that reaches the setpoint, refusing reverse flow."""
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
         return heat_transfer.setpoint_duty(
-            inlet.heat_capacity_rate(), self.temperature_setpoint - inlet.T
+            inlet.heat_capacity_rate(), inputs["temperature_setpoint"] - inlet.T
         )
 
     def _heated(self, inlet, duty):
@@ -96,12 +97,12 @@ class Boiler(_BoilerBody):
         self.flue_out = Outlet(Stream, kind="gas")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Heat the stream up to its setpoint and return the gas it burned."""
 
         # Outlets
         inlet, fuel = inlets.fluid_in, inlets.fuel_in
-        requested = self._requested_duty(inlet)
+        requested = self._requested_duty(inputs, inlet)
         limit = self._duty_limit(fuel)
         duty = ops.minimum(requested, limit)
         outlet = self._heated(inlet, duty)
@@ -109,8 +110,7 @@ class Boiler(_BoilerBody):
         flue_out = _burner.flue_stream(need, fuel)
 
         # Outputs
-        self.is_capped = requested > limit
-        self.fuel = need
+        outputs = dict(is_capped=requested > limit, fuel=need)
 
         outlets = dict(
             fluid_out=outlet,
@@ -118,7 +118,7 @@ class Boiler(_BoilerBody):
             loss_out=need - duty,
             fuel_in=_burner.burned_stream(need, fuel),
         )
-        return outlets
+        return outputs, outlets
 
     def _duty_limit(self, fuel):
         """Return the capacity, or less when the stream alone must cover the fuel [W]."""
@@ -140,24 +140,22 @@ class ElectricBoiler(_BoilerBody):
         # Inlets
         self.power_in = Inlet(Power, kind="electricity")
 
-        # Outputs
-
         # Outlets
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Heat the stream up to its setpoint."""
 
         # Outlets
         inlet = inlets.fluid_in
-        requested = self._requested_duty(inlet)
+        requested = self._requested_duty(inputs, inlet)
         duty = ops.minimum(requested, self.capacity)
         outlet = self._heated(inlet, duty)
 
         power_in = energy.input_power(duty, self.efficiency)
 
         # Outputs
-        self.is_capped = requested > self.capacity
+        outputs = dict(is_capped=requested > self.capacity)
 
         outlets = dict(fluid_out=outlet, loss_out=power_in - duty, power_in=power_in)
-        return outlets
+        return outputs, outlets

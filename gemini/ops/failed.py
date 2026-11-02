@@ -13,7 +13,7 @@ the outermost scope (``ops.scope.plain``).
 """
 
 from gemini.ops.dispatch import Operators, Symbolic
-from gemini.ops.failures import next_order
+from gemini.ops.failedrows import next_order
 
 MARK = "_gemini_check"
 ORDER = "_gemini_order"

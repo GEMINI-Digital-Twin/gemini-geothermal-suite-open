@@ -3,16 +3,17 @@
 import pytest
 
 from gemini.errors import PhysicsError
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.pumps import GasCompressor
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
 
-GAS = Stream(m_dot=Quantity(0.2, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
+GAS = Stream(fluid=BRINE, m_dot=Quantity(0.2, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
 
 
 def compressor(**changes):
@@ -53,7 +54,7 @@ def test_intercooled_stages_save_work_and_close_in_gas_enthalpy():
     gas_heating = 0.2 * 1005 * (out.fluid_out_T - 300)
     assert out.shaft_power == pytest.approx(2 * gas_heating)
     assert out.electricity == pytest.approx(gas_heating + out.heat_loss, rel=1e-12)
-    assert mass_balance(machine, result)["residual"] == 0
+    assert call_mass_balance(machine, result)["residual"] == 0
 
 
 def test_sensible_audit_differs_by_the_liquid_heat_capacity():
@@ -62,7 +63,7 @@ def test_sensible_audit_differs_by_the_liquid_heat_capacity():
     result = machine(fluid_in=GAS, pressure_setpoint=4e5)
     rise = reading(result).fluid_out_T - 300
     expected = 0.2 * rise * (1005 - 4217.4)
-    assert energy_balance(machine, result)["residual"] == pytest.approx(expected, rel=1e-9)
+    assert call_energy_balance(machine, result)["residual"] == pytest.approx(expected, rel=1e-9)
 
 
 def test_zero_flow_unit_ratio_and_invalid_setpoints():
@@ -83,7 +84,10 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(p, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(300.0, "K"),
+                p=Quantity(p, "Pa"),
             ),
             pressure_setpoint=setpoint,
         )

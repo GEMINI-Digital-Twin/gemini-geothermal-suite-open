@@ -4,10 +4,10 @@ from typing import Literal
 
 from gemini import ops
 from gemini.errors import ValidationError
-from gemini.modules.control import _physics
 from gemini.modules.declarations import Boundary, Control, Output, Parameter, State
 from gemini.modules.module import Module
-from gemini.types import Dimensionless, Duration
+from gemini.physics import control
+from gemini.units.quantities import Dimensionless, Duration
 
 
 class PIDController(Module):
@@ -28,23 +28,19 @@ class PIDController(Module):
     so the command uses start-of-step states only: the integral is the explicit (forward
     rectangular) sum of the errors before this step, a one-step lag of the integral action, and
     the derivative is the backward difference of the last two errors over the previous step
-    length, exact for a uniform clock. Before the first step (``previous_error`` is ``None``)
-    the derivative is zero. The derivative acts on the error, so a setpoint change kicks it
+    length, exact for a uniform clock. Before the first step (``previous_step`` is zero, no step
+    yet) the derivative is zero. The derivative acts on the error, so a setpoint change kicks it
     once; it is not filtered, so noisy measurements need an empty ``derivative_time`` (the
     default) or a filtered measurement.
 
     Anti-windup is clamping (conditional integration): the integral does not change over a step
     whose unclamped command already exceeds a limit while the error drives it further out.
-    ``integral_time=None`` gives P or PD control. Outside ``step`` a call uses the initial
-    states, so it returns the proportional command only.
+    ``integral_time=None`` gives P or PD control. The three states have no default: the case
+    states them in ``initial_state`` (a controller that starts fresh has all three at zero).
 
     A parent composite calls the controller in ``forward`` with ``measurement=`` (and
     optionally ``setpoint=``) and uses ``result.outputs.command``; the controller is stateful, so
     call it once per step.
-
-    NOTE(refactor): the integral, the previous error and the previous step are states, and
-    ``previous_error`` being ``None`` before the first step is structural, so the module is a
-    graph break until ``scan`` exists; its arithmetic is written with ops all the same.
     """
 
     def __init__(self):
@@ -85,9 +81,15 @@ class PIDController(Module):
         )
 
         # States
-        self.integral = State(Dimensionless, default=0)
-        self.previous_error = State(Dimensionless | None, default=None)
-        self.previous_step = State(Duration | None, default=None, gt=0)
+        self.integral = State(
+            Dimensionless, description="Integral term I of the command at the start of the step"
+        )
+        self.previous_error = State(
+            Dimensionless, description="Control error of the previous step; unused while no step"
+        )
+        self.previous_step = State(
+            Duration, ge=0, description="Length of the previous step; zero when there is none yet"
+        )
 
         # Outputs
         self.error = Output(
@@ -102,35 +104,46 @@ class PIDController(Module):
         )
         self.is_saturated = Output(bool, description="True when the command is held at a limit")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Move no fluid; the command is an output."""
+        unclamped = self._unclamped_command(inputs, state)
+        command = ops.minimum(self.maximum_output, ops.maximum(self.minimum_output, unclamped))
+
         # Outputs
-        unclamped = self._unclamped_command()
-        self.error = self._error()
-        self.command = ops.minimum(self.maximum_output, ops.maximum(self.minimum_output, unclamped))
-        self.is_saturated = self.command != unclamped
+        outputs = dict(
+            error=self._error(inputs),
+            command=command,
+            is_saturated=command != unclamped,
+        )
 
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
-    def _advance_states(self, inlets, outlets, dt):
-        error = self._error()
-        unclamped = self._unclamped_command()
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the integral, the error and the length of this step for the next one."""
+        error = self._error(inputs)
+        unclamped = self._unclamped_command(inputs, state)
         increment = 0.0
         if self.integral_time is not None:
-            increment = _physics.pid_integral_increment(
+            increment = control.pid_integral_increment(
                 self.proportional_gain, dt, self.integral_time, error
             )
-        increment = _physics.anti_windup_increment(
+        increment = control.anti_windup_increment(
             increment, unclamped, self.minimum_output, self.maximum_output
         )
-        return {"integral": self.integral + increment, "previous_error": error, "previous_step": dt}
+        return {
+            "integral": state["integral"] + increment,
+            "previous_error": error,
+            "previous_step": dt,
+        }
 
-    def _error(self):
+    def _error(self, inputs):
         """Return the control error in the sense of ``direction``."""
-        return _physics.pid_error(self.setpoint, self.measurement, self.direction == "reverse")
+        return control.pid_error(
+            inputs["setpoint"], inputs["measurement"], self.direction == "reverse"
+        )
 
-    def _unclamped_command(self):
+    def _unclamped_command(self, inputs, state):
         """Return K * e + I + D from the start-of-step states, before the output limits."""
         ops.check(
             self.minimum_output < self.maximum_output,
@@ -142,17 +155,19 @@ class PIDController(Module):
             maximum_output=self.maximum_output,
             code="invalid_design",
         )
-        error = self._error()
+        error = self._error(inputs)
         derivative = 0.0
-        if (
-            self.derivative_time is not None
-            and self.previous_error is not None
-            and self.previous_step is not None
-        ):
-            derivative = _physics.pid_derivative(
-                self.proportional_gain,
-                self.derivative_time,
-                error - self.previous_error,
-                self.previous_step,
+        if self.derivative_time is not None:
+            previous_step = state["previous_step"]
+            started = previous_step > 0
+            derivative = ops.where(
+                started,
+                control.pid_derivative(
+                    self.proportional_gain,
+                    self.derivative_time,
+                    error - state["previous_error"],
+                    ops.where(started, previous_step, 1.0),
+                ),
+                0.0,
             )
-        return _physics.pid_command(self.proportional_gain, error, self.integral, derivative)
+        return control.pid_command(self.proportional_gain, error, state["integral"], derivative)

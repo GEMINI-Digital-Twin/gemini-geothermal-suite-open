@@ -4,9 +4,8 @@
 or the engine. Its topic files are a leaf package: they import only the standard library and
 installed dependencies, never another part of `gemini` (`tests/unit/test_package_boundaries.py`
 enforces this). They therefore cannot raise `gm.errors` classes; their helpers raise built-in exceptions such
-as `TypeError` and `ValueError`, and callers that need a GEMINI error convert them. `paths.py` is the
-exception, and `registry.py` another: they import `gemini.errors`, the other leaf, to raise
-`inputs_missing` and `duplicate_name`. Import helpers
+as `TypeError` and `ValueError`, and callers that need a GEMINI error convert them. `registry.py` is the
+exception: it imports `gemini.errors`, the other leaf, to raise `duplicate_name`. Import helpers
 from their topic module, for example `from gemini._utils.strings import did_you_mean`;
 `gemini/_utils/__init__.py` exports nothing.
 
@@ -24,10 +23,6 @@ from their topic module, for example `from gemini._utils.strings import did_you_
 - `registry.py`: the one registry of module and plant classes (`register`, `names`, `get`,
   `categories`, `CATEGORIES`), filled by `Module.__init_subclass__`
   ([modules.md](modules.md#registry-categories-and-streams)).
-- `paths.py`: where the data folder is, and the only code that knows ([data.md](data.md#where-data-lives)):
-  `plant_values(name)`,
-  and `doublet_heat(name)` below `inputs/`, which raise `inputs_missing` when it
-  is absent.
 - `version.py`: `package_version`, read from `pyproject.toml` or the package metadata, and
   `is_older`, the rule that refuses files written before `OLDEST_READABLE`.
 - `collect_env.py`: `python -m gemini._utils.collect_env` prints the versions a bug report needs.
@@ -41,5 +36,5 @@ Add a helper only when at least two places need it, or when it removes a duplica
 file of its topic (no `misc.py` or `helpers.py`), give it a docstring, replace every duplicate in
 the same commit and add a test to the mirrored `tests/unit/_utils/test_<file>.py`. A new topic file
 needs its own mirror, which `tests/unit/test_mirror.py` requires. Physics, units and quantities
-belong in `physics` and `types`; code that needs modules or the engine stays in those
+belong in `physics` and `units`; code that needs modules or the engine stays in those
 packages.

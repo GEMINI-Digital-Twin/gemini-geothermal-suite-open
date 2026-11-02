@@ -2,19 +2,19 @@
 
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import geometry, heat_transfer, hydraulics
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Elevation,
     HeatTransferCoefficient,
     Length,
     Power,
     PressureDifference,
     Speed,
-    Stream,
 )
 
 
@@ -87,7 +87,7 @@ class Pipe(Equipment, Module):
         self.fluid_out = Outlet(Stream)
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Apply friction, static head and heat exchange to the inlet stream."""
 
         # Outlets
@@ -109,15 +109,17 @@ class Pipe(Equipment, Module):
         loss_out = heat_transfer.heat_rate(inlet.heat_capacity_rate(), inlet.T - outlet.T)
 
         # Outputs
-        self.pressure_drop = inlet.p - outlet.p
-        self.velocity = geometry.mean_velocity(inlet.m_dot, rho, self.inner_diameter)
+        outputs = dict(
+            pressure_drop=inlet.p - outlet.p,
+            velocity=geometry.mean_velocity(inlet.m_dot, rho, self.inner_diameter),
+        )
 
         outlets = dict(fluid_out=outlet, loss_out=loss_out)
-        return outlets
+        return outputs, outlets
 
-    def capex(self, economics):
-        """Return the cost of the pipe from its length."""
-        return self.capex_of(economics, self.length)
+    def cost_size(self):
+        """Return the size that the cost of the pipe scales with: length."""
+        return self.length
 
     def _check(self, inlet):
         """Reject a pipe shorter than its rise, reverse flow and free gas."""

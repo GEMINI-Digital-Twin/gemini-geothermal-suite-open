@@ -3,9 +3,11 @@
 import pytest
 
 from gemini.errors import PhysicsError, ValidationError
+from gemini.evaluate._utils.pricing import capex_of, fixed_opex_of
 from gemini.modules.pumps import InjectionPump
 from gemini.physics import pumps
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures.cases import make_case
 from tests.fixtures.equivalence import assert_module_matches
@@ -23,7 +25,9 @@ def test_equipment_forward():
     """Equipment preserves mass and valid pressure/temperature."""
     c = InjectionPump().set_params("", {"stage_count": 10, "pump_type": "A", "efficiency": 0.65})
     result = c(
-        fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+        ),
         pressure_setpoint=2e6,
         frequency=60,
     )
@@ -36,7 +40,10 @@ def _rows():
     return [
         dict(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(300, "K"), p=Quantity(p, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(p, "Pa"),
             ),
             pressure_setpoint=setpoint,
             frequency=60,
@@ -62,7 +69,9 @@ def test_a_setpoint_below_the_suction_needs_no_pumping():
     """A negative required head is no pumping: zero power, the outlet pressure is the inlet's."""
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.65})
     result = pump(
-        fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e6, "Pa")),
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e6, "Pa")
+        ),
         pressure_setpoint=1e6,
         frequency=60,
     )
@@ -76,7 +85,9 @@ def test_a_positive_head_is_pumping():
     """A setpoint above the suction pumps and says so."""
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.65})
     result = pump(
-        fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+        ),
         pressure_setpoint=2e6,
         frequency=60,
     )
@@ -89,7 +100,9 @@ def test_a_curve_with_a_negative_head_is_still_an_error():
     curves = {**CURVES, "head_coefficients": [-100, 0, 0, 0, 0, 0]}
     with pytest.raises(PhysicsError, match="below suction pressure"):
         InjectionPump().set_params("", curves)(
-            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e6, "Pa")),
+            fluid_in=Stream(
+                fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(2e6, "Pa")
+            ),
             frequency=60,
         )
 
@@ -99,7 +112,10 @@ def test_a_stopped_pump_lets_the_pressure_through():
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.65})
     result = pump(
         fluid_in=Stream(
-            m_dot=Quantity(0.0, "kg/s"), T=Quantity(320.0, "K"), p=Quantity(100e5, "Pa")
+            fluid=BRINE,
+            m_dot=Quantity(0.0, "kg/s"),
+            T=Quantity(320.0, "K"),
+            p=Quantity(100e5, "Pa"),
         ),
         pressure_setpoint=30e5,
         frequency=60,
@@ -112,7 +128,9 @@ def test_a_pump_on_its_setpoint_needs_an_efficiency():
     """The efficiency has no default: the power of a setpoint needs one."""
     with raises(ValidationError, "missing_value"):
         InjectionPump()(
-            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+            fluid_in=Stream(
+                fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+            ),
             pressure_setpoint=2e6,
         )
 
@@ -122,7 +140,9 @@ def test_a_pump_on_its_curves_needs_no_efficiency():
     pump = InjectionPump().set_params("", CURVES)
     assert (
         pump(
-            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+            fluid_in=Stream(
+                fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+            ),
             frequency=60,
         ).outputs["power"]
         > 0
@@ -153,29 +173,31 @@ def test_the_capex_is_the_price_per_watt_of_the_shaft_power_at_the_nominal_flow(
     economics = _economics(injection_pump=Quantity(0.5, "currency/W"))
     pump = _sized_pump()
     assert pump.equipment_kind == "injection_pump"
-    assert pump.capex(economics) == pytest.approx(0.5 * 400000.0)
-    assert pump.fixed_opex(economics) == pytest.approx(0.02 * 0.5 * 400000.0)
+    assert capex_of(pump, economics) == pytest.approx(0.5 * 400000.0)
+    assert fixed_opex_of(pump, economics) == pytest.approx(0.02 * 0.5 * 400000.0)
 
 
 def test_the_capex_from_curves_is_the_power_curve_at_the_nominal_flow():
     """A pump with a power curve is sized by it, not by the efficiency."""
     pump = InjectionPump().set_params("", CURVES | {"nominal_flow": Quantity(0.1, "m3/s")})
     power = pumps.power(0.1, 60.0, 10, CURVES["power_coefficients"])
-    assert pump.capex(_economics(injection_pump=Quantity(1, "currency/W"))) == pytest.approx(power)
+    assert capex_of(pump, _economics(injection_pump=Quantity(1, "currency/W"))) == pytest.approx(
+        power
+    )
 
 
 def test_a_pump_without_a_price_raises_naming_the_path():
     """The case has no ``injection_pump`` capex: nothing is estimated."""
     economics = _economics(degasser=Quantity(1000.0, "currency"))
     with raises(ValidationError, "missing_assumption", "economics.capex.injection_pump"):
-        _sized_pump().capex(economics)
+        capex_of(_sized_pump(), economics)
 
 
 def test_a_pump_without_a_nominal_flow_raises_naming_it():
     """The design flow has no default."""
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.5})
     with raises(ValidationError, "missing_value", "nominal_flow"):
-        pump.capex(_economics(injection_pump=Quantity(0.5, "currency/W")))
+        capex_of(pump, _economics(injection_pump=Quantity(0.5, "currency/W")))
 
 
 def test_a_pump_that_adds_no_head_costs_nothing():
@@ -189,7 +211,7 @@ def test_a_pump_that_adds_no_head_costs_nothing():
         },
     )
     economics = _economics(injection_pump=Quantity(0.5, "currency/W"))
-    assert pump.capex(economics) == 0.0 and pump.fixed_opex(economics) == 0.0
+    assert capex_of(pump, economics) == 0.0 and fixed_opex_of(pump, economics) == 0.0
 
 
 def test_the_frequency_has_no_default():
@@ -197,6 +219,8 @@ def test_the_frequency_has_no_default():
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.65})
     with raises(ValidationError, "missing_value", match="frequency"):
         pump(
-            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+            fluid_in=Stream(
+                fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+            ),
             pressure_setpoint=2e6,
         )

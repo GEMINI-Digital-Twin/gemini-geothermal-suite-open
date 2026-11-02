@@ -10,8 +10,8 @@ from gemini import ops
 from gemini._utils.strings import close_matches, did_you_mean, join_names, split_path
 from gemini.errors import DefinitionError, ValidationError
 from gemini.modules.declarations import Output
-from gemini.types.flows import STREAM_FIELDS
-from gemini.types.quantities import (
+from gemini.streams.flows import STREAM_FIELDS
+from gemini.units.quantities import (
     MassFlow,
     Pressure,
     PressureDifference,
@@ -136,11 +136,14 @@ def combine(key, values):
     return total
 
 
-def read(plant, records, path):
-    """Return the value at ``path`` in a finished call: ``records`` are its results by path."""
+def read(plant, records, path, combined):
+    """Return the value at ``path`` in a finished call.
+
+    ``records`` are its results by path and ``combined`` the outputs combined so far.
+    """
     owner, name = split_path(path)
     if not owner:
-        return getattr(plant, name)
+        return combined[name]
     if owner in records:
         return records[owner].outputs[name]
     head, port = split_path(owner)

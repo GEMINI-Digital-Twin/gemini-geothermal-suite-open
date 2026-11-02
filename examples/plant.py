@@ -19,7 +19,7 @@ from pathlib import Path
 
 import gemini as gm
 
-SAMPLE = Path(__file__).resolve().parents[1] / "inputs/examples/shallow_district"
+SAMPLE = Path(__file__).resolve().parent / "shallow_district"
 SIZED = ("capacity", "nominal_flow", "nominal_head")
 """Name endings of the values ``size`` computes from the case."""
 COOLER = gm.units.Quantity(1.0, "MW")

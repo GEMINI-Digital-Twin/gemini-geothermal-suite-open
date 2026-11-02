@@ -3,13 +3,15 @@
 import pytest
 
 import gemini as gm
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.treatment import Desander
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 
 INLET = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(20, "kg/s"),
     T=gm.units.Quantity(350, "K"),
     p=gm.units.Quantity(1e6, "Pa"),
@@ -39,8 +41,8 @@ def test_hand_computed_removal_and_loss():
     assert result.outlets.waste_out.m_dot == out.sand_removal_rate
     assert out.sand_removal_rate == pytest.approx(0.9 * 0.05 * 0.02)
     assert out.residual_sand_concentration == pytest.approx(0.005)
-    assert mass_balance(module, result)["residual"] == 0
-    assert energy_balance(module, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(module, result)["residual"] == 0
+    assert call_energy_balance(module, result)["relative_residual"] < 1e-12
 
 
 def test_limits():
@@ -63,6 +65,7 @@ def test_desander_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(350, "K"),
                 p=gm.units.Quantity(1e6, "Pa"),

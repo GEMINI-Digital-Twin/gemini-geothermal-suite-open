@@ -7,6 +7,53 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+- `gm.call(..., state=, dt=)`: a module with state takes the state at the start and the step, and
+  the result has the key `state` with the state at the end of the step.
+- The quantity `gas_burned` (kg/s) of the role `plant`: the co-produced gas burned by the boilers
+  and flares of the plant, so a requirement can limit it.
+
+### Changed
+- Module contract: `forward(self, inputs, inlets, state)` is pure (it reads parameters on `self`
+  and nothing else, writes nothing, returns `(outputs, outlets)`) and a stateful module has a pure
+  `update(self, inputs, inlets, outlets, state, dt)` that returns the next state. A state has no
+  default: it comes from `case.initial_state`. A stateful plant still runs one tick at a time.
+- Hooks: a pre-hook is called `(module, inputs, inlets, state)` and a forward hook
+  `(module, inputs, inlets, state, outputs, outlets)`; a hook that returns a mapping replaces the
+  controls and boundaries (pre-hook) or the outputs (forward hook) of that call, `None` observes.
+- `gm.simulate` and the engine: a physical failure of a step (`invalid_inlet`, `out_of_bounds`,
+  `out_of_range`, `no_convergence`) is a failed row whatever `on_error` says, and the run finishes;
+  every other failure follows `on_error`. A trial of a search whose plant fails a step is
+  infeasible (violation 1e6) instead of raising, and a NaN value counts as the largest violation.
+- `gm.call(module, parameters, inlets, controls, units, ...)`: `units` is required and is `"si"`
+  (plain `{value, unit}` in SI) or `"display"` (`Quantity` in the display units of the report);
+  the map `{quantity: unit}` is no longer taken by `gm.call`.
+- `Best.to_dict()`, `Sample.to_dict()`, the history of a search and the notes of `gm.study.size`
+  show the display units of the report instead of bare SI; `from_dict` reads them back.
+- `gm.runtime.settings(default_fluid=...)` and `gm.runtime.state()["default_fluid"]` are removed: the
+  fluid is a case input (`site.fluid`) or an entry of the plant `fluids`. A module or a `Stream`
+  without a fluid raises `missing_value` naming its path; `gm.Stream(...)` requires `fluid`.
+
+## [0.4.0] - 2026-11-02
+
+Breaking: the folders of `gemini/` are grouped by job (rules and tree in
+[structure.md](.claude/docs/structure.md)). Moves only; numbers equal to 1e-9; no old path is kept.
+
+### Changed
+- `gm.data.from_csv`, `from_values`, `profile_schema` are `gm.case.from_csv`, `from_values`,
+  `profile_schema`; `gm.data` is gone.
+- `gm.analysis.calibrate` and `CalibrationResult` are `gm.study.calibrate` and `CalibrationResult`.
+- `gm.case.roles()` is `gm.plants.roles()`.
+- `gm.modules.collect_flows`, `emissions`, `energy_balance`, `mass_balance` are
+  `gm.evaluate.collect_flows`, `call_emissions`, `call_energy_balance`, `call_mass_balance`.
+- `gm.streams` joins `gm.__all__`.
+- `gm.evaluate` is grouped by job (`costs`, `emissions`, `balances`, `verdict`, `summary`,
+  `report`); every function is still `gm.evaluate.<name>`.
+- `gm.physics.dispatch`, `gm.physics.doublet` and `gm.physics.costs` are removed from the
+  namespace; `circuit_flow` and `temperature_after` are in `gm.physics.energy`.
+- Sample projects are `examples/<name>/` (were `inputs/examples/<name>/`); the data the tests read
+  is in `tests/fixtures/` (was `inputs/`, now removed).
+
 ## [0.3.0] - 2026-11-02
 
 Breaking: the inputs of a project are separated by owner and every public entry point follows the

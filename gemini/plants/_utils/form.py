@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from gemini import units
 from gemini._utils.strings import close_matches, join_path
 from gemini.errors.base import Issue
-from gemini.types import inputs
+from gemini.units import inputs
 
 FLAT_FORMAT = 2
 ALLOWED = (

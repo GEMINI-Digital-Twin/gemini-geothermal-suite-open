@@ -8,9 +8,10 @@ from gemini.modules.piping import Mixer, Splitter
 from gemini.modules.pumps import ESP
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
-from gemini.plants._utils.wiring import mix_chain, split_chain
+from gemini.plants._utils.cascades import mix_chain, split_chain
 from gemini.plants.plant import Plant
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 
 
 class MultiWellPlant(Plant):

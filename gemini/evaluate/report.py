@@ -1,27 +1,26 @@
-"""One report of a finished run."""
+"""One report of a finished run (totals, costs, CO2, failures, verdict), and report comparison."""
 
 import json
 
+import numpy as np
+import pandas as pd
+
 from gemini._utils.jsonable import to_plain
+from gemini._utils.strings import close_matches, did_you_mean, join_names
+from gemini.engine.apply import apply_case
+from gemini.errors import ValidationError
 from gemini.evaluate._utils.cost import equipment
-from gemini.evaluate._utils.display import DISPLAY, by_si_unit, display_units, shown
+from gemini.evaluate._utils.display import DISPLAY, display_units, in_unit, shown
 from gemini.evaluate._utils.ratings import rating_of
 from gemini.evaluate._utils.series import energy
 from gemini.evaluate._utils.tally import tally
-from gemini.evaluate.capacities import capacities
-from gemini.evaluate.capex import capex
-from gemini.evaluate.co2 import co2
-from gemini.evaluate.failures import failures
-from gemini.evaluate.lcoc import lcoc
-from gemini.evaluate.lcoh import lcoh
-from gemini.evaluate.lcts import lcts
-from gemini.evaluate.opex import opex
-from gemini.evaluate.requirements import requirements
-from gemini.evaluate.totals import totals
-from gemini.evaluate.verdict import judged
-from gemini.run._utils.apply import apply_case
-from gemini.types.shapes import measure
-from gemini.units import si_unit
+from gemini.evaluate.costs import capex, lcoc, lcoh, lcts, opex
+from gemini.evaluate.emissions import co2
+from gemini.evaluate.summary import capacities, totals
+from gemini.evaluate.verdict import failures, judged, requirements
+from gemini.units import Quantity, si_unit
+from gemini.units.display import by_si_unit
+from gemini.units.shapes import measure
 
 
 class Report(dict):
@@ -139,3 +138,216 @@ def _boiler_heat(plant, results):
     if not shown:
         return measure(None, "J", "the run shows no use of the boilers")
     return measure(sum(energy(power, results.durations) for power in shown), "J")
+
+
+SENSES = ("min", "max")
+"""The two ways to prefer a metric: the smaller or the larger value."""
+
+
+class Comparison(list):
+    """A list of ``{index, values, ranks, pareto, feasible}``, one per report in the order given."""
+
+    def to_frame(self, units=None):
+        """Return one row per report: its metrics, its ``rank_<metric>``, ``pareto``, ``feasible``.
+
+        Parameters
+        ----------
+        units : dict, optional
+            ``{metric: unit}``. A metric is shown in its display unit (energy in MWh, power in
+            MW, money in MEUR, LCTS in EUR/MWh, mass in kt) unless a unit is given; its column is
+            named ``<metric> [<unit>]``. A metric without a display unit stays in SI under its
+            own name. A name that is not a metric, or a unit of another dimension, raises
+            ``invalid_value`` or ``invalid_unit``.
+        """
+        names = list(self[0]["values"]) if self else []
+        shown = display_units(names, units)
+        rows = [
+            {
+                **{
+                    _label(name, shown): (
+                        in_unit(name, _number(entry["values"][name]), shown[name])
+                        if name in shown
+                        else _number(entry["values"][name])
+                    )
+                    for name in names
+                },
+                **{f"rank_{name}": rank for name, rank in entry["ranks"].items()},
+                "pareto": entry["pareto"],
+                "feasible": entry["feasible"],
+            }
+            for entry in self
+        ]
+        return pd.DataFrame(rows, index=pd.Index([entry["index"] for entry in self], name="index"))
+
+    def to_dict(self):
+        """Return the entries as plain JSON: every ``Quantity`` as ``{value, unit}`` in SI."""
+        return to_plain(list(self))
+
+    @classmethod
+    def from_dict(cls, data):
+        """Return the ``Comparison`` of what ``to_dict`` gave; a metric is a ``Quantity`` again.
+
+        The ``reasons`` stay plain dicts, as ``to_dict`` wrote them.
+        """
+        return cls(
+            {
+                **entry,
+                "values": {
+                    name: Quantity.from_dict(item) if isinstance(item, dict) else item
+                    for name, item in entry["values"].items()
+                },
+            }
+            for entry in data
+        )
+
+
+def _number(value):
+    """Return the SI number of a comparison value: a ``Quantity``, a plain number or ``None``."""
+    return value.si if isinstance(value, Quantity) else value
+
+
+def _label(name, shown):
+    """Return the column name of a metric: with its unit in brackets when it has one."""
+    return f"{name} [{shown[name]}]" if name in shown else name
+
+
+def compare(reports, by):
+    """Rank reports by the given metrics and mark the Pareto front of the feasible ones.
+
+    A report is feasible when its ``verdict`` (``gm.evaluate.verdict``) has no reason; compare
+    decides nothing itself. A dict without a ``verdict`` raises ``missing_value``: there is no
+    silent feasible. Feasible reports rank before all infeasible ones; the infeasible are
+    ordered by their number of reasons, then by the metrics.
+
+    Parameters
+    ----------
+    reports : list of dict
+        Reports as ``gm.evaluate.report`` returns them, each with its ``verdict``.
+    by : str, list of str or dict
+        The metrics, keys of the reports whose value is a ``Quantity`` or a number. A name or a list
+        prefers the smaller value of each; a dict ``{metric: "min" or "max"}`` says which. A report
+        without a value of a metric (``None``) ranks last for it and is never on the front.
+
+    Returns
+    -------
+    Comparison
+        One entry per report, in the order given: ``index`` (its position), ``values`` (the
+        metrics as ``gm.units.Quantity`` in SI; a plain number stays a float; ``None`` for no
+        value), ``ranks`` (1 is best; equal values share a rank), ``pareto`` (whether no other
+        feasible report is at least as good in every metric and better in one; an infeasible
+        report is never on it), ``feasible`` and, when not feasible,
+        ``reasons``: those of the ``verdict`` of the report.
+        With one metric the front is its best reports. ``to_frame()`` gives a table in display
+        units and ``to_dict()`` plain JSON.
+    """
+    senses = _senses(by, reports)
+    values = {name: [_value(report, name) for report in reports] for name in senses}
+    quantities = {name: [_quantity(report, name) for report in reports] for name in senses}
+    reasons = [_reasons(report, position) for position, report in enumerate(reports)]
+    feasible = [not found for found in reasons]
+    ranks = {name: _ranks(values[name], senses[name], reasons) for name in senses}
+    front = _front(values, senses, feasible)
+    return Comparison(
+        {
+            "index": position,
+            "values": {name: quantities[name][position] for name in senses},
+            "ranks": {name: ranks[name][position] for name in senses},
+            "pareto": bool(front[position]),
+            "feasible": feasible[position],
+            **({} if feasible[position] else {"reasons": reasons[position]}),
+        }
+        for position in range(len(reports))
+    )
+
+
+def _reasons(report, position):
+    """Return why a report is not feasible: the reasons of its verdict; a report needs one."""
+    found = report.get("verdict")
+    if found is None:
+        raise ValidationError(
+            f"reports[{position}]: verdict is missing; expected the report of gm.evaluate.report",
+            path=f"reports[{position}].verdict",
+            code="missing_value",
+        )
+    return list(found["reasons"])
+
+
+def _senses(by, reports):
+    """Return ``{metric: "min" or "max"}`` and check the names against the reports."""
+    senses = _normal(by)
+    if not senses:
+        raise ValidationError(
+            "by = []; expected at least one metric", path="by", code="invalid_value"
+        )
+    known = sorted({name for report in reports for name in report})
+    for name, sense in senses.items():
+        if sense not in SENSES:
+            raise ValidationError(
+                f"by.{name} = {sense!r}; expected one of {join_names(SENSES)}",
+                path=f"by.{name}",
+                code="invalid_value",
+            )
+        if reports and not any(name in report for report in reports):
+            raise ValidationError(
+                f"by = {name!r}; expected a key of the reports" f"{did_you_mean(name, known)}",
+                path="by",
+                code="unknown_name",
+                suggestions=close_matches(name, known),
+            )
+    return senses
+
+
+def _normal(by):
+    """Return ``by`` as ``{metric: sense}``."""
+    if isinstance(by, str):
+        return {by: "min"}
+    return dict(by) if isinstance(by, dict) else dict.fromkeys(by, "min")
+
+
+def _value(report, name):
+    """Return the SI number of metric ``name`` of a report, or ``None``."""
+    found = report.get(name)
+    if found is None:
+        return None
+    number = getattr(found, "si", found)
+    return None if number is None else float(number)
+
+
+def _quantity(report, name):
+    """Return metric ``name`` of a report as a ``Quantity`` in SI, a plain number, or ``None``."""
+    found = report.get(name)
+    number = _value(report, name)
+    if number is None or not isinstance(found, Quantity):
+        return number
+    return Quantity(number, si_unit(str(found.unit)))
+
+
+def _worse(values, sense):
+    """Return the values as numbers where a smaller one is better; no value is infinite."""
+    sign = 1.0 if sense == "min" else -1.0
+    return np.array([np.inf if value is None else sign * value for value in values])
+
+
+def _ranks(values, sense, reasons):
+    """Return the rank of each report, 1 for the best; the infeasible come after the feasible.
+
+    Equal reports share the lowest rank. The infeasible are ordered by their number of reasons,
+    then by the metric.
+    """
+    keys = list(zip((len(found) for found in reasons), _worse(values, sense)))
+    return [1 + sum(other < key for other in keys) for key in keys]
+
+
+def _front(values, senses, feasible):
+    """Return which feasible reports no other feasible report dominates."""
+    table = np.column_stack([_worse(values[name], senses[name]) for name in senses])
+    front = np.zeros(len(feasible), dtype=bool)
+    allowed = np.asarray(feasible)
+    rivals = table[allowed]
+    for position in np.flatnonzero(allowed):
+        valued = np.isfinite(table[position]).all()
+        beaten = (
+            (rivals <= table[position]).all(axis=1) & (rivals < table[position]).any(axis=1)
+        ).any()
+        front[position] = valued and not beaten
+    return front

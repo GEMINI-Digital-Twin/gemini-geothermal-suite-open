@@ -3,9 +3,9 @@
 A module without state, constraint or pre-hook is called once on the arrays of the chunk (the
 NumPy kernels do the rows at once), a plant that closes a loop too (``plants._utils.loops``
 iterates every row at once). Any other module, a run on the Python backend and a
-precision other than float64 call the module for real on each row (``gemini.engine.rows``), and so
-does an array call that raised: the call of each row then gives the exception of its own row, so
-the rows that work are never lost to one that fails.
+precision other than float64 call the module for real on each row (``gemini.engine.rowwise``),
+and so does an array call that raised: the call of each row then gives the exception of its own
+row, so the rows that work are never lost to one that fails.
 """
 
 from typing import NamedTuple
@@ -13,14 +13,14 @@ from typing import NamedTuple
 import numpy as np
 
 from gemini import runtime
-from gemini.engine.evaluation import Evaluation, converter, typed
+from gemini.engine.chunkresult import ChunkResult, converter, typed
 from gemini.engine.executor import EAGER, Executor, register_executor
-from gemini.engine.rows import applied, inlet_feeds, run_rows, stacked
+from gemini.engine.rowwise import applied, inlet_feeds, run_rows, stacked
 from gemini.errors import RunError
 from gemini.ops import kernels
-from gemini.ops.failures import marking, merge
+from gemini.ops.failedrows import marking, merge
 from gemini.plants._utils.plan import Solve
-from gemini.types.flows import STREAM_FIELDS, Stream
+from gemini.streams.flows import STREAM_FIELDS, Stream
 
 
 class Call(NamedTuple):
@@ -75,8 +75,8 @@ class EagerExecutor(Executor):
         failures = _failures(result, marked)
         tree = typed(result.mapped(converter(rows)))
         if failures is None:
-            return Evaluation(rows, np.zeros(rows, dtype=bool), tree, _no_error)
-        return Evaluation(rows, failures.mask, tree, failures.error)
+            return ChunkResult(rows, np.zeros(rows, dtype=bool), tree, _no_error)
+        return ChunkResult(rows, failures.mask, tree, failures.error)
 
     def _rows(self, call, rows, context):
         module = call.module
@@ -88,7 +88,7 @@ class EagerExecutor(Executor):
         failed[list(results)] = False
         result = stacked(results, rows)
         tree = None if result is None else typed(result)
-        return Evaluation(rows, failed, tree, errors.__getitem__, states, stepped)
+        return ChunkResult(rows, failed, tree, errors.__getitem__, states, stepped)
 
 
 def _failures(result, marked):
@@ -135,7 +135,7 @@ def _scattered(inner, keep, refused):
         full[keep] = value
         return full
 
-    return Evaluation(rows, failed, inner.result.mapped(spread), error)
+    return ChunkResult(rows, failed, inner.result.mapped(spread), error)
 
 
 def _by_rows(module):

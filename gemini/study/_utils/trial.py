@@ -3,15 +3,14 @@
 from copy import deepcopy
 
 from gemini._utils.strings import close_matches, did_you_mean, join_names
+from gemini.engine.apply import applied_in_place
+from gemini.engine.simulate import simulate
 from gemini.errors import GeminiError, ValidationError
 from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, totals, verdict
-from gemini.evaluate.failures import failures
-from gemini.evaluate.totals import KPI_NAMES
-from gemini.evaluate.verdict import LARGEST_VIOLATION, ranked
-from gemini.run._utils.apply import applied_in_place
-from gemini.run.simulate import simulate
+from gemini.evaluate.summary import KPI_NAMES
+from gemini.evaluate.verdict import LARGEST_VIOLATION, failures, ranked
 from gemini.study._utils.target import is_case_name, with_case_values
-from gemini.types.shapes import measure
+from gemini.units.shapes import measure
 
 ECONOMICS = {
     "lcoh": lcoh,

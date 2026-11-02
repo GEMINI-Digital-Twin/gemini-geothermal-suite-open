@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 import gemini as gm
+from gemini.streams import kinds
 
 ROOT = Path(__file__).parents[2]
 SNAPSHOT = ROOT / "tests" / "fixtures" / "public_api.json"
@@ -19,7 +20,7 @@ NAMESPACES = (
     "physics",
     "ops",
     "units",
-    "data",
+    "streams",
     "analysis",
     "evaluate",
     "study",
@@ -163,7 +164,7 @@ def capture():
         "errors": {name: value.code for name, value in classes.items() if hasattr(value, "code")},
         "codes": list(gm.errors.CODES),
         "row_codes": sorted(gm.errors.ROW_CODES),
-        "streams": gm.types.streams.names(),
+        "streams": kinds.names(),
         "schemas": _schemas(),
     }
 

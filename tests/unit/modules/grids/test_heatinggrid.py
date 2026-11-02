@@ -4,8 +4,10 @@ import pytest
 
 import gemini as gm
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules import HeatingGrid, energy_balance, mass_balance
-from gemini.types import Stream
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import HeatingGrid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
@@ -13,6 +15,7 @@ from tests.fixtures.reading import reading
 
 CP = 4217.4
 SUPPLY = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2.0, "kg/s"),
     T=gm.units.Quantity(343.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
@@ -34,8 +37,8 @@ def test_met_demand_sets_the_return_temperature():
     assert out.temperature_difference == pytest.approx(100e3 / (2 * CP))
     assert return_out.m_dot == SUPPLY.m_dot and return_out.p == SUPPLY.p
     assert return_out.T == out.return_out_T
-    assert energy_balance(consumer, result)["relative_residual"] < 1e-12
-    assert mass_balance(consumer, result)["residual"] == 0
+    assert call_energy_balance(consumer, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(consumer, result)["residual"] == 0
 
 
 def test_return_floor_caps_the_delivered_heat():
@@ -46,7 +49,7 @@ def test_return_floor_caps_the_delivered_heat():
     assert out.heat_supplied == pytest.approx(2 * CP * 30)
     assert out.unmet_demand == pytest.approx(1e6 - 2 * CP * 30) and out.is_unmet
     assert out.return_out_T == 313.15 and out.temperature_difference == pytest.approx(30)
-    assert energy_balance(consumer, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(consumer, result)["relative_residual"] < 1e-12
 
 
 def test_zero_flow_cold_supply_and_zero_demand_deliver_nothing():
@@ -56,7 +59,7 @@ def test_zero_flow_cold_supply_and_zero_demand_deliver_nothing():
         result = consumer(supply_in=supply, heat_demand=demand)
         assert reading(result).heat_supplied == 0 and result.outputs.unmet_demand == demand
         assert result.outputs.is_unmet and result.outlets.return_out.T == supply.T
-        assert energy_balance(consumer, result)["relative_residual"] < 1e-12
+        assert call_energy_balance(consumer, result)["relative_residual"] < 1e-12
     out = reading(consumer(supply_in=SUPPLY, heat_demand=0))
     assert out.heat_supplied == 0 and not out.is_unmet and out.temperature_difference == 0
 
@@ -79,6 +82,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             supply_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(T, "K"),
                 p=gm.units.Quantity(3e5, "Pa"),

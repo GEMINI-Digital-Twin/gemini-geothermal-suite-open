@@ -7,7 +7,8 @@ from gemini.errors import ValidationError
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.wells.well import _Well
 from gemini.physics import fluid, heat_transfer
-from gemini.types import Length, Power, Pressure, PressureDifference, Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Length, Power, Pressure, PressureDifference, Temperature
 
 
 class ProductionWell(_Well):
@@ -62,7 +63,7 @@ class ProductionWell(_Well):
         self.wellhead_out = Outlet(Stream, kind="brine")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Traverse the selected segment upward and apply the pressure correction."""
 
         # Outlets
@@ -72,13 +73,15 @@ class ProductionWell(_Well):
         wellhead = self.corrected(bottom, result)
 
         # Outputs
-        self.friction_pressure_drop = result.friction_pressure_drop
-        self.gravity_pressure_drop = result.gravity_pressure_drop
-        self.section_pressure = result.section_pressure
-        self.section_temperature = result.section_temperature
+        outputs = dict(
+            friction_pressure_drop=result.friction_pressure_drop,
+            gravity_pressure_drop=result.gravity_pressure_drop,
+            section_pressure=result.section_pressure,
+            section_temperature=result.section_temperature,
+        )
 
         outlets = dict(wellhead_out=wellhead, loss_out=self._loss(bottom, wellhead))
-        return outlets
+        return outputs, outlets
 
     def _loss(self, bottom, wellhead):
         """Return the heat [W] the well gives to the rock between its two ends."""
@@ -102,8 +105,8 @@ class ProductionWell(_Well):
         result = self.traverse(wellhead_stream, 0, self._esp_depth(), "down")
         return self.corrected(wellhead_stream, result)
 
-    def _drilled_length(self):
-        """Return the length [m] of the selected segment of the well."""
+    def cost_size(self):
+        """Return the length [m] of the selected segment, the size the cost scales with."""
         start, end = self._segment_interval()
         return abs(start - end)
 

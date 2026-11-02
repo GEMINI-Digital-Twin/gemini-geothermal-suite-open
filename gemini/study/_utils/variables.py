@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from gemini._utils.strings import join_path
 from gemini.errors import ValidationError
 from gemini.plants._utils import form
-from gemini.plants._utils.roles import roles_of
+from gemini.plants.roles import roles_of
 
 DOUBLETS = "size.doublets"
 """The path of the number of doublets, a structural size of the plant class."""

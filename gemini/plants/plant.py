@@ -8,7 +8,7 @@ from gemini._utils import files
 from gemini._utils.strings import join_path, snake_case
 from gemini.errors import ValidationError
 from gemini.modules._utils import design
-from gemini.modules._utils.serialization import tree_params
+from gemini.modules.callrecord import outputs_enabled
 from gemini.modules.container import ModuleList
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
@@ -16,18 +16,19 @@ from gemini.physics import energy
 from gemini.plants._utils import (
     circuits,
     form,
-    inputs,
     leaves,
     listing,
     loops,
     outputs,
+    plant_inputs,
     reader,
     writer,
 )
+from gemini.plants._utils.call import Call
 from gemini.plants._utils.factory import make_module
 from gemini.plants._utils.plan import STATE, PlanConstraint, compile_plan, is_group, port_ends
 from gemini.plants._utils.ports import PortResolver
-from gemini.plants._utils.run import Run
+from gemini.plants._utils.serialization import tree_params
 
 
 class Plant(PortResolver, Module):
@@ -123,8 +124,8 @@ class Plant(PortResolver, Module):
 
     @property
     def fluid(self):
-        """Return the fluid of the plant."""
-        return self._fluid
+        """Return the fluid of the plant; ``missing_value`` while none is set."""
+        return super().fluid
 
     @fluid.setter
     def fluid(self, value):
@@ -175,16 +176,16 @@ class Plant(PortResolver, Module):
         and a value assigned on a module is not stored.
         """
         for path, value in values.items():
-            inputs.refuse_bare(self, path, value)
-            inputs.refuse_fluid(self, path, value)
+            plant_inputs.refuse_bare(self, path, value)
+            plant_inputs.refuse_fluid(self, path, value)
         return self._set_si_inputs(values)
 
     def _set_si_inputs(self, values):
         """Set inputs of SI numbers or quantities as ``set_inputs`` does, without the unit rule."""
-        checked = inputs.checked(self, values)
+        checked = plant_inputs.checked(self, values)
         declared = self.inputs()
         self._set_inputs({path: item for path, item in checked.items() if path in declared})
-        self._inputs |= inputs.as_stated(values, checked)
+        self._inputs |= plant_inputs.as_stated(values, checked)
         return self
 
     def input_value(self, path):
@@ -192,11 +193,11 @@ class Plant(PortResolver, Module):
 
         The value of ``set_inputs`` wins; otherwise the value persisted on the module.
         """
-        return inputs.value(self, path)
+        return plant_inputs.value(self, path)
 
     def _root_inputs(self):
         """Return the plant inlet fields of ``set_inputs`` as ``{port: {field: value}}``."""
-        return inputs.root_streams(self)
+        return plant_inputs.root_streams(self)
 
     def _own_values(self, params, valid_from=None):
         """Return the own parameters in force at ``valid_from`` with those of ``params``, in SI."""
@@ -486,6 +487,11 @@ class Plant(PortResolver, Module):
             self._plan, self._planned_offers = compile_plan(self), offers
         return self._plan
 
+    def _prepare(self):
+        """Reject uninitialized parameters and build the plan: both come before a call."""
+        super()._prepare()
+        self._compiled()
+
     def _iterates(self):
         """Return whether a call of this plant closes a loop or solves a constraint."""
         return self._compiled().iterates
@@ -494,22 +500,25 @@ class Plant(PortResolver, Module):
         """Return the value of a plant port: its one end, or the sum of what its ends carry."""
         return values[0] if len(values) == 1 else energy.total_power(values)
 
-    def _plan_outlets(self, results):
-        plan = self._compiled()
+    def _plan_outlets(self, plan, results):
         for name, ends in plan.outlets.items():
             yield name, self._plant_value([results[path].outlets[port] for path, port in ends])
         for name, ends in plan.given.items():
             yield name, self._plant_value([results[path].inlets[port] for path, port in ends])
 
-    def _compute_combinations(self, call):
-        """Record the outputs this plant combines from the results of its children."""
-        records = dict(self._recorded_calls(call.call_records))
+    def _combinations(self, results):
+        """Return the outputs this plant combines from the results of its children."""
+        if not outputs_enabled():
+            return {}
+        records = dict(self._recorded_calls(results.items()))
+        combined = {}
         for name, output in self._outputs.items():
             if output.formula is None:
                 continue
             key, *paths = output.formula
-            values = [outputs.read(self, records, path) for path in paths]
-            setattr(self, name, outputs.combine(key, values))
+            values = [outputs.read(self, records, path, combined) for path in paths]
+            combined[name] = outputs.combine(key, values)
+        return combined
 
     @staticmethod
     def _recorded_calls(call_records, prefix=""):
@@ -518,12 +527,27 @@ class Plant(PortResolver, Module):
             yield full_path, result
             yield from Plant._recorded_calls(result.call_records, full_path)
 
-    def forward(self, inlets):
-        """Call the modules in connection order, close the loops and return the plant outlets."""
-        run = Run(self, inlets)
-        for item in self._compiled().items:
-            run.execute(item)
+    def forward(self, inputs, inlets, state):
+        """Call the modules in connection order, close the loops and return the plant's values.
+
+        Written once for any graph: ``state`` is the nested dict of the states of the children,
+        each handed to the child it belongs to. The outputs are the plant's combinations of the
+        values of its children; the outlets are the plant outlets. The plan is the one built
+        before the call, so nothing is written.
+        """
+        plan = self._plan if self._plan is not None else compile_plan(self)
+        call = Call(self, inputs, inlets, state, plan)
+        for item in plan.items:
+            call.execute(item)
 
         # Outlets
-        outlets = dict(self._plan_outlets(run.results))
-        return outlets
+        outlets = dict(self._plan_outlets(plan, call.results))
+        return self._combinations(call.results), outlets
+
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the next state: the nested dict of what each stateful child's ``update`` gives.
+
+        The children are called again on ``inlets`` and ``state`` for the values their updates
+        take; a step through ``Module.step`` reuses the call it has made.
+        """
+        return self._advance(self(dict(inlets), state=state), dt)

@@ -3,9 +3,9 @@
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.power import _physics
-from gemini.physics import heat_transfer
-from gemini.types import Efficiency, Fraction, Power, Stream, Temperature, TemperatureDifference
+from gemini.physics import cycles, heat_transfer
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Efficiency, Fraction, Power, Temperature, TemperatureDifference
 
 
 class ORC(Module):
@@ -37,7 +37,8 @@ class ORC(Module):
     condenser duty plus the parasitic power. First law: heat_input = gross_power +
     condenser_duty and heat_input = electricity_generated + heat_loss, so ``energy_balance``
     closes with the brine's constant ``cp_l``. ``thermal_efficiency`` is net power over heat
-    input (DiPippo 2016), ``None`` without heat input. Valid for a single-phase liquid brine.
+    input (DiPippo 2016), NaN without heat input (shown as ``None`` in results). Valid for a
+    single-phase liquid brine.
     """
 
     def __init__(self):
@@ -99,7 +100,7 @@ class ORC(Module):
         self.power_out = Outlet(Power, kind="electricity")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Cool the brine by the heat the cycle takes at the operating point."""
 
         # Outlets
@@ -113,31 +114,33 @@ class ORC(Module):
         balance = self._balance(fluid_in, fluid_out, design)
 
         # Outputs
-        self.gross_power = balance.gross_power
-        self.parasitic_power = balance.parasitic_power
-        self.condenser_duty = balance.condenser_duty
-        self.thermal_efficiency = balance.thermal_efficiency
-        self.condensing_temperature = design.condensing_temperature
-        self.is_capped = design.is_capped
+        outputs = dict(
+            gross_power=balance.gross_power,
+            parasitic_power=balance.parasitic_power,
+            condenser_duty=balance.condenser_duty,
+            thermal_efficiency=balance.thermal_efficiency,
+            condensing_temperature=design.condensing_temperature,
+            is_capped=design.is_capped,
+        )
 
         outlets = dict(
             fluid_out=fluid_out, power_out=balance.electricity_generated, loss_out=balance.heat_loss
         )
-        return outlets
+        return outputs, outlets
 
     def _balance(self, fluid_in, fluid_out, design):
         """Return the energy balance of the plant at the operating point."""
-        return _physics.plant_balance(
+        return cycles.plant_balance(
             heat_transfer.heat_rate(fluid_in.heat_capacity_rate(), fluid_in.T - fluid_out.T),
             design.cycle_efficiency,
             self.parasitic_fraction,
         )
 
     def _design(self, fluid_in, air):
-        """Return the ``_physics.cycle_design`` of the brine inlet."""
+        """Return the ``cycles.cycle_design`` of the brine inlet."""
         require_forward(self.path, "fluid_in.m_dot", fluid_in.m_dot)
         cp = fluid_in.fluid.properties(fluid_in.p, fluid_in.T).cp_l
-        return _physics.cycle_design(
+        return cycles.cycle_design(
             fluid_in.T,
             fluid_in.m_dot,
             cp,

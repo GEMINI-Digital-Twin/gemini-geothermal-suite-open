@@ -1,7 +1,5 @@
 """Discrete PID controller: start-of-step command, integral, derivative and anti-windup."""
 
-from types import SimpleNamespace
-
 import numpy as np
 import pytest
 
@@ -10,7 +8,9 @@ from gemini.modules import Module
 from gemini.modules.control import PIDController
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output
 from gemini.modules.storage import ThermalStorage
-from gemini.types import Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
+from gemini.units.quantities import Temperature
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
@@ -30,6 +30,10 @@ def _controller(**changes):
     return si.set_params(PIDController(), "", params | changes)
 
 
+FRESH = {"integral": 0.0, "previous_error": 0.0, "previous_step": 0.0}
+"""The state of a controller that has not stepped: the case states it, there is no default."""
+
+
 def _step(pid, state, dt, measurement):
     """Step the controller (which has no inlets) at a persisted measurement."""
     pid.measurement = measurement
@@ -37,24 +41,32 @@ def _step(pid, state, dt, measurement):
 
 
 def test_plain_call_is_proportional_and_clamped():
-    """Outside a step the initial states give K e, clamped to the output limits."""
+    """A call from the fresh state gives K e, clamped to the output limits."""
     pid = _controller()
-    out = pid(setpoint=1.0, measurement=0.8).outputs
+    out = pid(setpoint=1.0, measurement=0.8, state=FRESH).outputs
     assert out.error == pytest.approx(0.2) and out.command == pytest.approx(0.4)
     assert not out.is_saturated
-    out = pid(setpoint=1.0, measurement=0.0).outputs
+    out = pid(setpoint=1.0, measurement=0.0, state=FRESH).outputs
     assert out.command == 1.0 and out.is_saturated
     direct = _controller(direction="direct")
-    out = direct(setpoint=1.0, measurement=1.2).outputs
+    out = direct(setpoint=1.0, measurement=1.2, state=FRESH).outputs
     assert out.error == pytest.approx(0.2) and out.command == pytest.approx(0.4)
-    assert direct(setpoint=1.0, measurement=0.9).outputs.command == 0
+    assert direct(setpoint=1.0, measurement=0.9, state=FRESH).outputs.command == 0
+
+
+def test_a_call_without_a_state_is_refused_because_a_state_has_no_default():
+    """The case states where the controller starts; the module has no start of its own."""
+    with raises(gm.errors.ValidationError, "missing_value", match="state .*integral"):
+        _controller()(setpoint=1.0, measurement=0.8)
+    with raises(gm.errors.ValidationError, "missing_value", match="state .*integral"):
+        _controller().step(None, 10, {})
 
 
 def test_steps_integrate_and_differentiate_with_start_of_step_states():
     """I lags one step (explicit sum) and D is the backward difference over the last step."""
     pid = _controller(derivative_time=20.0)
     pid.setpoint = 1.0
-    state, result = _step(pid, None, 10, 0.9)
+    state, result = _step(pid, FRESH, 10, 0.9)
     assert result.outputs.command == pytest.approx(2 * 0.1)
     assert state == {
         "integral": pytest.approx(2 * 10 / 100 * 0.1),
@@ -72,7 +84,7 @@ def test_clamping_stops_windup_and_allows_unwinding():
     """A saturated command does not integrate further out, but integrates back in."""
     pid = _controller()
     pid.setpoint = 1.0
-    state = {"integral": 0.9, "previous_error": None, "previous_step": None}
+    state = FRESH | {"integral": 0.9}
     held, result = _step(pid, state, 60, 0.5)
     assert result.outputs.is_saturated and held["integral"] == 0.9
     unwound, result = _step(pid, held, 60, 1.1)
@@ -80,7 +92,7 @@ def test_clamping_stops_windup_and_allows_unwinding():
     assert unwound["integral"] == pytest.approx(0.9 - 2 * 60 / 100 * 0.1)
     proportional = _controller(integral_time=None)
     proportional.setpoint = 1.0
-    assert _step(proportional, None, 60, 0.9)[0]["integral"] == 0
+    assert _step(proportional, FRESH, 60, 0.9)[0]["integral"] == 0
 
 
 def test_invalid_settings_raise():
@@ -90,13 +102,13 @@ def test_invalid_settings_raise():
         "invalid_design",
         match="expected minimum_output < maximum_output",
     ):
-        _controller(minimum_output=1.0, maximum_output=0.0)(setpoint=1, measurement=0)
+        _controller(minimum_output=1.0, maximum_output=0.0)(setpoint=1, measurement=0, state=FRESH)
     with pytest.raises(gm.errors.ValidationError):
         _controller(proportional_gain=0)
     with pytest.raises(gm.errors.ValidationError):
         _controller(integral_time=0)
     with raises(gm.errors.ValidationError, "missing_value"):
-        _controller()(setpoint=1)
+        _controller()(setpoint=1, state=FRESH)
 
 
 class ControlledTank(Module):
@@ -135,18 +147,23 @@ class ControlledTank(Module):
         self.charge_out = Outlet(Stream)
         self.discharge_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Throttle the charge flow by the controller command, then pass the tank."""
 
         # Modules
         control = self.controller(
-            measurement=self.measured_temperature, setpoint=self.temperature_setpoint
+            measurement=inputs["measured_temperature"],
+            setpoint=inputs["temperature_setpoint"],
+            state=state["controller"],
         )
         charge_in = inlets.charge_in
         throttled = charge_in._with_si(m_dot=charge_in.m_dot * control.outputs.command)
-        self.command = control.outputs.command
+        outputs = dict(command=control.outputs.command)
         stored = self.storage(
-            charge_in=throttled, discharge_in=inlets.discharge_in, air_in=air(293.15)
+            charge_in=throttled,
+            discharge_in=inlets.discharge_in,
+            air_in=air(293.15),
+            state=state["storage"],
         )
 
         # Outlets
@@ -154,7 +171,7 @@ class ControlledTank(Module):
         discharge_out = stored.outlets.discharge_out
 
         outlets = dict(charge_out=charge_out, discharge_out=discharge_out)
-        return outlets
+        return outputs, outlets
 
 
 def test_controller_steps_inside_a_composite():
@@ -164,17 +181,21 @@ def test_controller_steps_inside_a_composite():
     )
     streams = {
         "charge_in": Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(1.0, "kg/s"),
             T=gm.units.Quantity(353.15, "K"),
             p=gm.units.Quantity(3e5, "Pa"),
         ),
         "discharge_in": Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(0.0, "kg/s"),
             T=gm.units.Quantity(313.15, "K"),
             p=gm.units.Quantity(3e5, "Pa"),
         ),
     }
-    state, result = plant.step(None, 60, streams)
+    state, result = plant.step(
+        {"controller": FRESH, "storage": {"temperature": 293.15}}, 60, streams
+    )
     assert result.outputs.command == pytest.approx(0.1 * 10)
     assert result.children["storage"].inlets.charge_in.m_dot == pytest.approx(1.0)
     assert state["controller"]["integral"] == 0
@@ -196,30 +217,40 @@ PID_ROWS = [
 
 @pytest.mark.parametrize("direction", ["reverse", "direct"])
 @pytest.mark.parametrize("integral_time", [100.0, None])
-def test_pid_command_and_advance_match_per_row(monkeypatch, direction, integral_time):
+def test_pid_command_and_update_match_per_row(direction, integral_time):
     """The command, the anti-windup integral and the stored error on stacked rows equal per row."""
     pid = _controller(
         direction=direction, integral_time=integral_time, derivative_time=5.0, maximum_output=1.2
     )
 
-    def load(*columns):
-        for name, column in zip(
-            ("integral", "setpoint", "measurement", "previous_error", "previous_step"), columns
-        ):
-            monkeypatch.setattr(PIDController, name, column, raising=False)
+    def values(columns):
+        names = ("integral", "setpoint", "measurement", "previous_error", "previous_step")
+        row = dict(zip(names, columns))
+        inputs = {name: row.pop(name) for name in ("setpoint", "measurement")}
+        return inputs, row
 
-    def advance(*columns):
-        load(*columns)
-        return pid._advance_states(SimpleNamespace(), None, 60)
+    def update(*columns):
+        inputs, state = values(columns)
+        return pid.update(inputs, {}, {}, state, 60)
 
     def command(*columns):
-        load(*columns)
-        return pid._unclamped_command()
+        inputs, state = values(columns)
+        return pid._unclamped_command(inputs, state)
 
     stacked = [np.array(column) for column in zip(*PID_ROWS)]
     assert_close(command(*stacked), [command(*row) for row in PID_ROWS], "unclamped command")
-    expected = [advance(*row) for row in PID_ROWS]
-    actual = advance(*stacked)
+    expected = [update(*row) for row in PID_ROWS]
+    actual = update(*stacked)
     for name in ("integral", "previous_error"):
         assert_close(actual[name], [e[name] for e in expected], name)
     assert actual["previous_step"] == 60
+
+
+def test_no_previous_step_is_a_value_the_derivative_ignores():
+    """previous_step = 0 means no step yet: the derivative is zero, with no division by it."""
+    pid = _controller(derivative_time=20.0)
+    inputs = {"setpoint": 1.0, "measurement": 0.9}
+    fresh = pid._unclamped_command(inputs, FRESH | {"previous_error": 5.0})
+    assert fresh == pytest.approx(2 * 0.1)
+    stepped = pid._unclamped_command(inputs, FRESH | {"previous_error": 0.0, "previous_step": 10})
+    assert stepped == pytest.approx(2 * 0.1 + 2 * 20 * 0.1 / 10)

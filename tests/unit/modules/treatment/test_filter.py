@@ -1,7 +1,8 @@
 """Mass conservation for Filter."""
 
 from gemini.modules.treatment import Filter
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_health_matches, assert_module_matches
@@ -11,7 +12,9 @@ def test_equipment_forward():
     """Equipment preserves mass and valid pressure/temperature."""
     c = with_values(Filter())
     result = c(
-        fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa"))
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+        )
     )
     assert sum(s.m_dot for s in result.outlets.values() if isinstance(s, Stream)) == 1
     assert result.outlets["fluid_out"].T == 300
@@ -31,7 +34,10 @@ def test_filter_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(1e6, "Pa"),
             )
         )
         for m_dot in (0, 20, 44.2, 60)
@@ -49,7 +55,10 @@ def test_health_matches_on_arrays():
     results = [
         module(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(1e6, "Pa"),
             )
         )
         for m_dot in range(6)

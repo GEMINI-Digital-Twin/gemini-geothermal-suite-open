@@ -6,7 +6,7 @@ the implementation differs and why, and section 13 how composites and replay wor
 
 ## 1. Why
 
-Profiling `inputs/doublet_heat` (one-month replay, 2976 ticks, 8 twins, 9.7 s) showed physics
+Profiling `tests/fixtures/doublet_heat` (one-month replay, 2976 ticks, 8 twins, 9.7 s) showed physics
 is only 6.5 % of the time; about 90 % is framework overhead per tick (`Module` 22 %, `difflib`
 15 %, engine/results 10 %, types 10 %, pydantic 4 %). The win is changing the execution model from
 "one tick at a time" to "the whole time range at once", via a traced computation graph. The graph
@@ -165,9 +165,15 @@ gemini/
                      scalars.py, solvers.py
   compiler/
     __init__.py      registers the executor when imported
-    executor.py      GraphExecutor, compile(plant)
-    graph/           node.py, graph.py, proxy.py, tracer.py, interpreter.py, cache.py, ...
-      passes/        cse.py now; unit check and fusion later
+    compile.py       compile(plant): the entry
+    executor.py      GraphExecutor
+    ir.py            Graph, Node, Body (the node kinds op, check, solver, break, fixed_point)
+    trace/           tracer.py, proxy.py, breaks.py, rootbreak.py, limits.py, errors.py (capture)
+    passes/          cse.py now; unit check and fusion later (one file per pass)
+    cache.py         GraphCache, graph_cache
+    interpret/       interpreter.py, fixedpoint.py, codes.py, rowerror.py, graphresult.py and one
+                     file per backend (numpy.py, python.py) plus root.py; run_graph.py picks
+    run.py           run, run_function, graph_feeds (one module over arrays)
   modules/
     declarations.py  Parameter, State, ...
 native/              C++ sources and ops.yaml, later, outside the Python package
@@ -194,11 +200,11 @@ Implemented for one leaf module, the ESP, and everything its call needs:
   missing op); `gemini/ops/kernels`: `python.py` and `numpy.py` with the ops the ESP uses plus `where` and `check`.
 - `gemini/ops`: the registry (name, kind, arity), `dispatch`, `Operators`, `Constant`,
   `where`, `check`, `logical_and`, comparisons, arithmetic, `getitem` and the `scan` definition.
-- `gemini/compiler/graph`: `Node` (op, kind, operands, name, role, unit, shape, source line, guards),
-  `Graph` (inputs by role, outputs, checks, constants, outlet fluids,
-  `describe()`), `Proxy`, `Tracer` (one leaf module), `Interpreter` (value pass, then error
-  pass), `GraphCache` (guards) and `run` (one traced call over arrays, or untraced calls per
-  row on a graph break).
+- `gemini/compiler`: `ir.Node` (op, kind, operands, name, role, unit, shape, source line, guards),
+  `ir.Graph` (inputs by role, outputs, checks, constants, outlet fluids,
+  `describe()`), `trace.proxy.Proxy`, `trace.tracer.Tracer` (one leaf module),
+  `interpret.interpreter.Interpreter` (value pass, then error pass), `cache.GraphCache` (guards)
+  and `run.run` (one traced call over arrays, or untraced calls per row on a graph break).
 - The roles are `Parameter` and `State` of `modules/declarations.py` and `Constant` of `gemini/ops`;
   the ESP constants are `Constant`s; the ESP is written with `ops.check`, `ops.where` and
   `ops.logical_and`; `Stream` is one slots dataclass used on every path.
@@ -278,7 +284,7 @@ Where the implementation differs from sections 1 to 11, and why:
 - **Graph breaks** are stateful modules (no `scan` yet), modules with pre-hooks, float32 precision
   and any `TraceError` from Python control flow or conversions; section 13 says at which level.
   A plant with a constraint breaks its whole root; a plant with loops is traced (next item).
-- **Loops.** `loops.close` in a trace records one `fixed_point` node (`compiler/graph/body.py`,
+- **Loops.** `loops.close` in a trace records one `fixed_point` node (`compiler/ir.py`,
   `fixedpoint.py`). One pass around the loop is traced as its **body**, in the same graph:
   `carry` nodes stand for the tear stream fields, the body nodes refer freely to outer nodes (inputs,
   limits, upstream values), and `Node.body` marks them so outer passes and CSE skip or separate
@@ -294,7 +300,7 @@ Where the implementation differs from sections 1 to 11, and why:
   of a plain call. The tolerance and passes are part of the cache key. A body records no
   call (no records, no outputs). `Graph.describe` marks body nodes `[loop n]`. A constraint
   (`Solve`) is still a root break.
-- **Common-subexpression elimination** (`gemini/compiler/graph/passes/cse.py`,
+- **Common-subexpression elimination** (`gemini/compiler/passes/cse.py`,
   `eliminate_common_subexpressions(graph)`, in place) runs once per trace in `GraphCache`;
   `GraphCache(optimize=False)` turns it off. It merges `elementwise`, `index` and `check` nodes
   with the same op, operands and attributes. A literal operand is its type and exact value (`1`,
@@ -311,7 +317,7 @@ Where the implementation differs from sections 1 to 11, and why:
 
 ## 13. Composites and replay through the graph
 
-- **Composites.** `Module._run` hands a call made while a trace runs (`_Call.trace`) to
+- **Composites.** `Module._run` hands a call made while a trace runs (`CallRecord.trace`) to
   `Trace.child`, and `Trace.run` goes through `Module._evaluate`, the one call sequence. A child's controls, boundaries and numeric parameters are graph inputs named
   `<relative path>.<name>` (the root keeps plain names); a child called twice reuses them; supplied
   keywords win without validation. The `ModuleResult` of traced values joins the parent's
@@ -331,12 +337,12 @@ Where the implementation differs from sections 1 to 11, and why:
 - **Limits.** `Declaration.limits()` gives an `ops.check(..., ValidationError)` for every traced
   control, boundary and output, attached to every output so a violated bound always fails the
   row, and the root inlets carry the `Stream` limits.
-- **One evaluation.** `gemini.compiler.graph.evaluate(graph, feeds, rows, context)` runs a graph on the
+- **One evaluation.** `gemini.compiler.interpret.run_graph.run_graph(graph, feeds, rows, context)` runs a graph on the
   backend of `gm.runtime.settings`: NumPy in one pass over arrays, Python row by row with
-  floats, stacked into the same arrays. That is how to debug; there is no second path. `Evaluation`
-  gives `result`, the `ModuleResult` tree of the trace mapped to arrays with children; `failed`, the
+  floats, stacked into the same arrays. That is how to debug; there is no second path. `GraphResult`
+  (a `ChunkResult`) gives `result`, the `ModuleResult` tree of the trace mapped to arrays with children; `failed`, the
   rows with an error reaching an output (`Interpreter.reached`, one computation); `error(row)`, the
-  exact exception (`failures.row_error`: `failure()` for a check, `declaration.validate` for a
+  exact exception (`interpret.rowerror.row_error`: `failure()` for a check, `declaration.validate` for a
   declared limit, the module's own exception for a break); and `states` of a stepped root break.
 - **Root break.** `Tracer.trace` never raises for a root. A root that cannot be traced
   (a plant with a constraint, float32), or a stepped root with a stateful module, is a graph with
@@ -354,14 +360,14 @@ Where the implementation differs from sections 1 to 11, and why:
   outputs, to the plant it was traced from until the cache drops it. The key costs about 1 ms for 30
   modules (plus 1 ms to hash it) against a trace of 10 to 70 ms. The design's "only that module breaks" holds for leaves; a
   composite that cannot be traced breaks the root, because its parent reads its leaves' records.
-- **One runner.** `Engine._run` builds a `BindingPlan` (one `Twin` per evaluated module: the twins of
+- **One runner.** `Engine._run` builds a `RunBindings` (one `Twin` per evaluated module: the twins of
   a replay, the plant in simulate) and gives the `Loader` arrays to `Runner`. A run is chunks of
   ticks inside stretches that share one dated parameter snapshot. A chunk is the whole stretch, except
   one tick when a stateful module is stepped, a twin sits below another twin, or a callback sets
   `changes_run = True`; so stepping in time order and section 9's chunked callbacks are the same
   loop. Per chunk and twin: `columns.read` converts the bound columns to SI and gives each tick a
   status in the order a plain call meets its problems (the first missing column is a skip, an
-  inlet the stream limits refuse is an error); `outcome.evaluate_twin` evaluates the twin with the engine's
+  inlet the stream limits refuse is an error); `twinresult.evaluate_twin` evaluates the twin with the engine's
   executor (the cached graph, or the eager call) and gives each failing row the check's class and message; `health.assess` runs `Module.health`
   once on the arrays, or row by row on the Python backend or when the array call raises;
   `PathColumns` put the columns on the chunk's ticks and `Results.commit` stores them. Callbacks are
@@ -379,7 +385,7 @@ Where the implementation differs from sections 1 to 11, and why:
 - **Not done.** `scan`, the unit-check pass, `gm.explain`.
 
 Validation stays off the hot path: `Declaration` has one cheap check for the common case, and
-everything else takes the unchanged full path. Traced rows are validated by `compiler/graph/limits.py`.
+everything else takes the unchanged full path. Traced rows are validated by `compiler/trace/limits.py`.
 
 Measured (`.tmp/native-engine/step3-benchmark.md`), CPU on the July dataset: replay 1.13 s to 0.058 s
 and simulate 0.27 s to 0.044 s on NumPy, both identical to the old tick loop. An eager ESP call
@@ -399,13 +405,13 @@ builds one with `add` and `connect`. There is one `forward`. JSON exists only as
 
 - **Files.** `plants/plant.py` (`Plant`: `add`, `connect`, `constrain`, `summary`, `validate`,
   `to_dict`) and, in `plants/_utils/`, `ports.py` (port lookup and the connection rules), `plan.py`
-  (order and wiring of the steps, tears and constraints), `run.py` (one plant call), `loops.py` (the
-  iteration on the tear streams), `constraints.py` (the solve of a constraint), `outputs.py` (the
+  (order and wiring of the steps, tears and constraints), `call.py` (one plant call), `loops.py` (the
+  iteration on the tear streams), `targets.py` (the solve of a constraint), `outputs.py` (the
   combinations), `reader.py` and `writer.py` (the plant dict in and out), `schema.py`, `factory.py`
   (a registry type or a group to a module) and `catalogue.py` (`names`, `get`,
   `capabilities`, `validate`); `from_dict`, `from_json` and `to_json` are methods of
   `Plant`. The dated parameters and bindings of `Module` are
-  `modules/_utils/design.py`; the sections every plant shares are `modules/_utils/serialization.py`.
+  `modules/_utils/design.py`; the sections every plant shares are `plants/_utils/serialization.py`; the roles of a plant are `plants/roles.py`.
 - **Value order.** A connection orders its modules by the way the value travels: the source first
   on a plain connection, the taker first on a drawn one. An `offered` outlet gives its module one
   offer step and one call, and a loop that passes through an offer is no cycle

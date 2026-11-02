@@ -5,9 +5,10 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import energy, gas
-from gemini.types import MassFlow, Power, Pressure, Stream, Temperature
-from gemini.types.fluid import AIR
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import AIR
 from gemini.units import Quantity
+from gemini.units.quantities import MassFlow, Power, Pressure, Temperature
 
 
 class Atmosphere(Module):
@@ -73,7 +74,7 @@ class Atmosphere(Module):
         self.air_out = Outlet(Stream, kind="air", many=True, offered=True)
         self.wet_air_out = Outlet(Stream, kind="air", many=True, offered=True)
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         """Offer the air at the ambient conditions, at no flow."""
         if self.pressure is None:
             raise ValidationError(
@@ -81,31 +82,34 @@ class Atmosphere(Module):
                 path="site.air.pressure",
                 code="missing_value",
             )
-        wet_bulb = self.wet_bulb_temperature
-        temperature = self.temperature if wet_bulb is None else wet_bulb
-        temperature = ops.where(ops.isfinite(temperature), temperature, self.temperature)
+        dry_bulb = inputs["temperature"]
+        wet_bulb = inputs["wet_bulb_temperature"]
+        temperature = dry_bulb if wet_bulb is None else wet_bulb
+        temperature = ops.where(ops.isfinite(temperature), temperature, dry_bulb)
         ops.check(
-            temperature <= self.temperature,
+            temperature <= dry_bulb,
             PhysicsError,
             "{path}: wet_bulb_temperature = {wet_bulb} K; expected at most temperature = {dry} K",
             path=self.path,
             wet_bulb=temperature,
-            dry=self.temperature,
+            dry=dry_bulb,
         )
         return {
-            "air_out": Stream._si(m_dot=0.0, T=self.temperature, p=self.pressure, fluid=AIR),
+            "air_out": Stream._si(m_dot=0.0, T=dry_bulb, p=self.pressure, fluid=AIR),
             "wet_air_out": Stream._si(m_dot=0.0, T=temperature, p=self.pressure, fluid=AIR),
         }
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Take in what the plant releases; the air gives nothing but its offer."""
 
         # Outputs
-        self.co2_emission = self._released(inlets.gas_in, "CO2")
-        self.methane_emission = self._released(inlets.gas_in, "CH4")
+        outputs = dict(
+            co2_emission=self._released(inlets.gas_in, "CO2"),
+            methane_emission=self._released(inlets.gas_in, "CH4"),
+        )
 
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
     @staticmethod
     def _released(streams, species):

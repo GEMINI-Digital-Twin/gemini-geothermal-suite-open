@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from gemini._utils import paths
+from tests.fixtures import paths
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests/fixtures"
-OLD_PROJECT = paths.INPUTS / "legacy_project"
+OLD_PROJECT = paths.legacy_project()

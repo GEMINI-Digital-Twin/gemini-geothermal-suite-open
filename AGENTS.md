@@ -9,31 +9,34 @@ Test with the development profile (`make test`); see
 
 A leaf module computes and a plant connects; no class does both
 ([modules](.claude/docs/modules.md), [plants](.claude/docs/plants.md)). A leaf has physics calls and
-one method, `forward`. Every composite is a `Plant`: it declares children, ports and connections in
+one pure method, `forward`, and a pure `update` when it has states. Every composite is a `Plant`: it declares children, ports and connections in
 `__init__` and never writes `forward`. The engine closes loops and solves constraints.
 
-Physics lives in `gemini/physics/` or `gemini/modules/<category>/_physics.py`: a module declares and
-calls physics functions. `gemini/modules/` holds `Module`, the declarations, `ModuleList`,
+Physics lives in `gemini/physics/`, and in a `_physics.py` beside a category only when it needs
+streams (`wells/_physics.py`): a module declares and calls physics functions. `gemini/modules/` holds `Module`, the declarations, `ModuleList`,
 `ModuleDict` and `gm.modules.check`; `gemini/plants/` holds `Plant` and the plant classes. Machinery
 goes in an `_utils/` folder, code of one category in a private file of its folder
 ([where a file goes](.claude/docs/conventions.md#module-rules)). Public names are flat,
 `gm.<folder>.<Name>`, exported by the folder's `__init__`; inner files are private. The run folders
-(`modules`, `plants`, `case`, `physics`, `ops`, `runtime`, `engine`, `run`, `types`, `units`, `errors`,
-`_utils`) import none of `compiler`, `data`, `study`, `evaluate`, `analysis`
-([dependencies](.claude/docs/conventions.md#dependencies)).
+(`modules`, `plants`, `case`, `physics`, `ops`, `runtime`, `engine`, `streams`, `units`, `errors`,
+`_utils`) import none of `compiler`, `study`, `evaluate`, `analysis`
+([dependencies](.claude/docs/conventions.md#dependencies)); the rules for folders and the table of what each
+folder takes, gives and may call are in [structure](.claude/docs/structure.md).
 
 **Read/write naming.** Every reader is `from_<format>` and every writer `to_<format>`: `from_csv`,
 `from_json`, `from_dict`, `from_values`, `from_bytes`, ... and `to_csv`, `to_json`, `to_dict`,
 `to_bytes`, .... A reader is a classmethod on the class it returns (`gm.Case.from_json(path)`); a
 writer is a method of the object (`case.to_json(path)`). Only a reader that returns no gemini
-class (a demand frame) is a plain function in its folder (`gm.data.from_csv`). No `read_*`,
+class (a demand frame) is a plain function in its folder (`gm.case.from_csv`). No `read_*`,
 `write_*`, `load_*`, `save_*`, `parse_*` or `dump_*` names; `tests/unit/test_code_quality.py` rejects
 those prefixes ([conventions](.claude/docs/conventions.md#public-names-and-readwrite-naming)).
 
 Learn the package from [examples/README.md](examples/README.md): five flat scripts, `quickstart.py`
 first, then `hackathon.py`. gemini holds no data file: plants are Python classes, and JSON is only the
 plant dict agents use (`gm.Plant.from_dict`, `plant.to_dict`, `gm.plants.schema`). Data lives in
-`inputs/`, never `examples/`, and is not installed ([data](.claude/docs/data.md#where-data-lives)).
+`examples/<name>/` (a sample project: its case, plants and data, so a folder a user can copy) and in
+`tests/fixtures/` (what the tests read); none of it is installed, and the package holds none
+([data](.claude/docs/data.md#where-data-lives)).
 
 Before adding or moving an input, apply the placement test of [inputs](.claude/docs/inputs.md#2-the-placement-test):
 one owner, one file, and the reason is written there.
@@ -51,13 +54,13 @@ requirements, the merit order and the outages from the plant's `control`, and th
 sizes (`size`), searches (`minimize`), samples and ranks the influence of a value (`sensitivity`);
 `gm.Study` runs them from a `study.json`; `gm.check(plant, case)` lists what is missing first.
 
-gemini is a general package and knows no sample: `inputs/examples/` holds sample cases, each a
+gemini is a general package and knows no sample: `examples/<name>/` holds a sample project, a
 `case.json`, a demand CSV and the plant dicts, and only `examples/` and `tests/` read them
 ([conventions](.claude/docs/conventions.md#general-package)). A whole run is:
 
 ```python
-case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
+case = gm.Case.from_json("examples/shallow_district/case.json")
+plant = gm.Plant.from_json("examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value)
 ```
@@ -96,7 +99,7 @@ overriding `_set_si_params`
 ([modules](.claude/docs/modules.md#a-plant-that-sets-its-childrens-values)).
 
 Every public return uses one of three shapes, value, problem (the shape of an error) or check, built by
-`gemini/types/shapes.py` ([return shapes](.claude/docs/api.md#return-shapes)). Every public call
+`gemini/units/shapes.py` ([return shapes](.claude/docs/api.md#return-shapes)). Every public call
 raises by default; `on_error="record"` reports instead ([errors](.claude/docs/errors.md)).
 
 Read every file in `.claude/docs/` before changing the repository:
@@ -122,6 +125,7 @@ Read every file in `.claude/docs/` before changing the repository:
 - [Refactor notes](.claude/docs/refactor-notes.md): retained numbers and known limitations.
 - [Runtime](.claude/docs/runtime.md): context-local process settings.
 - [Testing](.claude/docs/testing.md): tiers, test profiles, datasets, budgets, fixtures and CI.
+- [Structure](.claude/docs/structure.md): the rules R1-R7 for folders, what each folder takes, gives and may call, and the words plan, bindings and graph.
 - [Types](.claude/docs/types.md): streams, fluids, declarations, profiles and balances.
 - [Utilities](.claude/docs/utils.md): the `gemini._utils` helpers and how to add one.
 
@@ -147,37 +151,37 @@ number of `gm.__version__` ([freeze rule](.claude/docs/conventions.md#public-api
 ```text
 gemini/
 ├── __init__.py       # curated import gemini as gm API: gm.__all__ is pinned
-├── _utils/           # general helpers and registry.py; leaf, imports nothing else from gemini (but errors)
+├── _utils/           # helpers shared by two or more folders, and registry.py; leaf, imports nothing else from gemini (but errors)
 ├── errors/           # the gm.errors classes and codes; leaf package that imports nothing else from gemini
 ├── ops/              # math API and dispatcher, backend.py (registry, select), kernels/ (python, numpy, scalars, solvers)
-├── physics/          # shared formulas: SI correlations; gm.physics.<topic>
-├── units/            # unit conversions and Quantity
-├── types/            # quantities, streams, fluids, profiles, bindings, return shapes
-├── runtime/          # context-local backend, precision, display units and default fluid
-├── modules/          # module.py, declarations.py, container.py, call.py, check.py, _utils/; one folder per category with its _physics.py
+├── physics/          # shared formulas: SI correlations; gm.physics.<topic> (the doublet design is in plants/_utils, the dispatch policy in engine/schedule)
+├── units/            # unit conversions, Quantity, the quantity aliases (quantities.py), the unit rule (bare.py), the return shapes (shapes.py), the shared input formats (inputs.py), the display table (display.py)
+├── streams/          # Stream, Fluid, Ports, the stream kinds
+├── runtime.py        # context-local backend, precision, display units
+├── modules/          # module.py, declarations.py, container.py, call.py, check.py, results.py, bindings.py, _utils/; one folder per category (a `_physics.py` only where code needs streams)
 ├── plants/           # plant.py (Plant) and the plant classes, one file each; _utils/ holds the plant tools
-├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements), roles; _utils/ (node: the one reader of a section, schema, access, kinds)
-├── engine/           # Engine, Clock, executor.py, eager.py, rows.py, loader, runner, chunks, checkpoint, callbacks
-├── run/              # check, schedule, simulate, replay, live, resume, call, Results, Dataset; _utils/ (apply: the case on a plant copy, roles, limits, sources)
-├── compiler/         # graph/ (Tracer, Graph, passes, cache), executor.py, gm.compiler.compile; optional, registers itself
-├── data/             # from_csv, from_values, profile_schema
-├── study/            # size, minimize, sample, sensitivity, Study; _utils/ (trial, variables, execute, target)
-├── evaluate/         # totals, requirements, verdict, balances, bounds, run_all, capex, opex, lcoh, lcoc, lcts, annualised_cost, co2, npv, payback; capacities, report, compare
-└── analysis/         # calibrate, nodal, pump curve, corrosion forecast, fits
+├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements), profile.py, dataset.py (Dataset: measured series), demand_frame.py (from_csv, from_values, profile_schema); _utils/ (node: the one reader of a section, schema, access, kinds)
+├── engine/           # one run: Engine, simulate/replay/live/resume, check, Results, apply (the case on a plant copy), schedule/ (schedule, dispatch, sources, limits, fleet), bindings, loader, columns, runner, chunks, eager, executor, checkpoint, callbacks
+├── compiler/         # compile.py, executor.py, ir.py (Graph), trace/, passes/, cache.py, interpret/ (per backend), run.py; gm.compiler.compile; optional, registers itself
+├── study/            # size, minimize, sample, sensitivity, calibrate, Study; _utils/ (trial, variables, execute, target)
+├── evaluate/         # one file per job: costs, emissions, balances, verdict, summary, report; each public function is gm.evaluate.<name>; _utils/
+└── analysis/         # one module at fixed conditions: nodal, fits (and the pump curve), corrosion forecast
 docs/schemas/         # generated JSON Schemas and samples of the exchanged documents
-inputs/               # not installed: examples/ (sample cases), plants/ (example values), doublet_heat/, legacy_project/ (read by tests only)
-examples/             # five flat scripts: quickstart, hackathon, costs, uncertainty, plant
+examples/             # five flat scripts (quickstart, hackathon, costs, uncertainty, plant) and one folder per sample project (case, plants, data): hackathon_2026/, shallow_district/
 scripts/              # test_changed.py, write_schemas.py, legacy/ (old-project reader for the tests)
 docker/               # sandbox.Dockerfile, the image of a module sandbox (make sandbox-image)
-tests/                # unit mirror, integration, e2e (expected/ holds example outputs), fixtures
+tests/                # unit mirror, integration, e2e (expected/ holds example outputs), fixtures (with the data the tests read: plants/, doublet_heat/, legacy_project/)
 ```
 
-Modules declare parameters and ports in `__init__`; `forward(self, inlets)` receives one
-immutable `Ports` mapping (`gemini.types.Ports`) while controls and boundaries are pre-applied and read from `self`. A leaf
-assigns its outputs there and returns a dictionary of outlets; the combinations of a plant run
-automatically afterward. Pre-hooks receive `(module, inlets)` and forward hooks receive
-`(module, inlets, outlets)`. Plants ([plants.md](.claude/docs/plants.md)) own persistence, bindings,
-and dated design. `gemini.run` holds the run objects and reads files only for a `Results`. No engine loop sleeps or schedules itself.
-Keep the public
-API small and examples outside the package. Details are in
-[conventions.md](.claude/docs/conventions.md) and [modules.md](.claude/docs/modules.md).
+Modules declare parameters and ports in `__init__`; `forward(self, inputs, inlets, state)` is pure:
+it receives the controls and boundaries in `inputs`, one immutable `Ports` mapping
+(`gemini.streams.Ports`) in `inlets` and the state, reads only parameters on `self` (never a
+control, boundary, state or output), writes nothing and returns `(outputs, outlets)`. A per-step
+value is never `None`: an output that is empty when off is NaN, shown as `None` in results. A
+stateful module also has a pure `update(self, inputs, inlets, outlets, state, dt)` returning the next
+state. The combinations of a plant are returned by `Plant.forward`, written once. Pre-hooks receive
+`(module, inputs, inlets, state)` and forward hooks receive `(module, inputs, inlets, state,
+outputs, outlets)`. Plants ([plants.md](.claude/docs/plants.md)) own persistence, bindings, and
+dated design. `gemini.engine` holds the run objects and reads files only for a `Results`. No engine
+loop sleeps or schedules itself. Keep the public API small and examples outside the package.
+Details are in [conventions.md](.claude/docs/conventions.md) and [modules.md](.claude/docs/modules.md).

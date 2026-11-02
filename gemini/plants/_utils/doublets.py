@@ -4,10 +4,10 @@ from gemini.errors import ValidationError
 from gemini.modules.container import ModuleList
 from gemini.modules.declarations import Parameter
 from gemini.modules.piping import Mixer, Splitter
-from gemini.plants._utils.wiring import mix_chain
+from gemini.plants._utils.cascades import mix_chain
 from gemini.plants.doublet import Doublet
 from gemini.plants.plant import Plant
-from gemini.types import Length
+from gemini.units.quantities import Length
 
 
 class DoubletsPlant(Plant):

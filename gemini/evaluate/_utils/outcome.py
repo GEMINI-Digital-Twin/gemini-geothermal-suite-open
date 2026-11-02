@@ -7,7 +7,7 @@ one that finds no value; the functions call each other with ``"record"`` and rea
 
 from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import check_on_error
-from gemini.types.shapes import measure
+from gemini.units.shapes import measure
 
 
 def unavailable(unit, reason, on_error, **details):

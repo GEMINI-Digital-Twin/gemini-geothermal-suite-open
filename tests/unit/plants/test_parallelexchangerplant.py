@@ -3,6 +3,7 @@
 import pytest
 
 import gemini as gm
+from gemini.streams.fluid import BRINE
 from tests.fixtures.sample_cases import example_plant
 
 SECONDARY = gm.Stream(
@@ -12,6 +13,7 @@ SECONDARY = gm.Stream(
     fluid=gm.Fluid(kind="water"),
 )
 FITTED_INJECTION = gm.Stream(
+    fluid=BRINE,
     flow={"value": 125.1, "unit": "m3/h"},
     T={"value": 70, "unit": "degC"},
     p={"value": 44.47, "unit": "bar"},
@@ -62,8 +64,8 @@ def test_the_shares_divide_both_streams(run):
 def test_the_call_closes(run):
     """Mass, the thermal audit and every balance of the plant close."""
     plant, result = run
-    assert gm.modules.mass_balance(plant, result)["residual"] == 0
-    assert gm.modules.energy_balance(plant, result)["relative_thermal_residual"] < 1e-9
+    assert gm.evaluate.call_mass_balance(plant, result)["residual"] == 0
+    assert gm.evaluate.call_energy_balance(plant, result)["relative_thermal_residual"] < 1e-9
     assert all(check["passed"] for check in gm.evaluate.plant_balance(plant, None, result))
 
 

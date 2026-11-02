@@ -3,23 +3,24 @@
 import numpy as np
 
 from gemini.case._utils.access import require
+from gemini.evaluate._utils import pricing
 from gemini.evaluate._utils.co2_steps import emitted_steps
 from gemini.evaluate._utils.flows import Flows
 from gemini.evaluate._utils.level import level
 from gemini.evaluate._utils.outcome import unavailable
-from gemini.types.shapes import measure
 from gemini.units import SECONDS_PER_YEAR
+from gemini.units.shapes import measure
 
 NO_COST = (
     "no module of the plant is equipment with a cost: a module declares it with an "
-    "equipment_kind and a capex(economics)"
+    "equipment_kind and a cost_size()"
 )
 """The reason when a plant has no equipment with a cost."""
 
 BILLED = ("electricity", "fuel", "waste", "chemical")
 """The flows that are bought or discarded, each with a bill of its name."""
 
-ECONOMICS = "economics"
+ECONOMICS = pricing.ECONOMICS
 """The path of the economics in a case."""
 
 
@@ -55,7 +56,7 @@ def investment(plant, case, on_error):
     if not units:
         return unavailable("currency", NO_COST, on_error)
     items = {
-        path: measure(module.capex(economics), "currency", kind=module.equipment_kind)
+        path: measure(pricing.capex_of(module, economics), "currency", kind=module.equipment_kind)
         for path, module in units.items()
     }
     parts = {"modules": items}
@@ -70,7 +71,7 @@ def fixed_opex(plant, case):
     amounts = {}
     for module in equipment(plant).values():
         kind = module.equipment_kind
-        amounts[kind] = amounts.get(kind, 0.0) + module.fixed_opex(economics)
+        amounts[kind] = amounts.get(kind, 0.0) + pricing.fixed_opex_of(module, economics)
     return amounts
 
 

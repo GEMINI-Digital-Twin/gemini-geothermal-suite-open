@@ -7,8 +7,7 @@ takes, each value in the SI unit of its declaration, so the numbers are unchange
 """
 
 from gemini.errors import ValidationError
-from gemini.types import bare
-from gemini.units import Quantity
+from gemini.units import Quantity, bare
 
 STREAM = {"m_dot": "kg/s", "T": "K", "p": "Pa", "flow": "m3/s"}
 FLUID = {

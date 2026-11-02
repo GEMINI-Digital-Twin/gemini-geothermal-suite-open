@@ -7,7 +7,8 @@ from gemini.modules.pumps import InjectionPump
 from gemini.modules.treatment import Degasser, Filter
 from gemini.plants.doublet import Doublet
 from gemini.plants.plant import Plant
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 
 
 class DoubletHeatPlant(Plant):

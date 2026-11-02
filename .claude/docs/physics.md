@@ -7,7 +7,7 @@ call physics and write no correlation of their own. The public names are `gm.phy
 Unit conversions are not here: they are `gm.units` (`gemini/units/`, see below). The files cover
 constants, fluid properties, geometry, hydraulics, heat transfer, pumps, chemistry, corrosion and
 erosion, gas compression, refrigeration cycles, IAPWS-IF97 steam, ground heat transport,
-psychrometrics, separation, combustion, thermal storage, PID control, power cycles, grid
+psychrometrics, separation, combustion, thermal storage (in `heat_transfer.py`), PID control, power cycles, grid
 electricity, energy conversion and health diagnostics. The equipment catalogue
 ([equipment.md](equipment.md)) lists the functions each module calls. The sections after the file
 list state the rules, then each subject (the original GEMINI correlations first).
@@ -150,15 +150,14 @@ Pipe hydraulics: Darcy–Weisbach with Swamee–Jain, Beggs–Brill, path marchi
   `dp = (rho / rho_0) (q / Kv)^2`.
 - `hydrostatic_dp(rho, height, inclination_sine)`: hydrostatic pressure difference [Pa] of a fluid
   column, `dp = rho g h s`.
-- `pipe_path_profile(path, stream, fluid, direction, heat_transfer_coefficient, ambient_temperature,
-  correlation, correlation_2p)`: march the pressure and temperature of a stream along a pipe path.
 - `radial_pressure_drops(volume_flow, viscosity, permeability, thickness, drainage_radius,
   wellbore_radius, skin)`: radial Darcy and skin pressure drops [Pa] of an inflow to a well (Akin
   2019).
-- `corrosion_profile(path, stream, fluid, direction, heat_transfer_coefficient, ambient_temperature,
-  chemistry, model)`: CO2 corrosion rate [mm/year] of each section along the hydraulic profile.
-- `erosion_check(path, stream, fluid)`: compare section velocities with the API erosional velocity
-  limit.
+
+The path marcher takes a `Stream` and a `Fluid`, so it is not physics: `pipe_path_profile` and
+`corrosion_profile` (CO2 corrosion rate [mm/year] of each section) are in
+`gemini/modules/wells/_physics.py`. The erosion check takes plain values and is
+`erosion.pipe_path_erosion_check`.
 
 The doublet design adds `radial_index` (the inverse of `radial_pressure_drops`),
 `hydrostatic_pressure`, `pump_setting_depth` and `design_pump_head` to `hydraulics.py`,
@@ -167,7 +166,7 @@ The doublet design adds `radial_index` (the inverse of `radial_pressure_drops`),
 
 ### `heat_transfer.py`
 
-Pipe heat loss and standard heat-exchanger effectiveness relations.
+Pipe heat loss, heat-exchanger effectiveness relations and lumped thermal stores.
 
 - `pipe_temperature_change(inlet_temperature, heat_transfer_coefficient, area, liquid_mass_flow,
   gas_mass_flow, liquid_heat_capacity, gas_heat_capacity, ambient_temperature)`: legacy explicit
@@ -206,6 +205,24 @@ Pipe heat loss and standard heat-exchanger effectiveness relations.
   m_dot_cold, cp_hot, cp_cold)`: `(UA, code, hot duty, cold duty, LMTD)` from measured temperatures
   and flows.
 
+Lumped thermal stores (one uniform store temperature), used by `ThermalStorage` and `IceStorage`:
+
+- `circuit_conductance(effectiveness, capacity_rate)`: conductance of a circuit exchanging heat with
+  a store at uniform temperature.
+- `tank_capacity(volumetric_heat_capacity, volume)`: heat capacity of a tank of liquid.
+- `tank_service_report(hot, capacity, temperature, reference_temperature, charge_heat,
+  discharge_heat)`: stored energy and the two circuit duties of a tank, signed by its service.
+- `tank_relaxation(temperature, capacity, duration, charge_conductance, charge_temperature,
+  discharge_conductance, discharge_temperature, loss_conductance, ambient_temperature)`: temperature
+  of a fully mixed tank after a step with constant inlets.
+- `ice_stored_cold(water_mass, latent_heat, fraction)`: latent cold stored in an ice store.
+- `ice_advance(fraction, temperature, duration, inlet_temperature, conductance, water_mass,
+  latent_heat, freezing_temperature, water_specific_heat, ice_specific_heat)`: frozen fraction and
+  the temperature of an ice store after a step.
+- `ice_step(fraction, temperature, duration, inlet_temperature, conductance, water_mass,
+  latent_heat, freezing_temperature, water_specific_heat, ice_specific_heat)`: advances an ice store
+  through one phase segment.
+
 ### `ground.py`
 
 Ground and aquifer heat transport: doublet breakthrough, conduction shapes, Ramey profiles.
@@ -237,7 +254,7 @@ Ground and aquifer heat transport: doublet breakthrough, conduction shapes, Rame
 - `doublet_temperature_drop(injected, breakthrough, reservoir_temperature, injection_temperature)`:
   drop of the produced temperature of a doublet after thermal breakthrough.
 - `doublet_breakthrough_time(breakthrough, volume_flow)`: time for a doublet's thermal front to
-  reach the producer; `None` at no flow.
+  reach the producer; infinite at no flow.
 - `store_conductance(volume, conductivity, porosity, water_volumetric_heat_capacity,
   rock_heat_capacity, height, period)`: conduction conductance [W/K] of an aquifer store of injected
   water volume.
@@ -272,10 +289,8 @@ Ground and aquifer heat transport: doublet breakthrough, conduction shapes, Rame
 
 ### `pumps.py`
 
-Pump relations: the TNO R11363 power polynomial, affinity-law curves, efficiencies. `head`,
-`esp_efficiency`, `pump_efficiency` and `line_shaft_friction_power` live in
-`modules/pumps/_physics.py`; `power` and `constant_head_curves` stay here because the doublet design
-reads them too.
+Pump relations: the TNO R11363 head and power polynomials, affinity-law curves, efficiencies. The
+doublet design reads `power` and `constant_head_curves` too.
 
 - `head(volume_flow, frequency, stages, coefficients)`: pressure rise [Pa] from flow [m3/s],
   frequency [Hz], stages and ft coefficients.
@@ -301,9 +316,10 @@ reads them too.
 - `line_shaft_friction_power(friction_loss, depth, speed)`: mechanical friction power of a line
   shaft.
 
-### `modules/pumps/_physics.py`: compression
+### `gas.py`: compression
 
-Ideal-gas adiabatic compression with an isentropic efficiency and intercooled stages.
+The end of `gas.py`: ideal-gas adiabatic compression with an isentropic efficiency and intercooled
+stages.
 
 - `isentropic_outlet_temperature(inlet_temperature, pressure_ratio, heat_capacity_ratio)`: ideal-gas
   isentropic outlet temperature [K] of one compression stage.
@@ -322,8 +338,8 @@ Ideal-gas adiabatic compression with an isentropic efficiency and intercooled st
 
 ### `refrigeration.py`
 
-Heat pump and chiller relations: Carnot and Lorenz COPs, part load. The sorption functions listed
-here (`characteristic_*`, `sorption_*`) live in `modules/cooling/_physics.py`.
+Heat pump and chiller relations: Carnot and Lorenz COPs, part load, and the characteristic equation
+and duties of sorption machines (`characteristic_*`, `sorption_*`).
 
 - `carnot_cop_heating(sink_temperature, source_temperature, minimum_lift)`: Carnot heating COP of a
   heat pump.
@@ -379,7 +395,7 @@ here (`characteristic_*`, `sorption_*`) live in `modules/cooling/_physics.py`.
   source_limit, available, efficiency, minimum_lift)`: evaporator demand minus the available source
   heat [W] at a heating duty.
 
-### `modules/power/_physics.py`: steam
+### `steam.py`
 
 Saturated water and steam properties from IAPWS-IF97 and wet steam expansion.
 
@@ -453,12 +469,13 @@ Erosion correlations: DNV RP O501, OKA, E/CRC Tulsa and API RP 14E.
   correlation.
 - `api_erosional_velocity(rho_fluid)`: API erosional velocity limit [m/s], `u_e = C / sqrt(rho)`.
 - `api_velocity_comparison(actual, limit)`: compare actual and limiting flow velocities.
+- `pipe_path_erosion_check(path, mass_flow, density)`: section velocities of a `PipePath` against the
+  API erosional limit at one density, with the ratios and the alarm.
 
 ### `separation.py`
 
-Flow splitting, shared by piping and treatment, and `FILTER_CLOGGING_BAR`, which the legacy bridge
-reads. `degasser_split`, `cyclone_sand`, `dosing_flows` and the other filter and degasser defaults
-live in `modules/treatment/_physics.py`.
+Flow splitting, shared by piping and treatment, the lumped treatment relations (`degasser_split`,
+`cyclone_sand`, `dosing_flows`) and `FILTER_CLOGGING_BAR`, which the legacy bridge reads.
 
 - `split_flow(mass_flow, fraction)`: remainder and the branch of a mass flow split, `(m - f m, f
   m)`.
@@ -481,27 +498,7 @@ Fuel-fired heat and power: fuel input of a boiler or engine, flare emissions.
   CO2 and methane emissions and the fuel power of a flared gas.
 - `released_heat(gas_flow, heating_value, combustion_efficiency)`: heat a flare releases.
 
-### `modules/storage/_physics.py`
-
-Thermal storage: mixed water tanks, coil conductance and the phase segments of an ice store.
-
-- `circuit_conductance(effectiveness, capacity_rate)`: conductance of a circuit exchanging heat with
-  a store at uniform temperature.
-- `tank_capacity(volumetric_heat_capacity, volume)`: heat capacity of a tank of liquid.
-- `tank_service_report(hot, capacity, temperature, reference_temperature, charge_heat,
-  discharge_heat)`: stored energy and the two circuit duties of a tank, signed by its service.
-- `tank_relaxation(temperature, capacity, duration, charge_conductance, charge_temperature,
-  discharge_conductance, discharge_temperature, loss_conductance, ambient_temperature)`: temperature
-  of a fully mixed tank after a step with constant inlets.
-- `ice_stored_cold(water_mass, latent_heat, fraction)`: latent cold stored in an ice store.
-- `ice_advance(fraction, temperature, duration, inlet_temperature, conductance, water_mass,
-  latent_heat, freezing_temperature, water_specific_heat, ice_specific_heat)`: frozen fraction and
-  the temperature of an ice store after a step.
-- `ice_step(fraction, temperature, duration, inlet_temperature, conductance, water_mass,
-  latent_heat, freezing_temperature, water_specific_heat, ice_specific_heat)`: advances an ice store
-  through one phase segment.
-
-### `modules/control/_physics.py`
+### `control.py`
 
 Discrete PID control: the error, the ideal-form command and the clamped integral.
 
@@ -515,7 +512,7 @@ Discrete PID control: the error, the ideal-form command and the clamped integral
 - `anti_windup_increment(increment, unclamped, minimum_output, maximum_output)`: integral increment,
   zero while the output is clamped and driven further out.
 
-### `modules/power/_physics.py`: power cycles
+### `cycles.py`
 
 Binary organic Rankine cycle plant relations: Lorenz efficiency, capacity cap, energy balance.
 
@@ -526,13 +523,6 @@ Binary organic Rankine cycle plant relations: Lorenz efficiency, capacity cap, e
   of an air-cooled binary cycle fed by brine.
 - `plant_balance(heat_input, cycle_efficiency, parasitic_fraction)`: energy balance of a binary
   plant from its heat input.
-
-### `electricity.py`
-
-Electricity exchange of a plant with a grid connection of limited capacity.
-
-- `net_exchange(consumption, generation, import_limit, export_limit, import_price, export_price)`:
-  import and export of a plant through a limited grid connection.
 
 ### `dispatch.py`
 
@@ -556,6 +546,8 @@ Energy conversion through an efficiency, shared by pumps, compressors, motors an
 
 - `input_power(useful_power, efficiency)`: power a converter draws for a useful power, `P_in = P_out
   / eta`.
+- `net_exchange(consumption, generation, import_limit, export_limit)`: import and export of a plant
+  through a grid connection of limited capacity, as a `GridExchange`.
 
 ### `diagnostics.py`
 
@@ -588,9 +580,9 @@ Health-scoring relations shared by the modules: drift, bounded score, margin, li
 - `gemini.units._UNITS` is the single table of public data units (SI unit, scale, offset). A declared
   difference quantity converts by scale only, so `{"value": 5, "unit": "degC"}` as a temperature difference is 5 K.
 - Do not perform database I/O, logging or mutate global state during calculations.
-- `Fluid` definitions in `gemini.types.fluid` own immutable overrides and cache their
-  `FluidProperties` snapshot; physics must not import types at runtime (`hydraulics` imports
-  `Stream` and `Fluid` for type checking only).
+- `Fluid` definitions in `gemini.streams.fluid` own immutable overrides and cache their
+  `FluidProperties` snapshot; physics imports no `Stream` or `Fluid`: a function that takes
+  one lives in the `_physics.py` of its module category.
 - Do not hide undefined diagnostics as valid numbers. The receiving aquifer's unconfigured
   drainage radius leaves radial estimates unavailable while its pressure-flow model works.
 - Inputs outside a correlation's domain raise `gm.errors.PhysicsError` instead of dividing
@@ -610,7 +602,7 @@ Health-scoring relations shared by the modules: drift, bounded score, margin, li
 
 ## Fluid properties
 
-`fluid.py` holds the constant-property snapshot `FluidProperties` and `types/fluid.py` the
+`fluid.py` holds the constant-property snapshot `FluidProperties` and `streams/fluid.py` the
 immutable `Fluid` that selects it (the inherited GEMINI `PVTConstantSTP` model, property model
 `constant_stp`). Pressure and temperature do not change any property: `Fluid.properties(p, T)`
 returns one cached snapshot per complete `Fluid` value.
@@ -635,7 +627,7 @@ returns one cached snapshot per complete `Fluid` value.
 
 Salinity, CO2 and free gas are mass fractions; glycol is a volume fraction. Brine density and
 viscosity are not inferred from salinity: supply the overrides. A `steam` fluid carries the
-liquid-water snapshot, not vapour properties (use `modules/power/_physics.py`). Mass fractions summing above one,
+liquid-water snapshot, not vapour properties (use `gm.physics.steam`). Mass fractions summing above one,
 a glycol fraction on another kind, or a glycol fraction other than 0.3 raise a pydantic
 `ValueError`, not `PhysicsError`. `FluidProperties` and `Stream` are frozen slots dataclasses:
 invalid physical values (a non-positive property, a gas mass fraction outside [0, 1), a
@@ -644,7 +636,8 @@ limits are `gemini.ops.check` calls.
 
 ## Hydraulics
 
-`hydraulics.py` marches pressure and temperature along a `PipePath` of `PipeSection`s (length
+`hydraulics.py` holds the drops of one interval, and `gemini/modules/wells/_physics.py` marches
+pressure and temperature along a `PipePath` of `PipeSection`s (length
 [m], inclination [rad], inner diameter [m], roughness [m]). Inclination is measured from
 horizontal, positive when descending in surface-to-bottom order. Friction and gravity drops are
 signed so that the pressure rises by both when flowing down and falls by both when flowing up.
@@ -675,7 +668,7 @@ signed so that the pressure rises by both when flowing down and falls by both wh
   and gravity `(H_l rho_l + (1 - H_l) rho_g) g L sin(theta)` [Pa]. The SI terms use inputs
   converted to the US basis and back, which changes the last bits and is kept for the goldens.
 - `pipe_path_profile(path, stream, fluid, direction, heat_transfer_coefficient,
-  ambient_temperature)` takes each section from `Fluid.properties`: `Q = fluid.volume_flow(m_dot,
+  ambient_temperature)` (in `modules/wells/_physics.py`) takes each section from `Fluid.properties`: `Q = fluid.volume_flow(m_dot,
   density)`, the velocities `geometry.mean_velocity(m, rho, D)` = `m / rho / A` with `A =
   pi D^2 / 4`, `us_l` from `(1 - gmf) m` and `rho_l`, and Darcy-Weisbach when the gas mass
   fraction is zero, otherwise Beggs-Brill with `us_g = mean_velocity(m_g, rho_g, D)` and `rho_g` the density of the gas at the section's `p` and `T` (`Fluid.gas_density_at`). Pressures are floored at 0.001
@@ -894,7 +887,7 @@ rate) and a nonpositive density or API limit raise `PhysicsError`.
 
 ## Compression
 
-`modules/pumps/_physics.py` holds ideal-gas adiabatic compression (GPSA Engineering Data Book, 14th ed.
+`gemini/physics/gas.py` holds ideal-gas adiabatic compression (GPSA Engineering Data Book, 14th ed.
 2017, Section 13; compressibility factor Z = 1, constant `k = cp/cv`), used by `GasCompressor`:
 
 - `isentropic_outlet_temperature(T_1, r, k)` = `T_1 r^((k-1)/k)` [K];
@@ -909,7 +902,7 @@ raise `PhysicsError`. Valid for near-ideal gases and stage ratios up to about 4.
 
 ## Refrigeration
 
-`refrigeration.py` and `modules/cooling/_physics.py` hold the heat pump, chiller and sorption-machine relations of `HeatPump`,
+`refrigeration.py` holds the heat pump, chiller and sorption-machine relations of `HeatPump`,
 `AbsorptionUnit` and `AdsorptionChiller`. Inputs and outputs are SI (K, W, W/K); NaN and
 out-of-domain inputs raise `PhysicsError`.
 
@@ -938,7 +931,7 @@ out-of-domain inputs raise `PhysicsError`.
 
 ## Steam
 
-`modules/power/_physics.py` holds the exact IAPWS-IF97 equations for water and steam in SI units (Pa, K, J/kg,
+`gemini/physics/steam.py` holds the exact IAPWS-IF97 equations for water and steam in SI units (Pa, K, J/kg,
 J/kg/K), not fits, used by `Separator` and `FlashTurbine`:
 
 - `saturation_pressure(T)` (eq. 30, 273.15 K to 647.096 K) and `saturation_temperature(p)`
@@ -1038,7 +1031,7 @@ assert round(psychrometrics.humidity_ratio(293.15, 0.5, 101325), 6) == 0.007262
 
 ## Separation
 
-`separation.py` and `modules/treatment/_physics.py` hold the lumped splits of the treatment and piping modules (`Splitter`,
+`separation.py` holds the lumped splits of the treatment and piping modules (`Splitter`,
 `Blowdown`, `Degasser`, `Desander`, `InhibitorDosing`). No relation has a residence time, a level
 or a size distribution.
 
@@ -1075,7 +1068,7 @@ or a size distribution.
 
 ## Storage
 
-`modules/storage/_physics.py` holds lumped stores at one uniform temperature, used by `ThermalStorage` and
+`heat_transfer.py` holds lumped stores at one uniform temperature, used by `ThermalStorage` and
 `IceStorage`.
 
 - `circuit_conductance(e, C)` = `G = e C` [W/K]: a circuit exchanging heat with a store at uniform
@@ -1092,14 +1085,14 @@ or a size distribution.
   and `x` changes linearly; a sensible segment relaxes with the time constant `M c / G` and stops
   at the freezing temperature. `ice_step` is one segment, and at most `MAX_SEGMENTS` = 3
   segments run per step.
-- Sourced constants that stay as the defaults of `IceStorage`: `DEFAULT_LATENT_HEAT` = 333550 J/kg,
+- Sourced constants that stay as the defaults of `IceStorage`: `DEFAULT_ICE_LATENT_HEAT` = 333550 J/kg,
   `DEFAULT_FREEZING_TEMPERATURE` = 273.15 K, `DEFAULT_WATER_HEAT_CAPACITY` = 4219.9 and
-  `DEFAULT_ICE_HEAT_CAPACITY` = 2096.8 J/kg/K. The start temperature of a tank or a store is the
-  parameter `initial_temperature`, not a constant.
+  `DEFAULT_ICE_HEAT_CAPACITY` = 2096.8 J/kg/K. The start temperature of a tank or a store is a
+  state of `case.initial_state`, not a constant.
 
 ## Control
 
-`modules/control/_physics.py` holds the ideal (ISA) PID form of `PIDController`, discretised as in Astrom and
+`control.py` holds the ideal (ISA) PID form of `PIDController`, discretised as in Astrom and
 Hagglund (2006, chapter 3): explicit rectangular integral, backward-difference derivative on the
 error, and anti-windup by clamping (conditional integration).
 
@@ -1113,7 +1106,7 @@ error, and anti-windup by clamping (conditional integration).
 
 ## Power cycles
 
-`modules/power/_physics.py` also holds the binary organic Rankine cycle of `ORC`. The reversible work of a heat
+`gemini/physics/cycles.py` holds the binary organic Rankine cycle of `ORC`. The reversible work of a heat
 source cooled from `T_in` to `T_out` and rejected at the condensing temperature is the Lorenz
 (triangular-cycle) work, and the plant delivers a fraction of it (DiPippo 2007, 2016, chapter 8).
 
@@ -1133,14 +1126,13 @@ source cooled from `T_in` to `T_out` and rejected at the condensing temperature 
 
 ## Electricity
 
-`electricity.py` holds net metering at one connection point with one tariff per direction, for
-`ElectricityGrid`, without reactive power, losses or demand charges.
+`energy.py` holds net metering at one connection point, for `ElectricityGrid`, without reactive
+power, losses or demand charges.
 
-- `net_exchange(C, G, import_limit, export_limit, import_price, export_price)` returns `net_import`
-  `min(max(0, C - G), limit)` and `net_export` `min(max(0, G - C), limit)` [W], the parts above the
-  limits as `unserved_consumption` and `curtailed_generation`, and `cost_rate = import price *
-  net_import - export price * net_export` [currency/s], negative for a revenue. A limit of `None`
-  means unlimited; whether a limit exists is a configuration, so it is a Python test.
+- `net_exchange(C, G, import_limit, export_limit)` returns `net_import` `min(max(0, C - G), limit)`
+  and `net_export` `min(max(0, G - C), limit)` [W], and the parts above the limits as
+  `unserved_consumption` and `curtailed_generation`. A limit of `None` means unlimited; whether a
+  limit exists is a configuration, so it is a Python test. Prices are in the case, not here.
 
 ## Energy
 

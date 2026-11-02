@@ -5,12 +5,12 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter, State
 from gemini.modules.module import Module
 from gemini.physics import ground, heat_transfer
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Count,
     Length,
     LinearThermalResistance,
     Power,
-    Stream,
     Temperature,
     TemperatureDifference,
     ThermalConductivity,
@@ -89,7 +89,10 @@ class BoreholeField(Module):
         self.fluid_in = Inlet(Stream, kind="hot_water")
 
         # States
-        self.ground_temperature_change = State(TemperatureDifference, default=0)
+        self.ground_temperature_change = State(
+            TemperatureDifference,
+            description="Change of the mean ground temperature of the field volume",
+        )
 
         # Outputs
         self.fluid_mean_temperature = Output(
@@ -103,27 +106,31 @@ class BoreholeField(Module):
         self.fluid_out = Outlet(Stream, kind="hot_water")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Exchange heat between the loop fluid and the start-of-step ground temperature."""
 
         # Outlets
         inlet = inlets.fluid_in
         capacity_rate = self._capacity_rate(inlet)
-        rate = self._extraction_rate(inlet)
+        ground_temperature = self._ground_temperature(state)
+        rate = self._extraction_rate(inlet, ground_temperature)
         fluid_out_T = inlet.T + heat_transfer.temperature_change(rate, capacity_rate)
         outlet = inlet._with_si(T=fluid_out_T)
 
         # Outputs
-        self.fluid_mean_temperature = heat_transfer.mean_temperature(inlet.T, outlet.T)
-        self.ground_temperature = self._ground_temperature()
+        outputs = dict(
+            fluid_mean_temperature=heat_transfer.mean_temperature(inlet.T, outlet.T),
+            ground_temperature=ground_temperature,
+        )
 
         outlets = dict(fluid_out=outlet, loss_out=-rate)
-        return outlets
+        return outputs, outlets
 
-    def _advance_states(self, inlets, outlets, dt):
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the ground temperature change after the step."""
         inlet = inlets.fluid_in
         change = ground.borehole_field_temperature_change(
-            self.ground_temperature_change,
+            state["ground_temperature_change"],
             self._effective_conductance(inlet),
             self._surroundings_conductance(),
             inlet.T,
@@ -138,15 +145,15 @@ class BoreholeField(Module):
         """Return the message prefix of a field geometry outside the range of its relations."""
         return f"{self.path}: field geometry rejected: "
 
-    def _extraction_rate(self, inlet):
+    def _extraction_rate(self, inlet, ground_temperature):
         """Return the heat [W] the loop draws from the ground at the start of the step."""
         return heat_transfer.heat_rate(
-            self._effective_conductance(inlet), self._ground_temperature() - inlet.T
+            self._effective_conductance(inlet), ground_temperature - inlet.T
         )
 
-    def _ground_temperature(self):
+    def _ground_temperature(self, state):
         """Return the mean field ground temperature [K] at the start of the step."""
-        return self.undisturbed_ground_temperature + self.ground_temperature_change
+        return self.undisturbed_ground_temperature + state["ground_temperature_change"]
 
     def _effective_conductance(self, inlet):
         """Return K = eps m_dot cp [W/K], the inlet-to-ground conductance of the loop."""

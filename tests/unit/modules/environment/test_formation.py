@@ -2,6 +2,7 @@
 
 import gemini as gm
 from gemini.modules import Formation
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 
 
@@ -12,7 +13,9 @@ def test_the_rock_receives_the_heat_of_the_wells():
 
 def test_a_doublet_passes_it_the_values_of_its_design():
     """The gradient and the surface temperature are those the wells get."""
-    doublet = gm.plants.Doublet().set_params(
+    doublet = gm.plants.Doublet()
+    doublet.fluid = BRINE
+    doublet.set_params(
         "",
         {
             "depth": {"value": 2500, "unit": "m"},

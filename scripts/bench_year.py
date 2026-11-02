@@ -2,7 +2,7 @@
 
 Run ``PYTHONPATH=. python scripts/bench_year.py`` from the repository root. The cases are the two
 doublet heating and cooling plant of the hackathon (``hackathon``) and every other plant of
-``inputs/examples/hackathon_2026/plants`` that has a loop, each with the ``case.json`` of its
+``examples/hackathon_2026/plants`` that has a loop, each with the ``case.json`` of its
 folder, the shallow district plant with its own ``case.json``, plus the doublet heat plant, which
 has no loop or constraint, on a constant plan. Each case runs a daily year and an hourly month,
 with ``compile=False`` and ``compile=True``.
@@ -40,15 +40,15 @@ import numpy as np
 import pandas as pd
 
 import gemini as gm
-from gemini._utils import paths
+from gemini.case.profile import Profile
+from tests.fixtures import paths
 from tests.fixtures.sample_cases import example_plant
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = paths.INPUTS / "examples"
 DELTAS = {"1d": pd.Timedelta(days=1), "1h": pd.Timedelta(hours=1)}
 CADENCES = {"daily-year": ("1d", 365), "hourly-month": ("1h", 744)}
 MODES = {"eager": False, "compiled": True}
-PLANTS = EXAMPLES / "hackathon_2026" / "plants"
+PLANTS = paths.example("hackathon_2026") / "plants"
 SAMPLES = (
     ("hackathon", "hackathon_2026", PLANTS / "HeatingCoolingPlant.json"),
     ("hackathon-structure", "hackathon_2026", PLANTS / "HackathonPlant.json"),
@@ -57,14 +57,14 @@ SAMPLES = (
     (
         "shallow-district",
         "shallow_district",
-        EXAMPLES / "shallow_district" / "plants/HeatingHeatPumpCoolingPlant.json",
+        paths.example("shallow_district") / "plants/HeatingHeatPumpCoolingPlant.json",
     ),
 )
 COUNTED = {
     "rows_by_row": ("engine/rows.py", "_call_row"),
     "loop_closures": ("plants/_utils/loops.py", "close"),
     "tear_advances": ("plants/_utils/loops.py", "_advance"),
-    "constraint_solves": ("plants/_utils/constraints.py", "solve"),
+    "constraint_solves": ("plants/_utils/targets.py", "solve"),
     "trial_calls": ("modules/module.py", "_trial"),
 }
 PLAIN = {
@@ -95,7 +95,7 @@ def plain_inputs(step, count):
     days = count if step == "1d" else count // 24
     clock = gm.engine.Clock.days(2027, 1, 1, days=days, step=step)
     profiles = {
-        path: gm.types.Profile.constant(value, unit=unit, clock=clock)
+        path: Profile.constant(value, unit=unit, clock=clock)
         for path, (value, unit) in PLAIN.items()
     }
     return {"plan": gm.Dataset.from_profiles(profiles), "clock": clock}
@@ -130,7 +130,7 @@ def cases(only=None):
     found = []
     for name, folder, plant_file in SAMPLES:
         plant = gm.Plant.from_json(plant_file)
-        found.append(Case(name, plant, gm.Case.from_json(EXAMPLES / folder / "case.json")))
+        found.append(Case(name, plant, gm.Case.from_json(paths.example(folder) / "case.json")))
     found.append(Case("doublet-heat-plain", example_plant("DoubletHeatPlant")))
     return [case for case in found if only is None or only in case.name]
 

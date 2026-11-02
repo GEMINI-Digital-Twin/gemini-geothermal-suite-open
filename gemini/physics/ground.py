@@ -568,8 +568,8 @@ def doublet_temperature_drop(
 
 
 @ops.physics
-def doublet_breakthrough_time(breakthrough: float, volume_flow: float) -> float | None:
-    """Return the time for a doublet's thermal front to reach the producer; ``None`` at no flow.
+def doublet_breakthrough_time(breakthrough: float, volume_flow: float) -> float:
+    """Return the time for a doublet's thermal front to reach the producer; NaN at no flow.
 
     Parameters
     ----------
@@ -580,15 +580,15 @@ def doublet_breakthrough_time(breakthrough: float, volume_flow: float) -> float 
 
     Returns
     -------
-    float or None
-        ``t_B = V_B / Q`` [s], counted from the start of injection; ``None`` for zero flow.
+    float
+        ``t_B = V_B / Q`` [s], counted from the start of injection; NaN for zero flow.
 
     Notes
     -----
     Reference: Gringarten and Sauty (1975, J. Geophys. Res. 80(35), 4956-4962), at the current
     constant flow.
     """
-    return ops.where(volume_flow != 0, breakthrough / volume_flow, None)
+    return ops.where(volume_flow != 0, breakthrough / volume_flow, float("nan"))
 
 
 @ops.physics
@@ -785,8 +785,8 @@ def aquifer_stored_energy(
 
 
 @ops.physics
-def thermal_recovery(recovered_heat: float, charged_heat: float) -> float | None:
-    """Return the thermal recovery efficiency of a store; ``None`` until heat has been charged.
+def thermal_recovery(recovered_heat: float, charged_heat: float) -> float:
+    """Return the thermal recovery efficiency of a store; NaN until heat has been charged.
 
     Parameters
     ----------
@@ -796,19 +796,19 @@ def thermal_recovery(recovered_heat: float, charged_heat: float) -> float | None
 
     Returns
     -------
-    float or None
-        ``eta = E_recovered / E_charged`` [-]; ``None`` while ``E_charged <= 0``.
+    float
+        ``eta = E_recovered / E_charged`` [-]; NaN while ``E_charged <= 0``.
 
     Notes
     -----
     Reference: Bloemendal and Hartog (2018, Geothermics 71, 306-319), definition of the
     thermal recovery efficiency of ATES.
 
-    Validity: recovered_heat and charged_heat real; the value is ``None`` for charged_heat <= 0, so
+    Validity: recovered_heat and charged_heat real; the value is NaN for charged_heat <= 0, so
     no division by zero occurs. The efficiency lies in [0, 1] for recovered_heat between 0 and
     charged_heat.
     """
-    return ops.where(charged_heat > 0, recovered_heat / charged_heat, None)
+    return ops.where(charged_heat > 0, recovered_heat / charged_heat, float("nan"))
 
 
 @ops.physics

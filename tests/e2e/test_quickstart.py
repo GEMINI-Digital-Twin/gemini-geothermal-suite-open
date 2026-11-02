@@ -39,9 +39,7 @@ def test_replay_and_resume(tmp_path, plant, df, data):
 
 def test_calibrate_and_save_the_plant(tmp_path, plant, data):
     """A calibrated plant saves to JSON and loads back with the same state."""
-    fit = gm.analysis.calibrate(
-        plant, data, params=[plant.get("heat_exchanger.thermal_conductance")]
-    )
+    fit = gm.study.calibrate(plant, data, params=[plant.get("heat_exchanger.thermal_conductance")])
     print(fit)
     plant.to_json(tmp_path / "my_plant.json")
     assert gm.Plant.from_json(tmp_path / "my_plant.json").state_dict() == plant.state_dict()

@@ -3,14 +3,16 @@
 import pytest
 
 import gemini as gm
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.treatment import Blowdown
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 FEED = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(8, "kg/s"),
     T=gm.units.Quantity(330, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
@@ -25,8 +27,8 @@ def test_bleed_split_conserves_mass_and_energy():
     assert drained == FEED._with_si(m_dot=2) and retained == FEED._with_si(m_dot=6)
     assert reading(result).blowdown_mass_flow == 2
     assert "modelled" not in result.outputs and "heat_loss" not in reading(result)
-    assert mass_balance(blowdown, result)["residual"] == 0
-    assert energy_balance(blowdown, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(blowdown, result)["residual"] == 0
+    assert call_energy_balance(blowdown, result)["relative_residual"] < 1e-12
 
 
 def test_limits():
@@ -47,6 +49,7 @@ def test_blowdown_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(310, "K"),
                 p=gm.units.Quantity(2e5, "Pa"),

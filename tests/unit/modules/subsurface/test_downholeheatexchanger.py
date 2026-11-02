@@ -6,15 +6,17 @@ import numpy as np
 import pytest
 
 import gemini as gm
-from gemini.compiler.graph import run
-from gemini.modules import energy_balance, mass_balance
+from gemini.compiler.run import run
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.subsurface import DownholeHeatExchanger
-from gemini.types import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 INLET = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(5, "kg/s"),
     T=gm.units.Quantity(303.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
@@ -58,8 +60,8 @@ def test_outlet_follows_ramey_and_the_balance_closes():
     assert out.heat_extraction_rate == pytest.approx(5 * CP * (out.fluid_out_T - 303.15))
     assert out.heat_absorbed == out.heat_extraction_rate > 0 and out.heat_loss == 0
     assert result.outlets.fluid_out.p == INLET.p and result.outlets.fluid_out.m_dot == 5
-    assert energy_balance(module, result)["relative_residual"] < 1e-12
-    assert mass_balance(module, result)["residual"] == 0
+    assert call_energy_balance(module, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(module, result)["residual"] == 0
 
 
 def test_flow_limits():
@@ -80,7 +82,7 @@ def test_hot_inlet_heats_the_rock():
     result = module(fluid_in=INLET._with_si(T=400))
     assert reading(result).heat_extraction_rate < 0 and reading(result).heat_absorbed == 0
     assert reading(result).heat_loss == -reading(result).heat_extraction_rate
-    assert energy_balance(module, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(module, result)["relative_residual"] < 1e-12
 
 
 def test_short_operating_time_is_bad_design_data():
@@ -109,12 +111,14 @@ def test_traced_early_operating_time_raises_only_for_flowing_rows():
     """In a traced call the configuration error belongs to the rows that flow."""
     module = exchanger().set_params("", {"operating_time": gm.units.Quantity(3600, "s")})
     stopped = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(np.zeros(2), "kg/s"),
         T=gm.units.Quantity(np.full(2, 303.15), "K"),
         p=gm.units.Quantity(np.full(2, 3e5), "Pa"),
     )
     assert run(module, {"fluid_in": stopped}).outlets["loss_out"]["power"].tolist() == [0, 0]
     mixed = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(np.array([0.0, 5.0]), "kg/s"),
         T=gm.units.Quantity(np.full(2, 303.15), "K"),
         p=gm.units.Quantity(np.full(2, 3e5), "Pa"),

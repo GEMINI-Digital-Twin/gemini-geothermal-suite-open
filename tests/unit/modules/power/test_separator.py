@@ -3,13 +3,16 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import mass_balance
-from gemini.modules.power import Separator, _physics
-from gemini.types import STEAM, Stream
+from gemini.evaluate import call_mass_balance
+from gemini.modules.power import Separator
+from gemini.physics import steam
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE, STEAM
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
 
 GEOFLUID = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(100, "kg/s"),
     T=gm.units.Quantity(523.15, "K"),
     p=gm.units.Quantity(40e5, "Pa"),
@@ -27,14 +30,14 @@ def test_flash_split_matches_steam_tables():
     assert gas.fluid == STEAM and liquid.fluid == GEOFLUID.fluid
     assert liquid.T == gas.T == out.saturation_temperature
     assert liquid.p == gas.p == 6e5
-    assert mass_balance(Separator(), result)["residual"] == 0
+    assert call_mass_balance(Separator(), result)["residual"] == 0
 
 
 def test_closed_in_if97_enthalpies():
     """Closure: m h_in = m_gas h_g + m_liquid h_f; the cp*T audit cannot show latent heat."""
     result = Separator()(fluid_in=GEOFLUID, pressure_setpoint=6e5)
-    saturation = _physics.saturation_properties(6e5)
-    incoming = GEOFLUID.m_dot * _physics.liquid_enthalpy(GEOFLUID.p, GEOFLUID.T)
+    saturation = steam.saturation_properties(6e5)
+    incoming = GEOFLUID.m_dot * steam.liquid_enthalpy(GEOFLUID.p, GEOFLUID.T)
     outgoing = (
         result.outlets.gas_out.m_dot * saturation.vapour_enthalpy
         + result.outlets.liquid_out.m_dot * saturation.liquid_enthalpy
@@ -46,13 +49,14 @@ def test_inlet_below_its_saturation_pressure_uses_the_liquid_enthalpy():
     """A wellhead stream already below saturation is the liquid at its temperature."""
     flashing = GEOFLUID._with_si(p=8e5)
     result = Separator()(fluid_in=flashing, pressure_setpoint=6e5)
-    enthalpy = _physics.liquid_enthalpy(_physics.saturation_pressure(523.15), 523.15)
-    assert result.outputs.steam_fraction == pytest.approx(_physics.flash_fraction(enthalpy, 6e5))
+    enthalpy = steam.liquid_enthalpy(steam.saturation_pressure(523.15), 523.15)
+    assert result.outputs.steam_fraction == pytest.approx(steam.flash_fraction(enthalpy, 6e5))
 
 
 def test_subcooled_and_zero_flow():
     """A subcooled inlet passes as liquid at its temperature; zero flow splits nothing."""
     subcooled = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(50, "kg/s"),
         T=gm.units.Quantity(393.15, "K"),
         p=gm.units.Quantity(10e5, "Pa"),
@@ -86,6 +90,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(T, "K"),
                 p=gm.units.Quantity(p, "Pa"),

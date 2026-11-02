@@ -1,7 +1,7 @@
 """Constant fluid properties inherited from GEMINI's PVTConstantSTP model.
 
 The defaults are the original constant-water values; pressure and temperature do not change
-them. ``gemini.types.Fluid`` builds and caches one snapshot per fluid.
+them. ``gemini.streams.Fluid`` builds and caches one snapshot per fluid.
 
 ``mixture_density``, ``volume_flow``, ``liquid_volume_flow`` and ``heat_capacity_rate`` carry no
 ``@ops.physics``: ``Stream`` and ``FluidProperties`` call them on every eager step, the decorator

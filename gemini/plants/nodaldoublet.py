@@ -6,7 +6,8 @@ from gemini.modules.pumps import ESP, InjectionPump
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.plants.plant import Plant
-from gemini.types import MassFlow, Power, Pressure, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import MassFlow, Power, Pressure
 
 
 class NodalDoublet(Plant):

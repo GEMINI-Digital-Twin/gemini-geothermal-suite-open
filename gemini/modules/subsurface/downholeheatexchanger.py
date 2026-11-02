@@ -6,12 +6,12 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Parameter
 from gemini.modules.module import Module
 from gemini.physics import ground, heat_transfer
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Duration,
     Length,
     LinearThermalResistance,
     Power,
-    Stream,
     Temperature,
     TemperatureGradient,
     ThermalConductivity,
@@ -86,7 +86,7 @@ class DownholeHeatExchanger(Module):
         self.fluid_out = Outlet(Stream, kind="hot_water")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the fluid at the temperature it reaches at the bottom of the annulus."""
 
         # Outlets
@@ -94,8 +94,10 @@ class DownholeHeatExchanger(Module):
         outlet = inlet._with_si(T=self._outlet_temperature(inlet))
         loss_out = heat_transfer.heat_rate(inlet.heat_capacity_rate(), inlet.T - outlet.T)
 
+        outputs = {}
+
         outlets = dict(fluid_out=outlet, loss_out=loss_out)
-        return outlets
+        return outputs, outlets
 
     def _outlet_temperature(self, inlet):
         """Return the bottom-hole fluid temperature [K] from Ramey's profile.

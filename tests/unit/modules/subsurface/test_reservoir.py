@@ -5,8 +5,8 @@ import pytest
 from gemini.errors import ValidationError
 from gemini.modules.declarations import Inlet
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units import Quantity
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si
@@ -40,12 +40,13 @@ def test_injection_zero_radius_is_explicit():
     c = si.set_params(with_values(InjectionReservoir()), "", p)
     result = c(
         sandface_in=Stream(
-            m_dot=Quantity(-40, "kg/s"), T=Quantity(300, "K"), p=Quantity(23e6, "Pa")
+            fluid=BRINE, m_dot=Quantity(-40, "kg/s"), T=Quantity(300, "K"), p=Quantity(23e6, "Pa")
         )
     )
     out = result.outputs
     assert out.bottomhole_pressure > c.pressure
     assert out.radial_bottomhole_pressure is None
+    assert out.flow_pressure_drop is None and out.skin_pressure_drop is None
     assert not c.health(
         result, dict(flow=40 / 1068, bottomhole_pressure=out.bottomhole_pressure)
     ).alarm
@@ -83,14 +84,18 @@ def test_ipr_helpers_match_the_call_outputs():
             **common,
         },
     )
-    arriving = Stream(m_dot=Quantity(-40, "kg/s"), T=Quantity(300, "K"), p=Quantity(230e5, "Pa"))
+    arriving = Stream(
+        fluid=BRINE, m_dot=Quantity(-40, "kg/s"), T=Quantity(300, "K"), p=Quantity(230e5, "Pa")
+    )
     assert (
         sink.required_pressure(arriving) == sink(sandface_in=arriving).outputs.bottomhole_pressure
     )
     assert sink.required_pressure(arriving) == pytest.approx(240e5 + 40 / 1000 * 3.6e8 / 10)
 
 
-ROW = Stream(m_dot=Quantity(1.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(1e5, "Pa"))
+ROW = Stream(
+    fluid=BRINE, m_dot=Quantity(1.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(1e5, "Pa")
+)
 
 
 class RowCarrier(ProductionReservoir):
@@ -99,6 +104,7 @@ class RowCarrier(ProductionReservoir):
     def __init__(self):
         """Declare the reservoir and the row-carrying inlet."""
         super().__init__()
+        self.fluid = BRINE
         self.rows = Inlet(Stream)
 
 
@@ -152,7 +158,10 @@ def test_injection_reservoir_matches_traced():
     rows = [
         dict(
             sandface_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(300, "K"), p=Quantity(230e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(230e5, "Pa"),
             )
         )
         for m_dot in (-40.0, -5.0, 0.0, 20.0)
@@ -219,7 +228,10 @@ def test_injection_health_matches_on_arrays():
         sink,
         dict(
             sandface_in=Stream(
-                m_dot=Quantity(-5.0, "kg/s"), T=Quantity(300, "K"), p=Quantity(230e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(-5.0, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(230e5, "Pa"),
             )
         ),
     )

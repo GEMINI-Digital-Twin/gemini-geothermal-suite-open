@@ -2,20 +2,19 @@
 
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.pumps import _physics
 from gemini.physics import constants, energy, pumps
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Count,
     Efficiency,
     Frequency,
     Power,
     Pressure,
     PressureDifference,
-    Stream,
     VolumeFlow,
 )
 
@@ -117,12 +116,13 @@ class InjectionPump(Equipment, Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="brine")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Raise pressure from a supplied curve or discharge-pressure setpoint."""
+        frequency = inputs["frequency"]
 
         # Outlets
         suction = inlets.fluid_in
-        head = self._head(suction)
+        head = self._head(suction, frequency, inputs["pressure_setpoint"])
         ops.check(
             head >= 0,
             PhysicsError,
@@ -132,25 +132,27 @@ class InjectionPump(Equipment, Module):
         )
 
         discharge = suction._with_si(p=suction.p + head)
-        power_in = self._power(suction, head)
+        power_in = self._power(suction, head, frequency)
 
         # Outputs
-        self.head = discharge.p - suction.p
-        self.power = power_in
-        self.discharge_pressure = discharge.p
-        self.is_pumping = head > 0
+        outputs = dict(
+            head=discharge.p - suction.p,
+            power=power_in,
+            discharge_pressure=discharge.p,
+            is_pumping=head > 0,
+        )
 
         outlets = dict(fluid_out=discharge, power_in=power_in)
-        return outlets
+        return outputs, outlets
 
-    def _power(self, suction, head):
+    def _power(self, suction, head, frequency):
         """Return the pump power [W] from the power curve, else from the efficiency.
 
         The efficiency has no default: a design states it, unless it has both curves.
         """
         flow = suction.volumetric_flow()
         if self.head_coefficients is not None and self.power_coefficients is not None:
-            return pumps.power(flow, self.frequency, self.stage_count, self.power_coefficients)
+            return pumps.power(flow, frequency, self.stage_count, self.power_coefficients)
         if self.efficiency is None:
             raise ValidationError(
                 f"{self.path}: efficiency = None; expected a value, or head and power curves",
@@ -159,7 +161,7 @@ class InjectionPump(Equipment, Module):
             )
         return energy.input_power(pumps.hydraulic_power(flow, head), self.efficiency)
 
-    def _head(self, suction):
+    def _head(self, suction, frequency, setpoint):
         """Return the pressure rise [Pa] from the head curve, else from the pressure setpoint.
 
         A ``power_coefficients`` curve is used for power only together with a ``head_coefficients``
@@ -175,9 +177,9 @@ class InjectionPump(Equipment, Module):
                     f"{self.path}: head_coefficients curves require stage_count",
                     code="invalid_design",
                 )
-            return _physics.head(flow, self.frequency, self.stage_count, self.head_coefficients)
-        if self.pressure_setpoint is not None:
-            rise = self.pressure_setpoint - suction.p
+            return pumps.head(flow, frequency, self.stage_count, self.head_coefficients)
+        if setpoint is not None:
+            rise = setpoint - suction.p
             return ops.maximum(rise, 0.0)
         raise ValidationError(
             f"{self.path}: supply the pressure_setpoint control or head_coefficients and "
@@ -185,8 +187,8 @@ class InjectionPump(Equipment, Module):
             code="invalid_design",
         )
 
-    def capex(self, economics):
-        """Return the cost of the pump from its shaft power at the nominal flow.
+    def cost_size(self):
+        """Return the shaft power [W] at the nominal flow, the size the cost scales with.
 
         The power is the power curve at ``nominal_flow`` and the catalogue frequency of the curves
         for a pump with both curves, else the hydraulic power of ``nominal_flow`` and
@@ -202,13 +204,13 @@ class InjectionPump(Equipment, Module):
                 self.stage_count,
                 self.power_coefficients,
             )
-            return self.capex_of(economics, power)
+            return power
         if self.nominal_head is None:
             raise _missing_design(self.path, "nominal_head")
         if self.efficiency is None:
             raise _missing_design(self.path, "efficiency")
         hydraulic = pumps.hydraulic_power(self.nominal_flow, self.nominal_head)
-        return self.capex_of(economics, energy.input_power(hydraulic, self.efficiency))
+        return energy.input_power(hydraulic, self.efficiency)
 
 
 def _missing_design(path, name):

@@ -17,9 +17,9 @@ from gemini._utils.jsonable import to_plain
 from gemini._utils.strings import close_matches, did_you_mean, join_names, join_path
 from gemini._utils.time import EARLIEST, to_utc
 from gemini.errors import ValidationError
-from gemini.types import bare
-from gemini.types.bindings import Binding, DatedParams, ModuleBindings
-from gemini.types.flows import STREAM_FIELDS
+from gemini.modules.bindings import Binding, DatedParams, ModuleBindings
+from gemini.streams.flows import STREAM_FIELDS
+from gemini.units import bare
 
 FIELD_UNITS = {"m_dot": ("kg/s", "m3/s"), "T": ("K",), "p": ("Pa",)}
 """The SI units a column bound to a stream field may have; a volume flow becomes mass flow."""

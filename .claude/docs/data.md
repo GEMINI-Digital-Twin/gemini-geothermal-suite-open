@@ -4,12 +4,12 @@ Readers are `from_<format>` and writers `to_<format>`. A reader is a classmethod
 returns (`gm.Case.from_json(path)`, `gm.Plant.from_json(path)`, `gm.Results.from_npz(path)`,
 `Dataset.from_frame(...)`); a writer is a method of the object (`case.to_json(path)`,
 `results.to_npz(path)`, `plant.to_dict()`). Only a reader that returns no gemini class, a demand
-frame, is a plain function in its folder: `gm.data.from_csv` and `gm.data.from_values`. No name
+frame, is a plain function in its folder: `gm.case.from_csv` and `gm.case.from_values`. No name
 starts with `read_`, `write_`, `load_`, `save_`, `parse_` or `dump_`.
 
 ## In-memory data
 
-`gm.Dataset` (`gemini/run/dataset.py`) owns one pandas-backed, sorted, unique, timezone-aware UTC
+`gm.Dataset` (`gemini/case/dataset.py`) owns one pandas-backed, sorted, unique, timezone-aware UTC
 table of raw values; units are metadata. `Dataset` and the engine contain no file readers, database
 clients, network calls, or source handles. The user or backend reads files/services and passes the
 resulting in-memory values to one of:
@@ -43,7 +43,7 @@ columns are reported together, as one `ValidationError` (code `missing_column`),
 **Run input.** `simulate`, `replay` and `live` take one format: a `Dataset`, or a pandas DataFrame
 with a timezone-aware `DatetimeIndex` and columns named by the binding `column`, in the units of
 the bindings (a unit recorded in the `Dataset` metadata replaces the binding's, as above).
-`gemini.run.dataset.as_dataset(data)` is the one wrapper: a `Dataset` passes through, a
+`gemini.case.dataset.as_dataset(data)` is the one wrapper: a `Dataset` passes through, a
 DataFrame becomes a `Dataset` (any zone is converted to UTC), and a naive index, a non-time index
 or another type raises `RunError`, because a local time without a zone is ambiguous. Rows with
 NaN in a bound column are skipped for the twin that needs them and reported as `missing_value`
@@ -75,8 +75,8 @@ convert in-memory raw values to SI. Profiles combined into a dataset must share 
 
 ## Demand profiles
 
-`gm.data` ships no profile: a demand is the caller's. The code is `gemini/case/_utils/demand.py`,
-which `gm.data` exports, because a `gm.Case` holds a demand and `run` imports no `data`.
+`gm.case` ships no profile: a demand is the caller's. The code is `gemini/case/demand_frame.py`,
+which `gm.case` exports, because a `gm.Case` holds a demand and the case sits below the engine.
 `from_csv(path, columns, unit)` reads a file whose first column is named `time`, and `columns` maps its columns to the quantities of gemini, so a
 file adapts to gemini and gemini takes no name or unit from it. `from_values(values, unit, start,
 step, quantity)` takes numbers. A quantity is `heating_demand` or `cooling_demand`. Both return a
@@ -88,7 +88,7 @@ of the same frame as a document: `columns` (unit and quantity), `time` and `valu
 A profile column becomes a run input when a plant binding names it as
 its `column`.
 
-The committed CSVs under `inputs/doublet_heat/` are immutable source data. Two
+The committed CSVs under `tests/fixtures/doublet_heat/` are immutable source data. Two
 of their naming choices predate the naming rule and stay: columns named `*.m_dot` hold volumetric
 flow in m3/s (their bindings declare `"unit": "m3/s"`), and the unbound status columns
 (`esp_status`, `hex_status`, `filterA_status`, `filterB_status`) and
@@ -100,7 +100,7 @@ flow in m3/s (their bindings declare `"unit": "m3/s"`), and the unbound status c
 rules of third parties, in a `case.json` with CSV files and an `economics.json` next to it. The
 rule of each field is [inputs.md](inputs.md); this page says how the code reads and holds them.
 Every file starts with the header `{"format": 1, "kind": "case", "name": "..."}`. Every leaf is read
-by `gemini/types/inputs.py` (the one reader), every value is stored in SI as a plain number or an
+by `gemini/units/inputs.py` (the one reader), every value is stored in SI as a plain number or an
 array on `case.time.index`, and the case keeps each leaf as it was given, so `to_dict`/`to_json`
 write the unit and the numbers back unchanged (a series in kW stays kW in its CSV). Objects are
 immutable (`case.with_value("site.ground.gradient", 0.03)` returns a copy with an SI value).
@@ -143,7 +143,7 @@ limits, `dew_point_margin`, `indoor_temperature`, `indoor_relative_humidity`), `
 for a `Desander`, the connection limits of `utilities.electricity`, and `demand.<service>.supply_temperature`
 for the setpoint of a unit on a supply line. The plant states none of them.
 
-**Requirements.** `on` is a role and `quantity` one of it, from the closed table `gm.case.roles()`,
+**Requirements.** `on` is a role and `quantity` one of it, from the closed table `gm.plants.roles()`,
 which gives for each quantity its dimension and whether it takes `over`. A per-step quantity states
 `over` (`each`, `sum`, `mean`, `max`, `min`, `duration`) and may state `when` (`always`, `running`;
 absent is every step); a window quantity or a property (`pump_efficiency`, `count`, `unmet_share`)
@@ -167,27 +167,32 @@ time=case.time)`.
 (`site.ground.gradient`, `economics.energy.electricity`), derived from the leaves; `gm.study.sample`
 and `gm.study.sensitivity` read it, a run uses only the value.
 
-`inputs/examples/hackathon_2026/case.json` is the complete example, with the sources of the cited
+`examples/hackathon_2026/case.json` is the complete example, with the sources of the cited
 values in [economics.md](economics.md#the-values-of-the-assumptions).
 
 ## Where data lives
 
-There is one data folder, and no data file inside `gemini/`: a plant is a class.
+There is no data file inside `gemini/`: a plant is a class. Two places hold data, both at the
+repository root and neither installed:
 
-`inputs/` is at the repository root, next to `gemini/`, and is not installed. It holds everything
-that code reads: `examples/` (sample cases), `plants/` (example values: a `size`, `params`,
-`fluids`, `boundary`, `bindings`, `param_history` and `inputs`; the template plants have none),
-`doublet_heat/` (measured data) and `legacy_project/` (read by tests only, [legacy.md](legacy.md)). A function that needs it raises `RunError`
-with code `inputs_missing` when it is absent, as in an installed wheel, and the message names the
-file. Nothing fails at import time, and `gm.plants.get` works without it.
+- `examples/<name>/` is a sample project, one folder a user can copy: its `case.json`,
+  `economics.json`, plant dicts, demand CSV and study files (below). The scripts of `examples/`
+  read them.
+- `tests/fixtures/` holds what the tests read: `plants/` (example values: a `size`, `params`,
+  `fluids`, `boundary`, `bindings`, `param_history` and `inputs`; the template plants have none),
+  `doublet_heat/` (measured data) and `legacy_project/` ([legacy.md](legacy.md)).
+
+A test helper that needs one raises `RunError` with code `inputs_missing` when it is absent, as in
+an installed wheel, and the message names the file. Nothing fails at import time, and
+`gm.plants.get` works without them. `tests/fixtures/paths.py` is the one place that names them.
 
 `docs/cost-sources/` is a cost catalogue, not a second data folder: reference data with sources
 (`sources.csv`, `README.md`), plus `data/` with the HICP and Ember files that its conversions and
 grid factors are recomputed from. No code in `gemini/` reads it and no value in it is a default: a
-project copies what it uses into its own `case.json` and cites the row's `id`. `inputs/` stays the
-only folder the code reads.
+project copies what it uses into its own `case.json` and cites the row's `id`. Only `examples/`
+and `tests/fixtures/` hold data that code reads.
 
-`inputs/examples/<sample>/` holds one folder per sample case, a whole case in the shapes of gemini.
+`examples/<sample>/` holds one folder per sample case, a whole case in the shapes of gemini.
 Each has:
 
 - `case.json`: a `gm.Case` (`gm.Case.from_json`), see [the case](#the-case). It names `economics.json` and the demand CSV;
@@ -203,8 +208,8 @@ CSVs). A whole run is:
 ```python
 import gemini as gm
 
-case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
+case = gm.Case.from_json("examples/shallow_district/case.json")
+plant = gm.Plant.from_json("examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 ```
 
@@ -214,5 +219,5 @@ results = gm.simulate(plant, case)
 default, a name or a structure.
 
 `docs/schemas/` is generated documentation, not data. `tests/fixtures/` holds goldens and
-`tests/e2e/expected/` example outputs. `gemini/_utils/paths.py` is the one place that knows where the
+`tests/e2e/expected/` example outputs. `tests/fixtures/paths.py` is the one place that knows where the
 folder is, and `tests/unit/test_code_quality.py` checks the layout.

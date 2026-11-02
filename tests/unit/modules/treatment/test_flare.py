@@ -4,8 +4,10 @@ import pytest
 
 import gemini as gm
 from gemini.errors import PhysicsError
-from gemini.modules import Flare, energy_balance
+from gemini.evaluate import call_energy_balance
+from gemini.modules import Flare
 from gemini.physics import combustion, gas
+from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 
@@ -43,6 +45,7 @@ def test_a_stream_without_a_composition_emits_nothing():
     assert (
         with_values(Flare())(
             gas_in=gm.Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(0.1, "kg/s"),
                 T=gm.units.Quantity(330, "K"),
                 p=gm.units.Quantity(2e5, "Pa"),
@@ -80,4 +83,4 @@ def test_the_heat_of_burning_leaves_through_a_loss_port():
     burned = 0.1 * fluid.heating_value() * flare.combustion_efficiency
     assert result.outlets.loss_out == pytest.approx(burned)
     assert result.outputs.fuel == pytest.approx(burned)
-    assert energy_balance(flare, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(flare, result)["relative_residual"] < 1e-12

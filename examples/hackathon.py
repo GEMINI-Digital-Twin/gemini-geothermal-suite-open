@@ -23,7 +23,7 @@ from pathlib import Path
 import gemini as gm
 
 ROOT = Path(__file__).resolve().parents[1]
-SAMPLE = ROOT / "inputs/examples/hackathon_2026"
+SAMPLE = Path(__file__).resolve().parent / "hackathon_2026"
 RUNS = ROOT / "runs/hackathon"
 PROCESSES = 8
 """Worker processes of the search: one per doublet count and trial; an assumption, the cores."""

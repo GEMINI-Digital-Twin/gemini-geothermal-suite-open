@@ -11,12 +11,17 @@ import pandas as pd
 from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules import Module
+from gemini.modules.bindings import Binding, DatedParams, ModuleBindings
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter, State
+from gemini.modules.results import Health
 from gemini.plants.plant import Plant
-from gemini.types import Electricity, Health, Ratio, Stream
-from gemini.types.bindings import Binding, DatedParams, ModuleBindings
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
+from gemini.units.quantities import Electricity, Ratio
 
 TICKS = pd.date_range("2024-01-01", periods=12, freq="15min", tz="UTC")
+TANK_START = {"position": None, "module_states": {"tank": {"total": 0.0}}}
+"""The state of a run of a pair with a reservoir: the reservoir starts empty."""
 
 
 class Booster(Module):
@@ -25,6 +30,7 @@ class Booster(Module):
     def __init__(self):
         """Declare a parameter, an inlet, a control, outputs and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Parameters
         self.gain = Parameter(float, default=2.0)
@@ -44,24 +50,30 @@ class Booster(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Raise the pressure."""
+        level = inputs["level"]
 
         # Outlets
         ops.check(
-            self.level >= 0,
+            level >= 0,
             PhysicsError,
             "{path}: level = {level}",
             path=self.path,
-            level=self.level,
+            level=level,
         )
-        outlet = inlets.fluid_in._with_si(p=inlets.fluid_in.p + self.level * self.gain)
+        outlet = inlets.fluid_in._with_si(p=inlets.fluid_in.p + level * self.gain)
         outlets = dict(fluid_out=outlet)
-        self.rise = outlets["fluid_out"].p - inlets.fluid_in.p
-        self.power = self.rise * inlets.fluid_in.m_dot
-        self.share = ops.where(self.level == 0, None, self.rise / ops.maximum(self.level, 1e-9))
-        self.inverse = ops.truediv(1.0, self.level)
-        return outlets
+
+        # Outputs
+        rise = outlets["fluid_out"].p - inlets.fluid_in.p
+        outputs = dict(
+            rise=rise,
+            power=rise * inlets.fluid_in.m_dot,
+            share=ops.where(level == 0, None, rise / ops.maximum(level, 1e-9)),
+            inverse=ops.truediv(1.0, level),
+        )
+        return outputs, outlets
 
     def health(self, result, measured):
         """Compare the rise with the measured one."""
@@ -75,9 +87,10 @@ class Reservoir(Module):
     def __init__(self):
         """Declare a state, an inlet, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # States
-        self.total = State(float, default=0.0)
+        self.total = State(float)
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -88,16 +101,17 @@ class Reservoir(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the stream."""
 
         # Outlets
         outlets = dict(fluid_out=inlets.fluid_in)
-        self.content = self.total + inlets.fluid_in.m_dot
-        return outlets
+        outputs = dict(content=state["total"] + inlets.fluid_in.m_dot)
+        return outputs, outlets
 
-    def _advance_states(self, inlets, outlets, dt):
-        return dict(total=self.content)
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the total with the flow of this step."""
+        return dict(total=state["total"] + inlets.fluid_in.m_dot)
 
 
 class Pair(Module):
@@ -106,6 +120,7 @@ class Pair(Module):
     def __init__(self):
         """Declare the children and the bindings of both twins."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.first = Booster()
@@ -184,6 +199,7 @@ class Duo(Module):
     def __init__(self):
         """Declare the children, the inlet, the outputs and the outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.front = Booster()
@@ -202,20 +218,19 @@ class Duo(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Both boosters get the duo's level."""
 
         # Modules
-        first = self.front(fluid_in=inlets.fluid_in, level=self.level)
-        second = self.back(fluid_in=first.outlets.fluid_out, level=self.level)
+        first = self.front(fluid_in=inlets.fluid_in, level=inputs["level"])
+        second = self.back(fluid_in=first.outlets.fluid_out, level=inputs["level"])
 
         # Outputs
-        self.rise = second.outputs.rise
-        self.power = second.outputs.power
+        outputs = dict(rise=second.outputs.rise, power=second.outputs.power)
 
         # Outlets
         outlets = dict(fluid_out=second.outlets.fluid_out)
-        return outlets
+        return outputs, outlets
 
 
 class Holder(Module):
@@ -224,6 +239,7 @@ class Holder(Module):
     def __init__(self):
         """Declare the child."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.duo = Duo()
@@ -253,6 +269,7 @@ class Warmer(Module):
     def __init__(self):
         """Declare a control, an inlet, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Controls
         self.target = Control(float)
@@ -266,15 +283,17 @@ class Warmer(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the warmed stream, flowing at 2 kg/s, and the change of temperature."""
 
         # Outlets
-        outlet = inlets.fluid_in._with_si(T=0.5 * inlets.fluid_in.T + 0.5 * self.target, m_dot=2.0)
-        self.drop = inlets.fluid_in.T - outlet.T
-        return dict(fluid_out=outlet)
+        outlet = inlets.fluid_in._with_si(
+            T=0.5 * inlets.fluid_in.T + 0.5 * inputs["target"], m_dot=2.0
+        )
+        outputs = dict(drop=inlets.fluid_in.T - outlet.T)
+        return outputs, dict(fluid_out=outlet)
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         return 300.0
 
 
@@ -284,6 +303,7 @@ class Carrier(Module):
     def __init__(self):
         """Declare an inlet and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -291,9 +311,9 @@ class Carrier(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the stream at 2 bar."""
-        return dict(fluid_out=inlets.fluid_in._with_si(p=2e5))
+        return dict(), dict(fluid_out=inlets.fluid_in._with_si(p=2e5))
 
 
 class Ring(Plant):
@@ -302,6 +322,7 @@ class Ring(Plant):
     def __init__(self):
         """Connect the two modules in a ring."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.warmer = Warmer()

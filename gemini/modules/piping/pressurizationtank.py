@@ -2,7 +2,8 @@
 
 from gemini.modules.declarations import Control, Inlet, Outlet, Output
 from gemini.modules.module import Module
-from gemini.types import Pressure, PressureDifference, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Pressure, PressureDifference
 
 
 class PressurizationTank(Module):
@@ -45,14 +46,14 @@ class PressurizationTank(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Set the circuit pressure to the setpoint."""
 
         # Outlets
-        outlet = inlets.fluid_in._with_si(p=self.pressure_setpoint)
+        outlet = inlets.fluid_in._with_si(p=inputs["pressure_setpoint"])
 
         # Outputs
-        self.pressure_correction = outlet.p - inlets.fluid_in.p
+        outputs = dict(pressure_correction=outlet.p - inlets.fluid_in.p)
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets

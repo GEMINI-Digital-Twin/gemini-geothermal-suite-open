@@ -5,15 +5,17 @@ import math
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.plants import CoolingSubstation
-from gemini.types import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import with_values
 from tests.fixtures.reading import reading
 
 CP = 4217.4
 NETWORK = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(3.0, "kg/s"),
     T=gm.units.Quantity(279.15, "K"),
     p=gm.units.Quantity(6e5, "Pa"),
@@ -48,9 +50,9 @@ def test_met_loads_close_the_building_loop(plants):
         result.children["consumer"].inlets.supply_in.T
         < result.children["consumer"].outputs.dew_point - 1.0
     )
-    assert energy_balance(substation, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(substation, result)["relative_residual"] < 1e-12
     assert_plant_closes(substation, result)
-    assert mass_balance(substation, result)["residual"] == 0
+    assert call_mass_balance(substation, result)["residual"] == 0
 
 
 def test_warm_network_cannot_dehumidify(plants):

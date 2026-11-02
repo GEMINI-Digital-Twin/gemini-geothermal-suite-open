@@ -7,6 +7,7 @@ import pytest
 
 import gemini as gm
 from gemini import units
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import ROOT
 from tests.fixtures.errors import raises
@@ -106,9 +107,11 @@ TEXTS = {
     "cost factor": lambda: _economics(capex={"boiler": {"value": "0.5 EUR/W"}}),
     "constraint bound": lambda: _requirement(max="3 m3/s"),
     "set_params": lambda: gm.modules.Pipe().set_params("", {"length": "10 m"}),
-    "stream": lambda: gm.Stream(flow="150 m3/h", T=Quantity(300, "K"), p=Quantity(1e5, "Pa")),
+    "stream": lambda: gm.Stream(
+        fluid=BRINE, flow="150 m3/h", T=Quantity(300, "K"), p=Quantity(1e5, "Pa")
+    ),
     "fluid": lambda: gm.Fluid(density="1000 kg/m3"),
-    "call": lambda: gm.call("Pipe", {"length": "10 m"}, {}, {}),
+    "call": lambda: gm.call("Pipe", {"length": "10 m"}, {}, {}, "si"),
 }
 """Public inputs called with unit text."""
 
@@ -170,13 +173,18 @@ def test_stream_converts_a_quantity_and_refuses_a_bare_number():
         m_dot=Quantity(36, "t/h"), T=Quantity(25, "degC"), p=Quantity(2, "bar"), fluid=gm.Fluid()
     )
     assert (stream.m_dot, stream.T, stream.p) == (10.0, 298.15, 2e5)
-    good = {"m_dot": Quantity(1, "kg/s"), "T": Quantity(300, "K"), "p": Quantity(1e5, "Pa")}
+    good = {
+        "fluid": BRINE,
+        "m_dot": Quantity(1, "kg/s"),
+        "T": Quantity(300, "K"),
+        "p": Quantity(1e5, "Pa"),
+    }
     for name, quantity in (("m_dot", "mass flow"), ("T", "temperature"), ("p", "pressure")):
         with raises(gm.errors.ValidationError, "invalid_value", match=quantity) as caught:
             gm.Stream(**(good | {name: 0}))
         assert caught.value.path == f"Stream.{name}" and "accepted units" in str(caught.value)
     with raises(gm.errors.ValidationError, "invalid_value", match="volume flow"):
-        gm.Stream(flow=0.1, T=good["T"], p=good["p"])
+        gm.Stream(fluid=BRINE, flow=0.1, T=good["T"], p=good["p"])
 
 
 def test_the_private_stream_constructor_takes_si_numbers():
@@ -205,7 +213,12 @@ def test_fluid_converts_a_quantity_and_refuses_a_bare_number():
 
 def test_call_converts_quantities_and_refuses_bare_numbers_with_a_dimension():
     """Parameters, controls and inlet fields are strict; a dimensionless parameter is a number."""
-    inlet = {"m_dot": Quantity(1, "kg/s"), "T": Quantity(20, "degC"), "p": Quantity(10, "bar")}
+    inlet = {
+        "fluid": {"kind": "brine"},
+        "m_dot": Quantity(1, "kg/s"),
+        "T": Quantity(20, "degC"),
+        "p": Quantity(10, "bar"),
+    }
     params = {
         "length": Quantity(1, "km"),
         "inner_diameter": Quantity(100, "mm"),
@@ -213,13 +226,13 @@ def test_call_converts_quantities_and_refuses_bare_numbers_with_a_dimension():
         "elevation_change": Quantity(0, "m"),
         "heat_transfer_coefficient": Quantity(0, "W/m2/K"),
     }
-    result = gm.call("Pipe", params, {"fluid_in": inlet, "air_in": inlet}, {})
+    result = gm.call("Pipe", params, {"fluid_in": inlet, "air_in": inlet}, {}, "si")
     assert result["errors"] == []
     for parameters, inlets in (
         (params | {"length": 1000.0}, {"fluid_in": inlet, "air_in": inlet}),
         (params, {"fluid_in": inlet | {"T": 293.15}, "air_in": inlet}),
     ):
-        recorded = gm.call("Pipe", parameters, inlets, {}, on_error="record")["errors"]
+        recorded = gm.call("Pipe", parameters, inlets, {}, "si", on_error="record")["errors"]
         assert [item["code"] for item in recorded] == ["invalid_value"]
 
 

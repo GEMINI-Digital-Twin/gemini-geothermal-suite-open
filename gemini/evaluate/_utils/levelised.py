@@ -1,11 +1,11 @@
 """The levelised cost of a product and the annualised cost of a plant."""
 
+from gemini.engine.apply import apply_case
 from gemini.evaluate._utils.cost import annuity, investment, period_cost, yearly_cost
 from gemini.evaluate._utils.discounting import discounting
 from gemini.evaluate._utils.flows import Flows
 from gemini.evaluate._utils.outcome import reported, unavailable
-from gemini.run._utils.apply import apply_case
-from gemini.types.shapes import measure
+from gemini.units.shapes import measure
 
 
 def levelised(plant, case, results, product, on_error):

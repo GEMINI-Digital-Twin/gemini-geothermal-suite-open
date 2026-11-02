@@ -1,6 +1,7 @@
 """Engine parity, state, callbacks, energy and restart guarantees."""
 
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -11,10 +12,10 @@ import gemini as gm
 from gemini import runtime
 from gemini.engine import checkpoint
 from gemini.engine.callbacks import AutoCheckpoint, Callback, EventLog
-from gemini.modules.declarations import Control, Output
+from gemini.engine.results import Results
+from gemini.modules.bindings import Binding, DatedParams, ModuleBindings
+from gemini.modules.declarations import Control, Output, State
 from gemini.ops import kernels
-from gemini.run.results import Results
-from gemini.types.bindings import Binding, DatedParams, ModuleBindings
 from tests.fixtures.errors import raises
 from tests.fixtures.frames import on_ports, path_frame
 from tests.fixtures.old_names import RENAMED_NAMES
@@ -26,8 +27,6 @@ REFERENCE = ROOT / "tests/fixtures/engine_reference"
 class Accumulator(gm.modules.Module):
     """Simple importable test integrator with a JSON state."""
 
-    stateful = True
-
     def __init__(self):
         """Declare the accumulator's test state and ports."""
         super().__init__()
@@ -35,28 +34,36 @@ class Accumulator(gm.modules.Module):
         # Controls
         self.rate = Control(float)
 
+        # States
+        self.total = State(float)
+
         # Outputs
         self.value = Output(float)
 
-    def initial_state(self):
-        """Start at zero."""
-        return {"value": 0.0}
-
-    def forward(self, inlets):
-        """Expose a stateless rate observation."""
+    def forward(self, inputs, inlets, state):
+        """Expose the state the step starts from."""
 
         outlets = dict()
-        self.value = self.rate
-        return outlets
+        outputs = dict(value=state["total"])
+        return outputs, outlets
 
-    def step(self, state, dt, inlets):
-        """Integrate with explicit state."""
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Grow the state by the rate over the step."""
+        return dict(total=state["total"] + inputs["rate"] * dt)
 
-        # Outputs
-        state = {"value": state["value"] + self.rate * dt}
-        result = self(inlets, rate=state["value"])
 
-        return state, result
+START = {"position": None, "module_states": {"": {"total": 0.0}}}
+
+
+def started(plant, path=None):
+    """Return a live engine whose accumulator starts at zero, saved at ``path`` when given."""
+    engine = gm.Engine(plant)
+    engine.run_kind = "live"
+    engine.results = Results()
+    engine.module_states = deepcopy(START["module_states"])
+    if path is not None:
+        engine.to_checkpoint(path)
+    return engine
 
 
 def _reference(name, actual):
@@ -199,6 +206,7 @@ def test_live_idempotency(tmp_path):
     path = tmp_path / "live.ckpt"
     first_now = data.start
     second_now = data.start + pd.Timedelta(minutes=15)
+    started(plant, path)
     out = gm.Engine(plant).live(data, path, now=first_now)
     assert len(out) == 1
     second = gm.Engine(plant).live(data, path, now=second_now)
@@ -326,14 +334,14 @@ def test_stateful_measured_and_integrated(tmp_path):
     )
     data = gm.Dataset.from_frame(frame)
     engine = gm.Engine(plant, on_error="raise")
-    assert engine.replay(data)[""].value.tolist() == [1, 2, 3]
+    assert engine.replay(data, state=START)[""].value.tolist() == [0, 1, 2]
     path = tmp_path / "state.ckpt"
     with pytest.raises(Interrupted):
-        gm.Engine(plant, callbacks=[StopAndSave(path, 1)]).replay(data)
-    assert gm.Engine.from_checkpoint(path).resume()[""].value.tolist() == [1, 2, 3]
-    plant.bindings[""].state = {"value": Binding(column="observed", unit="-")}
-    assert engine.replay(data)[""].value.tolist() == [11, 21, 31]
-    assert engine.module_states[""] == {"value": 30}
+        gm.Engine(plant, callbacks=[StopAndSave(path, 1)]).replay(data, state=START)
+    assert gm.Engine.from_checkpoint(path).resume()[""].value.tolist() == [0, 1, 2]
+    plant.bindings[""].state = {"total": Binding(column="observed", unit="-")}
+    assert engine.replay(data, state=START)[""].value.tolist() == [10, 20, 30]
+    assert engine.module_states[""] == {"total": 30}
 
 
 def test_empty_live_and_checkpoint_results_file(setup, tmp_path):
@@ -386,11 +394,11 @@ def test_resume_keeps_held_rows_when_the_clock_is_finer_than_the_data(tmp_path, 
     index = pd.date_range("2024-01-01", periods=4, freq="1h", tz="UTC")
     plant, data = accumulator(pd.DataFrame({"rate": [1.0, 2.0, 3.0, 4.0]}, index=index))
     clock = gm.engine.Clock.range("2024-01-01T00:00Z", "2024-01-01T04:00Z", "15min")
-    expected = gm.Engine(plant, on_error="raise").simulate(data, clock)
+    expected = gm.Engine(plant, on_error="raise").replay(data, clock=clock, state=START)
     path = tmp_path / "run.ckpt"
     with pytest.raises(Interrupted):
-        gm.Engine(plant, callbacks=[StopAndSave(path, count)], on_error="raise").simulate(
-            data, clock
+        gm.Engine(plant, callbacks=[StopAndSave(path, count)], on_error="raise").replay(
+            data, clock=clock, state=START
         )
     actual = gm.Engine.from_checkpoint(path).resume()
     pd.testing.assert_frame_equal(actual.to_frame(), expected.to_frame(), check_exact=True)
@@ -404,6 +412,7 @@ def test_live_step_grid_stays_anchored_between_calls(tmp_path):
         index=pd.DatetimeIndex(["2024-01-01 00:00", "2024-01-01 00:15"], tz="UTC"),
     )
     plant, data = accumulator(first)
+    started(plant, path)
     gm.Engine(plant).live(data, path, step="15min", now="2024-01-01T00:15Z")
     second = pd.DataFrame(
         {"rate": [2.0, 2.0]},
@@ -420,9 +429,10 @@ def test_live_single_row_call_reuses_the_checkpointed_step(tmp_path):
     path = tmp_path / "live.ckpt"
     index = pd.date_range("2024-01-01", periods=3, freq="15min", tz="UTC")
     plant, data = accumulator(pd.DataFrame({"rate": [1.0, 1.0, 1.0]}, index=index))
+    started(plant, path)
     gm.Engine(plant).live(data.window(end=index[1]), path, now=index[1])
     fresh = gm.Engine(plant).live(data.window(start=index[2]), path, now=index[2])
-    assert fresh[""].value.tolist() == [2700.0]
+    assert fresh[""].value.tolist() == [1800.0]
 
 
 def test_live_keeps_the_callers_error_policy_and_plant(tmp_path):
@@ -430,6 +440,7 @@ def test_live_keeps_the_callers_error_policy_and_plant(tmp_path):
     path = tmp_path / "live.ckpt"
     index = pd.date_range("2024-01-01", periods=2, freq="15min", tz="UTC")
     plant, data = accumulator(pd.DataFrame({"rate": [1.0, 1.0]}, index=index))
+    started(plant, path)
     gm.Engine(plant).live(data, path, now=index[0])
     engine = gm.Engine(plant, on_error="raise")
     engine.live(data, path, now=index[1])
@@ -452,12 +463,12 @@ class NotANumber(gm.modules.Module):
         # Outputs
         self.value = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
         outlets = dict()
-        self.value = float("nan")
-        return outlets
+        outputs = dict(value=float("nan"))
+        return outputs, outlets
 
 
 class Boom(Callback):
@@ -494,12 +505,14 @@ def test_a_dataframe_runs_like_a_dataset():
     """A DataFrame with a timezone-aware index is the run input of simulate and replay."""
     plant, data = accumulated()
     frame = data.to_frame()
-    replayed = gm.Engine(plant).replay(frame)
-    pd.testing.assert_frame_equal(replayed.to_frame(), gm.Engine(plant).replay(data).to_frame())
-    simulated = gm.Engine(plant).simulate(frame)
+    replayed = gm.Engine(plant).replay(frame, state=START)
+    pd.testing.assert_frame_equal(
+        replayed.to_frame(), gm.Engine(plant).replay(data, state=START).to_frame()
+    )
+    simulated = gm.Engine(plant)._simulate(frame, None, START)
     assert simulated[""].value.tolist() == replayed[""].value.tolist()
     with raises(gm.errors.RunError, "invalid_data", match="timezone-aware"):
-        gm.Engine(plant).replay(frame.tz_localize(None))
+        gm.Engine(plant).replay(frame.tz_localize(None), state=START)
 
 
 def test_a_run_input_without_the_bound_columns_lists_them_all():
@@ -508,7 +521,7 @@ def test_a_run_input_without_the_bound_columns_lists_them_all():
     plant.bindings[""].controls["speed"] = Binding(column="speed", unit="-")
     plant.bindings[""].controls["rat"] = Binding(column="rat", unit="-")
     with pytest.raises(gm.errors.ValidationError, match="rat, speed") as caught:
-        gm.Engine(plant).replay(data)
+        gm.Engine(plant).replay(data, state=START)
     assert isinstance(caught.value, gm.errors.ValidationError)
     assert caught.value.code == "missing_column"
     assert caught.value.to_dict()["suggestions"] == ["rate"]
@@ -519,7 +532,7 @@ def test_nan_rows_are_row_errors_and_the_run_continues():
     plant, data = accumulated(4)
     frame = data.to_frame()
     frame.loc[frame.index[1], "rate"] = np.nan
-    results = gm.Engine(plant).replay(frame)
+    results = gm.Engine(plant).replay(frame, state=START)
     assert len(results) == 4 and results[""].value.isna().tolist() == [False, True, False, False]
     (row,) = results.errors()
     assert row["code"] == "missing_value" and row["path"] == ""
@@ -530,8 +543,8 @@ def test_nan_rows_are_row_errors_and_the_run_continues():
 def test_two_consecutive_replays_give_the_numbers_of_one(tmp_path):
     """Starting a replay from a former end_state continues the integration exactly."""
     plant, data = accumulated(8)
-    whole = gm.Engine(plant).replay(data)
-    first = gm.Engine(plant).replay(data, end=data.start + pd.Timedelta(minutes=45))
+    whole = gm.Engine(plant).replay(data, state=START)
+    first = gm.Engine(plant).replay(data, end=data.start + pd.Timedelta(minutes=45), state=START)
     assert len(first) == 4 and first.end_state["position"] == "2024-01-01T00:45:00+00:00"
     state = Results.from_bytes(first.to_bytes()).end_state
     second = gm.Engine(accumulator(data.to_frame())[0]).replay(data, state=state)
@@ -580,7 +593,7 @@ def test_progress_counts_the_ticks_of_the_run():
     """on_progress gets (done, total) after each committed tick."""
     plant, data = accumulated(5)
     progress = Progress()
-    gm.Engine(plant, callbacks=[progress]).replay(data)
+    gm.Engine(plant, callbacks=[progress]).replay(data, state=START)
     assert progress.seen == [(done, 5) for done in range(1, 6)]
 
 
@@ -590,23 +603,23 @@ def test_cancelling_keeps_the_committed_ticks_readable():
     progress = Progress(cancel_at=3)
     engine = gm.Engine(plant, callbacks=[progress])
     with pytest.raises(gm.errors.Cancelled, match="stopped after 3 ticks") as caught:
-        engine.replay(data)
+        engine.replay(data, state=START)
     assert caught.value.code == "cancelled"
     assert len(engine.results) == 3 and progress.seen[-1] == (2, 6)
-    assert engine.results[""].value.tolist() == [900.0, 1800.0, 2700.0]
+    assert engine.results[""].value.tolist() == [0.0, 900.0, 1800.0]
     assert engine.results.end_state["position"] == "2024-01-01T00:30:00+00:00"
     rest = gm.Engine(plant).replay(data, state=engine.results.end_state)
-    assert rest[""].value.tolist() == [3600.0, 4500.0, 5400.0]
+    assert rest[""].value.tolist() == [2700.0, 3600.0, 4500.0]
 
 
 def test_live_continues_in_memory_without_a_checkpoint():
     """Two live calls on one engine process each tick once, with no file written."""
     plant, data = accumulated()
-    engine = gm.Engine(plant)
+    engine = started(plant)
     first = engine.live(data.window(end=data.start + pd.Timedelta(minutes=30)), now=data.end)
     second = engine.live(data, now=data.end)
     assert len(first) == 3 and len(second) == 3 and len(engine.results) == 6
-    whole = gm.Engine(plant).live(data, now=data.end)
+    whole = started(plant).live(data, now=data.end)
     assert second[""].value.tolist() == whole[""].value.tolist()[3:]
 
 
@@ -621,5 +634,5 @@ def test_the_engine_applies_its_own_backend_to_the_run():
     plant, data = accumulated(2)
     for backend in ("python", "numpy"):
         with runtime.settings(backend="numpy" if backend == "python" else "python"):
-            gm.Engine(plant, backend, [Watch()]).replay(data)
+            gm.Engine(plant, backend, [Watch()]).replay(data, state=START)
     assert seen == ["python", "python", "numpy", "numpy"]

@@ -20,11 +20,13 @@ from .multiwellplant import MultiWellPlant
 from .nodaldoublet import NodalDoublet
 from .parallelexchangerplant import ParallelExchangerPlant
 from .plant import Plant
+from .roles import roles
 
 __all__ = [
     "Plant",
     "capabilities",
     "schema",
+    "roles",
     "names",
     "get",
     "HeatingSubstation",

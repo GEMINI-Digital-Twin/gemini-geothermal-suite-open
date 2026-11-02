@@ -18,9 +18,10 @@ Selection rules, applied to the changed files:
    otherwise every change would select the whole suite through shared fixtures.
 4. Any changed file under ``examples/`` selects ``tests/e2e/test_examples.py``.
 5. Any other changed file selects the tests whose source, or whose ``conftest.py``, names its
-   repository path. A file below ``inputs/`` also selects its readers: the tests that name its
-   folder, what ``INPUT_READERS`` gives for a folder read through the public API, or a constant
-   of ``tests/fixtures/__init__.py`` that holds the folder, and the example test.
+   repository path. A data file also selects its readers: a file below ``examples/<name>/`` or
+   ``tests/fixtures/<folder>/`` is read by the tests that name its folder, what ``DATA_READERS``
+   gives for a folder read through the public API, or a constant of ``tests/fixtures/__init__.py``
+   that holds the folder; a sample project also selects the example test.
 6. ``tests/unit/test_code_quality.py`` always runs, whatever changed, because the structure and
    style rules apply to every edit.
 
@@ -40,9 +41,11 @@ PACKAGES = ("gemini", "tests", "scripts")
 SELECT_ALL = {"pyproject.toml", "tests/conftest.py", "tests/xdist_plugin.py"}
 EXAMPLES_TEST = "tests/e2e/test_examples.py"
 FIXTURE_PATHS = "tests/fixtures/__init__.py"
-INPUTS = "inputs/"
-INPUT_READERS = {"examples": "sample_cases", "plants": "example_plant("}
-"""What a test names to read a folder of ``inputs/`` through the public API."""
+EXAMPLES = "examples/"
+FIXTURES = "tests/fixtures/"
+DATA_READERS = {"examples": "sample_cases", "plants": "example_plant("}
+"""What a test names to read a sample project, or a data folder of the fixtures, through the
+public API."""
 QUALITY_TEST = "tests/unit/test_code_quality.py"
 QUALITY_REASON = "always runs: code-quality rules apply to every change"
 CACHE = ROOT / ".tmp/test_changed/imports.json"
@@ -164,12 +167,28 @@ def tests_below(directory, tests):
     return {test for test in tests if test.startswith(prefix)}
 
 
+def data_folder(path):
+    """Return the data folder of a file, or ``None``; a Python file is code, not data.
+
+    The folder is ``examples`` for a file of a sample project and the folder of ``tests/fixtures/``
+    that holds any other data file.
+    """
+    parts = Path(path).parts
+    if path.endswith(".py") or len(parts) < 3:
+        return None
+    if path.startswith(EXAMPLES):
+        return "examples"
+    if path.startswith(FIXTURES) and len(parts) > 3:
+        return parts[2]
+    return None
+
+
 def data_names(path, root):
-    """Return the texts by which a source reads ``path``: itself and, for inputs, its folder."""
-    if not path.startswith(INPUTS):
+    """Return the texts by which a source reads ``path``: itself and, for data, its folder."""
+    folder = data_folder(path)
+    if folder is None:
         return {path}
-    folder = Path(path).parts[1]
-    name = INPUT_READERS.get(folder, folder)
+    name = DATA_READERS.get(folder, folder)
     fixtures = root / FIXTURE_PATHS
     lines = fixtures.read_text().splitlines() if fixtures.exists() else []
     return {path, name} | {line.split()[0] for line in lines if name in line}
@@ -196,10 +215,9 @@ def _select_changed_file(path, tests, root):
         return tests_below(Path(path).parent.as_posix(), tests), f"{path} scope"
     if is_test_file(path):
         return ({path} & tests), "changed test file"
-    if path.startswith("examples/"):
-        return ({EXAMPLES_TEST} & tests), f"runs example {path}"
-    if path.startswith(INPUTS):
-        return naming_tests(path, tests, root) | ({EXAMPLES_TEST} & tests), f"reads {path}"
+    if path.startswith(EXAMPLES):
+        readers = naming_tests(path, tests, root) if data_folder(path) else set()
+        return readers | ({EXAMPLES_TEST} & tests), f"runs or reads example {path}"
     if module_name(path) is None and (root / path).is_file():
         return naming_tests(path, tests, root), f"names {path}"
     return set(), ""

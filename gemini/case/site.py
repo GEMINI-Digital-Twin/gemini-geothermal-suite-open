@@ -4,7 +4,7 @@ from gemini.case._utils.access import require
 from gemini.case._utils.kinds import GAS_SPECIES
 from gemini.case._utils.node import Field, Node
 from gemini.physics import ground
-from gemini.types import inputs
+from gemini.units import inputs
 
 POSITIVE = inputs.Range(min=0.0)
 """SI bounds of a value that is zero or more."""

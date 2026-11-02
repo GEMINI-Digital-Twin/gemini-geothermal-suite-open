@@ -23,7 +23,7 @@ import gemini as gm
 from gemini import runtime
 from gemini.engine.callbacks import Callback, EventLog
 from gemini.ops import kernels
-from gemini.types.flows import STREAM_FIELDS
+from gemini.streams.flows import STREAM_FIELDS
 
 RTOL = 1e-12
 """The documented relative tolerance of a backend against the reference."""

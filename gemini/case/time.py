@@ -6,7 +6,7 @@ from gemini._utils.strings import join_path
 from gemini._utils.time import to_utc
 from gemini.case._utils.node import Frozen, issue, plain
 from gemini.errors.base import raise_issues
-from gemini.types import inputs
+from gemini.units import inputs
 
 KEYS = ("start", "end", "step")
 

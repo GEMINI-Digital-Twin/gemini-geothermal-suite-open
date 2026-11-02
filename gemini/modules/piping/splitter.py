@@ -4,7 +4,8 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet
 from gemini.modules.module import Module
 from gemini.physics import separation
-from gemini.types import Fraction, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction
 
 
 class Splitter(Module):
@@ -34,15 +35,16 @@ class Splitter(Module):
         self.branch1_out = Outlet(Stream)
         self.branch2_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Divide the feed mass flow between the two branches."""
 
         # Outlets
         fluid_in = inlets.fluid_in
         require_forward(self.path, "fluid_in.m_dot", fluid_in.m_dot)
-        first_flow, second_flow = separation.split_flow(fluid_in.m_dot, self.split_fraction)
+        first_flow, second_flow = separation.split_flow(fluid_in.m_dot, inputs["split_fraction"])
         branch1_out = fluid_in._with_si(m_dot=first_flow)
         branch2_out = fluid_in._with_si(m_dot=second_flow)
 
+        outputs = {}
         outlets = dict(branch1_out=branch1_out, branch2_out=branch2_out)
-        return outlets
+        return outputs, outlets

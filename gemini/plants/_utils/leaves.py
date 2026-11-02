@@ -7,9 +7,9 @@ from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
 from gemini.modules._utils import description
-from gemini.plants._utils import inputs as plant_inputs
+from gemini.plants._utils import plant_inputs
 from gemini.plants._utils.form import MARKERS, file_path, flat_name, is_leaf, issue
-from gemini.types import bare, inputs
+from gemini.units import bare, inputs
 
 SCALARS = ("number", "integer")
 

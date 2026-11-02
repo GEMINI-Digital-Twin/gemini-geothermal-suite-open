@@ -5,11 +5,12 @@ from gemini.modules.container import ModuleList
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.piping import Mixer, Pipe, Splitter
 from gemini.modules.pumps import CentrifugalPump
-from gemini.plants._utils.wiring import mix_chain, split_chain
+from gemini.plants._utils.cascades import mix_chain, split_chain
 from gemini.plants.coolingsubstation import CoolingSubstation
 from gemini.plants.heatingsubstation import HeatingSubstation
 from gemini.plants.plant import Plant
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 
 SUBSTATIONS = {"heating": HeatingSubstation, "cooling": CoolingSubstation}
 """Substation class per network service."""

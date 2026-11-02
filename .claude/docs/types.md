@@ -1,13 +1,14 @@
 # Data types
 
-Import public types from `gemini.types`; quantity aliases are defined in
-`types/quantities.py`. The declarations (`Parameter`, `Inlet`, `Outlet`, `Output`, `Control`,
+There is no `gemini.types`: the folder was split by job ([structure.md](structure.md)). Quantity
+aliases are `gemini/units/quantities.py`, the unit rule `units/bare.py`, the return shapes
+`units/shapes.py`; `Stream`, `Fluid` and `Ports` are `gemini.streams`; `Health`, `ModuleResult`,
+`Values` and the bindings are `modules/results.py` and `modules/bindings.py`; `Profile` and the
+input readers are `case/profile.py` and `units/inputs.py`. The declarations (`Parameter`, `Inlet`, `Outlet`, `Output`, `Control`,
 `Boundary`, `State`) are in `gemini.modules`, and `Quantity` in `gemini.units`. Types depend on the
 standard library, Pydantic, pandas/NumPy for profiles, `gemini.physics` for property calculations,
 `gemini.units`, `gemini.errors` and `gemini._utils`. They never
-import equipment or the engine. `Stream.__init__` reads the runtime default fluid
-through a function-level import of `gemini.runtime` (see
-[conventions.md](conventions.md#dependencies)).
+import equipment or the engine. A `Stream` requires its `fluid`.
 
 | GEMINI | Purpose |
 | --- | --- |
@@ -25,7 +26,7 @@ through a function-level import of `gemini.runtime` (see
 
 ## Return shapes
 
-`gemini/types/shapes.py` builds the three shapes of every public return, value, problem and check
+`gemini/units/shapes.py` builds the three shapes of every public return, value, problem and check
 ([api.md](api.md#return-shapes)), and holds their JSON Schemas, which `scripts/write_schemas.py`
 writes to `docs/schemas/`. `value(number, unit, reason=None, **details)` gives `{value, unit}`, with
 a `reason` when the value is `None`; `series` adds `time` and `statistics` gives `{min, max, mean}`.
@@ -38,13 +39,13 @@ give the unit actually used.
 
 ## Input files
 
-`gemini/types/inputs.py` reads and writes the shared formats of the input files (inputs.md section
+`gemini/units/inputs.py` reads and writes the shared formats of the input files (inputs.md section
 3): `from_header`, `from_leaf` (quantity, dimensionless, choice, `range`, `options`, `uncertainty`,
 series), `from_series`, `from_section` (object or relative path), `check_keys` (unknown keys with
 the closest suggestion), `Source` (a folder and/or an in-memory `{name: bytes}`, one lookup),
 `align` (a series on a target time index) and `to_json`. Every reader appends `Issue`s to a list
-and returns `None` on failure ([errors.md](errors.md)). It is imported as `from gemini.types import
-inputs` and is not exported from `gemini.types`.
+and returns `None` on failure ([errors.md](errors.md)). It is imported as `from gemini.case import
+inputs` and is not exported from `gemini.case`.
 
 ## Quantities and declarations
 
@@ -64,7 +65,7 @@ tighten quantity defaults.
 `invalid_value` and a unit of another dimension `invalid_unit`, listing the units of the field.
 `validate` itself takes a plain number as SI: inside a module, a plant and the engine every value is a plain
 SI number, and the conversion happens once, at the public door. `Module.set_params` refuses a bare number
-with a dimension before it gets here (`gemini/types/bare.py`, `invalid_value`, see [api.md](api.md#units)),
+with a dimension before it gets here (`gemini/units/bare.py`, `invalid_value`, see [api.md](api.md#units)),
 and calls the private `_set_si_params` with the converted values. A cheap check built once per
 declaration is tried first and accepts only the common case, returned unchanged: an exact `float`
 inside its bounds (NaN never is), an exact `bool` or `str` for those kinds, `None` for an optional
@@ -118,7 +119,7 @@ helpers remain in `gemini.units`.
 `Stream(flow=..., T=..., p=..., fluid=None)` accepts mass flow (`kg/s`, `t/h`) or volumetric flow
 (`m3/s`, `m3/h`, `l/s`) and converts it with the stream's fluid density. Plain `flow` numbers are
 refused: `flow`, `m_dot`, `T` and `p` are quantities (`Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"),
-p=Quantity(1, "bar"))`), and a bare number or any text, such as `flow="150"` or `flow="150 m3/h"`, raises `gm.errors.ValidationError` (`invalid_value`), and passing both
+p=Quantity(1, "bar"), fluid=BRINE)`), and a bare number or any text, such as `flow="150"` or `flow="150 m3/h"`, raises `gm.errors.ValidationError` (`invalid_value`), and passing both
 `flow` and `m_dot` raises `gm.errors.ValidationError`, as do an unknown keyword (with a did-you-mean),
 a missing field and a `fluid` that is neither a `Fluid` nor a mapping of its fields. The explicit
 `m_dot` field is a mass flow quantity. Without `fluid` the constructor uses the runtime default
@@ -133,7 +134,7 @@ whether a unit converts to the quantity's SI unit, which is how bindings and CSV
 `ValidationError` with suggestions. The table includes `km`, `mm`, `in`, `kPa`, `MPa`, `rpm`
 (1/60 Hz, since frequency is stored in Hz), `degC`, `m3/h`, `kW`, `MW` and `bar(g)`, the same
 gauge entry as `barg` (offset 101325 Pa). The SI unit of each quantity name comes from
-`quantity(name, unit)` in `types/quantities.py`, which calls `units.define_quantity` once per
+`quantity(name, unit)` in `units/quantities.py`, which calls `units.define_quantity` once per
 quantity, so physics needs no upward import and the quantity list has one source.
 
 `Stream` is one frozen slots dataclass (`m_dot`, `T`, `p`, `fluid`) for every path: plain calls,
@@ -191,7 +192,7 @@ fractions are rejected until a suitable model exists. Default water/brine number
 `Fluid(kind="steam")`, exported as `STEAM`, labels water vapour such as the `gas` outlet of a
 flash `Separator`; `FlashTurbine` requires it. Its constant property snapshot is the unchanged
 liquid-water default and does not describe vapour: steam equipment takes enthalpies and
-entropies from `gemini.modules.power._physics`, so do not convert a steam stream's volume flow or audit its
+entropies from `gemini.physics.steam`, so do not convert a steam stream's volume flow or audit its
 latent heat with `cp_l * T`.
 
 Well corrosion helpers accept omitted chemistry: Fluid salt fraction becomes salt concentration
@@ -224,14 +225,14 @@ Energy that crosses a leaf other than in its streams is on a port or in the one 
 `fuel` [W] is the chemical power a burner burns: the gas of `fuel_in` may be a mixture, so no port
 shows it. `heat_accumulation` is signed: the rate of increase of the heat a storage leaf holds
 (`ThermalStorage`, `IceStorage`, `AquiferStorage`), counted with the outflows, so a charging store
-(positive) and a discharging one (negative) both close. `collect_flows(result)` reads them from
+(positive) and a discharging one (negative) both close. `gm.evaluate.collect_flows(result)` reads them from
 every leaf once, under the names of `ENERGY_INPUTS` and `ENERGY_OUTPUTS` in
-`modules/_utils/balance.py`. Fluid heat transferred between equipment remains in `Stream` states.
+`evaluate/balances.py`. Fluid heat transferred between equipment remains in `Stream` states.
 `ModuleResult` captures incoming streams, controls and children at evaluation time; later
 evaluations do not replace these audit inputs.
 
-`mass_balance(module, result)` includes aquifer withdrawal/deposition boundaries.
-`energy_balance(module, result)` audits sensible enthalpy (`m_dot * cp_l * T`) and these energy
+`gm.evaluate.call_mass_balance(module, result)` includes aquifer withdrawal/deposition boundaries.
+`gm.evaluate.call_energy_balance(module, result)` audits sensible enthalpy (`m_dot * cp_l * T`) and these energy
 flows. Internal stream transfers cancel once; reported plant totals are boundary
 fluxes. Pressure, kinetic and gravitational energy are outside the thermal model.
 `residual` is always sum(in) minus sum(out). `thermal_residual` separately excludes
@@ -241,7 +242,7 @@ full first-law closure. The audit status of every shipped module, including the 
 residuals of models that are deliberately not closed per call or whose energy is not sensible
 liquid enthalpy (gas, steam), is listed in [equipment.md](equipment.md).
 
-`emissions(result, fuel_factor, electricity_factor)` turns the same leaf totals into a rate for any
+`gm.evaluate.call_emissions(result, fuel_factor, electricity_factor)` turns the same leaf totals into a rate for any
 topology: `fuel * fuel_factor + max(0, electricity - electricity_generated) * electricity_factor`.
 Factors are SI kg/J (kg/GJ / 1e9, kg/kWh / 3.6e6; the unit table has no emission-factor units). All
 on-site generation offsets the electricity of all consumers (ESP, pumps, compressors, heat pumps), not
@@ -264,8 +265,6 @@ Simulate profiles by combining them into a dataset keyed by dotted control or bo
 `gm.simulate(plant, plan=gm.Dataset.from_profiles(profiles), clock=clock)`. Profiles combined into a
 dataset must share one index; resample explicitly.
 
-Costs are not a type: equipment declares `capex(economics)` and `fixed_opex(economics)` in amounts of
-the case's currency, from the factors of `case.economics`, and `gm.evaluate.capex` sums
-them ([economics.md](economics.md#costs)). `gemini.physics.costs.scaled(factor, size)` is a factor
-times a design size. A result of `gm.evaluate` is a `Value` (`gemini/types/shapes.py`), a
+Costs are not a type: equipment declares `equipment_kind` and `cost_size()`, and `gm.evaluate.capex` multiplies the size
+by the factor of its kind in `case.economics` and sums them ([economics.md](economics.md#costs)). A result of `gm.evaluate` is a `Value` (`gemini/units/shapes.py`), a
 `gm.units.Quantity` in SI that also holds `reason` and `parts`.

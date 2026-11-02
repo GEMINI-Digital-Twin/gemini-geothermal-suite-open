@@ -3,10 +3,12 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.piping import Mixer, Pipe, PressurizationTank, Splitter, Valve
-from gemini.types import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
@@ -14,6 +16,7 @@ from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 RETURN = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(10, "kg/s"),
     T=gm.units.Quantity(323.15, "K"),
     p=gm.units.Quantity(1.2e5, "Pa"),
@@ -56,7 +59,7 @@ class Network(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Split, pass both branches, mix and hold the circuit pressure."""
 
         # Modules
@@ -71,13 +74,13 @@ class Network(Module):
         )
 
         # Outputs
-        self.pressure_correction = held.outputs.pressure_correction
+        outputs = dict(pressure_correction=held.outputs.pressure_correction)
 
         # Outlets
         outlet = held.outlets.fluid_out
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 def test_outlet_leaves_at_the_setpoint():
@@ -92,8 +95,8 @@ def test_outlet_leaves_at_the_setpoint():
     assert relieved.pressure_correction == pytest.approx(-0.2e5)
     reverse = PressurizationTank()(fluid_in=RETURN._with_si(m_dot=-1), pressure_setpoint=2e5)
     assert reverse.outlets.fluid_out.m_dot == -1
-    assert energy_balance(PressurizationTank(), result)["residual"] == 0
-    assert mass_balance(PressurizationTank(), result)["residual"] == 0
+    assert call_energy_balance(PressurizationTank(), result)["residual"] == 0
+    assert call_mass_balance(PressurizationTank(), result)["residual"] == 0
 
 
 def test_invalid_setpoint_and_missing_command_raise():
@@ -117,8 +120,8 @@ def test_piping_network_closes_mass_and_energy():
         abs(pipe_out - valve_out)
     )
     assert result.outputs.pressure_correction == pytest.approx(3e5 - min(pipe_out, valve_out))
-    assert energy_balance(network, result)["relative_residual"] < 1e-12
-    assert mass_balance(network, result)["relative_residual"] < 1e-15
+    assert call_energy_balance(network, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(network, result)["relative_residual"] < 1e-15
 
 
 def test_pressurization_tank_matches_traced():
@@ -126,6 +129,7 @@ def test_pressurization_tank_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(10, "kg/s"),
                 T=gm.units.Quantity(323.15, "K"),
                 p=gm.units.Quantity(p, "Pa"),

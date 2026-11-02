@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.physics.geometry import build_path, section_values
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.sample_cases import example_plant
 
@@ -34,6 +35,7 @@ RESERVOIR = dict(
     wellbore_radius=0.1,
 )
 RETURNED = gm.Stream(
+    fluid=BRINE,
     flow={"value": 125.1, "unit": "m3/h"},
     T={"value": 40, "unit": "degC"},
     p={"value": 3, "unit": "bar"},
@@ -144,4 +146,4 @@ def test_a_call_closes_mass_and_hands_power_and_losses_on(vertical):
     result = vertical(return_in=RETURNED)
     assert result.inlets.power_in == result.children["esp"].inlets.power_in
     assert len(result.children["formation"].inlets.heat_in) == 3
-    assert gm.modules.mass_balance(vertical, result)["residual"] == 0
+    assert gm.evaluate.call_mass_balance(vertical, result)["residual"] == 0

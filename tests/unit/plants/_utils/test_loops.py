@@ -5,20 +5,23 @@ import pytest
 
 import gemini as gm
 from gemini import ops, runtime
-from gemini.compiler.graph.tracer import Tracer
+from gemini.compiler.trace.tracer import Tracer
 from gemini.modules import CirculationPump, Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.storage import ThermalStorage
-from gemini.ops.failures import failures_of, marking
+from gemini.ops.failedrows import failures_of, marking
 from gemini.plants._utils import loops
 from gemini.plants._utils.plan import Loop
 from gemini.plants.plant import Plant
-from gemini.types import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
+from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.parity import BACKENDS
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(1.0, "kg/s"),
     T=gm.units.Quantity(300.0, "K"),
     p=gm.units.Quantity(1e5, "Pa"),
@@ -40,6 +43,7 @@ class Relaxer(Module):
     def __init__(self):
         """Declare the circuit ports and the count of the calls."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -50,7 +54,7 @@ class Relaxer(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Relax the temperature; the rule of the class is linear, as an exchanger is."""
 
         # Outlets
@@ -60,12 +64,12 @@ class Relaxer(Module):
             outlet = outlet._with_si(m_dot=self.flow)
 
         # Outputs
-        self.drop = inlet.T - outlet.T
+        outputs = dict(drop=inlet.T - outlet.T)
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         return self.start
 
     def _loop_limits(self, inlets):
@@ -80,16 +84,17 @@ class Circuit(Plant):
     def __init__(self):
         """Connect the pump and the relaxer in a ring."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.pump = with_values(CirculationPump())
         self.relaxer = self.relaxer_class()
 
         # Inlets
-        self.power_in = Inlet(gm.types.Power, kind="electricity")
+        self.power_in = Inlet(Power, kind="electricity")
 
         # Outlets
-        self.loss_out = Outlet(gm.types.Power, kind="heat")
+        self.loss_out = Outlet(Power, kind="heat")
 
         # Connections
         self.connect("power_in", "pump.power_in")
@@ -150,11 +155,10 @@ def test_a_loop_that_does_not_converge_names_its_tear():
     assert caught.value.path == "relaxer.fluid_out"
 
 
-def _drifting(self, inlets):
+def _drifting(self, inputs, inlets, state):
     """Warm the stream by 1 K on every pass, so no temperature maps to itself."""
     outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + 1.0)
-    self.drop = -1.0
-    return dict(fluid_out=outlet)
+    return dict(drop=-1.0), dict(fluid_out=outlet)
 
 
 def test_the_settings_are_on_the_plant():
@@ -196,7 +200,7 @@ def test_a_loop_runs_the_same_on_every_backend():
     results = {}
     for backend in BACKENDS:
         with runtime.settings(backend=backend):
-            results[backend] = gm.call(plant, {}, {}, {})
+            results[backend] = gm.call(plant, {}, {}, {}, "si")
     assert all(result == results[BACKENDS[0]] for result in results.values())
 
 
@@ -251,15 +255,14 @@ class Curved(Relaxer):
     abstract = True
     scale = 20.0
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Move towards the target along a ``tanh``, ``slope`` times as far."""
         inlet = inlets.fluid_in
         step = np.tanh((inlet.T - self.target) / self.scale) * self.scale
         outlet = inlet._with_si(T=self.target + self.slope * step * 1.9)
         if self.flow is not None:
             outlet = outlet._with_si(m_dot=self.flow)
-        self.drop = inlet.T - outlet.T
-        return dict(fluid_out=outlet)
+        return dict(drop=inlet.T - outlet.T), dict(fluid_out=outlet)
 
 
 ROWS = {
@@ -312,11 +315,10 @@ class Guarded(Relaxer):
 
     abstract = True
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Move half way to the target."""
         outlet = inlets.fluid_in._with_si(T=_cooled(inlets.fluid_in.T, self.target))
-        self.drop = inlets.fluid_in.T - outlet.T
-        return dict(fluid_out=outlet)
+        return dict(drop=inlets.fluid_in.T - outlet.T), dict(fluid_out=outlet)
 
 
 def _guarded(target):
@@ -369,11 +371,10 @@ def test_a_row_that_does_not_converge_is_marked_with_its_own_temperature():
     assert str(error) == str(caught.value)
 
 
-def _drifting_by(self, inlets):
+def _drifting_by(self, inputs, inlets, state):
     """Warm the stream by ``drift`` kelvin on every pass."""
     outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + self.drift)
-    self.drop = -self.drift
-    return dict(fluid_out=outlet)
+    return dict(drop=-self.drift), dict(fluid_out=outlet)
 
 
 @ops.physics
@@ -397,13 +398,14 @@ class Probed(Relaxer):
     def __init__(self):
         """Declare the second outlet."""
         super().__init__()
+        self.fluid = BRINE
         self.return_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Relax as the base class does and probe the entering temperature on the side."""
-        outlets = super().forward(inlets)
+        outputs, outlets = super().forward(inputs, inlets, state)
         outlets["return_out"] = inlets.fluid_in._with_si(T=_watched(inlets.fluid_in.T))
-        return outlets
+        return outputs, outlets
 
 
 class ProbedCircuit(Circuit):
@@ -412,6 +414,7 @@ class ProbedCircuit(Circuit):
     def __init__(self):
         """Name the side outlet."""
         super().__init__()
+        self.fluid = BRINE
         self.return_out = Outlet(Stream)
         self.connect("relaxer.return_out", "return_out")
 
@@ -460,12 +463,12 @@ class DoubleProbed(Probed):
 
     abstract = True
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Probe the window, then the bound."""
-        outlets = super().forward(inlets)
+        outputs, outlets = super().forward(inputs, inlets, state)
         bound = _bounded(inlets.fluid_in.T)
         outlets["return_out"] = outlets["return_out"]._with_si(p=bound * 1e3)
-        return outlets
+        return outputs, outlets
 
 
 def test_a_row_that_fails_two_checks_in_a_pass_reports_the_first_as_alone():

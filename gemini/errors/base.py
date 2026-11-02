@@ -61,7 +61,7 @@ def problem(path, code, message, suggestions=(), time=None):
     """Return the shape ``{path, code, message, suggestions}`` of every problem as plain JSON.
 
     A failed run row adds ``time``. The one helper of the shape, here because ``gemini.errors`` is
-    a leaf package and ``to_dict`` returns one; ``gemini.types.shapes`` exports it with the others.
+    a leaf package and ``to_dict`` returns one; ``gemini.units.shapes`` exports it with the others.
     """
     shape = {"path": path, "code": code, "message": str(message), "suggestions": list(suggestions)}
     return shape if time is None else shape | {"time": time}
