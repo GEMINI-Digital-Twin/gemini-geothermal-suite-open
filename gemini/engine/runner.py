@@ -22,7 +22,7 @@ from gemini.engine.chunks import ResultChunk
 from gemini.engine.columns import read
 from gemini.engine.twinresult import UNCHANGED, StepResults, evaluate_twin
 from gemini.errors import RunError
-from gemini.errors.rows import failed_row
+from gemini.errors.rows import PHYSICAL_ROW_CODES, failed_row, row_code
 
 
 class Failure:
@@ -105,7 +105,20 @@ class Runner:
 
     def _halts(self, outcome, count):
         """Whether a failing twin stops the single tick, as it stopped the tick loop."""
-        return count == 1 and self.plan.on_error == "raise" and bool(outcome.errors)
+        return count == 1 and any(self._stops(outcome, tick) for tick in outcome.errors)
+
+    def _stops(self, outcome, tick):
+        """Whether the failure of ``outcome`` at ``tick`` ends the run instead of being a row.
+
+        Under ``on_error="raise"`` every failure does, except in a simulation the failures of a
+        plant that cannot do what the case asks (``PHYSICAL_ROW_CODES``): those are its result.
+        """
+        if self.plan.on_error != "raise":
+            return False
+        if self.plan.kind != "simulate":
+            return True
+        inlet = outcome.block.status[tick] < 0
+        return row_code(outcome.errors[tick], inlet) not in PHYSICAL_ROW_CODES
 
     def _note_breaks(self, outcome):
         if outcome.evaluation is not None:
@@ -114,12 +127,11 @@ class Runner:
 
     def _failure(self, outcomes):
         """Return the first failing tick under ``on_error="raise"``, else ``None``."""
-        if self.plan.on_error != "raise":
-            return None
         failing = [
             (tick, index, error)
             for index, outcome in enumerate(outcomes)
             for tick, error in outcome.errors.items()
+            if self._stops(outcome, tick)
         ]
         return Failure(*min(failing, key=lambda item: item[:2])) if failing else None
 

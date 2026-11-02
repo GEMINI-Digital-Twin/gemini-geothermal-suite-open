@@ -96,7 +96,8 @@ early (a `gm.errors.Cancelled` or a failure under `on_error="raise"`), replacing
 a run that never started (a binding error) writes nothing. `checkpoint_every` also writes it during
 the run through `AutoCheckpoint` and needs `checkpoint`, or raises `ValidationError`.
 
-The on_error default is `"raise"`, on the functions and on `gm.Engine`.
+The on_error default is `"raise"`, on the functions and on `gm.Engine`; what it means is under
+[Errors](#errors).
 
 `gm.resume(checkpoint, callbacks=None)` is `Engine.from_checkpoint(path, callbacks).resume()`, and
 it writes to the same file when the run ends or stops early. `checkpoint_every` is not stored in
@@ -324,11 +325,26 @@ previous state. A twin skipped for missing data keeps its previous state, and th
 measured)` for each replayed twin (once on the arrays of a chunk); a module without a diagnostic
 is recorded as `assessed=False`.
 
-A run raises by default. Under `on_error="record"` an ordinary exception becomes a recorded error and the run continues: per twin when a replayed
-twin fails, otherwise (always in simulation) for the whole step with module path `""`, in which
-case the module states are also restored to their value before the step. Under
-`on_error="raise"` a failing replay twin raises `RunError` with the cause chained, and a failing
-simulation step raises its exception.
+## Errors
+
+**A physical failure of a step is a result, not an error of the run.** In a simulation a step whose
+plant cannot do what the case asks (a loop that does not converge, a heat exchanger whose hot inlet
+is colder than the cold one, a value outside the domain of a correlation or the bounds of a module,
+an inlet stream that breaks the stream limits: the row codes `no_convergence`, `out_of_range`,
+`out_of_bounds` and `invalid_inlet`, `PHYSICAL_ROW_CODES` of `gemini/errors/rows.py`) is a **failed
+row** with its reason, whatever `on_error` says, and the run finishes. Its values are NaN in the
+results (never zero), the state of a stateful plant stays as it was before the step, and
+`gm.evaluate.verdict` lists the rows under the kind `failed_step` (`failed_steps`; loops that did
+not converge under `numerical`), so the plant is infeasible with a reason. `minimize`, `sample`,
+`sensitivity` and `compare` read that verdict, so such a plant is an infeasible trial, never a
+crash.
+
+`on_error` decides only the rest. Under `"raise"` (the default) anything else that fails a step is
+a bug of the plant, a module or the call (a wrong key, a wrong shape, a `DefinitionError`, any
+other exception, row code `module_error`): the ticks before it are committed, then it is raised
+(the exception itself in simulation, `RunError` with the cause chained in replay). Under `"record"`
+it is a failed row as well. A replay or a live run stays strict: a failing row of measured data
+raises under `"raise"` whatever its code, because the data are the caller's.
 
 ## The runner
 
@@ -380,7 +396,7 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
 - **States.** A stateful twin is a root break stepped once per tick with the run's state;
   `engine.module_states` is `{path: tree}` in replay and `{"": tree}` in simulate, as in a
   checkpoint. State bound to a sensor is passed as the start state and stays authoritative.
-- **`on_error="raise"`.** The ticks before the first failing one are committed, their callbacks run,
+- **`on_error="raise"`.** The ticks before the first failing one that [stops the run](#errors) are committed, their callbacks run,
   `on_step_start` of the failing tick is delivered and the error is raised: `RunError` chained to
   the cause in replay, the exception itself in simulate. A later twin of the failing tick is not
   evaluated when the chunk is one tick.
