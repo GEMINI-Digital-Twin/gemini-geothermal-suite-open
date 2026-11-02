@@ -25,7 +25,8 @@ KEYS = {
     "lcoh",
     "lcoc",
     "co2",
-    "constraints",
+    "requirements",
+    "verdict",
     "passed",
     "failed_steps",
     "failures",
@@ -61,7 +62,7 @@ def test_the_report_holds_the_energy_the_costs_the_checks_and_the_failed_steps()
     assert report["failed_steps"] == 0
     assert report["failures"].to_dict() == {"total": 0, "groups": []}
     assert report["boiler_heat"].value is None
-    assert [item["name"] for item in report["constraints"]] == ["heating_supply_unmet"]
+    assert [item["name"] for item in report["requirements"]] == ["heating_supply_unmet"]
     assert report["passed"] is True
 
 
@@ -80,7 +81,7 @@ def test_to_dict_is_plain_json():
     json.dumps(plain, allow_nan=False)
     assert plain["capex"]["unit"] == "MEUR" and plain["capex"]["value"] == pytest.approx(1e-3)
     assert report["capex"].value == 1000.0
-    assert plain["constraints"][0]["role"] == "heating_supply"
+    assert plain["requirements"][0]["role"] == "heating_supply"
     assert plain["failed_steps"] == 0
 
 
@@ -89,7 +90,7 @@ def test_a_boiler_the_run_does_not_show_gives_no_heat_value():
     plant = gm.Plant("Boiling")
     plant.add("Boiler", "boiler")
     plant.boiler.capacity = Quantity(1e6, "W")
-    results = make_results({"other": {"power_in": [1.0, 1.0]}})
+    results = make_results({"boiler": {"power_in": [1.0, 1.0]}})
     heat = gm.evaluate.report(plant, make_case(), results)["boiler_heat"]
     assert heat.value is None and "boilers" in heat.reason
 
@@ -127,7 +128,7 @@ def test_every_part_of_a_report_has_a_display_unit():
     """Each ``{value, unit}`` of the dict, parts and nested dicts included, is in a display unit."""
     from gemini.evaluate._utils.display import by_si_unit
 
-    shown = set(by_si_unit().values()) | {"-"}
+    shown = set(by_si_unit().values()) | {"-", "yr"}
     plain = gm.evaluate.report(heating_plant(), case(), day()).to_dict()
     found = []
 

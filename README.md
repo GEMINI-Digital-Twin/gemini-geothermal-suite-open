@@ -100,7 +100,7 @@ inputs/             # repository only
 A plant can be designed from its depth. A `Doublet` derives its reservoir, wells and pump from a few
 design values; the ground, the reservoir and the brine belong to the case, so one design runs on
 several cases. `gm.schedule` plans each step from the demand of the case with no bindings to write,
-`gm.evaluate.constraints` judges the run against the `constraints` of the case, and `gm.study`
+`gm.evaluate.requirements` judges the run against the `requirements` of the case, and `gm.study`
 sizes a design and searches the choices of the case:
 
 ```python
@@ -108,7 +108,7 @@ case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
 plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
 sized = gm.study.size(plant, case, backup="peak")
 results = gm.simulate(sized, case)
-checks = gm.evaluate.constraints(sized, case, results)
+checks = gm.evaluate.requirements(sized, case, results)
 print([check["name"] for check in checks if check["passed"] is False])
 ```
 

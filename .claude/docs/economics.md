@@ -160,8 +160,8 @@ it, and the checks audit what the columns hold:
 | `plant_balance(plant, case, results)` | mass and energy in = out + losses + change of stored energy, per module (1e-9) and for the root (1e-6) | a list of checks, the worst relative residual of each |
 | `mass_balance(plant, case, results)` | the leaf outputs whose unit in `results.units` is kg/s: finite or missing, not negative | smallest flow [kg/s], 1e-12 kg/s |
 | `bounds(plant, case, results)` | every recorded output with a declared limit (`ge`, `gt`, `le`, `lt` of its `Declaration`) | number of values outside, 0 |
-| `constraints(plant, case, results)` | every `gm.case.Requirement` of the case and the supply temperatures of the services, below | one check per matched module and requirement |
-| `run_all(plant, case, results)` | the first three, `bounds` and `constraints` | `{passed, checks}` |
+| `requirements(plant, case, results)` | every `gm.case.Requirement` of the case and the supply temperatures of the services, below | one check per matched module and requirement |
+| `run_all(plant, case, results)` | the first three, `bounds` and `requirements` | `{passed, checks}` |
 
 The limits of a run are the `requirements` of its `gm.Case`: each names a **role** and a
 **quantity** of it, never a module path or a field (`gm.case.roles()` is the closed table):
@@ -172,7 +172,7 @@ import gemini as gm
 case = gm.Case.from_json("inputs/examples/hackathon_2026/case.json")
 plant = gm.Plant.from_json("inputs/examples/hackathon_2026/plants/HeatingPlant.json")
 results = gm.simulate(plant, case)
-checks = gm.evaluate.constraints(plant, case, results)
+checks = gm.evaluate.requirements(plant, case, results)
 print(case.requirements[0].on, case.requirements[0].quantity, checks[0]["name"])
 ```
 
@@ -204,7 +204,7 @@ values, with no integration; `when="running"` of the plant counts the steps on w
 least at `demand.heating.supply_temperature` and each `CoolingGrid` at most at
 `demand.cooling.supply_temperature`; a service without a supply temperature adds no check.
 
-`gm.evaluate.constraints` returns one check `{name, role, unit_path, quantity, passed, value, limit,
+`gm.evaluate.requirements` returns one check `{name, role, unit_path, quantity, passed, value, limit,
 worst_step}` per unit and requirement, `name` the name of the requirement (the supply temperatures of
 the services are `heating_supply_temperature` and `cooling_supply_temperature`), `value` the worst value of the run (or the figure) and `limit` the
 bound that was violated, else the nearest. `unmet_share` of `heating_supply` and `cooling_supply` is the unmet energy over the energy demanded in the run, one figure of the period (`passed` `None` when nothing was demanded). A role with no unit in the plant gives one check with `passed` `None` and
@@ -216,7 +216,7 @@ holds leaf columns, so an output of a composite is read through the paths its co
 (`Output.difference("riser.wellhead_out.T", "injector.wellhead_in.T")`), and the liquid volume flow of
 a doublet is `reservoir.liquid_flow` of its reservoir. `gm.schedule` enforces some forms of the same
 constraints and lists the others in `plan.attrs["check_only"]`, see
-[engine.md](engine.md#schedule); `constraints` judges them all.
+[engine.md](engine.md#schedule); `requirements` judges them all.
 
 A real closure check needs the engine to record each call's residual (`balance.energy_balance`)
 as a result column; that is a change to the engine, not to this package.
@@ -304,7 +304,7 @@ count**; with three variables 15 gave 45 trials. The search is
 variable, so a smaller budget than one population raises `ValidationError`.
 
 A trial is feasible when its run has no failed step, every constraint of the case passes
-(`gm.evaluate.constraints`, the supply temperatures of the services included) and every limit of
+(`gm.evaluate.requirements`, the supply temperatures of the services included) and every limit of
 the `constraints` argument (limits on *metrics*, `{metric, minimum, maximum}`, not the
 `case.requirements` on roles) holds. A check with no value (no flow, a role the plant lacks) does
 not fail a trial. A trial that does not run, such as a negative injection head at great depth, is
@@ -353,21 +353,36 @@ A metric is a KPI or total of `gm.evaluate.totals` or one of `lcoh`, `lcoc`, `lc
 the factors they use. `parameters` in `best`, `history` and `samples` are `Quantity` values in SI,
 the input of the next `set_params`.
 
+## Verdict
+
+`gm.evaluate.verdict(plant, case, results)` is the one place that decides feasibility
+([inputs.md](inputs.md#6-what-gemini-checks-on-every-run-not-inputs)). It returns `{feasible,
+reasons}`; a reason is `{kind, name, message}` and, when it has them, `path`, `value`, `limit`,
+`worst_step`. `requirement`: a requirement of the case or the supply temperature of a service
+failed (`name` that of the requirement), no requirement could be checked, or a service the case
+asks for is not delivered (`name` `heat_delivered` or `cold_delivered`). `failed_step`: failed or
+skipped rows (`failed_steps`). `numerical`: `mass_balance` below -1e-12 kg/s, `energy_balance`
+below -1e-9 W, a leaf residual above 1e-9 or the root above 1e-6 (`plant_balance`), a loop that did
+not converge; the constants of inputs.md 7.5. `bound`: `bounds` found values outside the limits a
+module declares, or a module with `operating_limits` `(output, "min" | "max", parameter)` has the
+output past the value of the parameter in the steps in which it carried flow (`path` the module,
+`name` the output). A limit never changes a run. `report` applies the case once and holds the
+verdict under `verdict`; `report` reads `economics.accounting`, which a second economics file
+changes (two allocations, two reports).
+
 ## Report and comparison
 
 `gm.evaluate.capacities(plant, case, results)` returns `{path: {kind, capacity, peak, share}}` for
 each module that is equipment and has a rating: the design capacity, the largest use of any step
 and their ratio. `gm.evaluate.report(plant, case, results)` returns a `Report`, a `dict` with
 `heat_delivered`, `cold_delivered`, `boiler_heat`, `electricity_bought`, `gas_bought` (J over the
-run), `capacities`, `capex`, `opex`, `lcts`, `lcoh`, `lcoc`, `co2`, `constraints`, `passed` and
+run), `capacities`, `capex`, `opex`, `lcts`, `lcoh`, `lcoc`, `co2`, `requirements`, `verdict`, `passed` and
 `failed_steps`; its costs are read with `on_error="record"`, so a cost the case cannot give is a
-value `None` with a `reason` and many designs stay comparable. `report.to_dict()` is plain JSON in display units, the parts of each value too: the annualised cost and the opex components in MEUR/yr, an energy per year in MWh/yr, a mass in kt, a duration in days (the lifetime included); `units=` reaches the parts of the same SI unit (`co2="t"` shows the kg parts in t); the values inside the report stay SI.
+value `None` with a `reason` and many designs stay comparable. `report.to_dict()` is plain JSON in display units, the parts of each value too: the annualised cost and the opex components in MEUR/yr, an energy per year in MWh/yr, a mass in kt, a duration in days (`analysis_period`, `payback` and `lifetime_years` in yr) and a temperature difference in K; `units=` reaches the parts of the same SI unit (`co2="t"` shows the kg parts in t); the values inside the report stay SI.
 `gm.evaluate.compare(reports, by)` ranks reports by the metrics `by` (a name, a list, or a
 `{metric: "min" | "max"}` dict) and returns a `Comparison`, a list with one entry per report in the
 order given (`index`, `values`, `ranks`, `pareto`, `feasible`, and `reasons` when not feasible) and
-`to_frame(units=None)`. A report is feasible when no step failed, no constraint failed and every
-service in its `services` (`report["services"]`) is delivered; feasible reports rank first, only
-they can be on the front, and `reasons` are the failed items of `gm.evaluate.constraints` or
-`{name, reason}`. `values` stay floats in SI; `to_frame` shows the metrics in display units, columns
+`to_frame(units=None)`. A report is feasible when its `verdict` has no reason; feasible reports rank first, only
+they can be on the front, and `reasons` are those of the verdict. `values` stay floats in SI; `to_frame` shows the metrics in display units, columns
 `<metric> [<unit>]`. A report with no value of a metric ranks last for it and is never on the
 front.

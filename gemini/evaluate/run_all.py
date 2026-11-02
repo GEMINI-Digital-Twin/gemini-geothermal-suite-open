@@ -1,11 +1,11 @@
 """All checks of a finished run together."""
 
 from gemini._utils.jsonable import to_plain
-from gemini.evaluate._utils.verdict import verdict
+from gemini.evaluate._utils.tally import tally
 from gemini.evaluate.bounds import bounds
-from gemini.evaluate.constraints import constraints
 from gemini.evaluate.energy_balance import energy_balance
 from gemini.evaluate.mass_balance import mass_balance
+from gemini.evaluate.requirements import requirements
 
 
 def run_all(plant, case, results):
@@ -32,6 +32,6 @@ def run_all(plant, case, results):
         energy_balance(plant, case, results),
         mass_balance(plant, case, results),
         bounds(plant, case, results),
-        *constraints(plant, case, results),
+        *requirements(plant, case, results),
     ]
-    return to_plain({"passed": verdict([item["passed"] for item in checks]), "checks": checks})
+    return to_plain({"passed": tally([item["passed"] for item in checks]), "checks": checks})

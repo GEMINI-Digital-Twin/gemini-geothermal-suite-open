@@ -102,24 +102,21 @@ def test_to_frame_refuses_a_unit_that_does_not_fit():
         found.to_frame({"co2": "nothing"})
 
 
-def served(cost, **parts):
-    """Return a report of a given cost; by default it passed and delivered the heat asked for."""
-    base = {
-        "lcts": measure(cost, "currency/J"),
-        "passed": True,
-        "failed_steps": 0,
-        "constraints": [],
-        "services": ["heating", "cooling"],
-        "heat_delivered": measure(1.0, "J"),
-        "cold_delivered": measure(1.0, "J"),
-    }
-    return base | parts
+def reason(name, kind="requirement"):
+    """Return a reason of a verdict."""
+    return {"kind": kind, "name": name, "message": f"{name} failed"}
+
+
+def served(cost, *reasons, **parts):
+    """Return a report of a given cost whose verdict has the given reasons."""
+    verdict = {"feasible": not reasons, "reasons": list(reasons)}
+    return {"lcts": measure(cost, "currency/J"), "verdict": verdict} | parts
 
 
 def test_an_infeasible_report_is_never_on_the_front_and_ranks_after_the_feasible():
-    """The cheapest report fails a constraint: it is not feasible, with the constraint as reason."""
-    item = {"name": "heat.unmet", "passed": False}
-    cheap = served(1.0, passed=False, constraints=[item])
+    """The cheapest report has a reason: it is not feasible, with the reason as given."""
+    item = reason("heat.unmet")
+    cheap = served(1.0, item)
     found = gm.evaluate.compare([cheap, served(5.0), served(9.0)], "lcts")
     assert [entry["pareto"] for entry in found] == [False, True, False]
     assert [entry["ranks"]["lcts"] for entry in found] == [3, 1, 2]
@@ -127,27 +124,17 @@ def test_an_infeasible_report_is_never_on_the_front_and_ranks_after_the_feasible
     assert found[1]["feasible"] is True and "reasons" not in found[1]
 
 
-def test_a_report_missing_a_service_ranks_after_all_feasible_ones():
-    """The case asks for cooling and the run gave no cold."""
-    missing = served(1.0, cold_delivered=measure(None, "J", "no cold"))
-    found = gm.evaluate.compare([missing, served(5.0)], "lcts")
-    assert found[0]["ranks"]["lcts"] == 2 and found[0]["pareto"] is False
-    assert [item["name"] for item in found[0]["reasons"]] == ["cold_delivered"]
-
-
-def test_a_report_without_the_service_asked_for_is_feasible_and_failed_steps_are_not():
-    """A case with heating only needs no cold; a failed step makes a report infeasible."""
-    heating = served(5.0, services=["heating"], cold_delivered=measure(None, "J", "none"))
-    found = gm.evaluate.compare([heating, served(1.0, failed_steps=2)], "lcts")
-    assert [entry["feasible"] for entry in found] == [True, False]
-    assert found[1]["reasons"][0]["name"] == "failed_steps"
+def test_a_report_without_a_verdict_is_a_plain_table_and_is_feasible():
+    """Only the verdict decides: a dict of figures has none."""
+    found = gm.evaluate.compare([{"lcts": 3.0, "passed": False}, served(5.0)], "lcts")
+    assert [entry["feasible"] for entry in found] == [True, True]
 
 
 def test_the_infeasible_are_ordered_by_their_number_of_reasons_then_by_the_metric():
     """Two reasons rank after one, whatever the cost."""
-    one = {"name": "a", "passed": False}
-    many = served(1.0, passed=False, constraints=[one, one])
-    few = served(9.0, passed=False, constraints=[one])
+    one = reason("a")
+    many = served(1.0, one, one)
+    few = served(9.0, one)
     found = gm.evaluate.compare([many, few, served(7.0)], "lcts")
     assert [entry["ranks"]["lcts"] for entry in found] == [3, 2, 1]
 
@@ -160,13 +147,3 @@ def test_an_unknown_metric_or_sense_is_refused():
         gm.evaluate.compare(reports(), {"lcts": "smallest"})
     with raises(gm.errors.ValidationError, "invalid_value"):
         gm.evaluate.compare(reports(), [])
-
-
-def test_a_report_with_nothing_to_check_is_feasible_but_unchecked_constraints_are_not():
-    """No constraint items: nothing can fail. Items that are all None: nothing was checked."""
-    bare = served(5.0, passed=None, constraints=[])
-    unchecked = served(1.0, passed=None, constraints=[{"name": "a", "passed": None}])
-    found = gm.evaluate.compare([bare, unchecked], "lcts")
-    assert [entry["feasible"] for entry in found] == [True, False]
-    assert found[0]["pareto"] is True
-    assert found[1]["reasons"][0]["reason"] == "no constraint was checked"

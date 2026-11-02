@@ -38,7 +38,7 @@ def run(**extra):
 def verdicts(*requirements, results=None):
     """Return the checks of ``requirements`` on the plant."""
     case = make_case(count=4, requirements=list(requirements))
-    return gm.evaluate.constraints(plant(), case, results or run())
+    return gm.evaluate.requirements(plant(), case, results or run())
 
 
 def limit(role, quantity, **kwargs):
@@ -132,7 +132,7 @@ def test_co2_is_the_mass_of_each_step_and_sums_to_the_co2_of_the_run():
     rule = requirement("plant", "co2", over="sum", max=Quantity(1, "kg"))
     case = make_case(count=4, requirements=[rule], utilities=utilities)
     results = run()
-    (found,) = gm.evaluate.constraints(plant(), case, results)
+    (found,) = gm.evaluate.requirements(plant(), case, results)
     total = gm.evaluate.co2(plant(), case, results).value
     assert found["value"].unit == "kg" and found["value"].value == pytest.approx(total)
     assert found["passed"] == (total <= 1.0)

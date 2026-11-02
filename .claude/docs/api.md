@@ -357,10 +357,11 @@ error.
 | Name | Status |
 | --- | --- |
 | `gm.evaluate.totals(plant, case, results)` | real: `{name: value}` of what crossed the plant's edge over the run, each read from the ports of the edge modules, heat and cold as delivered, useful (at most the demand) and surplus; `None` with a reason when no edge module shows it. It also gives the KPIs `heating_coverage`, `cooling_coverage`, `cop`, `peak_heat`, `peak_cold` |
-| `gm.evaluate.constraints(plant, case, results)` | real: a list of checks `{name, role, unit_path, quantity, passed, value, limit, worst_step}`, one per unit of the role of each requirement of the case (`name` that of the requirement), plus the supply temperatures of the services; `value` the worst of the run; `passed` is `null` with a reason `no_value` when there is nothing to judge (a role with no unit in the plant gives one such check); a role or quantity not in `gm.case.roles()` raises `unknown_name` |
+| `gm.evaluate.requirements(plant, case, results)` | real: a list of checks `{name, role, unit_path, quantity, passed, value, limit, worst_step}`, one per unit of the role of each requirement of the case (`name` that of the requirement), plus the supply temperatures of the services; `value` the worst of the run; `passed` is `null` with a reason `no_value` when there is nothing to judge (a role with no unit in the plant gives one such check); a role or quantity not in `gm.case.roles()` raises `unknown_name` |
 | `gm.evaluate.plant_balance(plant, case, results)` | real, a list of checks: mass and energy of every module within 1e-9 and of the root within 1e-6. The root's in and out are the ports of the grids and environment modules, the aquifers and the plant ports of a building block run alone; a replay does not close at the root |
 | `gm.evaluate.energy_balance(plant, case, results)`, `mass_balance(plant, case, results)`, `bounds(plant, case, results)` | real, each a check; they are ledger checks, see [economics.md](economics.md) |
-| `gm.evaluate.run_all(plant, case, results)` | real: `{passed, checks: [check]}` of the ledgers, the bounds and the constraints |
+| `gm.evaluate.run_all(plant, case, results)` | real: `{passed, checks: [check]}` of the ledgers, the bounds and the requirements |
+| `gm.evaluate.verdict(plant, case, results)` | real: the one answer to feasibility, a `Verdict` (a `dict`, `to_dict()` for plain JSON) `{feasible, reasons}`. A reason is `{kind, name, message}` plus `path`, `value`, `limit`, `worst_step` when it has them (a `requirement` reason also has `role` and `quantity`). Kinds: `requirement` (a failed requirement or service supply temperature of the case, none checkable, a service not delivered; `name` that of the requirement, or `cold_delivered`-style), `failed_step` (failed or skipped rows), `numerical` (a mass, energy or plant balance beyond its constant, a loop that did not converge) and `bound` (an output outside the limits its module declares, or past an operating limit of `Module.operating_limits`, in the steps in which the module ran). The case is applied to the plant once; `report` and `compare` use it, nothing else decides feasibility |
 | `gm.evaluate.capex(plant, case, on_error="raise")` | real: the sum, each module in `parts["modules"]` |
 | `gm.evaluate.opex(plant, case, results, on_error="raise")` | real: the fixed opex of each kind in `parts["fixed_by_kind"]` and the bills of energy; no variable opex |
 | `gm.evaluate.lcoh(plant, case, results, discount_rate=None, lifetime=None, on_error="raise")` | real |
@@ -430,21 +431,20 @@ of the flow, with its signature and its return shape. `python examples/hackathon
 `Report` is a `dict` subclass with these keys, each a `Value` in SI unless said: `heat_delivered`,
 `cold_delivered`, `boiler_heat`, `electricity_bought`, `gas_bought` (J over the run),
 `capacities` (`{path: {kind, capacity, peak, share}}`), `capex`, `opex`, `lcts`, `lcoh`, `lcoc`,
-`co2`, `services` (the list of services the plant is asked to deliver, `"heating"` and `"cooling"`), `constraints` (a list of `{name, role, unit_path, quantity, passed, value, limit,
-worst_step}`; `value` and `limit` are `Value`s), `passed` (`False` if any constraint failed,
+`co2`, `services` (the list of services the plant is asked to deliver, `"heating"` and `"cooling"`), `verdict` (the `Verdict` of `gm.evaluate.verdict`), `requirements` (a list of `{name, role, unit_path, quantity, passed, value, limit,
+worst_step}`; `value` and `limit` are `Value`s), `passed` (`False` if any requirement failed,
 `True` if none failed and one passed, else `None`) and `failed_steps` (an `int`). Its costs are
 read with `on_error="record"`: a cost the case or the plant cannot give has `value` `None` and a
 `reason`, and a plant that does not show a quantity (a cold delivered with no cooling grid) says so
-in `reason`. `report.to_dict(units=None)` gives plain JSON with `{value, unit}` for every `Value`, in display units, its parts too: the annualised cost in MEUR/yr (`opex` components and `lcts` parts through the one display table), an energy per year in MWh/yr, a mass in kt, a duration in days (the lifetime included). A `units` map reaches the parts of the same SI unit, so `co2="t"` shows its kg parts in t; the values inside stay SI.
+in `reason`. `report.to_dict(units=None)` gives plain JSON with `{value, unit}` for every `Value`, in display units, its parts too: the annualised cost in MEUR/yr (`opex` components and `lcts` parts through the one display table), an energy per year in MWh/yr, a mass in kt, a duration in days, except `analysis_period`, `payback` and `lifetime_years` in yr, and a temperature difference (a requirement on `lift`, `approach`, `brine_cooling`) in K. A `units` map reaches the parts of the same SI unit, so `co2="t"` shows its kg parts in t; the values inside stay SI.
 
 `Comparison` is a `list`, one entry per report in the order given: `{index, values, ranks,
 pareto, feasible}` and, for an infeasible report, `reasons`. `values` are the metrics as `gm.units.Quantity` in SI
 (a plain number stays a float, `None` for no value; only `to_frame` converts to display units), `ranks` start at 1
 (equal values share a rank, the feasible come before the infeasible), `pareto` is `True` when no
 other feasible report is at least as good in every metric and better in one. A report is
-feasible when no step failed, no constraint failed and every service in `services` is delivered;
-`reasons` are the failed items of `gm.evaluate.constraints` and `{name, reason}` for a failed step
-or a service not delivered. `by` is a name, a list of names or `{metric: "min" | "max"}`; a report without a value
+feasible when the `verdict` of its report has no reason (`gm.evaluate.verdict`); `reasons` are
+those of the verdict. A dict without a `verdict`, such as a table of figures, is feasible. `by` is a name, a list of names or `{metric: "min" | "max"}`; a report without a value
 of a metric ranks last for it and is never on the front.
 
 What the calls do not do, honestly: `fluids` remains in a plant dict for a plant with no case; consumer
@@ -564,7 +564,7 @@ Names removed or renamed in the unreleased changes of 0.2.0:
 | Defaults of `ESP` (`setting_depth`, `motor_efficiency`, `minimum_flow`, `maximum_flow`, `best_efficiency_flow`, `drift_threshold`, `pump_type`), of `InjectionPump.pump_type`, and of the other modules listed in `DECLARED_DEFAULTS` | the plant states them in its dict; `missing_parameters()` lists them; `None` where a feature is off |
 | `gemini.physics.pumps.DEFAULT_BEP_FLOW`, `DEFAULT_INJECTION_PUMP_FREQUENCY`, `COMMERCIAL_STEEL_ROUGHNESS`, `DEFAULT_LORENZ_FRACTION`, `DEFAULT_MINIMUM_LIFT`, `DEFAULT_DRIFT_THRESHOLD`, `DEFAULT_DECLINE_THRESHOLD`, `DEFAULT_FOULING_THRESHOLD`, `DEFAULT_VALVE_RANGEABILITY`, `DEFAULT_WELL_U_VALUE`, `DEFAULT_CIRCULATION_PUMP_EFFICIENCY`, `HALF_YEAR`, `DOUBLET_WELL_SPACING`, `FILTER_NOMINAL_MASS_FLOW` | removed; `Doublet.roughness` is a parameter, `InjectionPump.frequency` defaults to the catalogue frequency `ESP_REFERENCE_FREQUENCY` |
 | `report.to_dict()` parts in SI (`annualised_cost` in EUR/yr, `kg` parts of `co2`) | the parts in display units too: MEUR/yr, MWh/yr, kt, days |
-| `gm.evaluate.constraints` item key `path` | `unit_path`, with `role` and `quantity` |
+| `gm.evaluate.requirements` item key `path` | `unit_path`, with `role` and `quantity` |
 | `gm.evaluate.compare(plant, problem, results, other)` (a stub) | `gm.evaluate.compare(reports, by)` |
 | `gm.plants.example(name)` | a stored plant dict, `gm.Plant.from_json(path)` (`inputs/examples/*/plant.json`, `inputs/doublet_heat/plant.json`), or the class `gm.plants.<Class>(...)` and `plant.missing_parameters()` to see what to `set_params` |
 | `gm.study.size(plant, case)` | `gm.study.size(plant, case, backup="peak" or "none")`; the policy has no default |
@@ -611,7 +611,7 @@ Names removed or renamed in the unreleased changes of 0.2.0:
 | `gm.evaluate(module, ...)` | `gm.call(module, ...)` |
 | `gm.testing.check_module` | `gm.modules.check` |
 | `gm.checks.*`, `gm.economics.*`, `gm.kpi.*` | `gm.evaluate.*`; `gm.kpi.compute` is in `gm.evaluate.totals` |
-| `gm.checks.Limits`, `gm.checks.limits`, `gm.checks.operating_time` | `gm.case.Constraint` and `gm.evaluate.constraints` |
+| `gm.checks.Limits`, `gm.checks.limits`, `gm.checks.operating_time` | `gm.case.Requirement` and `gm.evaluate.requirements` |
 | `gm.economics.Assumptions` | `gm.case.Assumptions` |
 | `electricity_price`, `gas_price`, `waste_disposal_price`, `chemical_price`, `heat_price`, `cold_price` of `Assumptions` | `assumptions.finance.opex` and `revenue` of the case |
 | `rules` of `gm.schedule`, `gm.study.minimize`, `sample`; `order`, `cooling_order`, `operating_time` as a list or a fraction | the `constraints` of the case; `gm.schedule(plant, case)` |
