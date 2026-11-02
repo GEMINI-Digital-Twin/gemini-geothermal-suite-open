@@ -1,0 +1,3 @@
+{"event": "question", "model": "qwen3:8b", "text": "What heating return temperature should we use?"}
+{"event": "llm", "round": 1, "seconds": 6.9, "tokens_in": 1483, "tokens_out": 46, "content": "The heating return temperature is a design choice. According to the tools, the default value is 50\u00b0C. If you have a specific requirement or preference, please provide it, and I can compare options using the tools.", "tool_calls": null}
+{"event": "tokens", "tokens_in": 1483, "tokens_out": 46, "rounds": 1}
