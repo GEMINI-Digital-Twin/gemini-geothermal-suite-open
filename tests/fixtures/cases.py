@@ -142,6 +142,10 @@ def priced(economics):
     return economics | {"capex": capex, "opex": opex}
 
 
+FINANCE = {"discount_rate": 0.05, "analysis_period": Quantity(20, "yr")}
+"""The investor's terms of the cost tests: 5 % a year over 20 years."""
+
+
 def costed_economics(energy=None, revenue=None, **parts):
     """Return the ``economics`` of a case for the plants of ``costed_plants``.
 

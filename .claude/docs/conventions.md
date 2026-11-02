@@ -144,7 +144,7 @@ does not describe the plant is in the case ([data.md](data.md#the-case)).
 
 The public API is frozen: [api.md](api.md) lists it. `gm.__version__` is the one version, read from
 `version` in `pyproject.toml`. Below 1.0 a breaking change to a public name or a return field raises
-the minor number (`0.2.0`) and an addition or a fix raises the patch number (`0.1.1`), in the same
+the minor number (`0.3.0`) and an addition or a fix raises the patch number (`0.1.1`), in the same
 commit, with a line in the change log of [api.md](api.md). `tests/unit/test_public_api.py` compares
 against the stored snapshot `tests/fixtures/public_api.json`, which records the version and may only
 change together with it: regenerate it with `tests/fixtures/capture_public_api.py` and add its hash
@@ -402,8 +402,8 @@ reason it is needed:
   can travel against the energy ([ports](modules.md#ports)).
 - Two optional method protocols: a module that is equipment (the mixin `Equipment` of
   `gemini/modules/_utils/cost.py`) sets `equipment_kind`, one of the kinds of `gm.case.Capex`, and
-  defines `capex(finance)`, an amount in the currency of the case from its own design values and the
-  factor of its kind; `fixed_opex(finance)` is the share of the kind times that capex
+  defines `capex(economics)`, an amount in the currency of the case from its own design values and the
+  factor of its kind; `fixed_opex(economics)` is the share of the kind times that capex
   ([economics.md](economics.md#costs)). A module that overrides `health(result, measured)` gets a
   diagnostic, which the engine calls after each replayed twin (the base method returns `None`,
   meaning not assessed).

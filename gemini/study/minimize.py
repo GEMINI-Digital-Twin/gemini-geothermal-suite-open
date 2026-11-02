@@ -13,7 +13,7 @@ from gemini.study._utils.best import Best
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.resize import resized
 from gemini.study._utils.target import unit_of
-from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, limit_si, run_judged
+from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, run_judged
 from gemini.study._utils.variables import DOUBLETS, counts, variables
 from gemini.types.shapes import Value, measure
 
@@ -21,31 +21,6 @@ POPULATION_PER_VARIABLE = 5
 """Candidates of a generation per variable: a small budget still sees several generations."""
 SMALLEST_POPULATION = 5
 """The fewest candidates of a generation, which ``differential_evolution`` needs."""
-
-
-def _broken_constraint(metrics, constraints):
-    """Return ``(reason, violation)`` of the metric limits a trial breaks, or ``(None, 0.0)``."""
-    reason, violation = None, 0.0
-    for limit in constraints:
-        name, lower, upper = limit["metric"], limit.get("minimum"), limit.get("maximum")
-        number = metrics[name].value
-        if number is None:
-            return f"{name} has no value: {metrics[name].reason}", LARGEST_VIOLATION
-        lower = None if lower is None else limit_si(lower, metrics[name], name)
-        upper = None if upper is None else limit_si(upper, metrics[name], name)
-        outside = max(0.0 if lower is None else lower - number, 0.0)
-        outside = max(outside, 0.0 if upper is None else number - upper)
-        if outside > 0:
-            reason = reason or f"{name} = {number}; expected {lower} to {upper}"
-            violation += outside / (max(abs(number), abs(lower or 0), abs(upper or 0)) or 1.0)
-    return reason, violation
-
-
-def _read(metrics, name, constraints):
-    """Return ``(reason, violation)`` of a run the case accepts: the objective and the limits."""
-    if metrics[name].value is None:
-        return metrics[name].reason, LARGEST_VIOLATION
-    return _broken_constraint(metrics, constraints)
 
 
 def _ranked(sign, number, reason, violation):
@@ -195,7 +170,7 @@ def _search(evaluated, found, evaluations, start, seed):
 
 def _counted(shared, count):
     """Return the history of the search on ``count`` doublets, ``None`` for the plant as it is."""
-    plant, case, plan, names, name, sign, constraints, evaluations, seed = shared
+    plant, case, plan, name, sign, evaluations, seed = shared
     design = plant if count is None else resized(plant, count)
     chosen = {} if count is None else {DOUBLETS: units.Quantity(count, "-")}
     found = variables(design)
@@ -203,9 +178,9 @@ def _counted(shared, count):
 
     def evaluated(point):
         values = _values(found, point)
-        metrics, reason, violation = run_judged(design, case, plan, values, names)
-        if reason is None:
-            reason, violation = _read(metrics, name, constraints)
+        metrics, reason, violation = run_judged(design, case, plan, values, {name})
+        if reason is None and metrics[name].value is None:
+            reason, violation = metrics[name].reason, LARGEST_VIOLATION
         shown = chosen | _shown(design, case, found, point)
         history.append(_entry(shown, metrics, name, reason, violation))
         return _ranked(sign, history[-1].value, reason, violation)
@@ -214,7 +189,7 @@ def _counted(shared, count):
     return history
 
 
-def minimize(plant, case, objective, evaluations, seed, *, constraints=None, plan=None):
+def minimize(plant, case, objective, evaluations, seed, *, plan=None):
     """Return the design of a plant that minimises a metric, searched in the space the plant states.
 
     The variables are the plant's own: every leaf with a ``range`` (continuous, or integer when
@@ -238,9 +213,9 @@ def minimize(plant, case, objective, evaluations, seed, *, constraints=None, pla
 
     A trial is feasible when its ``gm.evaluate.verdict`` has no reason a design can change (the
     reasons with a ``violation``): no failed step, every requirement of the case passes, the
-    supply temperatures of the services included, no operating limit breached, and every limit of
-    ``constraints``. A reason no variable can change (a service the plant has no unit for) is not
-    held against a trial; the verdict of the best plant, from ``gm.evaluate.report``, keeps it. A
+    supply temperatures of the services included, no operating limit breached. A reason no variable
+    can change (a service the plant has no unit for) is not held against a trial; the verdict of
+    the best plant, from ``gm.evaluate.report``, keeps it. A
     trial that does not run (a physics error, say at some depth) is infeasible with the largest
     violation. The search sees feasible trials as better than infeasible ones, and infeasible
     ones ordered by their total relative violation, so it moves towards feasibility. The best
@@ -262,10 +237,6 @@ def minimize(plant, case, objective, evaluations, seed, *, constraints=None, pla
         at least five. It has no default.
     seed : int
         Seed of the search; the same call gives the same trials. It has no default.
-    constraints : list of dict, optional
-        Limits on metrics, each ``{metric, minimum, maximum}`` with ``Quantity`` limits (a plain
-        number only for a metric without a dimension), either limit optional; a trial that breaks
-        one is infeasible, like one that breaks a requirement of the case.
     plan : DataFrame, optional
         The run input held fixed over the trials, for a building block with no demand; without it
         each trial is planned from the case.
@@ -280,7 +251,7 @@ def minimize(plant, case, objective, evaluations, seed, *, constraints=None, pla
         is feasible; if not, ``best`` is the least violating trial that ran and its ``reason``
         says why. ``history`` lists the same as ``best`` for every trial, with
         ``parts["violation"]`` (0 when feasible) and a ``reason`` for an infeasible trial: the
-        first reason of its verdict (its dict), a text for a limit on a metric or a failed run.
+        first reason of its verdict (its dict), a text for a failed run.
         ``evaluations`` is the number of simulations. With no trial that ran, ``best`` has no
         value and no plant, and gives a ``reason``. ``to_plain`` gives the JSON form.
 
@@ -293,8 +264,6 @@ def minimize(plant, case, objective, evaluations, seed, *, constraints=None, pla
     raise_issues(check(plant, case))
     name = checked_metric(objective.removeprefix("-"))
     sign = -1.0 if objective.startswith("-") else 1.0
-    constraints = constraints or []
-    names = {name, *(checked_metric(limit["metric"]) for limit in constraints)}
     sizes = counts(plant)
     if sizes == [None] and not variables(plant):
         raise ValidationError(
@@ -305,7 +274,7 @@ def minimize(plant, case, objective, evaluations, seed, *, constraints=None, pla
         )
     if sizes != [None]:
         resized(plant, sizes[0])
-    shared = (plant, case, plan, names, name, sign, constraints, evaluations, seed)
+    shared = (plant, case, plan, name, sign, evaluations, seed)
     history = [entry for found in mapped(_counted, shared, sizes) for entry in found]
     best, feasible = _best(history, sign, plant)
     return {"best": best, "feasible": feasible, "history": history, "evaluations": len(history)}

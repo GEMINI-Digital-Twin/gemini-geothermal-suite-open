@@ -45,10 +45,10 @@ Durations are shown in ``d`` (the time a requirement counts, the running time) e
 ``YEARS``, which are long and shown in ``yr``.
 
 The one display table of ``gm.evaluate``: ``flow`` and ``temperature`` stand for the quantities of
-the capacities and constraints of a report, which are shown by their SI unit (``by_si_unit``).
+the capacities and requirements of a report, which are shown by their SI unit (``by_si_unit``).
 """
 
-YEARS = ("analysis_period", "payback", "lifetime_years")
+YEARS = ("analysis_period", "payback")
 """The names of the durations of years: shown in ``yr`` by their name, not by their SI unit."""
 
 DIFFERENCES = ("temperature_difference",)

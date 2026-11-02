@@ -17,10 +17,11 @@ report = gm.evaluate.report(plant, case, results)
 print(report["heat_delivered"].to("MWh").value, report["lcts"].to("EUR/MWh").value)
 ```
 
-A `gm.Case` holds what a plant is asked to do and the world around it: the time, the environment,
-the demand, the requirements and the economics (prices, cost factors,
-emission factors) of a run, in a `case.json` with its CSV files. The plant dict holds only the
-plant. Every value with a unit is a `{"value": 150, "unit": "m3/h"}` or a `gm.units.Quantity`, text
+A `gm.Case` holds what a plant is asked to do and the world around it: the time, the site,
+the demand, the utilities, the requirements of third parties and the economics (prices, cost
+factors, emission factors) of a run, in a `case.json` with its CSV files. The plant file holds only
+the plant. `gm.check(plant, case)` lists what a run still lacks, and a `gm.Study` (`study.json`) records
+which plants, cases and method to run. Every value with a unit is a `{"value": 150, "unit": "m3/h"}` or a `gm.units.Quantity`, text
 such as `"150 m3/h"` is refused, and nothing a user must decide has a default: a value that is
 missing raises `missing_value` naming its path. For measured inputs, `gm.simulate(plant, plan=frame)`
 runs a DataFrame or `gm.Dataset` of the plant's inputs.
@@ -114,9 +115,8 @@ print([check["name"] for check in checks if check["passed"] is False])
 
 `examples/hackathon.py` runs that path on the sample case of `inputs/examples/hackathon_2026/`, and
 `examples/quickstart.py` on `inputs/examples/shallow_district/`, an hourly demand on one shallow
-doublet, each with its own constraints. A stored design keeps its setpoints:
-`plant.set_inputs({"peak_boiler.temperature_setpoint": {"value": 100, "unit": "degC"}})` is part of `plant.to_dict()`, and
-a template plant takes its size, `gm.plants.HeatingCoolingPlant(doublets=2)`.
+doublet, each with its own requirements. A control of a stored design is a leaf of the plant file
+(`params.peak_boiler.temperature_setpoint`), and a template plant takes its size, `gm.plants.HeatingCoolingPlant(doublets=2)`.
 
 Everything in the energy flow is a module and everything that crosses between modules goes through
 a port. A plant starts at its edge modules: `ElectricityGrid`, `GasGrid`, `HeatingGrid`,

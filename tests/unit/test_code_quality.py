@@ -923,8 +923,10 @@ def test_no_reader_or_writer_breaks_the_naming_rule():
 
 
 GEMINI_FILES = [path for path in PYTHON_FILES if path.startswith("gemini/")]
-OLD_NAME = re.compile(r"legacy|compat|deprecated|^old_|_old($|_)|_v1|_v2", re.IGNORECASE)
-"""What a kept old name, shape or call path is called."""
+OLD_NAME = re.compile(
+    r"legacy|compat|deprecated|^old_|_old($|_)|_v1|_v2|assumptions|finance|lifetime", re.IGNORECASE
+)
+"""What a kept old name, shape or call path is called, with the names of the old inputs."""
 WRAPPER_ALLOWANCE = {
     "gemini/modules/module.py::fluid": "a property setter that calls the hook plants override",
 }
@@ -1148,9 +1150,11 @@ def test_no_name_keeps_something_old(package_trees):
 
 
 def test_the_old_name_guard_finds_old_names_and_not_words_that_contain_them():
-    """``old_value``, ``_compat`` and ``f_v2`` are caught; ``is_older`` and ``old`` are not."""
+    """``old_value``, ``_compat``, ``f_v2`` and the names of the old inputs are caught."""
     caught = "def old_value(): pass\nclass Compat: pass\n_compat = 1\ndef f_v2(deprecated): pass\n"
     assert old_names(ast.parse(caught)) == ["Compat", "_compat", "deprecated", "f_v2", "old_value"]
+    renamed = "assumptions = 1\ndef finance(lifetime_years): pass\n"
+    assert old_names(ast.parse(renamed)) == ["assumptions", "finance", "lifetime_years"]
     assert old_names(ast.parse("def is_older(folder, hold): pass\nold = 1\n")) == []
 
 

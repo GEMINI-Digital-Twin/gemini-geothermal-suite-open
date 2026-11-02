@@ -44,10 +44,10 @@ One `gm.Case` carries what a plant is asked to do, for every call: the sections 
 plant. Run a plant with `gm.simulate(plant, case)`, `gm.replay`, `gm.live` and `gm.resume`; keep
 `gm.Engine` for complex tasks ([functions or engine](.claude/docs/engine.md#functions-or-engine)).
 `gm.schedule(plant, case)` plans the run input of a design from the demand of the case, at any
-constant step: sources load from the cheapest to the dearest, limits and outages come from the
-constraints, and the role of each unit is read from the wiring
+constant step: sources load from the cheapest to the dearest, limits come from the
+requirements, the merit order and the outages from the plant's `control`, and the role of each unit is read from the wiring
 ([schedule](.claude/docs/engine.md#schedule)). The `gm.evaluate` functions take
-`(plant, case, results)`: `totals`, `constraints`, the costs, `report` and `compare`. `gm.study`
+`(plant, case, results)`: `totals`, `requirements`, `verdict`, the costs, `report` and `compare`. `gm.study`
 sizes (`size`), searches (`minimize`), samples and ranks the influence of a value (`sensitivity`);
 `gm.Study` runs them from a `study.json`; `gm.check(plant, case)` lists what is missing first.
 
@@ -109,7 +109,7 @@ Read every file in `.claude/docs/` before changing the repository:
 - [Data](.claude/docs/data.md): read/write naming, in-memory datasets, sampling, gaps, `case.json`, the unit format
   and where data lives.
 - [Engine](.claude/docs/engine.md): clocks, runs, callbacks, results, checkpoints and live.
-- [Economics](.claude/docs/economics.md): `gm.evaluate` costs, totals, KPIs, constraints and checks, `gm.study` and well analysis.
+- [Economics](.claude/docs/economics.md): `gm.evaluate` costs, totals, KPIs, requirements, the verdict and checks, `gm.study`, `gm.Study` and well analysis.
 - [Equipment](.claude/docs/equipment.md): every shipped module, its model and energy audit.
 - [Errors](.claude/docs/errors.md): the rule for raising, the seven `gm.errors` error classes and `GeminiWarning`, the codes.
 - [Inputs](.claude/docs/inputs.md): the principles, the placement test and the file formats; where every input lives and why.
@@ -162,7 +162,7 @@ gemini/
 ├── compiler/         # graph/ (Tracer, Graph, passes, cache), executor.py, gm.compiler.compile; optional, registers itself
 ├── data/             # from_csv, from_values, profile_schema
 ├── study/            # size, minimize, sample, sensitivity, Study; _utils/ (trial, variables, execute, target)
-├── evaluate/         # totals, constraints, balances, bounds, run_all, capex, opex, lcoh, lcoc, lcts, annualised_cost, co2, npv, payback; capacities, report, compare
+├── evaluate/         # totals, requirements, verdict, balances, bounds, run_all, capex, opex, lcoh, lcoc, lcts, annualised_cost, co2, npv, payback; capacities, report, compare
 └── analysis/         # calibrate, nodal, pump curve, corrosion forecast, fits
 docs/schemas/         # generated JSON Schemas and samples of the exchanged documents
 inputs/               # not installed: examples/ (sample cases), plants/ (example values), doublet_heat/, legacy_project/ (read by tests only)

@@ -91,9 +91,9 @@ def test_long_durations_show_in_years_and_operating_durations_in_days():
 
 
 def test_the_years_a_result_carries_stay_years():
-    """``lifetime_years`` of a net present value is in yr, not days."""
+    """``analysis_period`` of a net present value is in yr, not days."""
     from gemini.evaluate._utils.display import by_si_unit, shown
     from gemini.types.shapes import measure
 
-    npv = measure(1.0, "currency", lifetime_years=measure(25.0, "yr"))
-    assert shown({"npv": npv}, by_si_unit())["npv"].parts["lifetime_years"].unit == "yr"
+    npv = measure(1.0, "currency", analysis_period=measure(25.0, "yr"))
+    assert shown({"npv": npv}, by_si_unit())["npv"].parts["analysis_period"].unit == "yr"

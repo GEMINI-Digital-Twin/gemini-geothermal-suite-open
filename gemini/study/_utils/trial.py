@@ -2,7 +2,6 @@
 
 from copy import deepcopy
 
-from gemini import units
 from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import GeminiError, ValidationError
 from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, totals, verdict
@@ -36,22 +35,6 @@ def checked_metric(name):
             suggestions=close_matches(name, known),
         )
     return name
-
-
-def limit_si(bound, metric, name):
-    """Return a limit on a metric in the SI unit of the ``metric`` value; a number needs no unit."""
-    if isinstance(bound, dict):
-        bound = units.Quantity.from_dict(bound)
-    if isinstance(bound, units.Quantity):
-        return units.value_in_si(bound, str(metric.unit), name)
-    if metric.unit != "-":
-        raise ValidationError(
-            f"study: {name} limit = {bound!r}; expected {units.QUANTITY_FORM}, because the metric "
-            f"has the unit {str(metric.unit)!r}",
-            path=name,
-            code="invalid_value",
-        )
-    return bound
 
 
 def metric(plant, case, results, name):

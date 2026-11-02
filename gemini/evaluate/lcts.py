@@ -7,7 +7,7 @@ from gemini.run._utils.apply import apply_case
 from gemini.types.shapes import measure
 
 
-def lcts(plant, case, results, discount_rate=None, lifetime=None, on_error="raise"):
+def lcts(plant, case, results, on_error="raise"):
     """Return the levelised cost of thermal supply [currency/J].
 
     ``annualised_cost / (heat + cold)``, the heat and the cold delivered per year as scaled from
@@ -26,11 +26,11 @@ def lcts(plant, case, results, discount_rate=None, lifetime=None, on_error="rais
     return reported(
         on_error,
         "currency/J",
-        lambda: _lcts(plant, case, results, (discount_rate, lifetime), on_error),
+        lambda: _lcts(plant, case, results, on_error),
     )
 
 
-def _lcts(plant, case, results, discount, on_error):
+def _lcts(plant, case, results, on_error):
     """Return the cost per joule of heat and cold; ``on_error`` applies to a missing value."""
     unit = "currency/J"
     sited = apply_case(plant, case)
@@ -38,7 +38,7 @@ def _lcts(plant, case, results, discount, on_error):
     heat, cold = flows.energy("heat"), flows.energy("cold")
     if heat + cold <= 0:
         return unavailable(unit, "the run delivers neither heat nor cold", on_error)
-    cost = annualised(sited, case, results, discount, on_error)
+    cost = annualised(sited, case, results, on_error)
     if cost.value is None:
         return unavailable(unit, cost.reason, on_error)
     return measure(

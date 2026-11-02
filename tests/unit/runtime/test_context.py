@@ -2,8 +2,11 @@
 
 from concurrent.futures import ThreadPoolExecutor
 
+import pytest
+
 import gemini as gm
 from gemini.errors import ValidationError
+from tests.fixtures.engine_plants import pair_frame, pair_plant
 from tests.fixtures.errors import raises
 
 
@@ -61,3 +64,21 @@ def test_processes_is_a_whole_number_of_at_least_one():
         with raises(ValidationError, "invalid_value", match="processes"):
             with gm.runtime.settings(processes=bad):
                 pass
+
+
+def test_the_compiled_and_the_eager_run_agree():
+    """P4: ``compile`` is a runtime setting, so both runs give the same numbers within 1e-9.
+
+    ``processes`` is kept true by ``test_a_sample_in_workers_equals_the_serial_sample`` of
+    ``tests/unit/study/_utils/test_parallel.py``, which compares a real sample in workers with the
+    serial one.
+    """
+    data = gm.Dataset.from_frame(pair_frame())
+    frames = [
+        gm.Engine(pair_plant(), compile=flag).replay(data).to_frame().select_dtypes("number")
+        for flag in (True, False)
+    ]
+    assert list(frames[0].columns) == list(frames[1].columns)
+    assert frames[0].to_numpy() == pytest.approx(
+        frames[1].to_numpy(), rel=1e-9, abs=1e-9, nan_ok=True
+    )

@@ -191,13 +191,13 @@ states as a control). `ATESPlant` is not scheduled: its three
 seasonal commands (`storage.mode`, `source_valve.split_fraction`, `load_valve.split_fraction`)
 stay inputs of a run.
 
-**Constraints.** The schedule reads the constraints of the case by **role and quantity**
+**Requirements.** The schedule reads the requirements of the case by **role and quantity**
 (`gemini/run/_utils/limits.py`), each applying to every unit of its role on its own. Per `doublet`:
 
 - a flow range: quantity `production_flow`, `over="each"`, `when="running"`, `min` and `max`;
 - a maximum brine cooling: quantity `brine_cooling`, `over="each"`, `max`;
 - an operating duration: quantity `production_flow`, `over="duration"`, `when="running"`,
-  `max` or `equals` a duration (`{"value": 330, "unit": "d"}`, `{"value": 7920, "unit": "h"}`).
+  `max` a duration (`min` = `max` for an exact one) (`{"value": 330, "unit": "d"}`, `{"value": 7920, "unit": "h"}`).
 
 The flow range and the brine cooling have no default: a doublet without one raises
 `ValidationError` code `missing_value`. Each doublet, in plant order, runs at the flow that gives
@@ -208,8 +208,8 @@ the first doublet taking the lowest and the next the lowest left, so at most one
 step; steps of equal demand go earliest first. It needs at least two rows at a constant step. On an
 outage step a doublet has no flow and its heat goes to the next sources; a heat pump fed only by
 doublets that are off stops. Every other step a doublet with a duration runs, at the minimum flow
-when no heat is left for it. Every other constraint, and a duration with only `min`, is left to
-the check of a run: `plan.attrs["check_only"]` lists them (`to_dict()` of each; a constraint enforced in part keeps only
+when no heat is left for it. Every other requirement, and a duration with only `min`, is left to
+the check of a run: `plan.attrs["check_only"]` lists them (`to_dict()` of each; a requirement enforced in part keeps only
 the bounds left, so a duration of `min` and `max` lists its `min`), and
 `gm.evaluate.requirements(plant, case, results)` judges all of them, the enforced ones too.
 
@@ -472,7 +472,7 @@ uses `allow_pickle=False`, so no pickle is read, and gives the same bits, units 
 Anything that is not an archive of this format (including the former Parquet and CSV files)
 raises `ValidationError` with the code `invalid_format`. The metadata records `gm.__version__`, and a
 file written before 0.1.0 raises `ValidationError` with the code `old_format`, as a checkpoint
-written before 0.2.0 does: it holds a plant dict of an older form.
+written before 0.3.0 does: it holds a plant dict of an older form.
 Checkpoints keep their results in the same file.
 
 **End state.** `results.end_state` is plain JSON `{position, module_states}`: the last committed

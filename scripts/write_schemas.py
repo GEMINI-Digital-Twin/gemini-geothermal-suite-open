@@ -1,8 +1,9 @@
 """Write the generated schemas and every sample file of ``docs/schemas/``.
 
 Run from the repository root after a change to a shape: ``python scripts/write_schemas.py``. The
-schemas of the case, the economics, the plant data and the profile come from ``gm.Case.schema()``,
-``gm.case.Economics.schema()``, ``gm.plants.schema()`` and ``gm.data.profile_schema()`` and those
+schemas of the case, the economics, the plant file, the study and the profile come from
+``gm.Case.schema()``, ``gm.case.Economics.schema()``, ``gm.plants.schema()``, ``gm.Study.schema()``
+and ``gm.data.profile_schema()`` and those
 of the three return shapes from ``gemini.types.shapes``; the others are written by hand. The
 samples come from the example plant and from the case of a project of ``inputs/examples``, so
 other repositories can build against real documents.
@@ -17,7 +18,7 @@ import gemini as gm
 from gemini._utils import paths
 from gemini._utils.jsonable import to_plain
 from gemini.types import shapes
-from tests.fixtures.sample_cases import example_plant, shallow_case
+from tests.fixtures.sample_cases import SHALLOW_DISTRICT, example_plant, shallow_case
 
 ROOT = Path(__file__).parents[1]
 SCHEMAS = ROOT / "docs" / "schemas"
@@ -64,6 +65,11 @@ def _profile_sample():
     }
 
 
+def _study_sample():
+    """Return the study file of the shallow district sample."""
+    return gm.Study.from_json(SHALLOW_DISTRICT / "study.json").to_dict()
+
+
 def _problem_sample():
     """Return the problem of a real error."""
     try:
@@ -82,13 +88,15 @@ def documents():
     return {
         "case.schema.json": gm.Case.schema(),
         "economics.schema.json": gm.case.Economics.schema(),
-        "plant_dict.schema.json": gm.plants.schema(),
+        "plant.schema.json": gm.plants.schema(),
+        "study.schema.json": gm.Study.schema(),
         "profile.schema.json": gm.data.profile_schema(),
         **{f"{name}.schema.json": schema for name, schema in shapes.SCHEMAS.items()},
         "module_description.sample.json": example_plant("Doublet").describe(),
         "case.sample.json": sample.to_dict(),
         "economics.sample.json": sample.economics.to_dict(),
-        "plant_dict.sample.json": data,
+        "plant.sample.json": data,
+        "study.sample.json": _study_sample(),
         "results_summary.sample.json": results.summary(),
         "profile.sample.json": _profile_sample(),
         "value.sample.json": results.summary()["heat_exchanger"]["duty"]["mean"],

@@ -1,4 +1,4 @@
-"""The values a constraint reads: the field of a module and its values over a run."""
+"""The values a requirement reads: the field of a module and its values over a run."""
 
 import numpy as np
 
@@ -19,7 +19,7 @@ def split_target(target):
 
 
 def fields(plant, path):
-    """Return ``{name: (unit, quantity)}`` of what a constraint may judge."""
+    """Return ``{name: (unit, quantity)}`` of what a requirement may judge."""
     module = plant.get_submodule(path)
     declared = dict(module.named_parameters(recurse=False)) | module.outputs(recurse=False)
     named = {

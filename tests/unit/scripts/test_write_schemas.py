@@ -12,7 +12,10 @@ from tests.fixtures.parity import RTOL
 SCHEMAS = Path(write_schemas.__file__).parents[1] / "docs" / "schemas"
 DOCUMENTS = (
     "module_description",
-    "plant_dict",
+    "plant",
+    "case",
+    "economics",
+    "study",
     "results_summary",
     "problem",
     "value",

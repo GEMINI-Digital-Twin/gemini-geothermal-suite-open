@@ -4,7 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.units import SECONDS_PER_YEAR, Quantity
-from tests.fixtures.cases import costed_economics, make_case
+from tests.fixtures.cases import FINANCE, costed_economics, make_case
 from tests.fixtures.costed_plants import day, heating_plant
 from tests.fixtures.errors import raises
 
@@ -13,6 +13,7 @@ OPEX = 10.0 + 2e-8 * 100.0 * SECONDS_PER_YEAR
 SELLING = make_case(
     economics=costed_economics(
         energy={"electricity": Quantity(2e-8, "currency/J")},
+        **FINANCE,
         revenue={"heat": Quantity(5e-8, "currency/J")},
     )
 )
@@ -23,7 +24,7 @@ NET = 5e-8 * HEAT - OPEX
 def test_npv_is_the_discounted_net_cash_flow_less_the_investment():
     """-capex + net * A with A the 5 % annuity over 20 years."""
     factor = (1 - 1.05**-20) / 0.05
-    result = gm.evaluate.npv(heating_plant(), SELLING, day(), 0.05, 20)
+    result = gm.evaluate.npv(heating_plant(), SELLING, day())
     assert result.value == pytest.approx(NET * factor - 1000.0, rel=1e-12)
     assert result.unit == "currency"
     assert result.parts["net_cash_flow"].value == pytest.approx(NET, rel=1e-12)
@@ -33,22 +34,22 @@ def test_npv_is_the_discounted_net_cash_flow_less_the_investment():
 def test_a_missing_price_is_asked_for():
     """Heat is delivered but unpriced."""
     unpriced = make_case(
-        economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")})
+        economics=costed_economics(energy={"electricity": Quantity(2e-8, "currency/J")}, **FINANCE)
     )
     with raises(
         gm.errors.ValidationError,
         "missing_assumption",
         match=r"economics\.revenue\.heat",
     ):
-        gm.evaluate.npv(heating_plant(), unpriced, day(), 0.05, 20)
+        gm.evaluate.npv(heating_plant(), unpriced, day())
 
 
 def test_a_plant_without_equipment_has_no_npv():
     """Null with the reason of the missing cost."""
     plant = heating_plant(costed=False)
-    assert gm.evaluate.npv(plant, SELLING, day(), 0.05, 20, on_error="record").value is None
+    assert gm.evaluate.npv(plant, SELLING, day(), on_error="record").value is None
     with raises(gm.errors.ValidationError, "no_value", match="no module of the plant is equipment"):
-        gm.evaluate.npv(plant, SELLING, day(), 0.05, 20)
+        gm.evaluate.npv(plant, SELLING, day())
 
 
 def test_a_heat_price_profile_is_integrated_over_the_run():
@@ -56,9 +57,10 @@ def test_a_heat_price_profile_is_integrated_over_the_run():
     profile = make_case(
         economics=costed_economics(
             energy={"electricity": Quantity(2e-8, "currency/J")},
+            **FINANCE,
             revenue={"heat": Quantity([3e-8] * 12 + [7e-8] * 12, "currency/J")},
         )
     )
-    result = gm.evaluate.npv(heating_plant(), profile, day(), 0.05, 20)
-    expected = gm.evaluate.npv(heating_plant(), SELLING, day(), 0.05, 20)
+    result = gm.evaluate.npv(heating_plant(), profile, day())
+    expected = gm.evaluate.npv(heating_plant(), SELLING, day())
     assert result.value == pytest.approx(expected.value, rel=1e-12)

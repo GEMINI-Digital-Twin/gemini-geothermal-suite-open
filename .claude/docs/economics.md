@@ -37,7 +37,7 @@ Every cost function returns a `Value`, a `gm.units.Quantity` in SI with the part
 `.parts`, each a value or a text; `to_plain` gives the JSON, the parts as more keys. `unit` is
 `currency` (a label for the case's currency, `economics.currency`; nothing converts between
 currencies), `currency/yr`, `currency/J`, `yr` or `kg`; `result.to("EUR/MWh")` converts. `A` is the
-annuity factor, the sum over the lifetime years of `1 / (1 + discount_rate) ** t`, in years. Every
+annuity factor, the sum over the years of the analysis period of `1 / (1 + discount_rate) ** t`, in years. Every
 function takes `on_error="raise"`: a value the inputs cannot give raises `ValidationError`, code
 `no_value`, or `missing_assumption`, naming its path in the case (`economics.capex.heat_pump`),
 for an assumption nobody gave. With `on_error="record"` nothing is raised and `value` is `None` with a
@@ -47,16 +47,16 @@ for an assumption nobody gave. With `on_error="record"` nothing is raised and `v
 |---|---|
 | `gm.evaluate.capex(plant, case)` | the sum of the capex of the equipment, per module in `parts["modules"]`, with the `price_year` of the case |
 | `opex(plant, case, results)` | the fixed opex of each kind of equipment (`parts["fixed_by_kind"]`), plus the yearly bill of grid electricity and purchased gas at `economics.energy`, waste and chemicals at `economics.opex.variable` (a profile price is integrated step by step; co-produced gas costs nothing), plus the CO2 emitted at `economics.carbon.price` when the case gives it; `components` lists the parts. There is no variable opex |
-| `lcoh(plant, case, results, discount_rate=None, lifetime=None)` | `(capex + opex A) / (useful heat A)` in currency/J |
+| `lcoh(plant, case, results, on_error="raise")` | `(capex + opex A) / (useful heat A)` in currency/J |
 | `lcoc(...)` (as `lcoh`) | the same with the useful cold |
-| `annualised_cost(plant, case, results, discount_rate=None, lifetime=None)` | `capex / A + opex` in currency/yr, with `capex`, `opex`, `annuity_factor`, `discount_rate`, `lifetime_years` |
+| `annualised_cost(plant, case, results, on_error="raise")` | `capex / A + opex` in currency/yr, with `capex`, `opex`, `annuity_factor`, `discount_rate`, `analysis_period` |
 | `lcts(...)` (as `lcoh`) | levelised cost of thermal supply: `annualised_cost / (heat + cold)` in currency/J; it needs no `heat_cost_share` |
 | `co2(plant, case, results)` | kg of CO2-equivalent over the window, step by step: the leaf `co2_emission`, `methane_emission` times `economics.accounting.gwp.CH4`, grid electricity times `utilities.electricity.co2_intensity`; a factor is asked for only when its source is non-zero |
-| `npv(plant, case, results, discount_rate=None, lifetime=None)` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case and the discounted subsidy (`economics.revenue.subsidy`: its amount per year for its duration, within the lifetime) |
+| `npv(plant, case, results, on_error="raise")` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case and the discounted subsidy (`economics.revenue.subsidy`: its amount per year for its duration, within the lifetime) |
 | `payback(plant, case, results)` | `capex / (revenue - opex)` in `yr`, undiscounted; a subsidy of the case adds its amount per year to the cash flow for its duration only |
 
-`discount_rate` and `lifetime` are `economics.discount_rate` and `economics.analysis_period` of the case unless given; `lifetime` is in
-years. There is no `Cost` type and no `total_cost`: a module that is equipment is a subclass of the
+The discount rate and the analysis period are `economics.discount_rate` and `economics.analysis_period` of the case; no function takes
+either as an argument (the economics file owns them) and the analysis period is read in years. There is no `Cost` type and no `total_cost`: a module that is equipment is a subclass of the
 mixin `Equipment` (`gemini/modules/_utils/cost.py`), sets `equipment_kind` to one of the kinds of
 `gm.case.Capex` and defines `capex(economics)`, the factor of its kind times its own size
 (`gemini.physics.costs.scaled(factor, size)`); `fixed_opex(economics)` is the share
@@ -95,10 +95,10 @@ equipment.
 split of its cost is not defined") unless `heat_cost_share` gives the part charged to heat; `lcoc`
 gets the rest. `lcts` needs no share: with a `heat_cost_share` of 1, `lcts` is `lcoh` times its
 energy over `heat + cold`. It has no value when the run delivers neither. `lcoh` and `lcoc` keep the
-one expression `(capex + opex A) / (energy A)`: `annualised_cost` and they share `lifetime_cost`
+one expression `(capex + opex A) / (energy A)`: `annualised_cost` and they share `period_cost`
 (`capex + opex A`) and not the division, which would move the last bits of their numbers. Levelised
 cost, `npv` and `payback` assume constant yearly energy and cost over the
-lifetime, with no degradation, tax, replacement or residual value.
+analysis period, with no degradation, tax, replacement or residual value.
 
 Missing user inputs raise `ValidationError` with code `missing_assumption` and the path
 `economics.<name>`: a discount rate or analysis period given nowhere, an electricity or gas price for an
@@ -123,7 +123,7 @@ price year 2015 and with the currency label EUR. Where a value is cited, the sou
 
 The other factors of the sample (`production_pump`, `injection_pump`, `compression_chiller`,
 `absorption_chiller`, `adsorption_chiller`, `heat_exchanger`, `flare`, `gas_makeup`, `cooler`,
-`pipe`), the fixed opex shares, the prices, the discount rate, the lifetime and the CO2 intensity
+`pipe`), the fixed opex shares, the prices, the discount rate, the analysis period and the CO2 intensity
 of electricity are placeholders for the test: the organisers gave no source, and they are not a
 recommendation. The shallow district sample states invented placeholders for every factor, as its README says; leave a factor out of a case file and the call that needs it raises `missing_assumption`.
 
@@ -277,14 +277,14 @@ the whole of it for `"peak"`, and for `"none"` that less the heat of the doublet
 lift share (the ideal-exchanger assumption may leave the supply short, which `broken` lists). The sized plant is then
 simulated once on the case. The plant is not changed; the notes are `plant.sizing`: `{"sized":
 [{path, value, reason}], "unchanged": [{path, reason}], "broken": [{unit_path, role, quantity,
-value, limit, worst_step}], "simulation": str}`, where `broken` lists each constraint the sized
+value, limit, worst_step}], "simulation": str}`, where `broken` lists each requirement the sized
 design breaks (empty when it meets them all) and `simulation` says `simulated` or `not simulated:
 <code>: <reason>`. A plant class that takes no structural size `doublets` (see
 `gm.plants.capabilities()`) keeps the doublets it has and says so in `unchanged`; a size the case
 lacks the input for raises `missing_value` naming its path. A size that is not computed for a
 module kind (`chp`, `heat_exchanger`) is left unchanged and listed.
 
-`gm.study.minimize(plant, case, objective, evaluations, seed, *, constraints=None, plan=None)`
+`gm.study.minimize(plant, case, objective, evaluations, seed, *, plan=None)`
 searches the design space that the plant states. The variables are the plant's: every leaf with a
 `range` (continuous, or integer when its parameter is) and every leaf with `options` (strings), and
 `size.doublets` when it has a `range` (a discrete variable: the search runs once for each count,

@@ -139,13 +139,13 @@ def test_the_plant_without_a_doublet_range_keeps_its_count(runs):
     assert result["best"]["plant"].size == {"doublets": 1}
 
 
-def test_a_constraint_rejects_trials(runs):
-    """A rejected trial keeps its reason and is never best."""
-    constraints = [{"metric": "co2", "maximum": Quantity(1.4, "kg")}]
-    result = minimized(searching(DEPTH), evaluations=10, constraints=constraints)
-    rejected = [item for item in result["history"] if item.reason]
-    assert rejected and all("co2" in item.reason for item in rejected)
-    assert result["best"].parts["parameters"]["depth"].value <= 1400
+def test_a_limit_on_a_metric_is_a_requirement_of_the_case_not_an_argument(runs):
+    """The rules of third parties are the case's: ``constraints`` is not an argument."""
+    with pytest.raises(TypeError, match="constraints"):
+        gm.study.minimize(
+            searching(DEPTH), shallow_case(), "lcts", 5, 0, constraints=[{"metric": "co2"}]
+        )
+    assert runs == []
 
 
 def test_a_leading_minus_maximises(runs):
@@ -186,7 +186,6 @@ def test_the_evaluations_and_the_seed_have_no_default(runs):
     ("arguments", "code"),
     [
         ({"objective": "lcox"}, "unknown_name"),
-        ({"constraints": [{"metric": "cost", "minimum": 0}]}, "unknown_name"),
         ({"evaluations": 4}, "invalid_value"),
     ],
 )

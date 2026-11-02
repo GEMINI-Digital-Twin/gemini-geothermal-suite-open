@@ -266,7 +266,7 @@ class Economics(Node):
         Raises ``ValidationError`` carrying every issue found.
         """
         path = Path(path)
-        return cls.from_dict(load(path), folder=path.parent, time=time)
+        return cls._load(load(path), None, path.parent, time)
 
     def to_json(self, path):
         """Write the file and, next to it, the CSV files of its series."""

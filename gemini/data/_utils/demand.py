@@ -21,20 +21,18 @@ SI_UNITS = {"power": "W"}
 """The SI unit a profile stores for each quantity."""
 
 
-def from_csv(path, columns, unit, time_column=None):
+def from_csv(path, columns, unit):
     """Return the demand profile of a CSV file.
 
     Parameters
     ----------
     path : str or Path
-        The file, with a header row.
+        The file, with a header row; its first column is named ``time``.
     columns : dict
         ``{file column: quantity}``, each quantity a name of ``QUANTITIES``
         (``heating_demand`` or ``cooling_demand``).
     unit : str
         The unit of every value column, such as ``"MW"``; the profile stores W.
-    time_column : str, optional
-        The file column of the timestamps; the first column by default. Naive timestamps are UTC.
 
     Returns
     -------
@@ -47,14 +45,13 @@ def from_csv(path, columns, unit, time_column=None):
     ------
     ValidationError
         ``unknown_name`` for a quantity that is no demand, ``invalid_unit`` for a unit that is no
-        power, ``missing_column`` for a column the file lacks, ``missing_value`` for an empty or
-        non-numeric value, ``out_of_bounds`` for a negative one.
+        power, ``missing_column`` for a column the file lacks (``time`` included), ``missing_value``
+        for an empty or non-numeric value, ``out_of_bounds`` for a negative one.
     RunError
         ``invalid_data`` for timestamps that are not monotonic, repeat, leave a gap or change step.
     """
     frame = pd.read_csv(path)
-    time_column = frame.columns[0] if time_column is None else time_column
-    wanted = [time_column, *columns]
+    wanted = ["time", *columns]
     missing = [name for name in wanted if name not in frame]
     if missing:
         raise ValidationError(
@@ -65,7 +62,7 @@ def from_csv(path, columns, unit, time_column=None):
             code="missing_column",
         )
     values = {quantity: frame[name] for name, quantity in columns.items()}
-    return _profile(_timestamps(frame[time_column]), values, dict.fromkeys(values, unit))
+    return _profile(_timestamps(frame["time"]), values, dict.fromkeys(values, unit))
 
 
 def from_values(values, unit, start, step, quantity):

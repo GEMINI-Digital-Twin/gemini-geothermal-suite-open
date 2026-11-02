@@ -9,14 +9,14 @@ from gemini.evaluate.requirements import requirements
 
 
 def run_all(plant, case, results):
-    """Run the energy ledger, the mass ledger, the bounds and the constraints on a finished run.
+    """Run the energy ledger, the mass ledger, the bounds and the requirements on a finished run.
 
     Parameters
     ----------
     plant : Module
         The plant that produced ``results``.
     case : Case
-        The case of the run; its constraints and its service requirements are checked.
+        The case of the run; its requirements and its service supply temperatures are checked.
     results : Results
         A finished run.
 
@@ -24,7 +24,7 @@ def run_all(plant, case, results):
     -------
     dict
         Plain JSON ``{passed, checks}``: ``checks`` lists the results of ``energy_balance``,
-        ``mass_balance`` and ``bounds``, then those of ``constraints`` (each
+        ``mass_balance`` and ``bounds``, then those of ``requirements`` (each
         ``{name, passed, value, limit}``), and ``passed`` is ``False`` if any check failed,
         ``True`` if none failed and at least one passed, and ``None`` if none could judge.
     """

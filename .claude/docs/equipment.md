@@ -214,8 +214,8 @@ esp = ESP().set_params("", {
 })
 result = esp(fluid_in=gm.Stream(flow={"value": 200, "unit": "m3/h"}, T={"value": 70, "unit": "C"}, p={"value": 10, "unit": "bar"}), frequency={"value": 50, "unit": "Hz"})
 assert round(result.outputs.get("head", unit="bar"), 2) == 16.23
-assert round(result.outputs.electricity) == 118246
-assert energy_balance(esp, result)["unresolved_power"] == result.outputs.electricity
+assert round(result.inlets["power_in"]) == 118246
+assert energy_balance(esp, result)["unresolved_power"] == result.inlets["power_in"]
 ```
 
 ### InjectionPump
@@ -251,9 +251,9 @@ import gemini as gm
 from gemini.modules import InjectionPump
 
 pump = InjectionPump().set_params("", {"efficiency": 0.8, "pump_type": "unspecified"})
-result = pump(fluid_in=gm.Stream(flow={"value": 150, "unit": "m3/h"}, T={"value": 40, "unit": "C"}, p={"value": 5, "unit": "bar"}), pressure_setpoint={"value": 51.5, "unit": "bar"})
+result = pump(fluid_in=gm.Stream(flow={"value": 150, "unit": "m3/h"}, T={"value": 40, "unit": "C"}, p={"value": 5, "unit": "bar"}), pressure_setpoint={"value": 51.5, "unit": "bar"}, frequency={"value": 60, "unit": "Hz"})
 assert round(result.outputs.get("head", unit="bar"), 6) == 46.5
-assert round(result.outputs.electricity, 1) == 242187.5
+assert round(result.inlets["power_in"], 1) == 242187.5
 ```
 
 ### CentrifugalPump
@@ -305,7 +305,7 @@ pump = CentrifugalPump().set_params("", {
 result = pump(fluid_in=gm.Stream(flow={"value": 150, "unit": "m3/h"}, T={"value": 60, "unit": "C"}, p={"value": 3, "unit": "bar"}), frequency={"value": 45, "unit": "Hz"})
 assert round(result.outputs.get("head", unit="bar"), 3) == 4.166
 assert round(result.outputs.efficiency, 3) == 0.796
-assert round(result.outputs.electricity) == 22963
+assert round(result.inlets["power_in"]) == 22963
 ```
 
 ### CirculationPump
@@ -360,9 +360,9 @@ pump = LineShaftPump().set_params("", {
     "shaft_friction_loss": {"value": 5, "unit": "W/m"},
     "motor_efficiency": 0.9,
 })
-out = pump(fluid_in=gm.Stream(flow={"value": 200, "unit": "m3/h"}, T={"value": 70, "unit": "C"}, p={"value": 10, "unit": "bar"}), frequency={"value": 50, "unit": "Hz"}).outputs
-assert round(out.get("head", unit="bar"), 2) == 16.23
-assert out.shaft_friction_power == 1250.0 and round(out.electricity) == 119635
+result = pump(fluid_in=gm.Stream(flow={"value": 200, "unit": "m3/h"}, T={"value": 70, "unit": "C"}, p={"value": 10, "unit": "bar"}), frequency={"value": 50, "unit": "Hz"})
+assert round(result.outputs.get("head", unit="bar"), 2) == 16.23
+assert result.outputs.shaft_friction_power == 1250.0 and round(result.inlets["power_in"]) == 119635
 ```
 
 ### GasCompressor
@@ -402,11 +402,12 @@ compressor = GasCompressor().set_params("", {
     "stage_count": 2,
     "motor_efficiency": 0.95,
 })
-out = compressor(
+result = compressor(
     fluid_in=gm.Stream(m_dot={"value": 0.05, "unit": "kg/s"}, T={"value": 40, "unit": "C"}, p={"value": 1.2, "unit": "bar"}), pressure_setpoint={"value": 12, "unit": "bar"}
-).outputs
+)
+out = result.outputs
 assert round(out.pressure_ratio, 9) == 10 and round(out.shaft_power) == 10434
-assert round(out.discharge_T, 1) == 436.5
+assert round(result.outlets["fluid_out"].T, 1) == 436.5
 ```
 
 ## Piping
@@ -656,7 +657,7 @@ degassed = Degasser().set_params("", {
 })(
     fluid_in=gm.Stream(flow={"value": 40, "unit": "kg/s"}, T={"value": 80, "unit": "C"}, p={"value": 5, "unit": "bar"}, fluid=brine)
 )
-assert round(degassed.outputs.gas_mass_flow, 12) == 0.076
+assert round(degassed.outlets["gas_out"].m_dot, 12) == 0.076
 assert degassed.outputs.pressure_drop == 14900
 ```
 
@@ -682,7 +683,7 @@ import gemini as gm
 from gemini.modules import Blowdown
 
 bled = Blowdown()(fluid_in=gm.Stream(m_dot={"value": 40, "unit": "kg/s"}, T={"value": 80, "unit": "C"}, p={"value": 5, "unit": "bar"}), blowdown_fraction=0.01)
-assert bled.outputs.blowdown_mass_flow == 0.4 and bled.outlets.fluid_out.m_dot == 39.6
+assert bled.outlets["waste_out"].m_dot == 0.4 and bled.outlets["fluid_out"].m_dot == 39.6
 ```
 
 ### Desander
@@ -736,10 +737,9 @@ Scale or corrosion inhibitor injection proportional to the treated flow.
 - **Outputs**: `active_mass_flow`.
 - **Physics**: `separation.dosing_flows`
 - **Assumptions**: the dosed mass is not added to the stream (it is below flowmeter
-  resolution, and adding it would need a product inlet), so the neglected mass is
-  `product_mass_flow`, a relative error equal to `dose`. Pump power, quill loss and cost are not
-  modelled; multiply `product_mass_flow` by the product price. Reverse flow raises
-  `PhysicsError`.
+  resolution), so the neglected mass is the product taken on `chemical_in`, a relative error equal
+  to `dose`. Pump power, quill loss and cost are not modelled; multiply the product mass flow by
+  the product price. Reverse flow raises `PhysicsError`.
 - **Energy audit**: closed.
 
 ```python
@@ -747,8 +747,11 @@ import gemini as gm
 from gemini.modules import InhibitorDosing
 
 dosing = InhibitorDosing().set_params("", {"product_concentration": 0.3})
-result = dosing(fluid_in=gm.Stream(m_dot={"value": 40, "unit": "kg/s"}, T={"value": 80, "unit": "C"}, p={"value": 5, "unit": "bar"}), dose={"value": 10, "unit": "ppm"})
-assert round(result.outputs.product_mass_flow, 12) == 4e-4
+result = dosing(
+    fluid_in=gm.Stream(m_dot={"value": 40, "unit": "kg/s"}, T={"value": 80, "unit": "C"}, p={"value": 5, "unit": "bar"}),
+    chemical_in=gm.Stream(m_dot={"value": 4e-4, "unit": "kg/s"}, T={"value": 20, "unit": "C"}, p={"value": 5, "unit": "bar"}),
+    dose={"value": 10, "unit": "ppm"},
+)
 assert round(result.outputs.active_mass_flow, 12) == 1.2e-4
 ```
 
@@ -823,19 +826,19 @@ Dry or wet (evaporative) closed-circuit cooler rejecting heat to ambient air.
   HVAC Systems and Equipment), `specific_fan_power` (`Ratio`, W of fan per W rejected), all
   required; `latent_heat` (default 2.43 MJ/kg, water at about 30 degC, IAPWS-IF97, a constant with its source).
 - **Controls**: `temperature_setpoint` (outlet).
-- **Boundaries**: the temperature of `air_in` (dry bulb, required), `wet_bulb_temperature`
-  (`Temperature | None`, default `None`).
+- **Boundaries**: none. The temperature of `air_in` is the dry bulb for a dry cooler and the wet
+  bulb for a wet one (`Atmosphere.air_out` or `Atmosphere.wet_air_out`).
 - **Outputs**: `evaporation_rate`, `is_capped`.
 - **Model**: target `max(T_set, T_ref + approach)` with `T_ref` the dry bulb (dry) or wet bulb
   (wet); `duty = min(m_dot cp max(0, T_in - target), capacity)`; `power_in = sfp duty`;
-  `loss_out = duty + electricity`; `evaporation_rate = duty / latent_heat` (wet).
+  the fan work is dissipated into the air; `evaporation_rate = duty / latent_heat` (wet).
 - **Physics**: `heat_transfer.fan_power`, `heat_transfer.setpoint_duty`,
   `heat_transfer.temperature_change`, `psychrometrics.evaporation_rate`
 - **Assumptions**: closed circuit (the process stream keeps its mass); the evaporation rate is
   an upper bound (all heat taken as latent; 80 to 90 % in practice); fixed approach at every
   load; fan power proportional to duty; ambient about -20 to 45 degC.
-- **Validity**: a wet cooler without a wet bulb raises `ValidationError`; a wet bulb above
-  the dry bulb raises `PhysicsError`.
+- **Validity**: the air on `air_in` is the reference of the approach, so a wet cooler is wired to
+  `Atmosphere.wet_air_out`.
 - **Energy audit**: closed.
 
 ```python
@@ -850,9 +853,9 @@ cooler = Cooler().set_params("", {
 })
 result = cooler(
     fluid_in=gm.Stream(flow={"value": 20, "unit": "kg/s"}, T={"value": 40, "unit": "C"}, p={"value": 3, "unit": "bar"}), temperature_setpoint={"value": 20, "unit": "C"},
-    air_in=gm.modules.Atmosphere.ambient_air({"value": 30, "unit": "degC"}), wet_bulb_temperature={"value": 22, "unit": "C"},
+    air_in=gm.modules.Atmosphere.ambient_air({"value": 22, "unit": "degC"}),
 )
-assert round(result.outputs.outlet_T - 273.15, 9) == 26.0
+assert round(result.outlets["fluid_out"].T - 273.15, 9) == 26.0
 assert round(result.outputs.evaporation_rate, 3) == 0.486
 ```
 
@@ -927,16 +930,16 @@ result = heat_pump(
     sink_in=gm.Stream(flow={"value": 10, "unit": "kg/s"}, T={"value": 47, "unit": "C"}, p={"value": 3, "unit": "bar"}),
     temperature_setpoint={"value": 67, "unit": "C"},
 )
-assert round(result.outputs.cop, 4) == 3.6015 and round(result.outputs.electricity) == 234202
+assert round(result.outputs.cop, 4) == 3.6015 and round(result.inlets["power_in"]) == 234202
 
-water = gm.Fluid(kind="water", density=1000, specific_heat=4181)
+water = gm.Fluid(kind="water", density={"value": 1000, "unit": "kg/m3"}, specific_heat={"value": 4181, "unit": "J/kg/K"})
 lorenz = HeatPump().set_params("", {"mode": "heating", "capacity": {"value": 10, "unit": "MW"}, "cop_model": "lorenz", "carnot_fraction": 0.5, "lorenz_fraction": 0.5, "minimum_temperature_lift": {"value": 10, "unit": "K"}})
 result = lorenz(
     source_in=gm.Stream(flow={"value": 20, "unit": "m3/h"}, T={"value": 40, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=water),
     sink_in=gm.Stream(flow={"value": 10, "unit": "m3/h"}, T={"value": 30, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=water),
     temperature_setpoint={"value": 80, "unit": "C"},
 )
-assert round(result.outputs.cop, 4) == 6.531 and round(result.outputs.electricity) == 88913
+assert round(result.outputs.cop, 4) == 6.531 and round(result.inlets["power_in"]) == 88913
 ```
 
 ### Boiler
@@ -965,12 +968,14 @@ from gemini.modules import Boiler, GasGrid
 
 grid = GasGrid().set_params("", {"composition": {"CH4": 0.824951, "C2H6": 0.03955, "C3H8": 0.012748, "CO2": 0.011912, "N2": 0.110839}})
 boiler = Boiler().set_params("", {"capacity": {"value": 1, "unit": "MW"}, "efficiency": 0.9})
+water = gm.Stream(flow={"value": 10, "unit": "kg/s"}, T={"value": 60, "unit": "C"}, p={"value": 3, "unit": "bar"})
 result = boiler(
-    fluid_in=gm.Stream(flow={"value": 10, "unit": "kg/s"}, T={"value": 60, "unit": "C"}, p={"value": 3, "unit": "bar"}),
+    fluid_in=water,
     fuel_in=grid().outlets.gas_out,
     temperature_setpoint={"value": 80, "unit": "C"},
 )
-assert round(result.outputs.duty) == 843480 and round(result.outputs.fuel) == 937200
+duty = water.heat_capacity_rate() * (result.outlets["fluid_out"].T - water.T)
+assert round(duty) == 843480 and round(result.outputs.fuel) == 937200
 ```
 
 ### ElectricBoiler
@@ -1076,13 +1081,15 @@ chiller = AbsorptionUnit().set_params("", {
     "evaporator_coefficient": 1.2,
     "auxiliary_power_ratio": 0.01,
 })
+chilled = gm.Stream(flow={"value": 10, "unit": "kg/s"}, T={"value": 12, "unit": "C"}, p={"value": 3, "unit": "bar"})
 result = chiller(
     generator_in=gm.Stream(flow={"value": 10, "unit": "kg/s"}, T={"value": 88, "unit": "C"}, p={"value": 3, "unit": "bar"}),
-    chilled_in=gm.Stream(flow={"value": 10, "unit": "kg/s"}, T={"value": 12, "unit": "C"}, p={"value": 3, "unit": "bar"}),
+    chilled_in=chilled,
     cooling_in=gm.Stream(flow={"value": 25, "unit": "kg/s"}, T={"value": 30, "unit": "C"}, p={"value": 3, "unit": "bar"}),
     temperature_setpoint={"value": 6, "unit": "C"},
 )
-assert round(result.outputs.evaporator_duty) == 247643 and result.outputs.is_capped
+evaporator_duty = chilled.heat_capacity_rate() * (chilled.T - result.outlets["chilled_out"].T)
+assert round(evaporator_duty) == 247643 and result.outputs.is_capped
 ```
 
 ### AdsorptionChiller
@@ -1125,13 +1132,15 @@ chiller = AdsorptionChiller().set_params("", {
     "evaporator_coefficient": 1.0,
     "auxiliary_power_ratio": 0.02,
 })
+chilled = gm.Stream(flow={"value": 5, "unit": "kg/s"}, T={"value": 18, "unit": "C"}, p={"value": 3, "unit": "bar"})
 result = chiller(
     generator_in=gm.Stream(flow={"value": 5, "unit": "kg/s"}, T={"value": 70, "unit": "C"}, p={"value": 3, "unit": "bar"}),
-    chilled_in=gm.Stream(flow={"value": 5, "unit": "kg/s"}, T={"value": 18, "unit": "C"}, p={"value": 3, "unit": "bar"}),
+    chilled_in=chilled,
     cooling_in=gm.Stream(flow={"value": 10, "unit": "kg/s"}, T={"value": 27, "unit": "C"}, p={"value": 3, "unit": "bar"}),
     temperature_setpoint={"value": 12, "unit": "C"},
 )
-assert round(result.outputs.evaporator_duty) == 45733 and round(result.outputs.cop, 9) == 0.55
+evaporator_duty = chilled.heat_capacity_rate() * (chilled.T - result.outlets["chilled_out"].T)
+assert round(evaporator_duty) == 45733 and round(result.outputs.cop, 9) == 0.55
 ```
 
 ## Subsurface
@@ -1277,7 +1286,7 @@ field = BoreholeField().set_params("", {
     "undisturbed_ground_temperature": {"value": 10, "unit": "C"},
 })
 state, result = field.step(None, 30 * 86400, {"fluid_in": gm.Stream(m_dot={"value": 3, "unit": "kg/s"}, T={"value": 0, "unit": "C"}, p={"value": 3, "unit": "bar"})})
-assert round(result.outputs.heat_extraction_rate) == 36906
+assert round(-result.outlets["loss_out"]) == 36906
 assert round(state["ground_temperature_change"], 3) == -0.769
 ```
 
@@ -1316,7 +1325,7 @@ exchanger = DownholeHeatExchanger().set_params("", {
     "operating_time": {"value": 3.15e7, "unit": "s"},
 })
 result = exchanger(fluid_in=gm.Stream(m_dot={"value": 5, "unit": "kg/s"}, T={"value": 30, "unit": "C"}, p={"value": 3, "unit": "bar"}))
-assert round(result.outputs.outlet_T - 273.15, 2) == 35.92
+assert round(result.outlets["fluid_out"].T - 273.15, 2) == 35.92
 ```
 
 ## Wells
@@ -1416,10 +1425,11 @@ tank = ThermalStorage().set_params("", {
 })
 charge = gm.Stream(flow={"value": 10, "unit": "m3/h"}, T={"value": 80, "unit": "C"}, p={"value": 3, "unit": "bar"})
 discharge = gm.Stream(flow={"value": 5, "unit": "m3/h"}, T={"value": 45, "unit": "C"}, p={"value": 3, "unit": "bar"})
+air = gm.modules.Atmosphere.ambient_air({"value": 40, "unit": "degC"})
 state = {"temperature": gm.units.convert(60, "degC", "K")}
 for _ in range(4):
-    state, result = tank.step(state, 900, {"charge_in": charge, "discharge_in": discharge})
-assert round(state["temperature"] - 273.15, 3) == 64.375
+    state, result = tank.step(state, 900, {"charge_in": charge, "discharge_in": discharge, "air_in": air})
+assert round(state["temperature"] - 273.15, 3) == 64.387
 ```
 
 ### IceStorage
@@ -1505,10 +1515,10 @@ ates = AquiferStorage().set_params("", {
 })
 ates.mode = "charge"
 state = None
-for hour in range(24 * 90):
+for _ in range(4 * 90):
     inlets = {"injection_in": gm.Stream(flow={"value": 100, "unit": "m3/h"}, T={"value": 18, "unit": "C"}, p={"value": 3, "unit": "bar"})}
-    state, result = ates.step(state, 3600, inlets)
-assert round(result.outputs.get("stored_energy", unit="kWh") / 1e6, 2) == 1.58
+    state, result = ates.step(state, 6 * 3600, inlets)
+assert round(result.outputs.get("stored_energy", unit="kWh") / 1e6, 2) == 1.57
 ```
 
 ## Control
@@ -1846,9 +1856,11 @@ at reservoir conditions.
 `gm.plants.Doublet` takes design parameters; the formulas are in `gemini/physics/doublet.py`.
 
 ```python
+import gemini as gm
+
+plant = gm.Plant("example")
 plant.add("Doublet", name="d0", params={
-    "depth": {"value": 2500, "unit": "m"}, "gradient": {"value": 30, "unit": "K/km"}, "surface_temperature": {"value": 12, "unit": "degC"},
-    "permeability": {"value": 200, "unit": "mD"}, "thickness": {"value": 100, "unit": "m"}, "well_diameter": {"value": 0.244, "unit": "m"},
+    "depth": {"value": 2500, "unit": "m"}, "well_diameter": {"value": 0.244, "unit": "m"},
     "drainage_radius": {"value": 1000, "unit": "m"}, "roughness": {"value": 4.5e-5, "unit": "m"},
     "reservoir.skin": 0, "sink.skin": 0})
 plant.d0.fluid = gm.Fluid(density={"value": 1030, "unit": "kg/m3"}, viscosity={"value": 0.4, "unit": "mPa*s"})
@@ -1913,7 +1925,7 @@ field = gm.plants.MultiWellPlant(producers=2, injectors=2)
 for limb, rate in zip(field.producers, (40.0, 30.0)):
     for name in ("reservoir", "well", "esp", "riser"):
         getattr(limb, name).set_state_dict(getattr(doublet, name).state_dict())
-    limb.reservoir.production_rate = rate
+    limb.reservoir.production_rate = {"value": rate, "unit": "kg/s"}
     limb.esp.frequency = {"value": 50, "unit": "Hz"}
 for limb in field.injectors:
     limb.well.set_state_dict(doublet.injector.state_dict())
@@ -1921,7 +1933,7 @@ for limb in field.injectors:
 field.splitters[0].split_fraction = 0.5
 returned = gm.Stream(flow={"value": 70, "unit": "m3/s"}, T={"value": 330, "unit": "K"}, p={"value": 5e6, "unit": "Pa"}, fluid=field.producers[0].riser.fluid)
 result = field(return_in=returned)
-print(result.outlets.supply_out.m_dot, result.outputs.supply_out_T)  # 70.0 344.23 K
+print(result.outlets.supply_out.m_dot, result.outlets.supply_out.T)  # 70.0 344.23 K
 ```
 
 ### HeatingSubstation
@@ -1953,23 +1965,25 @@ and Cooling*).
 
 ```python
 import gemini as gm
-from gemini.modules import HeatingSubstation, energy_balance
+from gemini.modules import energy_balance
+from gemini.plants import HeatingSubstation
 
 substation = HeatingSubstation()
-substation.pump.set_params("", {"flow": 3.0, "loop_pressure": {"value": 3, "unit": "bar"}, "pressure_rise": {"value": 0.5, "unit": "bar"}})
-substation.valve.set_params("", {"flow_coefficient": {"value": 20, "unit": "m3/h/bar^0.5"}})
+substation.pump.set_params("", {"flow": {"value": 3.0, "unit": "kg/s"}, "loop_pressure": {"value": 3, "unit": "bar"}, "pressure_rise": {"value": 0.5, "unit": "bar"}, "efficiency": 0.55})
+substation.valve.set_params("", {"flow_coefficient": {"value": 20, "unit": "m3/h/bar^0.5"}, "characteristic": "equal_percentage", "rangeability": 50})
 substation.heat_exchanger.set_params("", {
-    "thermal_conductance": 2e4,
+    "arrangement": "counterflow",
+    "thermal_conductance": {"value": 2e4, "unit": "W/K"},
     "hot_nominal_pressure_drop": {"value": 0.2, "unit": "bar"},
     "cold_nominal_pressure_drop": {"value": 0.2, "unit": "bar"},
-    "hot_nominal_mass_flow": 2,
-    "cold_nominal_mass_flow": 3,
+    "hot_nominal_mass_flow": {"value": 2, "unit": "kg/s"},
+    "cold_nominal_mass_flow": {"value": 3, "unit": "kg/s"},
 })
 substation.consumer.set_params("", {"minimum_return_temperature": {"value": 30, "unit": "degC"}})
 substation.valve.opening = 0.8
 substation.consumer.heat_demand = {"value": 150, "unit": "kW"}
-result = substation(supply_in=gm.Stream(flow=2.0, T={"value": 75, "unit": "degC"}, p={"value": 6, "unit": "bar"}))
-print(result.outputs.building_return_temperature)  # 325.44 K
+result = substation(supply_in=gm.Stream(flow={"value": 2.0, "unit": "kg/s"}, T={"value": 75, "unit": "degC"}, p={"value": 6, "unit": "bar"}))
+print(result.children["consumer"].outlets["return_out"].T)  # 325.44 K
 assert energy_balance(substation, result)["relative_residual"] < 1e-12
 ```
 
@@ -1998,25 +2012,26 @@ Guide*).
 
 ```python
 import gemini as gm
-from gemini.modules import CoolingSubstation
+from gemini.plants import CoolingSubstation
 
 substation = CoolingSubstation()
-substation.pump.set_params("", {"flow": 4.0, "loop_pressure": {"value": 3, "unit": "bar"}, "pressure_rise": {"value": 0.5, "unit": "bar"}})
-substation.valve.set_params("", {"flow_coefficient": {"value": 20, "unit": "m3/h/bar^0.5"}})
+substation.pump.set_params("", {"flow": {"value": 4.0, "unit": "kg/s"}, "loop_pressure": {"value": 3, "unit": "bar"}, "pressure_rise": {"value": 0.5, "unit": "bar"}, "efficiency": 0.55})
+substation.valve.set_params("", {"flow_coefficient": {"value": 20, "unit": "m3/h/bar^0.5"}, "characteristic": "equal_percentage", "rangeability": 50})
 substation.heat_exchanger.set_params("", {
-    "thermal_conductance": 3e4,
+    "arrangement": "counterflow",
+    "thermal_conductance": {"value": 3e4, "unit": "W/K"},
     "hot_nominal_pressure_drop": {"value": 0.2, "unit": "bar"},
     "cold_nominal_pressure_drop": {"value": 0.2, "unit": "bar"},
-    "hot_nominal_mass_flow": 4,
-    "cold_nominal_mass_flow": 3,
+    "hot_nominal_mass_flow": {"value": 4, "unit": "kg/s"},
+    "cold_nominal_mass_flow": {"value": 3, "unit": "kg/s"},
 })
-substation.consumer.set_params("", {"maximum_return_temperature": {"value": 18, "unit": "degC"}, "dew_point_margin": 1.0})
+substation.consumer.set_params("", {"maximum_return_temperature": {"value": 18, "unit": "degC"}, "dew_point_margin": {"value": 1.0, "unit": "K"}})
 substation.valve.opening = 1.0
 substation.consumer.sensible_cooling_demand = {"value": 60, "unit": "kW"}
 substation.consumer.latent_cooling_demand = {"value": 10, "unit": "kW"}
 substation.consumer.indoor_temperature = {"value": 24, "unit": "degC"}
 substation.consumer.indoor_relative_humidity = 0.5
-out = substation(supply_in=gm.Stream(flow=3.0, T={"value": 6, "unit": "degC"}, p={"value": 6, "unit": "bar"})).children["consumer"].outputs
+out = substation(supply_in=gm.Stream(flow={"value": 3.0, "unit": "kg/s"}, T={"value": 6, "unit": "degC"}, p={"value": 6, "unit": "bar"})).children["consumer"].outputs
 print(out.unmet_latent)  # 0.0
 ```
 
@@ -2081,9 +2096,10 @@ for substation in network.substations:
     })
     substation.consumer.set_params("", {"minimum_return_temperature": {"value": 30, "unit": "degC"}})
     substation.valve.opening = 0.8
-substation.consumer.heat_demand = {"value": 150, "unit": "kW"}
-result = network(supply_in=gm.Stream(flow={"value": 4.0, "unit": "m3/s"}, T={"value": 75, "unit": "degC"}, p={"value": 6, "unit": "bar"}))
-print(result.outputs.return_out_T)  # 329.36 K
+    substation.consumer.heat_demand = {"value": 150, "unit": "kW"}
+air = gm.modules.Atmosphere.ambient_air({"value": 10, "unit": "degC"})
+result = network(supply_in=gm.Stream(flow={"value": 4.0, "unit": "kg/s"}, T={"value": 75, "unit": "degC"}, p={"value": 6, "unit": "bar"}), air_in=air)
+print(result.outlets.return_out.T)  # 329.36 K
 audit = energy_balance(network, result)
 print(audit["residual"], result.children["pump"].outputs.hydraulic_power)  # 1536.0 1536.0
 ```
@@ -2123,37 +2139,40 @@ Geothermics 71, 306-319).
 
 ```python
 import gemini as gm
-from gemini.modules import ATESPlant
+from gemini.plants import ATESPlant
 
 plant = ATESPlant()
 plant.storage.set_params("", {
     "aquifer_temperature": {"value": 11, "unit": "degC"},
-    "aquifer_thickness": 30,
+    "aquifer_thickness": {"value": 30, "unit": "m"},
     "porosity": 0.3,
-    "rock_volumetric_heat_capacity": 2.0e6,
-    "ground_conductivity": 2.5,
+    "rock_volumetric_heat_capacity": {"value": 2.0e6, "unit": "J/m3/K"},
+    "ground_conductivity": {"value": 2.5, "unit": "W/m/K"},
+    "storage_period": {"value": 90, "unit": "d"},
 })
 plant.pump.set_params("", {
     "head_coefficients": [3e5, 0.0, -1e8],
     "rated_frequency": {"value": 50, "unit": "Hz"},
     "best_efficiency": 0.7,
-    "best_efficiency_flow": 0.03,
+    "best_efficiency_flow": {"value": 0.03, "unit": "m3/s"},
     "motor_efficiency": 0.9,
 })
 plant.heat_exchanger.set_params("", {
-    "thermal_conductance": 1e6,
+    "arrangement": "counterflow",
+    "thermal_conductance": {"value": 1e6, "unit": "W/K"},
     "hot_nominal_pressure_drop": {"value": 0.3, "unit": "bar"},
     "cold_nominal_pressure_drop": {"value": 0.3, "unit": "bar"},
-    "hot_nominal_mass_flow": 40,
-    "cold_nominal_mass_flow": 30,
+    "hot_nominal_mass_flow": {"value": 40, "unit": "kg/s"},
+    "cold_nominal_mass_flow": {"value": 30, "unit": "kg/s"},
 })
-plant.heat_pump.set_params("", {"mode": "heating", "capacity": {"value": 2, "unit": "MW"}})
-plant.storage.groundwater_flow = 30.0
+plant.heat_pump.set_params("", {"mode": "heating", "capacity": {"value": 2, "unit": "MW"}, "cop_model": "carnot", "carnot_fraction": 0.5, "lorenz_fraction": 0.5, "minimum_temperature_lift": {"value": 10, "unit": "K"}})
+plant.storage.groundwater_flow = {"value": 30.0, "unit": "kg/s"}
+plant.storage.groundwater_pressure = {"value": 3, "unit": "bar"}
 plant.storage.mode = "charge"
 plant.source_valve.split_fraction = plant.load_valve.split_fraction = 0.0
 plant.pump.frequency = {"value": 50, "unit": "Hz"}
 plant.heat_pump.temperature_setpoint = {"value": 40, "unit": "degC"}
-summer = gm.Stream(flow=40.0, T={"value": 17, "unit": "degC"}, p={"value": 3, "unit": "bar"})
+summer = gm.Stream(flow={"value": 40.0, "unit": "kg/s"}, T={"value": 17, "unit": "degC"}, p={"value": 3, "unit": "bar"})
 state, result = plant.step(None, 3600, {"return_in": summer})
 state, result = plant.step(state, 3600, {"return_in": summer})
 stored = result.children["storage"].outputs.stored_energy
@@ -2258,7 +2277,7 @@ esp = ESP().set_params("", {
 esp.frequency = {"value": 69, "unit": "Hz"}
 rate = solves.solve_production_rate(reservoir, well, 3e5, (5, 60), esp=esp, riser=riser)
 assert round(rate * 3.6, 4) == 135.8666
-reservoir.production_rate = rate
+reservoir.production_rate = {"value": rate, "unit": "kg/s"}
 ```
 
 ### The plants of the cases

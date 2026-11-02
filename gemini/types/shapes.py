@@ -89,8 +89,8 @@ CHECK_SCHEMA = {
     "title": "GEMINI check",
     "description": (
         "A judged quantity: {name, passed, value, limit}. value and limit are values. passed is "
-        "null, with a reason in value, when there is nothing to judge. A constraint adds its role, "
-        "unit_path, quantity and worst_step."
+        "null, with a reason in value, when there is nothing to judge. A requirement adds its "
+        "role, unit_path, quantity and worst_step."
     ),
     "type": "object",
     "required": ["name", "passed", "value", "limit"],

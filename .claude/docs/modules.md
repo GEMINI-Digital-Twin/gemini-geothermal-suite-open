@@ -215,7 +215,8 @@ class Pump(Module):
         # Outlets
         suction = inlets.fluid_in
         flow = suction.volumetric_flow()
-        head = pumps.head(flow, self.frequency, self.stage_count, self.head_coefficients)
+        curve = sum(c * flow**i for i, c in enumerate(self.head_coefficients))
+        head = self.stage_count * (self.frequency / 60.0) ** 2 * curve
         discharge = suction._with_si(p=suction.p + head)
 
         # Outputs
@@ -526,7 +527,7 @@ assert result.outlets.fluid_out.T == 300 and state["temperature"] > 300
 A module with a diagnostic model overrides `health(self, result, measured)`. It receives the
 call's `ModuleResult` and the measured outputs of that tick and returns a `Health` (`assessed`,
 `score`, `alarm`, `message`, `metrics`); the base method returns `None`, which the engine records
-as `assessed=False`. A module that declares its own cost defines `capex(assumptions)` returning a `Cost`;
+as `assessed=False`. A module that declares its own cost defines `capex(economics)` returning an amount in the currency of the case;
 see [types.md](types.md#profiles-and-costs).
 
 ## Energy flow

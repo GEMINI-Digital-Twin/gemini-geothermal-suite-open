@@ -26,9 +26,22 @@ NAMESPACES = (
     "runtime",
     "compiler",
 )
-RUN_FUNCTIONS = ("simulate", "replay", "live", "resume")
+RUN_FUNCTIONS = ("schedule", "check", "simulate", "replay", "live", "resume")
 METHODS = {
-    "Case": ("__init__", "to_dict", "from_dict", "schema", "to_json", "from_json"),
+    "Case": (
+        "__init__",
+        "to_dict",
+        "from_dict",
+        "schema",
+        "to_json",
+        "from_json",
+        "check",
+        "files",
+        "field",
+        "leaf",
+        "with_value",
+    ),
+    "Study": ("from_dict", "from_json", "to_dict", "to_json", "check", "run"),
     "Module": (
         "describe",
         "parameter_schema",
@@ -53,6 +66,9 @@ METHODS = {
         "target_of",
         "source_of",
         "feeds",
+        "check",
+        "set_range",
+        "set_options",
         "summary",
         "to_dict",
         "from_dict",
@@ -136,6 +152,7 @@ def capture():
         "modules": _package_api(gm.modules),
         "classes": {
             "Case": _methods(gm.Case, METHODS["Case"]),
+            "Study": _methods(gm.Study, METHODS["Study"]),
             "Module": _methods(gm.modules.Module, METHODS["Module"]),
             "Plant": _methods(gm.Plant, METHODS["Plant"]),
             "Engine": _methods(gm.Engine, METHODS["Engine"]),
