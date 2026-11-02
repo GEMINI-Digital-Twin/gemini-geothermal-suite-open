@@ -1,12 +1,12 @@
-"""A plant on another number of doublets: its plant dict with the doublets renumbered."""
+"""A plant on another number of doublets: its plant file with the doublets renumbered."""
 
 import re
 from copy import deepcopy
 
 from gemini.errors import ValidationError
 
-PATH_SECTIONS = ("params", "fluids", "inputs", "bindings", "param_history")
-"""The sections of a plant dict whose keys start with a module path."""
+PATH_SECTIONS = ("params", "fluids")
+"""The sections of a plant file whose keys start with a module path."""
 _DOUBLET = re.compile(r"d(\d+)(?=\.|$)")
 
 
@@ -37,7 +37,7 @@ def resized(plant, doublets):
     number its class does not allow raises the same from the class.
     """
     data = plant.to_dict()
-    old = (data.get("size") or {}).get("doublets")
+    old = plant.size.get("doublets")
     if old is None:
         raise ValidationError(
             f"study: {type(plant).__name__} has no structural size 'doublets'; expected a plant "
@@ -45,7 +45,7 @@ def resized(plant, doublets):
             path="size.doublets",
             code="invalid_design",
         )
-    data["size"] = {**data["size"], "doublets": doublets}
+    data["size"] = {**data["size"], "doublets": {**data["size"]["doublets"], "value": doublets}}
     for name in PATH_SECTIONS:
         data[name] = _renumbered(data.get(name, {}), old, doublets)
     return type(plant).from_dict(data)

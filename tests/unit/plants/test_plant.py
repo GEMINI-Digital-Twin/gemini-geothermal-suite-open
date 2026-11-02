@@ -59,16 +59,16 @@ def test_a_built_plant_runs_in_connection_order(chain):
 
 
 def test_an_unconnected_port_is_reported_with_its_path():
-    """``validate`` lists every dangling port and the plant does not run."""
+    """``check`` lists every dangling port and the plant does not run."""
     plant = gm.Plant("Open")
     plant.add("Degasser", "degasser")
     plant.connect("feed", "degasser.fluid_in")
     plant.connect("degasser.liquid_out", "product")
     with_values(plant)
-    found = [(item["path"], item["code"]) for item in gm.plants.validate(plant, on_error="record")]
+    found = [(item.path, item.problem()["code"]) for item in plant.check()]
     assert ("degasser.gas_out", "unconnected_port") in found
     with raises(ValidationError, "unconnected_port"):
-        gm.plants.validate(plant)
+        gm.Plant.from_dict(plant.to_dict())
     with raises(ValidationError, "unconnected_port") as caught:
         plant(feed=stream())
     assert caught.value.path == "degasser.gas_out"
@@ -241,9 +241,9 @@ def test_to_spec_is_json_and_validate_is_empty(chain):
     """The spec is plain JSON, rebuilds an equal plant and has no problems."""
     spec = chain.to_dict()
     assert json.loads(json.dumps(spec, allow_nan=False)) == spec
-    found = gm.plants.validate(chain, on_error="record")
-    assert {item["code"] for item in found} == {"root_plant_port"}
-    assert [item["path"] for item in found] == [
+    found = chain.check()
+    assert {item.problem()["code"] for item in found} == {"root_plant_port"}
+    assert [item.path for item in found] == [
         "inlets.feed",
         "outlets.gas_out",
         "outlets.product",

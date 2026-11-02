@@ -48,7 +48,7 @@ def roles_of(plant, path, module):
     unit is a ``chiller`` when its ``chilled_out`` reaches a ``CoolingGrid``. The root is also
     the ``plant``.
     """
-    found = [role for role, cls in CLASSES.items() if isinstance(module, cls)]
+    found = [module.plant_role] if module.plant_role else []
     if not path:
         found.append(PLANT)
     if isinstance(module, HeatPump):

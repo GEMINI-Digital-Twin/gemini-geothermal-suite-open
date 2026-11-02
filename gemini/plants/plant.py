@@ -1,15 +1,29 @@
 """Plants: a ``Module`` that connects its children and whose forward runs them in that order."""
 
+from copy import deepcopy
+from dataclasses import replace
+from typing import Literal
+
 from gemini._utils import files
 from gemini._utils.strings import join_path, snake_case
 from gemini.errors import ValidationError
 from gemini.modules._utils import design
 from gemini.modules._utils.serialization import tree_params
 from gemini.modules.container import ModuleList
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import energy
-from gemini.plants._utils import circuits, inputs, listing, loops, outputs, reader, writer
+from gemini.plants._utils import (
+    circuits,
+    form,
+    inputs,
+    leaves,
+    listing,
+    loops,
+    outputs,
+    reader,
+    writer,
+)
 from gemini.plants._utils.factory import make_module
 from gemini.plants._utils.plan import STATE, PlanConstraint, compile_plan, is_group, port_ends
 from gemini.plants._utils.ports import PortResolver
@@ -37,6 +51,8 @@ class Plant(PortResolver, Module):
 
     purpose = None
     """What a plant class serves: ``heating``, ``cooling`` or ``both``; else a building block."""
+    size_choices = {}
+    """The closed list of each structural size that is a choice, by name; a count has none."""
     loop_tolerance = loops.TOLERANCE
     loop_passes = loops.MAX_PASSES
 
@@ -47,6 +63,8 @@ class Plant(PortResolver, Module):
         object.__setattr__(self, "_name", name)
         super().__init__()
         self._size = {}
+        self._search = {}
+        self._file = {}
         self._inputs = {}
         self._connections = []
         self._constraints = []
@@ -61,12 +79,33 @@ class Plant(PortResolver, Module):
         self._plan = None
         self._planned_offers = ()
 
+        # Parameters
+        self.dispatch = Parameter(
+            Literal["least_cost"] | None,
+            default=None,
+            description="Rule that orders the sources of a schedule; empty when not stated",
+        )
+        self.outages = Parameter(
+            Literal["lowest_demand"] | None,
+            default=None,
+            description="Rule that picks the steps of the outage; empty when not stated",
+        )
+        self.backup = Parameter(
+            Literal["peak", "none"] | None,
+            default=None,
+            description="Redundancy sizing keeps: the boilers cover the peak or nothing",
+        )
+
     @classmethod
     def _empty(cls, name):
         """Return an empty plant of no class: a plant dict with a structure states all of it."""
         plant = Plant.__new__(Plant)
         Plant.__init__(plant, name)
         return plant
+
+    def _fresh(self):
+        """Return a new plant of this class and size, without values: what a file starts from."""
+        return Plant._empty(self._name) if type(self) is Plant else type(self)(**self._size)
 
     @property
     def name(self):
@@ -353,38 +392,90 @@ class Plant(PortResolver, Module):
         """Return a text table of the modules: type, category, inbound connections, parameters."""
         return listing.summary(self)
 
+    @property
+    def size(self):
+        """Return the structural size as a plain mapping, such as ``{"doublets": 2}``."""
+        return dict(self._size)
+
+    @property
+    def ranges(self):
+        """Return ``{path: Range}`` in SI of every search range, in file order.
+
+        A path is that of the plant file: ``size.doublets`` first (an integer range), then the
+        leaf paths of ``params`` such as ``depth`` or ``d0.nominal_flow``.
+        """
+        return {path: leaf.range_si for path, leaf in self._search.items() if leaf.range}
+
+    @property
+    def options(self):
+        """Return ``{path: tuple}`` of every choice with options to search, in file order."""
+        return {path: leaf.options for path, leaf in self._search.items() if leaf.options}
+
+    def set_range(self, path, min=None, max=None):
+        """Set the search range of a leaf: quantities for ``min`` and ``max``, numbers for a count.
+
+        The path must exist and the range lie within the declared bounds, as in a file; both
+        ``None`` removes the range. Returns the plant.
+        """
+        leaves.set_range(self, path, min, max)
+        return self
+
+    def set_options(self, path, options):
+        """Set the options of a choice in a search, a subset of its closed list; return it."""
+        leaves.set_options(self, path, options)
+        return self
+
+    def check(self):
+        """Return the issues of the plant, an empty list when it is ready; it never raises.
+
+        The plant is written and read again, so it is judged by the rules that judge a file
+        (units, ranges inside bounds, options allowed, connections valid), and every parameter
+        without a value is a ``missing`` issue.
+        """
+        _, found = reader.read(Plant, self.to_dict(), ports=True)
+        missing = [
+            replace(item, path=join_path("params", form.file_path(item.path)))
+            for item in super().check()
+        ]
+        return [item for item in found if not reader.tolerated(item)] + missing
+
     def to_dict(self, structure=False):
-        """Return the plant dict.
+        """Return the plant file as a dict.
 
         A plant of a class stores its class, its size and the values that were given, never its
-        structure or a derived value. A plant built with ``add`` and ``connect``, or a class plant
-        with ``structure=True``, stores its modules and connections, which is how an agent edits
-        a plant: ``gm.Plant.from_dict`` reads either.
+        structure or a derived value. A plant built with ``add`` and ``connect`` stores its
+        modules and connections, which is how an agent edits a plant; ``structure=True`` writes the
+        full form, the class and its modules and connections. ``gm.Plant.from_dict`` reads either.
         """
-        if type(self) is Plant or structure:
-            return writer.structure_dict(self)
-        fresh = type(self)(**self._size)
+        if type(self) is Plant:
+            return form.render(self, writer.structure_dict(self))
+        if structure:
+            flat = {"type": type(self).__name__} | writer.structure_dict(self)
+            flat["size"] = deepcopy(self._size)
+            return form.render(self, flat)
+        fresh = self._fresh()
         if (
             fresh._connections != self._connections
             or fresh._children.keys() != self._children.keys()
         ):
-            return writer.structure_dict(self)
-        return writer.class_dict(self, fresh)
+            return form.render(self, writer.structure_dict(self))
+        return form.render(self, writer.class_dict(self, fresh))
 
-    def to_json(self, path):
-        """Write the plant dict as JSON."""
-        files.to_json(path, self.to_dict())
+    def to_json(self, path, structure=False):
+        """Write the plant file as JSON; ``structure=True`` writes the full form."""
+        files.to_json(path, self.to_dict(structure))
 
     @classmethod
     def from_json(cls, path):
-        """Return the plant of the JSON file of a plant dict."""
+        """Return the plant of the JSON plant file."""
         return cls.from_dict(files.from_json(path))
 
     @classmethod
     def from_dict(cls, data):
-        """Build any plant, of a class or without one, from a plant dict.
+        """Build any plant, of a class or without one, from a plant file as a dict.
 
-        One ``ValidationError`` lists every problem.
+        One ``ValidationError`` lists every issue; a parameter without a value is no issue, a
+        stored plant being a template that ``size`` completes.
         """
         return reader.from_dict(cls, data)
 

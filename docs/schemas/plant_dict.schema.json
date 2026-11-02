@@ -1,30 +1,49 @@
 {
   "$defs": {
-    "bindings": {
-      "additionalProperties": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
+    "leaf": {
+      "additionalProperties": false,
+      "properties": {
+        "history": {
+          "items": {
             "additionalProperties": false,
             "properties": {
-              "column": {
-                "type": "string"
-              },
               "unit": {
                 "type": "string"
-              }
+              },
+              "valid_from": {},
+              "value": {}
             },
             "required": [
-              "column",
-              "unit"
+              "valid_from"
             ],
             "type": "object"
-          }
-        ]
+          },
+          "type": "array"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "range": {
+          "additionalProperties": false,
+          "properties": {
+            "max": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "value": {}
       },
-      "description": "Flat bindings of one module: a control, boundary, measured output or state name, or port.field of an inlet, to a column name or {column, unit}.",
       "type": "object"
     },
     "module": {
@@ -36,11 +55,7 @@
           },
           "type": "object"
         },
-        "params": {
-          "type": "object"
-        },
         "size": {
-          "description": "The structural arguments of a plant class, such as {\"consumers\": 3}.",
           "type": "object"
         },
         "type": {
@@ -119,311 +134,258 @@
         "type"
       ],
       "type": "object"
+    },
+    "tree": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/leaf"
+          },
+          {
+            "$ref": "#/$defs/tree"
+          }
+        ]
+      },
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
   "anyOf": [
     {
-      "additionalProperties": false,
-      "properties": {
-        "bindings": {
-          "additionalProperties": {
-            "$ref": "#/$defs/bindings"
-          },
-          "type": "object"
-        },
-        "boundary": {
-          "additionalProperties": {
-            "type": "object"
-          },
-          "type": "object"
-        },
-        "fluids": {
-          "additionalProperties": {
-            "type": "object"
-          },
-          "type": "object"
-        },
-        "format": {
-          "const": 2
-        },
-        "inputs": {
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "object"
-              }
-            ]
-          },
-          "description": "Inputs by path: a control or boundary such as heat_pump.temperature_setpoint, or a plant inlet field such as heating_return.T, to a quantity {value, unit}, or a plain number for a value without a dimension.",
-          "type": "object"
-        },
-        "param_history": {
-          "additionalProperties": {
-            "items": {
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "type": "object"
-        },
-        "params": {
-          "type": "object"
-        },
-        "size": {
-          "description": "The structural arguments of a plant class, such as {\"consumers\": 3}.",
-          "type": "object"
-        },
-        "type": {
-          "enum": [
-            "ATESPlant",
-            "BoilerChpPlant",
-            "CoolingSubstation",
-            "DistrictEnergyPlant",
-            "DistrictNetwork",
-            "Doublet",
-            "DoubletHeatPlant",
-            "HeatingAbsorptionCoolingPlant",
-            "HeatingCoolingPlant",
-            "HeatingFullCoolingPlant",
-            "HeatingHeatPumpCoolingPlant",
-            "HeatingPlant",
-            "HeatingSubstation",
-            "MultiWellPlant",
-            "NodalDoublet",
-            "ParallelExchangerPlant"
-          ],
-          "type": "string"
-        }
-      },
       "required": [
-        "format",
         "type"
-      ],
-      "type": "object"
+      ]
     },
     {
-      "additionalProperties": false,
-      "properties": {
-        "bindings": {
-          "additionalProperties": {
-            "$ref": "#/$defs/bindings"
-          },
-          "type": "object"
-        },
-        "boundary": {
-          "additionalProperties": {
-            "type": "object"
-          },
-          "type": "object"
-        },
-        "connections": {
-          "items": {
-            "additionalProperties": false,
-            "properties": {
-              "source": {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
-                "type": "string"
-              },
-              "target": {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
-                "type": "string"
-              },
-              "type": {
-                "enum": [
-                  "state",
-                  null
-                ]
-              }
-            },
-            "required": [
-              "source",
-              "target"
-            ],
-            "type": "object"
-          },
-          "type": "array"
-        },
-        "constraints": {
-          "items": {
-            "additionalProperties": false,
-            "properties": {
-              "at_least": {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                "type": "string"
-              },
-              "bounds": {
-                "anyOf": [
-                  {
-                    "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                    "type": "string"
-                  },
-                  {
-                    "items": {
-                      "anyOf": [
-                        {
-                          "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        }
-                      ]
-                    },
-                    "maxItems": 2,
-                    "minItems": 2,
-                    "type": "array"
-                  }
-                ]
-              },
-              "by": {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                "type": "string"
-              },
-              "equals": {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                "type": "string"
-              },
-              "target": {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                "type": "string"
-              }
-            },
-            "required": [
-              "target",
-              "by",
-              "bounds"
-            ],
-            "type": "object"
-          },
-          "type": "array"
-        },
-        "fluids": {
-          "additionalProperties": {
-            "type": "object"
-          },
-          "type": "object"
-        },
-        "format": {
-          "const": 2
-        },
-        "inlets": {
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
-                "type": "string"
-              },
-              {
-                "items": {
-                  "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            ]
-          },
-          "type": "object"
-        },
-        "inputs": {
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "object"
-              }
-            ]
-          },
-          "description": "Inputs by path: a control or boundary such as heat_pump.temperature_setpoint, or a plant inlet field such as heating_return.T, to a quantity {value, unit}, or a plain number for a value without a dimension.",
-          "type": "object"
-        },
-        "modules": {
-          "additionalProperties": {
-            "$ref": "#/$defs/module"
-          },
-          "type": "object"
-        },
-        "name": {
-          "type": "string"
-        },
-        "outlets": {
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
-                "type": "string"
-              },
-              {
-                "items": {
-                  "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            ]
-          },
-          "type": "object"
-        },
-        "outputs": {
-          "additionalProperties": {
-            "additionalProperties": false,
-            "maxProperties": 1,
-            "minProperties": 1,
-            "properties": {
-              "difference": {
-                "items": {
-                  "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                  "type": "string"
-                },
-                "maxItems": 2,
-                "minItems": 2,
-                "type": "array"
-              },
-              "ratio": {
-                "items": {
-                  "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                  "type": "string"
-                },
-                "maxItems": 2,
-                "minItems": 2,
-                "type": "array"
-              },
-              "sum": {
-                "items": {
-                  "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
-                  "type": "string"
-                },
-                "minItems": 2,
-                "type": "array"
-              }
-            },
-            "type": "object"
-          },
-          "type": "object"
-        },
-        "param_history": {
-          "additionalProperties": {
-            "items": {
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "type": "object"
-        }
-      },
       "required": [
-        "format",
-        "name",
         "modules",
         "connections"
-      ],
-      "type": "object"
+      ]
     }
   ],
-  "title": "GEMINI plant dict"
+  "properties": {
+    "about": {
+      "type": "object"
+    },
+    "boundary": {
+      "additionalProperties": {
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "connections": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
+            "type": "string"
+          },
+          "target": {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "state",
+              null
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "target"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "constraints": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "at_least": {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+            "type": "string"
+          },
+          "bounds": {
+            "anyOf": [
+              {
+                "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+                "type": "string"
+              },
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              }
+            ]
+          },
+          "by": {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+            "type": "string"
+          },
+          "equals": {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+            "type": "string"
+          },
+          "target": {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target",
+          "by",
+          "bounds"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "fluids": {
+      "additionalProperties": {
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "format": {
+      "const": 1
+    },
+    "inlets": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
+            "type": "string"
+          },
+          {
+            "items": {
+              "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        ]
+      },
+      "type": "object"
+    },
+    "kind": {
+      "const": "plant"
+    },
+    "modules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/module"
+      },
+      "type": "object"
+    },
+    "name": {
+      "type": "string"
+    },
+    "outlets": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
+            "type": "string"
+          },
+          {
+            "items": {
+              "pattern": "^[^.\\s]+(\\.[^.\\s]+)+$",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        ]
+      },
+      "type": "object"
+    },
+    "outputs": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "maxProperties": 1,
+        "minProperties": 1,
+        "properties": {
+          "difference": {
+            "items": {
+              "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "ratio": {
+            "items": {
+              "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "sum": {
+            "items": {
+              "pattern": "^[^.\\s]+(\\.[^.\\s]+)*$",
+              "type": "string"
+            },
+            "minItems": 2,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "params": {
+      "$ref": "#/$defs/tree"
+    },
+    "size": {
+      "additionalProperties": {
+        "$ref": "#/$defs/leaf"
+      },
+      "description": "The structural arguments of a class, as leaves: {\"doublets\": {\"value\": 2}}.",
+      "type": "object"
+    },
+    "type": {
+      "enum": [
+        "ATESPlant",
+        "BoilerChpPlant",
+        "CoolingSubstation",
+        "DistrictEnergyPlant",
+        "DistrictNetwork",
+        "Doublet",
+        "DoubletHeatPlant",
+        "HeatingAbsorptionCoolingPlant",
+        "HeatingCoolingPlant",
+        "HeatingFullCoolingPlant",
+        "HeatingHeatPumpCoolingPlant",
+        "HeatingPlant",
+        "HeatingSubstation",
+        "MultiWellPlant",
+        "NodalDoublet",
+        "ParallelExchangerPlant"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "format",
+    "kind",
+    "name"
+  ],
+  "title": "GEMINI plant file",
+  "type": "object"
 }

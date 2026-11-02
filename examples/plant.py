@@ -1,6 +1,6 @@
 """A plant built from its class: what it needs, fill it, size it, run it, see why steps failed.
 
-Starts from the bare class ``HeatingHeatPumpCoolingPlant`` and asks ``missing_parameters`` what it
+Starts from the bare class ``HeatingHeatPumpCoolingPlant`` and asks ``check`` what it
 still needs. The design values of the shallow district sample stand in for the user's own
 decisions; the sizes that ``size`` computes from the case are left out. ``size`` returns the plant
 with notes on what it sized, what it left and what the sized design breaks. The plant then runs,
@@ -8,7 +8,7 @@ and ``failures`` groups the steps that failed.
 
 A value with a dimension is a ``Quantity``: ``set_params`` refuses a bare number for it.
 
-Shows ``missing_parameters``, ``set_params`` with a quantity, ``gm.plants.validate``,
+Shows ``check``, ``set_params`` with a quantity,
 ``gm.study.size`` with its ``sizing`` notes, ``gm.simulate`` and ``gm.evaluate.failures``.
 
 Run with ``python examples/plant.py``.
@@ -26,19 +26,41 @@ COOLER = gm.units.Quantity(1.0, "MW")
 """The cooler capacity, a design value ``size`` does not compute: an assumption of this example."""
 
 
+def leaves(tree, prefix=""):
+    """Yield ``(path, leaf)`` of the nested ``params`` of a plant file, in file order."""
+    for key, node in tree.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if {"value", "unit"} & set(node):
+            yield path, node
+        else:
+            yield from leaves(node, path)
+
+
+def value_of(leaf):
+    """Return the value of a leaf: a ``Quantity`` if it has a unit, else the value."""
+    return gm.units.Quantity(leaf["value"], leaf["unit"]) if "unit" in leaf else leaf["value"]
+
+
 def build(stored):
     """Return the plant class with the stored design values, except those ``size`` computes."""
-    plant = gm.plants.HeatingHeatPumpCoolingPlant(doublets=stored["size"]["doublets"])
-    missing = plant.missing_parameters()
-    print(f"Bare class: {len(missing)} values missing, the first {missing[0]['path']}:")
-    print(f"  {missing[0]['description']} [{missing[0]['unit']}]")
-    designed = {key: value for key, value in stored["params"].items() if not key.endswith(SIZED)}
-    plant.set_params("", designed)
+    size = stored["size"]["doublets"]["value"]
+    plant = gm.plants.HeatingHeatPumpCoolingPlant(doublets=size)
+    missing = [item for item in plant.check() if item.kind == "missing"]
+    first = plant.get(missing[0].path.removeprefix("params."))
+    print(f"Bare class: {len(missing)} values missing, the first {missing[0].path[7:]}:")
+    print(f"  {first.description} [{first.unit}]")
+    designed = {
+        path.replace("control.", ""): value_of(leaf)
+        for path, leaf in leaves(stored["params"])
+        if "value" in leaf and not path.endswith(SIZED)
+    }
+    controls = plant.inputs()
+    plant.set_params("", {key: v for key, v in designed.items() if key not in controls})
     plant.set_params("compression_cooler", {"capacity": COOLER})
-    plant.set_inputs(stored["inputs"])
-    left = len(plant.missing_parameters())
+    plant.set_inputs({key: v for key, v in designed.items() if key in controls})
+    left = len([item for item in plant.check() if item.kind == "missing"])
     print(f"Filled: {left} left: the reservoir and well of the case, the sizes")
-    print(f"Problems found by validate: {len(gm.plants.validate(plant, on_error='record'))}")
+    print(f"Problems found by check: {len([i for i in plant.check() if i.kind != 'missing'])}")
     return plant
 
 

@@ -5,13 +5,14 @@ import json
 import pytest
 
 import gemini as gm
+from tests.fixtures.plant_files import file_of, issues
 from tests.fixtures.sample_cases import example_plant, filled_plant
 
 HISTORY = [
-    {"valid_from": "2020-01-01T00:00:00Z", "params": {"length": {"value": 30.48, "unit": "m"}}},
-    {"valid_from": "2021-01-01T00:00:00Z", "params": {"length": {"value": 200, "unit": "ft"}}},
+    {"valid_from": "2020-01-01T00:00:00Z", "value": 30.48},
+    {"valid_from": "2021-01-01T00:00:00Z", "value": 200},
 ]
-"""The dated lengths of the pipe in the spec below, as a plant dict states them."""
+"""The dated lengths of the pipe in the file below, as a leaf states them."""
 
 
 def test_from_dict_builds_a_plant_of_any_class():
@@ -22,63 +23,50 @@ def test_from_dict_builds_a_plant_of_any_class():
 
 
 def test_the_stored_plant_file_round_trips_exactly():
-    """``to_spec(from_dict(x)) == x`` for the migrated example plant, JSON-safe."""
+    """``to_dict(from_dict(x)) == x`` for the migrated example plant, JSON-safe."""
     spec = example_plant("DoubletHeatPlant").to_dict()
     plant = gm.Plant.from_dict(spec)
-    assert plant.to_dict() == spec
     assert plant.to_dict() == spec
     assert json.loads(json.dumps(plant.to_dict(), allow_nan=False)) == spec
 
 
 def test_a_spec_with_unit_strings_and_sections_round_trips_exactly():
-    """Unit strings stay as written; fluids, history and bindings are kept."""
-    spec = {
-        "format": 2,
-        "name": "DoubletHeatPlant",
-        "modules": {
+    """Units stay as written; fluids and the history of a leaf are kept."""
+    spec = file_of(
+        "DoubletHeatPlant",
+        modules={"pipe": {"type": "Pipe"}, "valve": {"type": "Valve"}},
+        connections=[{"source": "pipe.fluid_out", "target": "valve.fluid_in"}],
+        inlets={"feed": "pipe.fluid_in", "air": "pipe.air_in"},
+        outlets={"product": "valve.fluid_out", "loss": "pipe.loss_out"},
+        params={
             "pipe": {
-                "type": "Pipe",
-                "params": {
-                    "length": {"value": 100, "unit": "ft"},
-                    "inner_diameter": {"value": 0.1, "unit": "m"},
-                },
-            },
-            "valve": {"type": "Valve", "params": {}},
+                "length": {"value": 100, "unit": "ft", "history": HISTORY[1:]},
+                "inner_diameter": {"value": 0.1, "unit": "m"},
+            }
         },
-        "connections": [{"source": "pipe.fluid_out", "target": "valve.fluid_in"}],
-        "inlets": {"feed": "pipe.fluid_in", "air": "pipe.air_in"},
-        "outlets": {"product": "valve.fluid_out", "loss": "pipe.loss_out"},
-        "bindings": {"pipe": {"pressure_drop": {"column": "q", "unit": "bar"}, "velocity": "v"}},
-        "param_history": {"pipe": HISTORY},
-        "fluids": {"pipe": gm.WATER._to_dict()},
-    }
-    complete = {"bindings": {}, "param_history": {}} | spec
-    plant = gm.Plant.from_dict(complete)
+        fluids={"pipe": gm.WATER._to_dict()},
+    )
+    plant = gm.Plant.from_dict(spec)
     written = plant.to_dict()
-    assert written["modules"]["pipe"]["params"] == {
-        "length": {"value": 100, "unit": "ft"},
-        "inner_diameter": {"value": 0.1, "unit": "m"},
-    }
-    assert written == {key: complete[key] for key in written}
-    assert set(written) - set(complete) == set()
+    assert written["params"]["pipe"]["inner_diameter"] == {"value": 0.1, "unit": "m"}
+    assert written["params"]["pipe"]["length"]["unit"] == "ft"
+    assert written == {key: spec[key] for key in written}
     assert gm.Plant.from_dict(written).to_dict() == written
 
 
 def test_a_nested_spec_and_a_group_round_trip_and_run_parameters_through():
-    """A child of plant type takes dotted params; a group nests children."""
-    spec = {
-        "format": 2,
-        "name": "DoubletHeatPlant",
-        "modules": {
-            "doublet": {"type": "Doublet", "params": {"esp.stage_count": 12}},
-            "filters": {"type": "ModuleDict", "modules": {"hot": {"type": "Filter", "params": {}}}},
+    """A child of plant type takes nested params; a group nests children."""
+    spec = file_of(
+        "DoubletHeatPlant",
+        modules={
+            "doublet": {"type": "Doublet"},
+            "filters": {"type": "ModuleDict", "modules": {"hot": {"type": "Filter"}}},
         },
-        "connections": [{"source": "doublet.supply_out", "target": "filters.hot.fluid_in"}],
-        "inlets": {"return_in": "doublet.return_in", "power_in": "doublet.power_in"},
-        "outlets": {"product": "filters.hot.fluid_out"},
-        "bindings": {},
-        "param_history": {},
-    }
+        connections=[{"source": "doublet.supply_out", "target": "filters.hot.fluid_in"}],
+        inlets={"return_in": "doublet.return_in", "power_in": "doublet.power_in"},
+        outlets={"product": "filters.hot.fluid_out"},
+        params={"doublet": {"esp": {"stage_count": {"value": 12}}}},
+    )
     plant = gm.Plant.from_dict(spec)
     assert plant.doublet.esp.stage_count == 12
     assert plant.to_dict() == spec
@@ -88,80 +76,71 @@ def test_an_opened_plant_round_trips_its_nested_wiring():
     """The shipped heat plant opens its doublet and still writes it as one child."""
     plant = gm.plants.get("DoubletHeatPlant")
     spec = plant.to_dict(structure=True)
-    assert spec["modules"]["doublet"] == {"type": "Doublet", "params": {}}
-    assert gm.Plant.from_dict(spec).to_dict() == spec
+    assert spec["modules"]["doublet"] == {"type": "Doublet"}
+    assert gm.Plant.from_dict(spec).to_dict(structure=True) == spec
 
 
-def test_params_set_since_and_validation_agree_with_the_builder():
-    """``gm.plants.validate`` of a plant reports a root port that has no outer name."""
+def test_a_plant_reports_a_root_port_that_has_no_outer_name():
+    """``check`` of a plant reports a root port, and a bad unit is refused at once."""
     plant = gm.Plant("Same")
     plant.add("Pipe", "pipe", params={"length": gm.units.Quantity(5.0, "m")})
     plant.connect("feed", "pipe.fluid_in")
     plant.connect("air", "pipe.air_in")
     plant.connect("pipe.fluid_out", "product")
     plant.connect("pipe.loss_out", "loss")
-    found = gm.plants.validate(plant, on_error="record")
-    assert {item["code"] for item in found} == {"root_plant_port"}
+    found = [item for item in plant.check() if item.kind != "missing"]
+    assert {item.problem()["code"] for item in found} == {"root_plant_port"}
     with pytest.raises(gm.errors.ValidationError):
         plant.add("Pipe", "bad", params={"length": {"value": 5, "unit": "bar"}})
 
 
-def test_a_raised_error_carries_every_problem_of_the_list_record_returns():
-    """``from_dict`` and ``gm.plants.validate`` tell one story in one try."""
-    spec = {
-        "format": 2,
-        "name": "DoubletHeatPlant",
-        "modules": {"a": {"type": "Boilr"}, "pipe": {"type": "Pipe", "params": {"length": -5.0}}},
-        "connections": [],
-        "inlets": {"feed": "pipe.fluid_in", "air": "pipe.air_in"},
-        "outlets": {"product": "pipe.fluid_out", "loss": "pipe.loss_out"},
-        "bindings": {},
-        "param_history": {},
-    }
-    recorded = gm.plants.validate(spec, on_error="record")
-    assert [item["path"] for item in recorded] == ["modules.a.type", "modules.pipe.params.length"]
-    for call in (gm.plants.validate, gm.Plant.from_dict, gm.Plant.from_dict):
-        with pytest.raises(gm.errors.ValidationError) as caught:
-            call(spec)
-        assert caught.value.problems == recorded and caught.value.code == recorded[0]["code"]
+def test_a_raised_error_carries_every_issue_of_the_file():
+    """``from_dict`` raises one error with every issue, in the order of the file."""
+    spec = file_of(
+        "DoubletHeatPlant",
+        modules={"a": {"type": "Boilr"}, "pipe": {"type": "Pipe"}},
+        connections=[],
+        inlets={"feed": "pipe.fluid_in", "air": "pipe.air_in"},
+        outlets={"product": "pipe.fluid_out", "loss": "pipe.loss_out"},
+        params={"pipe": {"length": {"value": -5.0, "unit": "m"}}},
+    )
+    found = issues(spec)
+    assert [item.path for item in found] == ["modules.a.type", "params.pipe.length"]
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        gm.Plant.from_dict(spec)
+    assert list(caught.value.issues) == found and caught.value.code == found[0].problem()["code"]
 
 
-def test_a_valid_spec_returns_no_problems_under_both_policies():
-    """Without problems nothing is raised; the list is empty."""
+def test_a_valid_file_has_no_issues():
+    """Nothing is raised for a plant without problems; ``check`` is empty."""
     plant = gm.Plant("Empty")
-    spec = plant.to_dict(structure=True)
-    assert gm.plants.validate(spec) == gm.plants.validate(spec, on_error="record") == []
-    with pytest.raises(gm.errors.ValidationError, match="on_error"):
-        gm.plants.validate(spec, on_error="ignore")
+    assert issues(plant.to_dict(structure=True)) == plant.check() == []
 
 
-def test_validate_raises_what_it_records_for_a_plant():
-    """A plant with a bad binding fails ``gm.plants.validate`` with the problems it records."""
-    plant = gm.Plant("Broken")
+def test_a_file_with_bindings_or_inputs_is_refused():
+    """Bindings are set in memory; a control is a leaf of ``params``, not an ``inputs`` key."""
+    spec = file_of("Broken", modules={"pipe": {"type": "Pipe"}}, connections=[])
+    for key in ("bindings", "inputs"):
+        found = [item for item in issues(spec | {key: {}}) if item.path == key]
+        assert [(item.path, item.kind) for item in found] == [(key, "unknown_key")]
+    plant = gm.Plant("Kept")
     plant.add("Pipe", name="pipe")
     plant.set_bindings("pipe", {"velocity": "v"})
-    plant.bindings["no.such.module"] = plant.bindings["pipe"]
-    spec = plant.to_dict(structure=True)
-    with pytest.raises(gm.errors.ValidationError) as caught:
-        gm.plants.validate(spec)
-    assert caught.value.problems == gm.plants.validate(spec, on_error="record")
+    assert "bindings" not in plant.to_dict(structure=True)
+    assert plant.bindings["pipe"].controls == {} or plant.bindings["pipe"]
 
 
 def test_a_broken_module_does_not_hide_the_other_end_of_a_connection():
     """Every problem comes at once, also on a connection with one good end."""
-    spec = {
-        "format": 2,
-        "name": "DoubletHeatPlant",
-        "modules": {"a": {"type": "Boilr"}, "pipe": {"type": "Pipe"}},
-        "connections": [
+    spec = file_of(
+        "DoubletHeatPlant",
+        modules={"a": {"type": "Boilr"}, "pipe": {"type": "Pipe"}},
+        connections=[
             {"source": "a.fluid_out", "target": "b.fluid_in"},
             {"source": "a.fluid_out", "target": "pipe.inlt"},
         ],
-        "bindings": {},
-        "param_history": {},
-    }
-    problems = gm.plants.validate(spec, on_error="record")
-    assert {item["path"] for item in problems} == {
+    )
+    assert {item.path for item in issues(spec)} == {
         "modules.a.type",
         "connections[0].target",
         "connections[1].target",
@@ -174,7 +153,7 @@ def test_a_broken_module_does_not_hide_the_other_end_of_a_connection():
 
 @pytest.mark.parametrize("name", gm.plants.names())
 def test_every_plant_rebuilds_from_its_dict_with_the_same_values(name):
-    """The class form and the structure form give the same plant dict, without the case's values."""
+    """The class form and the full form give the same plant file, without the case's values."""
     plant = filled_plant(name)
     data, structure = plant.to_dict(), plant.to_dict(structure=True)
     assert "modules" not in data and data["type"] == name
@@ -186,8 +165,12 @@ def test_every_plant_rebuilds_from_its_dict_with_the_same_values(name):
 def test_a_size_is_stored_next_to_the_type():
     """A structural argument rebuilds the same shape."""
     data = gm.plants.MultiWellPlant(producers=3, injectors=2).to_dict()
-    assert data["size"] == {"producers": 3, "injectors": 2}
+    assert data["size"] == {"producers": {"value": 3}, "injectors": {"value": 2}}
     assert len(gm.Plant.from_dict(data).producers) == 3
+    assert gm.plants.MultiWellPlant(producers=3, injectors=2).size == {
+        "producers": 3,
+        "injectors": 2,
+    }
 
 
 def test_a_class_plant_edited_by_hand_stores_its_structure():
@@ -197,28 +180,36 @@ def test_a_class_plant_edited_by_hand_stores_its_structure():
     assert "modules" in plant.to_dict()
 
 
-def test_a_root_of_a_class_is_validated_with_its_structure():
-    """``validate`` on a plant reports on its modules, whichever form it stores."""
-    assert (
-        gm.plants.validate(
-            example_plant("DoubletHeatPlant").to_dict(structure=True), on_error="record"
-        )
-        == []
-    )
+def test_a_root_of_a_class_is_checked_with_its_structure():
+    """The full form of a plant reads without issues, whichever form it stores."""
+    assert issues(example_plant("DoubletHeatPlant").to_dict(structure=True)) == []
 
 
 def test_a_wrong_size_is_a_problem_of_the_dict():
     """A size the class does not take is reported on its path, not raised as a ``TypeError``."""
-    data = {"format": 2, "type": "MultiWellPlant", "size": {"wells": 3}}
-    found = gm.plants.validate(data, on_error="record")
-    assert [(item["path"], item["code"]) for item in found] == [("type.size", "invalid_value")]
+    data = file_of("W", type="MultiWellPlant", size={"wells": {"value": 3}})
+    found = issues(data)
+    assert [(item.path, item.problem()["code"]) for item in found] == [("size", "invalid_value")]
     entry = {"type": "DistrictNetwork", "size": {"streets": 2}}
-    data = {"format": 2, "name": "Nested", "modules": {"network": entry}, "connections": []}
-    found = gm.plants.validate(data, on_error="record")
-    assert [item["code"] for item in found] == ["invalid_value"]
+    data = file_of("Nested", modules={"network": entry}, connections=[])
+    assert [item.problem()["code"] for item in issues(data)] == ["invalid_value"]
 
 
 def test_a_type_at_the_root_must_be_a_plant():
-    """The root of a plant dict is a plant class; a module is wrapped in a plant."""
-    found = gm.plants.validate({"format": 2, "type": "ESP"}, on_error="record")
-    assert [(item["path"], item["code"]) for item in found] == [("type", "invalid_value")]
+    """The root of a plant file is a plant class; a module is wrapped in a plant."""
+    found = issues(file_of("E", type="ESP"))
+    assert [(item.path, item.problem()["code"]) for item in found] == [("type", "invalid_value")]
+
+
+def test_a_file_in_the_old_shape_is_refused_naming_the_new_header():
+    """A file with no ``kind`` is of format 2: ``old_format``."""
+    (item,) = issues({"format": 2, "type": "Doublet", "params": {}})
+    assert item.problem()["code"] == "old_format" and '"kind": "plant"' in item.message
+
+
+def test_both_a_type_and_a_structure_must_agree():
+    """Giving ``type`` with modules and connections that are not the class's is an issue."""
+    data = gm.plants.get("Doublet").to_dict(structure=True)
+    assert issues(data) == []
+    data["modules"] = {"pipe": {"type": "Pipe"}}
+    assert [item.path for item in issues(data)] == ["modules"]

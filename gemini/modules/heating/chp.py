@@ -43,6 +43,7 @@ class CHP(Equipment, Module):
     """
 
     equipment_kind = "chp"
+    plant_role = "chp"
 
     def __init__(self):
         """Declare engine design data, the heated water circuit and energy flows."""

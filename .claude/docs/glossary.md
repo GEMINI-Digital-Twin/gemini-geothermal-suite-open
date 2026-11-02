@@ -131,6 +131,7 @@ split stage steam step storage stored suction supplied supply surface surplus ta
 thickness threshold time top transfer tubing two type undisturbed units unmet unserved useful
 value valve velocity vented viscosity volume volumetric warm waste water well wellbore wellhead wet
 window
+dispatch outages backup
 ```
 
 ## Case and cost terms

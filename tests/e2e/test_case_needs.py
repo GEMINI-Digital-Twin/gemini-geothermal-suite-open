@@ -48,12 +48,10 @@ PLACEHOLDERS = {
 def sized_dict(doublets):
     """Return the plant dict on ``doublets`` doublets, each with the values of ``d0``."""
     data = deepcopy(template_dict("HeatingCoolingPlant"))
-    data["size"] = {"doublets": doublets}
-    own = {name: item for name, item in data["params"].items() if not name.startswith(("d0", "d1"))}
-    first = {name[3:]: item for name, item in data["params"].items() if name.startswith("d0.")}
-    data["params"] = own | {
-        f"d{index}.{name}": item for index in range(doublets) for name, item in first.items()
-    }
+    data["size"] = {"doublets": {"value": doublets}}
+    first = data["params"]["d0"]
+    own = {name: item for name, item in data["params"].items() if name not in ("d0", "d1")}
+    data["params"] = own | {f"d{index}": deepcopy(first) for index in range(doublets)}
     return data
 
 

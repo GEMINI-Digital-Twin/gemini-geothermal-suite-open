@@ -308,8 +308,8 @@ Parameters, controls and boundaries are set by attribute assignment or in bulk:
   time)` returns the values active at an instant.
 - `module.frequency = 50` persists one control or boundary, and `module.stage_count = 12` sets a
   parameter as an override that wins over every date.
-- `missing_parameters()` lists the uninitialized parameters as JSON dicts `{path, type, quantity,
-  unit, units, minimum, maximum, enum, description}` (`units` are the accepted units) and
+- `check()` lists the uninitialized parameters as `missing` issues (path, quantity, accepted units,
+  meaning) and
   `is_initialized` is true when there are none. A run, `size` or a read of an unset value raises
   `missing_value` listing every missing path with its description at once (`problems` holds one
   item per path). Every `Parameter`, `Control`, `Boundary` and `Output` declares a short

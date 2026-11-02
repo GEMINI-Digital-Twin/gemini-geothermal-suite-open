@@ -10,7 +10,7 @@ from gemini import units
 from gemini._utils.jsonable import to_plain
 from gemini._utils.strings import close_matches, did_you_mean, first_paragraph
 from gemini.errors import ValidationError
-from gemini.errors.base import reported
+from gemini.errors.base import Issue, reported
 from gemini.modules.declarations import UNSET
 from gemini.types import bare
 from gemini.types.shapes import problem
@@ -95,6 +95,20 @@ def missing_entry(path, declaration):
         "enum": _enum(declaration),
         "description": declaration.description,
     }
+
+
+def missing_issue(path, declaration):
+    """Return the ``missing`` issue of a parameter that has no value."""
+    item = missing_entry(path, declaration)
+    unit = f" [{item['unit']}]" if item["unit"] else ""
+    meaning = f": {item['description']}" if item["description"] else ""
+    return Issue(
+        path,
+        "missing",
+        f"{path}: no value{unit}{meaning}",
+        quantity=item["quantity"],
+        accepted=tuple(item["units"]),
+    )
 
 
 def missing_item(item):

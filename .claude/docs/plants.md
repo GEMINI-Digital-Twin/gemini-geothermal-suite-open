@@ -204,19 +204,33 @@ through `plant.input_value`. A column of the run wins over it. A value assigned 
 `plant.to_json(path)` and `gm.Plant.from_json(path)` write and read it as JSON. A plant dict of an older
 format raises `ValidationError` with code `old_format`.
 
-## What the plant dict holds
+## What the plant file holds
 
-The plant dict holds only the plant: the class and size, the design values (`params`), the setpoints
-(`inputs`), the bindings and the dated values. It holds nothing that describes the world or the
-request, which is in the `gm.Case`: not the ground (gradient, surface temperature), the reservoir
-(permeability, thickness, pressure), the brine of a `Doublet`, the air, the return and supply
-temperatures of the consumers, the prices, the limits or the demand. A parameter that the case
-sets is declared with `Parameter(..., case="<path in the case>")` (`Doublet.gradient`,
-`surface_temperature`, `permeability`, `thickness`; `Formation.geothermal_gradient`,
+A plant file (`kind: plant`, `format: 1`, header `{"format", "kind", "name"}` and free `about`) holds
+only the plant: `type` (a class from `gm.plants.names()`) or `modules` and `connections` (with
+`inlets`, `outlets`, `outputs`, `constraints`); both given must agree. `size` sits beside `params`,
+one leaf per structural argument (`"doublets": {"value": 2, "range": {"min": 1, "max": 3}}`).
+`params` is one tree that mirrors the module tree (`params.d0.esp.efficiency`); every leaf is an
+object `{"value", "unit", "range", "options", "history"}`: `unit` if and only if the value has a
+dimension, `range` and `options` the search freedom (an option is in the closed list of the
+parameter, a range within its bounds), `history` the dated values `[{valid_from, value}]`. A leaf
+may have no value: a template that `size` completes. A control or a boundary of a module is a leaf
+too (`params.heat_pump.temperature_setpoint`), so there is no `inputs` key. The plant-level
+`dispatch` and `outages` sit under `params.control`, `backup` and `depth` at the top of `params`.
+`fluids` and `boundary` stay as keys by module path. There is no `bindings` key: a file naming
+columns would tie the plant to one dataset; `set_bindings` stays in memory, and a checkpoint stores
+them itself. A file of `format: 2` with no `kind` raises `old_format`. It holds nothing that
+describes the world or the request, which is in the `gm.Case`: not the ground (gradient, surface
+temperature), the reservoir (permeability, thickness, pressure), the brine of a `Doublet`, the air,
+the return and supply temperatures of the consumers, the prices, the limits or the demand. A
+parameter that the case sets is declared with `Parameter(..., case="<path in the case>")`
+(`Doublet.gradient`, `surface_temperature`, `permeability`, `thickness`; `Formation.geothermal_gradient`,
 `surface_temperature`; `HeatingGrid` and `CoolingGrid` `return_temperature` and the required supply
-temperature): a plant dict that states one is refused with `invalid_value` naming the case path, and
-`to_dict` never writes it. A value with a unit in `params` or `inputs` is a `{"value", "unit"}` and
-`to_dict` writes it so; a bare number with a dimension is refused, in `params`, `inputs`, `fluids` and `param_history`. Known limits:
+temperature): a plant file that states one is refused with `invalid_value` naming the case path, and
+`to_dict` never writes it. A bare number with a dimension is refused. `from_dict` raises every
+issue at once, except a parameter or size without a value; `plant.check()` returns all of them and
+never raises. `plant.ranges` and `plant.options` give the search space in file order, `plant.size`
+the sizes, `set_range` and `set_options` change them with the checks of a file. Known limits:
 
 - `fluids` remains in the plant dict, for a module whose fluid differs from its class default. A
   plant with no case (a measured or replayed plant such as `DoubletHeatPlant`) carries its own

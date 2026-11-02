@@ -36,7 +36,7 @@ CALLS = {
         {"nope": 1}, on_error="record"
     ),
     "plants.names": lambda plant, results: gm.plants.names(),
-    "plants.validate": lambda plant, results: gm.plants.validate({"format": 2}, on_error="record"),
+    "plant.check": lambda plant, results: [item.problem() for item in plant.check()],
     "schema": lambda plant, results: gm.plants.schema(),
     "profile_schema": lambda plant, results: gm.data.profile_schema(),
     "bindable": lambda plant, results: plant.bindable("heat_exchanger"),

@@ -30,6 +30,7 @@ class HeatExchanger(Equipment, Module):
     """Two-stream heat exchanger with thermal and fouling diagnostics."""
 
     equipment_kind = "heat_exchanger"
+    plant_role = "heat_exchanger"
 
     repr_fields = (
         "thermal_conductance",

@@ -9,10 +9,11 @@ from tests.unit.study.conftest import shallow_plant
 
 def test_added_doublets_repeat_the_values_of_the_first():
     """Three doublets: d1 and d2 state what d0 states."""
-    data = resized(shallow_plant(), 3).to_dict()
-    assert data["size"] == {"doublets": 3}
-    for name in ("d1.nominal_flow", "d2.nominal_flow"):
-        assert data["params"][name] == data["params"]["d0.nominal_flow"]
+    plant = resized(shallow_plant(), 3)
+    data = plant.to_dict()
+    assert plant.size == {"doublets": 3} and data["size"]["doublets"]["value"] == 3
+    for name in ("d1", "d2"):
+        assert data["params"][name]["nominal_flow"] == data["params"]["d0"]["nominal_flow"]
 
 
 def test_removed_doublets_leave_nothing_behind():

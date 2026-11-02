@@ -108,7 +108,7 @@ def catalogue(tmp_path_factory):
 
 def test_the_shallow_sample_needs_one_doublet_and_covers_its_peak(base):
     """One doublet of 4.7 MW at the flow and cooling limits covers the 3.03 MW peak."""
-    assert base.design.to_dict()["size"] == {"doublets": 1}
+    assert base.design.size == {"doublets": 1}
     assert base.by_path["size.doublets"]["value"].value == 1
     assert "covers the heating peak" in base.by_path["size.doublets"]["reason"]
 
@@ -140,13 +140,13 @@ def test_the_capacities_follow_the_demand_peaks(base):
 
 def test_a_tighter_flow_limit_asks_for_more_doublets(tight):
     """At 40 m3/h a doublet gives 1.04 MW: three cover the peak."""
-    assert tight.design.to_dict()["size"] == {"doublets": 3}
+    assert tight.design.size == {"doublets": 3}
     assert tight.design.get_submodule("d2").nominal_flow == pytest.approx(40 / 3600)
 
 
 def test_a_peak_no_count_covers_takes_the_largest_and_says_so(short):
     """At 36 m3/h and twice the demand three doublets do not cover it."""
-    assert short.design.to_dict()["size"] == {"doublets": 3}
+    assert short.design.size == {"doublets": 3}
     assert "does not cover" in short.by_path["size.doublets"]["reason"]
 
 

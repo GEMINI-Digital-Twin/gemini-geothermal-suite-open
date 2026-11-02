@@ -19,7 +19,6 @@ from mccabe import PathGraphingAstVisitor
 import gemini as gm
 from gemini._utils import paths
 from gemini._utils.files import from_json
-from gemini.modules._utils.serialization import SECTIONS
 from gemini.plants.plant import Plant
 from tests.fixtures import ROOT
 
@@ -76,7 +75,7 @@ BUILDS_NO_DATA_PATH = {
 """Files allowed to name the data folders; the first is the one that knows where they are."""
 SAMPLE_PROBLEM = re.compile(r"hackathon|challenge|inputs/examples", re.IGNORECASE)
 """What no file of ``gemini/`` may name: it is a general package, and a problem is only an input."""
-VALUE_KEYS = {"plant", "size", "params", "inputs", *SECTIONS}
+VALUE_KEYS = {"format", "kind", "name", "about", "type", "size", "params", "fluids", "boundary"}
 FRAMEWORK = re.compile("py" + "tor" + "ch|\\b" + "tor" + "ch\\b", re.IGNORECASE)
 FRAMEWORK_STEM = "tor" + "ch"
 """Lowercase text that every ``FRAMEWORK`` match contains, checked before the slower regex."""
@@ -649,7 +648,9 @@ def test_a_file_of_example_values_has_only_the_allowed_keys_and_names_a_register
     for path in files:
         values = from_json(path)
         assert set(values) <= VALUE_KEYS, path.name
-        assert values["plant"] == path.stem and path.stem in gm.plants.names(), path.name
+        assert values["type"] == path.stem == values["name"], path.name
+        assert path.stem in gm.plants.names(), path.name
+        assert (values["format"], values["kind"]) == (1, "plant"), path.name
         assert isinstance(values["params"], dict), path.name
 
 

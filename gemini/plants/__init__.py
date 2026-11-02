@@ -1,7 +1,7 @@
 """The plant classes and the functions of the plant dict."""
 
 from ._utils.capabilities import capabilities
-from ._utils.catalogue import get, names, validate
+from ._utils.catalogue import get, names
 from ._utils.schema import schema
 from .atesplant import ATESPlant
 from .boilerchpplant import BoilerChpPlant
@@ -24,7 +24,6 @@ from .plant import Plant
 __all__ = [
     "Plant",
     "capabilities",
-    "validate",
     "schema",
     "names",
     "get",

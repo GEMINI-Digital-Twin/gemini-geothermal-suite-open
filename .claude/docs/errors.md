@@ -12,7 +12,8 @@ is raised and the problems go to the call's fixed place:
 
 | Call | Under `on_error="record"` |
 | --- | --- |
-| `validate_params`, `p.validate`, `gm.plants.validate` | return the list of problems |
+| `validate_params` | returns the list of problems |
+| `check` of a module, a plant, a case, an economics | return the list of issues and never raise |
 | `gm.call` | returns them under `errors`, with empty `outlets` and `outputs` |
 | `gm.simulate`, `gm.replay`, `gm.live`, `gm.Engine` | record them in `results.errors()` and continue |
 | `gm.evaluate.*` | a value the inputs cannot give is `{value: null, unit, reason}` |

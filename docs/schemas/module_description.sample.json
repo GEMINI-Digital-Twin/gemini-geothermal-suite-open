@@ -150,6 +150,20 @@
     }
   },
   "parameters": {
+    "backup": {
+      "default": null,
+      "description": "Redundancy sizing keeps: the boilers cover the peak or nothing",
+      "enum": [
+        "peak",
+        "none"
+      ],
+      "maximum": null,
+      "minimum": null,
+      "quantity": null,
+      "section": "parameter",
+      "type": "string",
+      "unit": null
+    },
     "depth": {
       "default": null,
       "description": "True vertical depth of the reservoir midpoint; empty leaves the reservoirs to be set one by one",
@@ -160,6 +174,19 @@
       "section": "parameter",
       "type": "number",
       "unit": "m"
+    },
+    "dispatch": {
+      "default": null,
+      "description": "Rule that orders the sources of a schedule; empty when not stated",
+      "enum": [
+        "least_cost"
+      ],
+      "maximum": null,
+      "minimum": null,
+      "quantity": null,
+      "section": "parameter",
+      "type": "string",
+      "unit": null
     },
     "drainage_radius": {
       "default": null,
@@ -204,6 +231,19 @@
       "section": "parameter",
       "type": "number",
       "unit": "Pa"
+    },
+    "outages": {
+      "default": null,
+      "description": "Rule that picks the steps of the outage; empty when not stated",
+      "enum": [
+        "lowest_demand"
+      ],
+      "maximum": null,
+      "minimum": null,
+      "quantity": null,
+      "section": "parameter",
+      "type": "string",
+      "unit": null
     },
     "permeability": {
       "default": null,
@@ -279,7 +319,9 @@
     "boundaries": {},
     "controls": {},
     "parameters": {
+      "backup": null,
       "depth": null,
+      "dispatch": null,
       "drainage_radius": 1000.0,
       "esp.best_efficiency_flow": 0.03610555555555555,
       "esp.correction_factors": [
@@ -296,7 +338,9 @@
         -1.18258356e-21
       ],
       "esp.maximum_flow": 0.049444444444444444,
+      "esp.maximum_gas_fraction": null,
       "esp.minimum_flow": 0.02277777777777778,
+      "esp.minimum_intake_pressure": null,
       "esp.motor_efficiency": 1.0,
       "esp.power_coefficients": [
         0.0,
@@ -343,6 +387,7 @@
       "injector.two_phase_friction_correlation": "BeggsBrill",
       "nominal_flow": null,
       "nominal_wellhead_pressure": null,
+      "outages": null,
       "permeability": null,
       "pump_efficiency": null,
       "reservoir.aquifer_thickness": 45.0,

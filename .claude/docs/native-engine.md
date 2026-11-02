@@ -436,7 +436,7 @@ builds one with `add` and `connect`. There is one `forward`. JSON exists only as
   a stated parameter, fluid, binding or history stays as written while it equals the current value,
   otherwise the current SI value replaces it; a value that now differs from its starting value is
   added; unstated defaults stay out. A single undated history entry is not written.
-- **Validation.** `gm.plants.validate(data)` reads the dict the way `from_dict` does and collects
-  every problem as `{path, message, code, suggestions}` (`connections[1].target`); a module that
+- **Validation.** `plant.check()` writes the plant as its file and reads it again the way `from_dict` does,
+  and collects every issue as an `Issue` with a path into the file (`connections[1].target`); a module that
   failed to build hides the problems that only follow from it. Parameter problems use
   `invalid_unit`, `out_of_bounds`, `unknown_name`.

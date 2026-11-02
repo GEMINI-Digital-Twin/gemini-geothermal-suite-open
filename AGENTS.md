@@ -90,7 +90,7 @@ goes through a port, and a plant total is read from the ports of the modules at 
 
 Every port of a module is connected or named as a plant port; there are no automatic plant ports
 ([plants](.claude/docs/plants.md#the-builder)). What a design holds beside its parameters, such as a
-setpoint, is set with `plant.set_inputs` and stored in the plant dict under `inputs`. A plant may derive its children's values by
+setpoint, is set with `plant.set_inputs` and stored in the plant file as a leaf of `params`. A plant may derive its children's values by
 overriding `_set_si_params`
 ([modules](.claude/docs/modules.md#a-plant-that-sets-its-childrens-values)).
 

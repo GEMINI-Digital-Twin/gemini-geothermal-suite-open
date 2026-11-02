@@ -50,7 +50,7 @@ def chain():
     plant.connect("makeup.excess_out", "flare.gas_in")
     plant.connect("water_in", "boiler.fluid_in")
     plant.connect("boiler.fluid_out", "water_out")
-    assert {item["code"] for item in gm.plants.validate(plant, on_error="record")} == {
+    assert {item.problem()["code"] for item in plant.check() if item.kind != "missing"} == {
         "root_plant_port"
     }
     return with_values(plant)

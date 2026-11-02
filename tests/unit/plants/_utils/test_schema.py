@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 import gemini as gm
 from tests.fixtures.sample_cases import example_plant
 
@@ -17,37 +15,32 @@ def test_the_schema_is_plain_json_listing_every_module_type_and_group():
     assert {"Filter", "Doublet", "ModuleDict", "ModuleList"} <= set(types)
 
 
-def test_the_schema_has_the_two_forms_of_a_plant_dict():
+def test_the_schema_requires_the_header_and_a_type_or_a_structure():
     """A plant of a class names it; any other plant states its modules and connections."""
-    of_class, with_structure = gm.plants.schema()["anyOf"]
-    assert of_class["required"] == ["format", "type"]
-    assert set(of_class["properties"]["type"]["enum"]) == set(gm.plants.names())
-    assert with_structure["required"] == ["format", "name", "modules", "connections"]
+    schema = gm.plants.schema()
+    assert schema["required"] == ["format", "kind", "name"]
+    assert schema["properties"]["kind"] == {"const": "plant"}
+    assert schema["anyOf"] == [{"required": ["type"]}, {"required": ["modules", "connections"]}]
+    assert set(schema["properties"]["type"]["enum"]) == set(gm.plants.names())
 
 
-def test_the_schema_accepts_only_the_keys_a_plant_dict_holds():
+def test_the_schema_accepts_only_the_keys_a_plant_file_holds():
     """Every key a plant writes is declared, in both forms."""
-    of_class, with_structure = gm.plants.schema()["anyOf"]
+    schema = gm.plants.schema()
     plant = example_plant("NodalDoublet")
-    assert set(plant.to_dict()) <= set(of_class["properties"])
-    assert set(plant.to_dict(structure=True)) <= set(with_structure["properties"])
+    assert set(plant.to_dict()) <= set(schema["properties"])
+    assert set(plant.to_dict(structure=True)) <= set(schema["properties"])
+    assert not {"inputs", "bindings", "param_history"} & set(schema["properties"])
+
+
+def test_the_schema_describes_a_leaf_with_its_range_options_and_history():
+    """Every leaf is one object; ``params`` is a tree of them."""
+    leaf = gm.plants.schema()["$defs"]["leaf"]
+    assert set(leaf["properties"]) == {"value", "unit", "range", "options", "history"}
+    assert leaf["additionalProperties"] is False
 
 
 def test_the_schema_lists_the_forms_of_an_output_and_nothing_removed():
     """Outputs are the three combinations."""
-    _, with_structure = gm.plants.schema()["anyOf"]
-    forms = with_structure["properties"]["outputs"]["additionalProperties"]["properties"]
+    forms = gm.plants.schema()["properties"]["outputs"]["additionalProperties"]["properties"]
     assert set(forms) == {"difference", "ratio", "sum"}
-
-
-def test_the_inputs_schema_takes_a_number_or_a_quantity_and_refuses_a_unit_string():
-    """``set_inputs`` refuses a unit string, so the schema does not offer one."""
-    inputs = gm.plants.schema()["anyOf"][1]["properties"]["inputs"]
-    assert [branch["type"] for branch in inputs["additionalProperties"]["anyOf"]] == [
-        "number",
-        "object",
-    ]
-    assert "unit string" not in inputs["description"]
-    plant = example_plant("NodalDoublet")
-    with pytest.raises(gm.errors.ValidationError):
-        plant.set_inputs({"reservoir.production_rate": "5 kg/s"})
