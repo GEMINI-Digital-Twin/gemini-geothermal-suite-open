@@ -156,3 +156,10 @@ def quantities(plant, case, values):
     return {
         name: units.Quantity(number, unit_of(plant, case, name)) for name, number in values.items()
     }
+
+
+def quantity_of(plant, case, name):
+    """Return the quantity (``"temperature"``, ``"temperature_difference"``, ...) of ``name``."""
+    if is_case_name(name):
+        return case_field(case, name)[0].quantity
+    return _declaration(plant, name).quantity

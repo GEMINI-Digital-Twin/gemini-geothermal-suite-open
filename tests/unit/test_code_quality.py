@@ -113,7 +113,7 @@ FORMULA_EXCEPTIONS = {
 SAME_FORM = {
     (
         "chemistry.py::co2_solubility_gas",
-        "control.py::pid_derivative",
+        "control/_physics.py::pid_derivative",
         "hydraulics.py::reynolds_number",
     ): "a product over a divisor: dissolved CO2, a PID term and the Reynolds number",
     (

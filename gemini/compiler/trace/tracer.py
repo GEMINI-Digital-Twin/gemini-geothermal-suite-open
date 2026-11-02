@@ -79,13 +79,12 @@ class Tracer:
         return graph
 
     def _record_scan(self, module, graph, fluids):
-        """Record one step of ``module`` as the body of a scan over the rows and return the graph."""
+        """Record one step of ``module`` as the body of a scan over the rows; return the graph."""
         trace = Trace(graph, module)
         leaves = state_leaves(module)
         names = [join_path("state", "/".join(leaf)) for leaf in leaves]
         starts = [
-            graph.input(name, "state", leaf_unit(module, leaf))
-            for name, leaf in zip(names, leaves)
+            graph.input(name, "state", leaf_unit(module, leaf)) for name, leaf in zip(names, leaves)
         ]
         dt = graph.input("dt", "dt", "s")
         kept = {}
@@ -254,7 +253,13 @@ class Trace:
         """
         module = self.root
         call = CallRecord(
-            module=None, inputs={}, outputs={}, parent=None, recording=False, trace=self, state=state
+            module=None,
+            inputs={},
+            outputs={},
+            parent=None,
+            recording=False,
+            trace=self,
+            state=state,
         )
         token = current_call.set(call)
         try:

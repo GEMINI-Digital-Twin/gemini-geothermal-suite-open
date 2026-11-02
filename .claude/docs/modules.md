@@ -444,15 +444,16 @@ and numeric parameters become graph inputs named `<path below the root>.<name>`,
 values win without validation, and the `ModuleResult` of traced values joins the parent's call
 records, so the combinations of a plant and `ModuleResult.leaves()` work
 unchanged. `Output.ratio` is `where(bottom == 0, None, top / bottom)` with the division written as
-`ops.truediv`, which gives `None` on plain floats. A leaf child that is stateful,
-has a pre-hook, has a read-only hook or raises `TraceError` becomes one **break node**:
-the graph is rolled back to where the child call started and the child runs on the plain path
-(`module(**row)`, a stateful one from a probe state, hooks included) once per row while the
+`ops.truediv`, which gives `None` on plain floats. A leaf child that
+has a pre-hook, has a read-only hook, raises `TraceError` or is stateful in a call that is not
+stepped becomes one **break node**: the graph is rolled back to where the child call started and the
+child runs on the plain path (`module(**row)`, hooks included) once per row while the
 graph is evaluated, its outputs and outlet fields being `break_output` nodes. The outlet fluids
 come from one probe of `forward` on representative inlets; a row with another fluid fails. A
 failed row is NaN and carries an error code that raises the child's own exception. A composite
 child that cannot be recorded makes the whole root a graph
-break (`graph.breaks` lists the leaf breaks with their reasons).
+break (`graph.breaks` lists the leaf breaks with their reasons). A stateful module in a stepped
+call is no break: it is the body of a `scan` node (native-engine.md, Scan).
 
 An output of a list or tuple of traced values (the per-section profiles of the wells) is a vector
 output of fixed length: `Graph.output` records each item as `<name>[<index>]`, `graph.vectors`
@@ -490,7 +491,8 @@ does not state as a `missing` issue. `forward` takes the state at the start of t
 which returns the state at the end of the step, a key for each declared state and no more. Both are
 pure. A state is never assigned and never read from `self`. A value that means "none yet" is a
 value, not `None`: the PID controller's `previous_step = 0` is "no previous step", so the module
-traces. `module.stateful` is true when a module declares states, and `states(recurse=True)` lists
+traces. `module.stateful` is true when a module declares states (a plant also when a connection is of type
+`state`), and `states(recurse=True)` lists
 them by dotted path.
 
 The state of a plant is the nested dict of the states of its children, by child name, for example

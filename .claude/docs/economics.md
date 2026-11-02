@@ -162,7 +162,6 @@ it, and the checks audit what the columns hold:
 | `mass_balance(plant, case, results)` | the leaf outputs whose unit in `results.units` is kg/s: finite or missing, not negative | smallest flow [kg/s], 1e-12 kg/s |
 | `bounds(plant, case, results)` | every recorded output with a declared limit (`ge`, `gt`, `le`, `lt` of its `Declaration`) | number of values outside, 0 |
 | `requirements(plant, case, results)` | every `gm.case.Requirement` of the case and the supply temperatures of the services, below | one check per matched module and requirement |
-| `run_all(plant, case, results)` | the first three, `bounds` and `requirements` | `{passed, checks}` |
 
 The limits of a run are the `requirements` of its `gm.Case`: each names a **role** and a
 **quantity** of it, never a module path or a field (`gm.plants.roles()` is the closed table):
@@ -194,7 +193,7 @@ The role `plant` is the plant as a whole (`unit_path` `""`):
 `gm.evaluate.totals` (the net import of the electricity grid, the gas out of the gas grid, the surplus
 of the heating grid), and `co2` is the mass emitted in one step [kg] as `gm.evaluate.co2` counts it, so
 `over: "sum"` is the mass of the run and needs `utilities.electricity.co2_intensity` when the run
-buys electricity (`missing_assumption` otherwise). `heat_output` of a `heat_pump`, `boiler` or `chp` and
+buys electricity (`missing_assumption` otherwise). `gas_burned` is the co-produced gas burned in the plant, a mass flow [kg/s]: what its gas makeups give to a burner (the gas they receive less the excess they send on) and what its flares burn (`burned_mass_flow`), so a rule "burned gas at most X" is `{"on": "plant", "quantity": "gas_burned", "over": "max", "max": ...}`; a run with neither module gives no value. `heat_output` of a `heat_pump`, `boiler` or `chp` and
 `cold_output` of a `chiller` are the enthalpy delivered, the difference of the flows of two ports (a
 heat pump heating: sink out less sink in; cooling: source in less source out; absorption and adsorption:
 chilled in less chilled out; boiler and `CHP`: fluid out less fluid in). `doublet` also has

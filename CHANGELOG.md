@@ -5,9 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0]
+
+From 0.5.0 the public API is backward compatible (additions allowed if nothing breaks).
+
+### Removed or moved (the last breaking change)
+| Old | New |
+| --- | --- |
+| `gm.evaluate.run_all(plant, case, results)` returning `{passed, checks}` | `gm.evaluate.verdict(plant, case, results)` returning `{feasible, reasons}`; the checks are `energy_balance`, `mass_balance`, `bounds` and `requirements` |
+| `gm.physics.control` (`pid_error`, `pid_derivative`, `pid_command`, `pid_integral_increment`, `anti_windup_increment`) | `gemini/modules/control/_physics.py`, private to `PIDController` |
+
+Kept on purpose: `gm.evaluate.call_*` (they audit one `gm.call`) and `gm.ops` (the math API of
+module authors). `gm.physics.diagnostics` stays: five modules call it from `health` and a module
+may not import `engine`.
+
+### Added
+- `tests/fixtures/public_api_0_5_0.json`, `tests/unit/test_api_compatibility.py` and
+  `tests/e2e/test_competition_surface.py`.
+
 ## [Unreleased]
 
+### Added
+- `gm.call(..., state=, dt=)`: a module with state takes the state at the start and the step, and
+  the result has the key `state` with the state at the end of the step.
+- The quantity `gas_burned` (kg/s) of the role `plant`: the co-produced gas burned by the boilers
+  and flares of the plant, so a requirement can limit it.
+
+- State connections (`connect(source, target, type="state")`): the target reads what the source
+  outlet gave at the previous step; the plant keeps those values in its state. They are in the plant
+  file as a connection of type `state` (no new key). A storage module runs inside a normal
+  simulation, from `case.initial_state`.
+
 ### Changed
+- Module contract: `forward(self, inputs, inlets, state)` is pure (it reads parameters on `self`
+  and nothing else, writes nothing, returns `(outputs, outlets)`) and a stateful module has a pure
+  `update(self, inputs, inlets, outlets, state, dt)` that returns the next state. A state has no
+  default: it comes from `case.initial_state`. A stateful plant scans in time: one call over the
+  whole run, the state carried from step to step.
+- Hooks: a pre-hook is called `(module, inputs, inlets, state)` and a forward hook
+  `(module, inputs, inlets, state, outputs, outlets)`; a hook that returns a mapping replaces the
+  controls and boundaries (pre-hook) or the outputs (forward hook) of that call, `None` observes.
+- `gm.simulate` and the engine: a physical failure of a step (`invalid_inlet`, `out_of_bounds`,
+  `out_of_range`, `no_convergence`) is a failed row whatever `on_error` says, and the run finishes;
+  every other failure follows `on_error`. A trial of a search whose plant fails a step is
+  infeasible (violation 1e6) instead of raising, and a NaN value counts as the largest violation.
+- `gm.call(module, parameters, inlets, controls, units, ...)`: `units` is required and is `"si"`
+  (plain `{value, unit}` in SI) or `"display"` (`Quantity` in the display units of the report);
+  the map `{quantity: unit}` is no longer taken by `gm.call`.
+- `Best.to_dict()`, `Sample.to_dict()`, the history of a search and the notes of `gm.study.size`
+  show the display units of the report instead of bare SI; `from_dict` reads them back.
 - `gm.runtime.settings(default_fluid=...)` and `gm.runtime.state()["default_fluid"]` are removed: the
   fluid is a case input (`site.fluid`) or an entry of the plant `fluids`. A module or a `Stream`
   without a fluid raises `missing_value` naming its path; `gm.Stream(...)` requires `fluid`.

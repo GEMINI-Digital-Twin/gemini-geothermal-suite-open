@@ -7,6 +7,7 @@ import pytest
 import gemini as gm
 from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
+from gemini.units.quantities import Energy, Temperature
 from tests.fixtures import si
 from tests.fixtures.errors import raises
 from tests.fixtures.esp_design import ESP_MODULE
@@ -33,6 +34,7 @@ def call(**changes):
         parameters=ESP_PARAMETERS,
         inlets=SUCTION,
         controls={"frequency": {"value": 50, "unit": "Hz"}},
+        units="si",
     )
     return gm.call(**(arguments | changes))
 
@@ -173,23 +175,53 @@ def test_an_unknown_name_comes_with_suggestions():
     assert call(module="ESp", on_error="record")["errors"][0]["suggestions"] == ["ESP"]
 
 
-def test_units_convert_outlets_and_outputs():
-    """Stream fields and outputs say the unit used; the numbers are those of SI."""
-    plain = call()
-    converted = call(units={"pressure": "bar", "temperature": "degC", "power": "kW"})
-    outlet, stored = converted["outlets"]["fluid_out"], plain["outlets"]["fluid_out"]
-    assert outlet["p"] == {"value": stored["p"]["value"] / 1e5, "unit": "bar"}
-    assert outlet["T"]["value"] == pytest.approx(stored["T"]["value"] - 273.15)
-    assert outlet["m_dot"] == stored["m_dot"]
-    assert converted["outputs"]["power"]["unit"] == "kW"
-    assert converted["outputs"]["head"]["unit"] == "bar"
+def test_display_gives_quantities_in_the_display_units():
+    """Pressure stays Pa (no display unit), power is in MW, and each value is a ``Quantity``."""
+    shown = call(units="display")
+    assert shown["errors"] == []
+    power = shown["outputs"]["power"]
+    assert isinstance(power, Quantity) and power.unit == "MW"
+    assert shown["outlets"]["fluid_out"]["T"].unit == "degC"
+    assert shown["outlets"]["fluid_out"]["m_dot"].unit == "kg/s"
 
 
-def test_a_wrong_map_of_units_follows_on_error():
-    """It is wrong input: raised by default, in ``errors`` when recorded."""
-    with raises(gm.errors.ValidationError, "unknown_name"):
-        call(units={"powr": "kW"})
-    assert call(units={"powr": "kW"}, on_error="record")["errors"][0]["code"] == "unknown_name"
+def test_si_and_display_are_equal_after_conversion():
+    """Every outlet field and output of the two results is the same quantity in SI."""
+    plain, shown = call(units="si"), call(units="display")
+    assert plain["outlets"].keys() == shown["outlets"].keys()
+    for port, fields in plain["outlets"].items():
+        for name, stored in fields.items():
+            assert shown["outlets"][port][name].si == pytest.approx(
+                Quantity.from_dict(stored).si, rel=1e-12
+            )
+    assert plain["outputs"].keys() == shown["outputs"].keys()
+    for name, stored in plain["outputs"].items():
+        found = shown["outputs"][name]
+        if isinstance(stored["value"], (int, float)) and not isinstance(stored["value"], bool):
+            assert found.si == pytest.approx(Quantity.from_dict(stored).si, rel=1e-12)
+        else:
+            assert found.value == stored["value"]
+
+
+def test_a_temperature_difference_output_stays_in_kelvin():
+    """A lift is a difference: converting it to degC would shift it by 273.15."""
+    from gemini.units.display import DisplayedValues
+
+    lift = DisplayedValues().value(5.0, "K", "temperature_difference")
+    assert (lift.value, lift.unit) == (5.0, "K")
+    level = DisplayedValues().value(300.0, "K", "temperature")
+    assert level.unit == "degC" and level.value == pytest.approx(26.85)
+
+
+def test_units_is_required_and_is_si_or_display():
+    """There is no default, and a text outside the two choices is ``invalid_value``."""
+    with pytest.raises(TypeError):
+        gm.call("ESP", ESP_PARAMETERS, SUCTION, {})
+    with raises(gm.errors.ValidationError, "invalid_value", match="si"):
+        call(units="bar")
+    failed = call(units={"pressure": "bar"}, on_error="record")["errors"][0]
+    assert failed["code"] == "invalid_value" and failed["path"] == "units"
+    assert call(units="displai", on_error="record")["errors"][0]["suggestions"] == ["display"]
 
 
 def test_a_volume_flow_goes_in_as_flow_with_the_fluid_of_the_inlet():
@@ -275,4 +307,101 @@ def test_an_error_inside_forward_is_not_reported_as_bad_input():
     """A TypeError of the module's own code stays a TypeError, also under on_error record."""
     for on_error in ("raise", "record"):
         with pytest.raises(TypeError, match="forward bug"):
-            gm.call(module=_Broken, parameters={}, inlets=SUCTION, controls={}, on_error=on_error)
+            gm.call(
+                module=_Broken,
+                parameters={},
+                inlets=SUCTION,
+                controls={},
+                units="si",
+                on_error=on_error,
+            )
+
+
+class _Tank(gm.modules.Module):
+    """A tank whose temperature rises by a rate [K/s], a number over the step."""
+
+    def __init__(self):
+        """Declare the rate, the temperature and the stored energy."""
+        super().__init__()
+        self.rate = gm.modules.Control(float)
+        self.temperature = gm.modules.State(Temperature)
+        self.stored = gm.modules.Output(Energy)
+
+    def forward(self, inputs, inlets, state):
+        """Return the energy of 1 J per K above 0 K."""
+        return dict(stored=state["temperature"]), dict()
+
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the temperature at the end of the step."""
+        return {"temperature": state["temperature"] + inputs["rate"] * dt}
+
+
+class _Pair(gm.modules.Module):
+    """A composite of two tanks, to show the nested state."""
+
+    def __init__(self):
+        """Declare the children."""
+        super().__init__()
+        self.first = _Tank()
+
+    def forward(self, inputs, inlets, state):
+        """Call the tank."""
+        self.first(rate=0.5, state=state["first"])
+        return dict(), dict()
+
+
+def stepping(units, **changes):
+    """Call the tank at 20 degC with a rate of 0.5 K/s over one minute."""
+    arguments = dict(
+        module=_Tank,
+        parameters={},
+        inlets={},
+        controls={"rate": 0.5},
+        units=units,
+        state={"temperature": Quantity(20, "degC")},
+        dt=Quantity(1, "min"),
+    )
+    return gm.call(**(arguments | changes))
+
+
+def test_a_stateful_module_returns_the_next_state_beside_the_result():
+    """The state at the end of the step is 20 degC plus 30 K, in SI as a value dict."""
+    result = stepping("si")
+    assert result["state"] == {"temperature": {"value": pytest.approx(323.15), "unit": "K"}}
+    assert result["outputs"]["stored"]["value"] == pytest.approx(293.15)
+    json.dumps(result, allow_nan=False)
+
+
+def test_the_next_state_in_display_units_feeds_the_next_call():
+    """Display gives degC; passing that state back continues the same trajectory."""
+    first = stepping("display")
+    assert (first["state"]["temperature"].value, first["state"]["temperature"].unit) == (
+        pytest.approx(50.0),
+        "degC",
+    )
+    second = stepping("si", state=first["state"])
+    assert second["state"]["temperature"]["value"] == pytest.approx(353.15)
+
+
+def test_state_and_dt_are_required_only_for_a_stateful_module():
+    """A module with state names what is missing; one without refuses them; a bare number too."""
+    with raises(gm.errors.ValidationError, "missing_value", match="state"):
+        stepping("si", state=None)
+    with raises(gm.errors.ValidationError, "missing_value", match="dt"):
+        stepping("si", dt=None)
+    with raises(gm.errors.ValidationError, "invalid_value", match="temperature"):
+        stepping("si", state={"temperature": 293.15})
+    with raises(gm.errors.ValidationError, "invalid_call", match="no state"):
+        call(state={"temperature": Quantity(1, "K")})
+    assert call()["state"] == {}
+
+
+def test_a_composite_takes_and_returns_the_state_by_child_name():
+    """A plant's state is ``{child: {state: quantity}}``."""
+    result = stepping(
+        "si",
+        module=_Pair,
+        controls={},
+        state={"first": {"temperature": Quantity(20, "degC")}},
+    )
+    assert result["state"]["first"]["temperature"]["value"] == pytest.approx(323.15)

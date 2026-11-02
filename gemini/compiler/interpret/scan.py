@@ -26,7 +26,7 @@ class Scanned:
     """The values of a scan: the stacked values, the states after the last row and the codes."""
 
     def __init__(self, emits, finals, codes, snapshots):
-        """Keep the stacked values and final states by position, the codes and failed rows' values."""
+        """Keep the stacked values, final states and codes by position, and failed rows' values."""
         self.emits = emits
         self.finals = finals
         self.codes = codes
@@ -58,43 +58,59 @@ def evaluate_scan(interpreter, node, operands, values, feeds):
         if frontier in once_codes
     }
     seeds.update(_guard_seeds(plan, once_codes, values, rows))
-    watched = _watched_once(plan, body, once_codes, rows)
-    carry = [_start(operand, scalar) for operand in operands]
     emitted = np.full((len(body.emits), rows), np.nan)
-    stepwise = set(plan.stepwise)
     for index, emit in enumerate(body.emits):
         if emit not in plan.dependent:
             emitted[index] = np.broadcast_to(np.asarray(values[emit], dtype=float), (rows,))
-    codes = np.full(rows, NONE, dtype=np.uint32)
-    snapshots = {}
-    interpreter.active = stepwise | set(plan.frontier) | set(plan.checks)
+    steps = _Steps(interpreter, plan, body, values, feeds)
+    steps.columns, steps.sliced, steps.seeds, steps.emitted = columns, sliced, seeds, emitted
+    steps.watched = _watched_once(plan, body, once_codes, rows)
+    steps.carry = [_start(operand, scalar) for operand in operands]
+    interpreter.active = set(plan.stepwise) | set(plan.frontier) | set(plan.checks)
     for row in range(rows):
-        for input_node, column in columns.items():
-            values[input_node] = _at(column, row, scalar)
-        for frontier, column in sliced.items():
-            values[frontier] = column[row : row + 1]
-        values.update(zip(body.carries, carry))
-        seed = {frontier: code[row : row + 1] for frontier, code in seeds.items()}
-        interpreter.seeds[body] = seed
-        interpreter.run_nodes(plan.stepwise, values, feeds)
-        errors = interpreter.propagate(plan.stepwise, plan.checks, values, seed)
-        code = _lowest([_first_error(errors, body.watch), watched[row]])
-        if code is not None:
-            codes[row] = code
-            snapshots[row] = _snapshot(interpreter.graph.checks[code], values, row, sliced, rows)
-            continue
-        for index, emit in enumerate(body.emits):
-            if emit in plan.dependent:
-                emitted[index, row] = np.asarray(values[emit]).item()
-        carry = [_value(image, values, scalar) for image in body.images]
+        steps.run(row)
     interpreter.active = None
     values.update(columns)
     values.update(sliced)
-    emitted[:, codes != NONE] = np.nan
-    if np.any(codes != NONE):
-        interpreter.seeds[None] = {output: codes for output in body.outputs}
-    finals = [np.asarray(value).item() for value in carry]
-    return Scanned(list(emitted), finals, codes, snapshots)
+    emitted[:, steps.codes != NONE] = np.nan
+    if np.any(steps.codes != NONE):
+        interpreter.seeds[None] = {output: steps.codes for output in body.outputs}
+    finals = [np.asarray(value).item() for value in steps.carry]
+    return Scanned(list(emitted), finals, steps.codes, steps.snapshots)
+
+
+class _Steps:
+    """The rows of one scan: the carries, the stacked values and the failed rows so far."""
+
+    def __init__(self, interpreter, plan, body, values, feeds):
+        """Start without a failed row; the caller sets the columns, seeds and first carries."""
+        self.interpreter, self.plan, self.body = interpreter, plan, body
+        self.values, self.feeds = values, feeds
+        self.codes = np.full(interpreter.rows, NONE, dtype=np.uint32)
+        self.snapshots = {}
+
+    def run(self, row):
+        """Evaluate the stepwise part on one row; a failed row keeps the carries and gets a code."""
+        interpreter, plan, body, values = self.interpreter, self.plan, self.body, self.values
+        for input_node, column in self.columns.items():
+            values[input_node] = _at(column, row, interpreter.scalar)
+        for frontier, column in self.sliced.items():
+            values[frontier] = column[row : row + 1]
+        values.update(zip(body.carries, self.carry))
+        seed = {frontier: code[row : row + 1] for frontier, code in self.seeds.items()}
+        interpreter.seeds[body] = seed
+        interpreter.run_nodes(plan.stepwise, values, self.feeds)
+        errors = interpreter.propagate(plan.stepwise, plan.checks, values, seed)
+        code = _lowest([_first_error(errors, body.watch), self.watched[row]])
+        if code is not None:
+            self.codes[row] = code
+            check = interpreter.graph.checks[code]
+            self.snapshots[row] = _snapshot(check, values, row, self.sliced, interpreter.rows)
+            return
+        for index, emit in enumerate(body.emits):
+            if emit in plan.dependent:
+                self.emitted[index, row] = np.asarray(values[emit]).item()
+        self.carry = [_value(image, values, interpreter.scalar) for image in body.images]
 
 
 def _run_once(interpreter, plan, body, values, feeds):

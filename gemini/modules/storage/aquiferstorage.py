@@ -29,8 +29,11 @@ from gemini.units.quantities import (
 STORES = ("warm", "cold")
 """The two stores of the well pair, in state order."""
 
-SOURCE_AND_TARGET = {"charge": ("cold", "warm"), "discharge": ("warm", "cold")}
-"""Store produced from and store injected into, per flowing ``mode``."""
+MODES = ("charge", "discharge", "idle")
+"""The options of ``mode``, in declared order."""
+
+CHARGE, DISCHARGE, IDLE = (MODES.index(mode) for mode in MODES)
+"""The positions of ``"charge"``, ``"discharge"`` and ``"idle"`` in ``MODES``."""
 
 
 class AquiferStorage(Module):
@@ -89,8 +92,9 @@ class AquiferStorage(Module):
     offered before the other modules run, and the module is called once with the returned
     groundwater, which it produces again at ``groundwater_pressure``.
 
-    NOTE(refactor): written with ops, but a graph break while the graph has no ``scan``: the
-    store volumes, temperature changes and heat totals are states.
+    Inside, ``mode`` is its position among the options (``CHARGE``, ``DISCHARGE``, ``IDLE``), so
+    the modes are selected with ``ops.where`` and the module is traced: a call with the text
+    converts it (``_mode``), and the compiler feeds the position of a text column.
     """
 
     def __init__(self):
@@ -174,7 +178,7 @@ class AquiferStorage(Module):
 
     def forward(self, inputs, inlets, state):
         """Produce the injected mass flow from the source store of the current mode."""
-        mode = inputs["mode"]
+        mode = self._mode(inputs["mode"])
 
         # Outlets
         injection_in = inlets.injection_in
@@ -222,7 +226,7 @@ class AquiferStorage(Module):
             )
         offered = Stream._si(
             m_dot=flow,
-            T=self._production_temperature(inputs["mode"], state),
+            T=self._production_temperature(self._mode(inputs["mode"]), state),
             p=self.groundwater_pressure,
             fluid=self.fluid,
         )
@@ -249,7 +253,7 @@ class AquiferStorage(Module):
 
     def update(self, inputs, inlets, outlets, state, dt):
         """Return the store volumes, temperature changes and heat totals after the step."""
-        mode = inputs["mode"]
+        mode = self._mode(inputs["mode"])
         injection = inlets.injection_in
         volume = ground.injected_volume(self._volume_flow(injection, mode), dt)
         injected_change = injection.T - self.aquifer_temperature
@@ -271,33 +275,45 @@ class AquiferStorage(Module):
                 change, store_volume, conductance, dt, water
             )
         charged = state["charged_heat"]
-        if mode == "charge":
-            charged = charged + ground.stored_heat(water, volume, injected_change)
-        states["charged_heat"] = charged
+        states["charged_heat"] = ops.where(
+            mode == CHARGE, charged + ground.stored_heat(water, volume, injected_change), charged
+        )
         recovered = state["recovered_heat"]
-        if mode == "discharge":
-            recovered = recovered + ground.stored_heat(
-                water, volume, state["warm_temperature_change"]
-            )
-        states["recovered_heat"] = recovered
+        states["recovered_heat"] = ops.where(
+            mode == DISCHARGE,
+            recovered + ground.stored_heat(water, volume, state["warm_temperature_change"]),
+            recovered,
+        )
         return states
+
+    @staticmethod
+    def _mode(value):
+        """Return the position of the operating mode among the options: a text converts."""
+        return MODES.index(value) if isinstance(value, str) else value
 
     def _production_temperature(self, mode, state):
         """Return the temperature [K] that ``production_out`` has in the running step."""
-        source, _ = SOURCE_AND_TARGET.get(mode, (None, None))
-        if source is None:
-            return self.aquifer_temperature
-        return self.aquifer_temperature + self._store(source, state)[1]
+        change = ops.where(
+            mode == CHARGE,
+            state["cold_temperature_change"],
+            ops.where(mode == DISCHARGE, state["warm_temperature_change"], 0.0),
+        )
+        return self.aquifer_temperature + change
 
     def _moved_store(self, store, mode, state, volume, injected_change):
         """Return a store's volume [m3] and temperature change [K] after this step's flow."""
         store_volume, change = self._store(store, state)
-        source, target = SOURCE_AND_TARGET.get(mode, (None, None))
-        if store == target:
-            return ground.mix_store(store_volume, change, volume, injected_change)
-        if store == source:
-            return ops.maximum(store_volume - volume, 0.0), change
-        return store_volume, change
+        source, target = (
+            (mode == DISCHARGE, mode == CHARGE)
+            if store == "warm"
+            else (mode == CHARGE, mode == DISCHARGE)
+        )
+        mixed_volume, mixed_change = ground.mix_store(store_volume, change, volume, injected_change)
+        drawn = ops.maximum(store_volume - volume, 0.0)
+        return (
+            ops.where(target, mixed_volume, ops.where(source, drawn, store_volume)),
+            ops.where(target, mixed_change, change),
+        )
 
     @staticmethod
     def _store(store, state):
@@ -313,13 +329,12 @@ class AquiferStorage(Module):
     def _volume_flow(self, injection, mode):
         """Return the injected liquid volume flow [m3/s] after checking it against the mode."""
         require_forward(self.path, "injection_in.m_dot", injection.m_dot)
-        if mode == "idle":
-            ops.check(
-                injection.m_dot == 0,
-                PhysicsError,
-                "{path}: injection_in.m_dot = {m_dot} kg/s in idle mode; expected 0",
-                path=self.path,
-                m_dot=injection.m_dot,
-            )
+        ops.check(
+            ops.logical_or(mode != IDLE, injection.m_dot == 0),
+            PhysicsError,
+            "{path}: injection_in.m_dot = {m_dot} kg/s in idle mode; expected 0",
+            path=self.path,
+            m_dot=injection.m_dot,
+        )
         density = injection.fluid.properties(injection.p, injection.T).rho_l
         return fluid.volume_flow(injection.m_dot, density)

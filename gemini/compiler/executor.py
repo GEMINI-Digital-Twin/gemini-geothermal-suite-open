@@ -16,6 +16,7 @@ from gemini._utils.mappings import get_nested
 from gemini.compiler.interpret.run_graph import run_graph
 from gemini.compiler.run import graph_feeds
 from gemini.engine.executor import Executor
+from gemini.engine.rowwise import started
 from gemini.errors import ValidationError
 
 _ABSENT = object()
@@ -32,20 +33,21 @@ class GraphExecutor(Executor):
         """Return the graph of ``module`` for the fluids of ``streams`` and its feeds."""
         fluids = {port: stream.fluid for port, stream in streams.items()}
         graph = self.cache.graph(module, fluids, stepped)
-        return graph, graph_feeds(graph, module, streams, inputs), module
+        return graph, graph_feeds(graph, module, streams, inputs), module, fluids
 
     def run(self, prepared, rows, context):
         """Return the ``GraphResult`` of the graph over ``rows`` rows."""
-        graph, feeds, module = prepared
+        graph, feeds, module, fluids = prepared
         if graph.states:
-            feeds = feeds | _scan_feeds(graph, context)
+            start = started(module, fluids, feeds, context.get("states"))
+            feeds = feeds | _scan_feeds(graph, context["dt"], start)
         return run_graph(graph, feeds, rows, context, module)
 
 
-def _scan_feeds(graph, context):
+def _scan_feeds(graph, steps, start):
     """Return the step lengths and the first state of every carry of a scan graph."""
-    feeds = {"dt": context["dt"]}
-    start = context.get("states") or {}
+    feeds = {"dt": steps}
+    start = start or {}
     for leaf, name in graph.states:
         value = get_nested(start, leaf, _ABSENT)
         if value is _ABSENT:

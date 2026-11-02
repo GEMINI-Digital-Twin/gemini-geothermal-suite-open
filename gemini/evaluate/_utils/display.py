@@ -5,6 +5,7 @@ from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import ValidationError
 from gemini.plants.roles import TABLE
 from gemini.units import display
+from gemini.units.display import without_offsets
 
 METRICS = {
     "heat_delivered": "energy",
@@ -66,17 +67,21 @@ def _on_difference(found):
     return read is not None and read.dimension in DIFFERENCES
 
 
-def _adjusted(owner, key, table):
-    """Return the table for ``owner[key]``: no offset in a difference, years for a span."""
-    kept = _without_offsets(table) if _on_difference(owner) else table
-    if key in YEARS:
+def adjusted(name, table, difference=False):
+    """Return the table for the value called ``name``: no offset in a difference, yr for a span.
+
+    ``name`` may be a dotted path; its last part is the name. ``difference`` is whether the value
+    is a difference, whose temperature unit is the SI unit itself, never the offset unit.
+    """
+    kept = without_offsets(table) if difference else table
+    if str(name).rpartition(".")[2] in YEARS:
         return kept | {_units.si_unit("yr"): "yr"}
     return kept
 
 
-def _without_offsets(table):
-    """Return ``table`` without the units that shift a number: a difference keeps its SI unit."""
-    return {unit: shown_unit for unit, shown_unit in table.items() if unit != "K"}
+def _adjust(owner, key, table):
+    """Return the table for ``owner[key]``; a check ``owner`` may judge a difference."""
+    return adjusted(key, table, _on_difference(owner))
 
 
 def shown(found, table):
@@ -85,7 +90,7 @@ def shown(found, table):
     See ``gm.units.display.shown``: a difference keeps its SI unit and the names of ``YEARS``
     are shown in ``yr``.
     """
-    return display.shown(found, table, _adjusted)
+    return display.shown(found, table, _adjust)
 
 
 def display_units(metrics, units=None):

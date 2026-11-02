@@ -120,7 +120,8 @@ class Interpreter:
             else:
                 code = _first(errors.get(operand) for operand in node.operands)
             code = _first(
-                [code, errors.get(node)] + [raised[check] for check in node.guards if check in raised]
+                [code, errors.get(node)]
+                + [raised[check] for check in node.guards if check in raised]
             )
             if code is not None and np.any(code != NONE):
                 errors[node] = code

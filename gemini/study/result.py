@@ -6,6 +6,7 @@ from pathlib import Path
 from gemini._utils.files import to_json
 from gemini._utils.jsonable import to_plain
 from gemini._utils.version import package_version
+from gemini.study._utils.shown import shown
 
 
 @dataclass
@@ -52,7 +53,9 @@ def _found(found):
         "best": best,
         "feasible": found["feasible"],
         "evaluations": found["evaluations"],
-        "history": [to_plain(item) for item in found["history"]],
+        "history": [
+            to_plain(shown(item, item.parts.get("differences", ()))) for item in found["history"]
+        ],
     }
 
 

@@ -138,13 +138,25 @@ does not describe the plant is in the case ([data.md](data.md#the-case)).
 
 ## Public API freeze
 
-The public API is frozen: [api.md](api.md) lists it. `gm.__version__` is the one version, read from
-`version` in `pyproject.toml`. Below 1.0 a breaking change to a public name or a return field raises
-the minor number (`0.3.0`) and an addition or a fix raises the patch number (`0.1.1`), in the same
-commit, with a line in the change log of [api.md](api.md). `tests/unit/test_public_api.py` compares
-against the stored snapshot `tests/fixtures/public_api.json`, which records the version and may only
-change together with it: regenerate it with `tests/fixtures/capture_public_api.py` and add its hash
-to `SNAPSHOTS` for the new version; never edit the hash of a released version.
+From 0.5.0 the public API is backward compatible: [api.md](api.md) lists it. Nothing that exists in
+0.5.0 may break: no public name is renamed or removed, no signature loses or reorders a parameter or
+changes a default or a kind, no output field, code or behaviour changes, no key of the case,
+economics, plant or study schema disappears or becomes required, and the module-author contract
+(`forward`, `update`, `State`) stays. An addition that breaks nothing is allowed (the owner decides
+it) and raises the patch number (`0.5.1`); a breaking change is not made, and there is no minor
+bump that excuses one. What the competition runs stays exactly the same. `gm.__version__` is the
+one version, read from `version` in `pyproject.toml`, and every change has a line in the change log
+of [api.md](api.md) in the same commit.
+
+Two tests hold the rule. `tests/unit/test_api_compatibility.py` checks that the current API
+contains everything in `tests/fixtures/public_api_0_5_0.json` (names, parameters with kind, default
+and order, the signatures of `Module.forward`, `Module.update` and `State`, error codes, schema
+keys) and the list of names geomind uses; that file is written once by
+`tests/fixtures/capture_frozen_api.py` and never regenerated, and its hash is a constant in the
+test. `tests/unit/test_public_api.py` compares the working snapshot `tests/fixtures/public_api.json`
+(regenerated with `tests/fixtures/capture_public_api.py` when an addition is made, its hash added to
+`SNAPSHOTS` for the new version; never edit the hash of a released version).
+`tests/e2e/test_competition_surface.py` pins the calls, files and numbers of the competition.
 
 ## Module rules
 

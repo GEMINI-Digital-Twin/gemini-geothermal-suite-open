@@ -76,7 +76,13 @@ def _thermal_storage():
 def _ice_storage():
     module = si.set_params(IceStorage(), "", dict(water_mass=1000.0, thermal_conductance=2000.0))
     columns = {"fluid_in": _stream([2.0, 2.0, 1.0, 3.0], 268.0, 3e5)}
-    return module, {"fluid_in": GLYCOL_30}, columns, {}, {"ice_fraction": 0.4, "temperature": 273.15}
+    return (
+        module,
+        {"fluid_in": GLYCOL_30},
+        columns,
+        {},
+        {"ice_fraction": 0.4, "temperature": 273.15},
+    )
 
 
 def _borehole_field():

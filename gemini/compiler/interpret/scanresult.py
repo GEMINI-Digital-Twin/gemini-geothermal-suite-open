@@ -27,7 +27,8 @@ def scan_result(graph, module, feeds, rows, backend):
         return row_error(graph.checks[int(codes[row]) - 1], view)
 
     states = state_tree(
-        [leaf for leaf, _ in graph.states], [np.asarray(values[final.node]).item() for final in graph.finals]
+        [leaf for leaf, _ in graph.states],
+        [np.asarray(values[final.node]).item() for final in graph.finals],
     )
     return assembled(graph, rows, codes, column, error, states)
 

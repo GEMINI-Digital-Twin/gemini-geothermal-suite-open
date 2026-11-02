@@ -1,25 +1,21 @@
 """The states of a stepped trace: which values a scan carries, and how one step advances them.
 
 A stateful module tree is traced as the body of a scan. Its state is the nested dict of the states
-of its stateful modules by path (``modules/states.py``), plus, under the key ``previous`` of a plant,
-the streams its state connections read from the step before (``DELAYED``). ``state_leaves`` lists
-the leaves of that tree in a fixed order: each becomes a carry of the scan. ``state_tree`` builds the
-tree of a step from the carries, ``advance`` gives the next state of a call recorded by the
-trace (the traced counterpart of ``Stateful._advance``: the same walk, with ``update`` run on traced
-values and its result not validated, as a traced output is not), and ``leaf_unit`` gives the unit
-of a leaf.
+of its stateful modules by path (``modules/states.py``), plus, under the key ``@previous`` of a
+plant, the values its state connections read from the step before (``plants/_utils/delays.py``).
+``state_leaves`` lists the leaves of that tree in a fixed order: each becomes a carry of the scan.
+``state_tree`` builds the tree of a step from the carries, ``advance`` gives the next state of a
+call recorded by the trace (the traced counterpart of ``Stateful._advance``: the same walk, with
+``update`` run on traced values and its result not validated, as a traced output is not), and
+``leaf_unit`` gives the unit of a leaf.
 """
 
 from gemini._utils.mappings import get_nested, set_nested
 from gemini.errors import DefinitionError, ValidationError
 from gemini.modules.callrecord import CallRecord, current_call
-from gemini.streams.flows import STREAM_FIELDS
-
-DELAYED = "delayed"
-"""The kind of a plan source that reads the stream a connection held at the step before."""
-
-PREVIOUS = "previous"
-"""The key, in the state of a plant, of the streams its state connections carry."""
+from gemini.plants._utils import delays
+from gemini.plants._utils.delays import PREVIOUS
+from gemini.streams.flows import STREAM_FIELDS, Stream
 
 
 def state_leaves(module):
@@ -28,28 +24,24 @@ def state_leaves(module):
     for path, member in module.named_modules():
         keys = tuple(path.split(".")) if path else ()
         leaves.extend((*keys, name) for name in member._states)
-        for key in delayed_keys(member):
-            leaves.extend((*keys, PREVIOUS, key, field) for field in STREAM_FIELDS)
+        for key, (source, port) in _delays(member).items():
+            if member.get_submodule(source)._outlets[port].type is Stream:
+                leaves.extend((*keys, PREVIOUS, key, field) for field in STREAM_FIELDS)
+            else:
+                leaves.append((*keys, PREVIOUS, key))
     return leaves
 
 
-def delayed_keys(module):
-    """Return the keys, ``<source path>.<port>``, of the streams a plant reads from the last step."""
-    plan = getattr(module, "_plan", None)
-    if plan is None:
-        return []
-    keys = {}
-    for arguments in plan.arguments.values():
-        for source in arguments.values():
-            if source[0] == DELAYED:
-                keys[source[1]] = None
-    return list(keys)
+def _delays(module):
+    """Return the state connections of a plant, ``{"<source path>.<port>": (path, port)}``."""
+    plan = module._compiled() if module._delays() else None
+    return plan.delays if plan is not None else {}
 
 
 def leaf_unit(module, leaf):
     """Return the unit of a leaf of the state tree: that of the declared state, else SI."""
     if PREVIOUS in leaf:
-        return dict(zip(STREAM_FIELDS, ("kg/s", "K", "Pa")))[leaf[-1]]
+        return dict(zip(STREAM_FIELDS, ("kg/s", "K", "Pa"))).get(leaf[-1], "1")
     owner = module.get_submodule(".".join(leaf[:-1]))
     return owner._states[leaf[-1]].unit
 
@@ -83,17 +75,9 @@ def advance(trace, module, result, dt):
             )
         seen.add(path)
         set_nested(advanced, tuple(path.split(".")), advance(trace, child, child_result, dt))
-    keys = delayed_keys(module)
-    if keys:
-        advanced[PREVIOUS] = {key: _previous(module, result, key) for key in keys}
+    if module._delays():
+        advanced = advanced | delays.written(module, module._compiled(), result)
     return advanced
-
-
-def _previous(module, result, key):
-    """Return the stream the source outlet ``key`` of a plant holds in the call ``result``."""
-    path, _, port = key.rpartition(".")
-    outlets = dict(result.call_records)[path].outlets[port]
-    return {field: getattr(outlets, field) for field in STREAM_FIELDS}
 
 
 def _leaf(trace, module, result, dt):

@@ -1,11 +1,11 @@
-"""Executors: the ways the engine evaluates a module over the rows of a chunk.
+"""Executors: the ways the engine runs a module over the rows of a chunk.
 
 An ``Executor`` has two steps. ``prepare(module, streams, inputs, stepped)`` takes the inlet
 streams and the controls and boundaries (dotted path to column) of the selected rows and returns
-what ``evaluate`` needs; an exception of this step is the error of every selected row.
-``evaluate(prepared, rows, context)`` returns an ``ChunkResult`` (``gemini.engine.chunkresult``);
+what ``run`` needs; an exception of this step is the error of every selected row.
+``run(prepared, rows, context)`` returns a ``ChunkResult`` (``gemini.engine.chunkresult``);
 ``context`` holds ``dt`` (the seconds of every row) and ``states`` (the state tree of a stepped
-call). The eager executor of ``gemini.engine.eager`` is always there; a package that evaluates
+call). The eager executor of ``gemini.engine.eager`` is always there; a package that runs
 better registers a factory under the name ``"compiled"`` with ``register_executor``, and an
 engine built with ``compile=True`` uses it.
 """
@@ -19,15 +19,15 @@ EAGER = "eager"
 
 
 class Executor:
-    """Base of the executors: subclasses define ``prepare`` and ``evaluate``."""
+    """Base of the executors: subclasses define ``prepare`` and ``run``."""
 
     def prepare(self, module, streams, inputs, stepped):
-        """Return what ``evaluate`` needs for ``module`` on the given inlets and inputs."""
+        """Return what ``run`` needs for ``module`` on the given inlets and inputs."""
         raise NotImplementedError(f"{type(self).__name__} does not prepare")
 
     def run(self, prepared, rows, context):
         """Return the ``ChunkResult`` of the prepared call over ``rows`` rows."""
-        raise NotImplementedError(f"{type(self).__name__} does not evaluate")
+        raise NotImplementedError(f"{type(self).__name__} does not run")
 
 
 def register_executor(name, factory):

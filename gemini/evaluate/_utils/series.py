@@ -5,6 +5,8 @@ import numpy as np
 from gemini._utils.strings import join_path
 from gemini.modules.grids import CoolingGrid, ElectricityGrid, GasGrid, HeatingGrid
 from gemini.modules.module import Module
+from gemini.modules.piping import GasMakeup
+from gemini.modules.treatment import Flare
 
 
 def _summed(frame, columns):
@@ -52,6 +54,21 @@ def edge_power(plant, frame, name):
     """Return the power series [W] of ``EDGE_POWERS[name]`` summed over the plant, or ``None``."""
     module_class, field = EDGE_POWERS[name]
     return leaf_total(plant, frame, field, module_class)
+
+
+def burned_gas(plant, frame):
+    """Return the co-produced gas burned [kg/s], or ``None`` when the plant has no way to burn it.
+
+    The gas a ``GasMakeup`` receives less the excess it sends on is burned by its burner, and a
+    ``Flare`` burns what reaches it (``burned_mass_flow``). A tick where no summed column has a
+    value is NaN.
+    """
+    taken = leaf_total(plant, frame, "gas_in.mass_flow", GasMakeup)
+    excess = leaf_total(plant, frame, "excess_out.mass_flow", GasMakeup)
+    flared = leaf_total(plant, frame, "burned_mass_flow", Flare)
+    parts = [taken - excess] if taken is not None and excess is not None else []
+    parts += [] if flared is None else [flared]
+    return sum(parts[1:], parts[0]) if parts else None
 
 
 def port_difference(plant, frame, module_class, first, second):

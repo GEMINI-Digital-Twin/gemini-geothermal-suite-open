@@ -12,9 +12,11 @@ from gemini.modules.callrecord import outputs_enabled
 from gemini.modules.container import ModuleList
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
+from gemini.modules.states import merged
 from gemini.physics import energy
 from gemini.plants._utils import (
     circuits,
+    delays,
     form,
     leaves,
     listing,
@@ -543,6 +545,27 @@ class Plant(PortResolver, Module):
         # Outlets
         outlets = dict(self._plan_outlets(plan, call.results))
         return self._combinations(call.results), outlets
+
+    def _delays(self):
+        """Return whether a connection of the plant is of type ``state``."""
+        return delays.has_delays(self)
+
+    def _with_delays(self, state, inlets):
+        """Return ``state`` with the previous-step values of the first step, from its ``inlets``.
+
+        A state that has them already is returned as it is.
+        """
+        if not delays.has_delays(self) or delays.PREVIOUS in (state or {}):
+            return state
+        call = Call(self, {}, inlets, {}, self._compiled())
+        return merged(state or {}, {delays.PREVIOUS: delays.start(call)})
+
+    def _advance(self, result, dt, paths=None):
+        """Return the next state: that of the stateful children and the values of the delays."""
+        advanced = super()._advance(result, dt, paths)
+        if delays.has_delays(self):
+            advanced = advanced | delays.written(self, self._compiled(), result)
+        return advanced
 
     def update(self, inputs, inlets, outlets, state, dt):
         """Return the next state: the nested dict of what each stateful child's ``update`` gives.

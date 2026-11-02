@@ -253,8 +253,8 @@ stream converges, the same way for every plant:
 - A tear stream without flow carries nothing: only its flow has to converge.
 - Each pass runs the modules of the loop without recording them, and moves each field of the tear
   stream by Wegstein's method (`plants/_utils/loops.py`); then every module is called once with the
-  converged stream, so outputs and balances see one call each. A loop through a stateful module is
-  refused.
+  converged stream, so outputs and balances see one call each. A stateful module in a loop is
+  called from the state of the step on every pass (a trial advances nothing).
 - `Module._loop_limits` keeps the iterate on the side where a module is valid: a heat exchanger
   must not reverse.
 - A loop needs a module that sets its flow and its pressure, such as a `CirculationPump`.
@@ -265,9 +265,13 @@ A compiled plant traces its loops as a `fixed_point` node that iterates on array
 with the numbers of a plain call. A plant with a constraint is a root break: it runs for real, row by
 row, the same on every backend ([engine](engine.md#the-runner)).
 
-A connection with `"type": "state"` reads the value of the previous step. State connections are
-valid in the plant dict, the schema and validation; **running such a plant raises
-`NotImplementedYet`** until scan exists, because a first step has no previous value.
+A connection with `"type": "state"` reads the value of the previous step. It orders nothing and
+closes no loop: the target takes what the source outlet gave one step before, so a cycle that has
+one such connection is no loop to iterate. The plant is then stateful, and the engine scans it in
+time ([engine](engine.md#the-runner)); the values are in the plant's state under `@previous`. The
+first step reads the stream at rest, at the temperature the source module guesses for a loop
+(`_loop_start`) and the highest pressure of the plant inlets; a source that guesses none raises
+`invalid_design`.
 
 A plant child in a cycle with other modules, with no cycle among the leaves, is opened: its children
 are called directly by the parent, as `DoubletHeatPlant` does with its `doublet`, its constraints are

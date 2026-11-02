@@ -16,6 +16,8 @@ from gemini.plants.plant import Plant
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Power
+from tests.fixtures import si
+from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.parity import BACKENDS
@@ -176,12 +178,22 @@ def test_a_loop_without_a_first_guess_says_so():
         circuit(start=None)()
 
 
-def test_a_stateful_module_in_a_trial_is_refused():
-    """A stateful module would be evaluated at its initial states."""
-    with raises(
-        gm.errors.ValidationError, "invalid_design", match="stateless module for a trial call"
-    ):
-        with_values(ThermalStorage())._trial()
+def test_a_stateful_module_in_a_trial_needs_its_state_like_any_call():
+    """A trial calls a stateful module from the state it is given; without one it raises."""
+    tank = si.set_params(
+        with_values(ThermalStorage()),
+        "",
+        dict(service="hot", volume=2.0, heat_loss_conductance=10.0, reference_temperature=313.15),
+    )
+    inlets = {"charge_in": STREAM, "discharge_in": STREAM, "air_in": air()}
+    with raises(gm.errors.ValidationError, "missing_value"):
+        tank._trial(**inlets)
+    trial = tank._trial(**inlets, state={"temperature": 300.0})
+    assert trial.outputs.tank_temperature == 300.0
+    assert (
+        trial.outputs.tank_temperature
+        == tank(**inlets, state={"temperature": 300.0}).outputs["tank_temperature"]
+    )
 
 
 def test_a_trial_keeps_the_runtime_settings_and_is_not_recorded():
@@ -200,7 +212,7 @@ def test_a_loop_runs_the_same_on_every_backend():
     results = {}
     for backend in BACKENDS:
         with runtime.settings(backend=backend):
-            results[backend] = gm.call(plant, {}, {}, {})
+            results[backend] = gm.call(plant, {}, {}, {}, "si")
     assert all(result == results[BACKENDS[0]] for result in results.values())
 
 

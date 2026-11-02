@@ -1,5 +1,6 @@
 """Whether a finished run is acceptable: bounds, requirements, failed rows and the one verdict."""
 
+from collections import Counter
 from dataclasses import dataclass
 
 import numpy as np
@@ -14,7 +15,7 @@ from gemini.errors.rows import SKIPPED
 from gemini.evaluate._utils.co2_steps import emitted_steps
 from gemini.evaluate._utils.columns import field_of, fields, is_parameter, parameter_values, series
 from gemini.evaluate._utils.operating import breaches
-from gemini.evaluate._utils.series import edge_power
+from gemini.evaluate._utils.series import burned_gas, edge_power
 from gemini.evaluate._utils.tally import tally
 from gemini.evaluate.balances import energy_balance, mass_balance, plant_balance
 from gemini.evaluate.summary import totals
@@ -375,10 +376,11 @@ def _plant_values(plant, case, results, frame, name):
     """Return ``(values, active, unit)`` of a figure of the plant as a whole."""
     if name == "co2":
         return emitted_steps(plant, case, results), _leaf_flags(plant, frame), "kg"
-    found = edge_power(plant, frame, name)
+    unit = "kg/s" if name == "gas_burned" else "W"
+    found = burned_gas(plant, frame) if name == "gas_burned" else edge_power(plant, frame, name)
     if found is None:
-        return np.empty(0), np.empty(0, dtype=bool), "W"
-    return found.to_numpy(dtype=float), _leaf_flags(plant, frame), "W"
+        return np.empty(0), np.empty(0, dtype=bool), unit
+    return found.to_numpy(dtype=float), _leaf_flags(plant, frame), unit
 
 
 def _delivery_values(plant, frame, requirement, path):
@@ -463,35 +465,6 @@ def _where(requirement, unit_path, step):
         "quantity": requirement.quantity,
         "worst_step": None if step is None else step.isoformat(),
     }
-
-
-def run_all(plant, case, results):
-    """Run the energy ledger, the mass ledger, the bounds and the requirements on a finished run.
-
-    Parameters
-    ----------
-    plant : Module
-        The plant that produced ``results``.
-    case : Case
-        The case of the run; its requirements and its service supply temperatures are checked.
-    results : Results
-        A finished run.
-
-    Returns
-    -------
-    dict
-        Plain JSON ``{passed, checks}``: ``checks`` lists the results of ``energy_balance``,
-        ``mass_balance`` and ``bounds``, then those of ``requirements`` (each
-        ``{name, passed, value, limit}``), and ``passed`` is ``False`` if any check failed,
-        ``True`` if none failed and at least one passed, and ``None`` if none could judge.
-    """
-    checks = [
-        energy_balance(plant, case, results),
-        mass_balance(plant, case, results),
-        bounds(plant, case, results),
-        *requirements(plant, case, results),
-    ]
-    return to_plain({"passed": tally([item["passed"] for item in checks]), "checks": checks})
 
 
 SERVICES = {"heating": "heat_delivered", "cooling": "cold_delivered"}
@@ -588,7 +561,12 @@ def ranked(found):
 
 
 def excess(value, limit):
-    """Return how far ``value`` is from ``limit``, relative to the larger of the two."""
+    """Return how far ``value`` is from ``limit``, relative to the larger of the two.
+
+    A value the run could not give (NaN: its steps failed) is the largest violation.
+    """
+    if np.isnan(value.value) or np.isnan(limit.value):
+        return LARGEST_VIOLATION
     return abs(value.value - limit.value) / (max(abs(value.value), abs(limit.value)) or 1.0)
 
 
@@ -645,10 +623,16 @@ def _failed(item):
 
 def _failed_rows(rows):
     """Return the reason of the rows that failed or were skipped, apart from the loops."""
-    count = sum(row["code"] != NOT_CONVERGED for row in rows)
+    failed = [row for row in rows if row["code"] != NOT_CONVERGED]
+    count = len(failed)
     if not count:
         return []
-    message = f"{count} steps failed"
+    top = Counter((row["path"], row["code"]) for row in failed).most_common(1)[0]
+    first = next(row for row in failed if (row["path"], row["code"]) == top[0])
+    message = (
+        f"{count} steps failed; most frequent: {top[0][0]} {top[0][1]} ({top[1]} rows): "
+        f"{first['message']}"
+    )
     return [
         reason(
             "failed_step",

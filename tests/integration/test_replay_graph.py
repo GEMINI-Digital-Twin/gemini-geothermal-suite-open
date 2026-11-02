@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 
 import gemini as gm
-from gemini.errors import PhysicsError
 from tests.fixtures.designs import with_values
 from tests.fixtures.parity import BACKENDS
 
@@ -51,11 +50,14 @@ def port_free_plant():
 
 @pytest.mark.parametrize("backend", BACKENDS)
 def test_a_failing_row_of_a_plant_without_ports_is_an_error(backend):
-    """A root plant has no outlet for an error to reach: the row still fails, as called for real."""
+    """A root plant has no outlet for an error to reach: the row still fails, with either policy.
+
+    A physical failure of a step is a result of a simulation, so the default policy finishes too.
+    """
     index = pd.date_range("2027-01-01", periods=2, freq="D", tz="UTC", name="time")
     columns = {"users.flow": 10.0, "users.heat_demand": 0.0, "valve.opening": [1.0, 0.0]}
     frame = pd.DataFrame(columns, index=index)
     results = gm.simulate(port_free_plant(), plan=frame, on_error="record", backend=backend)
     assert [item["time"][:10] for item in results.errors()] == ["2027-01-02"]
-    with pytest.raises(PhysicsError):
-        gm.simulate(port_free_plant(), plan=frame, backend=backend)
+    default = gm.simulate(port_free_plant(), plan=frame, backend=backend)
+    assert default.errors() == results.errors()

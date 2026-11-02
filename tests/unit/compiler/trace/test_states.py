@@ -5,10 +5,14 @@ import pytest
 
 import gemini as gm
 from gemini.compiler.cache import GraphCache
+from gemini.compiler.trace.states import leaf_unit, state_leaves
 from gemini.modules.declarations import State
+from gemini.modules.storage.aquiferstorage import CHARGE, DISCHARGE, IDLE, MODES
 from tests.fixtures import si
 from tests.fixtures.scan_run import same_rows, scanned, stepped
+from tests.fixtures.storage_plant import lagged_plant
 from tests.unit.compiler.test_loops import Circuit, Drifting, Relaxer
+from tests.unit.modules.storage.test_aquiferstorage import COLD, EMPTY, WARM, storage
 
 ROWS = 5
 STEPS = np.full(ROWS, 900.0)
@@ -23,7 +27,7 @@ BACKENDS = ["numpy", "python"]
 
 
 def _store():
-    """An ice store and a controller in one plant: two stateful children, one connection."""
+    """Return an ice store and a controller in one plant: two stateful children, one connection."""
     plant = gm.Plant("store")
     plant.fluid = gm.streams.fluid.GLYCOL_30
     si.add(plant, "IceStorage", "ice", dict(water_mass=1000.0, thermal_conductance=2000.0))
@@ -164,3 +168,45 @@ def test_a_loop_that_does_not_close_fails_its_step_and_leaves_the_state(backend)
     same_rows(evaluation, rows)
     assert evaluation.error(1).code == "loop_not_converged"
     assert evaluation.states == last == {"relaxer": {"count": 0.0}}
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_a_text_mode_is_fed_as_its_position_and_the_store_steps_as_alone(backend):
+    """The aquifer well pair is traced: a column of modes gives the rows of its own steps."""
+    module = storage()
+    modes = ["charge", "charge", "idle", "discharge", "discharge", "idle", "idle"]
+    columns = {
+        "injection_in": dict(
+            m_dot=np.array([30.0, 20.0, 0.0, 30.0, 10.0, 0.0, 5.0]),
+            T=np.array([COLD.T, WARM.T, WARM.T, COLD.T, COLD.T, WARM.T, WARM.T]),
+            p=np.full(7, 3e5),
+        )
+    }
+    steps = np.full(7, 3600.0)
+    fluids = {"injection_in": WARM.fluid}
+    inputs = {"mode": np.array(modes)}
+    rows, last = stepped(module, fluids, columns, inputs, EMPTY, steps)
+    assert [kind for kind, _ in rows][-1] == "error"
+    evaluation = scanned(module, fluids, columns, inputs, EMPTY, steps, backend)
+    assert evaluation.breaks == []
+    same_rows(evaluation, rows)
+    assert evaluation.states == pytest.approx(last, rel=1e-9)
+
+
+def test_the_options_of_the_mode_are_the_positions_the_module_selects_with():
+    """``CHARGE``, ``DISCHARGE`` and ``IDLE`` are the places of the three texts in the options."""
+    options = storage()._controls["mode"]._options()
+    assert options == MODES == ("charge", "discharge", "idle")
+    assert (options[CHARGE], options[DISCHARGE], options[IDLE]) == MODES
+
+
+def test_a_state_connection_is_three_carries_of_the_plant_state():
+    """A delayed stream is its ``m_dot``, ``T`` and ``p`` under ``@previous`` in the plant state."""
+    plant = lagged_plant()
+    leaves = state_leaves(plant)
+    key = "tank.discharge_out"
+    assert leaves == [
+        *(("@previous", key, field) for field in ("m_dot", "T", "p")),
+        ("tank", "temperature"),
+    ]
+    assert [leaf_unit(plant, leaf) for leaf in leaves[:3]] == ["kg/s", "K", "Pa"]

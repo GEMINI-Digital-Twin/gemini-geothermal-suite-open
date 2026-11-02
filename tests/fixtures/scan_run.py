@@ -68,7 +68,7 @@ def scanned(module, fluids, columns, inputs, state, steps, backend="numpy", cach
 
 
 def _row(value, row):
-    return float(np.asarray(value)[row]) if np.ndim(value) else value
+    return np.asarray(value)[row].item() if np.ndim(value) else value
 
 
 def same_rows(evaluation, rows, tolerance=1e-9):
@@ -93,4 +93,6 @@ def _close(got, expected, label, tolerance):
         return
     got = np.nan if got is None else got
     expected = np.nan if expected is None else expected
+    if np.isnan(got) and np.isnan(expected):
+        return
     assert got == expected or abs(got - expected) <= tolerance * max(1.0, abs(expected)), label

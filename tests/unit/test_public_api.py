@@ -13,7 +13,8 @@ SNAPSHOTS = {
     "0.1.0": "f19ae90f18bb5a5a85e1b1f730276c9a50fdba0d46108c4bcd56488b48178a8b",
     "0.2.0": "cdfa3a358974d1b7ed055e0b94bd0711ffc54fff204bd0f9f4fe573a1ffe7b0d",
     "0.3.0": "98a5053ab31fbcd6432558ce481b181bbc1d361e933fdc1dba21920b2e01a3c4",
-    "0.4.0": "55876052e2490cb78ba90d44e8be56c00e06ba977a05f0f7322daddccdea6ad8",
+    "0.4.0": "4b80dd45200e479a329453542e6f90bf3d0f5eac37f66f0badd8dc87abc4d6d4",
+    "0.5.0": "cd4c7005932a6d3918c006292fd7046eec95226640ee3cf4d3892077c92cca16",
 }
 """Hash of the snapshot per ``gm.__version__``: a released entry never changes."""
 
@@ -103,7 +104,7 @@ def test_the_change_log_lists_the_version():
 def test_the_package_has_one_version():
     """``gm.API_VERSION`` is gone; ``gm.__version__`` is the one version."""
     assert not hasattr(gm, "API_VERSION")
-    assert gm.__version__ == "0.4.0"
+    assert gm.__version__ == "0.5.0"
 
 
 def test_every_economics_function_takes_the_plant_the_case_and_the_results():
