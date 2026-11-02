@@ -14,8 +14,9 @@ import math
 
 import numpy as np
 
-from gemini.compiler.interpret.codes import NONE
+from gemini.compiler.interpret.codes import NONE, raised_codes
 from gemini.compiler.interpret.fixedpoint import evaluate_loop
+from gemini.compiler.interpret.scan import evaluate_scan
 from gemini.compiler.ir import Node
 from gemini.compiler.trace.breaks import evaluate_break
 from gemini.errors import ValidationError
@@ -25,13 +26,19 @@ from gemini.ops import kernels
 class Interpreter:
     """Run one graph on one backend."""
 
-    def __init__(self, graph, backend, module=None):
-        """Prepare to run ``graph`` on the backend object ``backend``, for the root ``module``."""
+    def __init__(self, graph, backend, module=None, rows=1):
+        """Prepare to run ``graph`` on the backend object ``backend``, for the root ``module``.
+
+        ``rows`` is the number of rows the feeds hold; a ``scan`` needs it to know its steps.
+        """
         self.graph = graph
         self.backend = backend
         self.module = module
+        self.rows = rows
+        self.scalar = backend is kernels.get("python")
         self.outer = [node for node in graph.nodes if node.body is None]
         self.seeds = {}
+        self.active = None
 
     def execute(self, feeds):
         """Run the value pass, then the error pass; return the node values and error codes."""
@@ -71,7 +78,9 @@ class Interpreter:
             return _break_value(node, operands, self.module)
         if node.op == "fixed_point":
             return evaluate_loop(self, node, operands, values, feeds)
-        if node.op == "loop_output":
+        if node.op == "scan":
+            return evaluate_scan(self, node, operands, values, feeds)
+        if node.op in ("loop_output", "scan_output"):
             return operands[0].column(node.attributes["key"])
         method = kernels.implementation(self.backend, node.op)
         if node.op == "check":
@@ -85,6 +94,8 @@ class Interpreter:
 
         ``node`` is a node of the outer graph or of a body; ``None`` stands for the end of the
         outer graph. Errors start at the checks, so no failing row anywhere means no codes at all.
+        While a scan runs one part of its body, ``active`` holds the nodes of that part and the
+        loops in it see only those.
         """
         body = None if node is None else node.body
         nodes = self.outer if body is None else body.nodes
@@ -92,20 +103,26 @@ class Interpreter:
         if node is not None:
             nodes = [other for other in nodes if other.index < node.index]
             checks = [check for check in checks if check.index < node.index]
+        if self.active is not None:
+            nodes = [other for other in nodes if other in self.active]
+            checks = [check for check in checks if check in self.active]
         return self.propagate(nodes, checks, values, self.seeds.get(body, {}))
 
     def propagate(self, nodes, checks, values, seed):
         """Return the codes of ``nodes`` given those of ``seed`` and the failing ``checks``."""
         if not seed and not any(np.any(values[check]) for check in checks):
             return {}
-        raised = {check: _raised(values[check]) for check in checks}
+        raised = {check: raised_codes(values[check]) for check in checks}
         errors = dict(seed)
         for node in nodes:
             if node.op == "where":
                 code = _where_code(node, values, errors)
             else:
                 code = _first(errors.get(operand) for operand in node.operands)
-            code = _first([code] + [raised[check] for check in node.guards if check in raised])
+            code = _first(
+                [code, errors.get(node)]
+                + [raised[check] for check in node.guards if check in raised]
+            )
             if code is not None and np.any(code != NONE):
                 errors[node] = code
         return errors
@@ -131,12 +148,6 @@ def _break_value(node, operands, module):
 
 def _value(operand, values):
     return values[operand] if isinstance(operand, Node) else operand
-
-
-def _raised(values):
-    """Return the codes of a check's values (``0`` for no error) as the error pass keeps them."""
-    values = np.asarray(values)
-    return np.where(values == 0, NONE, values - 1).astype(np.uint32)
 
 
 def _first(codes):

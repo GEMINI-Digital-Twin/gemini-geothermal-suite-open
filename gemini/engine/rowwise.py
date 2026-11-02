@@ -86,7 +86,7 @@ def _scanned(module, fluids, feeds, rows, context):
     names = [name for name in feeds if name not in ports]
     stores = {name: _store(declarations[name]) for name in names}
     steps = np.broadcast_to(np.asarray(context.get("dt", np.nan), dtype=float), (rows,))
-    state = _started(module, fluids, feeds, context.get("states"))
+    state = started(module, fluids, feeds, context.get("states"))
     template = []
     paths = module._state_paths()
 
@@ -118,7 +118,7 @@ def _scanned(module, fluids, feeds, rows, context):
     return tree, scanned.failed, scanned.errors, scanned.final
 
 
-def _started(module, fluids, feeds, state):
+def started(module, fluids, feeds, state):
     """Return ``state`` with what the state connections of ``module`` read at the first step.
 
     Their values come from the first row of the inlets and are in the state of the run from then

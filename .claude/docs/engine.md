@@ -412,7 +412,10 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
   from `case.initial_state` (`gm.simulate`; `Engine.simulate` and `gm.live` take no `state=`) or
   from a checkpoint; a stateful module without one raises `missing_value`. The scan keeps no
   per-step cost that grows with the number of modules: the paths of the stateful modules are found
-  once per scan, and a module called inside a call of its plant is not checked again. `engine.module_states` is `{path: tree}` in replay and
+  once per scan, and a module called inside a call of its plant is not checked again. Compiled
+  (`compile=True`, the default) the scan is one `scan` node of the graph (native-engine.md, Scan):
+  the same values to 1e-9 as the eager scan, and a year of the small storage plant takes 2.4 s
+  against 12.5 s of CPU hourly. `engine.module_states` is `{path: tree}` in replay and
   `{"": tree}` in simulate, as in a checkpoint. State bound to a sensor is passed as the start state
   and stays authoritative.
 - **State connections.** A connection of type `state` has no place in the order: its target reads

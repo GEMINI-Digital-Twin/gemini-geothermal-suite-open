@@ -51,6 +51,31 @@ def test_a_storage_plant_equals_the_hand_stepped_tank(compile):
     assert final == pytest.approx(reference["final"], rel=1e-12)
 
 
+def _leaves(tree, prefix=""):
+    """Return the numbers of a nested state tree by dotted key."""
+    found = {}
+    for key, value in tree.items():
+        path = f"{prefix}/{key}"
+        found |= _leaves(value, path) if isinstance(value, dict) else {path: value}
+    return found
+
+
+@pytest.mark.parametrize("make", [(buffer_plant, buffer_frame), (lagged_plant, lagged_frame)])
+def test_a_compiled_stateful_run_equals_the_eager_run_in_every_value(make):
+    """The compiled scan has no graph break and gives the table and end state of the eager scan."""
+    plant, frame = make[0], make[1](24)
+    eager, _ = _run(plant(), frame, compile=False)
+    compiled, engine = _run(plant(), frame, compile=True)
+    assert engine.graph_breaks == {"": []}
+    first, second = eager.to_frame(), compiled.to_frame()
+    assert list(first.columns) == list(second.columns)
+    numbers = first.select_dtypes("float").columns
+    np.testing.assert_allclose(second[numbers], first[numbers], rtol=1e-9, atol=1e-12)
+    assert _leaves(compiled.end_state["module_states"]) == pytest.approx(
+        _leaves(eager.end_state["module_states"]), rel=1e-9
+    )
+
+
 def test_the_choice_of_a_scan_comes_from_the_declared_states():
     """A plant with a state steps in time; one without is evaluated on arrays, with no flag."""
     assert buffer_plant()._has_state()

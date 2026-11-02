@@ -59,8 +59,7 @@ class ThermalStorage(Equipment, Module):
     and inlet temperatures constant over a step (use steps short against the tank time
     constant ``rho cp V / b`` when the inlets vary).
 
-    NOTE(refactor): the tank temperature is a state, so the module is a graph break until
-    ``scan`` exists; its arithmetic is written with ops all the same.
+    The tank temperature is a state, so the module is traced as the body of a scan.
     """
 
     equipment_kind = "thermal_storage"

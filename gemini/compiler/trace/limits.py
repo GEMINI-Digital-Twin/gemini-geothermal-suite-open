@@ -2,17 +2,19 @@
 
 ``check_declared_limits(module, call)`` adds one ``ops.check`` per bound (``Declaration.limits``)
 of every control, boundary and output a traced call holds, each item of a list separately, with
-``ValidationError`` as ``Declaration.validate`` raises on a plain call. A declared
+``ValidationError`` as ``Declaration.validate`` raises on a plain call; ``check_state_limits`` does
+the same for the next value of a state, which a plain step validates. A declared
 ``X | None`` lets NaN pass, which is how ``None`` is stored on arrays. Each check keeps its
 ``Declaration`` and the whole value among its message values (``declaration`` and ``whole``), so
 an evaluation words the error of a failing row with ``declaration.validate``. ``certain`` marks the
-checks of a trace on every output of its graph, so a violated bound fails the row even when the
-bad value does not reach the output through the arithmetic.
+checks of a trace on every output of its graph (in a scan, of its step), so a violated bound fails
+the row even when the bad value does not reach the output through the arithmetic.
 """
 
 import operator
 
 from gemini import ops
+from gemini._utils.mappings import get_nested
 from gemini.errors import ValidationError
 
 _COMPARISONS = {
@@ -30,6 +32,18 @@ def check_declared_limits(module, call):
         declaration = declarations[name]
         if declaration.limits():
             _check_value(declaration, value)
+
+
+def check_state_limits(module, advanced):
+    """Check the bounds of the next value of every state of the tree of ``module``.
+
+    ``advanced`` is the state tree one step gives; a state it does not hold is not checked.
+    """
+    for path, member in module.named_modules():
+        keys = tuple(path.split(".")) if path else ()
+        for name, declaration in member._states.items():
+            if declaration.limits():
+                _check_value(declaration, get_nested(advanced, (*keys, name)))
 
 
 def _check_value(declaration, value):
@@ -56,9 +70,16 @@ def _check_value(declaration, value):
             )
 
 
-def certain(graph, checks):
-    """Guard every output of ``graph`` with ``checks``, so each reaches an output on its rows."""
+def certain(graph, checks, nodes=None):
+    """Guard ``nodes`` with the ``checks`` of the level being traced, so each reaches them.
+
+    ``nodes`` are the graph outputs unless given; in the body of a scan they are the values that
+    fail a step. Only the checks recorded at the level of the graph being traced count: those of
+    the outer graph, or of the running body.
+    """
     alive = set(graph.checks)
-    kept = [check for check in checks if check in alive and check.body is None]
-    for node in {node for node in graph.outputs.values() if hasattr(node, "guards")}:
+    kept = [check for check in checks if check in alive and check.body is graph.body]
+    nodes = graph.outputs.values() if nodes is None else nodes
+    owned = {node for node in nodes if hasattr(node, "guards") and node.body is graph.body}
+    for node in owned:
         node.guards.extend(check for check in kept if check not in node.guards)

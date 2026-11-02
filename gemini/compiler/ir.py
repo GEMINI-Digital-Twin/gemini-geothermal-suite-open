@@ -2,8 +2,10 @@
 
 A ``Graph`` is what the tracer records for one module call: ordered ``Node`` objects (a graph
 input, or one op applied to earlier nodes) with named inputs by role, named outputs and checks.
-The kinds of node are the op kinds of ``gemini.ops.registry`` and the loop nodes ``fixed_point`` (a
-``Body`` run until every row settles) with its ``carry`` and ``loop_output`` nodes.
+The kinds of node are the op kinds of ``gemini.ops.registry``, the loop nodes ``fixed_point`` (a
+``Body`` run until every row settles) with its ``carry`` and ``loop_output`` nodes, and the node
+``scan`` (a ``Body`` run once per row with the states carried from row to row) with its
+``scan_output`` nodes.
 
 The body of a loop: the nodes of one pass around it, run by a ``fixed_point`` node.
 
@@ -89,6 +91,7 @@ def caller_source():
 registry.register("carry", "loop", 0)
 registry.register("fixed_point", "loop", 0)
 registry.register("loop_output", "loop", 1)
+registry.register("scan_output", "scan", 1)
 
 
 @dataclass(eq=False)
@@ -103,6 +106,10 @@ class Body:
     required: list = field(default_factory=list)
     images: tuple = ()
     watch: tuple = ()
+    emits: tuple = ()
+    outputs: tuple = ()
+    scanned: bool = False
+    splits: dict = field(default_factory=dict)
 
     def rollback(self, nodes):
         """Drop what was recorded at or after node index ``nodes``."""
@@ -118,6 +125,7 @@ class Body:
         self.required = []
         self.images = tuple(survivor(node) for node in self.images)
         self.watch = tuple(dict.fromkeys(survivor(node) for node in self.watch))
+        self.emits = tuple(survivor(node) for node in self.emits)
 
 
 class Graph:
@@ -134,6 +142,10 @@ class Graph:
     values; an evaluation maps it to arrays. ``root_break`` marks a **root break**, a graph
     without nodes whose evaluation calls the module row by row (``inlet_fluids`` are the fluids
     of its inlets and ``stepped`` tells that it advances states with ``Module.step``).
+
+    A stepped graph of a stateful module is one ``scan`` (see ``scan``): ``states`` lists its
+    carries as ``(leaf, input name)``, the leaf being the keys of the state in the state tree, and
+    ``finals`` the traced value of each carry after the last row, in the same order.
 
     A graph names no module: the one it is evaluated for, which may be a copy of the module it
     was traced from, is given to ``evaluate``, and a break node holds the path of its module
@@ -159,6 +171,8 @@ class Graph:
         self.root_break = False
         self.stepped = False
         self.inlet_fluids = {}
+        self.states = []
+        self.finals = []
 
     def input(self, name, role, unit=None, shape=()):
         """Add a named graph input and return its traced value."""
@@ -264,6 +278,55 @@ class Graph:
         return {
             key: self.record(registry.get("loop_output"), (node,), {"key": key}) for key in keys
         }
+
+    def scan(self, starts, around):
+        """Record one step of a scan; return the final states and the function that maps values.
+
+        ``starts`` are the first value of each state, traced values or numbers. ``around(carries)``
+        is called once, inside the body, with one traced carry per start; it returns the next
+        value of every carry, the values the scan stacks (a traced value or any tree of them) and
+        the values whose errors fail a step. The body belongs to a ``scan`` node, run once per
+        row with each carry the next value of the row before it; a failed row does not advance
+        them. The returned ``finals`` are the carries after the last row, and ``replace(value)``
+        maps a traced value of the body, in any list, to the stacked value that stands for it
+        outside, one value per row.
+        """
+        body = Body(self.body, scanned=True)
+        outer = self.frames
+        self.body, self.frames = body, []
+        self.bodies.append(body)
+        try:
+            for index in range(len(starts)):
+                body.carries.append(self._carry(body, index))
+            images, stacked, watch = around([Proxy(node, self) for node in body.carries])
+        finally:
+            self.body, self.frames = body.parent, outer
+        body.images = tuple(self._operand(image) for image in images)
+        body.emits = tuple(
+            dict.fromkeys(node for node in traced_nodes(stacked) if node.body is body)
+        )
+        body.watch = tuple(
+            dict.fromkeys([*traced_nodes(watch), *body.required, *_nodes(body.images)])
+        )
+        node = self.record(registry.get("scan"), starts, {"body": body})
+        body.outputs = tuple(
+            self.record(registry.get("scan_output"), (node,), {"key": ("emit", index)}).node
+            for index in range(len(body.emits))
+        )
+        finals = [
+            self.record(registry.get("scan_output"), (node,), {"key": ("state", index)})
+            for index in range(len(starts))
+        ]
+        table = dict(zip(body.emits, body.outputs))
+
+        def replace(value):
+            if isinstance(value, Proxy) and value.node in table:
+                return Proxy(table[value.node], self)
+            if isinstance(value, (list, tuple)):
+                return type(value)(replace(item) for item in value)
+            return value
+
+        return finals, replace
 
     def _carry(self, body, index):
         node = Node(len(self.nodes), "carry", "loop", attributes={"index": index})
@@ -415,6 +478,16 @@ def _proxies(value):
     elif dataclasses.is_dataclass(value) and not isinstance(value, type):
         for member in dataclasses.fields(value):
             yield from _proxies(getattr(value, member.name))
+
+
+def traced_nodes(value):
+    """Return the nodes of the traced values held in ``value``, a value or a tree of them."""
+    return [proxy.node for proxy in _proxies(value)]
+
+
+def _nodes(operands):
+    """Return the nodes among ``operands``, which may also hold literals."""
+    return [operand for operand in operands if isinstance(operand, Node)]
 
 
 def _holds_traced(values):

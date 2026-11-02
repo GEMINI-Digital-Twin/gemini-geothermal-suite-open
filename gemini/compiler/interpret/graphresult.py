@@ -25,12 +25,15 @@ class GraphResult(chunkresult.ChunkResult):
         return self._convert(self.graph.outputs[name])
 
 
-def assembled(graph, rows, codes, column, error):
-    """Return the ``GraphResult`` of per-node ``column`` values and reached ``codes``."""
+def assembled(graph, rows, codes, column, error, states=None):
+    """Return the ``GraphResult`` of per-node ``column`` values and reached ``codes``.
+
+    ``states`` is the state tree after the last row of a scan, else ``None``.
+    """
     failed = np.zeros(rows, dtype=bool) if codes is None else codes != 0
     convert = chunkresult.converter(rows, (Node, Proxy), lambda value: column(_node(value)))
     result = None if graph.result is None else chunkresult.typed(graph.result.mapped(convert))
-    return GraphResult(graph, rows, failed, result, error, convert=convert)
+    return GraphResult(graph, rows, failed, result, error, states, convert=convert)
 
 
 def _node(value):

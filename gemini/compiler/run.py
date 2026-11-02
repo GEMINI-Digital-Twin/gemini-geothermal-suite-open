@@ -96,13 +96,22 @@ def graph_feeds(graph, module, inlets, inputs):
             value = owner._input_value(local)
         else:
             continue
-        feeds[name] = np.asarray(np.nan if value is None else value)
+        value = np.asarray(np.nan if value is None else value)
+        feeds[name] = value if graph.root_break else _indexed(owner, local, value)
     for name in graph.by_role("parameter"):
         owner, local = _owner(module, name)
         feeds[name] = np.asarray(owner._parameter_value(local))
     for name, constant in graph.constants.items():
         feeds[name] = constant.value
     return feeds
+
+
+def _indexed(owner, name, value):
+    """Return ``value`` as it enters a graph: a choice becomes its index among the options."""
+    options = (owner._controls | owner._boundaries)[name]._options()
+    if options is None or value.dtype.kind not in "US":
+        return value
+    return np.vectorize(options.index, otypes=[float])(value)
 
 
 def _owner(module, name):

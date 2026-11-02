@@ -36,10 +36,11 @@ Shared conventions, stated once here and not repeated per module:
 - Stateful modules integrate their `State` values in `update`; call them with
   `module.step(state, dt, inlets)` or `module(..., state=state)`. A state has no default: the
   case states it (`case.initial_state`).
-- Every leaf is written with `gemini.ops`, so it traces into a computation graph. The exceptions
-  are the graph breaks, which run tick by tick: `ThermalDecline`, `AquiferStorage`,
-  `BoreholeField`, `ThermalStorage`, `IceStorage` and `PIDController`, stateful until `scan` exists
-  (see [native-engine.md](native-engine.md)). Structural parameters, fixed in a trace and a graph
+- Every leaf is written with `gemini.ops`, so it traces into a computation graph; a stateful one
+  is the body of a `scan` node (see [native-engine.md](native-engine.md)). The one plant that
+  is a graph break is `NodalDoublet` and the plants that hold one (it solves a constraint).
+  `AquiferStorage` reads its text `mode` as the position among its options
+  (`CHARGE`, `DISCHARGE`, `IDLE`) and selects with `ops.where`. Structural parameters, fixed in a trace and a graph
   cache guard, are `ProductionReservoir`/`InjectionReservoir` `drainage_radius` and
   `Degasser.separation_efficiency`. The ESP depth and the pipe path of a well are numeric, so one
   graph serves every depth of a study.

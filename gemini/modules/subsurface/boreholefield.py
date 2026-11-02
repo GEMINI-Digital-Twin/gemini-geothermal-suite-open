@@ -52,8 +52,7 @@ class BoreholeField(Module):
     Constant properties, uniform ground, no groundwater flow and no axial heat flow in the
     ground are assumed. Zero flow exchanges no heat and returns the inlet unchanged.
 
-    NOTE(refactor): written with ops, but a graph break while the graph has no ``scan``: the
-    ground temperature change is a state.
+    The ground temperature change is a state, so the field is traced as the body of a scan.
     """
 
     def __init__(self):
