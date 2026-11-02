@@ -30,12 +30,12 @@ caller sees every problem in one try. A single error has itself as the one item.
 
 **Issues.** The input readers (`gemini/units/inputs.py`) collect `Issue`s, defined in
 `gemini.errors.base`: `path`, `kind` (`missing`, `unknown_key`, `unit`, `out_of_bounds`,
-`not_allowed`, `incompatible`, `coverage`), `message`, `quantity`, `accepted` units, `suggestions`
+`not_allowed`, `incompatible`, `coverage`, `deprecated`), `message`, `quantity`, `accepted` units, `suggestions`
 and an optional `code` that overrides the code of the kind (`old_format`). An issue is also a
 problem: `issue.problem()` gives `{path, code, message, suggestions}` with the code of its kind
 (`missing_value`, `unknown_name`, `invalid_unit`, `out_of_bounds`, `invalid_value`, `invalid_value`,
-`invalid_data`), so no new code exists. `raise_issues(issues)` raises nothing for an empty list and
-else one `ValidationError` (`ValidationError.from_issues`) whose `problems` are the problems of the
+`invalid_data`; the kind `deprecated` has the code `deprecated`). `raise_issues(issues)` raises nothing for an empty list and
+else one `ValidationError` (`ValidationError.from_issues`) for the issues that are no warning whose `problems` are the problems of the
 issues and whose `issues` are the issues themselves. Readers append to the list and return `None`,
 so one load reports everything wrong at once.
 
@@ -55,6 +55,8 @@ GeminiError
   NotImplementedYet  the name is final, its work lands in a later step
 GeminiWarning        root of warnings
 ```
+
+**Warnings.** `GeminiWarning` is emitted for a deprecation at read time (`warnings.warn`, once per path): a `range` on a case or economics leaf (inputs.md 7.51). The same finding is an `Issue` of kind `deprecated` in `case.check()`, `economics.check()`, `gm.check` and `Study.check`. `Issue.is_warning` is true for it; `raise_issues` skips it, so no reader, `simulate`, `size` or study stops for it, and a caller that treats a non-empty check list as not ready reads the issues with `not issue.is_warning`.
 
 `GeminiError` takes `path=`, `code=`, `suggestions=` and `problems=` as keywords. `code` defaults to
 the class attribute (`invalid_value`, `invalid_definition`, `out_of_range`, `step`, `cancelled`,
@@ -124,6 +126,7 @@ code is never renamed without raising the minor number of `gm.__version__`.
 | `step` | `RunError` | A replayed twin failed under `on_error="raise"`; the cause is chained |
 | `cancelled` | `Cancelled` | A callback stopped the run |
 | `not_implemented` | `NotImplementedYet` | The name is final, its work lands later |
+| `deprecated` | none (a warning) | An `Issue` of kind `deprecated`: a `range` on a case or economics leaf, read but used by nothing and refused in a later version (inputs.md 7.51) |
 
 `gm.errors.ROW_CODES` maps every row code of `Results.errors()` to its meaning:
 

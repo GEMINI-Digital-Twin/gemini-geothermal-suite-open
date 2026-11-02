@@ -40,6 +40,7 @@ CODES = (
     "step",
     "cancelled",
     "not_implemented",
+    "deprecated",
 )
 """Every value of ``GeminiError.code``; the backend puts them into ``422`` details."""
 
@@ -75,6 +76,7 @@ ISSUE_KINDS = {
     "not_allowed": "invalid_value",
     "incompatible": "invalid_value",
     "coverage": "invalid_data",
+    "deprecated": "deprecated",
 }
 """Every kind of an ``Issue`` with the code its problem carries."""
 
@@ -83,9 +85,10 @@ ISSUE_KINDS = {
 class Issue:
     """One problem found in an input: where, of which kind, what is wrong, and what is accepted.
 
-    ``kind`` is a key of ``ISSUE_KINDS``. ``quantity`` and ``accepted`` name the quantity of a value
-    and the units it accepts, ``suggestions`` the closest valid names. ``code`` overrides the code
-    of the kind (``old_format`` for a file of an older shape). ``problem`` gives the shape
+    ``kind`` is a key of ``ISSUE_KINDS``; ``deprecated`` marks a warning, which ``raise_issues``
+    leaves out. ``quantity`` and ``accepted`` name the quantity of a value and the units it
+    accepts, ``suggestions`` the closest valid names. ``code`` overrides the code of the kind
+    (``old_format`` for a file of an older shape). ``problem`` gives the shape
     ``{path, code, message, suggestions}`` of every error, so an issue is also a problem.
     """
 
@@ -103,6 +106,11 @@ class Issue:
             raise GeminiError(f"Issue: kind = {self.kind!r}; expected one of {list(ISSUE_KINDS)}")
         if self.code is not None and self.code not in CODES:
             raise GeminiError(f"Issue: code = {self.code!r}; expected one of CODES")
+
+    @property
+    def is_warning(self):
+        """Whether this issue is a warning (kind ``deprecated``): reported, never a refusal."""
+        return self.kind == "deprecated"
 
     def problem(self):
         """Return the problem ``{path, code, message, suggestions}`` of this issue."""
@@ -228,6 +236,10 @@ def reported(problems, on_error):
 
 
 def raise_issues(issues):
-    """Raise the ``ValidationError`` that carries every issue of the list, if there are any."""
-    if issues:
-        raise ValidationError.from_issues(issues)
+    """Raise the ``ValidationError`` that carries every issue of the list, if there are any.
+
+    A warning (``Issue.is_warning``) is not among the issues that are raised.
+    """
+    refused = [item for item in issues if not item.is_warning]
+    if refused:
+        raise ValidationError.from_issues(refused)

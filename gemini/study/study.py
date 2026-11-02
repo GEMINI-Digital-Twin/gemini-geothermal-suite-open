@@ -250,7 +250,8 @@ class Study:
         """Return the list of issues of the study; it never raises.
 
         The study is written and read again, then every case and plant it names must read, and each
-        plant must be ready for each case (``gm.check``, the parameters a size completes aside).
+        plant must be ready for each case (``gm.check``, the parameters a size completes aside). A
+        warning (``Issue.is_warning``) is passed on once and does not make a pair unready.
         """
         issues = []
         self._read(self.to_dict(), issues)
@@ -264,7 +265,19 @@ class Study:
         for plant in plants.values():
             for case in cases.values():
                 issues += self._unready(plant, case)
-        return issues
+        return self._once(issues)
+
+    @staticmethod
+    def _once(issues):
+        """Return ``issues`` with a warning that several pairs repeat kept once."""
+        seen, found = set(), []
+        for item in issues:
+            key = (item.path, item.message)
+            if item.is_warning and key in seen:
+                continue
+            seen.add(key)
+            found.append(item)
+        return found
 
     def _unready(self, plant, case):
         """Return the issues of ``gm.check`` for one pair that the method itself would raise."""

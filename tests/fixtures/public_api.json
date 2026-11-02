@@ -268,7 +268,8 @@
   "checkpoint",
   "step",
   "cancelled",
-  "not_implemented"
+  "not_implemented",
+  "deprecated"
  ],
  "errors": {
   "Cancelled": "cancelled",
@@ -1006,5 +1007,5 @@
   "study",
   "units"
  ],
- "version": "0.5.2"
+ "version": "0.5.3"
 }
