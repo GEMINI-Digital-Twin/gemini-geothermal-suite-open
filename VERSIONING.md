@@ -29,11 +29,27 @@ The version has one source: `version` in the `[project]` section of `pyproject.t
 3. Update the version in `pyproject.toml`.
 4. Create a new section in `CHANGELOG.md`:
    - `## [X.Y.Z] - YYYY-MM-DD`
-5. Commit the version/changelog changes.
-6. Tag the release commit:
-   - `git tag vX.Y.Z`
-   - `git push origin vX.Y.Z`
-7. Publish a GitHub Release using the matching changelog entries.
+5. Commit the version/changelog changes and merge them into `dev`.
+
+The `Release` workflow does the rest when a version without a tag reaches `dev`: it runs the whole
+fast suite on every supported Python, builds the wheel and the source archive, pushes the sandbox
+image to `ghcr.io`, and creates the tag `vX.Y.Z` and its GitHub Release from the changelog entry. A
+push that keeps the version publishes nothing. A published version never changes: a fix gets a new
+version. If the workflow fails, nothing is tagged, and it can be run again by hand.
+
+## Installing a published version
+
+GitHub Packages has no Python registry, so a project installs the wheel of a release:
+
+```
+pip install https://github.com/geomind-spe-geohackathon-2026/gemini/releases/download/vX.Y.Z/gemini_geothermal_suite_open-X.Y.Z-py3-none-any.whl
+```
+
+An application pins this exact version. The sandbox image of the same version is
+`ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:X.Y.Z`.
+
+No project installs another project with `pip install -e`, not even locally. A change another
+project needs is published as a new version first. `-e .` remains for a repository's own tests.
 
 ## Changelog categories
 

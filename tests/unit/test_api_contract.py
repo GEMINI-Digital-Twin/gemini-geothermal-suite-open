@@ -1,6 +1,7 @@
 """The table of ``.claude/docs/api.md`` lists every public name, its signature and no other."""
 
 import ast
+import enum
 import inspect
 import re
 
@@ -117,6 +118,8 @@ def test_the_signature_of_a_row_is_the_signature_of_the_code(name):
         return
     signature, kind = rows()[name]
     target = resolve(name)
+    if inspect.isclass(target) and issubclass(target, enum.Enum):
+        return
     if kind in ("class", "function", "method"):
         found = parameters_of(target)
         if found is None:

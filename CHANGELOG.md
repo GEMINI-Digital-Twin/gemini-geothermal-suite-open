@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-11-02
+
+The first version published as a package. Every public name, default and number is the same as
+0.5.4 (`tests/fixtures/public_api_0_5_0.json` is the frozen surface).
+
+### Added
+- Every new version on `dev` is published automatically: the wheel and the source archive on a
+  GitHub Release, and the sandbox image as `ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox`.
+  See `VERSIONING.md`.
+
+### Fixed
+- `pydantic>=2.10.0` is required; it was `>=2.5.0`, and below 2.10 `gm.study.sample` and
+  `gm.study.sensitivity` with worker processes fail on a pickling error.
+- `doc` of `describe` no longer depends on the Python version: 3.13 strips the indentation of a
+  docstring and 3.11 and 3.12 did not, so the indentation is now always removed.
+- `tests/unit/test_code_quality.py` needs `mccabe`, which is now in the `test` group.
+- The compatibility tests no longer compare methods gemini inherits from Python or pydantic, whose
+  signatures change with those versions, nor the call of an enum class. The frozen file is unchanged.
+
+### Known issues
+- On a few winter days of the sample plants the split of the heat between the heat pump and the
+  peak boiler is not unique, so a change in the last bit of a calculation moves it. The same
+  installation on the same CPU always gives the same numbers, but a CPU with AVX-512 can give others:
+  LCTS moves by up to 0.13% on `HeatingPlant`, and the fuel of the boiler by more. This is not new in
+  this version. CI runs NumPy without AVX-512 to stay on the expected numbers.
+
 ## [0.5.4] - 2026-11-02
 
 Backward compatible with 0.5.3 and 0.5.0 for every number: all are the same to 1e-9 (`gm.study.sample`

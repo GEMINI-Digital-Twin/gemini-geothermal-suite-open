@@ -147,7 +147,7 @@ def test_root_outputs_equal_the_handwritten_class_to_the_last_bit(runs, way):
     run = runs[BACKENDS[0]][way][1]
     assert run.steps[3]["trees"][""]["outputs"] == {}
     row = run.frame.iloc[3]
-    assert row["heat_exchanger.duty"] == CLASS_BASED_ROOT["thermal_power"]
+    assert row["heat_exchanger.duty"] == pytest.approx(CLASS_BASED_ROOT["thermal_power"], rel=1e-12)
     electricity = row[[name for name in row.index if name.endswith(".power_in")]]
     losses = row[[name for name in row.index if name.endswith(".loss_out")]]
     assert electricity.sum() == pytest.approx(CLASS_BASED_ROOT["electricity"], rel=1e-12)

@@ -6,7 +6,14 @@ from functools import reduce
 import pytest
 
 import gemini as gm
-from tests.fixtures.capture_frozen_api import FROZEN, POSITIONAL, UNSET, capture, fingerprint_file
+from tests.fixtures.capture_frozen_api import (
+    FROZEN,
+    INHERITED,
+    POSITIONAL,
+    UNSET,
+    capture,
+    fingerprint_file,
+)
 
 FROZEN_FILE_HASH = "899be29a7e7fbecfb73794227e43df40281d1bb06e54f13e16619a070341467d"
 """Hash of ``public_api_0_5_0.json``; the file is written once and never regenerated."""
@@ -81,6 +88,8 @@ def lost_parameters(old, new):
 
 def lost(old, new, path=""):
     """Return every difference of ``new`` that breaks what ``old`` promised."""
+    if new == INHERITED:
+        return []
     if isinstance(old, list) and old and isinstance(old[0], list):
         return [f"{path}: {item}" for item in lost_parameters(old, new)]
     if isinstance(old, dict):
