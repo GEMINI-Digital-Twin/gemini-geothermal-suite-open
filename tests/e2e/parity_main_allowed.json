@@ -1,0 +1,23 @@
+{
+  "differences": [],
+  "no_counterpart_on_main": {
+    "reason": "origin/main (1.0.3) holds the physics models of gemini_model and framework units whose heat exchanger, boiler, pump and filter units are empty placeholders. It has no plant file, case, schedule, simulate, constraints, verdict, report, compare, size, minimize, sample or sensitivity, so those steps of the competition path cannot run there. Their numbers are pinned by the frozen competition tests and the baseline, not by this check.",
+    "parts": [
+      "case and economics reading",
+      "plant files",
+      "doublet",
+      "heat pump",
+      "chillers",
+      "boiler",
+      "schedule",
+      "simulate",
+      "verdict and requirements",
+      "capex, opex, lcts, co2",
+      "size",
+      "minimize",
+      "sample",
+      "sensitivity",
+      "compare and report"
+    ]
+  }
+}
