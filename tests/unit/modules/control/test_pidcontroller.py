@@ -147,18 +147,23 @@ class ControlledTank(Module):
         self.charge_out = Outlet(Stream)
         self.discharge_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Throttle the charge flow by the controller command, then pass the tank."""
 
         # Modules
         control = self.controller(
-            measurement=self.measured_temperature, setpoint=self.temperature_setpoint
+            measurement=inputs["measured_temperature"],
+            setpoint=inputs["temperature_setpoint"],
+            state=state["controller"],
         )
         charge_in = inlets.charge_in
         throttled = charge_in._with_si(m_dot=charge_in.m_dot * control.outputs.command)
-        self.command = control.outputs.command
+        outputs = dict(command=control.outputs.command)
         stored = self.storage(
-            charge_in=throttled, discharge_in=inlets.discharge_in, air_in=air(293.15)
+            charge_in=throttled,
+            discharge_in=inlets.discharge_in,
+            air_in=air(293.15),
+            state=state["storage"],
         )
 
         # Outlets
@@ -166,7 +171,7 @@ class ControlledTank(Module):
         discharge_out = stored.outlets.discharge_out
 
         outlets = dict(charge_out=charge_out, discharge_out=discharge_out)
-        return outlets
+        return outputs, outlets
 
 
 def test_controller_steps_inside_a_composite():
@@ -188,7 +193,9 @@ def test_controller_steps_inside_a_composite():
             p=gm.units.Quantity(3e5, "Pa"),
         ),
     }
-    state, result = plant.step({"controller": FRESH}, 60, streams)
+    state, result = plant.step(
+        {"controller": FRESH, "storage": {"temperature": 293.15}}, 60, streams
+    )
     assert result.outputs.command == pytest.approx(0.1 * 10)
     assert result.children["storage"].inlets.charge_in.m_dot == pytest.approx(1.0)
     assert state["controller"]["integral"] == 0

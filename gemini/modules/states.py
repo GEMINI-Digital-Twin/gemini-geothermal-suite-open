@@ -10,7 +10,6 @@ from gemini import ops
 from gemini._utils.mappings import set_nested
 from gemini._utils.strings import did_you_mean, join_names, join_path
 from gemini.errors import DefinitionError, ValidationError
-from gemini.modules import unconverted
 from gemini.modules.callrecord import current_call, has_arrays, numpy_ports
 
 
@@ -52,10 +51,10 @@ class Stateful:
         return any(module._states for module in self.modules())
 
     def initial_state(self):
-        """Return the states of an unconverted tree at their defaults, ``None`` without states.
+        """Return the child states of a composite, ``None`` without states.
 
-        A converted module has no default: its state comes from ``case.initial_state``, so asking
-        for it without a state raises ``missing_value``.
+        A module has no default state: it comes from ``case.initial_state``, so asking a module
+        that declares states for it raises ``missing_value``.
         """
         if self._states:
             return self._call_state(None)
@@ -71,8 +70,6 @@ class Stateful:
         if not self._states:
             return dict(state) if state else {}
         if state is None:
-            if self._unconverted:
-                return unconverted.initial_states(self)
             raise self._missing_state(list(self._states))
         unknown = sorted(state.keys() - self._states.keys())
         if unknown:
@@ -83,8 +80,6 @@ class Stateful:
             )
         given = {name: self._states[name].validate(value) for name, value in state.items()}
         missing = [name for name in self._states if name not in given]
-        if self._unconverted:
-            return unconverted.initial_states(self) | given
         if missing:
             raise self._missing_state(missing)
         return {name: given[name] for name in self._states}
@@ -100,8 +95,6 @@ class Stateful:
 
     def _probe_state(self):
         """Return a state for a probe that only needs forward to run: every state at zero."""
-        if self._unconverted:
-            return unconverted.initial_states(self) if self._states else {}
         return {name: 0.0 for name in self._states}
 
     def update(self, inputs, inlets, outlets, state, dt):
@@ -144,10 +137,7 @@ class Stateful:
             token = current_call.set(call)
             try:
                 scoped = numpy_ports(inlets) if scope.wrapping else inlets
-                if self._unconverted:
-                    values = unconverted.advance(self, scoped, result.outlets, dt)
-                else:
-                    values = self.update(call.inputs, scoped, result.outlets, call.state, dt)
+                values = self.update(call.inputs, scoped, result.outlets, call.state, dt)
             finally:
                 current_call.reset(token)
         return self._checked_state(ops.scope.plain(values))
@@ -170,8 +160,8 @@ class Stateful:
     def step(self, state, dt, inlets):
         """Advance every declared state over ``dt`` seconds; return ``(next_state, result)``.
 
-        ``state`` is the tree of the states at the start, or ``None`` for an unconverted tree at its
-        defaults. The call is ``self(inlets, state=state)`` and the next state is what ``update``
+        ``state`` is the tree of the states at the start, or ``None`` for a tree without states.
+        The call is ``self(inlets, state=state)`` and the next state is what ``update``
         of each stateful module returns for the values of its own call. A stateful descendant
         called twice in one step is refused.
         """

@@ -93,9 +93,9 @@ def restored(returned, scoped, inlets):
 
 
 def scalar_output(declaration, value):
-    """Return an output of a forced backend: a 0-d NaN is the ``None`` of ``X | None``."""
-    is_scalar_array = isinstance(value, np.ndarray) and not value.ndim
-    if is_scalar_array and declaration.accepts_none() and value != value:
+    """Return a scalar output: a NaN float is the ``None`` of ``X | None``."""
+    is_scalar = isinstance(value, float) or (isinstance(value, np.ndarray) and not value.ndim)
+    if is_scalar and declaration.accepts_none() and value != value:
         return None
     return value
 

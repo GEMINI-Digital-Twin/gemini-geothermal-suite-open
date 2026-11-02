@@ -3,6 +3,7 @@
 import gemini as gm
 from gemini.engine.apply import apply_case, started
 from gemini.units import Quantity
+from tests.fixtures.errors import raises
 from tests.fixtures.sample_cases import HACKATHON_2026, SHALLOW_DISTRICT, sample_case, shallow_case
 
 SHALLOW_PLANT = SHALLOW_DISTRICT / "plants/HeatingHeatPumpCoolingPlant.json"
@@ -44,7 +45,6 @@ def storage_plant():
     values = {"service": "hot", "volume": Quantity(2, "m3"), "charge_effectiveness": 1.0}
     values |= {"discharge_effectiveness": 1.0, "heat_loss_conductance": Quantity(10, "W/K")}
     values |= {"reference_temperature": Quantity(40, "degC")}
-    values |= {"initial_temperature": Quantity(20, "degC")}
     return plant.set_params("storage", values)
 
 
@@ -134,7 +134,8 @@ def test_the_case_state_is_where_a_stateful_module_starts():
         "module_states": {"": {"storage": {"temperature": 333.15}}},
     }
     assert started(case) is None
-    assert apply_case(plant, given).initial_state() == plant.initial_state()
+    with raises(gm.errors.ValidationError, "missing_value", match="case.initial_state"):
+        apply_case(plant, given).initial_state()
 
 
 def test_a_least_cost_dispatch_needs_the_energy_prices():

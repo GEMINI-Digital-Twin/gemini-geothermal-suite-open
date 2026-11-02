@@ -5,11 +5,39 @@ import numpy as np
 import gemini as gm
 from gemini.compiler.ir import Graph
 from gemini.compiler.trace.breaks import PROBE, evaluate_break, record_break
+from gemini.modules import Module
+from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.streams.ports import Ports
 from tests.fixtures.graph_run import graph_outputs
 
 
-def _break_graph(tank):
+class Relay(Module):
+    """Pass the stream on and report the inlet mass flow: a stateless twin of the tank."""
+
+    def __init__(self):
+        """Declare an inlet, an output and an outlet."""
+        super().__init__()
+        self.fluid = BRINE
+
+        # Inlets
+        self.fluid_in = Inlet(Stream)
+
+        # Outputs
+        self.content = Output(float)
+
+        # Outlets
+        self.fluid_out = Outlet(Stream)
+
+    def forward(self, inputs, inlets, state):
+        """Pass the stream."""
+        outputs = dict(content=inlets.fluid_in.m_dot)
+        outlets = dict(fluid_out=inlets.fluid_in)
+        return outputs, outlets
+
+
+def _break_graph(tank, reason="stateful"):
     graph = Graph("test")
     inlets = Ports(
         {
@@ -21,7 +49,7 @@ def _break_graph(tank):
             )
         }
     )
-    outlets, outputs, _, _ = record_break(graph, tank, "", inlets, {}, True, "stateful")
+    outlets, outputs, _, _ = record_break(graph, tank, "", inlets, {}, True, reason)
     graph.output("content", outputs["content"])
     graph.output("p", outlets.fluid_out.p)
     return graph
@@ -37,9 +65,10 @@ def test_record_break_adds_the_node_its_outputs_and_the_guarding_check(tank):
     assert PROBE["T"] == 300.0
 
 
-def test_evaluate_break_stacks_rows_and_marks_failures(tank):
+def test_evaluate_break_stacks_rows_and_marks_failures():
     """A row that raises is NaN and keeps its exception; other rows are unchanged."""
-    graph = _break_graph(tank)
+    tank = Relay()
+    graph = _break_graph(tank, "hooked")
     node = graph.nodes[3]
     operands = [np.array([1.0, 5.0, 2.0]), np.array([300.0, -1.0, 300.0]), np.full(3, 1e5)]
     result = evaluate_break(node, operands, tank)
@@ -48,9 +77,10 @@ def test_evaluate_break_stacks_rows_and_marks_failures(tank):
     assert np.isnan(result.column(("outputs", "content"))[1]) and 1 in result.exceptions
 
 
-def test_interpreter_gives_scalar_results_for_scalar_operands(tank):
+def test_interpreter_gives_scalar_results_for_scalar_operands():
     """On the Python backend the break node returns plain numbers."""
-    graph = _break_graph(tank)
+    tank = Relay()
+    graph = _break_graph(tank, "hooked")
     feeds = {"fluid_in.m_dot": 2.0, "fluid_in.T": 300.0, "fluid_in.p": 1e5}
     values = graph_outputs(graph, feeds, "python", tank)
     assert values["content"] == 2.0 and values["p"] == 1e5

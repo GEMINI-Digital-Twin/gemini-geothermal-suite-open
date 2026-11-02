@@ -54,7 +54,7 @@ class Relaxer(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Relax the temperature; the rule of the class is linear, as an exchanger is."""
 
         # Outlets
@@ -64,12 +64,12 @@ class Relaxer(Module):
             outlet = outlet._with_si(m_dot=self.flow)
 
         # Outputs
-        self.drop = inlet.T - outlet.T
+        outputs = dict(drop=inlet.T - outlet.T)
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         return self.start
 
     def _loop_limits(self, inlets):
@@ -155,11 +155,10 @@ def test_a_loop_that_does_not_converge_names_its_tear():
     assert caught.value.path == "relaxer.fluid_out"
 
 
-def _drifting(self, inlets):
+def _drifting(self, inputs, inlets, state):
     """Warm the stream by 1 K on every pass, so no temperature maps to itself."""
     outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + 1.0)
-    self.drop = -1.0
-    return dict(fluid_out=outlet)
+    return dict(drop=-1.0), dict(fluid_out=outlet)
 
 
 def test_the_settings_are_on_the_plant():
@@ -256,15 +255,14 @@ class Curved(Relaxer):
     abstract = True
     scale = 20.0
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Move towards the target along a ``tanh``, ``slope`` times as far."""
         inlet = inlets.fluid_in
         step = np.tanh((inlet.T - self.target) / self.scale) * self.scale
         outlet = inlet._with_si(T=self.target + self.slope * step * 1.9)
         if self.flow is not None:
             outlet = outlet._with_si(m_dot=self.flow)
-        self.drop = inlet.T - outlet.T
-        return dict(fluid_out=outlet)
+        return dict(drop=inlet.T - outlet.T), dict(fluid_out=outlet)
 
 
 ROWS = {
@@ -317,11 +315,10 @@ class Guarded(Relaxer):
 
     abstract = True
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Move half way to the target."""
         outlet = inlets.fluid_in._with_si(T=_cooled(inlets.fluid_in.T, self.target))
-        self.drop = inlets.fluid_in.T - outlet.T
-        return dict(fluid_out=outlet)
+        return dict(drop=inlets.fluid_in.T - outlet.T), dict(fluid_out=outlet)
 
 
 def _guarded(target):
@@ -374,11 +371,10 @@ def test_a_row_that_does_not_converge_is_marked_with_its_own_temperature():
     assert str(error) == str(caught.value)
 
 
-def _drifting_by(self, inlets):
+def _drifting_by(self, inputs, inlets, state):
     """Warm the stream by ``drift`` kelvin on every pass."""
     outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + self.drift)
-    self.drop = -self.drift
-    return dict(fluid_out=outlet)
+    return dict(drop=-self.drift), dict(fluid_out=outlet)
 
 
 @ops.physics
@@ -405,11 +401,11 @@ class Probed(Relaxer):
         self.fluid = BRINE
         self.return_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Relax as the base class does and probe the entering temperature on the side."""
-        outlets = super().forward(inlets)
+        outputs, outlets = super().forward(inputs, inlets, state)
         outlets["return_out"] = inlets.fluid_in._with_si(T=_watched(inlets.fluid_in.T))
-        return outlets
+        return outputs, outlets
 
 
 class ProbedCircuit(Circuit):
@@ -467,12 +463,12 @@ class DoubleProbed(Probed):
 
     abstract = True
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Probe the window, then the bound."""
-        outlets = super().forward(inlets)
+        outputs, outlets = super().forward(inputs, inlets, state)
         bound = _bounded(inlets.fluid_in.T)
         outlets["return_out"] = outlets["return_out"]._with_si(p=bound * 1e3)
-        return outlets
+        return outputs, outlets
 
 
 def test_a_row_that_fails_two_checks_in_a_pass_reports_the_first_as_alone():

@@ -10,9 +10,10 @@ import pytest
 import gemini as gm
 from gemini.compiler.cache import graph_cache
 from gemini.engine.callbacks import AutoCheckpoint, Callback
+from gemini.engine.results import Results
 from gemini.errors import Cancelled, PhysicsError, RunError, ValidationError
 from tests.fixtures import si
-from tests.fixtures.engine_plants import TICKS, pair_frame, pair_plant
+from tests.fixtures.engine_plants import TANK_START, TICKS, pair_frame, pair_plant
 from tests.fixtures.engine_tank import ROW, TIME, tank
 from tests.fixtures.errors import raises
 from tests.fixtures.parity import BACKENDS
@@ -94,8 +95,8 @@ def test_the_error_policy_and_callbacks_reach_the_engine():
 def test_a_replay_goes_in_pieces_with_the_end_state():
     """``end_state`` is the ``state=`` of the next call; the pieces give the numbers of one run."""
     data = _pairs()
-    whole = gm.replay(pair_plant(True), data)
-    first = gm.replay(pair_plant(True), data, end=TICKS[5])
+    whole = gm.replay(pair_plant(True), data, state=TANK_START)
+    first = gm.replay(pair_plant(True), data, end=TICKS[5], state=TANK_START)
     second = gm.replay(pair_plant(True), data, state=first.end_state)
     assert len(first) + len(second) == len(whole)
     assert second.end_state == whole.end_state
@@ -134,7 +135,7 @@ def _run_simulate(**kwargs):
 
 
 def _run_replay(**kwargs):
-    return gm.replay(pair_plant(True), _pairs(), **kwargs)
+    return gm.replay(pair_plant(True), _pairs(), state=TANK_START, **kwargs)
 
 
 @pytest.mark.parametrize("run", [_run_simulate, _run_replay])
@@ -207,7 +208,7 @@ def test_function_and_engine_checkpoints_are_one_format(tmp_path):
             engine.to_checkpoint(by_engine)
 
     with pytest.raises(Cancelled):
-        gm.Engine(pair_plant(True), callbacks=[SaveAndStop(3)]).replay(_pairs())
+        gm.Engine(pair_plant(True), callbacks=[SaveAndStop(3)]).replay(_pairs(), state=TANK_START)
     _same(gm.resume(by_engine), whole)
 
 
@@ -220,16 +221,28 @@ def test_a_user_autocheckpoint_stays_available_through_callbacks(tmp_path):
     assert len(gm.Engine.from_checkpoint(path).results) == len(TICKS)
 
 
+def _live_start(plant, path=None):
+    """Return a live engine whose reservoir starts empty, saved at ``path`` when given."""
+    engine = gm.Engine(plant)
+    engine.run_kind = "live"
+    engine.results = Results()
+    engine.module_states = copy.deepcopy(TANK_START["module_states"])
+    if path is not None:
+        engine.to_checkpoint(path)
+    return engine
+
+
 def test_live_starts_on_the_first_call_and_continues_from_the_file(tmp_path):
     """No object is kept between calls: the path carries the run, each tick runs once."""
     path = tmp_path / "live.ckpt"
     data = _pairs()
+    _live_start(pair_plant(True), path)
     first = gm.live(pair_plant(True), data, path, now=TICKS[3])
     assert path.exists() and len(first) == 4
     second = gm.live(pair_plant(True), data, path, now=TICKS[7])
     again = gm.live(pair_plant(True), data, path, now=TICKS[7])
     assert len(second) == 4 and len(again) == 0
-    engine = gm.Engine(pair_plant(True))
+    engine = _live_start(pair_plant(True))
     engine.live(data, now=TICKS[3])
     pd.testing.assert_frame_equal(
         second.to_frame(), engine.live(data, now=TICKS[7]).to_frame(), check_exact=True

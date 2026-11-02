@@ -87,7 +87,7 @@ class Pipe(Equipment, Module):
         self.fluid_out = Outlet(Stream)
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Apply friction, static head and heat exchange to the inlet stream."""
 
         # Outlets
@@ -109,11 +109,13 @@ class Pipe(Equipment, Module):
         loss_out = heat_transfer.heat_rate(inlet.heat_capacity_rate(), inlet.T - outlet.T)
 
         # Outputs
-        self.pressure_drop = inlet.p - outlet.p
-        self.velocity = geometry.mean_velocity(inlet.m_dot, rho, self.inner_diameter)
+        outputs = dict(
+            pressure_drop=inlet.p - outlet.p,
+            velocity=geometry.mean_velocity(inlet.m_dot, rho, self.inner_diameter),
+        )
 
         outlets = dict(fluid_out=outlet, loss_out=loss_out)
-        return outlets
+        return outputs, outlets
 
     def cost_size(self):
         """Return the size that the cost of the pipe scales with: length."""

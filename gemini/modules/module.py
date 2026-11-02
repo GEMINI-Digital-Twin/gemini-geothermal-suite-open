@@ -12,7 +12,7 @@ and the forward hooks, then returns a ``ModuleResult``.
 The values of one call live in a ``CallRecord`` (``gemini.modules.callrecord``), the only per-call
 state. The parts of a module that are separate jobs are in their own files: the arguments of a call
 (``callargs``), the state tree and the step (``states``), the display (``display``), the path of a
-class (``classpath``) and, until every class is converted, the old contract (``unconverted``).
+class (``classpath``).
 """
 
 import inspect
@@ -33,7 +33,6 @@ from gemini._utils.strings import (
 )
 from gemini.errors import DefinitionError, ValidationError
 from gemini.errors.lookup import UnknownMember
-from gemini.modules import unconverted
 from gemini.modules.bindings import DatedParams
 from gemini.modules.callargs import CallArguments
 from gemini.modules.callrecord import (
@@ -133,14 +132,12 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
     plant_role = None
     """The role this class alone gives in a plant, or ``None``; see ``plants.roles()``."""
     _derived_params = frozenset()
-    _unconverted = False
     category = _FolderCategory()
     abstract = True
 
     def __init_subclass__(cls, **kwargs):
         """Register a class that has a category, unless its own body says ``abstract = True``."""
         super().__init_subclass__(**kwargs)
-        cls._unconverted = unconverted.detect(cls)
         if cls.category is not None and not cls.__dict__.get("abstract", False):
             register(cls)
 
@@ -237,8 +234,7 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
             if isinstance(declaration, kind)
         )
         if isinstance(declaration, State) and declaration.default is not UNSET:
-            if not self._unconverted:
-                raise DefinitionError(f"{self.path}.{name}: a state has no default")
+            raise DefinitionError(f"{self.path}.{name}: a state has no default")
         declaration.prime_default()
         registry[name] = declaration.bind(self, name)
         if isinstance(declaration, Parameter) and declaration.initialized:
@@ -276,8 +272,6 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
 
     def _refuse_in_call(self, name, reason, always=False):
         """Refuse an assignment a converted module makes in a call, or one of an output outside."""
-        if self._unconverted:
-            return
         if always or active_call(self) is not None:
             raise DefinitionError(f"{self.path}.{name}: {reason}")
 
@@ -351,11 +345,7 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
             self._refuse_read(name, "forward and update take a control or boundary from inputs")
             return self._input_value(name)
         if name in registries.get("_states", {}):
-            self._refuse_read(name, "forward and update take a state from state", True)
-            call = active_call(self)
-            if call is not None and call.state is not None:
-                return call.state[name]
-            return unconverted.initial_states(self)[name]
+            raise DefinitionError(f"{self.path}.{name}: forward and update take a state from state")
         if name in registries.get("_outputs", {}):
             call = active_call(self)
             if call is not None and name in call.outputs:
@@ -367,11 +357,9 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
                 return registries[registry][name]
         raise UnknownMember(name, self, _describe_unknown_member)
 
-    def _refuse_read(self, name, reason, always=False):
-        """Refuse a read that a converted module makes in a call, or of a state outside one."""
-        if self._unconverted:
-            return
-        if always or active_call(self) is not None:
+    def _refuse_read(self, name, reason):
+        """Refuse a read of a control, boundary or output from self inside a call."""
+        if active_call(self) is not None:
             raise DefinitionError(f"{self.path}.{name}: {reason}")
 
     def _parameter_value(self, name):
@@ -417,8 +405,6 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
 
     def _offer_values(self, call, inlets):
         """Return what ``_offer`` gives in the running ``call``, the one way to ask for it."""
-        if self._unconverted:
-            return self._offer(inlets)
         return self._offer(call.inputs, inlets, call.state)
 
     def _offered(self, inlets=None, state=None):
@@ -428,8 +414,6 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         """
         self._prepare()
         parent = current_call.get()
-        if state is None:
-            state = unconverted.inherited_state(self, parent)
         ports = Ports(inlets or {}, path=self.path)
         if parent is not None and parent.trace is not None:
             return parent.trace.offer(self, ports, parent)
@@ -457,8 +441,6 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         """Evaluate one call from the state tree ``state``."""
         self._prepare()
         parent = current_call.get()
-        if state is None:
-            state = unconverted.inherited_state(self, parent)
         inlets, supplied = self._split_call_args(args, kwargs, state)
         if parent is not None and parent.trace is not None:
             return parent.trace.child(self, inlets, supplied, parent)
@@ -538,8 +520,6 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
 
     def _forward(self, scoped, call, state):
         """Return ``(outputs, outlets)`` of ``forward`` on the values of ``call``."""
-        if self._unconverted:
-            return {}, self.forward(scoped)
         returned = self.forward(call.inputs, scoped, state)
         try:
             outputs, outlets = returned
@@ -549,8 +529,6 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
 
     def _record_outputs(self, outputs, call):
         """Check the keys of the returned outputs and record them in the call, validated."""
-        if self._unconverted:
-            return
         if not isinstance(outputs, dict):
             raise DefinitionError(f"{self.path}: forward must return (outputs, outlets) as dicts")
         if call.recording:
@@ -645,11 +623,12 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         """Return whether the ``offered`` outlets exist as this module is set; some may not."""
         return True
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         """Return the first guess [K] of the temperature on outlet ``port`` of a closed loop.
 
-        ``entering`` lists the streams that reach this module from outside the loop. A module that
-        can guess overrides this; the plan then prefers to tear that outlet.
+        ``inputs`` are the controls and boundaries of this module and ``entering`` lists the streams
+        that reach it from outside the loop. A module that can guess overrides this; the plan then
+        prefers to tear that outlet.
         """
         return None
 

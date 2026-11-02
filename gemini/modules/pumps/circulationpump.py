@@ -61,7 +61,7 @@ class CirculationPump(Equipment, Module):
         self.fluid_out = Outlet(Stream)
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Set the flow and the pressure of the circuit and draw the electricity."""
 
         # Outlets
@@ -70,10 +70,10 @@ class CirculationPump(Equipment, Module):
         power_in = energy.input_power(hydraulic, self.efficiency)
 
         # Outputs
-        self.pumping_power = hydraulic
+        outputs = dict(pumping_power=hydraulic)
 
         outlets = dict(fluid_out=discharge, loss_out=power_in, power_in=power_in)
-        return outlets
+        return outputs, outlets
 
     def cost_size(self):
         """Return the shaft power [W] at the nominal flow, the size the cost scales with."""

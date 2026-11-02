@@ -53,7 +53,7 @@ class Relaxer(Module):
         self.fluid_in = Inlet(Stream)
 
         # Controls
-        self.target = Control(float)
+        self.target = Control(float, default=300.0)
         self.slope = Control(float, default=0.5)
         self.flow = Control(float, default=2.0)
         self.upper = Control(float, default=1e3)
@@ -64,20 +64,21 @@ class Relaxer(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Relax the temperature, linearly, and set the flow."""
 
         # Outlets
         inlet = inlets.fluid_in
-        temperature = self.slope * inlet.T + (1 - self.slope) * self.target
-        outlet = inlet._with_si(T=temperature, m_dot=self.flow)
+        slope = inputs["slope"]
+        temperature = slope * inlet.T + (1 - slope) * inputs["target"]
+        outlet = inlet._with_si(T=temperature, m_dot=inputs["flow"])
         outlets = dict(fluid_out=outlet)
 
         # Outputs
-        self.drop = inlet.T - outlet.T
-        return outlets
+        outputs = dict(drop=inlet.T - outlet.T)
+        return outputs, outlets
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         return 300.0
 
     def _loop_limits(self, inlets):
@@ -89,10 +90,10 @@ class Watching(Relaxer):
 
     abstract = True
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Probe the entering temperature, then relax."""
         ops.require(_watched(inlets.fluid_in.T))
-        return super().forward(inlets)
+        return super().forward(inputs, inlets, state)
 
 
 class Circuit(Plant):
@@ -137,11 +138,10 @@ class Drifting(Relaxer):
 
     abstract = True
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Warm the stream by ``target`` K per pass."""
-        outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + self.target)
-        self.drop = -self.target
-        return dict(fluid_out=outlet)
+        outlet = inlets.fluid_in._with_si(T=inlets.fluid_in.T + inputs["target"])
+        return dict(drop=-inputs["target"]), dict(fluid_out=outlet)
 
 
 _RINGS = {}

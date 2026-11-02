@@ -25,7 +25,13 @@ from gemini.modules import ModuleDict, ModuleList
 from gemini.modules.results import Health
 from tests.conftest import shipped_module_classes
 from tests.fixtures import ROOT
-from tests.fixtures.engine_plants import Booster, holder_plant, pair_frame, pair_plant
+from tests.fixtures.engine_plants import (
+    TANK_START,
+    Booster,
+    holder_plant,
+    pair_frame,
+    pair_plant,
+)
 from tests.fixtures.engine_tank import ROW, TIME, tank
 from tests.fixtures.parity import (
     BACKENDS,
@@ -159,7 +165,9 @@ def test_raise_stops_at_the_same_row_with_the_same_chained_error(shared_plant, f
 def test_a_stateful_twin_gives_the_same_states_and_results():
     """The reservoir twin carries its total next to the traced boosters on every backend."""
     outcomes = on_each_backend(
-        lambda backend: run_engine(pair_plant(with_tank=True), pair_frame_dataset())
+        lambda backend: run_engine(
+            pair_plant(with_tank=True), pair_frame_dataset(), state=TANK_START
+        )
     )
     assert_runs_match(outcomes)
     assert outcomes[REFERENCE].states["tank"]["total"] > 0

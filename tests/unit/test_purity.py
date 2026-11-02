@@ -1,9 +1,8 @@
-"""Every converted module is pure: forward and update write nothing to it or its children."""
+"""Every module is pure: forward and update write nothing to it or its children."""
 
 import pytest
 
 import gemini as gm
-from gemini.modules.unconverted import OLD_STYLE_MUST_BECOME_EMPTY
 from gemini.plants.plant import Plant
 from tests.fixtures.purity import CASES, snapshot, unchanged
 from tests.unit.plants.test_plant_contract import two_loops
@@ -11,23 +10,14 @@ from tests.unit.plants.test_plant_contract import two_loops
 NAMES = sorted(gm.modules.names())
 
 
-def parametrized():
-    """Return the registered names, those not yet converted marked as skipped."""
-    skipped = pytest.mark.skip(reason="not converted: listed in OLD_STYLE_MUST_BECOME_EMPTY")
-    return [
-        pytest.param(name, marks=skipped if name in OLD_STYLE_MUST_BECOME_EMPTY else ())
-        for name in NAMES
-    ]
-
-
-@pytest.mark.parametrize("name", parametrized())
-def test_running_a_converted_module_leaves_it_and_its_children_unchanged(name):
+@pytest.mark.parametrize("name", NAMES)
+def test_running_a_module_leaves_it_and_its_children_unchanged(name):
     """The guard of ``tests/fixtures/purity.py`` holds for every registered class."""
     cls = gm.modules.get(name)
     if issubclass(cls, Plant):
         assert "forward" not in cls.__dict__ and "update" not in cls.__dict__, name
         return
-    assert name in CASES, f"{name} is converted: add its purity case to tests/fixtures/purity.py"
+    assert name in CASES, f"{name} has no purity case: add it to tests/fixtures/purity.py"
     module, run = CASES[name]()
     with unchanged(module):
         run(module)

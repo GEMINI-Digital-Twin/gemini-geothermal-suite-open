@@ -21,15 +21,16 @@ class ChemicalGrid(Module):
         # Outlets
         self.chemical_out = Outlet(Stream, kind="chemical", offered=True, drawn=True)
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         """Offer the product at normal conditions, with the module's fluid."""
         offered = Stream._si(
             m_dot=0.0, T=gas.NORMAL_TEMPERATURE, p=gas.NORMAL_PRESSURE, fluid=self.fluid
         )
         return {"chemical_out": offered}
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Nothing but what the dosing draws leaves."""
 
+        outputs = dict()
         outlets = dict()
-        return outlets
+        return outputs, outlets

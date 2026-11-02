@@ -44,7 +44,7 @@ class Mixer(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Combine both inlet streams at the lower inlet pressure."""
 
         # Outlets
@@ -63,12 +63,12 @@ class Mixer(Module):
         )
 
         # Outputs
-        self.pressure_imbalance = ops.abs(inlets.branch1_in.p - inlets.branch2_in.p)
+        outputs = dict(pressure_imbalance=ops.abs(branch1_in.p - branch2_in.p))
 
         outlets = dict(fluid_out=fluid_out)
-        return outlets
+        return outputs, outlets
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         """Start a loop at the water that joins from outside: the blend before the loop adds any."""
         return entering[0].T if entering else None
 

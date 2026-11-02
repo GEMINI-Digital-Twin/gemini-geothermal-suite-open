@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.modules import Filter, Module, ProductionReservoir
+from gemini.modules.callrecord import active_call
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.plants.plant import Plant
 from gemini.streams.flows import Stream
@@ -36,14 +37,15 @@ def define_module():
             # Outlets
             self.fluid_out = Outlet(Stream)
 
-        def forward(self, inlets):
+        def forward(self, inputs, inlets, state):
             """Return the inlet."""
 
             # Outlets
             outlet = inlets.fluid_in
 
+            outputs = dict()
             outlets = dict(fluid_out=outlet)
-            return outlets
+            return outputs, outlets
 
     return Repeated
 
@@ -122,14 +124,15 @@ class Child(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the inlet."""
 
         # Outlets
         outlet = inlets.fluid_in
 
+        outputs = dict()
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 class Parent(Module):
@@ -151,7 +154,7 @@ class Parent(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the stream through the child."""
 
         # Modules
@@ -160,8 +163,9 @@ class Parent(Module):
         # Outlets
         outlet = result.outlets.fluid_out
 
+        outputs = dict()
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 def test_child_hook_reads_the_parent_call_value():
@@ -169,7 +173,7 @@ def test_child_hook_reads_the_parent_call_value():
     parent, seen = Parent(), []
 
     def observe(module, inputs, inlets, state, outputs, outlets):
-        seen.append(parent.setting)
+        seen.append(active_call(parent).inputs["setting"])
 
     parent.child.register_forward_hook(observe)
     parent(fluid_in=STREAM, setting=5.0)
@@ -188,13 +192,12 @@ class Meter(Module):
         self.reading = Output(Power | None)
         self.power = Output(Power)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Produce no stream."""
 
+        outputs = dict(reading=None, power=2.0)
         outlets = dict()
-        self.reading = None
-        self.power = 2.0
-        return outlets
+        return outputs, outlets
 
 
 class Share(Plant):

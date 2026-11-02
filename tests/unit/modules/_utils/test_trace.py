@@ -34,7 +34,7 @@ class Train(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the stream through both filters."""
 
         # Modules
@@ -44,8 +44,9 @@ class Train(Module):
         # Outlets
         outlet = second.outlets.fluid_out
 
+        outputs = dict()
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 def hook_counts(plant):

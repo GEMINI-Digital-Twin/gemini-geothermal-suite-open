@@ -4,7 +4,8 @@ import pytest
 
 import gemini as gm
 from gemini.evaluate import call_mass_balance
-from gemini.modules.power import Separator, _physics
+from gemini.modules.power import Separator
+from gemini.physics import steam
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import BRINE, STEAM
 from tests.fixtures.equivalence import assert_module_matches
@@ -35,8 +36,8 @@ def test_flash_split_matches_steam_tables():
 def test_closed_in_if97_enthalpies():
     """Closure: m h_in = m_gas h_g + m_liquid h_f; the cp*T audit cannot show latent heat."""
     result = Separator()(fluid_in=GEOFLUID, pressure_setpoint=6e5)
-    saturation = _physics.saturation_properties(6e5)
-    incoming = GEOFLUID.m_dot * _physics.liquid_enthalpy(GEOFLUID.p, GEOFLUID.T)
+    saturation = steam.saturation_properties(6e5)
+    incoming = GEOFLUID.m_dot * steam.liquid_enthalpy(GEOFLUID.p, GEOFLUID.T)
     outgoing = (
         result.outlets.gas_out.m_dot * saturation.vapour_enthalpy
         + result.outlets.liquid_out.m_dot * saturation.liquid_enthalpy
@@ -48,8 +49,8 @@ def test_inlet_below_its_saturation_pressure_uses_the_liquid_enthalpy():
     """A wellhead stream already below saturation is the liquid at its temperature."""
     flashing = GEOFLUID._with_si(p=8e5)
     result = Separator()(fluid_in=flashing, pressure_setpoint=6e5)
-    enthalpy = _physics.liquid_enthalpy(_physics.saturation_pressure(523.15), 523.15)
-    assert result.outputs.steam_fraction == pytest.approx(_physics.flash_fraction(enthalpy, 6e5))
+    enthalpy = steam.liquid_enthalpy(steam.saturation_pressure(523.15), 523.15)
+    assert result.outputs.steam_fraction == pytest.approx(steam.flash_fraction(enthalpy, 6e5))
 
 
 def test_subcooled_and_zero_flow():

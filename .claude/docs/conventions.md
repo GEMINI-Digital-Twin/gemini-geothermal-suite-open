@@ -148,13 +148,16 @@ to `SNAPSHOTS` for the new version; never edit the hash of a released version.
 
 ## Module rules
 
-**Physics lives in `gemini/physics/` or a `_physics.py`.** Modules declare and wire; they never
-define physics. `gemini/physics/` keeps the textbook formulas and anything more than one category,
-or `analysis`, `study` or `evaluate`, reads. Physics of one category lives in
-`gemini/modules/<category>/_physics.py`, which imports only `gemini.physics`, `gemini.ops`,
-`gemini.streams` and `gemini.errors`, never another category's `_physics.py`; when a second category
-needs a function it moves up into `gemini/physics/`. Its functions keep `@ops.physics` and stay
-traceable on every backend. Reuse existing physics functions wherever possible and combine them; add
+**Physics lives in `gemini/physics/`, or in a `_physics.py` only when it needs streams.** Modules
+declare and wire; they never define physics. `gemini/physics/` keeps every correlation that holds
+for any equipment, whatever the number of categories that use it, and what `analysis`, `study` or
+`evaluate` read; it knows no `Stream` or `Fluid`. A `_physics.py` stays beside a category only for
+code that needs a `Stream` or `Fluid` (today `wells/_physics.py`, the pipe path march and the
+corrosion profile) or a module's own declarations (`heating/_burner.py`, `cooling/_sorption.py`
+under a name that says what they are); it imports only `gemini.physics`, `gemini.ops`,
+`gemini.streams` and `gemini.errors`, never another category's file. A function that takes plain
+values moves into `gemini/physics/`, the right topic file. Its functions keep `@ops.physics` and
+stay traceable on every backend. Reuse existing physics functions wherever possible and combine them; add
 a new physics function only when nothing existing can do the job, and generalise an existing one
 rather than writing a second copy. Never write a formula inside a module, and never write the same
 formula twice.
@@ -166,12 +169,13 @@ formula twice.
   `Boundary`, `State`), `container.py` (`ModuleList`, `ModuleDict`), `call.py` (`gm.call`) and `check.py`
   (`gm.modules.check`). `Plant` is `gemini/plants/plant.py`. `Module` is split by job beside
   `module.py`: `callrecord.py`, `callargs.py`, `states.py`, `tree.py`, `values.py`, `display.py`,
-  `classpath.py`, and `unconverted.py` for the transition from the old contract.
+  `classpath.py`.
 - Machinery goes in an `_utils/` folder, even if some of its functions are exported publicly:
   `gemini/modules/_utils/` (`balance`, `description`, `design`, `equipment`, `trace`),
   `gemini/plants/_utils/` for the plant tools (the plant file reader and writer, `serialization`) and `gemini/_utils/registry.py` for the registry.
-- Code shared by the modules of one category goes in that category folder as a private file:
-  `heating/_burner.py`, `cooling/_sorption.py`.
+- Code shared by the modules of one category that needs a `Stream` or a module's declarations goes
+  in that category folder as a private file under a name that says what it is: `heating/_burner.py`,
+  `cooling/_sorption.py`, `wells/_physics.py`.
 - `gemini/plants/` holds only plant classes and `roles.py`, the one owner of the roles of a plant.
 
 `tests/unit/test_code_quality.py` checks the first and the last. A class in `_utils` belongs to no
@@ -388,9 +392,7 @@ reason it is needed:
   re-entrant and concurrent calls stay separate. The state is explicit: a call takes `state=` (the
   nested dict of the states of its stateful descendants), a plant hands each child its entry, and
   `Module.step` runs `update` of every stateful module on the values of its own call, so there is
-  no step record. A plant combines the outputs of its children from the results it holds. For the
-  modules not yet converted `gemini/modules/unconverted.py` keeps the old contract until
-  `OLD_STYLE_MUST_BECOME_EMPTY` is empty.
+  no step record. A plant combines the outputs of its children from the results it holds.
 - `gm.modules.no_outputs()` and `gm.runtime.settings()` are context settings built on
   `gemini._utils.context.ContextSetting`: a context variable change usable as a `with` block and
   as a decorator, restored on exit.

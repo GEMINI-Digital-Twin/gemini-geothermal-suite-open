@@ -53,11 +53,11 @@ class _BoilerBody(Equipment, Module):
         """Return the size that the cost of the boiler scales with: capacity."""
         return self.capacity
 
-    def _requested_duty(self, inlet):
+    def _requested_duty(self, inputs, inlet):
         """Return the duty [W] that reaches the setpoint, refusing reverse flow."""
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
         return heat_transfer.setpoint_duty(
-            inlet.heat_capacity_rate(), self.temperature_setpoint - inlet.T
+            inlet.heat_capacity_rate(), inputs["temperature_setpoint"] - inlet.T
         )
 
     def _heated(self, inlet, duty):
@@ -97,12 +97,12 @@ class Boiler(_BoilerBody):
         self.flue_out = Outlet(Stream, kind="gas")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Heat the stream up to its setpoint and return the gas it burned."""
 
         # Outlets
         inlet, fuel = inlets.fluid_in, inlets.fuel_in
-        requested = self._requested_duty(inlet)
+        requested = self._requested_duty(inputs, inlet)
         limit = self._duty_limit(fuel)
         duty = ops.minimum(requested, limit)
         outlet = self._heated(inlet, duty)
@@ -110,8 +110,7 @@ class Boiler(_BoilerBody):
         flue_out = _burner.flue_stream(need, fuel)
 
         # Outputs
-        self.is_capped = requested > limit
-        self.fuel = need
+        outputs = dict(is_capped=requested > limit, fuel=need)
 
         outlets = dict(
             fluid_out=outlet,
@@ -119,7 +118,7 @@ class Boiler(_BoilerBody):
             loss_out=need - duty,
             fuel_in=_burner.burned_stream(need, fuel),
         )
-        return outlets
+        return outputs, outlets
 
     def _duty_limit(self, fuel):
         """Return the capacity, or less when the stream alone must cover the fuel [W]."""
@@ -141,24 +140,22 @@ class ElectricBoiler(_BoilerBody):
         # Inlets
         self.power_in = Inlet(Power, kind="electricity")
 
-        # Outputs
-
         # Outlets
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Heat the stream up to its setpoint."""
 
         # Outlets
         inlet = inlets.fluid_in
-        requested = self._requested_duty(inlet)
+        requested = self._requested_duty(inputs, inlet)
         duty = ops.minimum(requested, self.capacity)
         outlet = self._heated(inlet, duty)
 
         power_in = energy.input_power(duty, self.efficiency)
 
         # Outputs
-        self.is_capped = requested > self.capacity
+        outputs = dict(is_capped=requested > self.capacity)
 
         outlets = dict(fluid_out=outlet, loss_out=power_in - duty, power_in=power_in)
-        return outlets
+        return outputs, outlets

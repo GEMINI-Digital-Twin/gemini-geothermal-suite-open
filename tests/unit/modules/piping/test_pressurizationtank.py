@@ -59,7 +59,7 @@ class Network(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Split, pass both branches, mix and hold the circuit pressure."""
 
         # Modules
@@ -74,13 +74,13 @@ class Network(Module):
         )
 
         # Outputs
-        self.pressure_correction = held.outputs.pressure_correction
+        outputs = dict(pressure_correction=held.outputs.pressure_correction)
 
         # Outlets
         outlet = held.outlets.fluid_out
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 def test_outlet_leaves_at_the_setpoint():

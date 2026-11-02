@@ -119,7 +119,7 @@ def _start(run, loop, tear, lower, upper):
     path, port = tear.source
     step = next(item for item in loop.steps if item.path == path)
     module, entering = step.module, _entering(run, step)
-    temperature = module._loop_start(port, entering)
+    temperature = module._loop_start(module._stated_inputs(), port, entering)
     if temperature is None:
         name = join_path(*tear.source)
         raise ValidationError(

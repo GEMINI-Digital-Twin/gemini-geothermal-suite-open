@@ -4,7 +4,7 @@ from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.supply import supply_margin
-from gemini.modules.cooling import _physics, _sorption
+from gemini.modules.cooling import _sorption
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, refrigeration
@@ -35,7 +35,7 @@ class AdsorptionChiller(Equipment, Module):
     cycle (minutes), so it suits 15-minute or hourly steps. Its characteristic map is the
     characteristic equation of the sorption machine, Q_E = s * (ddt - ddt_min) with
     ddt = t_G - a * t_AC + r * t_E at the mean circuit temperatures in degC, solved in closed form
-    from the inlet temperatures (``_physics.sorption_evaporator_capacity``); its own
+    from the inlet temperatures (``refrigeration.sorption_evaporator_capacity``); its own
     coefficients are fitted to the adsorption machine. The delivered evaporator duty is the
     smallest of that, the setpoint request and the capacity. Q_G = Q_E / thermal_cop,
     electricity (pumps, valves and controls) is auxiliary_power_ratio * Q_E and
@@ -132,15 +132,17 @@ class AdsorptionChiller(Equipment, Module):
         self.chilled_out = Outlet(Stream, kind="chilled_water")
         self.cooling_out = Outlet(Stream, kind="hot_water")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Cool the generator and chilled circuits and heat the cooling circuit."""
 
         # Outlets
-        values = self._performance(inlets)
+        values = self._performance(inputs, inlets)
         generator_out, chilled_out, cooling_out = _sorption.outlet_streams(inlets, values)
 
         # Outputs
-        _sorption.assign_outputs(self, inlets, (generator_out, chilled_out, cooling_out), values)
+        outputs = _sorption.machine_outputs(
+            self, inlets, (generator_out, chilled_out, cooling_out), values
+        )
 
         outlets = dict(
             generator_out=generator_out,
@@ -148,13 +150,13 @@ class AdsorptionChiller(Equipment, Module):
             cooling_out=cooling_out,
             power_in=values["electricity"],
         )
-        return outlets
+        return outputs, outlets
 
     def cost_size(self):
         """Return the size that the cost of the adsorption chiller scales with: capacity."""
         return self.capacity
 
-    def _performance(self, inlets):
+    def _performance(self, inputs, inlets):
         """Return the duties [W], COP and outlet temperatures [K] of one operating point."""
         generator_in, chilled_in, cooling_in = (
             inlets.generator_in,
@@ -163,19 +165,19 @@ class AdsorptionChiller(Equipment, Module):
         )
         rates = _sorption.rates(self.path, inlets)
         requested = heat_transfer.setpoint_duty(
-            rates["chilled_in"], chilled_in.T - self.temperature_setpoint
+            rates["chilled_in"], chilled_in.T - inputs["temperature_setpoint"]
         )
-        evaporator, is_capped = _physics.sorption_delivered_duty(
+        evaporator, is_capped = refrigeration.sorption_delivered_duty(
             requested, self._available_duty(inlets, rates), self.capacity, 1
         )
-        generator, electricity, rejection = _physics.sorption_duties(
+        generator, electricity, rejection = refrigeration.sorption_duties(
             evaporator, self.thermal_cop, self.auxiliary_power_ratio
         )
         return {
             "cop": ops.where(
                 evaporator != 0,
                 refrigeration.coefficient_of_performance(evaporator, generator),
-                None,
+                float("nan"),
             ),
             "generator_duty": generator,
             "evaporator_duty": evaporator,

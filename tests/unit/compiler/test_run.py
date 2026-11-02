@@ -10,7 +10,7 @@ from gemini.compiler.run import run, run_function
 from gemini.compiler.trace.errors import TraceError
 from gemini.errors import PhysicsError
 from gemini.ops import Constant
-from tests.unit.compiler.conftest import Chain, Gain, Opaque, Stubborn, Switcher, Tank, Vectored
+from tests.unit.compiler.conftest import Chain, Gain, Opaque, Stubborn, Switcher, Vectored
 
 
 def _rows(gain, inlet, frequency):
@@ -53,7 +53,7 @@ def test_a_reading_hook_makes_the_root_a_break_that_sees_every_real_row(gain, in
     """The trace calls the hook once on traced values to classify it; then every row is real."""
     seen = []
     gain.register_forward_hook(
-        lambda module, inputs, inlets, state, outputs, outlets: seen.append(module.rise)
+        lambda module, inputs, inlets, state, outputs, outlets: seen.append(outputs["rise"])
     )
     result = run(gain, {"fluid_in": inlet}, {"gain": 1.0})
     assert "only reads" in result.breaks[0] and seen[1:] == [6.0, 6.0, 6.0]
@@ -96,7 +96,7 @@ def test_pre_hooks_and_reading_hooks_see_every_row_of_the_break(gain, inlet):
     seen = []
     gain.register_forward_pre_hook(lambda module, inputs, inlets, state: seen.append("pre"))
     gain.register_forward_hook(
-        lambda module, inputs, inlets, state, outputs, outlets: seen.append(module.rise)
+        lambda module, inputs, inlets, state, outputs, outlets: seen.append(outputs["rise"])
     )
     result = run(gain, {"fluid_in": inlet}, {"gain": 1.0})
     assert result.graph.root_break
@@ -176,10 +176,10 @@ def _break_middles():
     stubborn = Stubborn().set_params("", {"scale": 3.0})
     hooked = Gain().set_params("", {"scale": 3.0})
     hooked.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
-    return {"stateful": Tank(), "untraceable": stubborn, "pre-hooked": hooked}
+    return {"untraceable": stubborn, "pre-hooked": hooked}
 
 
-@pytest.mark.parametrize("kind", ["stateful", "untraceable", "pre-hooked"])
+@pytest.mark.parametrize("kind", ["untraceable", "pre-hooked"])
 def test_a_leaf_break_keeps_the_rest_in_the_graph(kind, chain_inlet):
     """The child runs untraced per row; its values flow into formulas, sums and outlets."""
     chain = Chain(_break_middles()[kind])
@@ -205,7 +205,7 @@ def test_a_failing_break_row_raises_its_own_exception(chain_inlet):
 
 def test_a_break_node_runs_on_the_python_backend_too(chain_inlet):
     """With scalar rows the break node returns plain Python values."""
-    chain = Chain(Tank())
+    chain = Chain(Stubborn().set_params("", {"scale": 3.0}))
     expected = run(chain, {"fluid_in": chain_inlet}, {"drive": 1.0})
     actual = run(chain, {"fluid_in": chain_inlet}, {"drive": 1.0}, backend="python")
     for name, values in expected.outputs.items():
@@ -230,7 +230,9 @@ def test_a_composite_child_that_cannot_be_traced_breaks_the_whole_root(chain_inl
 
 def test_a_row_whose_outlet_fluid_differs_from_the_probe_fails(chain_inlet):
     """The static outlet fluid comes from a probe; another fluid on a row is a failed row."""
-    chain = Chain(Switcher())
+    switcher = Switcher()
+    switcher.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
+    chain = Chain(switcher)
     with pytest.raises(TraceError, match="fluid differs from the traced one"):
         run(chain, {"fluid_in": chain_inlet}, {"drive": 1.0})
 

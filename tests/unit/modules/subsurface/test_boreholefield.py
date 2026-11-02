@@ -25,6 +25,8 @@ BRINE = Stream(
 )
 CP = 4217.4
 DAY = 86400.0
+FRESH = {"ground_temperature_change": 0.0}
+"""The state of a field that has not been operated: the case states it, there is no default."""
 
 
 def field():
@@ -77,27 +79,26 @@ class HeatPumpLoop(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the brine through the field and the heater."""
 
         # Modules
-        ground = self.field(fluid_in=inlets.fluid_in)
+        ground = self.field(fluid_in=inlets.fluid_in, state=state["field"])
         heated = self.heater(fluid_in=ground.outlets.fluid_out, temperature_setpoint=280)
 
         # Outlets
         outlet = heated.outlets.fluid_out
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return {}, outlets
 
 
 def test_plain_call_extracts_with_the_loop_effectiveness():
     """At the undisturbed ground temperature Q = eps m_dot cp (T_u - T_in)."""
     module = field()
-    result = module(fluid_in=BRINE)
+    result = module(fluid_in=BRINE, state=FRESH)
     out = reading(result)
     rate = hand_effectiveness(3) * 3 * CP * 10
-    assert module.initial_state() == {"ground_temperature_change": 0}
     assert out.heat_extraction_rate == pytest.approx(rate, rel=1e-12)
     assert out.fluid_out_T == pytest.approx(273.15 + rate / (3 * CP))
     assert out.fluid_mean_temperature == pytest.approx((273.15 + out.fluid_out_T) / 2)
@@ -110,7 +111,7 @@ def test_plain_call_extracts_with_the_loop_effectiveness():
 def test_two_steps_follow_the_exact_ground_response():
     """Each step solves the linear ground balance exactly for a constant inlet."""
     module = field()
-    state, _ = module.step(None, 30 * DAY, {"fluid_in": BRINE})
+    state, _ = module.step(FRESH, 30 * DAY, {"fluid_in": BRINE})
     exchange = hand_effectiveness(3) * 3 * CP
     total = exchange + surroundings()
     equilibrium = exchange * (273.15 - 283.15) / total
@@ -118,7 +119,7 @@ def test_two_steps_follow_the_exact_ground_response():
     assert state["ground_temperature_change"] == pytest.approx(equilibrium * (1 - decay))
     state, result = module.step(state, 30 * DAY, {"fluid_in": BRINE})
     assert result.outputs.ground_temperature == pytest.approx(283.15 + equilibrium * (1 - decay))
-    double, _ = module.step(None, 60 * DAY, {"fluid_in": BRINE})
+    double, _ = module.step(FRESH, 60 * DAY, {"fluid_in": BRINE})
     assert state["ground_temperature_change"] == pytest.approx(
         double["ground_temperature_change"], rel=1e-12
     )
@@ -127,7 +128,7 @@ def test_two_steps_follow_the_exact_ground_response():
 def test_heat_rejection_recovery_and_zero_flow():
     """Warm inlets reject heat as heat_loss; without flow the ground recovers on its own."""
     module = field()
-    result = module(fluid_in=BRINE._with_si(T=303.15))
+    result = module(fluid_in=BRINE._with_si(T=303.15), state=FRESH)
     assert reading(result).heat_extraction_rate < 0 and reading(result).heat_absorbed == 0
     assert reading(result).heat_loss == -reading(result).heat_extraction_rate
     assert call_energy_balance(module, result)["relative_residual"] < 1e-12
@@ -141,20 +142,22 @@ def test_heat_rejection_recovery_and_zero_flow():
 def test_invalid_flow_and_geometry():
     """Reverse flow and geometries outside the cell and shape-factor ranges are rejected."""
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        field()(fluid_in=BRINE._with_si(m_dot=-1))
+        field()(fluid_in=BRINE._with_si(m_dot=-1), state=FRESH)
     with raises(gm.errors.ValidationError, "invalid_design", match="field geometry rejected"):
-        field().set_params("", {"borehole_spacing": gm.units.Quantity(0.1, "m")})(fluid_in=BRINE)
+        field().set_params("", {"borehole_spacing": gm.units.Quantity(0.1, "m")})(
+            fluid_in=BRINE, state=FRESH
+        )
     shallow = field().set_params(
         "", {"borehole_count": 400, "borehole_depth": gm.units.Quantity(10, "m")}
     )
     with raises(gm.errors.ValidationError, "invalid_design", match="expected ln"):
-        shallow.step(None, DAY, {"fluid_in": BRINE})
+        shallow.step(FRESH, DAY, {"fluid_in": BRINE})
 
 
 def test_composite_step_advances_the_ground():
     """A composite steps the field through its forward."""
     loop = HeatPumpLoop()
-    state, _ = loop.step(None, 7 * DAY, {"fluid_in": BRINE})
+    state, _ = loop.step({"field": FRESH}, 7 * DAY, {"fluid_in": BRINE})
     state, result = loop.step(state, 7 * DAY, {"fluid_in": BRINE})
     assert state["field"]["ground_temperature_change"] < 0
     assert (

@@ -64,9 +64,8 @@ class Gain(modules.Module):
         self.level = Control(float)
         self.double = Output(float)
 
-    def forward(self, inlets):
-        self.double = 2.0 * self.level
-        return {}
+    def forward(self, inputs, inlets, state):
+        return {"double": 2.0 * inputs["level"]}, {}
 
 
 plant = Gain()

@@ -2,8 +2,7 @@
 
 from gemini import ops
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.cooling import _physics
-from gemini.physics import heat_transfer
+from gemini.physics import heat_transfer, refrigeration
 from gemini.streams.flows import Stream
 
 
@@ -32,26 +31,27 @@ def outlet_streams(inlets, values):
     )
 
 
-def assign_outputs(module, inlets, outlets, values):
-    """Set the outputs of the machine: its COP, whether it is capped and the driving difference.
+def machine_outputs(module, inlets, outlets, values):
+    """Return the outputs of the machine: its COP, whether it is capped and the driving difference.
 
     ``outlets`` are the generator, chilled and cooling streams that leave the machine.
     """
     generator_out, chilled_out, cooling_out = outlets
-    module.cop = values["cop"]
-    module.is_capped = values["is_capped"]
-    module.driving_temperature_difference = _physics.characteristic_temperature_difference(
+    difference = refrigeration.characteristic_temperature_difference(
         heat_transfer.mean_temperature(inlets.generator_in.T, generator_out.T),
         heat_transfer.mean_temperature(inlets.cooling_in.T, cooling_out.T),
         heat_transfer.mean_temperature(inlets.chilled_in.T, chilled_out.T),
         module.rejection_coefficient,
         module.evaporator_coefficient,
     )
+    return dict(
+        cop=values["cop"], is_capped=values["is_capped"], driving_temperature_difference=difference
+    )
 
 
 def evaporator_capacity(module, inlets, rates):
     """Return the evaporator duty [W] of the characteristic equation at these inlets."""
-    return _physics.sorption_evaporator_capacity(
+    return refrigeration.sorption_evaporator_capacity(
         inlets.generator_in.T,
         inlets.cooling_in.T,
         inlets.chilled_in.T,

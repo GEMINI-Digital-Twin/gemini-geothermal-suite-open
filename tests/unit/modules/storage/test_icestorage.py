@@ -1,8 +1,8 @@
 """Lumped ice store: coil duty, piecewise exact phase segments, balances and limits."""
 
 import math
-from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 import gemini as gm
@@ -13,8 +13,9 @@ from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.storage import IceStorage
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import GLYCOL_30
+from gemini.streams.ports import Ports
 from tests.fixtures.designs import with_values
-from tests.fixtures.equivalence import assert_function_matches, assert_module_matches
+from tests.fixtures.equivalence import assert_close, assert_function_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
@@ -38,6 +39,10 @@ COLD = Stream(
 WARM = COLD._with_si(T=285.15)
 
 
+EMPTY = {"ice_fraction": 0.0, "temperature": FREEZING}
+"""An empty store at 0 degC: a state has no default, the call states it."""
+
+
 def _store():
     """Return a 1 t store with a 2 kW/K coil."""
     return with_values(IceStorage()).set_params(
@@ -49,10 +54,10 @@ def _store():
     )
 
 
-def test_plain_call_charges_an_empty_store():
-    """The initial store is all water at 0 degC; cold glycol is warmed by e (T_f - T_in)."""
+def test_a_call_from_an_empty_store_charges_it():
+    """An empty store is all water at 0 degC; cold glycol is warmed by e (T_f - T_in)."""
     store = _store()
-    result = store(fluid_in=COLD)
+    result = store(fluid_in=COLD, state=EMPTY)
     out = reading(result)
     assert out.fluid_out_T == pytest.approx(268.15 + EFFECTIVENESS * 5)
     assert out.signed_duty == pytest.approx(-CONDUCTANCE * 5)
@@ -127,7 +132,9 @@ def test_invalid_states_and_flows_raise():
     with raises(gm.errors.ValidationError, "invalid_design", match="with ice_fraction = 0"):
         store.step({"ice_fraction": 0, "temperature": 270.0}, 60, {"fluid_in": COLD})
     with pytest.raises(gm.errors.PhysicsError, match="fluid_in.m_dot = -1"):
-        store(fluid_in=COLD._with_si(m_dot=-1))
+        store(fluid_in=COLD._with_si(m_dot=-1), state=EMPTY)
+    with raises(gm.errors.ValidationError, "missing_value"):
+        store(fluid_in=COLD)
     with pytest.raises(gm.errors.ValidationError):
         store.step({"ice_fraction": 1.5, "temperature": FREEZING}, 60, {"fluid_in": COLD})
 
@@ -149,18 +156,19 @@ class StoreLine(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the glycol through both stores."""
 
         # Modules
-        first = self.first(fluid_in=inlets.fluid_in)
-        second = self.second(fluid_in=first.outlets.fluid_out)
+        first = self.first(fluid_in=inlets.fluid_in, state=state["first"])
+        second = self.second(fluid_in=first.outlets.fluid_out, state=state["second"])
 
         # Outlets
         outlet = second.outlets.fluid_out
 
+        outputs = dict()
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 def _stream_gain(result):
@@ -171,7 +179,7 @@ def _stream_gain(result):
 def test_composite_step_freezes_both_stores():
     """A composite steps both stores; the upstream store sees colder glycol and freezes faster."""
     line = StoreLine()
-    state, _ = line.step(None, 1800, {"fluid_in": COLD})
+    state, _ = line.step({"first": EMPTY, "second": EMPTY}, 1800, {"fluid_in": COLD})
     state, result = line.step(state, 1800, {"fluid_in": COLD})
     assert state["first"]["ice_fraction"] > state["second"]["ice_fraction"] > 0
     audit = call_energy_balance(line, result)
@@ -192,23 +200,39 @@ STORE_STATES = [
 ]
 
 
-def test_ice_storage_matches_per_row():
-    """Outputs and outlet of the initial store equal one call per row; the states are a break."""
-    rows = [dict(fluid_in=glycol) for glycol in (COLD, WARM, COLD._with_si(m_dot=0))]
-    assert_module_matches(_store(), rows, breaks=True)
+def _forward(store, fraction, temperature, glycol):
+    """Run the pure forward of ``store`` on a glycol stream and a store state."""
+    state = {"ice_fraction": fraction, "temperature": temperature}
+    return store.forward({}, Ports({"fluid_in": glycol._numpy()}), state)
+
+
+def test_ice_storage_forward_matches_per_row():
+    """Outputs and outlet on stacked states equal one forward per row."""
+    store = _store()
+    rows = [(x, t, g) for x, t, g in STORE_STATES if g.m_dot > 0]
+    expected = [_forward(store, x, t, g) for x, t, g in rows]
+    stacked = Stream._si(
+        **{f: np.array([getattr(g, f) for _, _, g in rows]) for f in ("m_dot", "T", "p")},
+        fluid=GLYCOL_30,
+    )
+    outputs, outlets = _forward(
+        store, np.array([x for x, _, _ in rows]), np.array([t for _, t, _ in rows]), stacked
+    )
+    for name in outputs:
+        assert_close(outputs[name], [e[0][name] for e in expected], name)
+    assert_close(outlets["fluid_out"].T, [e[1]["fluid_out"].T for e in expected], "fluid_out")
 
 
 @pytest.mark.parametrize("dt", [600, 20000, 400000])
-def test_ice_storage_advance_matches_per_row(monkeypatch, dt):
+def test_ice_storage_update_matches_per_row(dt):
     """The piecewise phase integration on stacked states equals one step per row, stopped too."""
     store = _store()
 
     @ops.physics
     def advance(fraction, temperature, m_dot, glycol_T, pressure):
-        monkeypatch.setattr(IceStorage, "ice_fraction", fraction, raising=False)
-        monkeypatch.setattr(IceStorage, "temperature", temperature, raising=False)
         glycol = Stream._si(m_dot=m_dot, T=glycol_T, p=pressure, fluid=GLYCOL_30)
-        states = store._advance_states(SimpleNamespace(fluid_in=glycol._numpy()), None, dt)
+        state = {"ice_fraction": fraction, "temperature": temperature}
+        states = store.update({}, Ports({"fluid_in": glycol._numpy()}), {}, state, dt)
         return states["ice_fraction"], states["temperature"]
 
     rows = [(x, t, g.m_dot, g.T, g.p) for x, t, g in STORE_STATES]

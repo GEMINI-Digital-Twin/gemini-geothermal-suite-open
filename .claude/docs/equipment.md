@@ -378,7 +378,7 @@ intercooled stages.
   (`SpecificHeat`, required; CO2 about 846 J/kg/K at 300 K), `stage_count` (`Count`, required), `motor_efficiency` (`Efficiency`, required).
 - **Controls**: `pressure_setpoint` (`Pressure`, the discharge pressure).
 - **Outputs**: `pressure_ratio`, `shaft_power` (soft sensor).
-- **Model** (`modules/pumps/_physics.py`; GPSA Engineering Data Book, 14th ed., Section 13, Z = 1):
+- **Model** (`physics/gas.py`; GPSA Engineering Data Book, 14th ed., Section 13, Z = 1):
   `r = pressure_setpoint / p_s`, stage ratio `r^(1/N)`,
   `T_2 = T_1 + T_1 (r^((k-1)/(k N)) - 1) / eta_s`, `P_shaft = m_dot N cp (T_2 - T_1)`,
   `power_in = P_shaft / eta_motor`, `loss_out = electricity - P_shaft / N` (intercooler
@@ -1158,7 +1158,7 @@ the injected stream as a sink.
 
 - **Ports**: none -> `sandface_out`.
 - **Parameters**: `pressure` (calibratable), `temperature`, `permeability`, `aquifer_thickness`
-  (> 0), `drainage_radius` (0 leaves the radial diagnostics unavailable), `top_depth`,
+  (> 0), `drainage_radius` (0 leaves the radial pressure drops and the radial bottomhole pressure empty), `top_depth`,
   `wellbore_radius` (> 0), all required; `productivity_index` (required by the production
   reservoir) and `injectivity_index` (required by the injection reservoir), both
   `ProductivityIndex | None` in m3/s/Pa, calibratable; `skin` (required, calibratable);
@@ -1212,9 +1212,9 @@ injector reaches the producer; placed between a `ProductionReservoir` sandface a
   `porosity` (in (0, 1)), `rock_volumetric_heat_capacity` ((rho c)_r). The fluid (rho c)_w
   comes from the inlet stream.
 - **Boundaries**: `injection_temperature`.
-- **States**: `injected_volume` (`Volume`, default 0), advanced by `V + Q dt` (exact for a
-  constant flow).
-- **Outputs**: `breakthrough_time`, `temperature_drop`.
+- **States**: `injected_volume` (`Volume`, no default: the case states it), advanced by `V + Q dt`
+  (exact for a constant flow).
+- **Outputs**: `breakthrough_time` (empty at zero flow), `temperature_drop`.
 - **Model**: `(rho c)_a = phi (rho c)_w + (1 - phi) (rho c)_r`; breakthrough volume
   `V_B = pi L^2 H (rho c)_a / (3 (rho c)_w)` (Gringarten and Sauty 1975, J. Geophys. Res.
   80(35), 4956-4962); the dipole streamline at angle theta arrives cold when `V / V_B = 3 (sin
@@ -1257,7 +1257,7 @@ ground temperature.
   (r_b, typically 0.055 to 0.075 m), `borehole_spacing` (s, square cells),
   `borehole_resistance` (`LinearThermalResistance`, calibratable), `ground_conductivity`
   (calibratable), `ground_volumetric_heat_capacity`, `undisturbed_ground_temperature` (T_u).
-- **States**: `ground_temperature_change` (theta, default 0) of the field volume `N s^2 H`.
+- **States**: `ground_temperature_change` (theta, no default: the case states it) of the field volume `N s^2 H`.
 - **Outputs**: `fluid_mean_temperature`, `ground_temperature`.
 - **Model**: cell radius `r_e = s / sqrt(pi)` and steady-flux resistance R_sf
   (`ground.steady_flux_resistance`, Hellstrom 1991); `UA = N H / (R_b + R_sf)`,
@@ -1290,7 +1290,7 @@ field = BoreholeField().set_params("", {
     "ground_volumetric_heat_capacity": {"value": 2.2, "unit": "MJ/m3/K"},
     "undisturbed_ground_temperature": {"value": 10, "unit": "C"},
 })
-state, result = field.step(None, 30 * 86400, {"fluid_in": gm.Stream(m_dot={"value": 3, "unit": "kg/s"}, T={"value": 0, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=gm.BRINE)})
+state, result = field.step({"ground_temperature_change": 0.0}, 30 * 86400, {"fluid_in": gm.Stream(m_dot={"value": 3, "unit": "kg/s"}, T={"value": 0, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=gm.BRINE)})
 assert round(-result.outlets["loss_out"]) == 36906
 assert round(state["ground_temperature_change"], 3) == -0.769
 ```
@@ -1361,8 +1361,8 @@ Swamee–Jain friction, Beggs–Brill two-phase flow and explicit heat loss
   incoming sign. Helpers: `intake_conditions`, `wellhead_from_discharge`,
   `discharge_from_wellhead`, `corrosion_profile` (mm/year), `erosion_check`.
 - **Physics**: `fluid.heat_capacity_rate`, `heat_transfer.heat_rate`,
-  `hydraulics.affine_correction`, and in `modules/wells/_physics.py` `corrosion_profile`,
-  `erosion_check` and `pipe_path_profile`
+  `hydraulics.affine_correction`, `erosion.pipe_path_erosion_check`, and in `modules/wells/_physics.py` `corrosion_profile` and
+  `pipe_path_profile`
 - **Energy audit**: closed; `loss_out` is signed here (negative when the soil heats the brine).
 
 ```python
@@ -1399,17 +1399,18 @@ Fully mixed hot or chilled water tank with a charge and a discharge circuit.
 - **Parameters**: `service` (`"hot"` or `"chilled"`, the sign of the reported energies),
   `volume` (> 0), `heat_loss_conductance` (UA to ambient), `reference_temperature` (zero of
   `stored_energy`), all required; `charge_effectiveness`, `discharge_effectiveness`
-  (`Fraction`, required, 1 is a direct connection); `initial_temperature` (required, the start of the state).
+  (`Fraction`, required, 1 is a direct connection).
 - **Boundaries**: the temperature of `air_in`.
-- **States**: `temperature` (no default: the run starts at `initial_temperature`, `missing_value` when absent).
-- **Outputs**: `tank_temperature`, `stored_energy`, `heat_accumulation`.
+- **States**: `temperature` (no default: `case.initial_state` gives it, `missing_value` when absent).
+- **Outputs**: `tank_temperature`, `stored_energy`, `charge_duty`, `discharge_duty`,
+  `heat_accumulation`.
 - **Model**: tank content `module.fluid`, `C = rho cp V`; circuit `i` transfers `Q_i = e_i C_i
   (T_i,in - T)` and leaves at `T_i,in - e_i (T_i,in - T)`; `Q_amb = UA (T - T_amb)`;
   `C dT/dt = Q_c + Q_d - Q_amb` (Duffie and Beckman 2013, section 8.3) solved exactly over `dt`
   for constant inlets; outlets and outputs use the start-of-step temperature.
 - **Physics**: `heat_transfer.effectiveness_outlet_temperature`, `heat_transfer.heat_rate`,
-  `heat_transfer.signed_parts`, `storage.circuit_conductance`, `storage.tank_capacity`,
-  `storage.tank_relaxation`, `storage.tank_service_report`
+  `heat_transfer.signed_parts`, `heat_transfer.circuit_conductance`, `heat_transfer.tank_capacity`,
+  `heat_transfer.tank_relaxation`, `heat_transfer.tank_service_report`
 - **Assumptions**: no stratification (a stratified tank delivers hotter water), constant
   properties and effectiveness, inlets constant within a step.
 - **Energy audit**: closed with the stored-heat term: `heat_accumulation` is the rate of
@@ -1428,7 +1429,6 @@ tank.set_params("", {
     "reference_temperature": {"value": 40, "unit": "C"},
     "charge_effectiveness": 1,
     "discharge_effectiveness": 1,
-    "initial_temperature": {"value": 20, "unit": "C"},
 })
 charge = gm.Stream(flow={"value": 10, "unit": "m3/h"}, T={"value": 80, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=gm.BRINE)
 discharge = gm.Stream(flow={"value": 5, "unit": "m3/h"}, T={"value": 45, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=gm.BRINE)
@@ -1445,12 +1445,11 @@ Lumped ice-on-coil or encapsulated ice store on one glycol circuit, for state-of
 tracking.
 
 - **Ports**: `fluid_in` -> `fluid_out`.
-- **Parameters**: `water_mass` (`Mass`, > 0), `thermal_conductance` (coil, > 0), both required; `initial_ice_fraction` and `initial_temperature`, both required (the start of the
-  two states, which have no default); `latent_heat`
+- **Parameters**: `water_mass` (`Mass`, > 0), `thermal_conductance` (coil, > 0), both required; `latent_heat`
   (default 333.55 kJ/kg; IAPWS R10-06 gives 333.44 at the triple point),
   `freezing_temperature` (default 273.15 K), `water_specific_heat` (default 4219.9 J/kg/K,
   IAPWS-95 at 0.01 degC), `ice_specific_heat` (default 2096.8 J/kg/K, IAPWS R10-06): constants with their sources.
-- **States**: `ice_fraction` and `temperature`, started from `initial_ice_fraction` and `initial_temperature`: at the freezing
+- **States**: `ice_fraction` and `temperature` (no default: `case.initial_state` gives them): at the freezing
   temperature while partly frozen, above it only with no ice, below it only fully frozen;
   anything else raises `ValidationError`.
 - **Outputs**: `stored_cold`, `heat_accumulation`, `is_full`, `is_empty`.
@@ -1459,7 +1458,7 @@ tracking.
   latent, sensible ice) per step.
 - **Physics**: `heat_transfer.ambient_effectiveness`,
   `heat_transfer.effectiveness_outlet_temperature`, `heat_transfer.heat_rate`,
-  `storage.circuit_conductance`, `storage.ice_advance`, `storage.ice_stored_cold`
+  `heat_transfer.circuit_conductance`, `heat_transfer.ice_advance`, `heat_transfer.ice_stored_cold`
 - **Assumptions**: constant coil UA (real UA falls as ice thickens; ASHRAE Handbook, HVAC
   Applications, Thermal Storage), no supercooling, perfectly insulated.
 - **Energy audit**: the store declares no `heat_accumulation`, so the residual equals `duty`
@@ -1470,9 +1469,9 @@ import gemini as gm
 from gemini.modules import IceStorage
 from gemini.streams import GLYCOL_30
 
-store = IceStorage().set_params("", {"water_mass": {"value": 50, "unit": "t"}, "thermal_conductance": {"value": 20000, "unit": "W/K"}, "initial_ice_fraction": 0, "initial_temperature": {"value": 0, "unit": "C"}})
+store = IceStorage().set_params("", {"water_mass": {"value": 50, "unit": "t"}, "thermal_conductance": {"value": 20000, "unit": "W/K"}})
 glycol = gm.Stream(flow={"value": 8, "unit": "kg/s"}, T={"value": -5, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=GLYCOL_30)
-state = None
+state = {"ice_fraction": 0.0, "temperature": gm.units.convert(0, "degC", "K")}
 for _ in range(8):
     state, result = store.step(state, 3600, {"fluid_in": glycol})
 assert round(state["ice_fraction"], 4) == 0.1269 and not result.outputs.is_full
@@ -1489,7 +1488,7 @@ as in [Subsurface](#subsurface).
   all required; `storage_period` (`Duration`, required; 182.625 days is one season).
 - **Controls**: `mode`: `"charge"` (produce from cold, inject into warm), `"discharge"`
   (produce from warm, inject into cold), `"idle"` (requires zero flow).
-- **States** (all default 0): `warm_volume`, `cold_volume`, `warm_temperature_change`,
+- **States** (no default: `case.initial_state` gives them, zero for a store not yet used): `warm_volume`, `cold_volume`, `warm_temperature_change`,
   `cold_temperature_change` (theta = T - T_aq), `charged_heat`, `recovered_heat`.
 - **Outputs**: `stored_energy`, `recovery_efficiency`, `warm_temperature`, `cold_temperature`,
   `heat_accumulation`.
@@ -1523,7 +1522,7 @@ ates.set_params("", {
     "storage_period": {"value": 182.625, "unit": "d"},
 })
 ates.mode = "charge"
-state = None
+state = {name: 0.0 for name in ates.states()}
 for _ in range(4 * 90):
     inlets = {"injection_in": gm.Stream(flow={"value": 100, "unit": "m3/h"}, T={"value": 18, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=gm.BRINE)}
     state, result = ates.step(state, 6 * 3600, inlets)
@@ -1696,7 +1695,7 @@ Electricity exchange of a plant with the public grid.
   `is_import_limited`, `is_export_limited`.
 - **Model**: import `max(0, consumption - generation)` and export `max(0, generation -
   consumption)`, each capped by its limit. Prices are in `economics.energy` of the case.
-- **Physics**: `modules/grids/_physics.net_exchange`
+- **Physics**: `energy.net_exchange`
 - **Energy audit**: open boundary.
 
 ### GasGrid
@@ -2184,7 +2183,8 @@ plant.source_valve.split_fraction = plant.load_valve.split_fraction = 0.0
 plant.pump.frequency = {"value": 50, "unit": "Hz"}
 plant.heat_pump.temperature_setpoint = {"value": 40, "unit": "degC"}
 summer = gm.Stream(flow={"value": 40.0, "unit": "kg/s"}, T={"value": 17, "unit": "degC"}, p={"value": 3, "unit": "bar"}, fluid=gm.BRINE)
-state, result = plant.step(None, 3600, {"return_in": summer})
+state = {"storage": {name: 0.0 for name in plant.storage.states()}}
+state, result = plant.step(state, 3600, {"return_in": summer})
 state, result = plant.step(state, 3600, {"return_in": summer})
 stored = result.children["storage"].outputs.stored_energy
 print(result.outlets.supply_out.T, stored)  # 285.84 K 2.62e9 J

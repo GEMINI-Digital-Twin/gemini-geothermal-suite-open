@@ -22,3 +22,28 @@ def test_the_temperature_moves_with_the_duty():
     """At a constant flow, a quarter of the duty is a quarter of the way."""
     assert energy.temperature_after(298.0, 290.0, 0.25) == 296
     assert_function_matches(energy.temperature_after, [(298.0, 290.0, 0.25), (280.0, 280.0, 1.0)])
+
+
+def test_import_is_limited():
+    """A 100 W deficit through a 60 W import limit leaves 40 W unserved."""
+    exchange = energy.net_exchange(300, 200, 60, None)
+    assert exchange.net_import == 60
+    assert exchange.net_export == 0
+    assert exchange.unserved_consumption == pytest.approx(40)
+
+
+def test_surplus_is_curtailed_above_the_export_limit():
+    """A 50 W surplus through a 30 W export limit curtails 20 W."""
+    exchange = energy.net_exchange(100, 150, None, 30)
+    assert (exchange.net_export, exchange.curtailed_generation) == (30, pytest.approx(20))
+
+
+def test_rows_match_arrays():
+    """Rows across import, export and balance agree with the traced run."""
+    rows = [(300.0, 200.0), (100.0, 150.0), (50.0, 50.0)]
+    assert_function_matches(
+        energy.net_exchange,
+        rows,
+        import_limit=60.0,
+        export_limit=None,
+    )

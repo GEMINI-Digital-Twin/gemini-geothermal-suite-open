@@ -9,7 +9,7 @@ import gemini as gm
 from gemini import analysis, units
 from gemini.analysis.fits import pump_curve
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules.pumps import _physics
+from gemini.physics import pumps
 from tests.fixtures.errors import raises
 
 BAR = 1e5
@@ -20,10 +20,10 @@ def test_fit_head_coefficients_recovers_the_curve():
     """A fit of synthetic heads predicts a withheld point of the same curve."""
     flows = np.linspace(0.01, 0.06, 20)
     frequencies = np.linspace(40, 60, 20)
-    heads = [_physics.head(q, f, 12, CURVE) for q, f in zip(flows, frequencies)]
+    heads = [pumps.head(q, f, 12, CURVE) for q, f in zip(flows, frequencies)]
     fitted = analysis.fit_head_coefficients(flows, frequencies, heads, 12)["value"]
-    assert _physics.head(0.037, 53, 12, fitted) == pytest.approx(
-        _physics.head(0.037, 53, 12, CURVE), rel=1e-9
+    assert pumps.head(0.037, 53, 12, fitted) == pytest.approx(
+        pumps.head(0.037, 53, 12, CURVE), rel=1e-9
     )
 
 

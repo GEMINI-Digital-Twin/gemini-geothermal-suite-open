@@ -7,7 +7,6 @@ from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.pumps import _physics
 from gemini.modules.results import Health
 from gemini.ops import kernels
 from gemini.physics import constants, diagnostics, energy, pumps
@@ -169,7 +168,7 @@ class ESP(Module):
 
         NOTE(refactor): the legacy float32 arithmetic needs Python floats next to float32
         coefficients, and an ``np.float64`` scalar would promote them. This is the one module that
-        honours float32 precision, so ``_physics.esp_efficiency`` keeps ``ops.truediv``: a
+        honours float32 precision, so ``pumps.esp_efficiency`` keeps ``ops.truediv``: a
         plain ``/`` by a zero power would raise there.
         """
         return kernels.PLAIN if _float32() else kernels.WRAP
@@ -195,7 +194,7 @@ class ESP(Module):
         outputs = dict(
             head=head,
             power=power,
-            efficiency=_physics.esp_efficiency(flow, head, power),
+            efficiency=pumps.esp_efficiency(flow, head, power),
             discharge_pressure=discharge.p,
             is_in_operating_window=pumps.is_in_operating_window(
                 flow, self.minimum_flow, self.maximum_flow, scale
@@ -251,7 +250,7 @@ class ESP(Module):
 
     def head_function(self, flow: float, frequency: float) -> float:
         """Return pump head [Pa] for flow [m3/s] and frequency [Hz]."""
-        return _physics.head(
+        return pumps.head(
             flow, frequency, self.stage_count, self._coefficients(self.head_coefficients)
         )
 

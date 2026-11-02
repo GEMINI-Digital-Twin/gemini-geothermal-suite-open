@@ -22,11 +22,12 @@ class Gauge(Module):
         # Outputs
         self.value = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
+        outputs = dict(value=0.0)
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
     def health(self, result, measured):
         """Score the measured fraction; a flag of two is a bad measurement."""

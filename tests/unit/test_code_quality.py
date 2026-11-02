@@ -113,19 +113,19 @@ FORMULA_EXCEPTIONS = {
 SAME_FORM = {
     (
         "chemistry.py::co2_solubility_gas",
-        "control/_physics.py::pid_derivative",
+        "control.py::pid_derivative",
         "hydraulics.py::reynolds_number",
     ): "a product over a divisor: dissolved CO2, a PID term and the Reynolds number",
     (
+        "gas.py::heat_rejected",
         "hydraulics.py::productivity_pressure",
-        "pumps/_physics.py::heat_rejected",
     ): "a less b over c: "
     "compressor heat and a linear inflow relation",
     (
         "combustion.py::released_heat",
         "ground.py::stored_heat",
-        "pumps/_physics.py::line_shaft_friction_power",
-        "storage/_physics.py::ice_stored_cold",
+        "heat_transfer.py::ice_stored_cold",
+        "pumps.py::line_shaft_friction_power",
     ): "a product of three: stored heat, shaft friction, latent cold and burned heat",
     (
         "energy.py::circuit_flow",
@@ -211,7 +211,6 @@ CORE_MODULE_FILES = (
     "results.py",
     "states.py",
     "tree.py",
-    "unconverted.py",
     "values.py",
 )
 PACKAGE_FILES = [
@@ -838,14 +837,6 @@ DECLARED_DEFAULTS = {
     ("IceStorage", "water_specific_heat"): "liquid water at 0.01 degC (IAPWS-95)",
     ("IceStorage", "ice_specific_heat"): "ice Ih at the triple point (IAPWS R10-06)",
     ("_Reservoir", "role"): "the identity of the subclass (production or injection), not a choice",
-    ("AquiferStorage", "warm_volume"): "accumulator: zero before any charge",
-    ("AquiferStorage", "warm_temperature_change"): "change relative to the ground: zero at start",
-    ("AquiferStorage", "cold_volume"): "accumulator: zero before any discharge",
-    ("AquiferStorage", "cold_temperature_change"): "change relative to the ground: zero at start",
-    ("AquiferStorage", "charged_heat"): "accumulator: zero before any charge",
-    ("AquiferStorage", "recovered_heat"): "accumulator: zero before any recovery",
-    ("BoreholeField", "ground_temperature_change"): "change relative to the undisturbed ground",
-    ("ThermalDecline", "injected_volume"): "accumulator: zero before any injection",
 }
 """The only declarations of ``gemini/modules`` and ``gemini/plants`` that keep a default, by
 ``(class, name)``, each with its reason: a physical constant or standard reference whose source is
@@ -968,10 +959,10 @@ OLD_NAME = re.compile(
     r"legacy|compat|deprecated|^old_|_old($|_)|_v1|_v2|assumptions|finance|lifetime", re.IGNORECASE
 )
 """What a kept old name, shape or call path is called, with the names of the old inputs."""
-TEMPORARY_OLD_NAMES = {
-    "gemini/modules/unconverted.py: OLD_STYLE_MUST_BECOME_EMPTY",
-}
-"""The one name of the module contract's transition, deleted by the last conversion."""
+OLD_WORDS = re.compile(
+    r"legacy|compat|deprecated|old_|_old|_v1|_v2|assumptions|finance|lifetime", re.IGNORECASE
+)
+"""The words a name must contain to match ``OLD_NAME``, a cheap test of a whole file."""
 WRAPPER_ALLOWANCE = {
     "gemini/modules/module.py::fluid": "a property setter that calls the hook plants override",
 }
@@ -1019,7 +1010,12 @@ def old_names(syntax):
 
 @functools.cache
 def file_old_names(path):
-    """Return the old names of one file of the repository, found once per process."""
+    """Return the old names of one file of the repository, found once per process.
+
+    A file whose text has none of the words skips the walk of its syntax tree.
+    """
+    if not OLD_WORDS.search((ROOT / path).read_text()):
+        return []
     return old_names(tree(path))
 
 
@@ -1191,7 +1187,7 @@ def test_no_name_keeps_something_old(package_trees):
         if path.startswith("gemini/")
         if OLD_NAME.search(path.removeprefix("gemini/"))
     ]
-    assert [item for item in found if item not in TEMPORARY_OLD_NAMES] == []
+    assert found == []
 
 
 def test_the_old_name_guard_finds_old_names_and_not_words_that_contain_them():

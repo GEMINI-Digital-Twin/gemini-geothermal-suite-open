@@ -192,7 +192,7 @@ fractions are rejected until a suitable model exists. Default water/brine number
 `Fluid(kind="steam")`, exported as `STEAM`, labels water vapour such as the `gas` outlet of a
 flash `Separator`; `FlashTurbine` requires it. Its constant property snapshot is the unchanged
 liquid-water default and does not describe vapour: steam equipment takes enthalpies and
-entropies from `gemini.modules.power._physics`, so do not convert a steam stream's volume flow or audit its
+entropies from `gemini.physics.steam`, so do not convert a steam stream's volume flow or audit its
 latent heat with `cp_l * T`.
 
 Well corrosion helpers accept omitted chemistry: Fluid salt fraction becomes salt concentration

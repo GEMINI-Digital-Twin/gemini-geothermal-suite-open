@@ -5,7 +5,7 @@ from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output
 from gemini.modules.module import Module
-from gemini.modules.power import _physics
+from gemini.physics import steam
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import STEAM
 from gemini.units.quantities import Fraction, Pressure, Temperature
@@ -60,44 +60,45 @@ class Separator(Module):
         self.liquid_out = Outlet(Stream, kind="brine")
         self.gas_out = Outlet(Stream, kind="gas")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Flash the inlet to the setpoint pressure and split it into brine and steam."""
 
         # Outlets
         inlet = inlets.fluid_in
-        state = self._flash(inlet)
+        setpoint = inputs["pressure_setpoint"]
+        flashed = self._flash(inlet, setpoint)
 
-        liquid = inlet._with_si(
-            m_dot=state.liquid_flow, T=state.liquid_temperature, p=self.pressure_setpoint
-        )
+        liquid = inlet._with_si(m_dot=flashed.liquid_flow, T=flashed.liquid_temperature, p=setpoint)
         gas = inlet._with_si(
-            m_dot=state.steam_flow,
-            T=state.saturation_temperature,
-            p=self.pressure_setpoint,
+            m_dot=flashed.steam_flow,
+            T=flashed.saturation_temperature,
+            p=setpoint,
             fluid=STEAM,
         )
 
         # Outputs
-        self.steam_fraction = state.steam_fraction
-        self.saturation_temperature = state.saturation_temperature
+        outputs = dict(
+            steam_fraction=flashed.steam_fraction,
+            saturation_temperature=flashed.saturation_temperature,
+        )
 
         outlets = dict(liquid_out=liquid, gas_out=gas)
-        return outlets
+        return outputs, outlets
 
-    def _flash(self, inlet):
-        """Return the ``_physics.flash_state`` of the inlet at the setpoint pressure."""
+    def _flash(self, inlet, setpoint):
+        """Return the ``steam.flash_state`` of the inlet at the setpoint pressure."""
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
         if inlet.fluid.kind == "steam":
             raise PhysicsError(
                 f"{self.path}: inlet.fluid.kind = 'steam'; expected a liquid geofluid"
             )
         ops.check(
-            self.pressure_setpoint <= inlet.p,
+            setpoint <= inlet.p,
             PhysicsError,
             "{path}: pressure_setpoint = {setpoint} Pa; expected at most the inlet pressure "
             "{p} Pa",
             path=self.path,
-            setpoint=self.pressure_setpoint,
+            setpoint=setpoint,
             p=inlet.p,
         )
-        return _physics.flash_state(inlet.m_dot, inlet.T, inlet.p, self.pressure_setpoint)
+        return steam.flash_state(inlet.m_dot, inlet.T, inlet.p, setpoint)

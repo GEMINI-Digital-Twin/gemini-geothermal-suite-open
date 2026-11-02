@@ -46,6 +46,7 @@ def test_injection_zero_radius_is_explicit():
     out = result.outputs
     assert out.bottomhole_pressure > c.pressure
     assert out.radial_bottomhole_pressure is None
+    assert out.flow_pressure_drop is None and out.skin_pressure_drop is None
     assert not c.health(
         result, dict(flow=40 / 1068, bottomhole_pressure=out.bottomhole_pressure)
     ).alarm

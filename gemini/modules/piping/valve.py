@@ -74,12 +74,13 @@ class Valve(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Throttle the inlet stream by the sizing-equation pressure drop."""
+        opening = inputs["opening"]
 
         # Outlets
         inlet = inlets.fluid_in
-        drop = self._pressure_drop(inlet)
+        drop = self._pressure_drop(inlet, opening)
         ops.check(
             drop <= inlet.p,
             PhysicsError,
@@ -92,22 +93,24 @@ class Valve(Module):
         outlet = inlet._with_si(p=inlet.p - drop)
 
         # Outputs
-        self.pressure_drop = inlets.fluid_in.p - outlet.p
-        self.effective_flow_coefficient = self._effective_flow_coefficient()
+        outputs = dict(
+            pressure_drop=inlet.p - outlet.p,
+            effective_flow_coefficient=self._effective_flow_coefficient(opening),
+        )
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
-    def _effective_flow_coefficient(self):
+    def _effective_flow_coefficient(self, opening):
         """Return the flow coefficient [m3/s/Pa^0.5] at the commanded opening."""
         return hydraulics.valve_flow_coefficient(
             self.flow_coefficient,
-            self.opening,
+            opening,
             self.rangeability,
             self.characteristic == "equal_percentage",
         )
 
-    def _pressure_drop(self, inlet):
+    def _pressure_drop(self, inlet, opening):
         """Return the pressure drop [Pa] of the inlet flow at the commanded opening."""
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
         if inlet.fluid.gas_mass_fraction > 0:
@@ -115,7 +118,7 @@ class Valve(Module):
                 f"{self.path}: inlet.fluid.gas_mass_fraction = "
                 f"{inlet.fluid.gas_mass_fraction}; expected 0 (single-phase liquid model)"
             )
-        coefficient = self._effective_flow_coefficient()
+        coefficient = self._effective_flow_coefficient(opening)
         ops.check(
             ops.logical_or(inlet.m_dot == 0, coefficient != 0),
             PhysicsError,

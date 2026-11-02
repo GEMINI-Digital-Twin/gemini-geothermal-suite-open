@@ -53,7 +53,9 @@ def test_a_stepped_module_carries_its_state_from_row_to_row():
     """The states after the last row are those of the sum of the flows."""
     streams = _streams(3)
     feeds = inlet_feeds(streams)
-    _, errors, states = run_rows(Reservoir(), {"fluid_in": gm.WATER}, feeds, 3, {"dt": 900.0}, True)
+    _, errors, states = run_rows(
+        Reservoir(), {"fluid_in": gm.WATER}, feeds, 3, {"dt": 900.0, "states": {"total": 0.0}}, True
+    )
     assert errors == {} and states == {"total": 6.0}
 
 

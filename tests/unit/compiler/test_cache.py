@@ -112,7 +112,7 @@ def test_a_hook_below_the_root_is_a_guard(line):
     fluids = {"fluid_in": line.fluid}
     cache.graph(line, fluids)
     line.gain.register_forward_hook(
-        lambda module, inputs, inlets, state, outputs, outlets: setattr(module, "rise", 1.0)
+        lambda module, inputs, inlets, state, outputs, outlets: {"rise": 1.0}
     )
     cache.graph(line, fluids)
     assert cache.traces == 2

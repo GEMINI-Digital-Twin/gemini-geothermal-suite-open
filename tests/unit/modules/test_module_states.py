@@ -35,7 +35,7 @@ class Tank(Module):
         self.fluid_in = Inlet(Stream)
 
         # States
-        self.temperature = State(Temperature, default=300)
+        self.temperature = State(Temperature)
 
         # Outputs
         self.duty = Output(Duty)
@@ -43,23 +43,24 @@ class Tank(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Leave at the tank temperature of the start of the step."""
 
         # Outlets
-        outlet = inlets.fluid_in._with_si(T=self.temperature)
+        outlet = inlets.fluid_in._with_si(T=state["temperature"])
 
+        outputs = dict(duty=self._duty(inlets.fluid_in, state))
         outlets = dict(fluid_out=outlet)
-        self.duty = self._duty(inlets.fluid_in)
-        return outlets
+        return outputs, outlets
 
-    def _advance_states(self, inlets, outlets, dt):
-        return {
-            "temperature": self.temperature + self._duty(inlets.fluid_in) * dt / self.heat_capacity
-        }
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Relax the temperature towards the inlet."""
+        duty = self._duty(inlets.fluid_in, state)
+        return {"temperature": state["temperature"] + duty * dt / self.heat_capacity}
 
-    def _duty(self, inlet):
-        return inlet.m_dot * 4217.4 * (inlet.T - self.temperature)
+    def _duty(self, inlet, state):
+        """Return the heat taken from the inlet."""
+        return inlet.m_dot * 4217.4 * (inlet.T - state["temperature"])
 
 
 class Line(Module):
@@ -79,18 +80,19 @@ class Line(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the stream through both tanks."""
 
         # Modules
-        first = self.first(fluid_in=inlets.fluid_in)
-        second = self.second(fluid_in=first.outlets.fluid_out)
+        first = self.first(fluid_in=inlets.fluid_in, state=state["first"])
+        second = self.second(fluid_in=first.outlets.fluid_out, state=state["second"])
 
         # Outlets
         outlet = second.outlets.fluid_out
 
+        outputs = dict()
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 class Integrator(Module):
@@ -104,27 +106,31 @@ class Integrator(Module):
         self.rate = Control(float)
 
         # States
-        self.total = State(Energy, default=0)
+        self.total = State(Energy)
 
         # Outputs
         self.value = Output(Energy)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Move no fluid."""
+        outputs = dict(value=state["total"])
         outlets = dict()
-        self.value = self.total
-        return outlets
+        return outputs, outlets
 
-    def _advance_states(self, inlets, outlets, dt):
-        return {"total": self.total + self.rate * dt}
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Add the commanded rate over the step."""
+        return {"total": state["total"] + inputs["rate"] * dt}
 
 
-def test_plain_call_uses_the_initial_state():
-    """Outside a step a stateful module evaluates at its initial state."""
+COLD = {"temperature": 300}
+LINE_COLD = {"first": dict(COLD), "second": dict(COLD)}
+
+
+def test_a_call_evaluates_at_the_given_state():
+    """A stateful module evaluates at the state the call passes."""
     tank = Tank()
     assert tank.stateful and not Line().stateful
-    assert tank(fluid_in=STREAM).outlets.fluid_out.T == 300
-    assert tank.initial_state() == {"temperature": 300}
+    assert tank(fluid_in=STREAM, state=COLD).outlets.fluid_out.T == 300
     assert list(Line().states()) == ["first.temperature", "second.temperature"]
     assert "States:\n  temperature: K" in Tank.help()
 
@@ -132,7 +138,7 @@ def test_plain_call_uses_the_initial_state():
 def test_leaf_step_advances_its_state():
     """A leaf step starts from the given state and returns the end-of-step state."""
     tank = Tank()
-    state, result = tank.step(None, 10, {"fluid_in": STREAM})
+    state, result = tank.step(COLD, 10, {"fluid_in": STREAM})
     assert result.outlets.fluid_out.T == 300
     assert state == {"temperature": pytest.approx(300 + 50 * 4217.4 * 10 / (4217.4 * 100))}
     state, result = tank.step(state, 10, {"fluid_in": STREAM})
@@ -142,8 +148,7 @@ def test_leaf_step_advances_its_state():
 def test_composite_step_advances_every_descendant():
     """A composite steps its stateful children through its own forward, without a step method."""
     line = Line()
-    assert line.initial_state() == {"first": {"temperature": 300}, "second": {"temperature": 300}}
-    state, _ = line.step(None, 10, {"fluid_in": STREAM})
+    state, _ = line.step(LINE_COLD, 10, {"fluid_in": STREAM})
     state, result = line.step(state, 10, {"fluid_in": STREAM})
     assert state["first"]["temperature"] > state["second"]["temperature"] > 300
     assert result.outlets.fluid_out.T == 300
@@ -165,20 +170,21 @@ def test_state_errors():
     line = Line()
     line.second = line.first
     with raises(gm.errors.ValidationError, "invalid_design", match="more than once in one step"):
-        line.step(None, 10, {"fluid_in": STREAM})
+        line.step(LINE_COLD, 10, {"fluid_in": STREAM})
 
 
-def test_advance_states_must_return_every_state():
+def test_update_must_return_every_state():
     """An incomplete end-of-step mapping is a configuration error."""
 
     class Leaky(Tank):
         """Tank that forgets its state."""
 
-        def _advance_states(self, inlets, outlets, dt):
+        def update(self, inputs, inlets, outlets, state, dt):
+            """Return no state."""
             return {}
 
-    with raises(gm.errors.ValidationError, "invalid_design", match="expected temperature"):
-        Leaky().step(None, 10, {"fluid_in": STREAM})
+    with pytest.raises(gm.errors.DefinitionError, match="missing key 'temperature'"):
+        Leaky().step(COLD, 10, {"fluid_in": STREAM})
 
 
 def test_engine_replay_integrates_declared_states():
@@ -190,5 +196,7 @@ def test_engine_replay_integrates_declared_states():
         index=pd.date_range("2024-01-01", periods=3, freq="1s", tz="UTC"),
     )
     engine = gm.Engine(plant, on_error="raise")
-    assert engine.replay(gm.Dataset.from_frame(frame))[""].value.tolist() == [0, 1, 2]
+    start = {"position": None, "module_states": {"": {"total": 0.0}}}
+    results = engine.replay(gm.Dataset.from_frame(frame), state=start)
+    assert results[""].value.tolist() == [0, 1, 2]
     assert engine.module_states[""] == {"total": 3}

@@ -194,6 +194,17 @@ class CallArguments:
             "outlet", self._outlets, given | taken, DefinitionError, plain_outlet
         )
 
+    def _stated_inputs(self):
+        """Return the controls and boundaries that have a value now; the others are left out."""
+        found = {}
+        for name in self._controls | self._boundaries:
+            try:
+                found[name] = self._input_value(name)
+            except ValidationError as error:
+                if error.code != "missing_value":
+                    raise
+        return found
+
     def _resolve_inputs(self, supplied):
         """Return validated controls and boundaries: supplied, persisted, then default values."""
         return {

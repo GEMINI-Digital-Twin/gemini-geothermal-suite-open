@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.streams.fluid import BRINE
+from tests.fixtures.designs import EMPTY_AQUIFER
 from tests.fixtures.sample_cases import example_plant
 
 COOLING = "cooling.substations.0"
@@ -50,7 +51,7 @@ def run():
         ),
         "air_in": gm.modules.Atmosphere.ambient_air({"value": 10, "unit": "degC"}),
     }
-    state, first = plant.step(None, 3600, inlets)
+    state, first = plant.step({"ates": {"storage": EMPTY_AQUIFER}}, 3600, inlets)
     state, second = plant.step(state, 3600, inlets | {"cold_in": first.outlets.cold_out})
     return plant, first, second
 

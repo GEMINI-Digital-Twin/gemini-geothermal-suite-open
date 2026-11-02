@@ -1,20 +1,20 @@
-"""Well physics of this category: a stream marched along a pipe path, corrosion and erosion.
+"""A stream marched along a well's pipe path: pressure, temperature and the CO2 corrosion rate.
 
-The path marcher takes the ``Stream`` and ``Fluid`` of the well, so it cannot sit in
-``gemini.physics`` (which knows no module and no stream). It composes the correlations of
-``gemini.physics.hydraulics`` (Darcy-Weisbach, Beggs-Brill), ``heat_transfer``, ``corrosion`` and
-``erosion`` for the production and injection wells.
+The marcher takes the ``Stream`` and the ``Fluid`` of the well (the property model of its brine and
+gas), so it cannot sit in ``gemini.physics``, which knows no stream. It composes the correlations of
+``gemini.physics.hydraulics`` (Darcy-Weisbach, Beggs-Brill), ``heat_transfer`` and ``corrosion`` for
+the production and injection wells. The erosion check takes plain values and is
+``gemini.physics.erosion.pipe_path_erosion_check``.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import reduce
 from typing import Literal
 
 from gemini import ops
 from gemini.errors import ValidationError
-from gemini.physics import corrosion, erosion
+from gemini.physics import corrosion
 from gemini.physics import fluid as fluid_physics
 from gemini.physics import geometry, heat_transfer
 from gemini.physics.constants import MIN_PATH_PRESSURE
@@ -250,45 +250,3 @@ def corrosion_profile(
             )
         )
     return rates
-
-
-@ops.physics
-def erosion_check(path: geometry.PipePath, stream: Stream, fluid: Fluid) -> dict:
-    """Compare section velocities with the API erosional velocity limit.
-
-    Per section ``u = |m| / (rho A)`` and the limit ``u_e = C / sqrt(rho)`` of
-    ``erosion.api_erosional_velocity`` at the inlet mixture density.
-
-    Parameters
-    ----------
-    path : PipePath
-        Surface-to-bottom pipe intervals [m, rad].
-    stream : Stream
-        Mass flow [kg/s], pressure [Pa] and temperature [K].
-    fluid : Fluid
-        SI property model.
-
-    Returns
-    -------
-    dict
-        Section velocities and limit [m/s], dimensionless ratios and alarm flags.
-
-    Notes
-    -----
-    Valid for clean, solids-free service; the limit uses the density at the inlet conditions
-    for every section. Reference: API RP 14E (Recommended Practice for Design and Installation
-    of Offshore Production Platform Piping Systems), as implemented in GEMINI WIMS.
-    """
-    density = fluid.properties(stream.p, stream.T).density
-    limit = erosion.api_erosional_velocity(density)
-    velocity = [
-        geometry.mean_velocity(ops.abs(stream.m_dot), density, s.inner_diameter)
-        for s in path.sections
-    ]
-    sections = [erosion.api_velocity_comparison(v, limit) for v in velocity]
-    return {
-        "velocity": velocity,
-        "limit": limit,
-        "sections": sections,
-        "alarm": reduce(ops.logical_or, (s["exceeds_api_limit"] for s in sections), False),
-    }

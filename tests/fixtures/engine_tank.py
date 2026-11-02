@@ -37,17 +37,17 @@ class Tank(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the inlet stream through."""
 
         # Outlets
         outlet = inlets.fluid_in
 
         outlets = dict(fluid_out=outlet)
-        if self.m_dot < 0:
+        if inputs["m_dot"] < 0:
             raise ValueError("negative flow")
-        self.flow = self.m_dot
-        return outlets
+        outputs = dict(flow=inputs["m_dot"])
+        return outputs, outlets
 
 
 class Valve(Module):
@@ -64,12 +64,12 @@ class Valve(Module):
         # Outputs
         self.flow = Output(MassFlow)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
         outlets = dict()
-        self.flow = self.m_dot
-        return outlets
+        outputs = dict(flow=inputs["m_dot"])
+        return outputs, outlets
 
 
 def tank(unit="kg/s"):

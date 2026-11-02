@@ -69,7 +69,7 @@ class AquiferStorage(Module):
     ``stored_energy`` is the net excess heat of both stores (the cold store counts negative).
     ``recovery_efficiency`` is the warm store's thermal recovery, heat produced over heat
     injected, both relative to the aquifer temperature (the definition of Bloemendal and
-    Hartog 2018); it is ``None`` until positive heat has been charged.
+    Hartog 2018); it is NaN (shown as ``None`` in results) until positive heat has been charged.
 
     Assumptions: no regional groundwater flow, dispersion or buoyancy; no thermal
     interaction between the wells; a sharp, fully mixed store instead of a thermal fringe
@@ -141,12 +141,18 @@ class AquiferStorage(Module):
         )
 
         # States
-        self.warm_volume = State(Volume, default=0)
-        self.warm_temperature_change = State(TemperatureDifference, default=0)
-        self.cold_volume = State(Volume, default=0)
-        self.cold_temperature_change = State(TemperatureDifference, default=0)
-        self.charged_heat = State(Energy, default=0)
-        self.recovered_heat = State(Energy, default=0)
+        self.warm_volume = State(Volume, description="Water volume injected into the warm store")
+        self.warm_temperature_change = State(
+            TemperatureDifference,
+            description="Temperature of the warm store relative to the aquifer temperature",
+        )
+        self.cold_volume = State(Volume, description="Water volume injected into the cold store")
+        self.cold_temperature_change = State(
+            TemperatureDifference,
+            description="Temperature of the cold store relative to the aquifer temperature",
+        )
+        self.charged_heat = State(Energy, description="Excess heat injected since the start")
+        self.recovered_heat = State(Energy, description="Excess heat produced since the start")
 
         # Outputs
         self.stored_energy = Output(
@@ -166,57 +172,63 @@ class AquiferStorage(Module):
         self.production_out = Outlet(Stream, kind="brine", offered=True)
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Produce the injected mass flow from the source store of the current mode."""
+        mode = inputs["mode"]
 
         # Outlets
         injection_in = inlets.injection_in
-        self._volume_flow(injection_in)
-        production_out = injection_in._with_si(T=self.production_temperature())
+        self._volume_flow(injection_in, mode)
+        production_out = injection_in._with_si(T=self._production_temperature(mode, state))
         if self.groundwater_pressure is not None:
             production_out = production_out._with_si(p=self.groundwater_pressure)
 
-        losses = self._store_losses(injection_in)
+        losses = self._store_losses(injection_in, state)
         loss_out = energy.total_power(losses)
 
         # Outputs
         water = self._fluid_heat_capacity(injection_in)
-        self.stored_energy = ground.aquifer_stored_energy(
-            water,
-            self.warm_volume,
-            self.warm_temperature_change,
-            self.cold_volume,
-            self.cold_temperature_change,
-        )
-        self.recovery_efficiency = ground.thermal_recovery(self.recovered_heat, self.charged_heat)
-        self.warm_temperature = self.aquifer_temperature + self.warm_temperature_change
-        self.cold_temperature = self.aquifer_temperature + self.cold_temperature_change
-        self.heat_accumulation = (
-            heat_transfer.heat_rate(injection_in.heat_capacity_rate(), injection_in.T)
-            - heat_transfer.heat_rate(production_out.heat_capacity_rate(), production_out.T)
-            - sum(losses)
+        outputs = dict(
+            stored_energy=ground.aquifer_stored_energy(
+                water,
+                state["warm_volume"],
+                state["warm_temperature_change"],
+                state["cold_volume"],
+                state["cold_temperature_change"],
+            ),
+            recovery_efficiency=ground.thermal_recovery(
+                state["recovered_heat"], state["charged_heat"]
+            ),
+            warm_temperature=self.aquifer_temperature + state["warm_temperature_change"],
+            cold_temperature=self.aquifer_temperature + state["cold_temperature_change"],
+            heat_accumulation=(
+                heat_transfer.heat_rate(injection_in.heat_capacity_rate(), injection_in.T)
+                - heat_transfer.heat_rate(production_out.heat_capacity_rate(), production_out.T)
+                - sum(losses)
+            ),
         )
 
         outlets = dict(production_out=production_out, loss_out=loss_out)
-        return outlets
+        return outputs, outlets
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         """Offer the produced groundwater of a loop through the well pair."""
-        if self.groundwater_pressure is None or self.groundwater_flow is None:
+        flow = inputs["groundwater_flow"]
+        if self.groundwater_pressure is None or flow is None:
             raise ValidationError(
                 f"{self.path}: groundwater_pressure and groundwater_flow are needed to offer "
                 "production_out; expected both on a loop through the well pair",
                 code="invalid_design",
             )
         offered = Stream._si(
-            m_dot=self.groundwater_flow,
-            T=self.production_temperature(),
+            m_dot=flow,
+            T=self._production_temperature(inputs["mode"], state),
             p=self.groundwater_pressure,
             fluid=self.fluid,
         )
         return {"production_out": offered}
 
-    def _store_losses(self, injection):
+    def _store_losses(self, injection, state):
         """Return the conduction loss [W] of each store to the aquifer around it."""
         water = self._fluid_heat_capacity(injection)
         return [
@@ -232,17 +244,19 @@ class AquiferStorage(Module):
                 ),
                 change,
             )
-            for volume, change in map(self._store, STORES)
+            for volume, change in (self._store(store, state) for store in STORES)
         ]
 
-    def _advance_states(self, inlets, outlets, dt):
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the store volumes, temperature changes and heat totals after the step."""
+        mode = inputs["mode"]
         injection = inlets.injection_in
-        volume = ground.injected_volume(self._volume_flow(injection), dt)
+        volume = ground.injected_volume(self._volume_flow(injection, mode), dt)
         injected_change = injection.T - self.aquifer_temperature
         water = self._fluid_heat_capacity(injection)
         states = {}
         for store in STORES:
-            store_volume, change = self._moved_store(store, volume, injected_change)
+            store_volume, change = self._moved_store(store, mode, state, volume, injected_change)
             conductance = ground.store_conductance(
                 store_volume,
                 self.ground_conductivity,
@@ -256,42 +270,39 @@ class AquiferStorage(Module):
             states[f"{store}_temperature_change"] = ground.store_relaxation(
                 change, store_volume, conductance, dt, water
             )
-        charged = self.charged_heat
-        if self.mode == "charge":
+        charged = state["charged_heat"]
+        if mode == "charge":
             charged = charged + ground.stored_heat(water, volume, injected_change)
         states["charged_heat"] = charged
-        recovered = self.recovered_heat
-        if self.mode == "discharge":
-            recovered = recovered + ground.stored_heat(water, volume, self.warm_temperature_change)
+        recovered = state["recovered_heat"]
+        if mode == "discharge":
+            recovered = recovered + ground.stored_heat(
+                water, volume, state["warm_temperature_change"]
+            )
         states["recovered_heat"] = recovered
         return states
 
-    def production_temperature(self):
+    def _production_temperature(self, mode, state):
         """Return the temperature [K] that ``production_out`` has in the running step."""
-        source, _ = self._source_and_target()
+        source, _ = SOURCE_AND_TARGET.get(mode, (None, None))
         if source is None:
             return self.aquifer_temperature
-        return self.aquifer_temperature + self._store(source)[1]
+        return self.aquifer_temperature + self._store(source, state)[1]
 
-    def _moved_store(self, store, volume, injected_change):
+    def _moved_store(self, store, mode, state, volume, injected_change):
         """Return a store's volume [m3] and temperature change [K] after this step's flow."""
-        store_volume, change = self._store(store)
-        source, target = self._source_and_target()
+        store_volume, change = self._store(store, state)
+        source, target = SOURCE_AND_TARGET.get(mode, (None, None))
         if store == target:
             return ground.mix_store(store_volume, change, volume, injected_change)
         if store == source:
             return ops.maximum(store_volume - volume, 0.0), change
         return store_volume, change
 
-    def _source_and_target(self):
-        """Return the stores the running mode takes water from and puts it into, else ``None``."""
-        return SOURCE_AND_TARGET.get(self.mode, (None, None))
-
-    def _store(self, store):
+    @staticmethod
+    def _store(store, state):
         """Return a store's volume [m3] and temperature change [K] at the start of the step."""
-        if store == "warm":
-            return self.warm_volume, self.warm_temperature_change
-        return self.cold_volume, self.cold_temperature_change
+        return state[f"{store}_volume"], state[f"{store}_temperature_change"]
 
     @staticmethod
     def _fluid_heat_capacity(stream):
@@ -299,10 +310,10 @@ class AquiferStorage(Module):
         properties = stream.fluid.properties(stream.p, stream.T)
         return properties.liquid_volumetric_heat_capacity
 
-    def _volume_flow(self, injection):
+    def _volume_flow(self, injection, mode):
         """Return the injected liquid volume flow [m3/s] after checking it against the mode."""
         require_forward(self.path, "injection_in.m_dot", injection.m_dot)
-        if self.mode == "idle":
+        if mode == "idle":
             ops.check(
                 injection.m_dot == 0,
                 PhysicsError,

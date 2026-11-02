@@ -114,29 +114,32 @@ class HeatingGrid(Module):
         # Outlets
         self.return_out = Outlet(Stream, kind="hot_water", offered=True)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the supply stream cooled by the delivered heat."""
 
         # Outlets
         supply_in = inlets.supply_in
         if self.return_temperature is None:
-            delivered = self._delivered_heat(supply_in)
+            delivered = self._delivered_heat(inputs, supply_in)
             return_out = supply_in._with_si(T=self._cooled_temperature(supply_in, delivered))
         else:
-            return_out = self._offer(inlets)["return_out"]
+            return_out = self._offer(inputs, inlets, state)["return_out"]
             delivered = heat_transfer.heat_rate(
                 supply_in.heat_capacity_rate(), supply_in.T - return_out.T
             )
 
         # Outputs
-        self.unmet_demand = ops.maximum(self.heat_demand - delivered, 0.0)
-        self.surplus = ops.maximum(delivered - self.heat_demand, 0.0)
-        self.is_unmet = self.unmet_demand > 0
+        unmet_demand = ops.maximum(inputs["heat_demand"] - delivered, 0.0)
+        outputs = dict(
+            unmet_demand=unmet_demand,
+            surplus=ops.maximum(delivered - inputs["heat_demand"], 0.0),
+            is_unmet=unmet_demand > 0,
+        )
 
         outlets = dict(return_out=return_out)
-        return outlets
+        return outputs, outlets
 
-    def _loop_start(self, port, entering):
+    def _loop_start(self, inputs, port, entering):
         """Start a building loop at the lowest return temperature."""
         return self.minimum_return_temperature
 
@@ -144,16 +147,23 @@ class HeatingGrid(Module):
         """Offer only on a closed loop; otherwise the outlet follows from the inlet."""
         return self.return_temperature is not None
 
-    def _offer(self, inlets):
+    def _offer(self, inputs, inlets, state):
         """Offer the return water of a closed loop, at the fixed temperature and the given flow."""
-        if self.return_temperature is None or self.return_pressure is None or self.flow is None:
+        if (
+            self.return_temperature is None
+            or self.return_pressure is None
+            or inputs["flow"] is None
+        ):
             raise ValidationError(
                 f"{self.path}: return_temperature, return_pressure and flow are needed to offer "
                 "return_out; expected all three on a closed loop",
                 code="invalid_design",
             )
         offered = Stream._si(
-            m_dot=self.flow, T=self.return_temperature, p=self.return_pressure, fluid=self.fluid
+            m_dot=inputs["flow"],
+            T=self.return_temperature,
+            p=self.return_pressure,
+            fluid=self.fluid,
         )
         return {"return_out": offered}
 
@@ -166,7 +176,7 @@ class HeatingGrid(Module):
         )
         return ops.where(delivered == 0, supply_in.T, cooled)
 
-    def _delivered_heat(self, supply_in):
+    def _delivered_heat(self, inputs, supply_in):
         """Return the delivered heat [W]: the demand, capped by the return-temperature floor."""
         require_forward(self.path, "supply_in.m_dot", supply_in.m_dot)
         if self.minimum_return_temperature is None:
@@ -178,4 +188,4 @@ class HeatingGrid(Module):
         available = heat_transfer.setpoint_duty(
             supply_in.heat_capacity_rate(), supply_in.T - self.minimum_return_temperature
         )
-        return ops.minimum(self.heat_demand, available)
+        return ops.minimum(inputs["heat_demand"], available)

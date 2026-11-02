@@ -9,7 +9,7 @@ import pytest
 
 from gemini import ops, units
 from gemini.errors import PhysicsError, ValidationError
-from gemini.physics import erosion
+from gemini.physics import erosion, geometry
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
 from tests.fixtures.errors import raises
 
@@ -207,3 +207,43 @@ def test_a_negative_integer_flow_is_the_complex_rate_error():
     """An integer argument behaves like its float: the complex rate raises the proper class."""
     with pytest.raises(PhysicsError, match="complex rate"):
         erosion.erosion_rate("DNV", flow_rate=-1, rho_fluid=1000, diameter=1)
+
+
+def _path(*diameters):
+    """Return a vertical path of 100 m sections with the given internal diameters."""
+    return geometry.PipePath(
+        sections=[
+            geometry.PipeSection(
+                length=100, inclination=math.pi / 2, inner_diameter=d, roughness=2e-5
+            )
+            for d in diameters
+        ]
+    )
+
+
+def test_pipe_path_erosion_check_compares_each_section():
+    """Narrow sections run faster and raise the API alarm first."""
+    result = erosion.pipe_path_erosion_check(_path(0.02, 0.3), 40, 1050)
+    assert result["velocity"][0] > result["limit"] > result["velocity"][1]
+    assert result["alarm"] is True
+    assert [s["exceeds_api_limit"] for s in result["sections"]] == [True, False]
+
+
+def test_pipe_path_erosion_check_matches_on_arrays():
+    """Section velocities, ratios and the alarm over a narrow and a wide section match."""
+
+    @ops.physics
+    def check(mass_flow, density):
+        result = erosion.pipe_path_erosion_check(_path(0.02, 0.3), mass_flow, density)
+        return dict(
+            limit=result["limit"],
+            alarm=result["alarm"],
+            **{f"velocity{index}": value for index, value in enumerate(result["velocity"])},
+            **{
+                f"ratio{index}": section["velocity_ratio"]
+                for index, section in enumerate(result["sections"])
+            },
+        )
+
+    check.__name__ = "pipe_path_erosion_check"
+    assert_function_matches(check, [(40, 1050), (0.5, 1050), (-40, 900)])

@@ -17,6 +17,7 @@ from gemini.plants._utils.plan import Solve
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import BRINE
 from tests.fixtures.engine_plants import (
+    TANK_START,
     Booster,
     holder_plant,
     loop_plant,
@@ -26,22 +27,26 @@ from tests.fixtures.engine_plants import (
 from tests.fixtures.parity import assert_frames_match
 
 
-def _run(plant, frame, compile):
-    """Replay ``frame`` on ``plant`` and return the engine."""
+def _run(plant, frame, compile, state=None):
+    """Replay ``frame`` on ``plant`` from ``state`` and return the engine."""
     engine = gm.Engine(plant, on_error="record", compile=compile)
-    engine.replay(gm.Dataset.from_frame(frame))
+    engine.replay(gm.Dataset.from_frame(frame), state=state)
     return engine
 
 
 @pytest.mark.parametrize(
-    "make",
-    [pair_plant, lambda: pair_plant(with_tank=True), holder_plant],
+    "make, state",
+    [
+        (pair_plant, None),
+        (lambda: pair_plant(with_tank=True), TANK_START),
+        (holder_plant, None),
+    ],
     ids=["pair", "stateful", "composite"],
 )
-def test_eager_and_compiled_runs_give_the_same_numbers_and_errors(make):
+def test_eager_and_compiled_runs_give_the_same_numbers_and_errors(make, state):
     """Rows that fail, rows that work and a stateful twin agree between the executors."""
     frame = pair_frame({("level", 4): -1.0, ("level", 7): 0.0, ("flow", 9): np.nan})
-    eager, compiled = (_run(make(), frame, compile) for compile in (False, True))
+    eager, compiled = (_run(make(), frame, compile, state) for compile in (False, True))
     assert isinstance(eager._executor, EagerExecutor)
     assert isinstance(compiled._executor, GraphExecutor)
     assert len(compiled.results.errors()) >= 2
@@ -99,12 +104,16 @@ class Gate(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the stream and the rate, zero when stopped."""
+        level = inputs["level"]
+
+        # Outputs
+        outputs = dict(rate=ops.where(level == 0, 0.0, _reciprocal(level)))
 
         # Outlets
-        self.rate = ops.where(self.level == 0, 0.0, _reciprocal(self.level))
-        return dict(fluid_out=inlets.fluid_in)
+        outlets = dict(fluid_out=inlets.fluid_in)
+        return outputs, outlets
 
 
 def _evaluations(module, levels):
@@ -146,7 +155,9 @@ def test_an_inline_check_leaves_out_its_rows_and_the_others_stay_on_arrays():
 def test_an_array_call_that_cannot_run_falls_back_to_the_rows_and_says_why(monkeypatch):
     """What no row can be blamed for makes the rows the reference; ``breaks`` keeps the reason."""
     module = Booster()
-    monkeypatch.setattr(Booster, "forward", lambda self, inlets: 1 / int(self.level == 1.0))
+    monkeypatch.setattr(
+        Booster, "forward", lambda self, inputs, inlets, state: 1 / int(inputs["level"] == 1.0)
+    )
     executor = EagerExecutor()
     prepared = executor.prepare(module, _streams(), {"level": np.array([1.0, 1.0, 2.0])}, False)
     evaluation = executor.evaluate(prepared, 3, {})

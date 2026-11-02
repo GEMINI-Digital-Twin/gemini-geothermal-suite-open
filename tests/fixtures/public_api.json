@@ -757,7 +757,9 @@
    "chemistry": "module",
    "combustion": "module",
    "constants": "module",
+   "control": "module",
    "corrosion": "module",
+   "cycles": "module",
    "diagnostics": "module",
    "energy": "module",
    "erosion": "module",
@@ -770,7 +772,8 @@
    "psychrometrics": "module",
    "pumps": "module",
    "refrigeration": "module",
-   "separation": "module"
+   "separation": "module",
+   "steam": "module"
   },
   "plants": {
    "ATESPlant": "class",

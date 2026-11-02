@@ -8,7 +8,7 @@ from gemini.case._utils.kinds import EQUIPMENT_KINDS
 from gemini.engine.apply import apply_case
 from gemini.evaluate._utils import cost
 from gemini.modules import CoolingGrid, Module
-from gemini.modules.pumps import _physics
+from gemini.physics import pumps
 from gemini.streams.fluid import BRINE
 from gemini.units import SECONDS_PER_YEAR, Quantity
 from tests.fixtures.cases import FINANCE, costed_economics, make_case
@@ -160,7 +160,7 @@ def test_a_doublet_pays_for_its_wells_by_the_metre_and_its_pump_by_its_power():
     case = make_case(economics={"capex": ALL})
     result = gm.evaluate.capex(plant, case)
     head = apply_case(plant, case).unit.esp.head_coefficients
-    power = 300 / 3600 * _physics.head(0.0, 60.0, 1, head) / 0.7
+    power = 300 / 3600 * pumps.head(0.0, 60.0, 1, head) / 0.7
     drilling = sum(
         item.value for item in result.parts["modules"].values() if item.parts["kind"] == "drilling"
     )

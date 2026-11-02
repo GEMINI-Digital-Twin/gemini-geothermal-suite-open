@@ -28,14 +28,14 @@ class Gauge(Module):
         # Outputs
         self.value = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
         outlets = dict()
-        if self.level < 0:
+        if inputs["level"] < 0:
             raise ValueError("negative level")
-        self.value = self.level
-        return outlets
+        outputs = dict(value=inputs["level"])
+        return outputs, outlets
 
 
 def run(levels, *callbacks):

@@ -105,12 +105,12 @@ class CentrifugalPump(Equipment, Module):
         self.fluid_out = Outlet(Stream)
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Raise the suction pressure by the head and heat the liquid by the pump losses."""
 
         # Outlets
         suction = inlets.fluid_in
-        performance = self._performance(suction)
+        performance = self._performance(suction, inputs["frequency"])
         losses = performance["shaft_power"] - performance["hydraulic_power"]
         rise = heat_transfer.temperature_change(losses, suction.heat_capacity_rate())
 
@@ -119,13 +119,15 @@ class CentrifugalPump(Equipment, Module):
         loss_out = power_in - performance["shaft_power"]
 
         # Outputs
-        self.head = performance["head"]
-        self.hydraulic_power = performance["hydraulic_power"]
-        self.shaft_power = performance["shaft_power"]
-        self.efficiency = performance["efficiency"]
+        outputs = dict(
+            head=performance["head"],
+            hydraulic_power=performance["hydraulic_power"],
+            shaft_power=performance["shaft_power"],
+            efficiency=performance["efficiency"],
+        )
 
         outlets = dict(fluid_out=discharge, loss_out=loss_out, power_in=power_in)
-        return outlets
+        return outputs, outlets
 
     def cost_size(self):
         """Return the shaft power [W] at the best-efficiency flow, the size the cost scales with."""
@@ -134,11 +136,11 @@ class CentrifugalPump(Equipment, Module):
         hydraulic = pumps.hydraulic_power(flow, head)
         return energy.input_power(hydraulic, self.best_efficiency)
 
-    def _performance(self, suction):
+    def _performance(self, suction, frequency):
         """Return flow [m3/s], head [Pa], hydraulic and shaft power [W] and efficiency [-]."""
         flow = suction.volumetric_flow()
         require_forward(self.path, "suction volume flow", flow, "m3/s")
-        speed = pumps.speed_ratio(self.frequency, self.rated_frequency)
+        speed = pumps.speed_ratio(frequency, self.rated_frequency)
         head = pumps.centrifugal_head(flow, speed, self.head_coefficients)
         load = pumps.best_efficiency_ratio(flow, speed, self.best_efficiency_flow)
         ops.check(
@@ -151,7 +153,7 @@ class CentrifugalPump(Equipment, Module):
             "nonnegative head below twice the best-efficiency flow (pump off its curve)",
             path=self.path,
             flow=flow,
-            frequency=self.frequency,
+            frequency=frequency,
             head=head,
             load=load,
         )

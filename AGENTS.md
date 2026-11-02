@@ -9,11 +9,11 @@ Test with the development profile (`make test`); see
 
 A leaf module computes and a plant connects; no class does both
 ([modules](.claude/docs/modules.md), [plants](.claude/docs/plants.md)). A leaf has physics calls and
-one method, `forward`. Every composite is a `Plant`: it declares children, ports and connections in
+one pure method, `forward`, and a pure `update` when it has states. Every composite is a `Plant`: it declares children, ports and connections in
 `__init__` and never writes `forward`. The engine closes loops and solves constraints.
 
-Physics lives in `gemini/physics/` or `gemini/modules/<category>/_physics.py`: a module declares and
-calls physics functions. `gemini/modules/` holds `Module`, the declarations, `ModuleList`,
+Physics lives in `gemini/physics/`, and in a `_physics.py` beside a category only when it needs
+streams (`wells/_physics.py`): a module declares and calls physics functions. `gemini/modules/` holds `Module`, the declarations, `ModuleList`,
 `ModuleDict` and `gm.modules.check`; `gemini/plants/` holds `Plant` and the plant classes. Machinery
 goes in an `_utils/` folder, code of one category in a private file of its folder
 ([where a file goes](.claude/docs/conventions.md#module-rules)). Public names are flat,
@@ -158,7 +158,7 @@ gemini/
 ├── units/            # unit conversions, Quantity, the quantity aliases (quantities.py), the unit rule (bare.py), the return shapes (shapes.py), the shared input formats (inputs.py), the display table (display.py)
 ├── streams/          # Stream, Fluid, Ports, the stream kinds
 ├── runtime.py        # context-local backend, precision, display units
-├── modules/          # module.py, declarations.py, container.py, call.py, check.py, results.py, bindings.py, _utils/; one folder per category with its _physics.py
+├── modules/          # module.py, declarations.py, container.py, call.py, check.py, results.py, bindings.py, _utils/; one folder per category (a `_physics.py` only where code needs streams)
 ├── plants/           # plant.py (Plant) and the plant classes, one file each; _utils/ holds the plant tools
 ├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements), profile.py, dataset.py (Dataset: measured series), demand_frame.py (from_csv, from_values, profile_schema); _utils/ (node: the one reader of a section, schema, access, kinds)
 ├── engine/           # one run: Engine, simulate/replay/live/resume, check, Results, apply (the case on a plant copy), schedule/ (schedule, dispatch, sources, limits, fleet), bindings, loader, columns, runner, chunks, eager, executor, checkpoint, callbacks
@@ -175,12 +175,13 @@ tests/                # unit mirror, integration, e2e (expected/ holds example o
 
 Modules declare parameters and ports in `__init__`; `forward(self, inputs, inlets, state)` is pure:
 it receives the controls and boundaries in `inputs`, one immutable `Ports` mapping
-(`gemini.streams.Ports`) in `inlets` and the state, reads parameters on `self`, writes nothing and
-returns `(outputs, outlets)`; a stateful module also has a pure `update(self, inputs, inlets,
-outlets, state, dt)` returning the next state. The combinations of a plant are returned by
-`Plant.forward`, written once. Pre-hooks receive `(module, inputs, inlets, state)` and forward hooks
-receive `(module, inputs, inlets, state, outputs, outlets)`. Plants ([plants.md](.claude/docs/plants.md)) own persistence, bindings,
-and dated design. `gemini.engine` holds the run objects and reads files only for a `Results`. No engine loop sleeps or schedules itself.
-Keep the public
-API small and examples outside the package. Details are in
-[conventions.md](.claude/docs/conventions.md) and [modules.md](.claude/docs/modules.md).
+(`gemini.streams.Ports`) in `inlets` and the state, reads only parameters on `self` (never a
+control, boundary, state or output), writes nothing and returns `(outputs, outlets)`. A per-step
+value is never `None`: an output that is empty when off is NaN, shown as `None` in results. A
+stateful module also has a pure `update(self, inputs, inlets, outlets, state, dt)` returning the next
+state. The combinations of a plant are returned by `Plant.forward`, written once. Pre-hooks receive
+`(module, inputs, inlets, state)` and forward hooks receive `(module, inputs, inlets, state,
+outputs, outlets)`. Plants ([plants.md](.claude/docs/plants.md)) own persistence, bindings, and
+dated design. `gemini.engine` holds the run objects and reads files only for a `Results`. No engine
+loop sleeps or schedules itself. Keep the public API small and examples outside the package.
+Details are in [conventions.md](.claude/docs/conventions.md) and [modules.md](.claude/docs/modules.md).

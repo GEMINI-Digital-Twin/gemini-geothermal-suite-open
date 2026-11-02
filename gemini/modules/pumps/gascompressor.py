@@ -4,8 +4,7 @@ from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.pumps import _physics
-from gemini.physics import energy
+from gemini.physics import energy, gas
 from gemini.streams.flows import Stream
 from gemini.units.quantities import Count, Efficiency, Power, Pressure, Ratio, SpecificHeat
 
@@ -20,7 +19,7 @@ class GasCompressor(Module):
     is passed through unchanged and its liquid property model is not used. The overall pressure
     ratio ``r = pressure_setpoint / p_suction`` is split equally over ``stage_count`` adiabatic
     stages with intercoolers that return the gas to the suction temperature
-    (``_physics``, GPSA Engineering Data Book, 14th ed., Section 13):
+    (``gemini.physics.gas``, GPSA Engineering Data Book, 14th ed., Section 13):
 
     ``T_2 = T_1 + T_1 (r**((k - 1) / (k N)) - 1) / eta_s``,
     ``P_shaft = m_dot N cp (T_2 - T_1)``, ``electricity = P_shaft / motor_efficiency``.
@@ -84,42 +83,42 @@ class GasCompressor(Module):
         self.fluid_out = Outlet(Stream, kind="gas")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Compress the gas to the pressure setpoint and heat it by the last stage."""
+        setpoint = inputs["pressure_setpoint"]
 
         # Outlets
         suction = inlets.fluid_in
-        pressure_ratio = self._pressure_ratio(suction)
-        stage_ratio = _physics.stage_pressure_ratio(pressure_ratio, self.stage_count)
-        fluid_out_T = _physics.stage_outlet_temperature(
+        pressure_ratio = self._pressure_ratio(suction, setpoint)
+        stage_ratio = gas.stage_pressure_ratio(pressure_ratio, self.stage_count)
+        fluid_out_T = gas.stage_outlet_temperature(
             suction.T, stage_ratio, self.heat_capacity_ratio, self.isentropic_efficiency
         )
 
-        discharge = suction._with_si(p=self.pressure_setpoint, T=fluid_out_T)
-        shaft_power = self._shaft_power(suction)
+        discharge = suction._with_si(p=setpoint, T=fluid_out_T)
+        shaft_power = self._shaft_power(suction, setpoint)
         power_in = energy.input_power(shaft_power, self.motor_efficiency)
-        loss_out = _physics.heat_rejected(power_in, shaft_power, self.stage_count)
+        loss_out = gas.heat_rejected(power_in, shaft_power, self.stage_count)
 
         # Outputs
-        self.pressure_ratio = pressure_ratio
-        self.shaft_power = shaft_power
+        outputs = dict(pressure_ratio=pressure_ratio, shaft_power=shaft_power)
 
         outlets = dict(fluid_out=discharge, loss_out=loss_out, power_in=power_in)
-        return outlets
+        return outputs, outlets
 
-    def _shaft_power(self, suction):
+    def _shaft_power(self, suction, setpoint):
         """Return the shaft power [W] of the compression at the operating point."""
-        work = _physics.specific_compression_work(
+        work = gas.specific_compression_work(
             suction.T,
-            self._pressure_ratio(suction),
+            self._pressure_ratio(suction, setpoint),
             self.heat_capacity_ratio,
             self.gas_specific_heat,
             self.isentropic_efficiency,
             self.stage_count,
         )
-        return _physics.shaft_power(suction.m_dot, work)
+        return gas.shaft_power(suction.m_dot, work)
 
-    def _pressure_ratio(self, suction):
+    def _pressure_ratio(self, suction, setpoint):
         """Return the overall pressure ratio [-]; reject reverse flow and expansion."""
         ops.check(
             ops.logical_not(suction.m_dot < 0),
@@ -129,12 +128,12 @@ class GasCompressor(Module):
             m_dot=suction.m_dot,
         )
         ops.check(
-            ops.logical_not(ops.logical_or(suction.p <= 0, self.pressure_setpoint < suction.p)),
+            ops.logical_not(ops.logical_or(suction.p <= 0, setpoint < suction.p)),
             PhysicsError,
             "{path}: pressure_setpoint = {setpoint} Pa, fluid_in.p = {p} Pa; expected a "
             "positive suction pressure at or below the setpoint",
             path=self.path,
-            setpoint=self.pressure_setpoint,
+            setpoint=setpoint,
             p=suction.p,
         )
-        return _physics.overall_pressure_ratio(self.pressure_setpoint, suction.p)
+        return gas.overall_pressure_ratio(setpoint, suction.p)

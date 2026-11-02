@@ -24,12 +24,12 @@ class Precision(Module):
         # Outputs
         self.float32 = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
         outlets = dict()
-        self.float32 = float(runtime.get_precision() == "float32")
-        return outlets
+        outputs = dict(float32=float(runtime.get_precision() == "float32"))
+        return outputs, outlets
 
 
 @pytest.fixture

@@ -4,9 +4,9 @@ from typing import Literal
 
 from gemini import ops
 from gemini.errors import ValidationError
-from gemini.modules.control import _physics
 from gemini.modules.declarations import Boundary, Control, Output, Parameter, State
 from gemini.modules.module import Module
+from gemini.physics import control
 from gemini.units.quantities import Dimensionless, Duration
 
 
@@ -125,10 +125,10 @@ class PIDController(Module):
         unclamped = self._unclamped_command(inputs, state)
         increment = 0.0
         if self.integral_time is not None:
-            increment = _physics.pid_integral_increment(
+            increment = control.pid_integral_increment(
                 self.proportional_gain, dt, self.integral_time, error
             )
-        increment = _physics.anti_windup_increment(
+        increment = control.anti_windup_increment(
             increment, unclamped, self.minimum_output, self.maximum_output
         )
         return {
@@ -139,7 +139,7 @@ class PIDController(Module):
 
     def _error(self, inputs):
         """Return the control error in the sense of ``direction``."""
-        return _physics.pid_error(
+        return control.pid_error(
             inputs["setpoint"], inputs["measurement"], self.direction == "reverse"
         )
 
@@ -162,7 +162,7 @@ class PIDController(Module):
             started = previous_step > 0
             derivative = ops.where(
                 started,
-                _physics.pid_derivative(
+                control.pid_derivative(
                     self.proportional_gain,
                     self.derivative_time,
                     error - state["previous_error"],
@@ -170,4 +170,4 @@ class PIDController(Module):
                 ),
                 0.0,
             )
-        return _physics.pid_command(self.proportional_gain, error, state["integral"], derivative)
+        return control.pid_command(self.proportional_gain, error, state["integral"], derivative)

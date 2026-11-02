@@ -119,7 +119,7 @@ class HeatExchanger(Equipment, Module):
         self.hot_out = Outlet(Stream)
         self.cold_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Solve the heat balance and retain both streams' mass flows."""
 
         # Outlets
@@ -133,11 +133,10 @@ class HeatExchanger(Equipment, Module):
         )
 
         # Outputs
-        for name, value in values.items():
-            setattr(self, name, value)
+        outputs = dict(values)
 
         outlets = dict(hot_out=hot_out, cold_out=cold_out)
-        return outlets
+        return outputs, outlets
 
     def _loop_limits(self, inlets):
         """Keep a loop on one side of what comes in on the other: the exchanger must not reverse."""
@@ -149,6 +148,7 @@ class HeatExchanger(Equipment, Module):
         return self.thermal_conductance
 
     def _performance(self, hot_in, cold_in):
+        """Return the outputs of the exchanger: the balance of the two streams and the drops."""
         self._check_inlets(hot_in, cold_in)
         effectiveness, ntu, duty, hot_T, cold_T = heat_transfer.exchanger_balance(
             hot_in.T,

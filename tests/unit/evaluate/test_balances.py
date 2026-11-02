@@ -137,10 +137,11 @@ class Leak(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass nine tenths of the flow."""
+        outputs = dict()
         outlets = dict(fluid_out=inlets.fluid_in._with_si(m_dot=0.9 * inlets.fluid_in.m_dot))
-        return outlets
+        return outputs, outlets
 
 
 class Line(Module):
@@ -159,11 +160,12 @@ class Line(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the stream through the child."""
         passed = self.child(fluid_in=inlets.fluid_in)
+        outputs = dict()
         outlets = dict(fluid_out=passed.outlets.fluid_out)
-        return outlets
+        return outputs, outlets
 
 
 def by_name(checks):
@@ -187,10 +189,10 @@ def test_a_loss_that_reaches_no_edge_module_fails_the_plant_only():
     """The pipe closes through ``loss_out``; the root sees heat that reaches no edge module."""
 
     class Lost(Line):
-        def forward(self, inlets):
+        def forward(self, inputs, inlets, state):
             passed = self.child(fluid_in=inlets.fluid_in, air_in=air(283.15))
             outlets = dict(fluid_out=passed.outlets.fluid_out)
-            return outlets
+            return dict(), outlets
 
     pipe = with_values(Pipe()).set_params(
         "",
@@ -212,9 +214,9 @@ def test_a_closed_line_passes():
     """A stream that leaves as it came closes at the module and at the root."""
 
     class Same(Leak):
-        def forward(self, inlets):
+        def forward(self, inputs, inlets, state):
             outlets = dict(fluid_out=inlets.fluid_in)
-            return outlets
+            return dict(), outlets
 
     plant = Line(Same())
     assert len(assert_plant_closes(plant, plant(fluid_in=HOT))) == 4
@@ -247,7 +249,7 @@ class Radiator(Module):
         self.return_out = Outlet(Stream)
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Cool the stream by 10 K."""
 
         # Outlets
@@ -255,8 +257,9 @@ class Radiator(Module):
 
         loss_out = inlets.supply_in.m_dot * 4217.4 * 10
 
+        outputs = dict()
         outlets = dict(return_out=return_out, loss_out=loss_out)
-        return outlets
+        return outputs, outlets
 
 
 def boiler_of(fuel):
@@ -375,7 +378,7 @@ class GasHeatedInjection(Module):
         # Outlets
         self.injected = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Pass the stream through CHP, boiler and pump in flow order."""
 
         # Modules
@@ -386,8 +389,9 @@ class GasHeatedInjection(Module):
         # Outlets
         injected = pumped.outlets.fluid_out
 
+        outputs = dict()
         outlets = dict(injected=injected)
-        return outlets
+        return outputs, outlets
 
 
 @pytest.mark.parametrize("load", [0.2, 1.0])

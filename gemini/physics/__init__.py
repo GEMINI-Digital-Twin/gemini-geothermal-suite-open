@@ -4,7 +4,9 @@ from . import (
     chemistry,
     combustion,
     constants,
+    control,
     corrosion,
+    cycles,
     diagnostics,
     energy,
     erosion,
@@ -18,13 +20,16 @@ from . import (
     pumps,
     refrigeration,
     separation,
+    steam,
 )
 
 __all__ = [
     "chemistry",
     "combustion",
     "constants",
+    "control",
     "corrosion",
+    "cycles",
     "diagnostics",
     "energy",
     "erosion",
@@ -38,4 +43,5 @@ __all__ = [
     "pumps",
     "refrigeration",
     "separation",
+    "steam",
 ]

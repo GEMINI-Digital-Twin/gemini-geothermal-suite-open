@@ -95,23 +95,28 @@ class _Reservoir(Module):
             description="Pressure above the static reservoir pressure at the bottom of the well",
         )
         self.flow_pressure_drop = Output(
-            PressureDifference | None, description="Pressure drop of the radial flow in the aquifer"
+            PressureDifference | None,
+            description="Pressure drop of the radial flow in the aquifer; empty without a drainage "
+            "radius",
         )
         self.skin_pressure_drop = Output(
-            PressureDifference | None, description="Pressure drop across the skin zone"
+            PressureDifference | None,
+            description="Pressure drop across the skin zone; empty without a drainage radius",
         )
         self.hydrostatic_pressure_drop = Output(
             PressureDifference,
             description="Pressure change caused by the weight of the fluid column",
         )
         self.radial_bottomhole_pressure = Output(
-            Pressure | None, description="Bottomhole pressure from the radial flow equation"
+            Pressure | None,
+            description="Bottomhole pressure from the radial flow equation; empty without a "
+            "drainage radius",
         )
 
     def _calculate_outputs(self, flow, p_bh):
         properties = self.fluid.properties(self.pressure, self.temperature)
         if self.drainage_radius == 0:
-            flow_pressure_drop = skin_pressure_drop = radial = None
+            flow_pressure_drop = skin_pressure_drop = float("nan")
         else:
             flow_pressure_drop, skin_pressure_drop = hydraulics.radial_pressure_drops(
                 flow,
@@ -122,7 +127,7 @@ class _Reservoir(Module):
                 self.wellbore_radius,
                 self.skin,
             )
-            radial = self.pressure + flow_pressure_drop + skin_pressure_drop
+        radial = self.pressure + flow_pressure_drop + skin_pressure_drop
         return {
             "bottomhole_pressure": p_bh,
             "drawdown": self.pressure - p_bh if self.role == "production" else 0,
@@ -212,23 +217,23 @@ class ProductionReservoir(_Reservoir):
         # Outlets
         self.sandface_out = Outlet(Stream, kind="brine")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Apply the linear production IPR and emit the sandface stream."""
 
         # Outlets
-        sandface = self.sandface_stream(self.production_rate)
+        sandface = self.sandface_stream(inputs["production_rate"])
 
         # Outputs
         flow = sandface.volumetric_flow()
-        for name, value in self._calculate_outputs(flow, sandface.p).items():
-            setattr(self, name, value)
         properties = sandface.fluid.properties(sandface.p, sandface.T)
-        self.liquid_flow = fluid_physics.liquid_volume_flow(
-            sandface.m_dot, properties.gmf, properties.rho_l
+        outputs = self._calculate_outputs(flow, sandface.p) | dict(
+            liquid_flow=fluid_physics.liquid_volume_flow(
+                sandface.m_dot, properties.gmf, properties.rho_l
+            )
         )
 
         outlets = dict(sandface_out=sandface)
-        return outlets
+        return outputs, outlets
 
     def sandface_stream(self, production_rate):
         """Return the sandface stream [SI] the linear IPR delivers at a production rate [kg/s].
@@ -263,7 +268,7 @@ class InjectionReservoir(_Reservoir):
             VolumeFlow, description="Liquid volume flow produced from or injected into the aquifer"
         )
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Receive the sandface stream; the aquifer has no outlet."""
 
         if self.injectivity_index is None:
@@ -275,15 +280,15 @@ class InjectionReservoir(_Reservoir):
         flow = fluid_physics.volume_flow(
             ops.abs(sandface.m_dot), self.fluid.properties(sandface.p, sandface.T).rho_l
         )
-        for name, value in self._calculate_outputs(flow, self.required_pressure(sandface)).items():
-            setattr(self, name, value)
         properties = sandface.fluid.properties(sandface.p, sandface.T)
-        self.liquid_flow = fluid_physics.liquid_volume_flow(
-            ops.abs(sandface.m_dot), properties.gmf, properties.rho_l
+        outputs = self._calculate_outputs(flow, self.required_pressure(sandface)) | dict(
+            liquid_flow=fluid_physics.liquid_volume_flow(
+                ops.abs(sandface.m_dot), properties.gmf, properties.rho_l
+            )
         )
 
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
     def required_pressure(self, sandface):
         """Return the bottomhole pressure [Pa] the linear injectivity needs for a sandface stream.

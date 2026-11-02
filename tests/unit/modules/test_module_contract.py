@@ -314,13 +314,12 @@ def test_a_state_is_declared_like_a_parameter_with_its_quantity():
     assert Tank().states()["temperature"].default is gm.modules.declarations.UNSET
 
 
-def test_nothing_in_the_registry_keeps_a_state_default_once_converted():
-    """A converted class declares no state with a default."""
+def test_nothing_in_the_registry_keeps_a_state_default():
+    """No class declares a state with a default."""
     for name in gm.modules.names():
         module = gm.modules.get(name)()
-        if not module._unconverted:
-            for state in module.states(recurse=False).values():
-                assert state.default is gm.modules.declarations.UNSET, name
+        for state in module.states(recurse=False).values():
+            assert state.default is gm.modules.declarations.UNSET, name
 
 
 def test_parameters_come_from_the_call_record_when_it_carries_them():

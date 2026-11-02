@@ -12,7 +12,7 @@ from gemini.modules._utils.equipment import Equipment
 from gemini.modules.declarations import Parameter
 from gemini.modules.module import Module
 from gemini.modules.wells import _physics
-from gemini.physics import geometry, hydraulics
+from gemini.physics import erosion, geometry, hydraulics
 from gemini.units.quantities import (
     Angle,
     Dimensionless,
@@ -167,7 +167,8 @@ class _Well(Equipment, Module):
 
     def erosion_check(self, stream) -> dict:
         """Compare section velocities [m/s] with the API erosional velocity limit."""
-        return _physics.erosion_check(self.pipe_path, stream, stream.fluid)
+        density = stream.fluid.properties(stream.p, stream.T).density
+        return erosion.pipe_path_erosion_check(self.pipe_path, stream.m_dot, density)
 
     def _traversal_stream(self, stream):
         """Return the stream in the sign convention of the DPDT traversal."""

@@ -81,8 +81,7 @@ def _self_assignments(tree):
 
 def _assert_return_block(cls, tree, outlet_names):
     assignment, returned = tree.body[-2:]
-    converted = not cls._unconverted
-    result = ["outputs", "outlets"] if converted else ["outlets"]
+    result = ["outputs", "outlets"]
     assert (
         isinstance(assignment, ast.Assign)
         and isinstance(assignment.value, ast.Call)
@@ -151,12 +150,6 @@ def test_fixed_signatures_and_declared_port_accesses(module_class):
     cls = module_class
     module = cls()
     inlet_names = list(module.inlets()) + module._drawn_outlets()
-    if cls._unconverted:
-        _assert_fixed_signature(cls, "forward", ["self", "inlets"])
-        if module.stateful and "_advance_states" in cls.__dict__:
-            _assert_fixed_signature(cls, "_advance_states", ["self", "inlets", "outlets", "dt"])
-        _assert_declared_accesses(cls, "forward", "inlets", inlet_names)
-        return
     _assert_fixed_signature(cls, "forward", ["self", "inputs", "inlets", "state"])
     methods = ["forward", "update"] if module.stateful else ["forward"]
     names = {"inputs": list(module.inputs(recurse=False)), "state": list(module._states)}
@@ -187,10 +180,7 @@ def test_registered_forward_structure(module_class):
     assert ("# Modules" in comments) == composite
     assert ("# Outlets" in comments) == bool(module._given_outlets() or module._drawn_inlets())
     assigned = set(_self_assignments(tree))
-    if cls._unconverted:
-        assert assigned <= set(module.outputs(recurse=False)), f"{cls.__name__}: forward assigns"
-    else:
-        assert not assigned, f"{cls.__name__}: forward writes {sorted(assigned)} to self"
+    assert not assigned, f"{cls.__name__}: forward writes {sorted(assigned)} to self"
 
     declarations = list(module.inlets().values()) + list(module.outlets().values())
     assert all(

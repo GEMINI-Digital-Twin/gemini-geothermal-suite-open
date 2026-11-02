@@ -59,7 +59,7 @@ class Declared(Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the inlet after recording a value."""
 
         # Outlets
@@ -67,10 +67,10 @@ class Declared(Module):
         outlet = inlet
 
         # Outputs
-        self.value = self.command + self.weather
+        outputs = dict(value=inputs["command"] + inputs["weather"])
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
 
 def _declared(**params):

@@ -63,7 +63,7 @@ class ProductionWell(_Well):
         self.wellhead_out = Outlet(Stream, kind="brine")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Traverse the selected segment upward and apply the pressure correction."""
 
         # Outlets
@@ -73,13 +73,15 @@ class ProductionWell(_Well):
         wellhead = self.corrected(bottom, result)
 
         # Outputs
-        self.friction_pressure_drop = result.friction_pressure_drop
-        self.gravity_pressure_drop = result.gravity_pressure_drop
-        self.section_pressure = result.section_pressure
-        self.section_temperature = result.section_temperature
+        outputs = dict(
+            friction_pressure_drop=result.friction_pressure_drop,
+            gravity_pressure_drop=result.gravity_pressure_drop,
+            section_pressure=result.section_pressure,
+            section_temperature=result.section_temperature,
+        )
 
         outlets = dict(wellhead_out=wellhead, loss_out=self._loss(bottom, wellhead))
-        return outlets
+        return outputs, outlets
 
     def _loss(self, bottom, wellhead):
         """Return the heat [W] the well gives to the rock between its two ends."""

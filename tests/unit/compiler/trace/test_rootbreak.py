@@ -83,7 +83,7 @@ def test_controls_are_applied_for_the_call_only():
 def test_a_stepped_break_carries_the_states_row_to_row():
     """``Module.step`` runs per row with the context's dt and states; failed rows keep them."""
     tank = Tank()
-    context = {"dt": 60.0, "states": None}
+    context = {"dt": 60.0, "states": {"level": 0.0}}
     graph, evaluation = _evaluate(tank, {}, 3, stepped=True, context=context)
     assert graph.root_break and graph.stepped
     assert evaluation.result.outputs["content"].tolist() == [1.0, 3.0, 6.0]
@@ -91,14 +91,6 @@ def test_a_stepped_break_carries_the_states_row_to_row():
     again = {"dt": 60.0, "states": {"level": 6.0}}
     _, resumed = _evaluate(tank, {}, 1, stepped=True, context=again)
     assert resumed.result.outputs["content"].tolist() == [7.0]
-
-
-def test_an_unstepped_break_calls_a_stateful_module():
-    """Not stepped, the module starts from its initial states, as a call does."""
-    tank = Tank()
-    graph, evaluation = _evaluate(tank, {}, 3)
-    assert not graph.stepped and evaluation.states is None
-    assert evaluation.result.outputs["content"].tolist() == [1.0, 2.0, 3.0]
 
 
 def test_every_row_failing_gives_no_result():
@@ -126,17 +118,17 @@ class Listing(gm.modules.Module):
         # Outlets
         self.fluid_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """List the temperature and the pressure."""
 
         # Outlets
         stream = inlets.fluid_in
 
         # Outputs
-        self.profile = [stream.T, stream.p]
+        outputs = dict(profile=[stream.T, stream.p])
 
         outlets = dict(fluid_out=stream)
-        return outlets
+        return outputs, outlets
 
 
 def test_a_failed_row_fills_a_list_output_with_as_many_nans():

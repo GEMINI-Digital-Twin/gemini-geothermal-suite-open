@@ -1,4 +1,4 @@
-"""Path physics of the wells: a stream marched along a pipe path, corrosion and erosion."""
+"""Path physics of the wells: a stream marched along a pipe path and the corrosion profile."""
 
 import json
 import math
@@ -109,20 +109,6 @@ def test_corrosion_profile_pairs_sections_in_traversal_order():
     assert lower[0] != lower[1]
 
 
-def test_erosion_check_compares_each_section():
-    """Narrow sections run faster and raise the API alarm first."""
-    result = _physics.erosion_check(
-        _path(0.02, 0.3),
-        Stream(
-            fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(350, "K"), p=Quantity(50e5, "Pa")
-        ),
-        BRINE,
-    )
-    assert result["velocity"][0] > result["limit"] > result["velocity"][1]
-    assert result["alarm"] is True
-    assert [s["exceeds_api_limit"] for s in result["sections"]] == [True, False]
-
-
 def _profile(path, fluid, direction):
     """Return a physics function of the stream fields, so a traced stream is seen as traced."""
 
@@ -181,30 +167,6 @@ def test_two_phase_zero_flow_rows_match_on_arrays_in_a_steep_downhill_section():
     profile = _profile(path, GAS, "down")
     profile.__name__ = "pipe_path_profile"
     assert_function_matches(profile, [(0, 1e6, 350), (0, 5e5, 330)])
-
-
-def test_erosion_check_matches_on_arrays():
-    """Section velocities, ratios and the alarm over a narrow and a wide section match."""
-
-    @ops.physics
-    def check(m_dot, p, T):
-        result = _physics.erosion_check(
-            _path(0.02, 0.3),
-            Stream._si(m_dot=m_dot, p=p, T=T, fluid=BRINE),
-            BRINE,
-        )
-        return dict(
-            limit=result["limit"],
-            alarm=result["alarm"],
-            **{f"velocity{index}": value for index, value in enumerate(result["velocity"])},
-            **{
-                f"ratio{index}": section["velocity_ratio"]
-                for index, section in enumerate(result["sections"])
-            },
-        )
-
-    check.__name__ = "erosion_check"
-    assert_function_matches(check, [(40, 50e5, 350), (0.5, 50e5, 350), (-40, 20e5, 330)])
 
 
 def test_corrosion_profile_matches_on_arrays():

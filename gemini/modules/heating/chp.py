@@ -95,19 +95,18 @@ class CHP(Equipment, Module):
         self.power_out = Outlet(Power, kind="electricity")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Heat the water circuit by the recovered engine heat and return the gas it burned."""
 
         # Outlets
         inlet, fuel = inlets.fluid_in, inlets.fuel_in
-        values = self._performance(inlet, fuel)
+        values = self._performance(inputs, inlet, fuel)
         outlet = inlet._with_si(T=values["fluid_out_T"])
         flue_out = _burner.flue_stream(values["fuel"], fuel)
         fuel_in = _burner.burned_stream(values["fuel"], fuel)
 
         # Outputs
-        self.fuel = values["fuel"]
-        self.dumped_heat = values["dumped_heat"]
+        outputs = dict(fuel=values["fuel"], dumped_heat=values["dumped_heat"])
 
         outlets = dict(
             fluid_out=outlet,
@@ -116,7 +115,7 @@ class CHP(Equipment, Module):
             loss_out=values["heat_loss"],
             fuel_in=fuel_in,
         )
-        return outlets
+        return outputs, outlets
 
     def cost_size(self):
         """Return the size that the cost of the engine scales with: electric capacity."""
@@ -126,19 +125,19 @@ class CHP(Equipment, Module):
         """Return the no-load fuel share; zero when the term is left out."""
         return 0 if self.no_load_fuel_fraction is None else self.no_load_fuel_fraction
 
-    def _load(self, fuel):
+    def _load(self, inputs, fuel):
         """Return the load: the commanded one, or less when the stream alone must cover it."""
         if _burner.has_grid(fuel):
-            return self.load_fraction
+            return inputs["load_fraction"]
         need = combustion.willans_fuel_input(
-            self.load_fraction,
+            inputs["load_fraction"],
             self.electric_capacity,
             self.electric_efficiency,
             self._no_load_fuel_fraction(),
         )
-        return combustion.covered_load(self.load_fraction, need, _burner.available_fuel(fuel))
+        return combustion.covered_load(inputs["load_fraction"], need, _burner.available_fuel(fuel))
 
-    def _performance(self, inlet, fuel_in):
+    def _performance(self, inputs, inlet, fuel_in):
         """Return fuel, electricity, heat flows [W] and the outlet temperature [K]."""
         ops.check(
             self.electric_efficiency + self.thermal_efficiency <= 1,
@@ -149,7 +148,7 @@ class CHP(Equipment, Module):
             code="invalid_design",
         )
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
-        load = self._load(fuel_in)
+        load = self._load(inputs, fuel_in)
         fuel = combustion.willans_fuel_input(
             load, self.electric_capacity, self.electric_efficiency, self._no_load_fuel_fraction()
         )

@@ -189,8 +189,8 @@ on arrays directly. A module with a list output (the wells' section profiles) co
 **Purity.** `forward` and `update` write nothing to the module or a child. `tests/fixtures/purity.py`
 freezes the attributes of a module tree (`snapshot`) and `unchanged(module)` fails, naming what a
 block wrote. `tests/unit/test_purity.py` applies it to every registered class through `CASES` (one
-case per converted class; a class listed in `OLD_STYLE_MUST_BECOME_EMPTY` is skipped, a plant class
-may not override `forward` or `update`). A converted class without a case fails the test.
+case per registered class, no class is skipped; a plant class may not override `forward` or
+`update`). A class without a case fails the test.
 
 ## Backend parity
 

@@ -23,11 +23,12 @@ class Unitless(Module):
         # Parameters
         self.factor = Parameter(float, default=2.0)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return nothing."""
 
+        outputs = dict()
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
 
 class Uncategorised(Unitless):
@@ -41,7 +42,7 @@ class WrongSignature(Booster):
 
     abstract = True
 
-    def forward(self, inlets, extra):
+    def forward(self, inputs, inlets, state, extra):
         """Return nothing."""
 
         outlets = dict()

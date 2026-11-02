@@ -266,7 +266,7 @@ class _Broken(gm.modules.Module):
         self.fluid_in = gm.modules.Inlet(gm.Stream)
         self.fluid_out = gm.modules.Outlet(gm.Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Raise a TypeError that is no input error."""
         raise TypeError("forward bug")
 

@@ -17,6 +17,7 @@ from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
+from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 WARM = Stream(
@@ -29,6 +30,15 @@ COLD = WARM._with_si(T=279.15)
 WATER = 1000 * 4217.4
 AQUIFER = 0.3 * WATER + 0.7 * 2.0e6
 HOUR = 3600.0
+EMPTY = {
+    "warm_volume": 0.0,
+    "warm_temperature_change": 0.0,
+    "cold_volume": 0.0,
+    "cold_temperature_change": 0.0,
+    "charged_heat": 0.0,
+    "recovered_heat": 0.0,
+}
+"""Both stores empty and no heat moved: a state has no default, the call states it."""
 
 
 def storage(mode="charge"):
@@ -77,29 +87,28 @@ class Plant(Module):
         # Outlets
         self.return_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Heat the supply, store it and return the cold-well water."""
 
         # Modules
         heated = self.heater(fluid_in=inlets.supply_in, temperature_setpoint=291.15)
-        stored = self.storage(injection_in=heated.outlets.fluid_out)
+        stored = self.storage(injection_in=heated.outlets.fluid_out, state=state["storage"])
 
         # Outputs
-        self.stored_energy = stored.outputs.stored_energy
+        outputs = dict(stored_energy=stored.outputs.stored_energy)
 
         # Outlets
         return_out = stored.outlets.production_out
 
         outlets = dict(return_out=return_out)
-        return outlets
+        return outputs, outlets
 
 
-def test_plain_call_uses_the_empty_initial_stores():
+def test_a_call_from_empty_stores_produces_native_groundwater():
     """Empty stores produce native groundwater and hold no energy."""
     module = storage()
-    result = module(injection_in=WARM)
+    result = module(injection_in=WARM, state=EMPTY)
     out = reading(result)
-    assert module.initial_state()["warm_volume"] == 0
     assert result.outlets.production_out == WARM._with_si(T=284.15)
     assert out.stored_energy == 0 and out.heat_loss == 0 == out.heat_absorbed
     assert out.recovery_efficiency is None and out.warm_temperature == 284.15
@@ -109,7 +118,7 @@ def test_two_charge_steps_fill_and_mix_the_warm_store():
     """The warm store gains Q dt per step at the mixed temperature, then decays exactly."""
     module = storage()
     volume = 30 / 1000 * HOUR
-    state, _ = module.step(None, HOUR, {"injection_in": WARM})
+    state, _ = module.step(EMPTY, HOUR, {"injection_in": WARM})
     decay = math.exp(-HOUR * conductance(volume) / (WATER * volume))
     assert state["warm_volume"] == pytest.approx(volume)
     assert state["warm_temperature_change"] == pytest.approx(7 * decay, rel=1e-12)
@@ -152,7 +161,7 @@ def test_heat_accumulation_is_the_rate_of_change_of_stored_energy():
 def test_idle_store_decays_exactly_and_rejects_flow():
     """Idle stores relax exponentially, so two steps equal one double step."""
     module = storage("idle")
-    start = storage().initial_state() | {"warm_volume": 2e5, "warm_temperature_change": 5.0}
+    start = EMPTY | {"warm_volume": 2e5, "warm_temperature_change": 5.0}
     still = WARM._with_si(m_dot=0)
     half, _ = module.step(start, 86400, {"injection_in": still})
     half, result = module.step(half, 86400, {"injection_in": still})
@@ -161,18 +170,19 @@ def test_idle_store_decays_exactly_and_rejects_flow():
     assert full["warm_volume"] == 2e5 and result.outlets.production_out.m_dot == 0
     stopped, _ = storage().step(start, 2 * 86400, {"injection_in": still})
     assert stopped == full
-    empty = storage()
-    assert empty.step(None, 60, {"injection_in": still})[0] == empty.initial_state()
+    assert storage().step(EMPTY, 60, {"injection_in": still})[0] == EMPTY
     with pytest.raises(gm.errors.PhysicsError, match="idle mode"):
-        module(injection_in=WARM)
+        module(injection_in=WARM, state=EMPTY)
     with pytest.raises(gm.errors.PhysicsError, match="m_dot = -1"):
-        storage()(injection_in=WARM._with_si(m_dot=-1))
+        storage()(injection_in=WARM._with_si(m_dot=-1), state=EMPTY)
+    with raises(gm.errors.ValidationError, "missing_value"):
+        storage()(injection_in=WARM)
 
 
 def test_overdrawn_store_empties_to_native_groundwater():
     """Withdrawal stops at zero volume and the empty store returns to the aquifer temperature."""
     module = storage("discharge")
-    start = storage().initial_state() | {"warm_volume": 10.0, "warm_temperature_change": 5.0}
+    start = EMPTY | {"warm_volume": 10.0, "warm_temperature_change": 5.0}
     state, result = module.step(start, HOUR, {"injection_in": COLD})
     assert reading(result).production_out_T == 289.15
     assert state["warm_volume"] == 0 and state["warm_temperature_change"] == 0
@@ -183,7 +193,7 @@ def test_overdrawn_store_empties_to_native_groundwater():
 def test_composite_step_charges_through_the_plant():
     """A plant composite steps the storage through its forward."""
     plant = Plant()
-    state, _ = plant.step(None, HOUR, {"supply_in": WARM._with_si(T=285.15)})
+    state, _ = plant.step({"storage": EMPTY}, HOUR, {"supply_in": WARM._with_si(T=285.15)})
     state, result = plant.step(state, HOUR, {"supply_in": WARM._with_si(T=285.15)})
     assert state["storage"]["warm_volume"] == pytest.approx(2 * 30 / 1000 * HOUR)
     assert result.outputs.stored_energy > 0
@@ -212,30 +222,32 @@ class Reader(Module):
         # Outlets
         self.return_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Read the production temperature, then call the storage."""
 
         # Modules
-        self.seen.append(self.storage._offered()["production_out"].T)
-        stored = self.storage(injection_in=inlets.supply_in)
+        offered = self.storage._offered(state=state["storage"])
+        self.seen.append(offered["production_out"].T)
+        stored = self.storage(injection_in=inlets.supply_in, state=state["storage"])
 
         # Outlets
         return_out = stored.outlets.production_out
 
+        outputs = dict()
         outlets = dict(return_out=return_out)
-        return outlets
+        return outputs, outlets
 
 
 def test_the_offer_reads_the_running_step():
     """Before its call a plant reads the start-of-step production temperature of the offer."""
     seen = []
     reader = Reader(seen)
-    result = reader(supply_in=COLD)
+    result = reader(supply_in=COLD, state={"storage": EMPTY})
     assert seen == [284.15] == [result.outlets.return_out.T]
-    start = {"warm_volume": 1e5, "warm_temperature_change": 4.0}
+    start = EMPTY | {"warm_volume": 1e5, "warm_temperature_change": 4.0}
     _, result = reader.step({"storage": start}, HOUR, {"supply_in": COLD})
     assert seen[-1] == 288.15 == result.outlets.return_out.T
-    assert storage("idle").production_temperature() == 284.15
+    assert storage("idle")._production_temperature("idle", EMPTY) == 284.15
 
 
 def test_store_arithmetic_matches_on_arrays():
@@ -269,8 +281,8 @@ def test_moved_store_matches_on_arrays(mode):
 
     @ops.physics
     def moved(volume, change):
-        warm = module._moved_store("warm", volume, change)
-        cold = module._moved_store("cold", volume, change)
+        warm = module._moved_store("warm", mode, EMPTY, volume, change)
+        cold = module._moved_store("cold", mode, EMPTY, volume, change)
         return dict(enumerate(warm + cold))
 
     rows = [(0.0, 7.0), (500.0, 7.0), (2e5, -5.0)]

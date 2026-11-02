@@ -367,11 +367,12 @@ class Share(Module):
         self.share = Output(Ratio | None)
         self.plain = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Expose no fluid outlets."""
 
+        outputs = dict(share=None, plain=0.0)
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
 
 def test_a_declared_optional_float_output_reads_nan_as_none():

@@ -5,7 +5,6 @@ from gemini.errors import ValidationError
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter, State
 from gemini.modules.module import Module
-from gemini.modules.storage import _physics
 from gemini.physics import heat_transfer
 from gemini.streams.flows import Stream
 from gemini.units.quantities import (
@@ -37,7 +36,7 @@ class IceStorage(Module):
     (negative duty: water freezes, then the ice subcools), one above T_f discharges it (positive
     duty: the store cools the glycol, the ice melts, then the water warms).
 
-    ``_advance_states`` integrates the enthalpy balance exactly and piecewise over ``dt`` for an
+    ``update`` integrates the enthalpy balance exactly and piecewise over ``dt`` for an
     inlet held constant during the step: in the latent segment T = T_f and the duty is constant,
     so x changes linearly by ``-duty * t / (M * L)``; in a sensible segment T relaxes towards
     ``T_in`` with the time constant ``M * c / (e * C)``. A step moves to the next segment when
@@ -65,9 +64,9 @@ class IceStorage(Module):
 
     NOTE(refactor): the ice fraction and the temperature are states, so the module is a graph
     break until ``scan`` exists; its arithmetic is written with ops all the same, and the segment
-    loop of ``_physics.ice_advance`` runs its fixed ``_physics.MAX_SEGMENTS`` passes, a finished
-    pass keeping its state. The coil follows ``heat_transfer.ambient_effectiveness`` and
-    ``_physics.circuit_conductance``; the segments are ``_physics.ice_step``.
+    loop of ``heat_transfer.ice_advance`` runs its fixed ``MAX_SEGMENTS`` passes, a finished pass
+    keeping its state. The coil follows ``heat_transfer.ambient_effectiveness`` and
+    ``circuit_conductance``; the segments are ``heat_transfer.ice_step``.
     """
 
     def __init__(self):
@@ -81,39 +80,32 @@ class IceStorage(Module):
         )
         self.latent_heat = Parameter(
             SpecificEnthalpy,
-            default=_physics.DEFAULT_LATENT_HEAT,
+            default=heat_transfer.DEFAULT_ICE_LATENT_HEAT,
             gt=0,
             description="Latent heat of the phase change",
         )
         self.freezing_temperature = Parameter(
             Temperature,
-            default=_physics.DEFAULT_FREEZING_TEMPERATURE,
+            default=heat_transfer.DEFAULT_FREEZING_TEMPERATURE,
             description="Temperature at which the water freezes",
         )
         self.water_specific_heat = Parameter(
             SpecificHeat,
-            default=_physics.DEFAULT_WATER_HEAT_CAPACITY,
+            default=heat_transfer.DEFAULT_WATER_HEAT_CAPACITY,
             description="Specific heat capacity of liquid water",
         )
         self.ice_specific_heat = Parameter(
             SpecificHeat,
-            default=_physics.DEFAULT_ICE_HEAT_CAPACITY,
+            default=heat_transfer.DEFAULT_ICE_HEAT_CAPACITY,
             description="Specific heat capacity of ice",
-        )
-
-        self.initial_ice_fraction = Parameter(
-            Fraction, description="Ice fraction of the store at the start of the run"
-        )
-        self.initial_temperature = Parameter(
-            Temperature, description="Temperature of the store at the start of the run"
         )
 
         # Inlets
         self.fluid_in = Inlet(Stream, kind="chilled_water")
 
         # States
-        self.ice_fraction = State(Fraction)
-        self.temperature = State(Temperature)
+        self.ice_fraction = State(Fraction, description="Frozen share of the water of the store")
+        self.temperature = State(Temperature, description="Uniform temperature of the store")
 
         # Outputs
         self.stored_cold = Output(
@@ -132,40 +124,40 @@ class IceStorage(Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="chilled_water")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Return the glycol after exchanging heat with the start-of-step store."""
+        fraction, temperature = state["ice_fraction"], state["temperature"]
 
         # Outlets
         inlet = inlets.fluid_in
-        effectiveness = self._effectiveness(inlet)
+        effectiveness = self._effectiveness(inlet, fraction, temperature)
         outlet = inlet._with_si(
-            T=heat_transfer.effectiveness_outlet_temperature(
-                inlet.T, effectiveness, self.temperature
-            )
+            T=heat_transfer.effectiveness_outlet_temperature(inlet.T, effectiveness, temperature)
         )
 
         # Outputs
-        self.stored_cold = _physics.ice_stored_cold(
-            self.water_mass, self.latent_heat, self.ice_fraction
+        outputs = dict(
+            stored_cold=heat_transfer.ice_stored_cold(self.water_mass, self.latent_heat, fraction),
+            heat_accumulation=heat_transfer.heat_rate(
+                inlet.heat_capacity_rate(), inlet.T - outlet.T
+            ),
+            is_full=fraction >= 1,
+            is_empty=fraction <= 0,
         )
-        inlet, outlet = inlets.fluid_in, outlet
-        self.heat_accumulation = heat_transfer.heat_rate(
-            inlet.heat_capacity_rate(), inlet.T - outlet.T
-        )
-        self.is_full = self.ice_fraction >= 1
-        self.is_empty = self.ice_fraction <= 0
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
-    def _advance_states(self, inlets, outlets, dt):
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the ice fraction and the temperature after the step."""
         inlet = inlets.fluid_in
-        fraction, temperature = _physics.ice_advance(
-            self.ice_fraction,
-            self.temperature,
+        fraction, temperature = state["ice_fraction"], state["temperature"]
+        fraction, temperature = heat_transfer.ice_advance(
+            fraction,
+            temperature,
             dt,
             inlet.T,
-            self._conductance(inlet),
+            self._conductance(inlet, fraction, temperature),
             self.water_mass,
             self.latent_heat,
             self.freezing_temperature,
@@ -179,19 +171,20 @@ class IceStorage(Module):
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
         return inlet.heat_capacity_rate()
 
-    def _effectiveness(self, inlet):
+    def _effectiveness(self, inlet, fraction, temperature):
         """Return the coil effectiveness 1 - exp(-UA / C) [-] after checking the store state."""
-        self._check_state()
+        self._check_state(fraction, temperature)
         rate = self._rate(inlet)
         return heat_transfer.ambient_effectiveness(self.thermal_conductance, rate)
 
-    def _conductance(self, inlet):
+    def _conductance(self, inlet, fraction, temperature):
         """Return the coil conductance e * m_dot * cp [W/K]."""
-        return _physics.circuit_conductance(self._effectiveness(inlet), self._rate(inlet))
+        return heat_transfer.circuit_conductance(
+            self._effectiveness(inlet, fraction, temperature), self._rate(inlet)
+        )
 
-    def _check_state(self):
+    def _check_state(self, fraction, temperature):
         """Require the store temperature to match its phase (see the class docstring)."""
-        fraction, temperature = self.ice_fraction, self.temperature
         freezing = self.freezing_temperature
         consistent = ops.logical_or(
             ops.logical_or(

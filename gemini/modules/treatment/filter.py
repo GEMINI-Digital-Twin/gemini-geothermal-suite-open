@@ -51,7 +51,7 @@ class Filter(Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="brine")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Apply a quadratic clean-filter pressure loss."""
 
         # Outlets
@@ -60,10 +60,10 @@ class Filter(Module):
         outlet = inlet._with_si(p=inlet.p - drop)
 
         # Outputs
-        self.pressure_drop = drop
+        outputs = dict(pressure_drop=drop)
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
     def health(self, result, measured):
         """Alarm when measured filter pressure loss exceeds the clogging limit."""

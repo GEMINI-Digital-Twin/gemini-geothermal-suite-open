@@ -6,6 +6,7 @@ SI boundary and returns mm/year, the explicit literature-unit exception of the p
 """
 
 import math
+from functools import reduce
 
 from gemini import ops, units
 from gemini._utils.strings import did_you_mean, join_names
@@ -321,4 +322,44 @@ def api_velocity_comparison(actual: float, limit: float) -> dict:
         "velocity_ratio": actual / limit,
         "velocity_margin_ms": limit - actual,
         "exceeds_api_limit": actual > limit,
+    }
+
+
+@ops.physics
+def pipe_path_erosion_check(path: geometry.PipePath, mass_flow: float, density: float) -> dict:
+    """Compare the section velocities of a pipe path with the API erosional velocity limit.
+
+    Per section ``u = |m| / (rho A)`` and the limit ``u_e = C / sqrt(rho)`` of
+    ``api_erosional_velocity`` at the one mixture density.
+
+    Parameters
+    ----------
+    path : PipePath
+        Surface-to-bottom pipe intervals [m, rad].
+    mass_flow : float
+        Mass flow [kg/s]; its sign is ignored.
+    density : float
+        Positive mixture density at the inlet conditions [kg/m3].
+
+    Returns
+    -------
+    dict
+        Section velocities and limit [m/s], dimensionless ratios and alarm flags.
+
+    Notes
+    -----
+    Valid for clean, solids-free service; the limit uses the density at the inlet conditions
+    for every section. Reference: API RP 14E (Recommended Practice for Design and Installation
+    of Offshore Production Platform Piping Systems), as implemented in GEMINI WIMS.
+    """
+    limit = api_erosional_velocity(density)
+    velocity = [
+        geometry.mean_velocity(ops.abs(mass_flow), density, s.inner_diameter) for s in path.sections
+    ]
+    sections = [api_velocity_comparison(v, limit) for v in velocity]
+    return {
+        "velocity": velocity,
+        "limit": limit,
+        "sections": sections,
+        "alarm": reduce(ops.logical_or, (s["exceeds_api_limit"] for s in sections), False),
     }

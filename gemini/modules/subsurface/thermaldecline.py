@@ -30,9 +30,9 @@ class ThermalDecline(Module):
     V_B = pi L**2 H (rho c)_a / (3 (rho c)_w), with L the ``well_spacing``, H the
     ``aquifer_thickness``, (rho c)_a = phi (rho c)_w + (1 - phi) (rho c)_r and (rho c)_w the
     liquid density times heat capacity of the inlet fluid. ``breakthrough_time`` is V_B / Q at
-    the current liquid volume flow Q, counted from the start of injection (``None`` at zero
-    flow). After breakthrough the doublet's streamlines arrive one after another: the share
-    f = theta / pi of the flow on streamlines whose thermal travel time
+    the current liquid volume flow Q, counted from the start of injection (NaN at zero flow,
+    shown as ``None`` in results). After breakthrough the doublet's streamlines arrive one after
+    another: the share f = theta / pi of the flow on streamlines whose thermal travel time
     3 (sin theta - theta cos theta) / sin(theta)**3 * t_B has passed arrives at the injection
     temperature (``ground.doublet_cold_fraction``), so
     fluid_out_T = T_in - f(V / V_B) (T_in - injection_temperature), where T_in is the reservoir
@@ -79,12 +79,14 @@ class ThermalDecline(Module):
         )
 
         # States
-        self.injected_volume = State(Volume, default=0)
+        self.injected_volume = State(
+            Volume, description="Cumulative injected volume since the start of injection"
+        )
 
         # Outputs
         self.breakthrough_time = Output(
             Duration | None,
-            description="Time at which the cold front reaches the producer; empty when not reached",
+            description="Time at which the cold front reaches the producer; empty at zero flow",
         )
         self.temperature_drop = Output(
             TemperatureDifference,
@@ -94,36 +96,31 @@ class ThermalDecline(Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="brine")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Lower the reservoir temperature by the cold-water share of the produced flow."""
 
         # Outlets
         inlet = inlets.fluid_in
-        drop = self._temperature_drop(inlet)
+        flow = self._liquid_flow(inlet)
+        volume = self._breakthrough_volume(inlet)
+        drop = ground.doublet_temperature_drop(
+            state["injected_volume"], volume, inlet.T, inputs["injection_temperature"]
+        )
         outlet = inlet._with_si(T=inlet.T - drop)
 
         # Outputs
-        flow = self._liquid_flow(inlet)
-        volume = self._breakthrough_volume(inlet)
-        self.breakthrough_time = ground.doublet_breakthrough_time(volume, flow)
-        self.temperature_drop = drop
+        outputs = dict(
+            breakthrough_time=ground.doublet_breakthrough_time(volume, flow),
+            temperature_drop=drop,
+        )
 
         outlets = dict(fluid_out=outlet)
-        return outlets
+        return outputs, outlets
 
-    def _advance_states(self, inlets, outlets, dt):
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the injected volume after the step."""
         flow = self._liquid_flow(inlets.fluid_in)
-        return {"injected_volume": self.injected_volume + ground.injected_volume(flow, dt)}
-
-    def _temperature_drop(self, inlet):
-        """Return the produced temperature drop [K] at the start-of-step injected volume."""
-        self._liquid_flow(inlet)
-        return ground.doublet_temperature_drop(
-            self.injected_volume,
-            self._breakthrough_volume(inlet),
-            inlet.T,
-            self.injection_temperature,
-        )
+        return {"injected_volume": state["injected_volume"] + ground.injected_volume(flow, dt)}
 
     def _breakthrough_volume(self, inlet):
         """Return the Gringarten-Sauty breakthrough volume V_B [m3] for the inlet fluid."""

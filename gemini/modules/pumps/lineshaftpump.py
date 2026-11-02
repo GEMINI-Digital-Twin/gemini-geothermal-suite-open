@@ -5,7 +5,6 @@ from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.modules.pumps import _physics
 from gemini.physics import constants, energy, pumps
 from gemini.streams.flows import Stream
 from gemini.units.quantities import (
@@ -104,32 +103,36 @@ class LineShaftPump(Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="brine")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Raise the suction pressure by the pump-curve head."""
+        frequency = inputs["frequency"]
 
         # Outlets
         suction = inlets.fluid_in
         flow = suction.volumetric_flow()
-        head = self._head(flow)
+        head = self._head(flow, frequency)
 
         discharge = suction._with_si(p=suction.p + head)
-        pump_power, friction = self._powers(flow)
+        pump_power, friction = self._powers(flow, frequency)
         shaft_power = pump_power + friction
         power_in = energy.input_power(shaft_power, self.motor_efficiency)
 
         # Outputs
-        self.head = discharge.p - suction.p
-        self.pump_power = pump_power
-        self.shaft_friction_power = friction
-        self.shaft_power = shaft_power
-        self.efficiency = _physics.pump_efficiency(flow, self.head, pump_power)
+        rise = discharge.p - suction.p
+        outputs = dict(
+            head=rise,
+            pump_power=pump_power,
+            shaft_friction_power=friction,
+            shaft_power=shaft_power,
+            efficiency=pumps.pump_efficiency(flow, rise, pump_power),
+        )
 
         outlets = dict(fluid_out=discharge, power_in=power_in)
-        return outlets
+        return outputs, outlets
 
-    def _powers(self, flow):
+    def _powers(self, flow, frequency):
         """Return the pump power and the shaft friction power [W] at a volume flow [m3/s]."""
-        pump_power = pumps.power(flow, self.frequency, self.stage_count, self.power_coefficients)
+        pump_power = pumps.power(flow, frequency, self.stage_count, self.power_coefficients)
         ops.check(
             pump_power >= 0,
             PhysicsError,
@@ -139,16 +142,16 @@ class LineShaftPump(Module):
             pump_power=pump_power,
             flow=flow,
         )
-        speed = pumps.speed_ratio(self.frequency, constants.ESP_REFERENCE_FREQUENCY)
-        friction = _physics.line_shaft_friction_power(
+        speed = pumps.speed_ratio(frequency, constants.ESP_REFERENCE_FREQUENCY)
+        friction = pumps.line_shaft_friction_power(
             self.shaft_friction_loss, self.setting_depth, speed
         )
         return pump_power, friction
 
-    def _head(self, flow):
+    def _head(self, flow, frequency):
         """Return the pump-curve pressure rise [Pa] at a suction volume flow [m3/s]."""
         require_forward(self.path, "suction volume flow", flow, "m3/s")
-        head = _physics.head(flow, self.frequency, self.stage_count, self.head_coefficients)
+        head = pumps.head(flow, frequency, self.stage_count, self.head_coefficients)
         ops.check(
             head >= 0,
             PhysicsError,

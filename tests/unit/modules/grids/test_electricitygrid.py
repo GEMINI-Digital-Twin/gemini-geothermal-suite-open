@@ -80,7 +80,7 @@ class GridPlant(Module):
         self.fluid_out = Outlet(Stream)
         self.water_out = Outlet(Stream)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Generate, consume, then settle with the grid."""
 
         # Modules
@@ -91,14 +91,14 @@ class GridPlant(Module):
         )
 
         # Outputs
-        self.net_export = settled.outputs.net_export
+        outputs = dict(net_export=settled.outputs.net_export)
 
         # Outlets
         fluid_out = generated.outlets.fluid_out
         water_out = heated.outlets.fluid_out
 
         outlets = dict(fluid_out=fluid_out, water_out=water_out)
-        return outlets
+        return outputs, outlets
 
 
 def test_grid_is_not_counted_in_the_energy_audit():
@@ -146,18 +146,17 @@ class Connected(Module):
         self.net_import = Output(float)
         self.net_export = Output(float)
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Settle one row."""
 
         # Modules
-        settled = self.grid(power_out=[self.consumption], power_in=[self.generation])
+        settled = self.grid(power_out=[inputs["consumption"]], power_in=[inputs["generation"]])
 
         # Outputs
-        self.net_import = settled.outputs.net_import
-        self.net_export = settled.outputs.net_export
+        outputs = dict(net_import=settled.outputs.net_import, net_export=settled.outputs.net_export)
 
         outlets = dict()
-        return outlets
+        return outputs, outlets
 
 
 def test_traced_call_matches_one_call_per_row():

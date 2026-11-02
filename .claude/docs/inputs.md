@@ -390,7 +390,9 @@ and `demand.cooling` next to `supply_temperature` and `return_temperature`, with
 `indoor_temperature` and `indoor_relative_humidity`. If a project wants the dew-point margin as the
 designer's safety factor it is a different field, not a different place for this one.
 
-**7.19 Initial state, and no default for a state** (rule: 7.7, P5). Every `State` declaration (14
+**7.19 Initial state, and no default for a state** (rule: 7.7, P5; built, 0.4.0: no `State` has a
+default, no `initial_*` parameter is left, and a module called without its state raises
+`missing_value`). Every `State` declaration (14
 rows) is the value at the start of the period and comes from `case.initial_state`, a section present
 if and only if the plant has stateful modules. The code default is removed (the accumulator zeros of
 `AquiferStorage`, `ThermalDecline`, `BoreholeField`, the `PIDController` integrator, which
@@ -682,8 +684,8 @@ and is judged infeasible, P2 (one case judges any plant), for the reason `cold_d
 dedupes its reasons by name, so a requirement on an absent supply role and the service reason are
 one. (d) `case.initial_state` is wired: `apply_case` checks the names and `gm.simulate` starts the run
 from it (`apply.started`), so the code defaults of the states of the modules not yet converted and
-the `initial_*` parameters stay (7.19) until their module is converted, when the case is the only
-source (`PIDController` is converted: it has none); a case that states a state wins. No sample has a stateful
+the `initial_*` parameters are gone (7.19): the case is the only source of a state; a case that
+states a state wins. No sample has a stateful
 module. (e) `case.choices` is gone (the class, the field, `gemini/case/choices.py`, the sample
 case files, `study/_utils/choices.py`); the key is refused with `old_format` naming the plant
 `range`. `minimize` has no `variables` argument; `size` reads `params.backup` (a plant without it is
@@ -770,8 +772,8 @@ that `test_no_name_keeps_something_old` refuses in a name of `gemini/`.
 
 **Decisions not built yet.** The rule of each decision below stands, and it is listed in section 8
 until the code follows it. Today's behaviour stays and no number depends on it in a sample. 7.19 is
-built for `case.initial_state` and its check in `gm.check`; the removal of the `State` defaults and
-the move of the `initial_*` parameters are not. 7.23 is built for `GRID_COMPOSITION` only. 7.12:
+built in full (`case.initial_state`, its check in `gm.check`, no `State` default, no `initial_*`
+parameter). 7.23 is built for `GRID_COMPOSITION` only. 7.12:
 the constructor defaults of the class plants (`doublets=1`, `consumers=2`, `service='heating'`,
 `producers=2`, `injectors=1`) stay, because hundreds of calls use them; `size` is a leaf of the file.
 7.1: `technical_life` is not built (see 7.47 g). 7.24 (`study.plan`), 7.25 (time defaults, the `clock`
@@ -790,8 +792,8 @@ keeps `plan` and `clock`, and `size` computes what it computes today.
 | requirement slack | 1e-9, relative | `evaluate/verdict.py` `TOLERANCE`: a value on a limit passes (this is also how `equals`, now min = max, passes) |
 | mass, energy and plant balance residuals | 1e-12, 1e-9, 1e-9 (module), 1e-6 (plant) | `evaluate/balances.py`: when a `numerical` reason is raised (section 6) |
 | gas composition sum | 1e-9 | `physics/gas.py` `COMPOSITION_TOLERANCE` |
-| saturation and corrosion Newton | 1e-9; 1e-6, 100 | `modules/power/_physics.py` `SATURATION_TOLERANCE`; `physics/corrosion.py` |
-| floors and guards | `DRIFT_FLOOR` 1e-12, `MIN_PATH_PRESSURE` 1e-3 Pa, `ESP_MIN_EFFICIENCY_POWER` 0.1 W, `DUTY_AGREEMENT_TOLERANCE` 0.05, ground angle guards | `physics/diagnostics.py`, `physics/constants.py`, `modules/pumps/_physics.py`, `physics/heat_transfer.py`, `physics/ground.py` |
+| saturation and corrosion Newton | 1e-9; 1e-6, 100 | `physics/steam.py` `SATURATION_TOLERANCE`; `physics/corrosion.py` |
+| floors and guards | `DRIFT_FLOOR` 1e-12, `MIN_PATH_PRESSURE` 1e-3 Pa, `ESP_MIN_EFFICIENCY_POWER` 0.1 W, `DUTY_AGREEMENT_TOLERANCE` 0.05, ground angle guards | `physics/diagnostics.py`, `physics/constants.py`, `physics/pumps.py`, `physics/heat_transfer.py`, `physics/ground.py` |
 
 `Plant.loop_tolerance` and `Plant.loop_passes` are class attributes today; they stay settings in
 code and are no key of the plant file. Every row of this table is documented with its source in its
@@ -805,7 +807,7 @@ docstring.
 - Operation-loop methods (`replay`, `calibrate`, `live`): they fit the study shape with
   `measurements`; the bindings of 7.15 are designed only in outline.
 - Decisions whose rule stands and whose code does not follow yet: 7.12 (constructor defaults of the
-  class plants), 7.19 (`State` defaults, `initial_*` parameters), 7.23 (fallbacks in physics
+  class plants), 7.23 (fallbacks in physics
   signatures other than the grid gas), 7.24 (`study.plan`), 7.25 (time defaults), 7.32 (`sized`).
 - `technical_life` per equipment kind (7.1): gemini models no replacement, so no module would read it.
 - The tolerance of the brief for full reinjection (7.13): the samples carry the band they had, as a
@@ -816,8 +818,6 @@ docstring.
 - `site.fluid` leaves that a corrosion or an erosion module needs (bicarbonate, ionic strength,
   particle material, diameter and shape factor, 7.17 and 7.23).
 - Whether `precision: float32` should exist outside the golden tests (7.26).
-- A `PIDController` integrator at zero is a definition, but 7.19 asks for it in `initial_state` like
-  every state.
 - Decided: the name `Case` (`gm.Case`, `case.json`).
 
 ## 9. Definitions

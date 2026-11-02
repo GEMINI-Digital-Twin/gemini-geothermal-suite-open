@@ -142,22 +142,24 @@ class HeatPump(Equipment, Module):
         self.source_out = Outlet(Stream)
         self.sink_out = Outlet(Stream, kind="hot_water")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Cool the source and heat the sink circuit by the solved duties."""
 
         # Outlets
-        values = self._performance(inlets.source_in, inlets.sink_in)
+        values = self._performance(inputs, inlets.source_in, inlets.sink_in)
         source_out = inlets.source_in._with_si(T=values["source_out_T"])
         sink_out = inlets.sink_in._with_si(T=values["sink_out_T"])
 
         # Outputs
-        self.cop = values["cop"]
-        self.temperature_lift = values["temperature_lift"]
-        self.is_capped = values["is_capped"]
-        self.is_running = values["is_running"]
+        outputs = dict(
+            cop=values["cop"],
+            temperature_lift=values["temperature_lift"],
+            is_capped=values["is_capped"],
+            is_running=values["is_running"],
+        )
 
         outlets = dict(source_out=source_out, sink_out=sink_out, power_in=values["electricity"])
-        return outlets
+        return outputs, outlets
 
     @property
     def equipment_kind(self):
@@ -168,7 +170,7 @@ class HeatPump(Equipment, Module):
         """Return the size that the cost of the machine scales with: capacity."""
         return self.capacity
 
-    def _performance(self, source_in, sink_in):
+    def _performance(self, inputs, source_in, sink_in):
         """Return every output; the outlet temperatures [K] also define the outlets."""
         source_rate = _rate(self.path, "source_in", source_in)
         sink_rate = _rate(self.path, "sink_in", sink_in)
@@ -180,7 +182,9 @@ class HeatPump(Equipment, Module):
                 code="invalid_design",
             )
         operate = self._heating if heating else self._cooling
-        duty, is_capped, source_T, sink_T = operate(source_in, sink_in, source_rate, sink_rate)
+        duty, is_capped, source_T, sink_T = operate(
+            inputs, source_in, sink_in, source_rate, sink_rate
+        )
         running = duty != 0
         cop = self._cop(source_in, sink_in, source_T, sink_T)
         evaporator, condenser = duty, duty
@@ -189,7 +193,7 @@ class HeatPump(Equipment, Module):
         if not heating:
             condenser = ops.where(running, refrigeration.cooling_condenser_duty(duty, cop), duty)
         return {
-            "cop": ops.where(running, cop, None),
+            "cop": ops.where(running, cop, float("nan")),
             "useful_duty": duty,
             "evaporator_duty": evaporator,
             "condenser_duty": condenser,
@@ -201,7 +205,7 @@ class HeatPump(Equipment, Module):
             "sink_out_T": sink_T,
         }
 
-    def _heating(self, source_in, sink_in, source_rate, sink_rate):
+    def _heating(self, inputs, source_in, sink_in, source_rate, sink_rate):
         """Return the heating duty [W], the capped flag and the source and sink outlets [K].
 
         The sink is heated towards the setpoint. When the source outlet would fall below
@@ -209,7 +213,9 @@ class HeatPump(Equipment, Module):
         that minimum (``_duty_at_source_limit``), the sink outlet drops with it and the machine
         reports ``is_capped``.
         """
-        requested = heat_transfer.setpoint_duty(sink_rate, self.temperature_setpoint - sink_in.T)
+        requested = heat_transfer.setpoint_duty(
+            sink_rate, inputs["temperature_setpoint"] - sink_in.T
+        )
         duty = self._duty(requested, source_rate, sink_rate)
         sink_T = sink_in.T + heat_transfer.temperature_change(duty, sink_rate)
         source_T = self._source_outlet_T(source_in, sink_in, source_rate, sink_T, duty)
@@ -240,7 +246,7 @@ class HeatPump(Equipment, Module):
             ops.where(stopped, sink_in.T, sink_T),
         )
 
-    def _cooling(self, source_in, sink_in, source_rate, sink_rate):
+    def _cooling(self, inputs, source_in, sink_in, source_rate, sink_rate):
         """Return the cooling duty [W], the capped flag and the source and sink outlets [K].
 
         The source is cooled towards the setpoint, raised to
@@ -248,7 +254,7 @@ class HeatPump(Equipment, Module):
         ``is_capped``.
         """
         limit = self.minimum_source_outlet_temperature
-        setpoint = self.temperature_setpoint
+        setpoint = inputs["temperature_setpoint"]
         is_limited = False
         if limit is not None:
             is_limited = setpoint < limit

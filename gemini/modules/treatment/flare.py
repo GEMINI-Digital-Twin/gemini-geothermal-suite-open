@@ -46,7 +46,7 @@ class Flare(Equipment, Module):
         self.flue_out = Outlet(Stream, kind="gas")
         self.loss_out = Outlet(Power, kind="heat")
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Refuse reverse flow and release what burning leaves."""
 
         # Outlets
@@ -60,11 +60,10 @@ class Flare(Equipment, Module):
         )
 
         # Outputs
-        self.burned_mass_flow = inlets.gas_in.m_dot
-        self.fuel = loss_out
+        outputs = dict(burned_mass_flow=inlets.gas_in.m_dot, fuel=loss_out)
 
         outlets = dict(flue_out=flue_out, loss_out=loss_out)
-        return outlets
+        return outputs, outlets
 
     def _released(self, inlet, mass_flow):
         """Return the CO2 and the methane [kg/s] that burning ``mass_flow`` of ``inlet`` leaves."""
