@@ -118,3 +118,10 @@ def test_traced_call_matches_one_call_per_row(cooler_type):
         ]
     ]
     assert_module_matches(unit, rows)
+
+
+def test_a_zero_approach_at_the_air_temperature_raises_instead_of_an_infinite_air_flow():
+    """Cooled to the air temperature with no approach the air flow is unbounded: a physics error."""
+    unit = cooler("dry", approach=0)
+    with pytest.raises(PhysicsError, match="finite"):
+        unit(fluid_in=HOT, temperature_setpoint=298.15, air_in=air(298.15))

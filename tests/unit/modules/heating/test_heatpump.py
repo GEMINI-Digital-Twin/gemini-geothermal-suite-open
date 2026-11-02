@@ -334,3 +334,18 @@ def test_a_stopped_heat_pump_has_no_cop_on_every_backend():
         with runtime.settings(backend=backend):
             result = pump(source_in=stopped, sink_in=stopped, temperature_setpoint=313.15)
         assert result.outputs.cop is None
+
+
+def test_a_source_outlet_exactly_at_the_minimum_is_not_capped():
+    """The limit is inclusive: the unconstrained outlet as minimum changes nothing."""
+    source, sink = Stream(
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+    free = reading(heat_pump("heating")(source_in=source, sink_in=sink, temperature_setpoint=340))
+    limited = reading(
+        heat_pump("heating", minimum_source_outlet_temperature=free.source_out_T)(
+            source_in=source, sink_in=sink, temperature_setpoint=340
+        )
+    )
+    assert limited.source_out_T == free.source_out_T
+    assert limited.useful_duty == free.useful_duty and limited.is_capped == free.is_capped

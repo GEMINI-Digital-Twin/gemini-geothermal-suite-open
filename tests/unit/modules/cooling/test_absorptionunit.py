@@ -136,3 +136,12 @@ def test_traced_call_matches_one_call_per_row(mode, setpoints):
         ]
     ]
     assert_module_matches(machine, rows)
+
+
+def test_the_driving_temperature_threshold_is_inclusive():
+    """At the minimum driving temperature the unit runs; 0.01 K below it is off."""
+    at = reading(call(unit(minimum_driving_temperature=361.15), 273.15 + 9))
+    free = reading(call(unit(), 273.15 + 9))
+    assert at.evaporator_duty == free.evaporator_duty > 0
+    below = reading(call(unit(minimum_driving_temperature=361.16), 273.15 + 9))
+    assert below.evaporator_duty == 0 and below.is_capped

@@ -86,7 +86,7 @@ def _column(data, path, quantity, issues):
         inputs.from_leaf(
             {**data, "value": number}, path, issues, quantity=quantity, bounds=POSITIVE
         )
-        for number in data["value"][:1]
+        for number in data["value"]
     ]
     if any(not isinstance(n, (int, float)) or isinstance(n, bool) for n in data["value"]):
         issue(issues, path, "incompatible", f"{path}.value: expected numbers")

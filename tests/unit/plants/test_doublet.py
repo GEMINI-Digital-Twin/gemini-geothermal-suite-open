@@ -324,3 +324,40 @@ def test_the_volume_imbalance_is_produced_less_injected():
         fluid=doublet.fluid,
     )
     assert doublet(return_in=injected).outputs.volume_imbalance == pytest.approx(10 / 1030)
+
+
+def _doublet_at(production_rate):
+    """Return a designed doublet pumping ``production_rate`` kg/s at 60 Hz."""
+    doublet = gm.plants.Doublet()
+    doublet.fluid = gm.Fluid(
+        density=gm.units.Quantity(1030, "kg/m3"), viscosity={"value": 0.4, "unit": "mPa*s"}
+    )
+    doublet.set_params("", DESIGN | PUMP)
+    si.assign(doublet.reservoir, "production_rate", production_rate)
+    doublet.esp.frequency = {"value": 60, "unit": "Hz"}
+    return doublet
+
+
+def _returned(doublet, rate):
+    """Return a stream of ``rate`` kg/s of the doublet's brine at 320 K."""
+    return gm.Stream(
+        m_dot=gm.units.Quantity(rate, "kg/s"),
+        T=gm.units.Quantity(320.0, "K"),
+        p=gm.units.Quantity(5e6, "Pa"),
+        fluid=doublet.fluid,
+    )
+
+
+def test_the_reinjection_ratio_is_injected_over_produced_liquid():
+    """80 kg/s produced and 80 injected is 1; 60 injected is 0.75."""
+    doublet = _doublet_at(80.0)
+    assert doublet(return_in=_returned(doublet, 80.0)).outputs.reinjection_ratio == pytest.approx(1)
+    assert doublet(return_in=_returned(doublet, 60.0)).outputs.reinjection_ratio == pytest.approx(
+        0.75
+    )
+
+
+def test_the_reinjection_ratio_without_production_is_none():
+    """No produced liquid: the ratio does not exist."""
+    doublet = _doublet_at(0.0)
+    assert doublet(return_in=_returned(doublet, 0.0)).outputs.reinjection_ratio is None

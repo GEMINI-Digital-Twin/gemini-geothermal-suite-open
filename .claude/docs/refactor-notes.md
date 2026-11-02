@@ -9,7 +9,8 @@ implementation or test.
 
 - ESP monitoring originally used float32 arithmetic; the public default remains float64, with
   explicit float32 selection in golden reconstruction. Efficiency is a fraction, formerly percent.
-- ESP correction factors apply to inferred VLP discharge, not polynomial head. The old affine
+- ESP correction factors apply to the polynomial head (`a head + b`, not while stopped), the pressure
+  rise the pump gives; [1, 0] changes nothing. The old affine
   correction fitter and the six-coefficient polynomial fitter are distinct APIs. Plotting scales
   flow by frequency; the forward polynomial retains the original raw-flow basis.
 - Historical IPR treated a value labelled m3/h/bar as m3/s/bar. Historical ESP intake omitted
@@ -312,7 +313,7 @@ only what is built; each returns when its work is done, with the signature below
   injected volume and the fitted skin lines of an injection well.
 - `gm.analysis.calibrate_pump(plant, pump, measured)`: the `ESP` parameters
   (`head_coefficients`, `power_coefficients`) that make the model match measured operation, through
-  `gm.analysis.calibrate`; no module applies the `correction_factors` of `ESP` yet.
+  `gm.analysis.calibrate`.
 - `gm.analysis.calibrate_corrosion(logs)`: a `corrosion_forecast` model fitted to wall-thickness logs.
 - `gm.analysis.erosion(plant, well, units=None)`: DNV RP O501 wear of the pump and tubing and the API
   RP 14E velocity margin; a plant holds neither flow nor solids content, and the retained model has no
