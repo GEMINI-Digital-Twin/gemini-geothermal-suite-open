@@ -15,6 +15,10 @@ SKIPPED = "missing_value"
 """The code of a row skipped for a missing value; every other code is a row that failed."""
 
 
+PHYSICAL_ROW_CODES = frozenset({"invalid_inlet", "out_of_bounds", "out_of_range", "no_convergence"})
+"""The codes of a row whose failure is a result of the run: the plant cannot do what was asked."""
+
+
 def row_code(error, inlet=False):
     """Return the code in ``gm.errors.ROW_CODES`` of the exception that failed a row.
 

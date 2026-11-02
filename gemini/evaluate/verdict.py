@@ -1,5 +1,6 @@
 """Whether a finished run is acceptable: bounds, requirements, failed rows and the one verdict."""
 
+from collections import Counter
 from dataclasses import dataclass
 
 import numpy as np
@@ -588,7 +589,12 @@ def ranked(found):
 
 
 def excess(value, limit):
-    """Return how far ``value`` is from ``limit``, relative to the larger of the two."""
+    """Return how far ``value`` is from ``limit``, relative to the larger of the two.
+
+    A value the run could not give (NaN: its steps failed) is the largest violation.
+    """
+    if np.isnan(value.value) or np.isnan(limit.value):
+        return LARGEST_VIOLATION
     return abs(value.value - limit.value) / (max(abs(value.value), abs(limit.value)) or 1.0)
 
 
@@ -645,10 +651,16 @@ def _failed(item):
 
 def _failed_rows(rows):
     """Return the reason of the rows that failed or were skipped, apart from the loops."""
-    count = sum(row["code"] != NOT_CONVERGED for row in rows)
+    failed = [row for row in rows if row["code"] != NOT_CONVERGED]
+    count = len(failed)
     if not count:
         return []
-    message = f"{count} steps failed"
+    top = Counter((row["path"], row["code"]) for row in failed).most_common(1)[0]
+    first = next(row for row in failed if (row["path"], row["code"]) == top[0])
+    message = (
+        f"{count} steps failed; most frequent: {top[0][0]} {top[0][1]} ({top[1]} rows): "
+        f"{first['message']}"
+    )
     return [
         reason(
             "failed_step",
