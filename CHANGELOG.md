@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-11-02
+
+Backward compatible with 0.5.3 and 0.5.0 for every number: all are the same to 1e-9 (`gm.study.sample`
+and `gm.study.sensitivity` compared with 0.5.3 on the hackathon design, 369 numbers), and no example
+verdict changes (`tests/fixtures/public_api_0_5_0.json` is the frozen surface). Two fixes change
+behaviour on purpose, for inputs the 0.5.0 code accepted.
+
+### Fixed
+- `gm.evaluate.verdict`: a requirement that could not be judged (`passed` None) beside a passed one
+  is now a reason of kind `requirement`, so the run is infeasible; it was feasible. It has no
+  `violation`, so a search ranks as before. Not a reason: a `when="running"` requirement on a unit
+  that never ran (nothing was asked), and the supply of a service already reported as not delivered.
+  All undecided and failed-beside-undecided give the reasons of before. `report`, `compare` and
+  `Study` read this verdict.
+- `nominal_flow` of `Doublet` and `InjectionPump`: zero or below raises `out_of_bounds` (`gt=0`); it
+  priced the pump as free or cheaper. Empty stays allowed.
+
+### Added
+- `gm.study.sample`: each item of `samples` has `feasible` (`gm.evaluate.verdict` of the draw; False
+  for a run with failed steps). `gm.study.sensitivity`: each row has `feasible_low` and
+  `feasible_high`. Both are in `to_dict` and read by `from_dict`, which also reads a 0.5.3 result
+  without them. `summary`, `Tornado.to_frame` and the order of the rows are unchanged; each trial
+  runs one more verdict.
+
 ## [0.5.3] - 2026-11-02
 
 Backward compatible with 0.5.2 and 0.5.0: an addition only, every number is the same to 1e-9

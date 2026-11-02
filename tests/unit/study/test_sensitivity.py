@@ -165,10 +165,62 @@ def test_a_row_whose_end_failed_round_trips_with_its_missing_value_and_reason(ru
     assert again.to_dict() == plain
 
 
-def test_an_end_that_breaks_a_requirement_is_a_plain_number_in_its_row(monkeypatch, runs):
-    """Pinned for the owner (t2.md): the ends run unjudged, so the row carries no flag."""
+def test_an_end_that_breaks_a_requirement_is_a_plain_number_flagged_infeasible(monkeypatch, runs):
+    """The numbers of the row are those of the run; the row carries the flag of each end."""
     broken = reason("requirement", "heating_supply_unmet", "unmet demand above its limit")
     monkeypatch.setattr(trial, "verdict", lambda *a: Verdict(feasible=False, reasons=[broken]))
     found = gm.study.sensitivity(shallow_plant(), shallow_case(uncertain=DECLARED), ["lcts"])
     assert all(row["at_high"].value is not None and row["at_high"].reason is None for row in found)
-    assert not any("feasible" in row or "verdict" in row for row in found)
+    assert all(row["feasible_low"] is False and row["feasible_high"] is False for row in found)
+
+
+def test_a_feasible_end_is_flagged_feasible(tornado):
+    """The clean fake verdict has no reason: both ends of every row are feasible."""
+    assert all(row["feasible_low"] is True and row["feasible_high"] is True for row in tornado)
+
+
+def test_an_end_with_failed_steps_is_flagged_infeasible(failing_runs):
+    """The upper end of the price fails its steps; the lower one runs clean."""
+    declared = {"economics.energy.electricity": {"kind": "uniform", "min": 100, "max": 300}}
+    [row] = gm.study.sensitivity(shallow_plant(), shallow_case(uncertain=declared), ["lcts"])
+    assert (row["feasible_low"], row["feasible_high"]) == (True, False)
+
+
+def test_the_flags_round_trip_and_the_frame_is_unchanged(tornado):
+    """``to_dict`` writes both flags, ``from_dict`` reads them, ``to_frame`` has no new column."""
+    plain = json.loads(json.dumps(tornado.to_dict(), allow_nan=False))
+    assert all(row["feasible_low"] and row["feasible_high"] for row in plain["rows"])
+    again = gm.study.Tornado.from_dict(plain)
+    assert [row["feasible_high"] for row in again] == [True, True]
+    assert again.to_dict() == plain
+    assert list(tornado.to_frame().columns) == [
+        "parameter",
+        "metric",
+        "low",
+        "high",
+        "value_unit",
+        "at_low",
+        "at_high",
+        "effect",
+        "unit",
+    ]
+
+
+def test_a_stored_tornado_without_the_flags_is_read_without_them(tornado):
+    """A 0.5.3 result has no flags: they stay absent."""
+    plain = json.loads(json.dumps(tornado.to_dict()))
+    for row in plain["rows"]:
+        del row["feasible_low"], row["feasible_high"]
+    again = gm.study.Tornado.from_dict(plain)
+    assert not any("feasible_low" in row or "feasible_high" in row for row in again)
+    assert again.to_dict() == plain
+
+
+def test_the_flags_are_the_same_with_worker_processes(runs):
+    """``processes`` > 1 gives the flags of one process."""
+    case = shallow_case(uncertain=DECLARED)
+    one = gm.study.sensitivity(shallow_plant(), case, ["lcts"])
+    with gm.runtime.settings(processes=2):
+        two = gm.study.sensitivity(shallow_plant(), case, ["lcts"])
+    flags = [(r["parameter"], r["feasible_low"], r["feasible_high"]) for r in two]
+    assert flags == [(r["parameter"], r["feasible_low"], r["feasible_high"]) for r in one]
