@@ -17,7 +17,7 @@ SNAPSHOTS = {
     "0.5.0": "cd4c7005932a6d3918c006292fd7046eec95226640ee3cf4d3892077c92cca16",
     "0.5.1": "6d4e8da5a26f08918457e4a36cdaff02490c15dc7c11a1af4a14ad95008c7eb0",
     "0.5.2": "87e80ee76052df729e145c7b5a26bad88b53ab4a4220d39b5dd482883600a5c9",
-    "0.5.3": "fc843f74a7a1ab76dcc03f0a30362b2f02fe16ee6f54072ea73aaa6c9a131081",
+    "0.5.3": "09c69731efd240b1a0463646ec433addb225e37d4e07f036c7ee9061a7984444",
 }
 """Hash of the snapshot per ``gm.__version__``: a released entry never changes."""
 

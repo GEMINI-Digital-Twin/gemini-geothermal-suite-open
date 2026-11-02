@@ -191,10 +191,11 @@ class Comparison(list):
         Parameters
         ----------
         units : {"si", "display"} or dict, optional
-            ``None`` or ``"si"`` (the default) keeps SI. ``"display"`` shows each metric in its display unit
-            (as ``to_frame``, the table of ``gm.units.display``); a dict ``{metric: unit}`` does
-            too and replaces the unit of the metrics it names. A name that is not a metric, or a
-            unit of another dimension, raises ``invalid_value`` or ``invalid_unit``.
+            ``None`` or ``"si"`` (the default) keeps SI. ``"display"`` shows each metric in its
+            display unit (as ``to_frame``, the table of ``gm.units.display``); a dict
+            ``{metric: unit}`` does too and replaces the unit of the metrics it names. A name that is
+            not a metric, or a unit of another dimension, raises ``invalid_value`` or
+            ``invalid_unit``.
         """
         if units is None or checked_or_map(units) == "si":
             return to_plain(list(self))

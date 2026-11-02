@@ -919,3 +919,5 @@ leaf, to move a case value use `uncertainty`, this will be refused in a later ve
   (objective, budget, seed, metrics). Everything else comes from the files.
 - Keys are snake_case; the name of a key in a file is the name of the declaration in code
   (`temperature_setpoint`, `supply_margin`), so a reader finds one from the other.
+
+**Forms.** `Case.schema()` states `kind` as a constant and marks each leaf with `x-quantity`, `x-units`, `x-limits` (SI) and `x-fraction`, and each file with `x-quantities`, from the one unit table; `gm.case.missing(case)` lists what a document still lacks.

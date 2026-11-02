@@ -20,6 +20,22 @@ Backward compatible with 0.5.2 and 0.5.0: an addition only, every number is the 
   `uncertainty` and a plant `range` are not affected.
 
 ### Added
+- Schemas for forms: `Case.schema()` and `Economics.schema()` state `kind` as a constant (`"case"`,
+  `"economics"`; the plant and study schemas already did), so a generated header is accepted by the
+  reader (a document without `kind` is `old_format`). Leaves gain `x-quantity`, `x-units`,
+  `x-limits` (SI bounds with their SI unit) and `x-fraction` (a share between 0 and 1); the files
+  gain `x-quantities` (units of every quantity used). No existing key changed.
+- `gm.evaluate.metrics()`: `title` and `objective` (a target for `gm.study.minimize`) per metric.
+- `gm.study.kinds()`: `[{kind, use, title, description, settings}]` for run, minimize, sample,
+  sensitivity and size (a preparation), `settings` the JSON Schema of the keys the kind reads.
+- `units="display"` (or `"si"`) on `Results.get`, `summary`, `to_frame`, `to_dict`,
+  `energy_report` and `Comparison.to_dict`; keyword-only `units="si"` on `gm.evaluate.capex`,
+  `opex`, `annualised_cost`, `lcoh`, `lcoc`, `lcts`, `npv` and `payback`, whose value and parts
+  then come in display units. The default is unchanged.
+- `gm.case.missing(case)`: the paths a case or a partial case dict still lacks, as `Issue`s with
+  quantity and accepted units; it never raises.
+- `gm.plants.capabilities()[class]["ranges"]` lists every numeric leaf of `params` (and
+  `size.doublets`), not only `params.depth`.
 - `Issue.is_warning` and the issue kind and code `deprecated`; `raise_issues` leaves a warning out.
 
 ## [0.5.2] - 2026-11-02

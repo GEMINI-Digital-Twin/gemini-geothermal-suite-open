@@ -371,7 +371,7 @@ def test_comparison_to_dict_shows_display_units_or_the_metrics_given():
     shown = found.to_dict(units="display")
     assert shown[0]["values"]["lcts"] == {"value": pytest.approx(10.0 * 3.6e9), "unit": "EUR/MWh"}
     assert shown[0]["values"]["co2"] == 5.0
-    assert found.to_dict(units={"lcts": "EUR/GJ"})[0]["values"]["lcts"]["unit"] == "EUR/GJ"
+    assert found.to_dict(units={"lcts": "EUR/kWh"})[0]["values"]["lcts"]["unit"] == "EUR/kWh"
     assert found.to_dict(units="si") == found.to_dict()
     with raises(gm.errors.ValidationError, "invalid_value"):
         found.to_dict(units="field")
