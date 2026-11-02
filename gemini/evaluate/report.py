@@ -10,7 +10,13 @@ from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.engine.apply import apply_case
 from gemini.errors import ValidationError
 from gemini.evaluate._utils.cost import equipment
-from gemini.evaluate._utils.display import DISPLAY, display_units, in_unit, shown
+from gemini.evaluate._utils.display import (
+    DISPLAY,
+    checked_or_map,
+    display_units,
+    in_unit,
+    shown,
+)
 from gemini.evaluate._utils.ratings import rating_of
 from gemini.evaluate._utils.series import energy
 from gemini.evaluate._utils.tally import tally
@@ -179,9 +185,38 @@ class Comparison(list):
         ]
         return pd.DataFrame(rows, index=pd.Index([entry["index"] for entry in self], name="index"))
 
-    def to_dict(self):
-        """Return the entries as plain JSON: every ``Quantity`` as ``{value, unit}`` in SI."""
-        return to_plain(list(self))
+    def to_dict(self, units=None):
+        """Return the entries as plain JSON: every ``Quantity`` as ``{value, unit}``.
+
+        Parameters
+        ----------
+        units : {"si", "display"} or dict, optional
+            ``None`` or ``"si"`` (the default) keeps SI. ``"display"`` shows each metric in its display unit
+            (as ``to_frame``, the table of ``gm.units.display``); a dict ``{metric: unit}`` does
+            too and replaces the unit of the metrics it names. A name that is not a metric, or a
+            unit of another dimension, raises ``invalid_value`` or ``invalid_unit``.
+        """
+        if units is None or checked_or_map(units) == "si":
+            return to_plain(list(self))
+        names = list(self[0]["values"]) if self else []
+        chosen = display_units(names, units if isinstance(units, dict) else None)
+        base = by_si_unit()
+        return to_plain(
+            [
+                {
+                    **entry,
+                    "values": {
+                        name: (
+                            shown(item, base | {si_unit(DISPLAY[name][1]): chosen[name]})
+                            if name in chosen
+                            else shown(item, base)
+                        )
+                        for name, item in entry["values"].items()
+                    },
+                }
+                for entry in self
+            ]
+        )
 
     @classmethod
     def from_dict(cls, data):

@@ -22,7 +22,8 @@ from gemini.errors import ValidationError
 from gemini.errors.lookup import UnknownKey
 from gemini.errors.rows import skipped_row
 from gemini.streams.flows import FIELD_QUANTITIES
-from gemini.units.shapes import OutputUnits, series, value
+from gemini.units.display import output_units
+from gemini.units.shapes import series, value
 
 ENERGY_FIELDS = ("power_in", "fuel", "loss_out")
 """Leaf outputs integrated over time into energy totals."""
@@ -254,7 +255,7 @@ class Results:
                 {join_path(path, field): self.unit(path, field) for path, field in keys}
             )
             return frame
-        output = OutputUnits(units)
+        output = output_units(units)
         stated = {}
         for key in keys:
             column, stated[join_path(*key)] = self._column(frame[key], *key, output)
@@ -266,7 +267,7 @@ class Results:
     def _column(self, column, path, field, output):
         """Return one column and its unit in the unit ``output`` asks for its quantity."""
         unit, quantity = self.unit(path, field), self.quantity(path, field)
-        target = output.target(quantity)
+        target = output.target(quantity, unit)
         if target is None:
             return column, unit
         if pd.api.types.is_numeric_dtype(column) and not pd.api.types.is_bool_dtype(column):
@@ -296,7 +297,7 @@ class Results:
         is the unit used, SI unless ``units`` asks otherwise. An unknown path or field raises
         ``ValidationError``.
         """
-        output = OutputUnits(units)
+        output = output_units(units)
         column = _window(getattr(self[path], field), start, end)
         converted, unit = self._column(column, path, field, output)
         return series(column.index, converted, unit)
@@ -307,7 +308,7 @@ class Results:
         ``path`` selects one module and ``start`` and ``end`` (inclusive) a window; a value is
         ``None`` with a ``reason`` where a field has no finite value. ``units`` converts them.
         """
-        output = OutputUnits(units)
+        output = output_units(units)
         frame = _window(self._cached_frame(), start, end)
         paths = list(dict.fromkeys(frame.columns.get_level_values(0)))
         if path is not None:
@@ -355,7 +356,7 @@ class Results:
         ``duration`` is a value and ``series`` is ``{path: {field: {value, unit}}}``, with one item
         per entry of ``time``, in SI or in ``units``.
         """
-        output = OutputUnits(units)
+        output = output_units(units)
         frame = self._cached_frame()
         columns = {}
         for path, field in frame.columns:
@@ -381,7 +382,7 @@ class Results:
         the largest value of each numeric field, and ``reasons`` with the count of each skip reason.
         ``to_frame(table="energy")`` is the same report as a table. ``units`` converts them.
         """
-        output = OutputUnits(units)
+        output = output_units(units)
         report = {}
         for row in self._energy_rows():
             report.setdefault(row["module"], {})[row["port"]] = self._report_entry(row, output)

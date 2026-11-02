@@ -1,6 +1,7 @@
 """Search and sample plant designs through the public run functions."""
 
 from .calibrate import CalibrationResult, calibrate
+from .kinds import kinds
 from .minimize import minimize
 from .result import Run, StudyResult
 from .sample import Sample, sample
@@ -10,6 +11,7 @@ from .study import Study
 
 __all__ = [
     "calibrate",
+    "kinds",
     "CalibrationResult",
     "minimize",
     "sample",

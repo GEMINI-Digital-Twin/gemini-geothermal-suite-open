@@ -106,7 +106,7 @@ def test_the_change_log_lists_the_version():
 def test_the_package_has_one_version():
     """``gm.API_VERSION`` is gone; ``gm.__version__`` is the one version."""
     assert not hasattr(gm, "API_VERSION")
-    assert gm.__version__ == "0.5.2"
+    assert gm.__version__ == "0.5.3"
 
 
 def test_every_economics_function_takes_the_plant_the_case_and_the_results():

@@ -26,6 +26,7 @@ from .economics import (
     Revenue,
     Subsidy,
 )
+from .missing import missing
 from .requirement import Requirement
 from .site import Air, Fluid, Ground, Reservoir, Site
 from .time import Time
@@ -61,4 +62,5 @@ __all__ = [
     "from_csv",
     "from_values",
     "profile_schema",
+    "missing",
 ]

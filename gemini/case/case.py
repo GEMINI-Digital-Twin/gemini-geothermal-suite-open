@@ -149,16 +149,21 @@ class Case(Frozen):
     def schema(cls):
         """Return the JSON Schema (draft 2020-12) of ``case.json``."""
         properties = {name: schema.section(sub) for name, sub in SECTIONS.items()}
+        used = {}
+        for sub in (*SECTIONS.values(), Economics):
+            used |= schema.quantities(sub)
+        used["duration"] = units.names("duration")
         properties |= {
             "time": schema.time(),
             "initial_state": {"type": "object", "additionalProperties": {"type": "object"}},
             "economics": {"anyOf": [{"type": "string"}, Economics.schema()]},
             "requirements": {"type": "array", "items": schema.requirement()},
         }
-        return {"$schema": schema.DRAFT, "title": cls.__name__} | schema.closed(
-            schema.HEADER | {"about": {"type": "object"}} | properties,
+        found = schema.closed(
+            schema.header("case") | {"about": {"type": "object"}} | properties,
             ["format", "kind", "name", "time"],
         )
+        return {"$schema": schema.DRAFT, "title": cls.__name__} | found | {"x-quantities": used}
 
     def to_dict(self):
         """Return the case as it was read, the header first."""

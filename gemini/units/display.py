@@ -8,9 +8,11 @@ of a result to the unit its SI unit has in a table.
 
 from collections.abc import Mapping
 
+from gemini._utils.strings import close_matches
+from gemini.errors import ValidationError
 from gemini.units import conversions
 from gemini.units.conversions import Quantity
-from gemini.units.shapes import Value, measure
+from gemini.units.shapes import OutputUnits, Value, measure
 
 DISPLAY_UNITS = {
     "energy": "MWh",
@@ -41,7 +43,32 @@ def without_offsets(table):
     return {unit: shown_unit for unit, shown_unit in table.items() if unit != "K"}
 
 
-class DisplayedValues:
+class DisplayUnits(OutputUnits):
+    """The ``units="display"`` argument of a public return: every quantity in its display unit.
+
+    It stands where an ``OutputUnits`` map stands: a number stored in an SI unit comes out in the
+    unit that SI unit has in ``DISPLAY_UNITS`` (energy in MWh, power in MW, temperature in degC),
+    and in SI when the table has none. A difference (a quantity whose name ends in
+    ``_difference``) keeps its SI unit, so a temperature lift stays in K. The choice is by the
+    stored unit, so it needs no map and no quantity of the field.
+    """
+
+    def __init__(self):
+        """Take no map: the table is the choice."""
+        super().__init__()
+
+    def target(self, quantity, unit=None):
+        """Return the display unit of the stored ``unit``, or ``None`` to keep it."""
+        if unit is None:
+            return None
+        table = by_si_unit()
+        if quantity is not None and quantity.endswith("_difference"):
+            table = without_offsets(table)
+        target = table.get(conversions.si_unit(str(unit)))
+        return None if target is None or target == str(unit) else target
+
+
+class DisplayedValues(DisplayUnits):
     """The leaves of a public return as ``Quantity`` values in the units of ``DISPLAY_UNITS``.
 
     It stands where ``OutputUnits`` stands, with the same ``value(number, unit, quantity)``: the
@@ -56,6 +83,26 @@ class DisplayedValues:
         if quantity is not None and quantity.endswith("_difference"):
             table = without_offsets(table)
         return shown(measure(number, unit, reason, **details), table)
+
+
+def output_units(units):
+    """Return the object for the ``units`` of a view: ``None`` or a map, ``"si"``, ``"display"``.
+
+    A map from quantity to unit is an ``OutputUnits``; ``"display"`` is a ``DisplayUnits``. Any
+    other text raises ``invalid_value``.
+    """
+    if units == "display":
+        return DisplayUnits()
+    if units == "si":
+        return OutputUnits()
+    if isinstance(units, str):
+        raise ValidationError(
+            f'units = {units!r}; expected a map from quantity to unit, "si" or "display"',
+            path="units",
+            code="invalid_value",
+            suggestions=close_matches(units, ("si", "display")),
+        )
+    return OutputUnits(units)
 
 
 def shown(found, table, adjust=None):

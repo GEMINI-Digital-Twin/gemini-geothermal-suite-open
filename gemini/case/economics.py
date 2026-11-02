@@ -275,7 +275,7 @@ class Economics(Node):
     @classmethod
     def schema(cls):
         """Return the JSON Schema (draft 2020-12) of ``economics.json``."""
-        return {"$schema": schema.DRAFT, "title": cls.__name__} | schema.section(cls, header=True)
+        return {"$schema": schema.DRAFT, "title": cls.__name__} | schema.section(cls, "economics")
 
     def drilling_cost_per_metre(self, length):
         """Return the drilling cost per metre [currency/m] for a well of measured ``length`` [m].

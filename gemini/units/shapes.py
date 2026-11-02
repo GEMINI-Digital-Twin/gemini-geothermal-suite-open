@@ -220,15 +220,18 @@ class OutputUnits:
             if not units.fits(unit, quantity):
                 raise _wrong_unit(quantity, unit)
 
-    def target(self, quantity):
-        """Return the unit the map asks for ``quantity``, or ``None`` to keep the stored one."""
+    def target(self, quantity, unit=None):
+        """Return the unit the map asks for ``quantity``, or ``None`` to keep the stored one.
+
+        ``unit`` is the stored unit; a map by quantity does not need it.
+        """
         if not self.units or quantity is None:
             return None
         return self.units.get(quantity) or self.units.get(units.family(quantity))
 
     def number(self, number, unit, quantity):
         """Return ``(number, unit)`` in the unit the map asks for ``quantity``."""
-        target = self.target(quantity)
+        target = self.target(quantity, unit)
         if target is None:
             return number, unit
         return _converted(number, unit, target, quantity), target

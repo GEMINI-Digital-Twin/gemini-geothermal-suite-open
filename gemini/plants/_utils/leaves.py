@@ -19,6 +19,19 @@ def table_of(plant):
     return dict(plant.named_parameters()) | plant.inputs()
 
 
+def numeric_paths(plant):
+    """Return the paths of the leaves of ``params`` that hold a number, so may state a ``range``.
+
+    Every parameter, control and boundary of the plant that is a number or a whole number, as
+    ``params.<path>`` in the order of ``table_of``; a choice, a text and an array take no range.
+    """
+    return [
+        f"params.{file_path(name)}"
+        for name, declaration in table_of(plant).items()
+        if _kind(declaration) == "number"
+    ]
+
+
 def declaration_of(plant, path, table=None):
     """Return the declaration a leaf path sets: a parameter, a control, a boundary, or a field."""
     name = flat_name(path)
