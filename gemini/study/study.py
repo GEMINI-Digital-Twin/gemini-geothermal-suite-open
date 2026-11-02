@@ -11,7 +11,8 @@ from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import Issue, raise_issues
 from gemini.evaluate import compare
 from gemini.plants import Plant
-from gemini.study._utils.execute import executed
+from gemini.study._utils.execute import executed, trials
+from gemini.study._utils.progress import counting
 from gemini.study._utils.trial import checked_metric
 from gemini.study.result import Run, StudyResult
 from gemini.units import inputs
@@ -321,7 +322,7 @@ class Study:
             )
         return self.folder / path
 
-    def run(self, plants=None):
+    def run(self, plants=None, *, on_progress=None):
         """Run the method on every plant and every case and return a ``StudyResult``.
 
         ``plants`` is optionally ``{name: Plant}`` in memory, instead of the plant files of the
@@ -329,6 +330,13 @@ class Study:
         prepared, run by the function of the method (``gm.study.size``, ``minimize``, ``sample``,
         ``sensitivity``), simulated and reported; ``minimize`` on a plant that states no range and
         no options runs the plant as it is, with a ``note``.
+
+        ``on_progress(done, total)``, when given, is called in the calling process after each
+        finished trial of the method (``minimize``, ``sample`` and ``sensitivity`` run trials, also
+        in worker processes); ``total`` is their number over every plant and case, a pair that
+        runs none counts as one, and ``done`` reaches ``total`` at the end even when a search ends
+        early. Raising ``gm.errors.Cancelled`` from it stops the study: no later trial starts, the
+        workers are stopped and the exception propagates. The result does not depend on it.
         """
         issues = []
         cases = {}
@@ -340,11 +348,15 @@ class Study:
                 self._loaded(given, Path(path).stem, lambda _, path=path: self._plant(path), issues)
         raise_issues(issues)
         named = {case.name: case for case in cases.values()}
-        runs = [
-            self._record(name, plant, case)
-            for case in named.values()
-            for name, plant in given.items()
-        ]
+        pairs = [(name, plant, case) for case in named.values() for name, plant in given.items()]
+        planned = [] if on_progress is None else [trials(self, p, c) for _, p, c in pairs]
+        runs, reached = [], 0
+        with counting(on_progress, sum(planned)) as count:
+            for (name, plant, case), expected in zip(pairs, planned or [0] * len(pairs)):
+                runs.append(self._record(name, plant, case))
+                reached += expected
+                if count is not None:
+                    count.reach(reached)
         return self._result(runs, named)
 
     def _record(self, name, plant, case):

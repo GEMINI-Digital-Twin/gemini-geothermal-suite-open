@@ -1,9 +1,12 @@
 """Trials in worker processes give the numbers and the order of a serial run."""
 
+import multiprocessing
+import time
+
 import pytest
 
 import gemini as gm
-from gemini.study._utils import parallel
+from gemini.study._utils import parallel, progress
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
 PRICE = "case.economics.energy.electricity"
@@ -46,3 +49,42 @@ def test_a_sample_in_workers_equals_the_serial_sample(tiny):
     with gm.runtime.settings(processes=2):
         workers = gm.study.sample(plant, case, ["peak_heat"], 2, 4)
     assert workers.to_dict() == serial.to_dict()
+
+
+def finishes(shared, item):
+    """Finish ``item`` trials, as a worker does, and return the item."""
+    for _ in range(item):
+        progress.finished()
+    time.sleep(0.05)
+    return item
+
+
+def test_the_trials_a_worker_finishes_are_counted_in_the_parent():
+    """Three items of 1, 2 and 3 trials in two workers: six calls, counted one by one."""
+    calls = []
+    with gm.runtime.settings(processes=2), progress.counting(lambda *told: calls.append(told), 6):
+        assert parallel.mapped(finishes, None, [1, 2, 3]) == [1, 2, 3]
+    assert calls == [(number, 6) for number in range(1, 7)]
+
+
+def test_cancelling_from_the_parent_stops_the_workers():
+    """The exception of the callback is raised and no worker is left running."""
+
+    def cancel(done, total):
+        raise gm.errors.Cancelled("stop")
+
+    with gm.runtime.settings(processes=2), progress.counting(cancel, 6):
+        with pytest.raises(gm.errors.Cancelled):
+            parallel.mapped(finishes, None, [3, 3, 3, 3])
+    assert not multiprocessing.active_children()
+
+
+def test_a_sample_in_workers_is_counted(tiny):
+    """The draws finished by the workers are told to the caller."""
+    case, plant, serial = tiny
+    calls = []
+    with gm.runtime.settings(processes=2):
+        found = gm.study.sample(
+            plant, case, ["peak_heat"], 2, 4, on_progress=lambda *told: calls.append(told)
+        )
+    assert calls == [(1, 2), (2, 2)] and found.to_dict() == serial.to_dict()

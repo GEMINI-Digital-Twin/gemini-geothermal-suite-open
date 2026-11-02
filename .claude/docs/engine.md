@@ -514,6 +514,12 @@ before are kept: they stay readable in `engine.results`, `engine.results.end_sta
 `on_error` callbacks observe the exception and it propagates to the caller. Nothing is evaluated
 after it, and a later `replay(..., state=engine.results.end_state)` continues where it stopped.
 
+The study functions have the same hook, as a keyword: `on_progress(done, total)` of `gm.study.minimize`,
+`sample`, `sensitivity` and `gm.Study.run` counts finished trials instead of ticks (no `engine`
+argument), in the calling process, also with `processes=n`; raising `gm.errors.Cancelled` from it
+stops the study and the worker processes and propagates. The trials run in `gemini/engine/lockstep.py`
+tell it as each one ends (`lockstep(lanes, finished)`); see [economics.md](economics.md#gmstudy).
+
 ## Results
 
 `Results` is columnar. `Results.commit(chunk)` is the one way in: a `ResultChunk`

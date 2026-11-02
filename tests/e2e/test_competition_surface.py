@@ -41,9 +41,15 @@ def ranking():
 @pytest.mark.e2e
 @pytest.mark.parametrize("key", SIGNATURES)
 def test_the_calls_of_the_competition_scripts_keep_their_signature(key):
-    """Names and order of the parameters of each call used by hackathon.py."""
+    """Names and order of the parameters of each call used by hackathon.py.
+
+    A keyword-only parameter with a default of ``None`` added after them changes no call.
+    """
     function, expected = SIGNATURES[key]
-    assert names(function) == expected, key
+    assert names(function)[: len(expected)] == expected, key
+    given = [p for p in inspect.signature(function).parameters.values() if p.name != "self"]
+    for extra in given[len(expected) :]:
+        assert extra.kind is inspect.Parameter.KEYWORD_ONLY and extra.default is None, key
 
 
 @pytest.mark.e2e

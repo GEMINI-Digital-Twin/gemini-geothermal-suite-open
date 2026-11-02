@@ -222,7 +222,8 @@
     "path"
    ],
    "run": [
-    "plants"
+    "plants",
+    "on_progress"
    ],
    "to_dict": [],
    "to_json": [
@@ -449,6 +450,11 @@
     "reports",
     "by"
    ],
+   "daily_coverage": [
+    "plant",
+    "case",
+    "results"
+   ],
    "energy_balance": [
     "plant",
     "case",
@@ -480,6 +486,7 @@
     "case",
     "results"
    ],
+   "metrics": [],
    "npv": [
     "plant",
     "case",
@@ -837,7 +844,8 @@
     "objective",
     "evaluations",
     "seed",
-    "plan"
+    "plan",
+    "on_progress"
    ],
    "sample": [
     "plant",
@@ -845,13 +853,15 @@
     "metrics",
     "samples",
     "seed",
-    "plan"
+    "plan",
+    "on_progress"
    ],
    "sensitivity": [
     "plant",
     "case",
     "metrics",
-    "plan"
+    "plan",
+    "on_progress"
    ],
    "size": [
     "plant",
@@ -996,5 +1006,5 @@
   "study",
   "units"
  ],
- "version": "0.5.1"
+ "version": "0.5.2"
 }

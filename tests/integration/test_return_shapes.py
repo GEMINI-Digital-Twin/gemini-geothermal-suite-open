@@ -162,6 +162,8 @@ def _ledger_entries(plant, results):
     return {
         "compute": lambda: gm.evaluate.totals(plant, problem, results),
         "totals": lambda: gm.evaluate.totals(plant, problem, results),
+        "daily_coverage": lambda: gm.evaluate.daily_coverage(plant, problem, results),
+        "metrics": gm.evaluate.metrics,
         "energy_balance": lambda: gm.evaluate.energy_balance(plant, problem, results),
         "mass_balance": lambda: gm.evaluate.mass_balance(plant, problem, results),
         "bounds": lambda: gm.evaluate.bounds(plant, problem, results),

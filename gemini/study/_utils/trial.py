@@ -14,6 +14,7 @@ from gemini.errors import GeminiError, ValidationError
 from gemini.evaluate import annualised_cost, co2, lcoc, lcoh, lcts, totals, verdict
 from gemini.evaluate.summary import KPI_NAMES
 from gemini.evaluate.verdict import LARGEST_VIOLATION, failures, ranked
+from gemini.study._utils import progress
 from gemini.study._utils.shared import Shared
 from gemini.study._utils.target import is_case_name, with_case_values
 from gemini.units.shapes import measure
@@ -137,10 +138,11 @@ def run_trials(shared, case, plan, valued, names, judge):
 
     The outcome is ``(metrics, reason)``, or ``(metrics, reason, violation)`` when ``judge``: a
     run that fails is infeasible with its message as the reason and ``LARGEST_VIOLATION``. The
-    trials run together on ``shared`` (a ``Shared``) and each gives what it gives alone.
+    trials run together on ``shared`` (a ``Shared``) and each gives what it gives alone. Each
+    trial that ends is counted for ``gemini.study._utils.progress``.
     """
     trials = [_Trial(shared, case, plan, values, names, judge) for values in valued]
-    return lockstep([trial.lane for trial in trials])
+    return lockstep([trial.lane for trial in trials], lambda lane: progress.finished())
 
 
 def drawn_trials(shared, valued):

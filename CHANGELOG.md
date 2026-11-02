@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-11-02
+
+Backward compatible with 0.5.1 and 0.5.0: additions only, every number is the same to 1e-9, and a
+call that does not use them behaves as before (`tests/fixtures/public_api_0_5_0.json` is the
+frozen surface).
+
+### Added
+- `on_progress=None` (keyword only) on `gm.study.minimize`, `sample`, `sensitivity` and
+  `gm.Study.run`: `on_progress(done, total)` is called in the calling process after each finished
+  trial, also with `processes=n` and for batched trials. Raising `gm.errors.Cancelled` from it stops
+  the study cleanly (later trials do not start, the worker processes are stopped, the exception
+  propagates).
+- `gm.evaluate.daily_coverage(plant, case, results)`: for each day and service (heating, cooling) the
+  demand and the energy from the geothermal plant, from the backup (roles `boiler`, `chp`) and short,
+  as quantities in display units, with the failed steps of the day. Its sums are the totals of `gm.evaluate.totals`.
+- `gm.evaluate.metrics()`: the metrics of a table of results with their quantity and display unit.
+
 ## [0.5.1] - 2026-11-02
 
 Backward compatible with 0.5.0: no name, signature, key or code changed, and every number is the
