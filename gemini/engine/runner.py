@@ -41,7 +41,8 @@ class Runner:
         self.engine, self.plan, self.aligned = engine, plan, aligned
         self.callbacks = engine.callbacks
         changes_run = any(getattr(callback, "changes_run", False) for callback in self.callbacks)
-        self.single = plan.one_tick or changes_run
+        stepped = bool(self.callbacks) and plan.stepped
+        self.single = plan.one_tick or changes_run or stepped
         self.total = len(aligned.times)
         self.done = 0
 
@@ -97,7 +98,7 @@ class Runner:
         block = read(twin, self.aligned, first, stop)
         state = engine.module_states.get(twin.path)
         durations = self.aligned.durations[first:stop]
-        outcome = evaluate_twin(twin, block, engine._executor, durations, state)
+        outcome = evaluate_twin(twin, block, engine._executor, durations, state, self._halts_on)
         self._note_breaks(outcome)
         if stop - first == 1:
             self._set(outcome, 0)
@@ -107,18 +108,23 @@ class Runner:
         """Whether a failing twin stops the single tick, as it stopped the tick loop."""
         return count == 1 and any(self._stops(outcome, tick) for tick in outcome.errors)
 
+    def _halts_on(self, error):
+        """Whether a stepped twin stops at a step that failed with ``error``."""
+        return self._raises(error, False)
+
     def _stops(self, outcome, tick):
         """Whether the failure of ``outcome`` at ``tick`` ends the run instead of being a row.
 
         Under ``on_error="raise"`` every failure does, except in a simulation the failures of a
         plant that cannot do what the case asks (``PHYSICAL_ROW_CODES``): those are its result.
         """
+        return self._raises(outcome.errors[tick], outcome.block.status[tick] < 0)
+
+    def _raises(self, error, inlet):
+        """Whether ``error``, from an inlet that broke the limits or not, ends the run."""
         if self.plan.on_error != "raise":
             return False
-        if self.plan.kind != "simulate":
-            return True
-        inlet = outcome.block.status[tick] < 0
-        return row_code(outcome.errors[tick], inlet) not in PHYSICAL_ROW_CODES
+        return self.plan.kind != "simulate" or row_code(error, inlet) not in PHYSICAL_ROW_CODES
 
     def _note_breaks(self, outcome):
         if outcome.evaluation is not None:

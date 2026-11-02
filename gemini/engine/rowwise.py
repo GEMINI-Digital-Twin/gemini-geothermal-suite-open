@@ -1,20 +1,21 @@
 """Call a module for real, row by row, and stack the results of the rows into arrays.
 
-``run_rows`` calls ``module(streams)`` for each row (``module.step(state, dt, streams)`` for a
-stepped module, so the state tree, the ``_Step`` record and "called twice" stay in
-``Module.step``, the one implementation). ``feeds`` maps ``<port>.<field>`` to the column of an
-inlet field and a dotted control or boundary path to its column; the controls and boundaries are
-validated and put back after the call, because persisting inputs is the caller's business. A row
-that raises is a failed row with that exception, and the states carry over it unchanged. The
-rows are real ``ModuleResult`` trees, so children and the combinations of a plant are exact;
-``stacked`` joins them into one tree of arrays.
+``call_rows`` calls ``module(streams)`` for each row, and for a stepped module (one with states)
+scans the rows in time: ``ops.control.scan`` carries the state from row to row and each step is
+``module.step(state, dt, streams)``, the one implementation of ``forward`` followed by ``update``.
+``feeds`` maps ``<port>.<field>`` to the column of an inlet field and a dotted control or boundary
+path to its column; the controls and boundaries are validated and put back after the call,
+because persisting inputs is the caller's business. A row that raises is a failed row with that
+exception (its values NaN), and the state carries over it unchanged. The rows are real
+``ModuleResult`` trees, so children and the combinations of a plant are exact; ``stacked`` joins
+them into one tree of arrays.
 """
 
 from contextlib import contextmanager
 
 import numpy as np
 
-from gemini import runtime
+from gemini import ops, runtime
 from gemini.streams.flows import STREAM_FIELDS, Stream
 
 _ABSENT = object()
@@ -48,26 +49,96 @@ def inlet_feeds(streams):
     }
 
 
-def run_rows(module, fluids, feeds, rows, context, stepped):
-    """Call ``module`` on every row; return results, errors and states.
+def call_rows(module, fluids, feeds, rows, context, stepped):
+    """Call ``module`` on every row; return ``(tree, failed, error, states)``.
 
-    ``fluids`` maps the inlets to their fluids. ``results`` and ``errors`` map the row index to
-    the ``ModuleResult`` or the exception of that row. ``context`` may hold ``dt`` (seconds, one
-    number or one per row) and ``states`` (the state tree a stepped call starts from, ``None``
-    for the initial states); the returned states are those after the last row that did not fail.
+    ``fluids`` maps the inlets to their fluids. ``tree`` is the ``ModuleResult`` of the rows that
+    worked joined into arrays of ``rows`` (``None`` if none did, NaN at a failed row), ``failed``
+    marks the failed rows and ``error(row)`` is the exception of one. ``context`` may hold ``dt``
+    (seconds, one number or one per row), ``states`` (the state tree a stepped call starts from)
+    and ``halt(error)``, which ends a stepped run at the first failed row it names. ``states`` is
+    the state after the last row that worked, ``None`` for a module that is not stepped.
     """
-    state = context.get("states")
+    if stepped:
+        return _scanned(module, fluids, feeds, rows, context)
+    results, errors = run_rows(module, fluids, feeds, rows)
+    failed = np.ones(rows, dtype=bool)
+    failed[list(results)] = False
+    return stacked(results, rows), failed, errors.__getitem__, None
+
+
+def run_rows(module, fluids, feeds, rows):
+    """Call ``module`` on every row without a state; return the results and errors by row."""
     feeds = {name: _column(value) for name, value in feeds.items()}
-    steps = np.broadcast_to(np.asarray(context.get("dt", np.nan), dtype=float), (rows,))
     results, errors = {}, {}
     for row in range(rows):
         try:
-            result, state = _call_row(module, fluids, feeds, row, float(steps[row]), state, stepped)
+            results[row] = _call_row(module, fluids, feeds, row)
         except Exception as error:
             errors[row] = error
-            continue
-        results[row] = result
-    return results, errors, state if stepped else None
+    return results, errors
+
+
+def _scanned(module, fluids, feeds, rows, context):
+    """Step ``module`` through the rows with ``ops.control.scan``; return like ``call_rows``."""
+    declarations = module.inputs()
+    ports = {f"{port}.{field}" for port, field in _fields(fluids)}
+    names = [name for name in feeds if name not in ports]
+    stores = {name: _store(declarations[name]) for name in names}
+    steps = np.broadcast_to(np.asarray(context.get("dt", np.nan), dtype=float), (rows,))
+    state = _started(module, fluids, feeds, context.get("states"))
+    template = []
+    paths = module._state_paths()
+
+    def body(state, x):
+        streams = row_streams(fluids, lambda port, field: x[f"{port}.{field}"])
+        for name, (declaration, store, key) in stores.items():
+            store[key] = _validated(declaration, x[name])
+        next_state, result = module._step(state, x["dt"], streams, paths)
+        if not template:
+            template.append(result)
+        return next_state, _flatten(result)
+
+    saved = [(store, key, store.get(key, _ABSENT)) for _, store, key in stores.values()]
+    try:
+        with runtime.settings(backend=None):
+            scanned = ops.control.scan(
+                body, state, feeds | {"dt": steps}, rows, context.get("halt")
+            )
+    finally:
+        for store, key, previous in reversed(saved):
+            if previous is _ABSENT:
+                store.pop(key, None)
+            else:
+                store[key] = previous
+    if not template:
+        return None, np.ones(rows, dtype=bool), scanned.errors, scanned.final
+    columns = iter(scanned.ys)
+    tree = template[0].mapped(lambda _: next(columns))
+    return tree, scanned.failed, scanned.errors, scanned.final
+
+
+def _started(module, fluids, feeds, state):
+    """Return ``state`` with what the state connections of ``module`` read at the first step.
+
+    Their values come from the first row of the inlets and are in the state of the run from then
+    on, so the state of a scan has the same structure at every step.
+    """
+    columns = {
+        f"{port}.{field}": _column(feeds[f"{port}.{field}"]) for port, field in _fields(fluids)
+    }
+    return module._with_delays(
+        state, row_streams(fluids, lambda port, field: _at(columns[f"{port}.{field}"], 0))
+    )
+
+
+def _fields(fluids):
+    return [(port, field) for port in fluids for field in STREAM_FIELDS]
+
+
+def _store(declaration):
+    """Return the declaration of an input and where its value goes, under which key."""
+    return declaration, declaration.owner._input_values, declaration.name
 
 
 def _column(value):
@@ -81,16 +152,13 @@ def _at(column, row):
     return column[row] if type(column) is list else column
 
 
-def _call_row(module, fluids, feeds, row, dt, state, stepped):
-    """Return the result of one row and the states after it; ``feeds`` are ``_column`` values."""
+def _call_row(module, fluids, feeds, row):
+    """Return the result of one row; ``feeds`` are ``_column`` values."""
     streams = row_streams(fluids, lambda port, field: _at(feeds[f"{port}.{field}"], row))
     fields = {f"{port}.{field}" for port in fluids for field in STREAM_FIELDS}
     inputs = {name: _at(value, row) for name, value in feeds.items() if name not in fields}
     with runtime.settings(backend=None), applied(module, inputs):
-        if not stepped:
-            return module(streams), state
-        next_state, result = module.step(state, dt, streams)
-        return result, next_state
+        return module(streams)
 
 
 @contextmanager

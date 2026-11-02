@@ -43,12 +43,20 @@ class Stateful:
 
     @property
     def stateful(self):
-        """Whether the module declares states of its own."""
-        return bool(self._states)
+        """Whether the module carries a state of its own: declared states, or delayed values."""
+        return bool(self._states) or self._delays()
+
+    def _delays(self):
+        """Return whether the module has state connections of its own: only a plant can."""
+        return False
+
+    def _with_delays(self, state, inlets):
+        """Return ``state`` with the values the state connections read at the first step: as is."""
+        return state
 
     def _has_state(self):
-        """Return whether this module or a descendant declares states."""
-        return any(module._states for module in self.modules())
+        """Return whether this module or a descendant carries a state."""
+        return any(module.stateful for module in self.modules())
 
     def initial_state(self):
         """Return the child states of a composite, ``None`` without states.
@@ -106,19 +114,48 @@ class Stateful:
         """
         raise NotImplementedError(f"{type(self).__name__} declares states without update")
 
-    def _advance(self, result, dt):
+    def _state_paths(self):
+        """Return the paths below this module of every module that is stateful or holds one.
+
+        A module shared under two names is on both paths. A module that is stateful with no state
+        or delay of its own has no ``update`` to step it: ``invalid_design``.
+        """
+        paths, explicit = set(), []
+
+        def walk(module, path):
+            held = module.stateful
+            if path and held and not (module._states or module._delays()):
+                explicit.append(path)
+            for name, child in module.named_children():
+                held = walk(child, join_path(path, name)) or held
+            if held and path:
+                paths.add(path)
+            return held
+
+        walk(self, "")
+        if explicit:
+            raise ValidationError(
+                f"{self.path}: stateful descendants {', '.join(explicit)} need a step method "
+                "on this composite that steps them",
+                code="invalid_design",
+            )
+        return frozenset(paths)
+
+    def _advance(self, result, dt, paths=None):
         """Return the next state from the ``ModuleResult`` of a call.
 
         A module with states advances them with ``update``. A module without is a composite: its
         state is the nested dict of what each stateful child it called advanced to, by child name.
+        ``paths`` are its ``_state_paths``, found once by a caller that advances many steps.
         """
         if self._states:
             return self._advance_leaf(result, dt)
+        paths = self._state_paths() if paths is None else paths
         advanced, seen = {}, set()
         for path, child_result in result.call_records:
-            child = self.get_submodule(path)
-            if not child._has_state():
+            if path not in paths:
                 continue
+            child = self.get_submodule(path)
             if path in seen:
                 raise ValidationError(
                     f"{self.path}.{path}: stateful module called more than once in one step",
@@ -165,21 +202,14 @@ class Stateful:
         of each stateful module returns for the values of its own call. A stateful descendant
         called twice in one step is refused.
         """
+        return self._step(state, dt, inlets, self._state_paths())
+
+    def _step(self, state, dt, inlets, paths):
+        """Run ``step`` with the ``_state_paths`` a scan found once for all its steps."""
         if dt <= 0:
             raise ValidationError(
                 f"{self.path}: dt = {dt} s; expected a positive step", code="invalid_design"
             )
-        explicit = [
-            path
-            for path, module in self.named_modules()
-            if path and module.stateful and not module._states
-        ]
-        if explicit:
-            raise ValidationError(
-                f"{self.path}: stateful descendants {', '.join(explicit)} need a step method "
-                "on this composite that steps them",
-                code="invalid_design",
-            )
         start = state if state is not None else self.initial_state() or {}
         result = self._run((inlets,), {}, start)
-        return merged(start, self._advance(result, dt)) or None, result
+        return merged(start, self._advance(result, dt, paths)) or None, result

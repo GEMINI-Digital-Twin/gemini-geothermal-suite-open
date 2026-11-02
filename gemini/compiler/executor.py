@@ -26,7 +26,7 @@ class GraphExecutor(Executor):
         graph = self.cache.graph(module, fluids, stepped)
         return graph, graph_feeds(graph, module, streams, inputs), module
 
-    def evaluate(self, prepared, rows, context):
+    def run(self, prepared, rows, context):
         """Return the ``GraphResult`` of the graph over ``rows`` rows."""
         graph, feeds, module = prepared
         return run_graph(graph, feeds, rows, context, module)

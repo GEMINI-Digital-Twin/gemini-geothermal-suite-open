@@ -10,6 +10,8 @@ runs the source first. On a drawn connection the taker decides the flow, so it r
 source receives what was taken. An ``offered`` outlet exists before the other modules run: its
 module has one step that gives the offer and one call after everything it receives.
 
+A connection of type ``state`` orders nothing: its target reads the previous step (``delays.py``).
+
 A cycle of steps is cut at one plain connection, its tear stream: the one from a module that gives
 a first guess, else the last in the connection list. The steps of a cycle, and those between the
 free value and the target of a constraint, are one item of the plan.
@@ -20,7 +22,7 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from gemini._utils.strings import join_path
-from gemini.errors import NotImplementedYet, ValidationError
+from gemini.errors import ValidationError
 from gemini.modules.container import ModuleDict, ModuleList
 from gemini.modules.module import Module
 
@@ -177,11 +179,12 @@ def node_ends(root, end, side, nodes):
     return [leaf for end in inner for leaf in node_ends(root, end, side, nodes)]
 
 
-def _node_ends(root, links, opened, nodes):
+def _node_ends(root, links, opened, nodes, delayed=False):
+    """Return the ``(source, target)`` ends of the plain connections, or of the state ones."""
     return [
         (source, target)
         for link in links
-        if link.type != STATE and link.owner in ({""} | opened)
+        if (link.type == STATE) == delayed and link.owner in ({""} | opened)
         for source in node_ends(root, link.source, "outlets", nodes)
         for target in node_ends(root, link.target, "inlets", nodes)
     ]
@@ -242,7 +245,9 @@ class Step:
 
     A source is ``("inlet", name)``, ``("step", path, port)`` an outlet of a call, ``("offer",
     path, port)`` an offered outlet, ``("drawn", path, port)`` the value a taker drew through its
-    inlet, or ``("many", sources)``. An ``offer`` step gives the offer of its module.
+    inlet, ``("delayed", key)`` the value a source outlet gave at the previous step (a state
+    connection, ``delays.py``), or ``("many", sources)``. An ``offer`` step gives the offer of its
+    module.
     """
 
     path: str
@@ -316,6 +321,12 @@ class Plan:
     given: dict
     nodes: dict = field(default_factory=dict)
     arguments: dict = field(default_factory=dict)
+    delays: dict = field(default_factory=dict)
+    stateful: set = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        """Find the paths of the steps whose module is stateful or holds a stateful one."""
+        self.stateful = {path for path, node in self.nodes.items() if node._has_state()}
 
     @property
     def steps(self):
@@ -341,20 +352,17 @@ def unconnected_port(path):
 
 
 def compile_plan(root):
-    """Return the ``Plan`` of ``root``; a dangling port or a state connection cannot run."""
+    """Return the ``Plan`` of ``root``; a dangling port cannot run."""
     for _, path, port in root._unconnected_ports():
         raise unconnected_port(join_path(path, port))
     links = all_links(root)
-    if any(link.type == STATE for link in links):
-        raise NotImplementedYet(
-            f"{root.path}: state connections; running a loop needs a previous-step value, "
-            "which lands with scan"
-        )
     opened = open_cycles(root, links)
     nodes = dict(collect_nodes(root, opened))
     wiring = _Wiring(root, nodes)
     for source, target in _node_ends(root, links, opened, nodes):
         wiring.connect(source, target)
+    for source, target in _node_ends(root, links, opened, nodes, delayed=True):
+        wiring.delay(source, target)
     for name, ends in root._port_map("inlets").items():
         wiring.plant_inlet(name, ends)
     return wiring.plan(root, _constraints(root, opened))
@@ -446,6 +454,7 @@ class _Wiring:
         self.ordered = []
         self.given = {}
         self.plain = []
+        self.delays = {}
 
     def _add(self, end, value):
         """Give the port ``end`` the source ``value``; a ``many`` port lists its sources."""
@@ -486,6 +495,14 @@ class _Wiring:
             self.ordered.append((first, target[0]))
         if not is_offered and not drawn and not inlet.many:
             self.plain.append((source, target))
+
+    def delay(self, source, target):
+        """Record a state connection: the target reads what the source gave the step before."""
+        key = join_path(*source)
+        self.delays[key] = source
+        value = ("delayed", key)
+        self._add(target, value)
+        self._feed_offer(target, value, None)
 
     def plant_inlet(self, name, ends):
         """Record one plant inlet: it feeds its ends, or, when they give it, sums them."""
@@ -555,7 +572,7 @@ class _Wiring:
             ]
             for name, ends in root._port_map("outlets").items()
         }
-        return Plan(items, outlets, self.given, self.nodes, self.arguments)
+        return Plan(items, outlets, self.given, self.nodes, self.arguments, self.delays)
 
     def _items(self, names, ordered, loops, solves):
         """Return the steps in order, each loop and constraint as one item in its place."""

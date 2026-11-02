@@ -240,10 +240,8 @@ class Trace:
 def _untraceable(module, stepped):
     """Return the reasons a call of ``module`` cannot be traced, empty when it can."""
     reasons = []
-    if stepped and any(member.stateful for member in module.modules()):
-        reasons.append("stateful (stepped, needs scan)")
-    elif module.stateful:
-        reasons.append("stateful (needs scan)")
+    if any(member.stateful for member in module.modules()):
+        reasons.append("stateful (stepped, needs scan)" if stepped else "stateful (needs scan)")
     if module._pre_hooks:
         reasons.append("has forward pre-hooks")
     if _solves(module):

@@ -47,4 +47,4 @@ def test_the_base_executor_defines_the_interface():
     with pytest.raises(NotImplementedError):
         Executor().prepare(None, {}, {}, False)
     with pytest.raises(NotImplementedError):
-        Executor().evaluate(None, 1, {})
+        Executor().run(None, 1, {})

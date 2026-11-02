@@ -17,7 +17,8 @@ from tests.fixtures.errors import raises
 from tests.fixtures.esp_design import ESP_DESIGN
 from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.parity import BACKENDS
-from tests.fixtures.sample_cases import example_plant, template_dict
+from tests.fixtures.sample_cases import example_plant, shallow_case, template_dict
+from tests.unit.engine.test_check import SHALLOW_PLANT, with_state
 
 DESIGN = {
     "depth": {"value": 2500, "unit": "m"},
@@ -26,6 +27,14 @@ DESIGN = {
     "pump_efficiency": 0.7,
     "nominal_wellhead_pressure": {"value": 10, "unit": "bar"},
 } | ESP_DESIGN
+STORAGE = {
+    "service": "hot",
+    "volume": Quantity(2, "m3"),
+    "heat_loss_conductance": Quantity(10, "W/K"),
+    "reference_temperature": Quantity(40, "degC"),
+    "charge_effectiveness": 0.8,
+    "discharge_effectiveness": 0.6,
+}
 PRICES = {"electricity": Quantity(100, "EUR/MWh"), "gas": Quantity(40, "EUR/MWh")}
 BRINE = gm.Fluid(density=Quantity(1030.0, "kg/m3"), viscosity=Quantity(4e-4, "Pa.s")).properties(
     0, 0
@@ -682,3 +691,18 @@ def test_a_rule_the_schedule_does_not_implement_is_refused(rule, other):
     """The two rules have one implemented value each; another is refused when it is set."""
     with raises(gm.errors.ValidationError, "invalid_value"):
         plant_of_two().set_params("", {rule: other})
+
+
+def test_a_plant_with_a_storage_module_has_the_schedule_of_the_plant_without():
+    """A stateful module is no source: the plan keeps its columns; its start is the case's."""
+    plant = gm.Plant.from_json(SHALLOW_PLANT)
+    plain = gm.schedule(plant, shallow_case())
+    start = {"tank": {"temperature": {"value": 60, "unit": "degC"}}}
+    case = with_state(shallow_case(), start)
+    plant.add("ThermalStorage", "tank")
+    for port in ("charge_in", "discharge_in", "air_in"):
+        plant.connect(port, f"tank.{port}")
+    for port in ("charge_out", "discharge_out", "loss_out"):
+        plant.connect(f"tank.{port}", port)
+    plant.set_params("tank", STORAGE)
+    assert list(gm.schedule(plant, case).columns) == list(plain.columns)

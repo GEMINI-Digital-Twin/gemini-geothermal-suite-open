@@ -170,3 +170,15 @@ def test_a_property_in_a_unit_of_another_dimension_reports_invalid_unit():
     """The code of the unit error is kept, not turned into ``invalid_value``."""
     with raises(ValidationError, "invalid_unit", match="Fluid.density"):
         Fluid(density={"value": 1, "unit": "m3/h"})
+
+
+def test_properties_of_equal_fluids_are_the_same_values_found_by_identity():
+    """A fluid met again gives its properties without a hash; an equal fluid gives equal ones."""
+    first, second = Fluid(salinity=0.05), Fluid(salinity=0.05)
+    assert first is not second
+    assert first.properties(1e5, 300.0) is first.properties(2e5, 350.0)
+    assert second.properties(1e5, 300.0) == first.properties(1e5, 300.0)
+    dense = Fluid(
+        density=gm.units.Quantity(1100.0, "kg/m3"), viscosity=gm.units.Quantity(1e-3, "Pa.s")
+    )
+    assert dense.properties(1e5, 300.0).rho_l == 1100.0

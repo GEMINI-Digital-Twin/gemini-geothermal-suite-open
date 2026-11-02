@@ -2,7 +2,7 @@
 
 from gemini._utils.mappings import get_nested
 from gemini._utils.strings import split_path
-from gemini.plants._utils import loops, targets
+from gemini.plants._utils import delays, loops, targets
 from gemini.plants._utils.plan import Loop, Solve
 
 
@@ -29,6 +29,8 @@ class Call:
             return [self.value(item) for item in source[1]]
         if kind == "inlet":
             return self.inlets[source[1]]
+        if kind == "delayed":
+            return delays.read(self, source[1])
         if kind == "tear":
             return self.tears[source[1]]
         if kind == "offer":
@@ -63,7 +65,7 @@ class Call:
             self.offers[step.path] = step.module._offered(arguments, state)
             return
         arguments |= self.overrides.get(step.path, {})
-        if step.module._has_state():
+        if step.path in self.plan.stateful:
             arguments["state"] = state
         call = step.module._trial if trial else step.module
         self.results[step.path] = call(**arguments)

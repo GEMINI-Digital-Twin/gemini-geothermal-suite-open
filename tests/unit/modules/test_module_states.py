@@ -200,3 +200,24 @@ def test_engine_replay_integrates_declared_states():
     results = engine.replay(gm.Dataset.from_frame(frame), state=start)
     assert results[""].value.tolist() == [0, 1, 2]
     assert engine.module_states[""] == {"total": 3}
+
+
+def test_the_state_paths_are_the_stateful_modules_and_the_composites_above_them():
+    """A scan finds them once; a call record outside them has no state to advance."""
+    plant = gm.Plant()
+    plant.add("Pipe", "pipe")
+    plant.add("ThermalStorage", "tank")
+    assert plant._state_paths() == {"tank"}
+    inner = gm.Plant()
+    inner.add("ThermalStorage", "deep")
+    plant.inner = inner
+    assert plant._state_paths() == {"tank", "inner", "inner.deep"}
+
+
+def test_a_module_is_within_the_tree_that_was_checked_with_its_parent():
+    """A child of a plant, found by its path, needs no check of its own in a call of the plant."""
+    plant = gm.Plant()
+    plant.add("Pipe", "pipe")
+    stranger = gm.modules.Pipe()
+    assert plant.pipe._within(plant) and plant._within(plant)
+    assert not stranger._within(plant) and not plant._within(plant.pipe)

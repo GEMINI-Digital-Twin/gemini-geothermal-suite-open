@@ -45,11 +45,12 @@ class Outcome:
         return self.evaluation.result.row(position)
 
 
-def evaluate_twin(twin, block, executor, durations, state):
+def evaluate_twin(twin, block, executor, durations, state, halt=None):
     """Return the ``Outcome`` of ``twin`` over ``block``.
 
     ``durations`` are the seconds of every tick of the chunk and ``state`` the state tree the
     twin starts from (``None`` for its initial states). ``executor`` is the engine's ``Executor``.
+    ``halt(error)`` tells a stepped twin which failed step ends its scan.
     """
     selected = block.selected
     outcome = Outcome(twin, block, selected)
@@ -62,8 +63,12 @@ def evaluate_twin(twin, block, executor, durations, state):
     except Exception as error:
         outcome.errors.update(dict.fromkeys(map(int, selected), error))
         return outcome
-    context = {"dt": durations[selected], "states": _start_state(twin, block, selected, state)}
-    evaluation = executor.evaluate(prepared, len(selected), context)
+    context = {
+        "dt": durations[selected],
+        "states": _start_state(twin, block, selected, state),
+        "halt": halt,
+    }
+    evaluation = executor.run(prepared, len(selected), context)
     outcome.evaluation = evaluation
     for position in np.flatnonzero(evaluation.failed):
         outcome.errors[int(selected[position])] = evaluation.error(int(position))

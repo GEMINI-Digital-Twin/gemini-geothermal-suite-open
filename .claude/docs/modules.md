@@ -490,7 +490,8 @@ does not state as a `missing` issue. `forward` takes the state at the start of t
 which returns the state at the end of the step, a key for each declared state and no more. Both are
 pure. A state is never assigned and never read from `self`. A value that means "none yet" is a
 value, not `None`: the PID controller's `previous_step = 0` is "no previous step", so the module
-traces. `module.stateful` is true when a module declares states, and `states(recurse=True)` lists
+traces. `module.stateful` is true when a module declares states (a plant also when a connection is of type
+`state`), and `states(recurse=True)` lists
 them by dotted path.
 
 The state of a plant is the nested dict of the states of its children, by child name, for example

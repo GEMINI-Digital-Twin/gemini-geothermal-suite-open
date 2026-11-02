@@ -363,7 +363,7 @@ Where the implementation differs from sections 1 to 11, and why:
 - **One runner.** `Engine._run` builds a `RunBindings` (one `Twin` per evaluated module: the twins of
   a replay, the plant in simulate) and gives the `Loader` arrays to `Runner`. A run is chunks of
   ticks inside stretches that share one dated parameter snapshot. A chunk is the whole stretch, except
-  one tick when a stateful module is stepped, a twin sits below another twin, or a callback sets
+  one tick when a replay steps a stateful module, a twin sits below another twin, or a callback sets
   `changes_run = True`; so stepping in time order and section 9's chunked callbacks are the same
   loop. Per chunk and twin: `columns.read` converts the bound columns to SI and gives each tick a
   status in the order a plain call meets its problems (the first missing column is a skip, an
@@ -436,8 +436,9 @@ builds one with `add` and `connect`. There is one `forward`. JSON exists only as
   that gives a first guess, else the last in the connection list. The steps of a cycle are one item
   of the plan, placed by the order of what feeds them, and so are the steps between the free value
   and the target of a constraint. See [plants.md](plants.md#loops).
-- **State connections** stay in the plant dict, the schema and validation; running such a plant
-  raises `NotImplementedYet`, because the first step has no previous value until scan exists.
+- **State connections** order nothing: the target reads the value its source outlet gave at the
+  previous step, kept in the state of the plant (plants.md, engine.md), so the plant is stateful and
+  the engine scans it.
 - **Round trip.** `from_dict(p.to_dict())` rebuilds the same plant. The plant keeps what was stated:
   a stated parameter, fluid, binding or history stays as written while it equals the current value,
   otherwise the current SI value replaces it; a value that now differs from its starting value is

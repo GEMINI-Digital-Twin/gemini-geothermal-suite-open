@@ -31,11 +31,17 @@ may not import `engine`.
 - The quantity `gas_burned` (kg/s) of the role `plant`: the co-produced gas burned by the boilers
   and flares of the plant, so a requirement can limit it.
 
+- State connections (`connect(source, target, type="state")`): the target reads what the source
+  outlet gave at the previous step; the plant keeps those values in its state. They are in the plant
+  file as a connection of type `state` (no new key). A storage module runs inside a normal
+  simulation, from `case.initial_state`.
+
 ### Changed
 - Module contract: `forward(self, inputs, inlets, state)` is pure (it reads parameters on `self`
   and nothing else, writes nothing, returns `(outputs, outlets)`) and a stateful module has a pure
   `update(self, inputs, inlets, outlets, state, dt)` that returns the next state. A state has no
-  default: it comes from `case.initial_state`. A stateful plant still runs one tick at a time.
+  default: it comes from `case.initial_state`. A stateful plant scans in time: one call over the
+  whole run, the state carried from step to step.
 - Hooks: a pre-hook is called `(module, inputs, inlets, state)` and a forward hook
   `(module, inputs, inlets, state, outputs, outlets)`; a hook that returns a mapping replaces the
   controls and boundaries (pre-hook) or the outputs (forward hook) of that call, `None` observes.

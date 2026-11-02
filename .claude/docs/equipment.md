@@ -2332,5 +2332,5 @@ below; a design is its plant dict.
   that stands still has no driving temperature.
 - **Left out.** Hot and cold storage (`ThermalStorage`, `IceStorage`) need a `type: "state"`
   connection (the tank couples its charge and discharge circuits through its state, so a tank on both
-  circuits of one chain is a loop), and running such a plant raises `NotImplementedYet` until scan
-  exists. `CHP` is not wired; it would sit beside `peak_boiler`.
+  circuits of one chain is a loop). Such a plant runs (the engine scans it); the sample plants leave
+  the tanks out because the schedule has no rule that dispatches a store. `CHP` is not wired; it would sit beside `peak_boiler`.
