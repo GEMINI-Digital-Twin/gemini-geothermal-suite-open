@@ -1,5 +1,6 @@
 """One call of a plant: the values of its steps while ``Plant.forward`` goes through them."""
 
+from gemini._utils.mappings import get_nested
 from gemini._utils.strings import split_path
 from gemini.plants._utils import loops, targets
 from gemini.plants._utils.plan import Loop, Solve
@@ -8,11 +9,14 @@ from gemini.plants._utils.plan import Loop, Solve
 class Call:
     """The results of one plant call so far, and how to call the next step."""
 
-    def __init__(self, plant, inlets):
-        """Start the call of ``plant`` on ``inlets``."""
+    def __init__(self, plant, inputs, inlets, state, plan):
+        """Start the call of ``plant`` on ``inputs`` and ``inlets`` from ``state``, by ``plan``."""
         self.plant = plant
+        self.inputs = inputs
         self.inlets = inlets
-        self.nodes = plant._compiled().nodes
+        self.state = state
+        self.plan = plan
+        self.nodes = plan.nodes
         self.results = {}
         self.offers = {}
         self.tears = {}
@@ -54,10 +58,13 @@ class Call:
     def call(self, step, trial=False):
         """Call one step; a trial is recorded by no running call."""
         arguments = {port: self.value(source) for port, source in step.arguments.items()}
+        state = get_nested(self.state, tuple(step.path.split(".")))
         if step.offer:
-            self.offers[step.path] = step.module._offered(arguments)
+            self.offers[step.path] = step.module._offered(arguments, state)
             return
         arguments |= self.overrides.get(step.path, {})
+        if step.module._has_state():
+            arguments["state"] = state
         call = step.module._trial if trial else step.module
         self.results[step.path] = call(**arguments)
 
@@ -86,8 +93,13 @@ class Call:
             return getattr(ports[port], name)
         if step in self.nodes and port in self.plan_arguments(step):
             return getattr(self.value(self.plan_arguments(step)[port]), name)
-        return getattr(self.plant.get_submodule(owner), name)
+        module = self.plant.get_submodule(owner)
+        if module is self.plant and name in self.inputs:
+            return self.inputs[name]
+        if name in module._controls or name in module._boundaries:
+            return module._input_value(name)
+        return getattr(module, name)
 
     def plan_arguments(self, path):
         """Return the arguments of the step at ``path``."""
-        return self.plant._compiled().arguments[path]
+        return self.plan.arguments[path]

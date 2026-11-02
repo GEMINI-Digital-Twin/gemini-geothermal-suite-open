@@ -6,8 +6,8 @@ import pytest
 from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules import Module
+from gemini.modules.callrecord import outputs_enabled
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter, State
-from gemini.modules.module import outputs_enabled
 from gemini.ops import Constant
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import BRINE, WATER

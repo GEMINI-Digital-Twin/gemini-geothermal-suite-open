@@ -174,16 +174,17 @@ class ESP(Module):
         """
         return kernels.PLAIN if _float32() else kernels.WRAP
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Raise the suction-stream pressure by the pump-curve head."""
+        frequency = inputs["frequency"]
 
         # Outlets
         suction = inlets.fluid_in
         flow = suction.volumetric_flow()
         require_forward(self.path, "suction volume flow", flow, "m3/s")
-        head = self.head_function(flow, self.frequency)
-        power = self.power_function(flow, self.frequency)
-        scale = pumps.speed_ratio(self.frequency, constants.ESP_REFERENCE_FREQUENCY)
+        head = self.head_function(flow, frequency)
+        power = self.power_function(flow, frequency)
+        scale = pumps.speed_ratio(frequency, constants.ESP_REFERENCE_FREQUENCY)
         gas = self._gas_volume_fraction(suction)
         self._check_inside_curve(flow, head, power, scale, suction.p, gas)
 
@@ -191,21 +192,23 @@ class ESP(Module):
         power_in = energy.input_power(power, self.motor_efficiency)
 
         # Outputs
-        self.head = head
-        self.power = power
-        self.efficiency = _physics.esp_efficiency(flow, head, power)
-        self.discharge_pressure = discharge.p
-        self.is_in_operating_window = pumps.is_in_operating_window(
-            flow, self.minimum_flow, self.maximum_flow, scale
-        )
-        self.intake_pressure = suction.p
-        self.gas_volume_fraction = gas
-        self.best_efficiency_ratio = pumps.best_efficiency_ratio(
-            flow, scale, self.best_efficiency_flow
+        outputs = dict(
+            head=head,
+            power=power,
+            efficiency=_physics.esp_efficiency(flow, head, power),
+            discharge_pressure=discharge.p,
+            is_in_operating_window=pumps.is_in_operating_window(
+                flow, self.minimum_flow, self.maximum_flow, scale
+            ),
+            intake_pressure=suction.p,
+            gas_volume_fraction=gas,
+            best_efficiency_ratio=pumps.best_efficiency_ratio(
+                flow, scale, self.best_efficiency_flow
+            ),
         )
 
         outlets = dict(fluid_out=discharge, power_in=power_in)
-        return outlets
+        return outputs, outlets
 
     @staticmethod
     def _gas_volume_fraction(suction):

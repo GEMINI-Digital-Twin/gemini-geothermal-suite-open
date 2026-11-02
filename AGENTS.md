@@ -173,11 +173,13 @@ docker/               # sandbox.Dockerfile, the image of a module sandbox (make 
 tests/                # unit mirror, integration, e2e (expected/ holds example outputs), fixtures (with the data the tests read: plants/, doublet_heat/, legacy_project/)
 ```
 
-Modules declare parameters and ports in `__init__`; `forward(self, inlets)` receives one
-immutable `Ports` mapping (`gemini.streams.Ports`) while controls and boundaries are pre-applied and read from `self`. A leaf
-assigns its outputs there and returns a dictionary of outlets; the combinations of a plant run
-automatically afterward. Pre-hooks receive `(module, inlets)` and forward hooks receive
-`(module, inlets, outlets)`. Plants ([plants.md](.claude/docs/plants.md)) own persistence, bindings,
+Modules declare parameters and ports in `__init__`; `forward(self, inputs, inlets, state)` is pure:
+it receives the controls and boundaries in `inputs`, one immutable `Ports` mapping
+(`gemini.streams.Ports`) in `inlets` and the state, reads parameters on `self`, writes nothing and
+returns `(outputs, outlets)`; a stateful module also has a pure `update(self, inputs, inlets,
+outlets, state, dt)` returning the next state. The combinations of a plant are returned by
+`Plant.forward`, written once. Pre-hooks receive `(module, inputs, inlets, state)` and forward hooks
+receive `(module, inputs, inlets, state, outputs, outlets)`. Plants ([plants.md](.claude/docs/plants.md)) own persistence, bindings,
 and dated design. `gemini.engine` holds the run objects and reads files only for a `Results`. No engine loop sleeps or schedules itself.
 Keep the public
 API small and examples outside the package. Details are in

@@ -136,11 +136,14 @@ def combine(key, values):
     return total
 
 
-def read(plant, records, path):
-    """Return the value at ``path`` in a finished call: ``records`` are its results by path."""
+def read(plant, records, path, combined):
+    """Return the value at ``path`` in a finished call.
+
+    ``records`` are its results by path and ``combined`` the outputs combined so far.
+    """
     owner, name = split_path(path)
     if not owner:
-        return getattr(plant, name)
+        return combined[name]
     if owner in records:
         return records[owner].outputs[name]
     head, port = split_path(owner)

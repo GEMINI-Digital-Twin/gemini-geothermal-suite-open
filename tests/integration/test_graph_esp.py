@@ -52,12 +52,12 @@ def _untraced(esp, week):
     ]
 
 
-def _motor_loss(module, inlets, outlets):
-    module.power = module.power / 0.9
+def _motor_loss(module, inputs, inlets, state, outputs, outlets):
+    return {"power": outputs["power"] / 0.9}
 
 
-def _untraceable(module, inlets, outlets):
-    module.power = float(module.power) / 0.9
+def _untraceable(module, inputs, inlets, state, outputs, outlets):
+    return {"power": float(outputs["power"]) / 0.9}
 
 
 def _untraced_with_hook(shared_plant, week, hook):
@@ -159,7 +159,7 @@ def test_retrace_happens_only_when_a_guard_changes(esp, week):
     after = run(esp, inlets, inputs, cache=cache).outputs["head"]
     assert cache.traces == 1
     np.testing.assert_allclose(after, 2 * before, rtol=RTOL)
-    esp.register_forward_hook(lambda module, inlets, outlets: None)
+    esp.register_forward_hook(lambda module, inputs, inlets, state, outputs, outlets: None)
     run(esp, inlets, inputs, cache=cache)
     assert cache.traces == 2
 
@@ -200,7 +200,9 @@ def test_hooks_on_the_traced_esp(esp, week, plain_week, motor_loss_week, untrace
     """A reading hook breaks the root and sees real rows, a gm-op hook joins the graph."""
     inlets, inputs = {"fluid_in": _suction(esp, week)}, {"frequency": week[:, 3]}
     seen = []
-    reader = esp.register_forward_hook(lambda module, inlets, outlets: seen.append(module.head))
+    reader = esp.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: seen.append(outputs["head"])
+    )
     traced = run(esp, inlets, inputs)
     reader.remove()
     expected_heads = [row.outputs.head for row in plain_week]

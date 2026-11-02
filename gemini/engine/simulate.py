@@ -8,7 +8,7 @@ holds what the compiler traced, so a second call on one plant does not trace it 
 
 from contextlib import contextmanager
 
-from gemini.engine.apply import apply_case
+from gemini.engine.apply import apply_case, started
 from gemini.engine.callbacks import AutoCheckpoint
 from gemini.engine.check import checked
 from gemini.engine.engine import Engine
@@ -80,7 +80,7 @@ def simulate(
     callbacks = _with_autosave(callbacks, checkpoint, checkpoint_every)
     engine = Engine(run_plant, backend, callbacks, on_error, compile)
     with _saved_after(engine, checkpoint):
-        return engine.simulate(run_input, clock)
+        return engine._simulate(run_input, clock, None if case is None else started(case))
 
 
 def _planned(plant, case, plan):

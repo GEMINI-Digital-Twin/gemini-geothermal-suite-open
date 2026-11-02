@@ -21,9 +21,10 @@ def _category(cls, instance):
 
 def _forward_signature(cls, instance):
     names = list(inspect.signature(cls.forward).parameters)
-    if names == ["self", "inlets"]:
-        return True, "forward(self, inlets)"
-    return False, f"forward parameters = {names}; expected ['self', 'inlets']"
+    expected = ["self", "inputs", "inlets", "state"]
+    if names == expected:
+        return True, "forward(self, inputs, inlets, state)"
+    return False, f"forward parameters = {names}; expected {expected}"
 
 
 def _units(cls, instance):
@@ -84,7 +85,8 @@ def check(cls, example=None):
     The checks, in order: ``is_module`` (a subclass of ``Module``), ``instantiate`` (``cls()``
     declares without error, which also enforces the declaration rules: ``Stream`` ports, valid
     bounds, no clashing names), ``category`` (one of ``gm.modules.categories()``),
-    ``forward_signature`` (exactly ``forward(self, inlets)``), ``units`` (every numeric
+    ``forward_signature`` (exactly ``forward(self, inputs, inlets, state)``), ``units`` (every
+    numeric
     scalar parameter, control, boundary and output is declared with a quantity type that has a unit;
     coefficient arrays are exempt),
     ``describe`` (``describe()`` returns plain JSON) and ``call`` (one call through

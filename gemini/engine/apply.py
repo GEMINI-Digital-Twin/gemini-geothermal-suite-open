@@ -6,7 +6,8 @@ doublet), the air on every ``Atmosphere``, the grid gas on every ``GasGrid``, th
 temperature plus the margin on every unit of a supply line, and, for the consumers
 (``HeatingGrid``, ``CoolingGrid``), the desander (``site.fluid``) and the grid connection
 (``utilities.electricity``), every parameter and boundary that declares a case path (``case=``),
-and the states a stateful module starts from (``initial_state``).
+and checks the states a stateful module starts from (``initial_state``); ``started`` hands them
+to the run.
 One private function does each kind. A value the plant needs and the case lacks raises
 ``missing_value`` naming its path in the case.
 """
@@ -21,6 +22,7 @@ from gemini.case._utils.access import require
 from gemini.errors import ValidationError
 from gemini.modules.environment import Atmosphere, Formation
 from gemini.modules.grids import CoolingGrid, ElectricityGrid, GasGrid, HeatingGrid
+from gemini.modules.states import nested
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.treatment import Desander
 from gemini.plants.doublet import Doublet
@@ -51,6 +53,20 @@ def _carries(plant, case):
     """Return whether ``plant`` is a copy that already has the values of this ``case`` object."""
     found = _APPLIED.get(plant)
     return found is not None and found() is case
+
+
+def started(case):
+    """Return the ``state=`` of ``Engine.simulate``: the initial states of ``case``, else ``None``.
+
+    The states are the nested dict of the states of the plant's modules, by child name, in SI.
+    """
+    if not case.initial_state:
+        return None
+    values = {
+        path: {name: leaf.si for name, leaf in states.items()}
+        for path, states in case.initial_state.items()
+    }
+    return {"position": None, "module_states": {"": nested(values)}}
 
 
 def applied_in_place(plant, case):
@@ -229,9 +245,10 @@ def _supply(plant, case):
 
 
 def _states(plant, case):
-    """Start each module named in ``initial_state`` from the states the case gives it.
+    """Refuse each module or state named in ``initial_state`` that the plant lacks.
 
-    A module or a state the plant lacks raises ``unknown_name`` (``gm.check`` lists it first).
+    The error is ``unknown_name`` (``gm.check`` lists it first). The states themselves reach the
+    run through ``started``.
     """
     for path, states in (case.initial_state or {}).items():
         module = plant.get_submodule(path)
@@ -243,4 +260,3 @@ def _states(plant, case):
                 path=f"initial_state.{path}.{missing[0]}",
                 code="unknown_name",
             )
-        module._start_from({name: leaf.si for name, leaf in states.items()})

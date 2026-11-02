@@ -183,8 +183,14 @@ shortest `Dataset.window` that still crosses every boundary relevant to the prop
 `tests/fixtures/parity.py`): `assert_function_matches` a physics function on floats against arrays,
 `assert_same_error` its failing row, and `assert_module_matches` a module called per row against
 the graph run on every backend. Every physics function and module has such a test, over rows that
-cross every branch. A module with no inlets, and a stateful module's `_advance_states`, are tested
+cross every branch. A module with no inlets, and a stateful module's `update`, are tested
 on arrays directly. A module with a list output (the wells' section profiles) compares each item.
+
+**Purity.** `forward` and `update` write nothing to the module or a child. `tests/fixtures/purity.py`
+freezes the attributes of a module tree (`snapshot`) and `unchanged(module)` fails, naming what a
+block wrote. `tests/unit/test_purity.py` applies it to every registered class through `CASES` (one
+case per converted class; a class listed in `OLD_STYLE_MUST_BECOME_EMPTY` is skipped, a plant class
+may not override `forward` or `update`). A converted class without a case fails the test.
 
 ## Backend parity
 

@@ -24,7 +24,7 @@ from gemini.compiler.trace.breaks import record_break
 from gemini.compiler.trace.errors import TraceError
 from gemini.compiler.trace.limits import certain, check_declared_limits
 from gemini.compiler.trace.rootbreak import root_break_graph
-from gemini.modules.module import _Call, _current_call, outputs_enabled
+from gemini.modules.callrecord import CallRecord, current_call, outputs_enabled
 from gemini.modules.results import ModuleResult
 from gemini.plants._utils.plan import Solve
 from gemini.streams.flows import Stream
@@ -154,7 +154,7 @@ class Trace:
 
     def offer(self, module, inlets, parent):
         """Return the offered outlets of ``module`` on traced values; no call is recorded."""
-        call = _Call(
+        call = CallRecord(
             module=module,
             inputs=self._call_inputs(module, {}),
             outputs={},
@@ -163,11 +163,11 @@ class Trace:
             parameters=self._call_parameters(module),
             trace=self,
         )
-        token = _current_call.set(call)
+        token = current_call.set(call)
         try:
-            return module._offer(inlets)
+            return module._offer_values(call, inlets)
         finally:
-            _current_call.reset(token)
+            current_call.reset(token)
 
     def _mark(self):
         return self.graph.mark(), dict(self._inputs), dict(self._parameters)
@@ -178,7 +178,7 @@ class Trace:
 
     def run(self, module, inlets, supplied, parent):
         """Trace ``forward`` and the output step of ``module``; return its outlets and call."""
-        call = _Call(
+        call = CallRecord(
             module=module,
             inputs=self._call_inputs(module, supplied),
             outputs={},
@@ -187,14 +187,14 @@ class Trace:
             parameters=self._call_parameters(module),
             trace=self,
         )
-        token = _current_call.set(call)
+        token = current_call.set(call)
         try:
             outlets = module._evaluate(inlets, inlets, call)
             before = len(self.graph.checks)
             check_declared_limits(module, call)
             self.limit_checks.extend(self.graph.checks[before:])
         finally:
-            _current_call.reset(token)
+            current_call.reset(token)
         return outlets, call
 
     def _prefix(self, module):
@@ -224,17 +224,17 @@ class Trace:
             self._parameters[module] = _parameters(self.graph, module, self._prefix(module))
         return self._parameters[module]
 
-    def hook(self, module, hook, inlets, outlets, call):
-        """Call a forward hook on traced values; it must write an output to be part of the graph."""
-        before = dict(call.outputs)
+    def hook(self, module, hook, arguments, call):
+        """Call a forward hook on traced values; it must return outputs to be part of the graph."""
         try:
-            hook(module, inlets, outlets)
+            replaced = hook(*arguments)
         except TraceError as error:
             raise TraceError(f"{module.path}: forward hook {hook!r}: {error}") from error
-        if all(before.get(name) is value for name, value in call.outputs.items()):
+        if not replaced:
             raise TraceError(
                 f"{module.path}: forward hook {hook!r} only reads and runs on real values"
             )
+        return replaced
 
 
 def _untraceable(module, stepped):

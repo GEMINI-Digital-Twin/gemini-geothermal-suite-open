@@ -276,7 +276,7 @@ def test_a_structural_change_retraces():
     traces = graph_cache().traces
     gm.replay(module, _pairs())
     assert graph_cache().traces == traces
-    module.first.register_forward_hook(lambda module, inlets, outlets: None)
+    module.first.register_forward_hook(lambda module, inputs, inlets, state, outputs, outlets: None)
     gm.replay(module, _pairs())
     assert graph_cache().traces > traces
 

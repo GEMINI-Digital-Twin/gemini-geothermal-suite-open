@@ -3,6 +3,7 @@
 from gemini._utils.registry import categories, get, names
 
 from ._utils.trace import trace_wiring
+from .callrecord import no_outputs
 from .check import check
 from .container import ModuleDict, ModuleList
 from .control import PIDController
@@ -12,7 +13,7 @@ from .environment import Atmosphere, Formation
 from .exchangers import Cooler, HeatExchanger
 from .grids import ChemicalGrid, CoolingGrid, ElectricityGrid, GasGrid, HeatingGrid, WasteGrid
 from .heating import CHP, Boiler, ElectricBoiler, HeatPump
-from .module import Module, no_outputs
+from .module import Module
 from .piping import GasMakeup, Mixer, Pipe, PressurizationTank, Splitter, Valve
 from .power import ORC, FlashTurbine, Separator
 from .pumps import (

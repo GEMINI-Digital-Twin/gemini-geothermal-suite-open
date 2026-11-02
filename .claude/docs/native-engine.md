@@ -317,7 +317,7 @@ Where the implementation differs from sections 1 to 11, and why:
 
 ## 13. Composites and replay through the graph
 
-- **Composites.** `Module._run` hands a call made while a trace runs (`_Call.trace`) to
+- **Composites.** `Module._run` hands a call made while a trace runs (`CallRecord.trace`) to
   `Trace.child`, and `Trace.run` goes through `Module._evaluate`, the one call sequence. A child's controls, boundaries and numeric parameters are graph inputs named
   `<relative path>.<name>` (the root keeps plain names); a child called twice reuses them; supplied
   keywords win without validation. The `ModuleResult` of traced values joins the parent's

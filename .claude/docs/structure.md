@@ -128,7 +128,7 @@ gemini/
   ops/               math API, dispatch, kernels, failed rows
   physics/           correlations and fluid properties only
   streams/           Stream, Fluid, Ports, stream kinds
-  modules/           Module, declarations, containers, results, bindings, gm.call; one folder per module domain, each with its _physics.py
+  modules/           Module (split by job: callrecord, callargs, states, tree, values, display, classpath), declarations, containers, results, bindings, gm.call; one folder per module domain, each with its _physics.py
   plants/            Plant, the plant classes, roles.py (the one owner), _utils/ (plan, loops, serialization, doublet design, resize)
   case/              Case and its sections, economics, requirements, dataset.py, profile.py, demand_frame.py
   engine/            simulate, replay, live, resume, Results, check, schedule/ (with its dispatch policy), runner, bindings, executor

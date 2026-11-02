@@ -43,7 +43,7 @@ def test_traced_run_matches_untraced_calls(gain, inlet):
 
 def test_graph_break_runs_untraced_with_the_same_results(gain, inlet):
     """A pre-hook breaks the graph; the reason is reported and the values are unchanged."""
-    gain.register_forward_pre_hook(lambda module, inlets: None)
+    gain.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     result = run(gain, {"fluid_in": inlet}, {"gain": 1.0})
     assert result.graph.root_break and "pre-hooks" in result.breaks[0]
     assert result.outputs["rise"].tolist() == [6.0, 6.0, 6.0]
@@ -52,7 +52,9 @@ def test_graph_break_runs_untraced_with_the_same_results(gain, inlet):
 def test_a_reading_hook_makes_the_root_a_break_that_sees_every_real_row(gain, inlet):
     """The trace calls the hook once on traced values to classify it; then every row is real."""
     seen = []
-    gain.register_forward_hook(lambda module, inlets, outlets: seen.append(module.rise))
+    gain.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: seen.append(module.rise)
+    )
     result = run(gain, {"fluid_in": inlet}, {"gain": 1.0})
     assert "only reads" in result.breaks[0] and seen[1:] == [6.0, 6.0, 6.0]
 
@@ -80,7 +82,7 @@ def test_module_without_inlets_takes_its_row_count_from_the_inputs(source):
     assert result.outputs["double"].tolist() == [2.0, 4.0, 6.0]
     assert result.outlets["fluid_out"]["m_dot"].tolist() == [1.0, 2.0, 3.0]
     assert result.outlets["fluid_out"]["T"].tolist() == [300.0] * 3
-    source.register_forward_pre_hook(lambda module, inlets: None)
+    source.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     assert run(source, {}, {"rate": controls}).outputs["double"].tolist() == [2.0, 4.0, 6.0]
 
 
@@ -92,8 +94,10 @@ def test_module_without_inlets_or_arrays_has_one_row(source):
 def test_pre_hooks_and_reading_hooks_see_every_row_of_the_break(gain, inlet):
     """A pre-hook and a reading hook run in a call's order for each row of the break."""
     seen = []
-    gain.register_forward_pre_hook(lambda module, inlets: seen.append("pre"))
-    gain.register_forward_hook(lambda module, inlets, outlets: seen.append(module.rise))
+    gain.register_forward_pre_hook(lambda module, inputs, inlets, state: seen.append("pre"))
+    gain.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: seen.append(module.rise)
+    )
     result = run(gain, {"fluid_in": inlet}, {"gain": 1.0})
     assert result.graph.root_break
     assert seen == ["pre", 6.0, "pre", 6.0, "pre", 6.0]
@@ -171,7 +175,7 @@ def chain_inlet():
 def _break_middles():
     stubborn = Stubborn().set_params("", {"scale": 3.0})
     hooked = Gain().set_params("", {"scale": 3.0})
-    hooked.register_forward_pre_hook(lambda module, inlets: None)
+    hooked.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     return {"stateful": Tank(), "untraceable": stubborn, "pre-hooked": hooked}
 
 
@@ -212,7 +216,7 @@ def test_a_pre_hook_of_a_break_runs_once_per_row(chain_inlet):
     """A pre-hooked child is called on the plain path for every row, hooks included."""
     calls = []
     middle = Gain().set_params("", {"scale": 3.0})
-    middle.register_forward_pre_hook(lambda module, inlets: calls.append(1))
+    middle.register_forward_pre_hook(lambda module, inputs, inlets, state: calls.append(1))
     run(Chain(middle), {"fluid_in": chain_inlet}, {"drive": 1.0})
     assert len(calls) == 3
 

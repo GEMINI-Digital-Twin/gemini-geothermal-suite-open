@@ -160,12 +160,14 @@ class ModuleResult:
     children: dict[str, "ModuleResult"] = field(default_factory=dict)
     call_records: tuple[tuple[str, "ModuleResult"], ...] = field(default_factory=tuple, repr=False)
     is_leaf: bool = True
+    state: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def of(cls, module, outputs, outlets, inlets, inputs, records):
+    def of(cls, module, outputs, outlets, inlets, inputs, records, state=None):
         """Return the result of a call of ``module``: the one way a call's result is built.
 
-        ``records`` are the ``(relative path, result)`` pairs of the child calls it made.
+        ``records`` are the ``(relative path, result)`` pairs of the child calls it made and
+        ``state`` the state the call started from.
         """
         return cls(
             outputs=Values(outputs, module._outputs),
@@ -175,6 +177,7 @@ class ModuleResult:
             children=dict(records),
             call_records=tuple(records),
             is_leaf=module.is_leaf,
+            state=dict(state or {}),
         )
 
     def leaves(self, prefix=""):
@@ -220,6 +223,7 @@ class ModuleResult:
             children=children,
             call_records=records,
             is_leaf=self.is_leaf,
+            state=self.state,
         )
         done[id(self)] = result
         return result

@@ -2,7 +2,11 @@
 
 A leaf module computes and a plant connects: no class does both ([modules.md](modules.md)). Every
 composite is a `Plant`. A plant declares its children, ports and connections and never writes
-`forward`: `Plant.forward` is written once. `describe()`, `gm.simulate`, `gm.replay` and `gm.live`
+`forward` or `update`: `Plant.forward(inputs, inlets, state)` and `Plant.update(inputs, inlets,
+outlets, state, dt)` are written once, for any graph. The state of a plant is the nested dict of the
+states of its children, by child name; `forward` hands each child its entry, returns the plant's
+combined outputs and outlets, solves the closed loops, and builds nothing: the plan is built before
+the call, in `Plant._prepare`. `describe()`, `gm.simulate`, `gm.replay` and `gm.live`
 work on any plant, on every backend, and a plant has no run method of its own: run it with
 `results = gm.simulate(plant, case)`. How it is computed is in
 [native-engine.md](native-engine.md#14-the-plant-class-and-the-plant-dict).

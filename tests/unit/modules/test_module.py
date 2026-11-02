@@ -240,8 +240,12 @@ def test_uninitialized_and_hooks():
         )
     module.value = 2
     calls = []
-    before = module.register_forward_pre_hook(lambda module, inlets: calls.append("before"))
-    after = module.register_forward_hook(lambda module, inlets, outlets: calls.append("after"))
+    before = module.register_forward_pre_hook(
+        lambda module, inputs, inlets, state: calls.append("before")
+    )
+    after = module.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: calls.append("after")
+    )
     module(
         fluid_in=Stream(
             m_dot=gm.units.Quantity(1, "kg/s"),
@@ -341,10 +345,9 @@ def test_call_inputs_and_hook_assignments_do_not_leak():
     module._set_inputs({"frequency": 50, "grid_frequency": 50})
     seen = []
 
-    def clamp(module, inlets):
-        current = module
-        seen.append(current.frequency)
-        current.frequency = min(current.frequency, 45)
+    def clamp(module, inputs, inlets, state):
+        seen.append(inputs["frequency"])
+        return {"frequency": min(inputs["frequency"], 45)}
 
     handle = module.register_forward_pre_hook(clamp)
     assert module(fluid_in=stream).outputs.total == 95
@@ -375,28 +378,26 @@ def test_call_inputs_and_hook_assignments_do_not_leak():
 
 
 def test_hooks_are_ordered_removable_and_observe_named_ports():
-    """Hooks use named ports, preserve outlets and ignore their return value."""
+    """Hooks use named ports and preserve outlets; a hook returns outputs, never outlets."""
     stream = Stream(
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
     )
-    replacement = stream._with_si(p=2e5)
     module = PassThrough().set_params("", {"value": 2})
     calls = []
 
-    def first_hook(module, inlets):
+    def first_hook(module, inputs, inlets, state):
         calls.append(("first", module))
 
-    def second_hook(module, inlets):
+    def second_hook(module, inputs, inlets, state):
         calls.append(("second", module))
 
     first = module.register_forward_pre_hook(first_hook)
     second = module.register_forward_pre_hook(second_hook)
 
-    def observe(module, inlets, outlets):
+    def observe(module, inputs, inlets, state, outputs, outlets):
         calls.append(("post", module))
-        return {"fluid_out": replacement}
 
     post = module.register_forward_hook(observe)
     result = module(fluid_in=stream)
@@ -450,15 +451,19 @@ def test_hooks_require_the_fixed_signatures():
     """Hook registration rejects old by-name, variadic and defaulted signatures."""
     module = PassThrough().set_params("", {"value": 1})
 
-    with pytest.raises(gm.errors.DefinitionError, match="forward hook.*module, inlets, outlets"):
+    with pytest.raises(
+        gm.errors.DefinitionError, match="forward hook.*module, inputs, inlets, state, outputs"
+    ):
         module.register_forward_hook(lambda module, inlet, outlet: None)
-    with pytest.raises(gm.errors.DefinitionError, match="forward pre-hook.*module, inlets"):
+    with pytest.raises(
+        gm.errors.DefinitionError, match="forward pre-hook.*module, inputs, inlets, state"
+    ):
         module.register_forward_pre_hook(lambda module: None)
 
-    def defaulted(module, inlets, outlets=None):
+    def defaulted(module, inputs, inlets, state, outputs, outlets=None):
         pass
 
-    with pytest.raises(gm.errors.DefinitionError, match="forward hook.*module, inlets, outlets"):
+    with pytest.raises(gm.errors.DefinitionError, match="forward hook.*outputs, outlets"):
         module.register_forward_hook(defaulted)
 
 
@@ -491,8 +496,8 @@ def test_missing_output_and_named_hook_ordering():
     good = PassThrough().set_params("", {"value": 3})
     seen = []
 
-    def observe(module, inlets, outlets):
-        seen.append((module.result, inlets.fluid_in, outlets.fluid_out))
+    def observe(module, inputs, inlets, state, outputs, outlets):
+        seen.append((outputs["result"], inlets.fluid_in, outlets.fluid_out))
 
     good.register_forward_hook(observe)
     good(fluid_in=stream, multiplier=2)
@@ -509,7 +514,7 @@ def test_no_outputs_is_nested_thread_local_context_and_decorator():
     module = PassThrough().set_params("", {"value": 2})
     calls = []
 
-    def observe(module, inlets, outlets):
+    def observe(module, inputs, inlets, state, outputs, outlets):
         calls.append(module)
 
     module.register_forward_hook(observe)
@@ -590,7 +595,9 @@ def test_forward_hook_sees_the_recorded_output():
     """Forward hooks run after the outputs are recorded and read them like any output."""
     module = EnergyLeaf()
     seen = []
-    module.register_forward_hook(lambda module, inlets, outlets: seen.append(module.electricity))
+    module.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: seen.append(outputs["electricity"])
+    )
     module(fluid_in=STREAM)
     assert seen == [2]
 
@@ -804,6 +811,7 @@ PUBLIC_METHODS = {
     "help",
     "initial_state",
     "step",
+    "update",
 }
 """The public methods of ``Module``; a plant adds what it needs to connect."""
 

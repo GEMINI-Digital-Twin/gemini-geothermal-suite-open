@@ -99,8 +99,8 @@ FORMULA_EXCEPTIONS = {
     "gemini/modules/exchangers/heatexchanger.py: np.any": "health decides on scalars and arrays; "
     "ops has no reduction to a Python bool",
     "gemini/modules/module.py: literal 4": "how many parameters repr shows, not physics",
-    "gemini/modules/module.py: np.float64": "the eager scope wraps a recorded float, not maths",
-    "gemini/modules/module.py: np.ndarray": "a type test of the array path, not maths",
+    "gemini/modules/callrecord.py: np.float64": "the eager scope wraps a recorded float, not maths",
+    "gemini/modules/callrecord.py: np.ndarray": "a type test of the array path, not maths",
     "gemini/modules/pumps/esp.py: np.asarray": "the float32 cast of the retained precision",
     "gemini/modules/pumps/esp.py: np.float32": "the float32 cast of the retained precision",
     "gemini/modules/results.py: np.floating": "a type test of a recorded scalar, not maths",
@@ -200,11 +200,19 @@ CORE_MODULE_FILES = (
     "__init__.py",
     "bindings.py",
     "call.py",
+    "callargs.py",
+    "callrecord.py",
     "check.py",
+    "classpath.py",
     "container.py",
     "declarations.py",
+    "display.py",
     "module.py",
     "results.py",
+    "states.py",
+    "tree.py",
+    "unconverted.py",
+    "values.py",
 )
 PACKAGE_FILES = [
     path
@@ -830,7 +838,6 @@ DECLARED_DEFAULTS = {
     ("IceStorage", "water_specific_heat"): "liquid water at 0.01 degC (IAPWS-95)",
     ("IceStorage", "ice_specific_heat"): "ice Ih at the triple point (IAPWS R10-06)",
     ("_Reservoir", "role"): "the identity of the subclass (production or injection), not a choice",
-    ("PIDController", "integral"): "the integrator memory starts at zero by definition",
     ("AquiferStorage", "warm_volume"): "accumulator: zero before any charge",
     ("AquiferStorage", "warm_temperature_change"): "change relative to the ground: zero at start",
     ("AquiferStorage", "cold_volume"): "accumulator: zero before any discharge",
@@ -961,6 +968,10 @@ OLD_NAME = re.compile(
     r"legacy|compat|deprecated|^old_|_old($|_)|_v1|_v2|assumptions|finance|lifetime", re.IGNORECASE
 )
 """What a kept old name, shape or call path is called, with the names of the old inputs."""
+TEMPORARY_OLD_NAMES = {
+    "gemini/modules/unconverted.py: OLD_STYLE_MUST_BECOME_EMPTY",
+}
+"""The one name of the module contract's transition, deleted by the last conversion."""
 WRAPPER_ALLOWANCE = {
     "gemini/modules/module.py::fluid": "a property setter that calls the hook plants override",
 }
@@ -1180,7 +1191,7 @@ def test_no_name_keeps_something_old(package_trees):
         if path.startswith("gemini/")
         if OLD_NAME.search(path.removeprefix("gemini/"))
     ]
-    assert found == []
+    assert [item for item in found if item not in TEMPORARY_OLD_NAMES] == []
 
 
 def test_the_old_name_guard_finds_old_names_and_not_words_that_contain_them():

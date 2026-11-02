@@ -166,7 +166,7 @@ def test_child_hook_reads_the_parent_call_value():
     """E-modules-005: inside a nested call the parent's control has its call value."""
     parent, seen = Parent(), []
 
-    def observe(module, inlets, outlets):
+    def observe(module, inputs, inlets, state, outputs, outlets):
         seen.append(parent.setting)
 
     parent.child.register_forward_hook(observe)

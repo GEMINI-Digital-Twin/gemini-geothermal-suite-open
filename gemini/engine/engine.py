@@ -22,7 +22,8 @@ from gemini.engine.results import Results, declared_quantities, declared_units
 from gemini.engine.runner import Runner
 from gemini.errors import RunError, ValidationError
 from gemini.errors.base import check_on_error
-from gemini.modules.module import Module, class_path, import_class
+from gemini.modules.classpath import class_path, import_class
+from gemini.modules.module import Module
 from gemini.ops import kernels
 from gemini.plants._utils import serialization
 from gemini.plants.plant import Plant
@@ -115,9 +116,13 @@ class Engine:
         column per binding ``column`` (or per input path), in the units of the bindings. Without
         ``clock`` the ticks are those of the profile.
         """
+        return self._simulate(profile, clock, None)
+
+    def _simulate(self, profile, clock, state):
+        """Run ``simulate`` from ``state``, the start the case gives (``apply.started``)."""
         dataset = as_dataset(profile)
         clock = clock if clock is not None else Clock.from_data(dataset)
-        return self._run("simulate", dataset, clock)
+        return self._run("simulate", dataset, clock, state=state)
 
     def replay(self, data, start=None, end=None, state=None, clock=None, only=None):
         """Evaluate measured equipment boundaries and return ``Results``.

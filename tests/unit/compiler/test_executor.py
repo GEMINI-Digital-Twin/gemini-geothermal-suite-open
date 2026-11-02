@@ -66,6 +66,6 @@ def test_copies_with_other_numeric_values_trace_once_and_give_the_numbers_of_a_f
     assert rises == [[2.0, 4.0, 6.0], [5.0, 10.0, 15.0], [7.0, 14.0, 21.0]]
     module = Booster()
     module.gain = 5.0
-    module.register_forward_hook(lambda module, inlets, outlets: None)
+    module.register_forward_hook(lambda module, inputs, inlets, state, outputs, outlets: None)
     gm.compiler.compile(module).prepare(module, streams, inputs, False)
     assert cache.traces == traces + 2

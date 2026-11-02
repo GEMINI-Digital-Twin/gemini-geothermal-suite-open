@@ -1,7 +1,7 @@
 """``gm.check``: what the plant and the case need of each other."""
 
 import gemini as gm
-from gemini.engine.apply import apply_case
+from gemini.engine.apply import apply_case, started
 from gemini.units import Quantity
 from tests.fixtures.sample_cases import HACKATHON_2026, SHALLOW_DISTRICT, sample_case, shallow_case
 
@@ -125,12 +125,16 @@ def test_an_initial_state_names_a_module_and_a_state_the_plant_has_in_a_unit_tha
 
 
 def test_the_case_state_is_where_a_stateful_module_starts():
-    """The initial state of the applied plant is the case's, not the module's own default."""
+    """The run starts from the case's state, and the plant keeps no initial state of its own."""
     plant, case = storage_plant(), physics()
     state = {"storage": {"temperature": {"value": 60, "unit": "degC"}}}
-    applied = apply_case(plant, with_state(case, state))
-    assert applied.initial_state() == {"storage": {"temperature": 333.15}}
-    assert plant.initial_state() == {"storage": {"temperature": 293.15}}
+    given = with_state(case, state)
+    assert started(given) == {
+        "position": None,
+        "module_states": {"": {"storage": {"temperature": 333.15}}},
+    }
+    assert started(case) is None
+    assert apply_case(plant, given).initial_state() == plant.initial_state()
 
 
 def test_a_least_cost_dispatch_needs_the_energy_prices():

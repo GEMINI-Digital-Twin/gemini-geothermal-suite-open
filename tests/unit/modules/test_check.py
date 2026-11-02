@@ -6,6 +6,7 @@ import gemini as gm
 from gemini.modules.declarations import Output, Parameter
 from gemini.modules.module import Module
 from tests.fixtures.booster_module import EXAMPLE, Booster
+from tests.fixtures.esp_design import ESP_PARAMS
 
 
 class Unitless(Module):
@@ -44,7 +45,7 @@ class WrongSignature(Booster):
         """Return nothing."""
 
         outlets = dict()
-        return outlets
+        return {}, outlets
 
 
 class Broken(Booster):
@@ -62,10 +63,9 @@ class Crashing(Booster):
 
     abstract = True
 
-    def forward(self, inlets):
+    def forward(self, inputs, inlets, state):
         """Fail on an output."""
-        self.head = 1 / 0
-        return super().forward(inlets)
+        return dict(head=1 / 0), dict(fluid_out=inlets.fluid_in)
 
 
 def verdicts(report):
@@ -125,17 +125,17 @@ def test_the_report_never_raises():
 
 
 def test_a_shipped_module_with_example_values_passes():
-    """The heat consumer meets the rules when given its parameter, boundary and inlet."""
+    """The pump meets the rules when given its parameters, control and inlet."""
     example = {
-        "parameters": {"minimum_return_temperature": {"value": 30, "unit": "degC"}},
+        "parameters": ESP_PARAMS,
         "inlets": {
-            "supply_in": {
-                "m_dot": {"value": 2, "unit": "kg/s"},
-                "T": {"value": 70, "unit": "degC"},
-                "p": {"value": 3, "unit": "bar"},
+            "fluid_in": {
+                "m_dot": {"value": 30, "unit": "kg/s"},
+                "T": {"value": 50, "unit": "degC"},
+                "p": {"value": 20, "unit": "bar"},
             }
         },
-        "controls": {"heat_demand": {"value": 100, "unit": "kW"}},
+        "controls": {"frequency": {"value": 50, "unit": "Hz"}},
     }
-    report = gm.modules.check(gm.modules.HeatingGrid, example)
+    report = gm.modules.check(gm.modules.ESP, example)
     assert report["passed"] is True and verdicts(report)["call"] is True

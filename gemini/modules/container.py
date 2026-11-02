@@ -57,7 +57,8 @@ class ModuleList(Module, MutableSequence):
 class ModuleDict(Module, MutableMapping):
     """Mapping-like registration of child modules by caller-provided keys.
 
-    Keys must not shadow module or mapping attributes such as ``step`` or ``keys``. Like every
+    Keys must not shadow module or mapping attributes such as ``step`` or ``keys``. The mapping
+    method ``update`` is the module contract's ``update``: add children one by one. Like every
     module, a container compares and hashes by identity, not by its contents.
     """
 
@@ -68,7 +69,8 @@ class ModuleDict(Module, MutableMapping):
     def __init__(self, modules=()):
         """Register modules from a mapping or iterable of pairs."""
         super().__init__()
-        self.update(dict(modules))
+        for key, module in dict(modules).items():
+            self[key] = module
 
     def __getitem__(self, key):
         """Return a child by key."""

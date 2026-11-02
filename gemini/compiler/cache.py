@@ -28,7 +28,7 @@ from collections import OrderedDict
 from gemini import runtime
 from gemini.compiler.passes import eliminate_common_subexpressions
 from gemini.compiler.trace.tracer import Tracer, traced_shape
-from gemini.modules.module import outputs_enabled
+from gemini.modules.callrecord import outputs_enabled
 
 MAXSIZE = 16
 """The most graphs the cache of the process keeps."""

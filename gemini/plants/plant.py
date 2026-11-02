@@ -8,6 +8,7 @@ from gemini._utils import files
 from gemini._utils.strings import join_path, snake_case
 from gemini.errors import ValidationError
 from gemini.modules._utils import design
+from gemini.modules.callrecord import outputs_enabled
 from gemini.modules.container import ModuleList
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
@@ -486,6 +487,11 @@ class Plant(PortResolver, Module):
             self._plan, self._planned_offers = compile_plan(self), offers
         return self._plan
 
+    def _prepare(self):
+        """Reject uninitialized parameters and build the plan: both come before a call."""
+        super()._prepare()
+        self._compiled()
+
     def _iterates(self):
         """Return whether a call of this plant closes a loop or solves a constraint."""
         return self._compiled().iterates
@@ -494,22 +500,25 @@ class Plant(PortResolver, Module):
         """Return the value of a plant port: its one end, or the sum of what its ends carry."""
         return values[0] if len(values) == 1 else energy.total_power(values)
 
-    def _plan_outlets(self, results):
-        plan = self._compiled()
+    def _plan_outlets(self, plan, results):
         for name, ends in plan.outlets.items():
             yield name, self._plant_value([results[path].outlets[port] for path, port in ends])
         for name, ends in plan.given.items():
             yield name, self._plant_value([results[path].inlets[port] for path, port in ends])
 
-    def _compute_combinations(self, call):
-        """Record the outputs this plant combines from the results of its children."""
-        records = dict(self._recorded_calls(call.call_records))
+    def _combinations(self, results):
+        """Return the outputs this plant combines from the results of its children."""
+        if not outputs_enabled():
+            return {}
+        records = dict(self._recorded_calls(results.items()))
+        combined = {}
         for name, output in self._outputs.items():
             if output.formula is None:
                 continue
             key, *paths = output.formula
-            values = [outputs.read(self, records, path) for path in paths]
-            setattr(self, name, outputs.combine(key, values))
+            values = [outputs.read(self, records, path, combined) for path in paths]
+            combined[name] = outputs.combine(key, values)
+        return combined
 
     @staticmethod
     def _recorded_calls(call_records, prefix=""):
@@ -518,12 +527,27 @@ class Plant(PortResolver, Module):
             yield full_path, result
             yield from Plant._recorded_calls(result.call_records, full_path)
 
-    def forward(self, inlets):
-        """Call the modules in connection order, close the loops and return the plant outlets."""
-        call = Call(self, inlets)
-        for item in self._compiled().items:
+    def forward(self, inputs, inlets, state):
+        """Call the modules in connection order, close the loops and return the plant's values.
+
+        Written once for any graph: ``state`` is the nested dict of the states of the children,
+        each handed to the child it belongs to. The outputs are the plant's combinations of the
+        values of its children; the outlets are the plant outlets. The plan is the one built
+        before the call, so nothing is written.
+        """
+        plan = self._plan if self._plan is not None else compile_plan(self)
+        call = Call(self, inputs, inlets, state, plan)
+        for item in plan.items:
             call.execute(item)
 
         # Outlets
-        outlets = dict(self._plan_outlets(call.results))
-        return outlets
+        outlets = dict(self._plan_outlets(plan, call.results))
+        return self._combinations(call.results), outlets
+
+    def update(self, inputs, inlets, outlets, state, dt):
+        """Return the next state: the nested dict of what each stateful child's ``update`` gives.
+
+        The children are called again on ``inlets`` and ``state`` for the values their updates
+        take; a step through ``Module.step`` reuses the call it has made.
+        """
+        return self._advance(self(dict(inlets), state=state), dt)

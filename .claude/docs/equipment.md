@@ -14,8 +14,8 @@ Shared conventions, stated once here and not repeated per module:
   [types.md](types.md#fluid). A parameter without a default is required: set it with `set_params`
   before the first call, `missing_parameters()` lists what is left. Only a sourced physical constant
   and the zero of an accumulator state keep a default (`DECLARED_DEFAULTS` in
-  `tests/unit/test_code_quality.py`); a feature that is off is `None`, and a state without a default
-  starts at the parameter `initial_<state>`. Where a section below names a number "(0.55)" next to
+  `tests/unit/test_code_quality.py`, the states of the modules not yet converted); a feature that
+  is off is `None`, and a state has no default once its module is converted. Where a section below names a number "(0.55)" next to
   "required", it is the usual or source value, not a default.
 - Properties come from each stream's `Fluid`; unless a module says otherwise it uses the
   constant liquid heat capacity `cp_l` and density `rho_l` of that fluid.
@@ -33,8 +33,9 @@ Shared conventions, stated once here and not repeated per module:
 - **Energy audit** below states what `call_energy_balance(module, result)` shows for one call.
   *Closed* means `relative_residual < 1e-12` and `call_mass_balance(...)["residual"] == 0` are
   tested. Otherwise the documented residual is named; it is never hidden by an invented loss.
-- Stateful modules integrate their `State` values in `_advance_states`; call them with
-  `module.step(state, dt, inlets)`. A plain call evaluates at the initial states.
+- Stateful modules integrate their `State` values in `update`; call them with
+  `module.step(state, dt, inlets)` or `module(..., state=state)`. A state has no default: the
+  case states it (`case.initial_state`).
 - Every leaf is written with `gemini.ops`, so it traces into a computation graph. The exceptions
   are the graph breaks, which run tick by tick: `ThermalDecline`, `AquiferStorage`,
   `BoreholeField`, `ThermalStorage`, `IceStorage` and `PIDController`, stateful until `scan` exists
@@ -1536,14 +1537,15 @@ parent cannot run under `gm.modules.no_outputs()`.
   required; `integral_time` (`Duration | None`, default `None` for P or PD), `derivative_time`
   (`Duration | None`, default `None`, no derivative action). A time is a quantity such as `{"value": 15, "unit": "min"}`.
 - **Controls**: `setpoint`. **Boundaries**: `measurement` (both `Dimensionless`).
-- **States**: `integral` (default 0), `previous_error`, `previous_step` (default `None`).
+- **States** (no default; the case states them, a controller that starts fresh has all three at
+  zero): `integral`, `previous_error`, `previous_step` (`previous_step = 0` means no step yet).
 - **Outputs**: `error`, `command`, `is_saturated`.
 - **Model**: `e = setpoint - measurement` for `"reverse"` (a heating valve), the opposite for
   `"direct"`; `u = clamp(K e + I + D)` with `D = K Td (e - e_prev) / h_prev` and
   `I += K h / Ti e` (Astrom and Hagglund 2006, *Advanced PID Control*, chapter 3). The command
   uses start-of-step states (a one-step lag of the integral). The integral is frozen while the
-  unclamped command is at or beyond a limit and the error drives it further. A plain call
-  returns the proportional command only.
+  unclamped command is at or beyond a limit and the error drives it further. The derivative is
+  zero while `previous_step` is zero.
 - **Physics**: `control.anti_windup_increment`, `control.pid_command`, `control.pid_derivative`,
   `control.pid_error`, `control.pid_integral_increment`
 - **Energy audit**: not applicable (no streams, no energy outputs).
@@ -1559,7 +1561,7 @@ pid = PIDController().set_params("", {
     "direction": "reverse",
 })
 pid.setpoint = 70.0
-state = None
+state = {"integral": 0.0, "previous_error": 0.0, "previous_step": 0.0}
 for measured in (60.0, 62.0, 65.0):
     pid.measurement = measured
     state, result = pid.step(state, 900, {})

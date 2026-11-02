@@ -13,29 +13,8 @@ from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_health_matches, assert_module_matches
 from tests.fixtures.errors import raises
-from tests.fixtures.esp_design import ESP_MODULE
+from tests.fixtures.esp_design import ESP_PARAMS
 from tests.fixtures.sample_cases import example_plant
-
-ESP_PARAMS = ESP_MODULE | {
-    "pump_type": "HC27000",
-    "stage_count": 12,
-    "head_coefficients": [
-        83.08389282,
-        -0.000460444,
-        -1.19e-07,
-        1.69e-11,
-        -6.36e-16,
-        6.69e-21,
-    ],
-    "power_coefficients": [
-        10.02089977,
-        -0.000160233,
-        6.52e-08,
-        -2.13e-12,
-        1.71e-17,
-        1.38e-23,
-    ],
-}
 
 
 def test_original_nonzero_power_reference():

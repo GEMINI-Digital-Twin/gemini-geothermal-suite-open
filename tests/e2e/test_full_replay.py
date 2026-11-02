@@ -44,7 +44,7 @@ class BalanceAudit(Callback):
         self.inlets = None
         self.balances = []
 
-    def capture(self, module, inlets):
+    def capture(self, module, inputs, inlets, state):
         """Keep the root inlets of the current step."""
         self.inlets = inlets
 

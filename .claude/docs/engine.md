@@ -143,9 +143,11 @@ written in the case:
   the supply temperature of the service plus the unit's `supply_margin` (minus it for cold), set
   as an input. A unit without a margin keeps the setpoint the plant gives; a margin on a unit on
   no supply line is `invalid_design`;
-- every stateful module named in `case.initial_state` starts from the states given there
-  (`Module._start_from`, which `initial_state()` and the engine read first): `gm.check` asks for
-  every state of every stateful module, and a state or module the plant lacks is `unknown_name`.
+- every stateful module named in `case.initial_state` starts from the states given there: the
+  run is begun from `apply.started(case)`, the nested dict of the states by module path, which
+  `gm.simulate` hands to the engine (a plant keeps no initial state of its own). `gm.check` asks
+  for every state of every stateful module, and a state or module the plant lacks is
+  `unknown_name`.
 
 A parameter or boundary that the case sets is declared with `Parameter(..., case="site.ground.gradient")`
 or `Boundary(..., case="demand.cooling.indoor_temperature")`; a plant dict that states it is refused

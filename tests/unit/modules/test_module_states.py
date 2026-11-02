@@ -156,7 +156,7 @@ def test_state_errors():
         gm.errors.ValidationError, "unknown_name", match="tank: unknown state 'temperatur'"
     ):
         tank.step({"temperatur": 300}, 10, {"fluid_in": STREAM})
-    with pytest.raises(gm.errors.DefinitionError, match="changes only in _advance_states"):
+    with pytest.raises(gm.errors.DefinitionError, match="changes only in update"):
         tank.temperature = 310
     with pytest.raises(gm.errors.ValidationError, match="tank.temperature: invalid state"):
         tank.step({"temperature": -1}, 10, {"fluid_in": STREAM})

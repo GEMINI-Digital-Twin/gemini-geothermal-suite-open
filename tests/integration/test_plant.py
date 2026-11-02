@@ -21,7 +21,7 @@ def example(fresh_plant, fast_dataset):
     data = fast_dataset.window(end=fast_dataset.start)
     captured = {}
 
-    def capture(module, inlets):
+    def capture(module, inputs, inlets, state):
         captured.update(inlets)
 
     handle = fresh_plant.register_forward_pre_hook(capture)

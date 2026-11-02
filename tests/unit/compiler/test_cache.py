@@ -47,7 +47,9 @@ def test_numeric_parameter_values_do_not_retrace_but_guards_do(gain):
     assert cache.graph(gain, fluids) is first and cache.traces == 1
     gain.set_params("", {"label": "y"})
     assert cache.graph(gain, fluids) is not first and cache.traces == 2
-    handle = gain.register_forward_hook(lambda module, inlets, outlets: None)
+    handle = gain.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: None
+    )
     cache.graph(gain, fluids)
     handle.remove()
     with gm.modules.no_outputs():
@@ -67,7 +69,7 @@ def test_a_changed_module_fluid_retraces(gain):
 def test_graph_breaks_are_remembered(gain):
     """A module that cannot be traced is a cached root break graph, never an error."""
     cache = GraphCache()
-    gain.register_forward_pre_hook(lambda module, inlets: None)
+    gain.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     graphs = [cache.graph(gain, {"fluid_in": gain.fluid}) for _ in range(2)]
     assert graphs[0] is graphs[1] and graphs[0].root_break
     assert "pre-hooks" in graphs[0].breaks[0][1]
@@ -107,7 +109,9 @@ def test_a_hook_below_the_root_is_a_guard(line):
     cache = GraphCache()
     fluids = {"fluid_in": line.fluid}
     cache.graph(line, fluids)
-    line.gain.register_forward_hook(lambda module, inlets, outlets: setattr(module, "rise", 1.0))
+    line.gain.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: setattr(module, "rise", 1.0)
+    )
     cache.graph(line, fluids)
     assert cache.traces == 2
 
@@ -147,7 +151,7 @@ def test_a_copy_with_other_numeric_values_shares_the_graph_and_gets_its_numbers(
 
 def test_a_shared_break_runs_the_module_it_is_evaluated_for(line):
     """A break node holds a path: each copy runs its own module, with its own parameters."""
-    line.gain.register_forward_pre_hook(lambda module, inlets: None)
+    line.gain.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     other = copy.deepcopy(line)
     other.gain.set_params("", {"scale": 9.0})
     cache = GraphCache()

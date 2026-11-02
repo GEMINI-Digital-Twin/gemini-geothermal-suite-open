@@ -227,13 +227,19 @@ class Declaration:
         self.owner, self.name = owner, name
         return self
 
-    def default_value(self):
-        """Return the validated default as a fresh value, validating it only the first time."""
-        if self._validated_default is _MISS:
+    def prime_default(self):
+        """Validate the default once, when the module registers it, so a call writes nothing."""
+        if self.default is not UNSET and self._validated_default is _MISS:
             self._validated_default = self.validate(deepcopy(self.default))
-        if type(self._validated_default) in _IMMUTABLE:
-            return self._validated_default
-        return deepcopy(self._validated_default)
+
+    def default_value(self):
+        """Return the default as a fresh value, validated at registration."""
+        validated = self._validated_default
+        if validated is _MISS:
+            validated = self.validate(deepcopy(self.default))
+        if type(validated) in _IMMUTABLE:
+            return validated
+        return deepcopy(validated)
 
     def validate(self, value):
         """Convert public units and validate the resulting SI value.
@@ -296,6 +302,7 @@ class Parameter(Declaration):
         if default is not UNSET:
             self.value = self.validate(deepcopy(default))
             self._history.append((None, deepcopy(self.value)))
+        self.prime_default()
 
     @property
     def history(self):
@@ -441,22 +448,20 @@ class Boundary(Declaration):
 
 
 class State(Declaration):
-    """Value a stateful module carries from one time step to the next.
+    """Value a stateful module carries from one time step to the next; it has no default.
 
-    ``default`` is the initial state when it is a reference value of the state itself (an
-    accumulator that starts at zero). Without it the initial state is a design value: the
-    parameter ``initial_<name>`` of the module sets it, and a run without it raises
-    ``missing_value``. ``Module.step`` supplies the value at the start of a step and
-    ``_advance_states`` returns the value at its end; a plain call uses the initial state.
+    The case states where a run starts (``case.initial_state``): ``forward`` and ``update`` take
+    the value in their ``state`` argument and ``update`` returns the value at the end of the step.
+    ``default`` is accepted only for a module not yet converted to that contract, and a converted
+    module that gives one is refused when it is built.
     """
 
     section = "state"
 
     def __init__(self, type, *, default=UNSET, description=None, **bounds):
-        """Declare a carried value with its initial state, or with the parameter that sets it."""
+        """Declare a carried value, with a default only while its module is not converted."""
         super().__init__(type, default=default, description=description, **bounds)
-        if default is not UNSET:
-            self.validate(deepcopy(default))
+        self.prime_default()
 
 
 class Output(Declaration):

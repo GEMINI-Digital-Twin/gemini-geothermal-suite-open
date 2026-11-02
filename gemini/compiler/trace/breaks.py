@@ -22,7 +22,7 @@ from gemini.compiler.ir import STREAM_FIELDS
 from gemini.compiler.trace.errors import TraceError
 from gemini.engine.rowwise import row_item, row_streams, stack_column
 from gemini.errors import ValidationError
-from gemini.modules.module import _Call, _current_call
+from gemini.modules.callrecord import CallRecord, current_call
 from gemini.ops import Symbolic, registry
 from gemini.ops.registry import get
 from gemini.streams.flows import Stream
@@ -136,22 +136,23 @@ def _probe_inputs(module, supplied):
 def _probe_fluids(module, inlets, inputs):
     """Run ``forward`` once on representative inlets and return the fluid of every outlet."""
     streams = {port: Stream._si(**PROBE, fluid=inlets[port].fluid) for port in module._fed_inlets()}
-    call = _Call(
+    call = CallRecord(
         module=module,
         inputs=inputs,
         outputs={},
         recording=False,
         parent=None,
-        states=module._call_states(None),
+        state=module._probe_state(),
     )
-    token = _current_call.set(call)
+    token = current_call.set(call)
     try:
-        returned = module.forward(Ports(streams | module._empty_ports(), path=module.path))
+        ports = Ports(streams | module._empty_ports(state=call.state), path=module.path)
+        _, returned = module._forward(ports, call, call.state)
         module._check_outlet_names(returned)
     except Exception as error:
         raise TraceError(f"{module.path}: cannot probe the outlet fluids: {error}") from error
     finally:
-        _current_call.reset(token)
+        current_call.reset(token)
     return {
         port: returned[port].fluid
         for port in module._given_outlets()

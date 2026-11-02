@@ -49,11 +49,11 @@ def test_no_outputs_traces_only_the_fluid_step(gain):
 def test_hooks_are_classified_by_what_they_do(gain):
     """A writing hook joins the graph; a reading one and a failing one break the root."""
 
-    def doubles(module, inlets, outlets):
-        module.boost = module.boost * 2
+    def doubles(module, inputs, inlets, state, outputs, outlets):
+        return {"boost": outputs["boost"] * 2}
 
-    def reads(module, inlets, outlets):
-        return module.rise
+    def reads(module, inputs, inlets, state, outputs, outlets):
+        outputs["rise"]
 
     handle = gain.register_forward_hook(doubles)
     graph = Tracer().trace(gain, {"fluid_in": gain.fluid})
@@ -63,7 +63,9 @@ def test_hooks_are_classified_by_what_they_do(gain):
     assert reading.root_break and "only reads and runs on real values" in reading.breaks[0][1]
     handle.remove()
     handle_reads.remove()
-    gain.register_forward_hook(lambda module, inlets, outlets: float(module.rise))
+    gain.register_forward_hook(
+        lambda module, inputs, inlets, state, outputs, outlets: float(outputs["rise"])
+    )
     broken = Tracer().trace(gain, {"fluid_in": gain.fluid})
     assert broken.root_break and re.search("forward hook .*float", broken.breaks[0][1])
 
@@ -85,7 +87,7 @@ def test_untraceable_modules_name_every_reason(gain, tank):
     """Stateful modules, pre-hooks and float32 precision make the root a break, never an error."""
     graph = Tracer().trace(tank, {"fluid_in": gain.fluid})
     assert graph.root_break and "stateful" in graph.breaks[0][1]
-    gain.register_forward_pre_hook(lambda module, inlets: None)
+    gain.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     with gm.runtime.settings(precision="float32"):
         graph = Tracer().trace(gain, {"fluid_in": gain.fluid})
     assert graph.root_break and "pre-hooks; runtime precision" in graph.breaks[0][1]
@@ -174,7 +176,11 @@ def test_uninitialized_parameters_of_the_tree_are_refused(line):
 
 def test_a_reading_hook_on_a_leaf_child_makes_it_a_break_node(line):
     """An unmarked hook that only reads cannot be replayed, so the leaf child runs untraced."""
-    line.gain.register_forward_hook(lambda module, inlets, outlets: module.rise)
+
+    def reads(module, inputs, inlets, state, outputs, outlets):
+        outputs["rise"]
+
+    line.gain.register_forward_hook(reads)
     graph = Tracer().trace(line, {"fluid_in": line.fluid})
     assert [path for path, _ in graph.breaks] == ["gain"]
     assert "only reads" in graph.breaks[0][1]
@@ -183,8 +189,8 @@ def test_a_reading_hook_on_a_leaf_child_makes_it_a_break_node(line):
 def test_writing_hooks_on_a_child_join_the_graph(line):
     """A hook that writes an output of a child is part of the graph."""
 
-    def doubles(module, inlets, outlets):
-        module.rise = module.rise * 2
+    def doubles(module, inputs, inlets, state, outputs, outlets):
+        return {"rise": outputs["rise"] * 2}
 
     line.gain.register_forward_hook(doubles)
     inlet = gm.Stream(

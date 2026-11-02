@@ -681,9 +681,10 @@ sized first), `sample` and `sensitivity` do not tolerate them. (c) An absent `he
 and is judged infeasible, P2 (one case judges any plant), for the reason `cold_delivered` that
 `gm.evaluate.verdict` already gives. Any other absent role is `incompatible`. The verdict
 dedupes its reasons by name, so a requirement on an absent supply role and the service reason are
-one. (d) `case.initial_state` is wired: `apply_case` starts each named module from it
-(`Module._start_from`, read first by `initial_state()`), so the code defaults of the states and the
-`initial_*` parameters stay (7.19) but a case that states a state wins. No sample has a stateful
+one. (d) `case.initial_state` is wired: `apply_case` checks the names and `gm.simulate` starts the run
+from it (`apply.started`), so the code defaults of the states of the modules not yet converted and
+the `initial_*` parameters stay (7.19) until their module is converted, when the case is the only
+source (`PIDController` is converted: it has none); a case that states a state wins. No sample has a stateful
 module. (e) `case.choices` is gone (the class, the field, `gemini/case/choices.py`, the sample
 case files, `study/_utils/choices.py`); the key is refused with `old_format` naming the plant
 `range`. `minimize` has no `variables` argument; `size` reads `params.backup` (a plant without it is

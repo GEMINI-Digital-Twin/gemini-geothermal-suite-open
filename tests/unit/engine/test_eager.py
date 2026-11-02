@@ -157,7 +157,7 @@ def test_stateless_modules_are_called_once_on_arrays():
     """A stateless leaf takes the array path; state, hooks and the Python backend take rows."""
     module = Booster()
     assert not _by_rows(module)
-    module.register_forward_pre_hook(lambda module, inlets: None)
+    module.register_forward_pre_hook(lambda module, inputs, inlets, state: None)
     assert _by_rows(module)
     assert _by_rows(pair_plant(with_tank=True))
     with gm.runtime.settings(backend="python"):

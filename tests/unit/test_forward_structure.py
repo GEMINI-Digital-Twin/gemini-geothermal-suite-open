@@ -11,7 +11,7 @@ from gemini.streams.flows import Stream
 from gemini.units.quantities import Power
 
 FORWARD_SECTIONS = ("# Modules", "# Outlets", "# Outputs")
-LIFECYCLE = ("__init__", "forward", "_advance_states")
+LIFECYCLE = ("__init__", "forward", "update", "_advance_states")
 INIT_SECTIONS = (
     "# Modules",
     "# Parameters",
@@ -81,17 +81,23 @@ def _self_assignments(tree):
 
 def _assert_return_block(cls, tree, outlet_names):
     assignment, returned = tree.body[-2:]
+    converted = not cls._unconverted
+    result = ["outputs", "outlets"] if converted else ["outlets"]
     assert (
         isinstance(assignment, ast.Assign)
         and isinstance(assignment.value, ast.Call)
         and isinstance(assignment.value.func, ast.Name)
         and assignment.value.func.id == "dict"
         and isinstance(returned, ast.Return)
-        and isinstance(returned.value, ast.Name)
-        and returned.value.id == "outlets"
-    ), f"{cls.__name__}: forward must end with outlets = dict(...); return outlets"
+        and _returned_names(returned.value) == result
+    ), f"{cls.__name__}: forward must end with outlets = dict(...); return {', '.join(result)}"
     keys = [keyword.arg for keyword in assignment.value.keywords]
     assert keys == outlet_names, f"{cls.__name__}: outlet order {keys} != {outlet_names}"
+
+
+def _returned_names(value):
+    items = value.elts if isinstance(value, ast.Tuple) else [value]
+    return [item.id for item in items if isinstance(item, ast.Name)]
 
 
 def _assert_fixed_signature(cls, name, expected):
@@ -143,12 +149,29 @@ def _assert_declared_accesses(cls, method_name, variable, declared):
 def test_fixed_signatures_and_declared_port_accesses(module_class):
     """Every module lifecycle method receives fixed Ports and reads only declared names."""
     cls = module_class
-    _assert_fixed_signature(cls, "forward", ["self", "inlets"])
-    if cls().stateful and "_advance_states" in cls.__dict__:
-        _assert_fixed_signature(cls, "_advance_states", ["self", "inlets", "outlets", "dt"])
     module = cls()
     inlet_names = list(module.inlets()) + module._drawn_outlets()
-    _assert_declared_accesses(cls, "forward", "inlets", inlet_names)
+    if cls._unconverted:
+        _assert_fixed_signature(cls, "forward", ["self", "inlets"])
+        if module.stateful and "_advance_states" in cls.__dict__:
+            _assert_fixed_signature(cls, "_advance_states", ["self", "inlets", "outlets", "dt"])
+        _assert_declared_accesses(cls, "forward", "inlets", inlet_names)
+        return
+    _assert_fixed_signature(cls, "forward", ["self", "inputs", "inlets", "state"])
+    methods = ["forward", "update"] if module.stateful else ["forward"]
+    names = {"inputs": list(module.inputs(recurse=False)), "state": list(module._states)}
+    names["inlets"] = inlet_names
+    for method in methods:
+        if method == "update":
+            _assert_fixed_signature(
+                cls, "update", ["self", "inputs", "inlets", "outlets", "state", "dt"]
+            )
+            names["outlets"] = list(module.outlets())
+        for variable, declared in names.items():
+            if method == "forward" and variable == "outlets":
+                continue
+            if cls.__dict__.get(method) is not None:
+                _assert_declared_accesses(cls, method, variable, declared)
 
 
 def test_registered_forward_structure(module_class):
@@ -164,7 +187,10 @@ def test_registered_forward_structure(module_class):
     assert ("# Modules" in comments) == composite
     assert ("# Outlets" in comments) == bool(module._given_outlets() or module._drawn_inlets())
     assigned = set(_self_assignments(tree))
-    assert assigned <= set(module.outputs(recurse=False)), f"{cls.__name__}: forward assigns"
+    if cls._unconverted:
+        assert assigned <= set(module.outputs(recurse=False)), f"{cls.__name__}: forward assigns"
+    else:
+        assert not assigned, f"{cls.__name__}: forward writes {sorted(assigned)} to self"
 
     declarations = list(module.inlets().values()) + list(module.outlets().values())
     assert all(

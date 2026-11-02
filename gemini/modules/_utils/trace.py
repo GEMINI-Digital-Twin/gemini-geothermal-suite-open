@@ -29,7 +29,7 @@ def trace_wiring(plant, inputs):
 def _consumer(path, producers, edges):
     """Return a pre-hook recording an edge for every inlet some leaf produced."""
 
-    def before(module, inlets):
+    def before(module, inputs, inlets, state):
         for port, stream in inlets.items():
             if isinstance(stream, Stream) and id(stream) in producers:
                 edges.add((*producers[id(stream)], path, port))
@@ -40,7 +40,7 @@ def _consumer(path, producers, edges):
 def _producer(path, producers, retained):
     """Return a forward hook remembering which leaf port produced each outlet stream."""
 
-    def after(module, inlets, outlets):
+    def after(module, inputs, inlets, state, outputs, outlets):
         for port, stream in outlets.items():
             if isinstance(stream, Stream):
                 retained.append(stream)
