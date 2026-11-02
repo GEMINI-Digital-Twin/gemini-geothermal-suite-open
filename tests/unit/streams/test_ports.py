@@ -15,8 +15,8 @@ from tests.fixtures.errors import raises
 def streams():
     """Return two distinct streams for mapping tests."""
     return (
-        Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa")),
-        Stream(m_dot=Quantity(2, "kg/s"), T=Quantity(310, "K"), p=Quantity(2e5, "Pa")),
+        Stream(fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa")),
+        Stream(fluid=BRINE, m_dot=Quantity(2, "kg/s"), T=Quantity(310, "K"), p=Quantity(2e5, "Pa")),
     )
 
 

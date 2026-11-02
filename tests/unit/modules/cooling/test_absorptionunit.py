@@ -6,6 +6,7 @@ from gemini.errors import PhysicsError
 from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.cooling import AbsorptionUnit
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -13,9 +14,15 @@ from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
 
 CP = 4217.4
-GENERATOR = Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(361.15, "K"), p=Quantity(3e5, "Pa"))
-CHILLED = Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(285.15, "K"), p=Quantity(3e5, "Pa"))
-COOLING = Stream(m_dot=Quantity(25, "kg/s"), T=Quantity(303.15, "K"), p=Quantity(3e5, "Pa"))
+GENERATOR = Stream(
+    fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(361.15, "K"), p=Quantity(3e5, "Pa")
+)
+CHILLED = Stream(
+    fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(285.15, "K"), p=Quantity(3e5, "Pa")
+)
+COOLING = Stream(
+    fluid=BRINE, m_dot=Quantity(25, "kg/s"), T=Quantity(303.15, "K"), p=Quantity(3e5, "Pa")
+)
 
 
 def unit(mode="chiller", **params):

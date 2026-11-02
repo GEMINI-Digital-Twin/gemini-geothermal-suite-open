@@ -174,9 +174,15 @@ class Doublet(Equipment, Plant):
         )
 
     def _set_si_params(self, path, params, valid_from=None):
-        """Derive the children's values from the design, unless the same call states them."""
+        """Derive the children's values from the design, unless the same call states them.
+
+        Without a fluid nothing is derived: setting the fluid derives again.
+        """
         if path:
             return super()._set_si_params(path, params, valid_from)
+        if self._fluid is None:
+            self._keep_derived({}, params)
+            return super()._set_si_params("", params, valid_from)
         fluid = self.fluid.properties(0, 0)
         values = {"drainage_radius": None, "roughness": None} | self._own_values(params, valid_from)
         if self._lacking(values):

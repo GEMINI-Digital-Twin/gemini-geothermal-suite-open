@@ -9,7 +9,7 @@ from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.power import FlashTurbine, Separator, _physics
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import STEAM, WATER
+from gemini.streams.fluid import BRINE, STEAM, WATER
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
@@ -104,6 +104,7 @@ def test_single_flash_plant_closure():
     """A 250 degC, 100 kg/s feed yields about 9.5 MW; the plant closes in IF97 enthalpies."""
     plant = SingleFlash()
     feed = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(100, "kg/s"),
         T=gm.units.Quantity(523.15, "K"),
         p=gm.units.Quantity(40e5, "Pa"),

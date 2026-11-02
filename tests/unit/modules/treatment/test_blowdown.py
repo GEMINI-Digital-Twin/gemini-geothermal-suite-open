@@ -6,11 +6,13 @@ import gemini as gm
 from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.treatment import Blowdown
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 FEED = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(8, "kg/s"),
     T=gm.units.Quantity(330, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
@@ -47,6 +49,7 @@ def test_blowdown_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(310, "K"),
                 p=gm.units.Quantity(2e5, "Pa"),

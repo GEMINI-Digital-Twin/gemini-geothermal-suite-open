@@ -5,9 +5,10 @@ import pytest
 from gemini.errors import DefinitionError, ValidationError
 from gemini.modules.pumps import ESP
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 
-STREAM = Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
+STREAM = Stream(fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
 
 
 def test_inlets_come_by_position_name_or_mapping_and_controls_by_keyword():

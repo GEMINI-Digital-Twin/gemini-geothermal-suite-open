@@ -11,9 +11,8 @@ from gemini._utils.context import ContextSetting, ContextSettings
 from gemini._utils.strings import did_you_mean, join_names
 from gemini.errors import ValidationError
 from gemini.ops.backend import settings as backend_setting
-from gemini.streams.fluid import BRINE, Fluid
 
-_DEFAULTS = {"precision": "float64", "display_units": "si", "default_fluid": BRINE, "processes": 1}
+_DEFAULTS = {"precision": "float64", "display_units": "si", "processes": 1}
 _CHOICES = {"precision": ("float64", "float32"), "display_units": ("si", "field")}
 
 KEEP = object()
@@ -36,7 +35,7 @@ def _check_names(names):
 
 
 def _validated(values):
-    """Return complete settings with a validated fluid; reject values outside the choices."""
+    """Return complete settings; reject values outside the choices."""
     for name, choices in _CHOICES.items():
         if values[name] not in choices:
             raise ValidationError(
@@ -49,19 +48,12 @@ def _validated(values):
             f"runtime: processes = {processes!r}; expected a whole number of at least 1",
             code="invalid_value",
         )
-    return values | {"default_fluid": Fluid.model_validate(values["default_fluid"])}
+    return values
 
 
 def state():
     """Return a copy of the current runtime settings."""
-    result = _state.get().copy()
-    result["default_fluid"] = result["default_fluid"].model_dump(mode="json")
-    return result
-
-
-def get_default_fluid():
-    """Return the context-local default fluid."""
-    return _state.get()["default_fluid"]
+    return _state.get().copy()
 
 
 def get_precision():
@@ -82,8 +74,7 @@ def get_processes():
 def settings(backend=KEEP, **changes):
     """Apply settings inside a ``with`` block or a decorated function, then restore them.
 
-    The names are ``backend``, ``precision``, ``display_units``, ``default_fluid`` and
-    ``processes``.
+    The names are ``backend``, ``precision``, ``display_units`` and ``processes``.
     ``backend`` selects the kernels of the ops by name, and ``None`` restores the automatic choice
     from the values; ``processes`` is the number of worker processes the trials of a study run
     in, 1 for a serial run; the others are merged into the settings current at entry. Unknown

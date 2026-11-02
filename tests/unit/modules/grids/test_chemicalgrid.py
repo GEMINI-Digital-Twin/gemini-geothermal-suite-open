@@ -2,9 +2,18 @@
 
 import gemini as gm
 from gemini.modules import ChemicalGrid, InhibitorDosing
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 
-OFFER = ChemicalGrid()._offered()["chemical_out"]
+
+def grid():
+    """Return a grid whose product is the reference brine, as the plant states it."""
+    chemicals = ChemicalGrid()
+    chemicals.fluid = BRINE
+    return chemicals
+
+
+OFFER = grid()._offered()["chemical_out"]
 
 
 def test_the_grid_offers_the_product_without_flow():
@@ -16,6 +25,7 @@ def test_the_dosed_amount_is_read_from_the_port():
     """A plant passes what the dosing drew back to the grid."""
     plant = gm.Plant("Dosed")
     plant.add("ChemicalGrid", "chemicals")
+    plant.chemicals.fluid = BRINE
     plant.add("InhibitorDosing", "dosing", {"product_concentration": 0.4})
     plant.connect("chemicals.chemical_out", "dosing.chemical_in")
     plant.connect("feed", "dosing.fluid_in")
@@ -23,6 +33,7 @@ def test_the_dosed_amount_is_read_from_the_port():
     plant.dosing.dose = {"value": 10, "unit": "ppm"}
     result = plant(
         feed=gm.Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(50, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(2e5, "Pa"),
@@ -34,4 +45,4 @@ def test_the_dosed_amount_is_read_from_the_port():
 
 def test_traced_call_matches_one_call_per_row():
     """A grid without a taker traces."""
-    assert_module_matches(ChemicalGrid(), [{}, {}])
+    assert_module_matches(grid(), [{}, {}])

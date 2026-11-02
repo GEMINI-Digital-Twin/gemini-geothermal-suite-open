@@ -513,7 +513,7 @@ the run state with the saved backend and error policy. `to_checkpoint(path)` als
 the first run; the checkpoint then holds the plant and no results. `resume()` continues strictly after the saved
 position, or returns the stored results when the clock is finished; a resumed run gives the same
 results as an uninterrupted one. Resume and live calls re-apply the saved precision and display
-units, but not the default fluid, which only seeds newly built modules and streams.
+units.
 
 ## Live runs
 

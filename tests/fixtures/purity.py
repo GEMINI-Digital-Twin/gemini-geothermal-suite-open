@@ -14,6 +14,7 @@ import numpy as np
 
 from gemini.modules.declarations import Declaration
 from gemini.modules.module import Module
+from gemini.streams.fluid import BRINE
 
 PLAIN = (int, float, complex, str, bool, bytes, type(None))
 SKIPPED = ("_parent",)
@@ -95,7 +96,9 @@ def esp_case():
 
     pump = si.set_params(ESP(), "", ESP_PARAMS)
     pump.frequency = Quantity(50, "Hz")
-    suction = Stream(m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(5e6, "Pa"))
+    suction = Stream(
+        fluid=BRINE, m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(5e6, "Pa")
+    )
 
     def run(module):
         module(fluid_in=suction)

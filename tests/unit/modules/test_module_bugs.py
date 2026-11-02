@@ -7,12 +7,14 @@ from gemini.modules import Filter, Module, ProductionReservoir
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.plants.plant import Plant
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Power
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(10, "kg/s"),
     T=gm.units.Quantity(330, "K"),
     p=gm.units.Quantity(1e6, "Pa"),

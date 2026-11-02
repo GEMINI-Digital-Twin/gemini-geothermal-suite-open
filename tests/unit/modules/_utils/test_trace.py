@@ -5,10 +5,12 @@ from gemini.modules import Filter, Module
 from gemini.modules._utils.trace import trace_wiring
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(10, "kg/s"),
     T=gm.units.Quantity(330, "K"),
     p=gm.units.Quantity(1e6, "Pa"),

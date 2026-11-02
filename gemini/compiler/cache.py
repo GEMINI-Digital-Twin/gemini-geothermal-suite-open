@@ -106,7 +106,7 @@ def _module_guards(module):
         parameters,
         tuple(module._hooks.values()),
         tuple(module._pre_hooks.values()),
-        module.fluid,
+        module._fluid,
     )
 
 

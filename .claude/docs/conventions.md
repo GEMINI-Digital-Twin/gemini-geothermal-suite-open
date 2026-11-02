@@ -29,10 +29,6 @@ imports and lists the violations that the folder work has not yet removed.
 The **run folders** are `modules`, `plants`, `case`, `physics`, `ops`, `runtime`, `engine`,
 `streams`, `units`, `errors` and `_utils`. They import none of `compiler`, `study`, `evaluate` and
 `analysis`, not even inside a function, and `modules` imports neither `plants` nor `engine`.
-Two imports below the rule stay inside a function, neither of them across these layers:
-
-- `Stream.__init__` in `gemini.streams.flows` imports `gemini.runtime` to read the default fluid,
-  because a module-level import would form a cycle through `gemini.streams.fluid`.
 
 `engine` owns `Results` and imports `case` for the `Dataset`; nothing imports `engine` from below, so
 `gemini/engine/__init__.py` needs no import order. `gemini/compiler/__init__.py` registers its

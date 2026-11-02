@@ -6,6 +6,7 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.pumps import CentrifugalPump
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
@@ -30,7 +31,9 @@ def pump():
 def test_best_efficiency_point_by_hand():
     """At the rated speed and the best-efficiency flow every output follows by hand."""
     result = pump()(
-        fluid_in=Stream(m_dot=Quantity(50, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")),
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(50, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+        ),
         frequency=50,
     )
     out = reading(result)
@@ -52,7 +55,7 @@ def test_part_load_efficiency_curve():
     out = reading(
         pump()(
             fluid_in=Stream(
-                m_dot=Quantity(25, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE, m_dot=Quantity(25, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
             ),
             frequency=50,
         )
@@ -66,7 +69,7 @@ def test_affinity_laws_scale_flow_head_and_power():
     rated = reading(
         pump()(
             fluid_in=Stream(
-                m_dot=Quantity(40, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
             ),
             frequency=50,
         )
@@ -74,7 +77,7 @@ def test_affinity_laws_scale_flow_head_and_power():
     slow = reading(
         pump()(
             fluid_in=Stream(
-                m_dot=Quantity(32, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE, m_dot=Quantity(32, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
             ),
             frequency=40,
         )
@@ -87,7 +90,9 @@ def test_affinity_laws_scale_flow_head_and_power():
 def test_first_law_closure_with_flow_work():
     """Electricity becomes sensible heat, flow work and motor heat loss; mass is conserved."""
     machine = pump()
-    suction = Stream(m_dot=Quantity(45, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa"))
+    suction = Stream(
+        fluid=BRINE, m_dot=Quantity(45, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+    )
     result = machine(fluid_in=suction, frequency=47)
     out, discharge = reading(result), result.outlets.fluid_out
     sensible = suction.m_dot * CP * (discharge.T - suction.T)
@@ -101,7 +106,9 @@ def test_first_law_closure_with_flow_work():
 
 def test_zero_flow_is_a_stopped_pump():
     """Zero mass flow raises no pressure and draws no power."""
-    suction = Stream(m_dot=Quantity(0, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa"))
+    suction = Stream(
+        fluid=BRINE, m_dot=Quantity(0, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+    )
     result = pump()(fluid_in=suction, frequency=50)
     assert result.outlets.fluid_out == suction
     assert all(result.outputs[name] == 0 for name in ("head", "shaft_power"))
@@ -114,7 +121,10 @@ def test_off_curve_and_reverse_flow_raise():
     with pytest.raises(PhysicsError, match="off its curve"):
         pump()(
             fluid_in=Stream(
-                m_dot=Quantity(100, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(100, "kg/s"),
+                T=Quantity(330, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             frequency=50,
         )
@@ -122,20 +132,22 @@ def test_off_curve_and_reverse_flow_raise():
     with pytest.raises(PhysicsError, match="head = -"):
         steep(
             fluid_in=Stream(
-                m_dot=Quantity(60, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE, m_dot=Quantity(60, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
             ),
             frequency=50,
         )
     with pytest.raises(PhysicsError, match="reverse flow"):
         pump()(
             fluid_in=Stream(
-                m_dot=Quantity(-1, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE, m_dot=Quantity(-1, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
             ),
             frequency=50,
         )
     with raises(ValidationError, "missing_value"):
         CentrifugalPump()(
-            fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")),
+            fluid_in=Stream(
+                fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+            ),
             frequency=50,
         )
 
@@ -145,7 +157,10 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(330.0, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(330.0, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             frequency=frequency,
         )

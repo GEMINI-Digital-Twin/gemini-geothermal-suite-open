@@ -14,12 +14,14 @@ from gemini.plants._utils import loops
 from gemini.plants._utils.plan import Loop
 from gemini.plants.plant import Plant
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.parity import BACKENDS
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(1.0, "kg/s"),
     T=gm.units.Quantity(300.0, "K"),
     p=gm.units.Quantity(1e5, "Pa"),
@@ -41,6 +43,7 @@ class Relaxer(Module):
     def __init__(self):
         """Declare the circuit ports and the count of the calls."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -81,6 +84,7 @@ class Circuit(Plant):
     def __init__(self):
         """Connect the pump and the relaxer in a ring."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.pump = with_values(CirculationPump())
@@ -398,6 +402,7 @@ class Probed(Relaxer):
     def __init__(self):
         """Declare the second outlet."""
         super().__init__()
+        self.fluid = BRINE
         self.return_out = Outlet(Stream)
 
     def forward(self, inlets):
@@ -413,6 +418,7 @@ class ProbedCircuit(Circuit):
     def __init__(self):
         """Name the side outlet."""
         super().__init__()
+        self.fluid = BRINE
         self.return_out = Outlet(Stream)
         self.connect("relaxer.return_out", "return_out")
 

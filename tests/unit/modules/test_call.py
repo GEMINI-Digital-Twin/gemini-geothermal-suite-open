@@ -5,6 +5,7 @@ import json
 import pytest
 
 import gemini as gm
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.errors import raises
@@ -17,6 +18,7 @@ ESP_PARAMETERS = {
 } | ESP_MODULE
 SUCTION = {
     "fluid_in": {
+        "fluid": {"kind": "brine"},
         "flow": {"value": 150, "unit": "m3/h"},
         "T": {"value": 80, "unit": "degC"},
         "p": {"value": 20, "unit": "bar"},
@@ -53,6 +55,7 @@ def test_evaluate_equals_a_direct_call_bit_for_bit():
 
     direct = si.set_params(ESP(), "", ESP_PARAMETERS)(
         gm.Stream(
+            fluid=BRINE,
             flow={"value": 150, "unit": "m3/h"},
             T={"value": 80, "unit": "degC"},
             p={"value": 20, "unit": "bar"},
@@ -67,8 +70,19 @@ def test_evaluate_equals_a_direct_call_bit_for_bit():
 
 def test_evaluate_accepts_quantities_in_any_unit_of_the_dimension():
     """A ``Quantity`` or its dict converts: the same call in K and in degC gives the same result."""
-    kelvin = {"m_dot": Quantity(12.0, "kg/s"), "T": Quantity(353.15, "K"), "p": Quantity(2e6, "Pa")}
-    celsius = {"m_dot": Quantity(12.0, "kg/s"), "T": Quantity(80, "degC"), "p": Quantity(20, "bar")}
+    fluid = {"kind": "brine"}
+    kelvin = {
+        "m_dot": Quantity(12.0, "kg/s"),
+        "T": Quantity(353.15, "K"),
+        "p": Quantity(2e6, "Pa"),
+        "fluid": fluid,
+    }
+    celsius = {
+        "m_dot": Quantity(12.0, "kg/s"),
+        "T": Quantity(80, "degC"),
+        "p": Quantity(20, "bar"),
+        "fluid": fluid,
+    }
     first = call(inlets={"fluid_in": kelvin})
     assert first["errors"] == []
     assert call(inlets={"fluid_in": celsius})["outlets"] == first["outlets"]
@@ -202,6 +216,7 @@ def test_a_volume_flow_given_as_m_dot_points_to_flow(flow):
     """The code stays that of a wrong inlet; the path, message and suggestion name ``flow``."""
     inlets = {
         "fluid_in": {
+            "fluid": {"kind": "brine"},
             "m_dot": flow,
             "T": {"value": 80, "unit": "degC"},
             "p": {"value": 20, "unit": "bar"},
@@ -220,6 +235,7 @@ def test_a_mass_flow_stays_a_mass_flow(flow):
     """A mass unit goes through ``m_dot`` unchanged."""
     inlets = {
         "fluid_in": {
+            "fluid": {"kind": "brine"},
             "m_dot": flow,
             "T": {"value": 80, "unit": "degC"},
             "p": {"value": 20, "unit": "bar"},

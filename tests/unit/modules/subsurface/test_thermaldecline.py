@@ -11,12 +11,14 @@ from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.subsurface import ThermalDecline
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
 from tests.fixtures.reading import reading
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(50, "kg/s"),
     T=gm.units.Quantity(353.15, "K"),
     p=gm.units.Quantity(2e7, "Pa"),

@@ -8,6 +8,7 @@ import pytest
 import gemini as gm
 from gemini.case.profile import Profile
 from gemini.errors import RunError, ValidationError
+from gemini.streams.fluid import BRINE
 from tests.fixtures.errors import raises
 
 
@@ -53,6 +54,7 @@ def test_profiles_drive_scenario():
     target = Profile.constant(320, unit="K", clock=clock)
     inlet = dict(m_dot=1, T=300, p=1e5)
     boiler = ElectricBoiler()
+    boiler.fluid = BRINE
     boiler.set_params("", {"capacity": gm.units.Quantity(1e6, "W"), "efficiency": 0.9})
     boiler.bindings = {
         "": ModuleBindings(

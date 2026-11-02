@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.physics.geometry import build_path, section_values
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.sample_cases import example_plant
 
@@ -34,6 +35,7 @@ RESERVOIR = dict(
     wellbore_radius=0.1,
 )
 RETURNED = gm.Stream(
+    fluid=BRINE,
     flow={"value": 125.1, "unit": "m3/h"},
     T={"value": 40, "unit": "degC"},
     p={"value": 3, "unit": "bar"},

@@ -11,10 +11,12 @@ from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.physics import energy
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 
 STREAM = gm.Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2.0, "kg/s"),
     T=gm.units.Quantity(300.0, "K"),
     p=gm.units.Quantity(2e5, "Pa"),
@@ -110,6 +112,7 @@ class Source(Module):
     def _offer(self, inlets):
         return {
             "fluid_out": gm.Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(1.0, "kg/s"),
                 T=gm.units.Quantity(self.temperature, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -174,6 +177,7 @@ class Offer(Module):
     def _offer(self, inlets):
         return {
             "fluid_out": gm.Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(8.0, "kg/s"),
                 T=gm.units.Quantity(320.0, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -234,6 +238,7 @@ def test_the_same_plant_is_one_graph_on_every_backend():
     """A power port is traced like a stream; a graph gives the numbers of a direct call."""
     plant = wired()
     stream = gm.Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(np.array([1.0, 2.0]), "kg/s"),
         T=gm.units.Quantity(300.0, "K"),
         p=gm.units.Quantity(2e5, "Pa"),

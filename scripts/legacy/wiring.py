@@ -4,7 +4,6 @@ from copy import deepcopy
 
 from gemini.errors import ValidationError
 from gemini.modules._utils.trace import trace_wiring
-from gemini.runtime import get_default_fluid
 from gemini.streams.flows import Stream
 
 from . import tables
@@ -51,7 +50,7 @@ def _inlet_streams(plant):
     """Return the stated plant inlets as streams of SI values, the fluid being that of the plant."""
     streams = {}
     for port, fields in plant._root_inputs().items():
-        fluid = fields.get("fluid", get_default_fluid())
+        fluid = fields.get("fluid", plant.fluid)
         values = {name: value for name, value in fields.items() if name != "fluid"}
         streams[port] = Stream._si(**values, fluid=fluid)
     return streams

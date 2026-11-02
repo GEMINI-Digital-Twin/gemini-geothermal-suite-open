@@ -10,6 +10,7 @@ from gemini.errors import PhysicsError
 from gemini.modules.pumps import ESP
 from gemini.ops import kernels
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_health_matches, assert_module_matches
 from tests.fixtures.errors import raises
@@ -22,6 +23,7 @@ def test_original_nonzero_power_reference():
     output = si.set_params(ESP(), "", ESP_PARAMS)(
         frequency=60,
         fluid_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(units.m3h_to_m3s(200) * 1000, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(100000, "Pa"),
@@ -44,6 +46,7 @@ def test_fit_recovers_curve_and_health_threshold():
     result = pump(
         frequency=60,
         fluid_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(40, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(1e5, "Pa"),
@@ -64,6 +67,7 @@ def test_the_esp_alone_asks_for_a_plain_scope_under_float32_precision():
     stopped = dict(
         frequency=60,
         fluid_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(0.0, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(100000, "Pa"),
@@ -82,6 +86,7 @@ def _health_rows(pump, flows_kg_s):
         pump(
             frequency=60,
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -119,6 +124,7 @@ def test_traced_call_matches_one_call_per_row_on_every_backend():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -140,6 +146,7 @@ def _design():
 def test_keyword_mapping_and_positional_calls_agree():
     """Every way to pass the inlet gives one head, and a persisted command is that of the call."""
     esp, stream = _design(), Stream(
+        fluid=BRINE,
         flow={"value": 140, "unit": "m3/h"},
         T={"value": 80, "unit": "degC"},
         p={"value": 20, "unit": "bar"},
@@ -154,6 +161,7 @@ def test_keyword_mapping_and_positional_calls_agree():
 def test_no_outputs_keeps_the_outlet_of_a_full_call():
     """Skipping the outputs leaves the outlet stream as it was."""
     esp, stream = _design(), Stream(
+        fluid=BRINE,
         flow={"value": 140, "unit": "m3/h"},
         T={"value": 80, "unit": "degC"},
         p={"value": 20, "unit": "bar"},
@@ -181,6 +189,7 @@ def test_a_flow_where_the_curves_extrapolate_is_a_failed_row_with_the_code():
     inside = pump(
         frequency=60,
         fluid_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(55.0, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(1e5, "Pa"),
@@ -191,6 +200,7 @@ def test_a_flow_where_the_curves_extrapolate_is_a_failed_row_with_the_code():
         pump(
             frequency=60,
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(90.0, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -205,6 +215,7 @@ def test_a_negative_power_is_outside_the_curve():
         si.set_params(ESP(), "", curves)(
             frequency=60,
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(40.0, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -219,6 +230,7 @@ def test_a_stopped_pump_is_inside_its_curve():
         pump(
             frequency=60,
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(0.0, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -235,6 +247,7 @@ def test_a_flow_above_the_speed_scaled_maximum_flow_is_a_failed_row_with_the_ran
         pump(
             frequency=60,
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(45.0, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -246,6 +259,7 @@ def test_a_flow_above_the_speed_scaled_maximum_flow_is_a_failed_row_with_the_ran
         pump(
             frequency=60,
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(60.0, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -255,6 +269,7 @@ def test_a_flow_above_the_speed_scaled_maximum_flow_is_a_failed_row_with_the_ran
         pump(
             frequency=30,
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(30.0, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -305,6 +320,7 @@ def test_a_liquid_without_gas_has_no_gas_at_the_intake():
     outputs = pump(
         frequency=60,
         fluid_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(40.0, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(1e5, "Pa"),

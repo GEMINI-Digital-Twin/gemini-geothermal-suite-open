@@ -42,16 +42,22 @@ def test_unknown_settings_are_rejected():
     assert gm.runtime.get_precision() == "float64"
 
 
-def test_settings_decorator_and_default_fluid():
-    """A decorated function sees the setting on every call; fluids are validated."""
+def test_settings_decorator():
+    """A decorated function sees the setting on every call."""
 
-    @gm.runtime.settings(display_units="field", default_fluid=gm.WATER)
+    @gm.runtime.settings(display_units="field")
     def current():
-        return gm.runtime.get_display_units(), gm.runtime.get_default_fluid()
+        return gm.runtime.get_display_units()
 
-    assert current() == ("field", gm.WATER)
+    assert current() == "field"
     assert gm.runtime.get_display_units() == "si"
-    assert gm.runtime.get_default_fluid() == gm.BRINE
+
+
+def test_there_is_no_default_fluid():
+    """The fluid is no setting: the name is refused and the state holds none."""
+    with pytest.raises(ValidationError, match="default_fluid"):
+        gm.runtime.settings(default_fluid=gm.WATER)
+    assert "default_fluid" not in gm.runtime.state()
 
 
 def test_processes_is_a_whole_number_of_at_least_one():

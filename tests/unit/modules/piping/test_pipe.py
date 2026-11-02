@@ -8,7 +8,7 @@ import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.piping import Pipe
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import Fluid
+from gemini.streams.fluid import BRINE, Fluid
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
@@ -17,6 +17,7 @@ from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(10, "kg/s"),
     T=gm.units.Quantity(353.15, "K"),
     p=gm.units.Quantity(5e5, "Pa"),
@@ -120,6 +121,7 @@ def test_pipe_matches_traced_across_regimes():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(T, "K"),
                 p=gm.units.Quantity(5e5, "Pa"),

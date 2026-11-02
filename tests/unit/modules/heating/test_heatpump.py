@@ -8,7 +8,7 @@ from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.heating import HeatPump
 from gemini.physics import refrigeration
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import Fluid
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -31,8 +31,8 @@ def test_heating_hand_value_and_closure():
     """Sink at setpoint; the closed-form source outlet gives COP = 0.5 * 340 / 47.2 = 3.6."""
     pump = heat_pump("heating")
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     result = pump(source_in=source, sink_in=sink, temperature_setpoint=340)
     out = reading(result)
     assert out.useful_duty == out.condenser_duty == pytest.approx(10 * CP * 20)
@@ -53,8 +53,8 @@ def test_cooling_mode_is_an_electric_chiller():
     """Chilled outlet at setpoint; condenser takes evaporator duty plus electricity."""
     chiller = heat_pump("cooling")
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(285, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(285, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa"))
     result = chiller(source_in=source, sink_in=sink, temperature_setpoint=280)
     out = reading(result)
     load = 20 * CP * 5 / (30 * CP)
@@ -71,12 +71,14 @@ def test_capacity_cap_and_lift_floor():
     """The useful duty stops at capacity; a small lift uses the floor in the COP."""
     pump = heat_pump("heating", capacity=5e5)
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     out = reading(pump(source_in=source, sink_in=sink, temperature_setpoint=340))
     assert out.is_capped and out.useful_duty == pytest.approx(5e5)
     assert out.sink_out_T == pytest.approx(320 + 5e5 / (10 * CP)) and out.sink_out_T < 340
-    warm = Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa"))
+    warm = Stream(
+        fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(330, "K"), p=Quantity(3e5, "Pa")
+    )
     result = pump(source_in=warm, sink_in=sink, temperature_setpoint=330)
     out = reading(result)
     assert out.temperature_lift < 10
@@ -85,10 +87,13 @@ def test_capacity_cap_and_lift_floor():
     cooled = reading(
         heat_pump("cooling")(
             source_in=Stream(
-                m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
             ),
             sink_in=Stream(
-                m_dot=Quantity(200, "kg/s"), T=Quantity(290, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(200, "kg/s"),
+                T=Quantity(290, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             temperature_setpoint=295,
         )
@@ -100,8 +105,8 @@ def test_machine_off_without_demand_flow_or_part_load():
     """No request, a stopped circuit or a load below the minimum leaves both streams as they are."""
     pump = heat_pump("heating", minimum_part_load=0.3)
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     cases = [
         dict(source_in=source, sink_in=sink, temperature_setpoint=310),
         dict(source_in=source._with_si(m_dot=0), sink_in=sink, temperature_setpoint=340),
@@ -120,8 +125,8 @@ def test_machine_off_without_demand_flow_or_part_load():
 def test_invalid_operating_points_raise():
     """Negative flow, a hopeless heating lift and a too small sink flow are out of range."""
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     with pytest.raises(PhysicsError, match="source_in.m_dot = -1"):
         heat_pump("heating")(
             source_in=source._with_si(m_dot=-1), sink_in=sink, temperature_setpoint=340
@@ -133,10 +138,16 @@ def test_invalid_operating_points_raise():
     with pytest.raises(PhysicsError, match="to reject the cooling duty"):
         heat_pump("cooling")(
             source_in=Stream(
-                m_dot=Quantity(100, "kg/s"), T=Quantity(290, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(100, "kg/s"),
+                T=Quantity(290, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             sink_in=Stream(
-                m_dot=Quantity(0.1, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(0.1, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             temperature_setpoint=280,
         )
@@ -182,8 +193,8 @@ def test_lorenz_heating_reproduces_the_upstream_gemini_case():
 def test_lorenz_mode_limits():
     """Lorenz cooling is undefined and a source too cold for a COP above 1 is out of range."""
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     with raises(ValidationError, "invalid_design", match="cop_model = 'lorenz'"):
         heat_pump("cooling", cop_model="lorenz")(
             source_in=source, sink_in=sink, temperature_setpoint=290
@@ -203,8 +214,8 @@ def test_minimum_source_outlet_caps_the_heating_duty(cop_model):
     """
     pump = heat_pump("heating", cop_model=cop_model, minimum_source_outlet_temperature=295)
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     result = pump(source_in=source, sink_in=sink, temperature_setpoint=340)
     out = reading(result)
     assert out.source_out_T == 295 and result.outlets.source_out.T == 295
@@ -221,15 +232,19 @@ def test_minimum_source_outlet_caps_the_heating_duty(cop_model):
 def test_minimum_source_outlet_switches_off_or_raises_a_cooling_setpoint():
     """A source inlet at the minimum leaves no heating duty; a colder chiller setpoint is raised."""
     source, sink = Stream(
-        m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
-    ), Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
+        fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+    ), Stream(fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(320, "K"), p=Quantity(3e5, "Pa"))
     pump = heat_pump("heating", minimum_source_outlet_temperature=300)
     out = reading(pump(source_in=source, sink_in=sink, temperature_setpoint=340))
     assert not out.is_running and out.useful_duty == 0 and out.sink_out_T == 320
     chiller = heat_pump("cooling", minimum_source_outlet_temperature=283)
     result = chiller(
-        source_in=Stream(m_dot=Quantity(20, "kg/s"), T=Quantity(285, "K"), p=Quantity(3e5, "Pa")),
-        sink_in=Stream(m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")),
+        source_in=Stream(
+            fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(285, "K"), p=Quantity(3e5, "Pa")
+        ),
+        sink_in=Stream(
+            fluid=BRINE, m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(3e5, "Pa")
+        ),
         temperature_setpoint=280,
     )
     assert reading(result).source_out_T == pytest.approx(283)
@@ -242,12 +257,16 @@ def _rows(cases):
     return [
         dict(
             source_in=Stream(
+                fluid=BRINE,
                 m_dot=Quantity(source_flow, "kg/s"),
                 T=Quantity(source_T, "K"),
                 p=Quantity(3e5, "Pa"),
             ),
             sink_in=Stream(
-                m_dot=Quantity(sink_flow, "kg/s"), T=Quantity(sink_T, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(sink_flow, "kg/s"),
+                T=Quantity(sink_T, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             temperature_setpoint=setpoint,
         )
@@ -308,7 +327,9 @@ def test_a_stopped_heat_pump_has_no_cop_on_every_backend():
     pump = with_values(HeatPump()).set_params(
         "", {"mode": "heating", "capacity": {"value": 2, "unit": "MW"}, "carnot_fraction": 0.5}
     )
-    stopped = Stream(m_dot=Quantity(0.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(3e5, "Pa"))
+    stopped = Stream(
+        fluid=BRINE, m_dot=Quantity(0.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(3e5, "Pa")
+    )
     for backend in BACKENDS:
         with runtime.settings(backend=backend):
             result = pump(source_in=stopped, sink_in=stopped, temperature_setpoint=313.15)

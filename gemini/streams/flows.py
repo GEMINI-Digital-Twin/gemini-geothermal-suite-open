@@ -49,15 +49,11 @@ class Stream:
         """Accept quantities in any unit of their dimension while retaining SI fields.
 
         ``flow`` accepts a mass flow, or a volume flow converted with the stream's fluid density,
-        instead of ``m_dot``. ``fluid`` defaults to the runtime default fluid.
-        ``gemini.runtime`` is imported here because it imports ``gemini.streams.fluid``;
-        a module-level import would form an import cycle through ``gemini.streams``.
+        instead of ``m_dot``. ``fluid`` is required: a stream without one raises
+        ``missing_value``.
         """
-        from gemini import runtime
-
         _check_arguments(data)
-        fluid = runtime.get_default_fluid() if data.get("fluid") is None else data["fluid"]
-        fluid = _as_fluid(fluid)
+        fluid = _as_fluid(data["fluid"])
         temperature = _si_field(data["T"], "T")
         pressure = _si_field(data["p"], "p")
         if "m_dot" in data:
@@ -203,6 +199,11 @@ def _check_arguments(data):
     missing = [name for name in required if name not in data]
     if missing:
         raise ValidationError(f"Stream: missing argument {', '.join(missing)}", code="invalid_call")
+    if data.get("fluid") is None:
+        raise ValidationError(
+            "Stream.fluid: no value; expected a Fluid or a mapping of its fields",
+            code="missing_value",
+        )
 
 
 def _si_field(value, name):

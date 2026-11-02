@@ -7,13 +7,14 @@ from gemini.errors import DefinitionError, ValidationError
 from gemini.modules import Module
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter, State
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.streams.ports import Ports
 from gemini.units import Quantity
 from gemini.units.quantities import Frequency, Temperature
 from tests.fixtures.errors import raises
 from tests.fixtures.purity import unchanged
 
-STREAM = Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
+STREAM = Stream(fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
 
 
 class Gain(Module):

@@ -83,7 +83,9 @@ def test_two_phase_reverse_flow_reverses_friction():
 def test_zero_flow_unknown_correlation_and_direction():
     """Preserve DPDT zero-flow behavior and reject unknown correlations and directions."""
     path = _path(0.18)
-    stream = Stream(m_dot=Quantity(0, "kg/s"), p=Quantity(1e6, "Pa"), T=Quantity(350, "K"))
+    stream = Stream(
+        fluid=BRINE, m_dot=Quantity(0, "kg/s"), p=Quantity(1e6, "Pa"), T=Quantity(350, "K")
+    )
     result = _physics.pipe_path_profile(path, stream, BRINE, "up", 10, 290)
     assert result.p_out == stream.p and result.T_out == stream.T
     assert result.friction_pressure_drop == result.gravity_pressure_drop == 0
@@ -97,7 +99,9 @@ def test_zero_flow_unknown_correlation_and_direction():
 def test_corrosion_profile_pairs_sections_in_traversal_order():
     """A capitalised direction formerly paired downward results with reversed sections."""
     path = _path(0.1, 0.3)
-    stream = Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(350, "K"), p=Quantity(50e5, "Pa"))
+    stream = Stream(
+        fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(350, "K"), p=Quantity(50e5, "Pa")
+    )
     chemistry = {"co2_fraction": 0.05}
     lower = _physics.corrosion_profile(path, stream, BRINE, "down", 0, 350, chemistry, "DLD")
     upper = _physics.corrosion_profile(path, stream, BRINE, "Down", 0, 350, chemistry, "DLD")
@@ -109,7 +113,9 @@ def test_erosion_check_compares_each_section():
     """Narrow sections run faster and raise the API alarm first."""
     result = _physics.erosion_check(
         _path(0.02, 0.3),
-        Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(350, "K"), p=Quantity(50e5, "Pa")),
+        Stream(
+            fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(350, "K"), p=Quantity(50e5, "Pa")
+        ),
         BRINE,
     )
     assert result["velocity"][0] > result["limit"] > result["velocity"][1]

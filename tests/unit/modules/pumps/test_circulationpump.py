@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.modules import CirculationPump
+from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 
@@ -24,6 +25,7 @@ def test_the_circuit_leaves_at_the_flow_and_the_pressure_of_the_pump():
     """The inlet gives only the temperature and the fluid."""
     result = pump()(
         fluid_in=gm.Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(1.0, "kg/s"),
             T=gm.units.Quantity(320.0, "K"),
             p=gm.units.Quantity(1e5, "Pa"),
@@ -37,6 +39,7 @@ def test_the_electricity_is_the_hydraulic_power_over_the_efficiency():
     """All the electricity leaves as a loss, so the module closes and the water stays as it is."""
     result = pump()(
         fluid_in=gm.Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(1.0, "kg/s"),
             T=gm.units.Quantity(320.0, "K"),
             p=gm.units.Quantity(1e5, "Pa"),
@@ -52,6 +55,7 @@ def test_every_backend_agrees_with_a_direct_call():
     rows = [
         {
             "fluid_in": gm.Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(1.0, "kg/s"),
                 T=gm.units.Quantity(temperature, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),

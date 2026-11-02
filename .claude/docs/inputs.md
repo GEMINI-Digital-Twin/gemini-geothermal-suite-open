@@ -231,7 +231,6 @@ version, the report, the verdict and the series. P5 made concrete.
 | flat dotted `params` of a class plant | nested `params` tree | P6, 7.12 |
 | study settings in `examples/hackathon.py` | `study.json` | P5 |
 | `simulate(clock=)`, `Dataset` `tz`, `DEFAULT_STEP` | `case.time`; offsets in timestamps | P1, 7.25 |
-| `runtime.default_fluid` | plant `fluids` and `site.fluid` | 7.27 |
 | fixed solver tolerances in code | stay in code, documented | 7.5 |
 
 ## 6. What gemini checks on every run (not inputs)
@@ -456,15 +455,15 @@ a setting of the run call, recorded in the run record, and `float64` is the one 
 arithmetic. Open: whether `float32` should exist outside the golden tests at all.
 
 **7.27 The default fluid and `fluids`** (rule: P5, tests 2 and 4). `runtime.default_fluid` (the
-brine of `gemini.streams.fluid.BRINE`) is copied into every new module and stream, a hidden value that
-changes results. It is removed as a setting. The brine of the reservoir is `site.fluid` (it already
+brine of `gemini.streams.fluid.BRINE`) was copied into every new module and stream, a hidden value that
+changed results. It is removed as a setting. The brine of the reservoir is `site.fluid` (it already
 is, through `apply_case`); the working fluid of a closed circuit (water, glycol 30 %) is the
 designer's choice and is the plant's `fluids` entry (`{path: {...}}`, test 2), which stays. The
-worker must find the modules of the samples that rely on the default and state it in their `fluids`
-entry with the values of the default, so numbers do not change. A plant with no case (the measured
-`DoubletHeatPlant`) carries its brine in `fluids` today; under the new design it needs a case. The
-plant's `boundary` section (stored boundary assumptions) is empty in every sample; a stored boundary
-is by test 4 a case or run value, so the section is removed.
+modules of the samples that relied on the default state it in their `fluids` entry with the values of
+the default, so numbers do not change. Built: a module has no fluid until the case or `fluids` sets
+it, and reading `module.fluid` then, or building a `Stream` without `fluid`, raises `missing_value`
+naming the path. The plant `boundary` section stays: the measured twin reads its `stream_defaults`
+(`gemini/engine/bindings.py`), so it is no empty section in every file.
 
 **7.28 The definition of a method** (rule: P5, test 5). The population size per variable (5), the
 smallest population (5), the rejection attempts of `sample` (10000), the penalty for an infeasible
@@ -610,7 +609,7 @@ that names a control or a boundary of a module, or a field of a plant inlet (`re
 a plant input; the `inputs` key is refused. (f) `bindings` is refused in a file (7.15); they stay in
 memory, a checkpoint stores them in its own `bindings` key, and the bindings of the measured
 examples are `tests/fixtures/doublet_heat/bindings.json`, read by the test fixture. (g) `fluids` and
-`boundary` stay keys by module path (7.27 is not built). (h) A string parameter without a `Literal`
+`boundary` stay keys by module path (7.27 is built: no default fluid). (h) A string parameter without a `Literal`
 is a free label (`pump_type`, a pump catalogue name): it has no closed list and no options; every
 other string parameter of the modules and plants declares its list as a `Literal`. (i) The search
 rule below.
@@ -776,7 +775,7 @@ the move of the `initial_*` parameters are not. 7.23 is built for `GRID_COMPOSIT
 the constructor defaults of the class plants (`doublets=1`, `consumers=2`, `service='heating'`,
 `producers=2`, `injectors=1`) stay, because hundreds of calls use them; `size` is a leaf of the file.
 7.1: `technical_life` is not built (see 7.47 g). 7.24 (`study.plan`), 7.25 (time defaults, the `clock`
-argument), 7.27 (`runtime.default_fluid`) and 7.32 (a `sized` marker) are not built: `simulate`
+argument) and 7.32 (a `sized` marker) are not built: `simulate`
 keeps `plan` and `clock`, and `size` computes what it computes today.
 
 ### 7.5 The numerical settings that stay in code
@@ -807,8 +806,7 @@ docstring.
   `measurements`; the bindings of 7.15 are designed only in outline.
 - Decisions whose rule stands and whose code does not follow yet: 7.12 (constructor defaults of the
   class plants), 7.19 (`State` defaults, `initial_*` parameters), 7.23 (fallbacks in physics
-  signatures other than the grid gas), 7.24 (`study.plan`), 7.25 (time defaults), 7.27
-  (`runtime.default_fluid`), 7.32 (`sized`).
+  signatures other than the grid gas), 7.24 (`study.plan`), 7.25 (time defaults), 7.32 (`sized`).
 - `technical_life` per equipment kind (7.1): gemini models no replacement, so no module would read it.
 - The tolerance of the brief for full reinjection (7.13): the samples carry the band they had, as a
   ratio. The brief says only "equal liquid volumes" and gives no number, so a
@@ -820,8 +818,6 @@ docstring.
 - Whether `precision: float32` should exist outside the golden tests (7.26).
 - A `PIDController` integrator at zero is a definition, but 7.19 asks for it in `initial_state` like
   every state.
-- The plant without a case (`DoubletHeatPlant`, measured): it needs a case once `fluids` no longer
-  carries its brine as a default (7.27).
 - Decided: the name `Case` (`gm.Case`, `case.json`).
 
 ## 9. Definitions

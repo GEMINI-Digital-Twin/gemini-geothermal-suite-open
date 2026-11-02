@@ -21,7 +21,7 @@ from copy import deepcopy
 
 from pydantic_core import to_jsonable_python
 
-from gemini import ops, runtime
+from gemini import ops
 from gemini._utils.hooks import RemovableHandle, has_signature
 from gemini._utils.registry import register
 from gemini._utils.strings import (
@@ -154,7 +154,7 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         object.__setattr__(self, "_input_values", {})
         object.__setattr__(self, "_path", "")
         object.__setattr__(self, "_parent", None)
-        object.__setattr__(self, "_fluid", runtime.get_default_fluid())
+        object.__setattr__(self, "_fluid", None)
         object.__setattr__(self, "bindings", {})
         object.__setattr__(self, "boundary", {})
         object.__setattr__(self, "_param_history", [DatedParams(params={})])
@@ -177,7 +177,16 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
 
     @property
     def fluid(self):
-        """Return the fluid this module's streams carry."""
+        """Return the fluid this module's streams carry; ``missing_value`` while none is set.
+
+        The fluid is a case input (``site.fluid``) or an entry of the plant's ``fluids``.
+        """
+        if self._fluid is None:
+            raise ValidationError(
+                f"{self.path}.fluid: no value; expected a fluid from the case (site.fluid) "
+                "or the plant's fluids",
+                code="missing_value",
+            )
         return self._fluid
 
     @fluid.setter

@@ -156,7 +156,7 @@ class ModuleValues:
                     for name, parameter in module._parameters.items()
                     if parameter.initialized
                 },
-                "fluid": module._fluid.model_dump(mode="json"),
+                "fluid": None if module._fluid is None else module._fluid.model_dump(mode="json"),
             }
             for path, module in self.named_modules()
         }
@@ -180,7 +180,8 @@ class ModuleValues:
             values = {
                 name: module.get(name).validate(value) for name, value in entry["params"].items()
             }
-            pending.append((module, values, Fluid._of(entry["fluid"])))
+            fluid = entry["fluid"]
+            pending.append((module, values, None if fluid is None else Fluid._of(fluid)))
         for module, values, fluid in pending:
             for name, value in values.items():
                 module._parameters[name].set(value, explicit=False)

@@ -63,10 +63,8 @@ the folders `case` and `runtime` as the table says. `runtime` is read by every f
 up, and it calls `ops` only to select a backend.
 
 `MAY_IMPORT` in `tests/unit/test_package_boundaries.py` is the table in code.
-`KNOWN_VIOLATIONS_MUST_BECOME_EMPTY` lists the imports that break it today, each with who removes it;
-the test fails when an entry is no longer true or a new violation appears. After the folder work the
-only two entries are the runtime default fluid (`runtime` -> `streams`, `streams` -> `runtime`),
-which the module contract removes (worker A): the fluid is a case input.
+The test fails when an import breaks the table; no exception is listed. (The runtime default fluid,
+the last one, is removed: the fluid is a case input.)
 
 Three readings of the column "may call" that the code needs: `case` reads `physics` (a site gives
 its geotherm by the rule of `physics/ground.py`) and the role table of `plants`; `analysis` takes a

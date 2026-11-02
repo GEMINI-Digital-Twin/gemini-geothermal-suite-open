@@ -19,6 +19,7 @@ from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.physics import geometry
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from scripts.legacy import tables
 from tests.fixtures import FIXTURES, OLD_PROJECT
 from tests.fixtures.esp_design import ESP_MODULE
@@ -39,6 +40,7 @@ def _esp_theoretical_values(row, esp_property):
             pump(
                 frequency=row.ESP_freq,
                 fluid_in=Stream(
+                    fluid=BRINE,
                     m_dot=gm.units.Quantity(units.m3h_to_m3s(row.Qp) * 1000, "kg/s"),
                     T=gm.units.Quantity(300, "K"),
                     p=gm.units.Quantity(units.bar_to_pa(row.ESP_Pin), "Pa"),

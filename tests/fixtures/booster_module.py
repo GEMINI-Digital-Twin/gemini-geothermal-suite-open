@@ -44,6 +44,7 @@ class Booster(Module):
 EXAMPLE = {
     "inlets": {
         "fluid_in": {
+            "fluid": {"kind": "brine"},
             "m_dot": {"value": 10, "unit": "kg/s"},
             "T": {"value": 50, "unit": "degC"},
             "p": {"value": 2, "unit": "bar"},

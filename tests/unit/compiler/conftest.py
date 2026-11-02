@@ -23,6 +23,7 @@ class Gain(Module):
     def __init__(self):
         """Declare one numeric and one text parameter, a control and two outputs."""
         super().__init__()
+        self.fluid = BRINE
 
         # Parameters
         self.scale = Parameter(float)
@@ -74,7 +75,7 @@ def inlet():
         m_dot=Quantity(np.array([1.0, 1.0, 1.0]), "kg/s"),
         T=Quantity(np.array([300.0, 310.0, 320.0]), "K"),
         p=Quantity(np.array([1e5, 2e5, 3e5]), "Pa"),
-        fluid=Gain().fluid,
+        fluid=BRINE,
     )
 
 
@@ -84,6 +85,7 @@ class Stepper(Module):
     def __init__(self):
         """Declare a structural count, a numeric increment, an inlet and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Parameters
         self.steps = Parameter(int, default=2, structural=True)
@@ -117,6 +119,7 @@ class Source(Module):
     def __init__(self):
         """Declare a control, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Controls
         self.rate = Control(float)
@@ -154,6 +157,7 @@ class Meter(Module):
     def __init__(self):
         """Declare a parameter, a control, an inlet, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Parameters
         self.scale = Parameter(float, default=2.0)
@@ -185,6 +189,7 @@ class Line(Module):
     def __init__(self):
         """Declare the children, the output formulas and the ports."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.first = Meter()
@@ -242,6 +247,7 @@ class Tank(Module):
     def __init__(self):
         """Declare a state, an inlet, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # States
         self.level = State(float, default=0.0)
@@ -273,6 +279,7 @@ class Twice(Module):
     def __init__(self):
         """Declare the child, an inlet and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.gain = Gain().set_params("", {"scale": 3.0})
@@ -314,6 +321,7 @@ class Chain(Module):
     def __init__(self, middle):
         """Declare the children, the output formulas, the drive control and the ports."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.first = Meter()
@@ -380,6 +388,7 @@ class Opaque(Module):
     def __init__(self):
         """Declare one child, an inlet, an output to copy and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.meter = Meter()
@@ -413,6 +422,7 @@ class Switcher(Module):
     def __init__(self):
         """Declare an inlet, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # States
         self.level = State(float, default=0.0)
@@ -452,6 +462,7 @@ class Vectored(Module):
     def __init__(self):
         """Declare an inlet, a list output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -477,6 +488,7 @@ class Bounded(Module):
     def __init__(self):
         """Declare the bounded values and the passing stream."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -518,6 +530,7 @@ class Optional(Module):
     def __init__(self):
         """Declare an optional control, an output and no streams."""
         super().__init__()
+        self.fluid = BRINE
 
         # Controls
         self.rate = Control(float | None, default=None)

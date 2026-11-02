@@ -2,7 +2,6 @@
 
 `gm.runtime` (`gemini/runtime.py`) contains process defaults that should not be design parameters:
 
-- `set_default_fluid` / `get_default_fluid`
 - `set_precision("float64" | "float32")` / `get_precision`
 - `set_display_units("si" | "field")` / `get_display_units`
 - `get_processes()`
@@ -23,11 +22,10 @@ independent trials in that many processes (`minimize`: one search per doublet co
 the numbers and the order of a serial run. A worker applies the settings of its parent with one
 process, so it starts no pool of its own; a script that sets `processes` above 1 needs the usual
 `if __name__ == "__main__":` guard, because workers start from a `forkserver`.
-Unknown setting names and values outside the choices raise `gm.errors.ValidationError`; an invalid fluid raises a validation error.
+Unknown setting names and values outside the choices raise `gm.errors.ValidationError`.
 
 Precision selects the ESP's legacy float32 arithmetic, used for golden parity. Display units
-affect module representations only. A default fluid is copied into newly built modules and
-streams; explicit fluids always win. Checkpoints store the settings captured when a run starts.
-`gm.resume` and `gm.live`, like `Engine.resume` and `Engine.live`, re-apply the saved precision and
-display units for their run; the default fluid is not re-applied because the plant already carries
-its fluids.
+affect module representations only. There is no default fluid: a stream and a module carry the
+fluid the case or the plant `fluids` gives, and one without raises `missing_value`. Checkpoints
+store the settings captured when a run starts. `gm.resume` and `gm.live`, like `Engine.resume` and
+`Engine.live`, re-apply the saved precision and display units for their run.

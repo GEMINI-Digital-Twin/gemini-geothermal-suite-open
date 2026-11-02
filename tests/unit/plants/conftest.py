@@ -2,16 +2,23 @@
 
 import pytest
 
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 
 CP = 4217.4
 """Heat capacity [J/kg/K] of the default fluid."""
 
 
+def brine(module):
+    """Return ``module`` carrying the reference brine, as the tests of these plants state it."""
+    module.fluid = BRINE
+    return module
+
+
 def configure_heating_substation(substation, demand=1.5e5):
     """Fill a heating substation: 3 kg/s building loop, 20 kW/K exchanger, 30 degC floor."""
     si.set_params(
-        substation.pump,
+        brine(substation.pump),
         "",
         {"flow": 3.0, "pressure_rise": 5e4, "loop_pressure": 3e5, "efficiency": 0.55},
     )
@@ -46,7 +53,7 @@ def configure_heating_substation(substation, demand=1.5e5):
 def configure_cooling_substation(substation, sensible=6e4, latent=1e4):
     """Fill a cooling substation: 4 kg/s building loop, 30 kW/K exchanger, 18 degC return limit."""
     si.set_params(
-        substation.pump,
+        brine(substation.pump),
         "",
         {"flow": 4.0, "pressure_rise": 5e4, "loop_pressure": 3e5, "efficiency": 0.55},
     )

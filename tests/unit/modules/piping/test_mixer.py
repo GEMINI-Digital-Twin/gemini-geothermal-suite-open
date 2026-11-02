@@ -6,17 +6,19 @@ import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.piping import Mixer
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import WATER, Fluid
+from gemini.streams.fluid import BRINE, WATER, Fluid
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 HOT = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(6, "kg/s"),
     T=gm.units.Quantity(363.15, "K"),
     p=gm.units.Quantity(5e5, "Pa"),
 )
 COLD = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2, "kg/s"),
     T=gm.units.Quantity(323.15, "K"),
     p=gm.units.Quantity(4e5, "Pa"),
@@ -62,11 +64,13 @@ def test_mixer_matches_traced():
     rows = [
         dict(
             branch1_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(a, "kg/s"),
                 T=gm.units.Quantity(ta, "K"),
                 p=gm.units.Quantity(pa, "Pa"),
             ),
             branch2_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(b, "kg/s"),
                 T=gm.units.Quantity(tb, "K"),
                 p=gm.units.Quantity(pb, "Pa"),

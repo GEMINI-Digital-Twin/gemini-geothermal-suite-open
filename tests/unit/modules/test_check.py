@@ -130,6 +130,7 @@ def test_a_shipped_module_with_example_values_passes():
         "parameters": ESP_PARAMS,
         "inlets": {
             "fluid_in": {
+                "fluid": {"kind": "brine"},
                 "m_dot": {"value": 30, "unit": "kg/s"},
                 "T": {"value": 50, "unit": "degC"},
                 "p": {"value": 20, "unit": "bar"},

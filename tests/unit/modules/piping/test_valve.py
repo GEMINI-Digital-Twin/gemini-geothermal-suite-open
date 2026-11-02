@@ -6,7 +6,7 @@ import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.piping import Valve
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import Fluid
+from gemini.streams.fluid import BRINE, Fluid
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 
@@ -14,6 +14,7 @@ KV = 100 / 3600 / 1e5**0.5
 """Flow coefficient [m3/s/Pa^0.5] of a catalogue Kv = 100 m3/h/bar^0.5."""
 
 STREAM = Stream(
+    fluid=BRINE,
     flow={"value": 36, "unit": "m3/h"},
     T=gm.units.Quantity(353.15, "K"),
     p=gm.units.Quantity(20e5, "Pa"),
@@ -93,6 +94,7 @@ def test_valve_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(353.15, "K"),
                 p=gm.units.Quantity(20e5, "Pa"),

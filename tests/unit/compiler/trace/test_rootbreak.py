@@ -12,6 +12,7 @@ from gemini.engine.rowwise import stacked
 from gemini.errors import PhysicsError
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.unit.compiler.conftest import Chain, Gain, Opaque, Tank
 
 
@@ -114,6 +115,7 @@ class Listing(gm.modules.Module):
     def __init__(self):
         """Declare one stream and its list."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)

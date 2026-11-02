@@ -15,6 +15,7 @@ from gemini.errors import ValidationError
 from gemini.modules import Module, ModuleDict
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.streams.ports import Ports
 from gemini.units import Quantity
 from gemini.units.quantities import Electricity, Frequency
@@ -75,6 +76,7 @@ def test_registration_construction_and_state():
 def test_call_output_and_signature_guards():
     """All supported inlet call forms resolve to the same fixed Ports shape."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -96,6 +98,7 @@ def test_call_output_and_signature_guards():
 def test_a_wrong_call_names_the_inlets():
     """Missing, misspelled, mixed, invalid and repeated inlets each say what is valid."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -136,6 +139,7 @@ def test_a_wrong_call_names_the_inlets():
 def test_outlet_dict_names_and_flow_types_are_checked(monkeypatch):
     """Forward returns exactly one declared, correctly typed outlet dictionary."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -200,6 +204,7 @@ class NestedParent(Module):
 def test_output_records_are_thread_local():
     """Concurrent evaluations never share output records."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -216,6 +221,7 @@ def test_output_records_are_thread_local():
 def test_output_records_are_nested_per_call():
     """A child's call inside its parent keeps its own inputs and outputs."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -233,6 +239,7 @@ def test_uninitialized_and_hooks():
     with raises(gm.errors.ValidationError, "missing_value", match="uninitialized"):
         module(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(1, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e5, "Pa"),
@@ -248,6 +255,7 @@ def test_uninitialized_and_hooks():
     )
     module(
         fluid_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(1, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(1e5, "Pa"),
@@ -295,6 +303,7 @@ class RequiredInputs(Module):
 def test_input_resolution_units_bounds_and_metadata():
     """Per-call, persistent and default values resolve in order and validate as SI."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -314,6 +323,7 @@ def test_input_resolution_units_bounds_and_metadata():
 def test_missing_input_and_unknown_keyword_errors_are_complete():
     """Missing and unknown values report path, kind, unit and valid names before forward."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -337,6 +347,7 @@ def test_missing_input_and_unknown_keyword_errors_are_complete():
 def test_call_inputs_and_hook_assignments_do_not_leak():
     """Context-local values survive nesting and pre-hook changes last for one call only."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -380,6 +391,7 @@ def test_call_inputs_and_hook_assignments_do_not_leak():
 def test_hooks_are_ordered_removable_and_observe_named_ports():
     """Hooks use named ports and preserve outlets; a hook returns outputs, never outlets."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -431,6 +443,7 @@ def test_set_inputs_uses_recursive_paths_and_suggests_mistakes():
             # Modules
             self.child(
                 fluid_in=Stream(
+                    fluid=BRINE,
                     m_dot=gm.units.Quantity(1, "kg/s"),
                     T=gm.units.Quantity(300, "K"),
                     p=gm.units.Quantity(1e5, "Pa"),
@@ -485,6 +498,7 @@ def test_missing_output_and_named_hook_ordering():
             return outlets
 
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -507,6 +521,7 @@ def test_missing_output_and_named_hook_ordering():
 def test_no_outputs_is_nested_thread_local_context_and_decorator():
     """The fast path skips output callbacks, formulas, hooks and output checks."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -534,6 +549,7 @@ def test_no_outputs_is_nested_thread_local_context_and_decorator():
 
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(1, "kg/s"),
     T=gm.units.Quantity(300, "K"),
     p=gm.units.Quantity(1e5, "Pa"),
@@ -696,6 +712,7 @@ def test_an_eager_call_divides_silently_and_returns_plain_python_values():
     """Parameters, controls and inlet fields are NumPy scalars inside; results are Python."""
     module = Quotient()
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(0.0, "kg/s"),
         T=gm.units.Quantity(300.0, "K"),
         p=gm.units.Quantity(1e5, "Pa"),
@@ -733,6 +750,7 @@ def test_a_forced_numpy_backend_keeps_plain_division_silent():
 
 def _rows_stream(flows):
     return Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(np.array(flows), "kg/s"),
         T=gm.units.Quantity(np.full(len(flows), 300.0), "K"),
         p=gm.units.Quantity(np.full(len(flows), 1e5), "Pa"),

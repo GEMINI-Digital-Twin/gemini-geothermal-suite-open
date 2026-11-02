@@ -89,13 +89,6 @@ study``, ``case`` below the engine (it reads ``physics`` for the geotherm and ``
 role table), ``analysis`` on top of ``plants`` and read by ``study``, and ``runtime`` read by every
 folder from ``streams`` up. ``compiler`` may import everything and
 nothing imports it."""
-KNOWN_VIOLATIONS_MUST_BECOME_EMPTY = {
-    ("gemini/runtime.py", "streams"): "default_fluid: worker A removes it (module contract)",
-    ("gemini/streams/flows.py", "runtime"): "default_fluid: worker A removes it (module contract)",
-}
-"""The imports that break R4 today, each with who removes it. Phase 1 (the folder work) emptied
-this set but for the runtime default fluid, which the module contract removes (worker A); the
-test fails the moment an entry is no longer true or a new violation appears."""
 
 
 def folder_of(path):
@@ -142,7 +135,7 @@ def import_violations():
 
 def test_imports_follow_one_direction():
     """No folder imports one that the table of ``structure.md`` does not let it call."""
-    assert import_violations() == set(KNOWN_VIOLATIONS_MUST_BECOME_EMPTY)
+    assert import_violations() == set()
 
 
 def test_every_folder_has_a_row_in_the_table():

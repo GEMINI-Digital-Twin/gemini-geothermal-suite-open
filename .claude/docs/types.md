@@ -8,9 +8,7 @@ input readers are `case/profile.py` and `units/inputs.py`. The declarations (`Pa
 `Boundary`, `State`) are in `gemini.modules`, and `Quantity` in `gemini.units`. Types depend on the
 standard library, Pydantic, pandas/NumPy for profiles, `gemini.physics` for property calculations,
 `gemini.units`, `gemini.errors` and `gemini._utils`. They never
-import equipment or the engine. `Stream.__init__` reads the runtime default fluid
-through a function-level import of `gemini.runtime` (see
-[conventions.md](conventions.md#dependencies)).
+import equipment or the engine. A `Stream` requires its `fluid`.
 
 | GEMINI | Purpose |
 | --- | --- |
@@ -121,7 +119,7 @@ helpers remain in `gemini.units`.
 `Stream(flow=..., T=..., p=..., fluid=None)` accepts mass flow (`kg/s`, `t/h`) or volumetric flow
 (`m3/s`, `m3/h`, `l/s`) and converts it with the stream's fluid density. Plain `flow` numbers are
 refused: `flow`, `m_dot`, `T` and `p` are quantities (`Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"),
-p=Quantity(1, "bar"))`), and a bare number or any text, such as `flow="150"` or `flow="150 m3/h"`, raises `gm.errors.ValidationError` (`invalid_value`), and passing both
+p=Quantity(1, "bar"), fluid=BRINE)`), and a bare number or any text, such as `flow="150"` or `flow="150 m3/h"`, raises `gm.errors.ValidationError` (`invalid_value`), and passing both
 `flow` and `m_dot` raises `gm.errors.ValidationError`, as do an unknown keyword (with a did-you-mean),
 a missing field and a `fluid` that is neither a `Fluid` nor a mapping of its fields. The explicit
 `m_dot` field is a mass flow quantity. Without `fluid` the constructor uses the runtime default

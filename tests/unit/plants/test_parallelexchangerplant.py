@@ -3,6 +3,7 @@
 import pytest
 
 import gemini as gm
+from gemini.streams.fluid import BRINE
 from tests.fixtures.sample_cases import example_plant
 
 SECONDARY = gm.Stream(
@@ -12,6 +13,7 @@ SECONDARY = gm.Stream(
     fluid=gm.Fluid(kind="water"),
 )
 FITTED_INJECTION = gm.Stream(
+    fluid=BRINE,
     flow={"value": 125.1, "unit": "m3/h"},
     T={"value": 70, "unit": "degC"},
     p={"value": 44.47, "unit": "bar"},

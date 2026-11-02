@@ -6,6 +6,7 @@ or the plant already holds.
 """
 
 from gemini.physics import combustion
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.esp_design import ESP_DESIGN
 from tests.fixtures.gas import GRID_COMPOSITION
@@ -79,6 +80,12 @@ def design_values(module):
 
 
 def with_values(module, **values):
-    """Return ``module`` with the design values it lacks set, then ``values`` (SI, by path)."""
+    """Return ``module`` with the design values it lacks set, then ``values`` (SI, by path).
+
+    A module of the tree without a fluid carries the reference brine, as a test states it.
+    """
+    for part in module.modules():
+        if part._fluid is None:
+            part._set_own_fluid(BRINE)
     module.set_params("", si.params(module, design_values(module) | values))
     return module

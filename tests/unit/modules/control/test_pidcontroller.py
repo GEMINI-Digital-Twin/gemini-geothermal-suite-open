@@ -9,6 +9,7 @@ from gemini.modules.control import PIDController
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output
 from gemini.modules.storage import ThermalStorage
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Temperature
 from tests.fixtures import si
 from tests.fixtures.air import air
@@ -175,11 +176,13 @@ def test_controller_steps_inside_a_composite():
     )
     streams = {
         "charge_in": Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(1.0, "kg/s"),
             T=gm.units.Quantity(353.15, "K"),
             p=gm.units.Quantity(3e5, "Pa"),
         ),
         "discharge_in": Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(0.0, "kg/s"),
             T=gm.units.Quantity(313.15, "K"),
             p=gm.units.Quantity(3e5, "Pa"),

@@ -5,7 +5,7 @@ import pytest
 from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.treatment import Degasser
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import Fluid
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -21,7 +21,9 @@ def test_equipment_forward():
         "", {"heat_transfer_coefficient": Quantity(100000, "W/K")}
     )
     result = c(
-        fluid_in=Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa"))
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+        )
     )
     assert sum(s.m_dot for s in result.outlets.values() if isinstance(s, Stream)) == 1
     assert result.outlets["liquid_out"].T == 300

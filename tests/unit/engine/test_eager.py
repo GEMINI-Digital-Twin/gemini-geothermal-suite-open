@@ -15,6 +15,7 @@ from gemini.modules import Module
 from gemini.modules.declarations import Control, Inlet, Outlet, Output
 from gemini.plants._utils.plan import Solve
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.engine_plants import (
     Booster,
     holder_plant,
@@ -84,6 +85,7 @@ class Gate(Module):
     def __init__(self):
         """Declare a level, an inlet, a rate and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)

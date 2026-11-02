@@ -124,8 +124,8 @@ class Plant(PortResolver, Module):
 
     @property
     def fluid(self):
-        """Return the fluid of the plant."""
-        return self._fluid
+        """Return the fluid of the plant; ``missing_value`` while none is set."""
+        return super().fluid
 
     @fluid.setter
     def fluid(self, value):

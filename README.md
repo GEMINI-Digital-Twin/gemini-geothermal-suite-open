@@ -47,7 +47,7 @@ design = {
     for name, parameter in plant.doublet.esp.named_parameters()
 }
 esp = gm.modules.ESP().set_params("", design)
-stream = gm.Stream(flow={"value": 100, "unit": "m3/h"}, T={"value": 80, "unit": "C"}, p={"value": 20, "unit": "bar"})
+stream = gm.Stream(flow={"value": 100, "unit": "m3/h"}, T={"value": 80, "unit": "C"}, p={"value": 20, "unit": "bar"}, fluid=gm.BRINE)
 out = esp(fluid_in=stream, frequency={"value": 50, "unit": "Hz"})
 assert out.outputs.head == esp({"fluid_in": stream}, frequency={"value": 50, "unit": "Hz"}).outputs.head
 assert out.outputs.head == esp(stream, frequency={"value": 50, "unit": "Hz"}).outputs.head

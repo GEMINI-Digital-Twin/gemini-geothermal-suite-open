@@ -7,7 +7,7 @@ from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules import GasGrid
 from gemini.modules.heating import CHP
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import Fluid
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -17,7 +17,9 @@ from tests.fixtures.gas import GRID_COMPOSITION
 from tests.fixtures.reading import reading
 
 CP = 4217.4
-WATER = Stream(m_dot=Quantity(20, "kg/s"), T=Quantity(333.15, "K"), p=Quantity(3e5, "Pa"))
+WATER = Stream(
+    fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(333.15, "K"), p=Quantity(3e5, "Pa")
+)
 GRID_GAS = with_values(GasGrid())._offered()["gas_out"]
 
 
@@ -91,7 +93,10 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(T, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(T, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             fuel_in=GRID_GAS,
             load_fraction=load,

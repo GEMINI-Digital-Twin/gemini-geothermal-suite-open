@@ -18,6 +18,7 @@ from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 BRINE = Stream(
+    fluid=DEFAULT_FLUID,
     m_dot=gm.units.Quantity(3, "kg/s"),
     T=gm.units.Quantity(273.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),

@@ -6,6 +6,7 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.exchangers import Cooler
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.air import air
@@ -14,7 +15,9 @@ from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 CP = 4217.4
-HOT = Stream(m_dot=Quantity(20, "kg/s"), T=Quantity(313.15, "K"), p=Quantity(3e5, "Pa"))
+HOT = Stream(
+    fluid=BRINE, m_dot=Quantity(20, "kg/s"), T=Quantity(313.15, "K"), p=Quantity(3e5, "Pa")
+)
 
 
 def cooler(cooler_type, **params):
@@ -98,7 +101,10 @@ def test_traced_call_matches_one_call_per_row(cooler_type):
     rows = [
         dict(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(T, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(T, "K"),
+                p=Quantity(3e5, "Pa"),
             ),
             temperature_setpoint=setpoint,
             air_in=air(wet_bulb),

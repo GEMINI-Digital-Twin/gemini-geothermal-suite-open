@@ -11,6 +11,7 @@ import gemini as gm
 from gemini.engine.chunks import PathColumns, ResultChunk
 from gemini.engine.results import Results
 from gemini.modules.results import Health, ModuleResult, Values
+from gemini.streams.fluid import BRINE
 from gemini.streams.ports import Ports
 from gemini.units.shapes import problem
 from tests.fixtures.errors import raises
@@ -365,6 +366,7 @@ def test_durations_are_the_ones_of_the_dictionary(fast_run_results):
 def fast_run_results():
     """Return the results of a small run of two ticks."""
     plant = gm.Plant("Hot")
+    plant.fluid = BRINE
     plant.add(
         "HeatingGrid",
         name="users",

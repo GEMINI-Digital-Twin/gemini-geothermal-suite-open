@@ -93,11 +93,13 @@ def _run_entries(plant, results):
             },
             {
                 "hot_in": {
+                    "fluid": {"kind": "brine"},
                     "m_dot": gm.units.Quantity(40.0, "kg/s"),
                     "T": {"value": 90, "unit": "degC"},
                     "p": {"value": 5, "unit": "bar"},
                 },
                 "cold_in": {
+                    "fluid": {"kind": "brine"},
                     "m_dot": gm.units.Quantity(40.0, "kg/s"),
                     "T": {"value": 40, "unit": "degC"},
                     "p": {"value": 5, "unit": "bar"},

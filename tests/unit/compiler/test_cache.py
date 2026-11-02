@@ -9,12 +9,14 @@ import gemini as gm
 from gemini.compiler.cache import GraphCache, graph_cache
 from gemini.compiler.interpret.run_graph import run_graph
 from gemini.compiler.run import graph_feeds
+from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 
 
 def _wired(first, second):
     """Return a plant of two valves in series, ``first`` then ``second``."""
     plant = gm.Plant("series")
+    plant.fluid = BRINE
     plant.add(
         "Valve", name="a", params={"flow_coefficient": gm.units.Quantity(1e-3, "m3/s/Pa^0.5")}
     )

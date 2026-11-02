@@ -8,11 +8,13 @@ from gemini.modules import Module
 from gemini.modules.bindings import Binding, ModuleBindings
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter, State
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Duty, Energy, Temperature
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 STREAM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(1, "kg/s"),
     T=gm.units.Quantity(350, "K"),
     p=gm.units.Quantity(1e6, "Pa"),

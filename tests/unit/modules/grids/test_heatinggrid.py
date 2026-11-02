@@ -7,6 +7,7 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules import HeatingGrid
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
@@ -14,6 +15,7 @@ from tests.fixtures.reading import reading
 
 CP = 4217.4
 SUPPLY = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2.0, "kg/s"),
     T=gm.units.Quantity(343.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
@@ -80,6 +82,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             supply_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(T, "K"),
                 p=gm.units.Quantity(3e5, "Pa"),

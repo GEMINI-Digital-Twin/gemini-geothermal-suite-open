@@ -8,6 +8,7 @@ import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.plants import CoolingSubstation, HeatingSubstation
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.air import air
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.errors import raises
@@ -15,11 +16,13 @@ from tests.fixtures.reading import reading
 
 CP = 4217.4
 HOT = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(4.0, "kg/s"),
     T=gm.units.Quantity(348.15, "K"),
     p=gm.units.Quantity(6e5, "Pa"),
 )
 CHILLED = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(6.0, "kg/s"),
     T=gm.units.Quantity(279.15, "K"),
     p=gm.units.Quantity(6e5, "Pa"),

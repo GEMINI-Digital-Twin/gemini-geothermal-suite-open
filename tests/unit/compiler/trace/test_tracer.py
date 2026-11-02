@@ -10,6 +10,7 @@ from gemini.compiler.run import run
 from gemini.compiler.trace.tracer import Tracer, parameter_shape
 from gemini.errors import DefinitionError, PhysicsError, ValidationError
 from gemini.modules.declarations import UNSET
+from gemini.streams.fluid import BRINE
 from tests.fixtures.errors import raises
 
 
@@ -119,6 +120,7 @@ def test_a_stream_built_in_forward_traces_and_keeps_its_limits(gain):
     graph = Tracer().trace(module, {"fluid_in": module.fluid})
     assert any(node.op == "check" for node in graph.nodes)
     stream = gm.Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(np.array([1.0, 1.0]), "kg/s"),
         T=gm.units.Quantity(300.0, "K"),
         p=gm.units.Quantity(np.array([2e5, 1e5]), "Pa"),

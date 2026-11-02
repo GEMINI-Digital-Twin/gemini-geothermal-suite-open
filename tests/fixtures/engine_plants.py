@@ -16,6 +16,7 @@ from gemini.modules.declarations import Control, Inlet, Outlet, Output, Paramete
 from gemini.modules.results import Health
 from gemini.plants.plant import Plant
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Electricity, Ratio
 
 TICKS = pd.date_range("2024-01-01", periods=12, freq="15min", tz="UTC")
@@ -27,6 +28,7 @@ class Booster(Module):
     def __init__(self):
         """Declare a parameter, an inlet, a control, outputs and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Parameters
         self.gain = Parameter(float, default=2.0)
@@ -77,6 +79,7 @@ class Reservoir(Module):
     def __init__(self):
         """Declare a state, an inlet, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # States
         self.total = State(float, default=0.0)
@@ -108,6 +111,7 @@ class Pair(Module):
     def __init__(self):
         """Declare the children and the bindings of both twins."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.first = Booster()
@@ -186,6 +190,7 @@ class Duo(Module):
     def __init__(self):
         """Declare the children, the inlet, the outputs and the outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.front = Booster()
@@ -226,6 +231,7 @@ class Holder(Module):
     def __init__(self):
         """Declare the child."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.duo = Duo()
@@ -255,6 +261,7 @@ class Warmer(Module):
     def __init__(self):
         """Declare a control, an inlet, an output and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Controls
         self.target = Control(float)
@@ -286,6 +293,7 @@ class Carrier(Module):
     def __init__(self):
         """Declare an inlet and an outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -304,6 +312,7 @@ class Ring(Plant):
     def __init__(self):
         """Connect the two modules in a ring."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.warmer = Warmer()

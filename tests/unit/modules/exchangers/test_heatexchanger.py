@@ -10,7 +10,7 @@ from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.results import NOT_ASSESSED
 from gemini.physics import heat_transfer
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import WATER
+from gemini.streams.fluid import BRINE, WATER
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si
 from tests.fixtures.designs import with_values
@@ -58,6 +58,7 @@ def exchanger_for(row, measured, ua):
     )
     streams = {
         "hot_in": Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(measured["m_dot_hot"], "kg/s"),
             T=gm.units.Quantity(measured["hot_in_T"], "K"),
             p=gm.units.Quantity(units.bar_to_pa(row.HEX_Pin), "Pa"),
@@ -105,10 +106,12 @@ def test_first_law_equal_capacity_and_limits(arrangement):
     )
     c = si.set_params(with_values(HeatExchanger()), "", p)
     hot, cold = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(10, "kg/s"),
         T=gm.units.Quantity(350, "K"),
         p=gm.units.Quantity(1e6, "Pa"),
     ), Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(10, "kg/s"),
         T=gm.units.Quantity(300, "K"),
         p=gm.units.Quantity(1e6, "Pa"),
@@ -147,14 +150,14 @@ def test_health_is_not_assessed_when_measurements_cannot_determine_ua():
         },
     )
     stopped = exchanger(
-        hot_in=Stream(**si.stream(m_dot=0, T=350, p=1e6)),
-        cold_in=Stream(**si.stream(m_dot=10, T=300, p=1e6)),
+        hot_in=Stream(fluid=BRINE, **si.stream(m_dot=0, T=350, p=1e6)),
+        cold_in=Stream(fluid=BRINE, **si.stream(m_dot=10, T=300, p=1e6)),
     )
     measured = dict(hot_out_T=340, cold_out_T=310)
     assert exchanger.health(stopped, measured) is None
     running = exchanger(
-        hot_in=Stream(**si.stream(m_dot=10, T=350, p=1e6)),
-        cold_in=Stream(**si.stream(m_dot=10, T=300, p=1e6)),
+        hot_in=Stream(fluid=BRINE, **si.stream(m_dot=10, T=350, p=1e6)),
+        cold_in=Stream(fluid=BRINE, **si.stream(m_dot=10, T=300, p=1e6)),
     )
     assert exchanger.health(running, measured) is not None
     exchanger.set_params("", {"thermal_conductance": gm.units.Quantity(0, "W/K")})
@@ -182,11 +185,13 @@ def test_traced_call_matches_one_call_per_row(arrangement):
     rows = [
         dict(
             hot_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(hot, "kg/s"),
                 T=gm.units.Quantity(hot_T, "K"),
                 p=gm.units.Quantity(1e6, "Pa"),
             ),
             cold_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(cold, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e6, "Pa"),
@@ -226,11 +231,13 @@ def test_health_on_arrays_matches_one_call_per_row(arrangement):
     exchanger = _health_exchanger(arrangement)
     streams = dict(
         hot_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(10, "kg/s"),
             T=gm.units.Quantity(350, "K"),
             p=gm.units.Quantity(1e6, "Pa"),
         ),
         cold_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(10, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(1e6, "Pa"),
@@ -254,11 +261,13 @@ def test_health_on_arrays_marks_undetermined_rows_not_assessed():
     exchanger = _health_exchanger("counterflow")
     result = exchanger(
         hot_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(10, "kg/s"),
             T=gm.units.Quantity(350, "K"),
             p=gm.units.Quantity(1e6, "Pa"),
         ),
         cold_in=Stream(
+            fluid=BRINE,
             m_dot=gm.units.Quantity(10, "kg/s"),
             T=gm.units.Quantity(300, "K"),
             p=gm.units.Quantity(1e6, "Pa"),

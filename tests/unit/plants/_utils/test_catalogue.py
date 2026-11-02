@@ -20,17 +20,17 @@ TEMPLATE_PLANTS = (
 )
 """The plants whose values are the sample problem's, in ``examples/``, not an example."""
 FORMER_EXAMPLES = {
-    "ATESPlant": "8aa9d46daaa933276799cb86763a972fdf7000693459d6513d275a08fe7d4941",
-    "BoilerChpPlant": "f297023560de79d991173e2696a2b4aa2d04ebee14bd389ce7244b6a5c1b6de8",
-    "CoolingSubstation": "c6f91a2b49906b839d249471d2b2b86c940e381d5e2987e27c96006d12e45dad",
-    "DistrictEnergyPlant": "19289496a9c9559639477a74275b4a03ce4c4014dd1594128ef295c6c32d2d79",
-    "DistrictNetwork": "d7d920dff09796c213f63eaff80a3633bda6a5962b5d63e0d37da5a473386df3",
-    "Doublet": "2d4e3a0e75760ee1db12a32361b4630e42332f750390d3718cf5aeddd4d70aa9",
-    "DoubletHeatPlant": "b6019deaed1906d70e148ac41b1f2b1e8679f7fcbc9e39e46544a301220297aa",
-    "HeatingSubstation": "6f6e89af0399cc0a47f83309b5807a42c21a9d592bb1a38d794a0baf086cd43e",
+    "ATESPlant": "037993cd472b8729886394486d927c7d27eed8ce0ace52e2963248e472f1a830",
+    "BoilerChpPlant": "7a32cc7c5c97b86a53422f0ebcf89ecf6ab2167917776629db4161d8c4716083",
+    "CoolingSubstation": "f90588b16b8c7090313838f4d672c75fe0e0b5fd9227b86017732f6ee8941d48",
+    "DistrictEnergyPlant": "fa437903a8850b0c41eee989758438205d4eb1968e8f640afed7658a37fe61c2",
+    "DistrictNetwork": "4767b9c7c29954fdeb230ca394c37ad0cc6aa3913ba5595deb0d0e8d27da5014",
+    "Doublet": "8848061e7206343217e583b3fad50618e9a3ef6b09345c745bb4ad8b8d09725e",
+    "DoubletHeatPlant": "acef2ce645f8fc3066383ce5858205386a879e67d9c091fe355cff0e340c78cf",
+    "HeatingSubstation": "5e63a89c69ab1baa4545be001a08797277979f0f53e6d3d84974f3c59da7f89a",
     "MultiWellPlant": "78b05793a3a184381a0d9f00ed1696b57b49efc80afd6015dc4112d4796a2733",
-    "NodalDoublet": "ef0ff9c3ed5b412b454f4727d0ce657dd95cb2401762e3acc47d7f223c3c5c42",
-    "ParallelExchangerPlant": "58bdcff4a2d57026aae2e6659178e135e78daab3b67a087cad149a3dec0c049e",
+    "NodalDoublet": "4cde2473e2a42058c3760174fb662ee2e5c74a88932f94d7735c204ee519800d",
+    "ParallelExchangerPlant": "ea06627d3057c1735a2af649fe72d426ead0c292d81409bf9a2c864f25265842",
 }
 """Hash of ``to_dict()`` of the plant built from each whole example file these values replaced.
 

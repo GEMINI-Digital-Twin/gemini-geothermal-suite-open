@@ -8,12 +8,14 @@ import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.power import ORC
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
 
 BRINE = Stream(
+    fluid=DEFAULT_FLUID,
     m_dot=gm.units.Quantity(100, "kg/s"),
     T=gm.units.Quantity(423.15, "K"),
     p=gm.units.Quantity(10e5, "Pa"),
@@ -96,6 +98,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=DEFAULT_FLUID,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(T, "K"),
                 p=gm.units.Quantity(10e5, "Pa"),

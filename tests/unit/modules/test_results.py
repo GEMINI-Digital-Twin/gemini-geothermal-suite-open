@@ -7,6 +7,7 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.modules.declarations import Output
 from gemini.modules.results import Health, ModuleResult, Values
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.streams.ports import Ports
 from gemini.units import Quantity
 from gemini.units.quantities import Power, PressureDifference, TemperatureDifference
@@ -48,7 +49,9 @@ def test_unknown_values_suggest_close_names(values):
 
 def test_module_result_leaves():
     """Leaves flatten descendant results with relative paths."""
-    stream = Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa"))
+    stream = Stream(
+        fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e5, "Pa")
+    )
     leaf = ModuleResult(outputs=Values(), outlets=Ports({"fluid_out": stream}))
     parent = ModuleResult(
         outputs=Values(), outlets=Ports(), children={"a": leaf, "b": leaf}, is_leaf=False
@@ -99,6 +102,7 @@ def test_trusted_values_equal_checked_values_and_convert_units():
 def chunk_tree():
     """Return a parent over one leaf whose values are arrays over three rows."""
     stream = Stream(
+        fluid=BRINE,
         m_dot=Quantity(np.array([1.0, 2.0, 3.0]), "kg/s"),
         T=Quantity(np.full(3, 300.0), "K"),
         p=Quantity(np.full(3, 1e5), "Pa"),

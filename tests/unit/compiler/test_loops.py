@@ -13,6 +13,7 @@ from gemini.modules import CirculationPump, Module
 from gemini.modules.declarations import Control, Inlet, Outlet, Output
 from gemini.plants.plant import Plant
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 from tests.fixtures.engine_plants import loop_plant
@@ -46,6 +47,7 @@ class Relaxer(Module):
     def __init__(self):
         """Declare the controls, the inlet and the outlet."""
         super().__init__()
+        self.fluid = BRINE
 
         # Inlets
         self.fluid_in = Inlet(Stream)
@@ -103,6 +105,7 @@ class Circuit(Plant):
     def __init__(self):
         """Connect the pump and the relaxer in a ring."""
         super().__init__()
+        self.fluid = BRINE
 
         # Modules
         self.pump = with_values(CirculationPump())

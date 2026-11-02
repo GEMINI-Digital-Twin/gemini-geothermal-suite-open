@@ -5,6 +5,7 @@ import numpy as np
 from gemini.compiler.run import run
 from gemini.modules.wells import InjectionWell
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from gemini.units import Quantity
 from scripts.legacy import tables as mapping
@@ -23,7 +24,9 @@ def test_injection_flow_sign_and_pressure():
         ),
     )
     result = c(
-        wellhead_in=Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(300, "K"), p=Quantity(5e6, "Pa"))
+        wellhead_in=Stream(
+            fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(300, "K"), p=Quantity(5e6, "Pa")
+        )
     )
     out, streams = reading(result), result.outlets
     assert out.friction_pressure_drop < 0 and out.gravity_pressure_drop > 0
@@ -40,7 +43,9 @@ def test_corrosion_profile_uses_injection_flow_sign():
             mapping.from_property(OLD_PROJECT / "injection_well_a06b.param")
         ),
     )
-    stream = Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(300, "K"), p=Quantity(5e6, "Pa"))
+    stream = Stream(
+        fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(300, "K"), p=Quantity(5e6, "Pa")
+    )
     chemistry = {"co2_fraction": 0.1}
     assert well.corrosion_profile(stream, chemistry, "DLM") == well.corrosion_profile(
         stream._with_si(m_dot=-40), chemistry, "DLM"
@@ -82,17 +87,26 @@ def test_injection_well_traces_with_its_section_profiles():
     rows = [
         {
             "wellhead_in": Stream(
-                m_dot=Quantity(40.0, "kg/s"), T=Quantity(353.15, "K"), p=Quantity(25e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(40.0, "kg/s"),
+                T=Quantity(353.15, "K"),
+                p=Quantity(25e6, "Pa"),
             )
         },
         {
             "wellhead_in": Stream(
-                m_dot=Quantity(10.0, "kg/s"), T=Quantity(340.0, "K"), p=Quantity(20e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(10.0, "kg/s"),
+                T=Quantity(340.0, "K"),
+                p=Quantity(20e6, "Pa"),
             )
         },
         {
             "wellhead_in": Stream(
-                m_dot=Quantity(25.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(5e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(25.0, "kg/s"),
+                T=Quantity(300.0, "K"),
+                p=Quantity(5e6, "Pa"),
             )
         },
     ]
@@ -101,6 +115,7 @@ def test_injection_well_traces_with_its_section_profiles():
         _well(),
         {
             "wellhead_in": Stream(
+                fluid=BRINE,
                 m_dot=Quantity(np.array([40.0, 10.0]), "kg/s"),
                 T=Quantity(np.array([353.15, 340.0]), "K"),
                 p=Quantity(np.array([25e6, 20e6]), "Pa"),

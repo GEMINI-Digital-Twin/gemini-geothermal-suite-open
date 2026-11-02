@@ -137,6 +137,7 @@ def test_depth_gives_the_reservoir_of_every_doublet():
 def test_an_explicit_temperature_wins_and_stays_stated():
     """A child value of one doublet is kept against a later depth, on that doublet alone."""
     plant = gm.plants.HeatingPlant(doublets=2)
+    plant.fluid = BRINE
     plant.set_params(
         "",
         {
@@ -170,6 +171,7 @@ def test_a_depth_on_a_plant_waits_for_the_geotherm_of_each_doublet():
 def test_the_geotherm_of_one_doublet_may_come_in_the_call_of_the_depth():
     """``depth`` goes to each doublet in the same call that gives the doublet its geotherm."""
     plant = gm.plants.HeatingPlant(doublets=1)
+    plant.fluid = BRINE
     geotherm = {
         "d0.surface_temperature": {"value": 12, "unit": "degC"},
         "d0.gradient": {"value": 30, "unit": "K/km"},

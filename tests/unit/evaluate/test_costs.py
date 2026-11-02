@@ -9,6 +9,7 @@ from gemini.engine.apply import apply_case
 from gemini.evaluate._utils import cost
 from gemini.modules import CoolingGrid, Module
 from gemini.modules.pumps import _physics
+from gemini.streams.fluid import BRINE
 from gemini.units import SECONDS_PER_YEAR, Quantity
 from tests.fixtures.cases import FINANCE, costed_economics, make_case
 from tests.fixtures.costed_plants import (
@@ -113,6 +114,7 @@ def test_a_circulation_pump_costs_by_its_shaft_power_at_the_nominal_flow():
             "efficiency": 0.6,
         },
     )
+    pump.fluid = BRINE
     density = pump.fluid.properties(0, 0).rho_l
     power = 50 / density * 3e5 / 0.6
     result = gm.evaluate.capex(plant, make_case(economics={"capex": ALL}))

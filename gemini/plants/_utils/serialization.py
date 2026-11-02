@@ -11,7 +11,6 @@ from functools import partial
 from pydantic import ValidationError as PydanticError
 from pydantic_core import to_jsonable_python
 
-from gemini import runtime
 from gemini._utils.jsonable import to_plain
 from gemini._utils.strings import close_matches, did_you_mean, join_path
 from gemini.errors import GeminiError, ValidationError
@@ -99,14 +98,15 @@ def keep_stated(stated, current, parse):
 
 
 def _fluids(root, stated, baselines):
-    default = runtime.get_default_fluid()
     result = {}
     for path, module in root.named_modules():
         current = module._fluid
+        if current is None:
+            continue
         kept = keep_stated(stated.get(path), current, Fluid._of)
         if kept is not None:
             result[path] = kept
-        elif path in stated or current != baselines.get(path, default):
+        elif path in stated or current != baselines.get(path):
             result[path] = current._to_dict()
     return result
 

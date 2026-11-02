@@ -7,6 +7,7 @@ from gemini.errors import PhysicsError
 from gemini.evaluate import call_energy_balance
 from gemini.modules import Flare
 from gemini.physics import combustion, gas
+from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 
@@ -44,6 +45,7 @@ def test_a_stream_without_a_composition_emits_nothing():
     assert (
         with_values(Flare())(
             gas_in=gm.Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(0.1, "kg/s"),
                 T=gm.units.Quantity(330, "K"),
                 p=gm.units.Quantity(2e5, "Pa"),

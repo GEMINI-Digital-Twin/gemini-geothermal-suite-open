@@ -6,6 +6,7 @@ import pytest
 import gemini as gm
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si
 from tests.fixtures.errors import raises
@@ -45,6 +46,7 @@ def test_correction_applies_the_affine_pressure_factors():
     well = production_well()
     well.correction_factors = (1.0, 1000.0)
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(40, "kg/s"),
         T=gm.units.Quantity(353.15, "K"),
         p=gm.units.Quantity(25e6, "Pa"),
@@ -62,6 +64,7 @@ def test_traversal_direction_must_match_the_depth_interval():
     with pytest.raises(gm.errors.PhysicsError, match="conflicts with direction up"):
         well.traverse(
             Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(40, "kg/s"),
                 T=gm.units.Quantity(353.15, "K"),
                 p=gm.units.Quantity(25e6, "Pa"),
@@ -79,6 +82,7 @@ def test_esp_split_needs_a_configured_depth():
     with raises(gm.errors.ValidationError, "invalid_design", match="esp_depth"):
         well.intake_conditions(
             Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(40, "kg/s"),
                 T=gm.units.Quantity(353.15, "K"),
                 p=gm.units.Quantity(25e6, "Pa"),
@@ -93,6 +97,7 @@ def test_esp_split_needs_the_depth_inside_the_path():
     with raises(gm.errors.ValidationError, "invalid_design", match="esp_depth"):
         well.intake_conditions(
             Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(40, "kg/s"),
                 T=gm.units.Quantity(353.15, "K"),
                 p=gm.units.Quantity(25e6, "Pa"),
@@ -104,6 +109,7 @@ def test_traversal_direction_check_runs_on_depths_not_flows():
     """A downward interval is accepted going down and rejected going up, for any flow."""
     well = production_well()
     stream = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(np.array([40.0, 0.0]), "kg/s"),
         T=gm.units.Quantity(np.array([353.15, 353.15]), "K"),
         p=gm.units.Quantity(np.array([25e6, 25e6]), "Pa"),

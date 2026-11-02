@@ -7,18 +7,22 @@ from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.grids import ChemicalGrid
 from gemini.modules.treatment import InhibitorDosing
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 INLET = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(50, "kg/s"),
     T=gm.units.Quantity(340, "K"),
     p=gm.units.Quantity(8e5, "Pa"),
 )
 
 
-PRODUCT = ChemicalGrid()._offered()["chemical_out"]
+GRID = ChemicalGrid()
+GRID.fluid = BRINE
+PRODUCT = GRID._offered()["chemical_out"]
 
 
 def test_hand_computed_dose_in_ppm():
@@ -55,6 +59,7 @@ def test_inhibitordosing_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(300, "K"),
                 p=gm.units.Quantity(1e6, "Pa"),

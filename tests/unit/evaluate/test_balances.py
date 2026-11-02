@@ -21,6 +21,7 @@ from gemini.modules.pumps import ESP, InjectionPump
 from gemini.modules.results import ModuleResult, Values
 from gemini.runtime import settings
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.streams.ports import Ports
 from gemini.units import Quantity
 from gemini.units.quantities import Power
@@ -116,6 +117,7 @@ def test_the_example_plant_run_passes_the_mass_ledger(fresh_plant, fast_dataset)
 
 
 HOT = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2.0, "kg/s"),
     T=gm.units.Quantity(350.0, "K"),
     p=gm.units.Quantity(4e5, "Pa"),
@@ -274,7 +276,9 @@ def test_boiler_balance(fuel):
     """Electric and gas boilers conserve total modeled energy."""
     boiler, gas = boiler_of(fuel)
     result = boiler(
-        fluid_in=Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+        ),
         temperature_setpoint=320,
         **gas,
     )
@@ -287,7 +291,9 @@ def test_unresolved_pump_work():
     """Isothermal pump electricity remains explicit unresolved work."""
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.8})
     result = pump(
-        fluid_in=Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")),
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+        ),
         pressure_setpoint=2e6,
         frequency=60,
     )
@@ -308,7 +314,9 @@ def test_esp_motor_efficiency_does_not_change_shaft_power():
             "power_coefficients": [1, 0, 0, 0, 0, 0],
         },
     )
-    inlet = Stream(m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa"))
+    inlet = Stream(
+        fluid=BRINE, m_dot=Quantity(30, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+    )
     first = pump(frequency=60, fluid_in=inlet)
     pump.motor_efficiency = 0.5
     second = pump(frequency=60, fluid_in=inlet)
@@ -320,7 +328,9 @@ def test_heat_leaving_through_a_port_closes_the_balance():
     """Heat that leaves through a port is an energy outflow, not a residual."""
     radiator = Radiator()
     result = radiator(
-        supply_in=Stream(m_dot=Quantity(2, "kg/s"), T=Quantity(350, "K"), p=Quantity(1e6, "Pa"))
+        supply_in=Stream(
+            fluid=BRINE, m_dot=Quantity(2, "kg/s"), T=Quantity(350, "K"), p=Quantity(1e6, "Pa")
+        )
     )
     balance = call_energy_balance(radiator, result)
     assert balance["heat_loss"] == pytest.approx(2 * 4217.4 * 10)
@@ -392,7 +402,9 @@ def test_emissions_charge_fuel_and_net_grid_electricity(load):
         }
     )
     result = plant(
-        return_in=Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(313.15, "K"), p=Quantity(2e5, "Pa"))
+        return_in=Stream(
+            fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(313.15, "K"), p=Quantity(2e5, "Pa")
+        )
     )
     flows = collect_flows(result)
     pump_power = 10 / 1000 * 48e5 / 0.8
@@ -406,7 +418,9 @@ def test_emissions_charge_fuel_and_net_grid_electricity(load):
 def test_emissions_without_energy_outputs_are_zero():
     """A leaf that burns and draws nothing emits nothing."""
     result = Boiler().set_params("", {"capacity": Quantity(1e6, "W"), "efficiency": 0.9})(
-        fluid_in=Stream(m_dot=Quantity(10, "kg/s"), T=Quantity(350, "K"), p=Quantity(2e5, "Pa")),
+        fluid_in=Stream(
+            fluid=BRINE, m_dot=Quantity(10, "kg/s"), T=Quantity(350, "K"), p=Quantity(2e5, "Pa")
+        ),
         fuel_in=GRID_GAS,
         temperature_setpoint=340,
     )
@@ -469,7 +483,10 @@ def test_balances_match_on_stacked_boiler_results(fuel):
     results = [
         boiler(
             fluid_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(300, "K"), p=Quantity(1e6, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(1e6, "Pa"),
             ),
             temperature_setpoint=setpoint,
             **gas,
@@ -485,7 +502,10 @@ def test_balances_match_on_stacked_radiator_results():
     results = [
         radiator(
             supply_in=Stream(
-                m_dot=Quantity(m_dot, "kg/s"), T=Quantity(350, "K"), p=Quantity(3e5, "Pa")
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(350, "K"),
+                p=Quantity(3e5, "Pa"),
             )
         )
         for m_dot in (0.0, 1.5, 12.0)

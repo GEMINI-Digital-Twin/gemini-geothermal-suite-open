@@ -8,6 +8,7 @@ from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.piping import Mixer, Pipe, PressurizationTank, Splitter, Valve
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
@@ -15,6 +16,7 @@ from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
 
 RETURN = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(10, "kg/s"),
     T=gm.units.Quantity(323.15, "K"),
     p=gm.units.Quantity(1.2e5, "Pa"),
@@ -127,6 +129,7 @@ def test_pressurization_tank_matches_traced():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(10, "kg/s"),
                 T=gm.units.Quantity(323.15, "K"),
                 p=gm.units.Quantity(p, "Pa"),

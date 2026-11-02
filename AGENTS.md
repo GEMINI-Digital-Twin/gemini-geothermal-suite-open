@@ -157,7 +157,7 @@ gemini/
 ├── physics/          # shared formulas: SI correlations; gm.physics.<topic> (the doublet design is in plants/_utils, the dispatch policy in engine/schedule)
 ├── units/            # unit conversions, Quantity, the quantity aliases (quantities.py), the unit rule (bare.py), the return shapes (shapes.py), the shared input formats (inputs.py), the display table (display.py)
 ├── streams/          # Stream, Fluid, Ports, the stream kinds
-├── runtime.py        # context-local backend, precision, display units and default fluid
+├── runtime.py        # context-local backend, precision, display units
 ├── modules/          # module.py, declarations.py, container.py, call.py, check.py, results.py, bindings.py, _utils/; one folder per category with its _physics.py
 ├── plants/           # plant.py (Plant) and the plant classes, one file each; _utils/ holds the plant tools
 ├── case/             # Case and its sections (time, site, demand, utilities, economics, requirements), profile.py, dataset.py (Dataset: measured series), demand_frame.py (from_csv, from_values, profile_schema); _utils/ (node: the one reader of a section, schema, access, kinds)

@@ -108,10 +108,10 @@ def designed(**extra):
     """Return a doublet in a plant, designed from its depth, in a brine of 1030 kg/m3."""
     plant = gm.Plant("Holder")
     doublet = si.add(plant, "Doublet", name="d0", values=DESIGN | extra)
+    doublet.fluid = BRINE
     plant.connect("return_in", "d0.return_in")
     plant.connect("power_in", "d0.power_in")
     plant.connect("d0.supply_out", "supply_out")
-    doublet.fluid = BRINE
     return plant, doublet
 
 
@@ -248,7 +248,9 @@ def test_a_waiting_depth_is_a_missing_parameter():
 
 def test_a_depth_waits_for_its_geotherm():
     """A plant holds the design and a case the environment: nothing is derived until both exist."""
-    doublet = gm.plants.Doublet().set_params(
+    doublet = gm.plants.Doublet()
+    doublet.fluid = BRINE
+    doublet.set_params(
         "",
         {
             "depth": {"value": 2500, "unit": "m"},

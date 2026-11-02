@@ -8,6 +8,7 @@ import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.plants import HeatingSubstation
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
@@ -15,6 +16,7 @@ from tests.fixtures.reading import reading
 
 CP = 4217.4
 NETWORK = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(2.0, "kg/s"),
     T=gm.units.Quantity(348.15, "K"),
     p=gm.units.Quantity(6e5, "Pa"),

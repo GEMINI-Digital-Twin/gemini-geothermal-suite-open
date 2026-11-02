@@ -6,6 +6,7 @@ import pytest
 
 import gemini as gm
 from gemini.errors import NotImplementedYet, ValidationError
+from gemini.streams.fluid import BRINE
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 
@@ -28,6 +29,7 @@ def chain():
 def stream():
     """Return a brine stream."""
     return gm.Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(10.0, "kg/s"),
         T=gm.units.Quantity(350.0, "K"),
         p=gm.units.Quantity(5e5, "Pa"),

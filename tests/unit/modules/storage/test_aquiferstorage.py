@@ -13,12 +13,14 @@ from gemini.modules.heating import ElectricBoiler
 from gemini.modules.storage import AquiferStorage
 from gemini.physics import ground
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
 from tests.fixtures.reading import reading
 
 WARM = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(30, "kg/s"),
     T=gm.units.Quantity(291.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),

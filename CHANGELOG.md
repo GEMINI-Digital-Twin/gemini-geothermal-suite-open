@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+- `gm.runtime.settings(default_fluid=...)` and `gm.runtime.state()["default_fluid"]` are removed: the
+  fluid is a case input (`site.fluid`) or an entry of the plant `fluids`. A module or a `Stream`
+  without a fluid raises `missing_value` naming its path; `gm.Stream(...)` requires `fluid`.
+
 ## [0.4.0] - 2026-11-02
 
 Breaking: the folders of `gemini/` are grouped by job (rules and tree in

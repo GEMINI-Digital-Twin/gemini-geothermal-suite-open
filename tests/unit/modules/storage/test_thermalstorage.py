@@ -13,6 +13,7 @@ from gemini.modules import ElectricBoiler, Module
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.storage import ThermalStorage
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
@@ -27,11 +28,13 @@ CAPACITY = 1000 * CP * 2.0
 """Heat capacity [J/K] of the 2 m3 test tank of default fluid (1000 kg/m3)."""
 
 CHARGE = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(1.0, "kg/s"),
     T=gm.units.Quantity(353.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
 )
 DISCHARGE = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(0.5, "kg/s"),
     T=gm.units.Quantity(313.15, "K"),
     p=gm.units.Quantity(3e5, "Pa"),
@@ -110,11 +113,13 @@ def test_chilled_tank_in_a_warm_room_absorbs_heat():
     """A chilled tank reports stored cold, positive service duties and heat_absorbed."""
     tank = _tank("chilled", reference_temperature=285.15)
     charge = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(2.0, "kg/s"),
         T=gm.units.Quantity(277.15, "K"),
         p=gm.units.Quantity(3e5, "Pa"),
     )
     discharge = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(1.0, "kg/s"),
         T=gm.units.Quantity(285.15, "K"),
         p=gm.units.Quantity(3e5, "Pa"),
@@ -202,6 +207,7 @@ def test_composite_step_charges_the_tank():
     si.assign(plant.boiler, "temperature_setpoint", 363.15)
     assert plant.initial_state() == {"storage": {"temperature": 293.15}}
     cold = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(0.5, "kg/s"),
         T=gm.units.Quantity(313.15, "K"),
         p=gm.units.Quantity(3e5, "Pa"),
@@ -220,11 +226,13 @@ def _rows():
     return [
         dict(
             charge_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(charge, "kg/s"),
                 T=gm.units.Quantity(353.15, "K"),
                 p=gm.units.Quantity(3e5, "Pa"),
             ),
             discharge_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(discharge, "kg/s"),
                 T=gm.units.Quantity(313.15, "K"),
                 p=gm.units.Quantity(3e5, "Pa"),

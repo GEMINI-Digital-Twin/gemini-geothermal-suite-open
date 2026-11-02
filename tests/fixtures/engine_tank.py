@@ -7,6 +7,7 @@ from gemini.modules import Module
 from gemini.modules.bindings import Binding, ModuleBindings
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units.quantities import MassFlow, Pressure, Temperature
 
 TIME = pd.Timestamp("2024-01-01", tz="UTC")
@@ -18,6 +19,7 @@ class Tank(Module):
     def __init__(self):
         """Declare a reference state, one stream and a mass-flow control."""
         super().__init__()
+        self.fluid = BRINE
 
         # Parameters
         self.pressure = Parameter(Pressure)
@@ -54,6 +56,7 @@ class Valve(Module):
     def __init__(self):
         """Declare one control and one output."""
         super().__init__()
+        self.fluid = BRINE
 
         # Controls
         self.m_dot = Control(MassFlow)

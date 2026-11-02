@@ -114,7 +114,9 @@ def _check_stream(block, twin, port, defaults):
     """Complete the fields of an inlet from its defaults and mark the ticks it refuses."""
     for name, value in defaults.items():
         block.fields.setdefault((port, name), np.full(block.size, value))
-    fluid = twin.defaults.get(port, {}).get("fluid", twin.module.fluid)
+    fluid = twin.defaults.get(port, {}).get("fluid")
+    if fluid is None:
+        fluid = twin.module.fluid
     block.fluids[port] = Fluid._of(fluid)
     present = [(port, name) in block.fields for name in STREAM_FIELDS]
     if not all(present):

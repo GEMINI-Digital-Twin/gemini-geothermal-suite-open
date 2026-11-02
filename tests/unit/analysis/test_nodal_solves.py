@@ -18,6 +18,7 @@ from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.physics.geometry import build_path, section_values
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -189,7 +190,9 @@ def test_production_rate_without_esp():
 def test_injection_rate_balances_well_and_aquifer(injector):
     """The solved rate makes the well's bottom pressure the aquifer's required pressure."""
     well, sink = injector
-    wellhead = Stream(m_dot=Quantity(1, "kg/s"), T=Quantity(293.15, "K"), p=Quantity(1e5, "Pa"))
+    wellhead = Stream(
+        fluid=BRINE, m_dot=Quantity(1, "kg/s"), T=Quantity(293.15, "K"), p=Quantity(1e5, "Pa")
+    )
     rate = solve_injection_rate(well, sink, wellhead, (1, 200))
     bottom = well(wellhead_in=wellhead._with_si(m_dot=rate)).outlets.bottom_out
     assert bottom.p == pytest.approx(sink.required_pressure(bottom), abs=1e-3)
@@ -213,7 +216,10 @@ def test_injection_pressure_balances_a_shallow_injector():
         },
     )
     wellhead = Stream(
-        flow={"value": 129.02, "unit": "m3/h"}, T=Quantity(293.15, "K"), p=Quantity(2e5, "Pa")
+        fluid=BRINE,
+        flow={"value": 129.02, "unit": "m3/h"},
+        T=Quantity(293.15, "K"),
+        p=Quantity(2e5, "Pa"),
     )
     pressure = solve_injection_pressure(well, sink, wellhead, (2e5, 1e8))
     assert pressure > 2e5
@@ -229,7 +235,10 @@ def test_deep_injector_needs_no_pump_and_draws_no_power(injector):
     """
     well, sink = injector
     wellhead = Stream(
-        flow={"value": 129.02, "unit": "m3/h"}, T=Quantity(293.15, "K"), p=Quantity(1e3, "Pa")
+        fluid=BRINE,
+        flow={"value": 129.02, "unit": "m3/h"},
+        T=Quantity(293.15, "K"),
+        p=Quantity(1e3, "Pa"),
     )
     assert solve_injection_pressure(well, sink, wellhead, (1e3, 1e8)) is None
     pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.8})
@@ -290,7 +299,10 @@ def test_injection_pressure_gap_to_upstream_is_the_friction_sign():
         },
     )
     wellhead = Stream(
-        flow={"value": 125.1, "unit": "m3/h"}, T=Quantity(343.15, "K"), p=Quantity(1e5, "Pa")
+        fluid=BRINE,
+        flow={"value": 125.1, "unit": "m3/h"},
+        T=Quantity(343.15, "K"),
+        p=Quantity(1e5, "Pa"),
     )
     pressure = solve_injection_pressure(well, sink, wellhead, (1e5, 1e8))
     out = reading(well(wellhead_in=wellhead._with_si(p=pressure)))

@@ -6,11 +6,12 @@ import gemini as gm
 from gemini.evaluate import call_mass_balance
 from gemini.modules.power import Separator, _physics
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import STEAM
+from gemini.streams.fluid import BRINE, STEAM
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
 
 GEOFLUID = Stream(
+    fluid=BRINE,
     m_dot=gm.units.Quantity(100, "kg/s"),
     T=gm.units.Quantity(523.15, "K"),
     p=gm.units.Quantity(40e5, "Pa"),
@@ -54,6 +55,7 @@ def test_inlet_below_its_saturation_pressure_uses_the_liquid_enthalpy():
 def test_subcooled_and_zero_flow():
     """A subcooled inlet passes as liquid at its temperature; zero flow splits nothing."""
     subcooled = Stream(
+        fluid=BRINE,
         m_dot=gm.units.Quantity(50, "kg/s"),
         T=gm.units.Quantity(393.15, "K"),
         p=gm.units.Quantity(10e5, "Pa"),
@@ -87,6 +89,7 @@ def test_traced_call_matches_one_call_per_row():
     rows = [
         dict(
             fluid_in=Stream(
+                fluid=BRINE,
                 m_dot=gm.units.Quantity(m_dot, "kg/s"),
                 T=gm.units.Quantity(T, "K"),
                 p=gm.units.Quantity(p, "Pa"),

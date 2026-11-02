@@ -24,7 +24,8 @@ def evaluate(module, parameters, inlets, controls, on_error="raise", units=None)
     dimension and plain numbers for one without. ``inlets`` maps each inlet
     port to its stream fields, ``{"m_dot": {"value": 10, "unit": "kg/s"}, "T": ...}``, or ``flow``
     in place of ``m_dot`` for a volume flow, which converts with the density of the inlet's
-    fluid, and an optional ``fluid``. ``m_dot`` refuses a volume unit and suggests ``flow``.
+    fluid, and a ``fluid`` (required, a mapping of the fields of ``Fluid``). ``m_dot`` refuses a
+    volume unit and suggests ``flow``.
     ``controls`` maps control and boundary names to values for this call only, in the same form.
     A bare number for a value with a dimension, in ``parameters``, ``controls`` or an inlet
     field, is refused with ``invalid_value`` naming the path, the quantity and its units.

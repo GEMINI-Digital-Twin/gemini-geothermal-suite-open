@@ -209,14 +209,8 @@ class Engine:
         return clock.after(self.position)
 
     def _saved_settings(self):
-        """Return a context applying the precision and display units saved for this run.
-
-        The default fluid is not re-applied: it only seeds newly built modules and streams,
-        and the plant, built before the run, already carries its fluids.
-        """
-        values = dict(self.runtime_state)
-        values.pop("default_fluid", None)
-        return runtime.settings(**values)
+        """Return a context applying the settings saved for this run."""
+        return runtime.settings(**self.runtime_state)
 
     def _remaining(self, clock):
         """Return the ticks of ``clock`` after the committed position."""

@@ -428,6 +428,7 @@ def split_sources():
     drop = ("production", "degasser", "injection")
     spec["modules"] = {name: item for name, item in spec["modules"].items() if name not in drop}
     spec["params"] = {name: item for name, item in spec["params"].items() if name not in drop}
+    spec["fluids"] = {name: item for name, item in spec["fluids"].items() if name not in drop}
     spec["modules"]["heat_pump"] = {"type": "HeatPump"}
     spec["params"]["heat_pump"] = {
         "mode": {"value": "heating"},
