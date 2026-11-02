@@ -1,12 +1,13 @@
 """Flare that burns the gas reaching it and reports what it emits."""
 
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import combustion, gas
-from gemini.types import Efficiency, Fuel, MassFlow, Power, Stream
-from gemini.types.fluid import FLUE_CO2, Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import FLUE_CO2, Fluid
+from gemini.units.quantities import Efficiency, Fuel, MassFlow, Power
 
 
 class Flare(Equipment, Module):
@@ -86,6 +87,6 @@ class Flare(Equipment, Module):
             kind="gas", gas_composition=gas.composition_of_masses({"CO2": co2, "CH4": methane})
         )
 
-    def capex(self, economics):
-        """Return the cost of the flare, a fixed item."""
-        return self.capex_of(economics, 1)
+    def cost_size(self):
+        """Return the size that the cost of the flare scales with: 1, a fixed item."""
+        return 1

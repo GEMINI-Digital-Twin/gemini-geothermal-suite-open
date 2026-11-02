@@ -5,12 +5,13 @@ import pytest
 
 import gemini as gm
 from gemini._utils import registry
-from gemini.compiler.graph import run
+from gemini.compiler.run import run
 from gemini.errors import ValidationError
 from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.physics import energy
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 
 STREAM = gm.Stream(

@@ -26,9 +26,9 @@ A raised error that comes from several problems (`gm.Plant.from_dict`, `validate
 them in `error.problems`, a list of problem dicts: the same list `on_error="record"` returns, so a
 caller sees every problem in one try. A single error has itself as the one item. A problem is
 `{path, code, message, suggestions}`, built by `gemini.errors.base.problem`, which
-`gemini.types.shapes` exports with the other return shapes; `code` is the stable key for machines.
+`gemini.units.shapes` exports with the other return shapes; `code` is the stable key for machines.
 
-**Issues.** The input readers (`gemini/types/inputs.py`) collect `Issue`s, defined in
+**Issues.** The input readers (`gemini/units/inputs.py`) collect `Issue`s, defined in
 `gemini.errors.base`: `path`, `kind` (`missing`, `unknown_key`, `unit`, `out_of_bounds`,
 `not_allowed`, `incompatible`, `coverage`), `message`, `quantity`, `accepted` units, `suggestions`
 and an optional `code` that overrides the code of the kind (`old_format`). An issue is also a
@@ -69,11 +69,11 @@ Built-in bases appear only where Python needs them, never two error meanings in 
   and `AttributeError`, for mapping lookups, `Ports` and `Results`) and `UnknownMember` (also
   `AttributeError`, for `hasattr`, `getattr` with a default, `copy` and `pickle` on a module; its
   close-match suggestion is built only when the message is read).
-- `TraceError` is internal to `gemini/compiler/graph/` (`gemini/compiler/graph/errors.py`). The graph runner catches it
+- `TraceError` is internal to `gemini/compiler/` (`gemini/compiler/trace/errors.py`). The graph runner catches it
   and runs that module as a plain call (a graph break); users never see it.
 
 The other exceptions to raising these classes are the topic files of `gemini._utils`, which cannot
-import them (`paths.py` alone can, and raises `inputs_missing`), pydantic validators, which must raise `ValueError` (pydantic reports it as its own
+import them (`tests/fixtures/paths.py` alone can, and raises `inputs_missing`), pydantic validators, which must raise `ValueError` (pydantic reports it as its own
 validation error), and `NotImplementedError` for an abstract method.
 `test_package_code_raises_gemini_errors` and `test_package_code_raises_only_the_allowed_classes` in
 `tests/unit/test_code_quality.py` enforce this.
@@ -118,7 +118,7 @@ code is never renamed without raising the minor number of `gm.__version__`.
 | `missing_chemistry` | `PhysicsError` | A correlation needs fluid chemistry that was not given |
 | `too_little_data` | `PhysicsError` | A fit or estimate has too few valid observations |
 | `invalid_data` | `RunError` | A dataset or profile cannot be built or read |
-| `inputs_missing` | `RunError` | A file of `inputs/` is needed and the folder is absent: it takes a source checkout, because `inputs/` is not installed |
+| `inputs_missing` | `RunError` | A file of `examples/` or `tests/fixtures/` is needed and the folder is absent: it takes a source checkout, because they are not installed |
 | `clock` | `RunError` | An invalid clock, or a timestamp that is not a tick |
 | `checkpoint` | `RunError` | A checkpoint cannot be written, read or resumed |
 | `step` | `RunError` | A replayed twin failed under `on_error="raise"`; the cause is chained |

@@ -62,8 +62,8 @@ def test_the_shares_divide_both_streams(run):
 def test_the_call_closes(run):
     """Mass, the thermal audit and every balance of the plant close."""
     plant, result = run
-    assert gm.modules.mass_balance(plant, result)["residual"] == 0
-    assert gm.modules.energy_balance(plant, result)["relative_thermal_residual"] < 1e-9
+    assert gm.evaluate.call_mass_balance(plant, result)["residual"] == 0
+    assert gm.evaluate.call_energy_balance(plant, result)["relative_thermal_residual"] < 1e-9
     assert all(check["passed"] for check in gm.evaluate.plant_balance(plant, None, result))
 
 

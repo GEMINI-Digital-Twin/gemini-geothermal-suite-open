@@ -6,13 +6,13 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, psychrometrics
-from gemini.types import (
-    WATER,
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER
+from gemini.units.quantities import (
     Fraction,
     MassFlow,
     Power,
     Pressure,
-    Stream,
     Temperature,
     TemperatureDifference,
 )
@@ -52,7 +52,7 @@ class CoolingGrid(Module):
     On a closed loop ``return_temperature``, ``return_pressure`` and the control ``flow`` set the
     return water: ``return_out`` is offered before the other modules run, and the loads met are
     those the rise of the water up to the return temperature takes. Bind the demand to
-    a ``gm.data.from_csv`` column. Without them the return follows from the loads, as in a
+    a ``gm.case.from_csv`` column. Without them the return follows from the loads, as in a
     substation. Unmet loads are reported, never an error.
 
     Simplifications: steady state, constant fluid properties (the inlet ``cp``), no pressure

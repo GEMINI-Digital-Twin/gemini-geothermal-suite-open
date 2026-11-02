@@ -5,19 +5,19 @@ from copy import deepcopy
 import numpy as np
 
 from gemini import units
-from gemini.analysis import solves
-from gemini.analysis.wells import WELLHEAD_PRESSURES
+from gemini.analysis.nodal import WELLHEAD_PRESSURES, solve_injection_pressure
 from gemini.case._utils.access import require
+from gemini.engine.apply import apply_case
+from gemini.engine.check import check
+from gemini.engine.simulate import simulate
 from gemini.errors import PhysicsError, RunError, ValidationError
 from gemini.errors.base import raise_issues
 from gemini.evaluate import requirements
 from gemini.modules.pumps import InjectionPump
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
-from gemini.plants._utils.roles import units_of
-from gemini.run import check, simulate
-from gemini.run._utils.apply import apply_case
-from gemini.study._utils.resize import resized
-from gemini.types import Stream
+from gemini.plants._utils.resize import resized
+from gemini.plants.roles import units_of
+from gemini.streams.flows import Stream
 
 POLICIES = ("none", "peak")
 """The backup policies of ``size``."""
@@ -219,7 +219,7 @@ def _injection_head(applied, case, path):
         m_dot=rate, T=temperature, p=doublet.nominal_wellhead_pressure, fluid=doublet.fluid
     )
     low = float(doublet.nominal_wellhead_pressure)
-    needed = solves.solve_injection_pressure(
+    needed = solve_injection_pressure(
         doublet.injector, doublet.sink, stream, (low, WELLHEAD_PRESSURES[1])
     )
     return 0.0 if needed is None else needed - low

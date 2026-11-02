@@ -3,7 +3,7 @@
 import numpy as np
 
 from gemini._utils.strings import join_path
-from gemini.types.shapes import check, measure
+from gemini.units.shapes import check, measure
 
 
 def columns(results, wanted):

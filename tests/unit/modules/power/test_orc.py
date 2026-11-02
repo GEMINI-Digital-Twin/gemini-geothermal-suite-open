@@ -5,9 +5,9 @@ import math
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.power import ORC
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.equivalence import assert_module_matches
@@ -55,8 +55,8 @@ def test_first_law_and_mass_closure():
     result = module(fluid_in=BRINE, air_in=air(288.15))
     out = reading(result)
     assert out.heat_input == pytest.approx(out.gross_power + out.condenser_duty, rel=1e-12)
-    assert energy_balance(module, result)["relative_residual"] < 1e-12
-    assert mass_balance(module, result)["residual"] == 0
+    assert call_energy_balance(module, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(module, result)["residual"] == 0
 
 
 def test_capacity_bypasses_brine_at_constant_cycle_efficiency():
@@ -68,7 +68,7 @@ def test_capacity_bypasses_brine_at_constant_cycle_efficiency():
     assert out.is_capped and out.gross_power == pytest.approx(1e6, rel=1e-12)
     assert 343.15 < out.fluid_out_T < 423.15
     assert out.thermal_efficiency == pytest.approx(full.thermal_efficiency, rel=1e-12)
-    assert energy_balance(module, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(module, result)["relative_residual"] < 1e-12
 
 
 def test_hot_ambient_raises_condensing_and_outlet_temperatures():

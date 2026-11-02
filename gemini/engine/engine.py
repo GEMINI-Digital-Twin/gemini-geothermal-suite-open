@@ -11,21 +11,21 @@ from gemini import runtime
 from gemini._utils.jsonable import to_plain
 from gemini._utils.strings import close_matches, did_you_mean
 from gemini._utils.time import to_timedelta, to_utc
+from gemini.case.dataset import as_dataset
 from gemini.engine import checkpoint as storage
 from gemini.engine import eager  # noqa: F401
+from gemini.engine.bindings import RunBindings
 from gemini.engine.clock import Clock
 from gemini.engine.executor import executor_for
 from gemini.engine.loader import Loader
+from gemini.engine.results import Results, declared_quantities, declared_units
 from gemini.engine.runner import Runner
-from gemini.engine.step import BindingPlan
 from gemini.errors import RunError, ValidationError
 from gemini.errors.base import check_on_error
-from gemini.modules._utils import serialization
 from gemini.modules.module import Module, class_path, import_class
 from gemini.ops import kernels
+from gemini.plants._utils import serialization
 from gemini.plants.plant import Plant
-from gemini.run.dataset import as_dataset
-from gemini.run.results import Results, declared_quantities, declared_units
 
 
 def _live_ticks(position, start, end, step):
@@ -227,7 +227,7 @@ class Engine:
         plant._check_design()
         if not continuing:
             self.runtime_state = runtime.state()
-        plan = BindingPlan(plant, dataset, kind, only, self.on_error)
+        plan = RunBindings(plant, dataset, kind, only, self.on_error)
         if not continuing:
             self._begin(state)
         self.results.declared = declared_units(plant)

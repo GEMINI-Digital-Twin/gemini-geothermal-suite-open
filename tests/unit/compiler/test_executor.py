@@ -3,6 +3,7 @@
 import numpy as np
 
 import gemini as gm
+from gemini.compiler.cache import graph_cache
 from gemini.compiler.executor import GraphExecutor
 from gemini.engine.executor import executor_for
 from tests.fixtures.engine_plants import Booster
@@ -51,7 +52,7 @@ def test_copies_with_other_numeric_values_trace_once_and_give_the_numbers_of_a_f
         )
     }
     inputs = {"level": np.array([1.0, 2.0, 3.0])}
-    cache = gm.compiler.graph.graph_cache()
+    cache = graph_cache()
     cache.clear()
     traces = cache.traces
     rises = []

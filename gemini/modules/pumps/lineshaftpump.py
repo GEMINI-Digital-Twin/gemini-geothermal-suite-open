@@ -7,7 +7,8 @@ from gemini.modules.declarations import Control, Inlet, Outlet, Output, Paramete
 from gemini.modules.module import Module
 from gemini.modules.pumps import _physics
 from gemini.physics import constants, energy, pumps
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Count,
     Dimensionless,
     Efficiency,
@@ -16,7 +17,6 @@ from gemini.types import (
     LinearPower,
     Power,
     PressureDifference,
-    Stream,
 )
 
 

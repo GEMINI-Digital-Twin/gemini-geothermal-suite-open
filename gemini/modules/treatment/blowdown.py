@@ -4,7 +4,8 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet
 from gemini.modules.module import Module
 from gemini.physics import separation
-from gemini.types import Fraction, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction
 
 
 class Blowdown(Module):

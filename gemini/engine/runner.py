@@ -20,9 +20,9 @@ import numpy as np
 
 from gemini.engine.chunks import ResultChunk
 from gemini.engine.columns import read
-from gemini.engine.outcome import UNCHANGED, StepResults, evaluate_twin
-from gemini.errors import GeminiError, RunError, ValidationError
-from gemini.types.shapes import problem
+from gemini.engine.twinresult import UNCHANGED, StepResults, evaluate_twin
+from gemini.errors import RunError
+from gemini.errors.rows import failed_row
 
 
 class Failure:
@@ -131,7 +131,7 @@ class Runner:
                 tables[path] = table.sliced(0, count)
             _add_skips(skips, outcome, count)
         errors = sorted(
-            (tick, index, error_record(outcome.twin.path, error, outcome.block.status[tick] < 0))
+            (tick, index, failed_row(outcome.twin.path, error, outcome.block.status[tick] < 0))
             for index, outcome in enumerate(outcomes)
             for tick, error in outcome.errors.items()
             if tick < count
@@ -210,32 +210,6 @@ class Runner:
         except Exception:
             return False
         return True
-
-
-def row_code(error, inlet=False):
-    """Return the code in ``gm.errors.ROW_CODES`` of the exception that failed a row.
-
-    ``inlet`` tells that the row failed on the limits of an inlet stream.
-    """
-    if inlet:
-        return "invalid_inlet"
-    code = error.code if isinstance(error, GeminiError) else None
-    if code == "loop_not_converged":
-        return "no_convergence"
-    if code in ("no_convergence", "out_of_range"):
-        return code
-    if isinstance(error, ValidationError) and code in ("out_of_bounds", "invalid_value"):
-        return "out_of_bounds"
-    return "module_error"
-
-
-def error_record(path, error, inlet=False):
-    """Return the problem of the exception of a twin, with its row code.
-
-    The path is the one the error names, the module that raised, else the path of the twin.
-    """
-    where = getattr(error, "path", None) if isinstance(error, GeminiError) else None
-    return problem(where or path, row_code(error, inlet), error)
 
 
 def _add_skips(skips, outcome, count):

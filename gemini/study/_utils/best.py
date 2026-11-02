@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from gemini.plants.plant import Plant
-from gemini.types.shapes import Value
 from gemini.units import Quantity
+from gemini.units.shapes import Value
 
 
 @dataclass(frozen=True, eq=False)

@@ -5,18 +5,18 @@ from typing import Literal
 
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules._utils.supply import supply_margin
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, refrigeration
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Efficiency,
     Fraction,
     Power,
     Ratio,
-    Stream,
     Temperature,
     TemperatureDifference,
 )
@@ -34,7 +34,7 @@ class HeatPump(Equipment, Module):
 
     On a supply line the setpoint is the supply temperature of the case (``demand.heating``) plus
     the ``supply_margin`` the plant states, or minus it when the machine cools (``demand.cooling``);
-    see ``gm.run.apply_case``.
+    see ``gemini.engine.apply.apply_case``.
 
     COP = carnot_fraction * T_sink_out / max(T_sink_out - T_source_out, minimum_temperature_lift)
     when heating and carnot_fraction * T_source_out / max(...) when cooling, from the outlet
@@ -164,9 +164,9 @@ class HeatPump(Equipment, Module):
         """The kind of equipment: a ``heat_pump``, or a ``compression_chiller`` in cooling mode."""
         return "compression_chiller" if self.mode == "cooling" else "heat_pump"
 
-    def capex(self, economics):
-        """Return the cost of the machine from its capacity."""
-        return self.capex_of(economics, self.capacity)
+    def cost_size(self):
+        """Return the size that the cost of the machine scales with: capacity."""
+        return self.capacity
 
     def _performance(self, source_in, sink_in):
         """Return every output; the outlet temperatures [K] also define the outlets."""

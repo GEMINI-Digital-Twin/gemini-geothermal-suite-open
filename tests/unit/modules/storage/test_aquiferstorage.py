@@ -6,12 +6,13 @@ import pytest
 
 import gemini as gm
 from gemini import ops
-from gemini.modules import Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.storage import AquiferStorage
 from gemini.physics import ground
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
@@ -132,13 +133,13 @@ def test_heat_accumulation_is_the_rate_of_change_of_stored_energy():
         "recovered_heat": 1e12,
     }
     state, result = module.step(start, 1.0, {"injection_in": COLD})
-    assert mass_balance(module, result)["residual"] == 0
+    assert call_mass_balance(module, result)["residual"] == 0
     out = reading(result)
     assert result.outlets.loss_out == pytest.approx(conductance(2e5) * 5 - conductance(1e5) * 3)
     _, after = module.step(state, 1.0, {"injection_in": COLD})
     rate = after.outputs.stored_energy - out.stored_energy
     assert out.heat_accumulation == pytest.approx(rate, rel=1e-6)
-    audit = energy_balance(module, result)
+    audit = call_energy_balance(module, result)
     assert audit["relative_residual"] < 1e-12
     assert audit["heat_accumulation"] == out.heat_accumulation
     assert out.production_out_T == 289.15 and out.recovery_efficiency == pytest.approx(1 / 6)
@@ -185,8 +186,8 @@ def test_composite_step_charges_through_the_plant():
     assert state["storage"]["warm_volume"] == pytest.approx(2 * 30 / 1000 * HOUR)
     assert result.outputs.stored_energy > 0
     assert result.outlets.return_out.T == 284.15
-    assert energy_balance(plant, result)["relative_residual"] < 1e-12
-    assert mass_balance(plant, result)["residual"] == 0
+    assert call_energy_balance(plant, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(plant, result)["residual"] == 0
 
 
 class Reader(Module):

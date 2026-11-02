@@ -6,7 +6,9 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output
 from gemini.modules.module import Module
 from gemini.modules.power import _physics
-from gemini.types import STEAM, Fraction, Pressure, Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import STEAM
+from gemini.units.quantities import Fraction, Pressure, Temperature
 
 
 class Separator(Module):

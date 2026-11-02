@@ -6,7 +6,8 @@ from gemini.modules.grids import HeatingGrid
 from gemini.modules.piping import Valve
 from gemini.modules.pumps import CirculationPump
 from gemini.plants.plant import Plant
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 
 
 class HeatingSubstation(Plant):

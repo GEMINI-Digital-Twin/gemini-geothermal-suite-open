@@ -2,13 +2,14 @@
 
 from gemini import ops
 from gemini.errors import ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.heating import _burner
 from gemini.modules.module import Module
 from gemini.physics import combustion, heat_transfer
-from gemini.types import Efficiency, Fraction, Fuel, Power, Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Efficiency, Fraction, Fuel, Power, Temperature
 
 
 class CHP(Equipment, Module):
@@ -117,9 +118,9 @@ class CHP(Equipment, Module):
         )
         return outlets
 
-    def capex(self, economics):
-        """Return the cost of the engine from its electric capacity."""
-        return self.capex_of(economics, self.electric_capacity)
+    def cost_size(self):
+        """Return the size that the cost of the engine scales with: electric capacity."""
+        return self.electric_capacity
 
     def _no_load_fuel_fraction(self):
         """Return the no-load fuel share; zero when the term is left out."""

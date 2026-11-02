@@ -7,10 +7,10 @@ import pytest
 import gemini as gm
 from gemini import units
 from gemini.modules.exchangers import HeatExchanger
+from gemini.modules.results import NOT_ASSESSED
 from gemini.physics import heat_transfer
-from gemini.types.flows import Stream
-from gemini.types.fluid import WATER
-from gemini.types.results import NOT_ASSESSED
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si
 from tests.fixtures.designs import with_values

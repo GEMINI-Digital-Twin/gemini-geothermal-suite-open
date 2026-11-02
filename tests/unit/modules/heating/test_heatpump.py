@@ -4,11 +4,11 @@ import pytest
 
 from gemini import runtime
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.heating import HeatPump
 from gemini.physics import refrigeration
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -45,8 +45,8 @@ def test_heating_hand_value_and_closure():
     assert out.temperature_lift == pytest.approx(340 - out.source_out_T)
     assert out.is_running and not out.is_capped
     assert result.outlets.sink_out.p == sink.p and result.outlets.source_out.m_dot == 20
-    assert energy_balance(pump, result)["relative_residual"] < 1e-12
-    assert mass_balance(pump, result)["residual"] == 0
+    assert call_energy_balance(pump, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(pump, result)["residual"] == 0
 
 
 def test_cooling_mode_is_an_electric_chiller():
@@ -63,8 +63,8 @@ def test_cooling_mode_is_an_electric_chiller():
     assert out.sink_out_T == pytest.approx((300 - load) / (1 - load / 140))
     assert out.cop == pytest.approx(0.5 * 280 / (out.sink_out_T - 280))
     assert out.condenser_duty == pytest.approx(out.evaporator_duty * (1 + 1 / out.cop))
-    assert energy_balance(chiller, result)["relative_residual"] < 1e-12
-    assert mass_balance(chiller, result)["residual"] == 0
+    assert call_energy_balance(chiller, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(chiller, result)["residual"] == 0
 
 
 def test_capacity_cap_and_lift_floor():
@@ -81,7 +81,7 @@ def test_capacity_cap_and_lift_floor():
     out = reading(result)
     assert out.temperature_lift < 10
     assert out.cop == pytest.approx(0.5 * 330 / 10)
-    assert energy_balance(pump, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(pump, result)["relative_residual"] < 1e-12
     cooled = reading(
         heat_pump("cooling")(
             source_in=Stream(
@@ -175,8 +175,8 @@ def test_lorenz_heating_reproduces_the_upstream_gemini_case():
         sink.T, out.sink_out_T, source.T, out.source_out_T, 10
     )
     assert out.cop == pytest.approx(expected, rel=1e-12)
-    assert energy_balance(pump, result)["relative_residual"] < 1e-12
-    assert mass_balance(pump, result)["residual"] == 0
+    assert call_energy_balance(pump, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(pump, result)["residual"] == 0
 
 
 def test_lorenz_mode_limits():
@@ -211,7 +211,7 @@ def test_minimum_source_outlet_caps_the_heating_duty(cop_model):
     assert 320 < out.sink_out_T < 340 and out.is_capped and out.is_running
     assert out.evaporator_duty == pytest.approx(20 * CP * 5, rel=1e-10)
     assert out.useful_duty == pytest.approx(10 * CP * (out.sink_out_T - 320))
-    assert energy_balance(pump, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(pump, result)["relative_residual"] < 1e-12
     unconstrained = heat_pump("heating", cop_model=cop_model)(
         source_in=source, sink_in=sink, temperature_setpoint=340
     )
@@ -235,7 +235,7 @@ def test_minimum_source_outlet_switches_off_or_raises_a_cooling_setpoint():
     assert reading(result).source_out_T == pytest.approx(283)
     assert result.outputs.is_capped
     assert reading(result).evaporator_duty == pytest.approx(20 * CP * 2)
-    assert energy_balance(chiller, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(chiller, result)["relative_residual"] < 1e-12
 
 
 def _rows(cases):

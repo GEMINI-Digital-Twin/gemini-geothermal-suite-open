@@ -1,7 +1,7 @@
 """A gas from its composition: molar mass, normal and ideal-gas density, heating value and CO2.
 
 A composition maps a species to its mole fraction. The formulas of a fluid that carries a gas
-live here; ``gemini.types.Fluid`` calls them once per fluid, so they run on plain numbers, except
+live here; ``gemini.streams.Fluid`` calls them once per fluid, so they run on plain numbers, except
 ``ideal_gas_density``, which a stream calls with its pressure and temperature.
 """
 

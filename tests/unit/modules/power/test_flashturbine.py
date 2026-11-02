@@ -4,10 +4,12 @@ import pytest
 
 import gemini as gm
 from gemini.errors import PhysicsError
-from gemini.modules import Module, mass_balance
+from gemini.evaluate import call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.power import FlashTurbine, Separator, _physics
-from gemini.types import STEAM, WATER, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import STEAM, WATER
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
@@ -49,7 +51,7 @@ def test_closed_in_steam_enthalpies_and_condensate():
     assert outgoing == pytest.approx(incoming, rel=1e-12)
     assert out.heat_loss == pytest.approx(out.condenser_duty + 0.02 * out.gross_power)
     assert outlet.fluid == WATER and outlet.p == 1e4 and outlet.T == condenser.temperature
-    assert mass_balance(module, result)["residual"] == 0
+    assert call_mass_balance(module, result)["residual"] == 0
 
 
 def test_zero_flow_and_invalid_inlets():

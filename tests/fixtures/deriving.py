@@ -4,7 +4,7 @@ from gemini.modules import ProductionReservoir
 from gemini.modules.declarations import Parameter
 from gemini.physics import hydraulics
 from gemini.plants.plant import Plant
-from gemini.types import Density, Length
+from gemini.units.quantities import Density, Length
 
 
 class Column(Plant):

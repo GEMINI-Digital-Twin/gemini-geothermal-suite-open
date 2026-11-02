@@ -2,8 +2,8 @@
 
 from gemini import units
 from gemini.case._utils.node import Field
-from gemini.case.roletable import TABLE
-from gemini.types import inputs
+from gemini.plants.roles import TABLE
+from gemini.units import inputs
 
 DRAFT = "https://json-schema.org/draft/2020-12/schema"
 NUMBER = {"type": "number"}

@@ -4,19 +4,19 @@ from typing import Literal
 
 from gemini import ops
 from gemini.errors import ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.physics import dispatch, heat_transfer, psychrometrics
-from gemini.types import (
-    WATER,
+from gemini.physics import energy, heat_transfer, psychrometrics
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER
+from gemini.units.quantities import (
     MassFlow,
     Power,
     Pressure,
     Ratio,
     SpecificEnthalpy,
-    Stream,
     Temperature,
     TemperatureDifference,
 )
@@ -153,9 +153,9 @@ class Cooler(Equipment, Module):
         outlets = dict(fluid_out=outlet, air_out=air_out, air_in=air_in, power_in=power_in)
         return outlets
 
-    def capex(self, economics):
-        """Return the cost of the cooler from its capacity."""
-        return self.capex_of(economics, self.capacity)
+    def cost_size(self):
+        """Return the size that the cost of the cooler scales with: capacity."""
+        return self.capacity
 
     def _air(self, air, water_T, heat):
         """Return the air taken and returned: it leaves at the cooled water, at least an approach.
@@ -165,7 +165,7 @@ class Cooler(Equipment, Module):
         """
         rise = ops.maximum(water_T - air.T, self.approach)
         specific_heat = air.fluid.properties(air.p, air.T).cp_l
-        flow = ops.where(heat > 0, dispatch.circuit_flow(heat, specific_heat, rise), 0.0)
+        flow = ops.where(heat > 0, energy.circuit_flow(heat, specific_heat, rise), 0.0)
         return air._with_si(m_dot=flow), air._with_si(m_dot=flow, T=air.T + rise)
 
     def _duty(self, inlet, air):

@@ -2,7 +2,7 @@
 
 from gemini import ops
 from gemini.physics import combustion, gas
-from gemini.types.fluid import FLUE_CO2
+from gemini.streams.fluid import FLUE_CO2
 
 
 def available_fuel(fuel):

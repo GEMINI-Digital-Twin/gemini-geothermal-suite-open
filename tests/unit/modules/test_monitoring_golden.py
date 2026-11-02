@@ -18,7 +18,7 @@ from gemini.modules.pumps import ESP
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.physics import geometry
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from scripts.legacy import tables
 from tests.fixtures import FIXTURES, OLD_PROJECT
 from tests.fixtures.esp_design import ESP_MODULE

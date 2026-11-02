@@ -42,6 +42,7 @@ from gemini._utils.strings import (
 from gemini.errors import DefinitionError, PhysicsError, ValidationError
 from gemini.errors.lookup import UnknownMember
 from gemini.modules._utils import description, design
+from gemini.modules.bindings import DatedParams
 from gemini.modules.declarations import (
     UNSET,
     Boundary,
@@ -53,13 +54,12 @@ from gemini.modules.declarations import (
     Parameter,
     State,
 )
+from gemini.modules.results import ModuleResult
 from gemini.ops import kernels
-from gemini.types import bare
-from gemini.types.bindings import DatedParams
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
-from gemini.types.ports import Ports
-from gemini.types.results import ModuleResult
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.ports import Ports
+from gemini.units import bare
 
 _current_call = ContextVar("module_call", default=None)
 _outputs_enabled = ContextVar("module_outputs_enabled", default=True)
@@ -335,7 +335,7 @@ class Module:
     operating_limits = ()
     """``(output name, side, parameter name)`` of each limit; side is ``"min"`` or ``"max"``."""
     plant_role = None
-    """The role this class plays in a plant for requirements, or ``None``; see ``case.roles()``."""
+    """The role this class alone gives in a plant, or ``None``; see ``plants.roles()``."""
     _derived_params = frozenset()
     category = _FolderCategory()
     abstract = True

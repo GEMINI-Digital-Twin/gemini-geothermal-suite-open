@@ -2,8 +2,7 @@
 
 from gemini._utils.registry import categories, get, names
 
-from ._utils.balance import collect_flows, emissions, energy_balance, mass_balance
-from ._utils.wiring import trace_wiring
+from ._utils.trace import trace_wiring
 from .check import check
 from .container import ModuleDict, ModuleList
 from .control import PIDController
@@ -87,10 +86,6 @@ __all__ = [
     "ORC",
     "Separator",
     "FlashTurbine",
-    "collect_flows",
-    "emissions",
-    "energy_balance",
-    "mass_balance",
     "trace_wiring",
     "names",
     "get",

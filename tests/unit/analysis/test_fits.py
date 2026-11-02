@@ -1,13 +1,18 @@
 """Fits of model parameters to measurements."""
 
+import json
+
 import numpy as np
 import pytest
 
-from gemini import analysis
+import gemini as gm
+from gemini import analysis, units
+from gemini.analysis.fits import pump_curve
 from gemini.errors import PhysicsError, ValidationError
 from gemini.modules.pumps import _physics
 from tests.fixtures.errors import raises
 
+BAR = 1e5
 CURVE = [83.08389282, -0.000460444, -1.19e-07, 1.69e-11, -6.36e-16, 6.69e-21]
 
 
@@ -92,3 +97,56 @@ def test_fits_take_units_for_what_has_a_quantity():
     assert conductance["unit"] == "W/K"
     with pytest.raises(ValidationError):
         analysis.fit_head_coefficients([1], [1], [1], 1, units={"powr": "kW"})
+
+
+def test_pump_curve_starts_at_the_shut_in_head_of_the_polynomial(shared_plant):
+    """At zero flow and 60 Hz the head is the first coefficient times the stages, in Pa."""
+    pump = shared_plant.get_submodule("doublet.esp")
+    curve = pump_curve(shared_plant, "doublet.esp")
+    expected = units.ft_head_to_pa(pump.head_coefficients[0] * pump.stage_count)
+    assert curve["curve"]["flow"]["value"][0] == 0.0
+    assert curve["curve"]["head"]["value"][0] == pytest.approx(expected, rel=1e-12)
+    assert curve["frequency"] == {"value": 60.0, "unit": "Hz"}
+    assert curve["measured"] == [] and curve["correction"]["value"] is None
+
+
+def test_pump_curve_recovers_a_known_correction(shared_plant):
+    """Points measured at 0.9 times the model head plus 1 kPa give the inverse line back."""
+    pump = shared_plant.get_submodule("doublet.esp")
+    points = [
+        {"flow": flow, "frequency": 55.0, "head": 0.9 * pump.head_function(flow, 55.0) + 1000}
+        for flow in (0.02, 0.03, 0.04)
+    ]
+    curve = pump_curve(shared_plant, "doublet.esp", points)
+    assert curve["correction"]["slope"]["value"] == pytest.approx(1 / 0.9, rel=1e-9)
+    assert curve["correction"]["offset"]["value"] == pytest.approx(-1000 / 0.9, rel=1e-9)
+    assert curve["measured"][0]["theoretical_head"]["value"] == pump.head_function(0.02, 55.0)
+
+
+def test_pump_curve_with_one_point_has_no_correction_and_says_why(shared_plant):
+    """One point cannot fix a line; unit strings are read."""
+    point = {
+        "flow": {"value": 150, "unit": "m3/h"},
+        "frequency": {"value": 55, "unit": "Hz"},
+        "head": {"value": 20, "unit": "bar"},
+    }
+    curve = pump_curve(shared_plant, "doublet.esp", [point])
+    assert curve["correction"]["value"] is None
+    assert "two or more" in curve["correction"]["reason"]
+    assert curve["measured"][0]["flow"]["value"] == pytest.approx(150 / 3600)
+    assert curve["measured"][0]["head"]["value"] == 20 * BAR
+    json.dumps(curve, allow_nan=False)
+
+
+def test_pump_curve_needs_an_esp(shared_plant):
+    """A path that is not an ESP is refused."""
+    with pytest.raises(gm.errors.ValidationError, match="ESP"):
+        pump_curve(shared_plant, "doublet.well")
+
+
+def test_pump_curve_takes_units(shared_plant):
+    """Head is a pressure difference, reached by ``pressure``."""
+    curve = pump_curve(shared_plant, "doublet.esp", units={"pressure": "bar"})
+    assert curve["curve"]["head"]["unit"] == "bar" and curve["frequency"]["unit"] == "Hz"
+    with raises(gm.errors.ValidationError, "invalid_unit"):
+        pump_curve(shared_plant, "doublet.esp", units={"pressure": "kW"})

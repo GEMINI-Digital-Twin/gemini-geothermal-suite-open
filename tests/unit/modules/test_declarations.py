@@ -10,6 +10,7 @@ import pytest
 
 from gemini.errors import DefinitionError, ValidationError
 from gemini.modules import Module
+from gemini.modules.bindings import DatedParams
 from gemini.modules.declarations import (
     _MISS,
     UNSET,
@@ -20,16 +21,15 @@ from gemini.modules.declarations import (
     Output,
     Parameter,
 )
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Length,
     Pressure,
     PressureDifference,
     Ratio,
-    Stream,
     Temperature,
     TemperatureDifference,
 )
-from gemini.types.bindings import DatedParams
 from tests.fixtures import si
 
 

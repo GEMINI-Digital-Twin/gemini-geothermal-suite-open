@@ -5,9 +5,10 @@ import math
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.piping import Pipe
-from gemini.types import Fluid, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
@@ -45,8 +46,8 @@ def test_turbulent_flow_matches_hand_calculation():
     assert out.heat_loss == pytest.approx(10 * 4217.4 * (353.15 - fluid_out_T), rel=1e-9)
     assert out.heat_absorbed == 0
     assert result.outlets.fluid_out.m_dot == 10
-    assert energy_balance(pipe(), result)["relative_residual"] < 1e-12
-    assert mass_balance(pipe(), result)["residual"] == 0
+    assert call_energy_balance(pipe(), result)["relative_residual"] < 1e-12
+    assert call_mass_balance(pipe(), result)["residual"] == 0
 
 
 def test_laminar_flow_and_continuous_transition():
@@ -76,7 +77,7 @@ def test_cold_fluid_absorbs_heat_and_long_pipes_approach_ambient():
     chilled = pipe()(fluid_in=STREAM._with_si(T=280.15), air_in=air(300.15))
     assert reading(chilled).heat_loss == 0 and reading(chilled).heat_absorbed > 0
     assert 280.15 < reading(chilled).fluid_out_T < 300.15
-    assert energy_balance(pipe(), chilled)["relative_residual"] < 1e-12
+    assert call_energy_balance(pipe(), chilled)["relative_residual"] < 1e-12
     bare = pipe(heat_transfer_coefficient=1e4)(
         fluid_in=STREAM._with_si(m_dot=0.5), air_in=air(283.15)
     )
@@ -94,7 +95,7 @@ def test_zero_flow_keeps_only_the_static_head():
     assert result.outputs.pressure_drop == pytest.approx(-1000 * 9.81 * 3.048)
     assert result.outputs.velocity == 0 and reading(result).fluid_out_T == STREAM.T
     assert reading(result).heat_loss == reading(result).heat_absorbed == 0
-    assert energy_balance(module, result)["residual"] == 0
+    assert call_energy_balance(module, result)["residual"] == 0
 
 
 def test_invalid_inputs_raise():

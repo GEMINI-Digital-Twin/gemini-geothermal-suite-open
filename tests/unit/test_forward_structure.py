@@ -7,7 +7,8 @@ import textwrap
 import tokenize
 
 from gemini.plants.plant import Plant
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 
 FORWARD_SECTIONS = ("# Modules", "# Outlets", "# Outputs")
 LIFECYCLE = ("__init__", "forward", "_advance_states")

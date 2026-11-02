@@ -5,11 +5,11 @@ import pytest
 
 import gemini as gm
 from gemini import analysis, units
-from gemini.analysis import wells
+from gemini.analysis.fits import PUMP_CURVE_POINTS, _head_curve
 from gemini.errors import PhysicsError
 from gemini.modules.pumps import ESP
 from gemini.ops import kernels
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_health_matches, assert_module_matches
 from tests.fixtures.errors import raises
@@ -76,7 +76,7 @@ def test_fit_recovers_curve_and_health_threshold():
     correction = analysis.fit_head_correction([1, 2, 3], [3, 5, 7])
     assert correction["slope"]["value"] == pytest.approx(2)
     assert correction["offset"]["value"] == pytest.approx(1)
-    assert len(wells._head_curve(pump, 50)) == wells.PUMP_CURVE_POINTS
+    assert len(_head_curve(pump, 50)) == PUMP_CURVE_POINTS
 
 
 def test_the_esp_alone_asks_for_a_plain_scope_under_float32_precision():

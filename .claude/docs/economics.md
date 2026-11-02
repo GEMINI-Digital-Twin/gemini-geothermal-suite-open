@@ -57,9 +57,10 @@ for an assumption nobody gave. With `on_error="record"` nothing is raised and `v
 
 The discount rate and the analysis period are `economics.discount_rate` and `economics.analysis_period` of the case; no function takes
 either as an argument (the economics file owns them) and the analysis period is read in years. There is no `Cost` type and no `total_cost`: a module that is equipment is a subclass of the
-mixin `Equipment` (`gemini/modules/_utils/cost.py`), sets `equipment_kind` to one of the kinds of
-`gm.case.Capex` and defines `capex(economics)`, the factor of its kind times its own size
-(`gemini.physics.costs.scaled(factor, size)`); `fixed_opex(economics)` is the share
+mixin `Equipment` (`gemini/modules/_utils/equipment.py`), sets `equipment_kind` to one of the kinds of
+`gm.case.Capex` and defines `cost_size()`, the size its cost scales with. A module never reads the
+case: `gemini/evaluate/_utils/pricing.py` multiplies that size by the factor of the kind (for
+`drilling`, the cost per metre of the length drilled) and the fixed opex is the share
 `opex.fixed[kind]` times that capex. A composite adds only its own part. A factor or a share that
 the case lacks for a kind the plant uses raises `missing_assumption` naming
 `economics.capex.<kind>` or `economics.opex.fixed.<kind>`; nothing is
@@ -82,7 +83,7 @@ The kinds, with the size the factor multiplies:
 | `injection_pump` | `InjectionPump` | shaft power at `nominal_flow` (and `nominal_head` without curves) [W] |
 | `ice_storage` | none | no module has a size for it |
 
-Known limits. `InjectionPump` without `nominal_flow` raises `missing_value` on `capex`; `size` sets it.
+Known limits. `InjectionPump` without `nominal_flow` raises `missing_value` when it is priced; `size` sets it.
 `IceStorage` (its size in m3
 needs the water density, which is not a parameter), `ESP` and `LineShaftPump` (an ESP is paid
 inside the `Doublet`), `AquiferStorage`, `BoreholeField`, `DownholeHeatExchanger`, `ORC`,
@@ -109,7 +110,7 @@ for grid electricity drawn. A price is asked for only when its energy is non-zer
 
 gemini gives no value to any of these: each is a field of `case.economics` (see
 [data.md](data.md#the-case)) that the user states, and a call that needs an absent one raises
-`missing_assumption`. The sample case `inputs/examples/hackathon_2026/case.json` states them, in
+`missing_assumption`. The sample case `examples/hackathon_2026/case.json` states them, in
 price year 2015 and with the currency label EUR. Where a value is cited, the source is:
 
 | Field | Value in the sample | Source |
@@ -151,12 +152,12 @@ duration:
 Each check returns the check `{name, passed, value, limit}`, `value` and `limit` being values; a
 violated limit is `passed: false`, never an error (`passed` is `None`, with a `reason` in `value`,
 when the results hold nothing the check can judge). Because `Results` has no streams, the enthalpy and mass
-closure of `modules/_utils/balance.py` (sum in minus sum out per call) cannot be recomputed from
+closure of `evaluate/balances.py` (sum in minus sum out per call) cannot be recomputed from
 it, and the checks audit what the columns hold:
 
 | Check | Covers | `value`, `limit` |
 |---|---|---|
-| `energy_balance(plant, case, results)` | the leaf columns named in `ENERGY_INPUTS` and `ENERGY_OUTPUTS` of `modules/_utils/balance.py`, except the signed `heat_accumulation`: finite or missing, not negative | smallest power [W], 1e-9 W |
+| `energy_balance(plant, case, results)` | the leaf columns named in `ENERGY_INPUTS` and `ENERGY_OUTPUTS` of `evaluate/balances.py`, except the signed `heat_accumulation`: finite or missing, not negative | smallest power [W], 1e-9 W |
 | `plant_balance(plant, case, results)` | mass and energy in = out + losses + change of stored energy, per module (1e-9) and for the root (1e-6) | a list of checks, the worst relative residual of each |
 | `mass_balance(plant, case, results)` | the leaf outputs whose unit in `results.units` is kg/s: finite or missing, not negative | smallest flow [kg/s], 1e-12 kg/s |
 | `bounds(plant, case, results)` | every recorded output with a declared limit (`ge`, `gt`, `le`, `lt` of its `Declaration`) | number of values outside, 0 |
@@ -164,13 +165,13 @@ it, and the checks audit what the columns hold:
 | `run_all(plant, case, results)` | the first three, `bounds` and `requirements` | `{passed, checks}` |
 
 The limits of a run are the `requirements` of its `gm.Case`: each names a **role** and a
-**quantity** of it, never a module path or a field (`gm.case.roles()` is the closed table):
+**quantity** of it, never a module path or a field (`gm.plants.roles()` is the closed table):
 
 ```python
 import gemini as gm
 
-case = gm.Case.from_json("inputs/examples/hackathon_2026/case.json")
-plant = gm.Plant.from_json("inputs/examples/hackathon_2026/plants/HeatingPlant.json")
+case = gm.Case.from_json("examples/hackathon_2026/case.json")
+plant = gm.Plant.from_json("examples/hackathon_2026/plants/HeatingPlant.json")
 results = gm.simulate(plant, case)
 checks = gm.evaluate.requirements(plant, case, results)
 print(case.requirements[0].on, case.requirements[0].quantity, checks[0]["name"])
@@ -208,7 +209,7 @@ least at `demand.heating.supply_temperature` and each `CoolingGrid` at most at
 worst_step}` per unit and requirement, `name` the name of the requirement (the supply temperatures of
 the services are `heating_supply_temperature` and `cooling_supply_temperature`), `value` the worst value of the run (or the figure) and `limit` the
 bound that was violated, else the nearest. `unmet_share` of `heating_supply` and `cooling_supply` is the unmet energy over the energy demanded in the run, one figure of the period (the demand is that of the case, `case.demand.frame`; a service that demands nothing has share 0). A role with no unit in the plant gives one check with `passed` `None` and
-`unit_path` `None`; a name that is not in `gm.case.roles()` raises `ValidationError`, code `unknown_name`,
+`unit_path` `None`; a name that is not in `gm.plants.roles()` raises `ValidationError`, code `unknown_name`,
 with suggestions. A violated limit is an answer, and a run with no value of
 the field, every row having failed, gives `passed: null` with the reason `no_value`. `Results`
 holds leaf columns, so an output of a composite is read through the paths its combination names:
@@ -223,12 +224,12 @@ as a result column; that is a change to the engine, not to this package.
 
 ## `gm.analysis`
 
-`gm.analysis.calibrate` and `CalibrationResult` fit parameters through replay; the other names:
+`gm.study.calibrate` and `CalibrationResult` fit parameters through replay; the other names:
 
 | Name | Status | Notes |
 |---|---|---|
-| `nodal(plant, well, conditions)` | real | IPR, VLP and operating point from `gemini/analysis/solves.py`, for production and injection wells; the plant is not changed |
-| `pump_curve(plant, pump, measured=None)` | real | the polynomial head curve of the pump at 60 Hz (the private `_head_curve` of `gemini/analysis/wells.py`), theoretical head of measured points, `gm.analysis.fit_head_correction` |
+| `nodal(plant, well, conditions)` | real | IPR, VLP and operating point from `gemini/analysis/nodal.py`, for production and injection wells; the plant is not changed |
+| `pump_curve(plant, pump, measured=None)` | real | the polynomial head curve of the pump at 60 Hz (the private `_head_curve` of `gemini/analysis/fits.py`), theoretical head of measured points, `gm.analysis.fit_head_correction` |
 | `corrosion_forecast(model, until)` | real | `co2_corrosion_rate`, `wall_loss`, `time_to_minimum_wall` |
 
 `nodal` takes `conditions` as one dict or a list of dicts (a what-if): `wellhead_pressure` [Pa],
@@ -289,7 +290,7 @@ searches the design space that the plant states. The variables are the plant's: 
 `range` (continuous, or integer when its parameter is) and every leaf with `options` (strings), and
 `size.doublets` when it has a `range` (a discrete variable: the search runs once for each count,
 from the lowest to the highest, on a new plant of that size, and the best trial of all counts
-wins). Leaves with the same parameter name, the same role (`gm.case.roles()`) and an equal range
+wins). Leaves with the same parameter name, the same role (`gm.plants.roles()`) and an equal range
 are one variable that sets them all (`heat_pump.capacity`, `chiller.capacity` for three chillers,
 `doublet.nominal_flow`, `doublet.depth`); the order is that of the file; a plant that states
 nothing to search raises `invalid_design`. `evaluations` and `seed` have no default (7.28). Each
@@ -343,7 +344,7 @@ each case and returns a `StudyResult`: `runs` (`plant_name`, `case_name`, `verdi
 case, by the objective then the metrics) and `best` (the feasible run ranked first by the
 objective, per case); `to_json(folder)` writes the run records. A `minimize` on a plant that states
 no range and no options runs the plant as it is, with a `note`. `Study.run(plants={name: Plant})`
-takes plants in memory instead of the files. `gm.check(plant, case)` (`gemini/run/check.py`)
+takes plants in memory instead of the files. `gm.check(plant, case)` (`gemini/engine/check.py`)
 returns the issues that need both: a capex and a fixed opex for every equipment kind (when the case
 has economics), a requirement on a role the plant lacks (not `heating_supply` or `cooling_supply`: a
 plant without a supply is judged infeasible for that service), an initial state for every state of
@@ -351,7 +352,7 @@ every stateful module, the energy prices of a `least_cost` dispatch, and the par
 value; `simulate` and every study function run it first.
 
 **What a trial costs.** A trial copies the plant once, sets its variables and the values of the case
-on that copy (`applied_in_place` of `gemini/run/_utils/apply.py`), and the run and every metric read
+on that copy (`applied_in_place` of `gemini/engine/apply.py`), and the run and every metric read
 that copy: `apply_case` returns a copy that already carries the same case object, so it copies
 nothing again. The ESP depth and the pipe path of a well (`section_length`, `section_inclination`,
 `section_diameter`, `section_roughness`, `esp_depth`) are numeric graph inputs, so one traced graph

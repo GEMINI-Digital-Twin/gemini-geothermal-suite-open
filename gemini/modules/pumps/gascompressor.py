@@ -6,7 +6,8 @@ from gemini.modules.declarations import Control, Inlet, Outlet, Output, Paramete
 from gemini.modules.module import Module
 from gemini.modules.pumps import _physics
 from gemini.physics import energy
-from gemini.types import Count, Efficiency, Power, Pressure, Ratio, SpecificHeat, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Count, Efficiency, Power, Pressure, Ratio, SpecificHeat
 
 
 class GasCompressor(Module):

@@ -6,16 +6,16 @@ from gemini._utils.jsonable import to_plain
 from gemini._utils.strings import join_path
 from gemini.errors import GeminiError
 from gemini.modules._utils import design
-from gemini.modules._utils.serialization import (
+from gemini.plants._utils import plant_inputs
+from gemini.plants._utils.plan import is_group, is_plant
+from gemini.plants._utils.serialization import (
     FORMAT,
     keep_stated,
     plain_value,
     to_sections,
     tree_params,
 )
-from gemini.plants._utils import inputs
-from gemini.plants._utils.plan import is_group, is_plant
-from gemini.types import Fluid
+from gemini.streams.fluid import Fluid
 
 
 def _same(module, name, stated, current):
@@ -89,11 +89,11 @@ def _input_form(found, value):
 def _inputs_section(plant):
     """Return the ``inputs`` key of the plant dict, empty when nothing below ``plant`` set one."""
     stated = {
-        join_path(path, name): _input_form(inputs.declaration(module, name), value)
+        join_path(path, name): _input_form(plant_inputs.declaration(module, name), value)
         for path, module in plant.named_modules()
         if is_plant(module)
         for name, value in module._inputs.items()
-        if not getattr(inputs.declaration(module, name), "case", None)
+        if not getattr(plant_inputs.declaration(module, name), "case", None)
     }
     return {"inputs": to_plain(deepcopy(stated))} if stated else {}
 

@@ -3,7 +3,7 @@
 from gemini.modules.declarations import Outlet
 from gemini.modules.module import Module
 from gemini.physics import gas
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 
 class ChemicalGrid(Module):

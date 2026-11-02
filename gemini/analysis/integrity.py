@@ -9,7 +9,7 @@ from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini._utils.time import to_utc
 from gemini.errors import ValidationError
 from gemini.physics import corrosion
-from gemini.types.shapes import OutputUnits, value
+from gemini.units.shapes import OutputUnits, value
 
 _CONDITIONS = {
     "temperature": ("K", "temperature"),

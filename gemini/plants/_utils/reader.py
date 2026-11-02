@@ -8,7 +8,10 @@ from gemini._utils.strings import close_matches, did_you_mean, join_path
 from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import Issue, problem, raise_issues
 from gemini.modules._utils import design
-from gemini.modules._utils.serialization import (
+from gemini.plants._utils import form, leaves, outputs, plant_inputs
+from gemini.plants._utils.factory import built, make_module
+from gemini.plants._utils.plan import is_group, unconnected_port
+from gemini.plants._utils.serialization import (
     SECTIONS,
     Report,
     format_error,
@@ -17,9 +20,6 @@ from gemini.modules._utils.serialization import (
     located,
     tree_params,
 )
-from gemini.plants._utils import form, inputs, leaves, outputs
-from gemini.plants._utils.factory import built, make_module
-from gemini.plants._utils.plan import is_group, unconnected_port
 
 TYPES = {
     "name": str,
@@ -222,7 +222,7 @@ def root_problems(data):
 
 
 def _is_input(plant, path):
-    return path in plant.inputs() or inputs._port_field(plant, path) is not None
+    return path in plant.inputs() or plant_inputs._port_field(plant, path) is not None
 
 
 def _root_values(plant, params, report):
@@ -240,9 +240,9 @@ def _set_inputs(plant, values, report):
         if report.skips(path):
             continue
         with report.guard("params"):
-            _refuse_owned(inputs.declaration(plant, path), path)
-            inputs.refuse_bare(plant, path, value)
-            inputs.refuse_fluid(plant, path, value)
+            _refuse_owned(plant_inputs.declaration(plant, path), path)
+            plant_inputs.refuse_bare(plant, path, value)
+            plant_inputs.refuse_fluid(plant, path, value)
             plant._set_si_inputs({path: value})
 
 

@@ -22,7 +22,7 @@ import gemini as gm
 from gemini import ops
 from gemini.engine.callbacks import AutoCheckpoint, Callback
 from gemini.modules import ModuleDict, ModuleList
-from gemini.types import Health
+from gemini.modules.results import Health
 from tests.conftest import shipped_module_classes
 from tests.fixtures import ROOT
 from tests.fixtures.engine_plants import Booster, holder_plant, pair_frame, pair_plant

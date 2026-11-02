@@ -1,21 +1,22 @@
 """Auxiliary boilers with a steady first-law heat balance: gas-fired and electric."""
 
 from gemini import ops
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules._utils.supply import supply_margin
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.heating import _burner
 from gemini.modules.module import Module
 from gemini.physics import energy, heat_transfer
-from gemini.types import Efficiency, Fuel, Power, Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Efficiency, Fuel, Power, Temperature
 
 
 class _BoilerBody(Equipment, Module):
     """Water side of a boiler: heat a forward stream to its setpoint, up to a duty limit.
 
     On a supply line the setpoint is the supply temperature of ``demand.heating`` plus the
-    ``supply_margin`` the plant states (``gm.run.apply_case``).
+    ``supply_margin`` the plant states (``gemini.engine.apply.apply_case``).
     """
 
     abstract = True
@@ -48,9 +49,9 @@ class _BoilerBody(Equipment, Module):
         # Outlets
         self.fluid_out = Outlet(Stream, kind="hot_water")
 
-    def capex(self, economics):
-        """Return the cost of the boiler from its capacity."""
-        return self.capex_of(economics, self.capacity)
+    def cost_size(self):
+        """Return the size that the cost of the boiler scales with: capacity."""
+        return self.capacity
 
     def _requested_duty(self, inlet):
         """Return the duty [W] that reaches the setpoint, refusing reverse flow."""

@@ -8,7 +8,8 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import hydraulics
-from gemini.types import FlowCoefficient, Fraction, PressureDifference, Ratio, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import FlowCoefficient, Fraction, PressureDifference, Ratio
 
 
 class Valve(Module):

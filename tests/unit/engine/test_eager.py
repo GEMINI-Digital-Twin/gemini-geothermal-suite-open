@@ -14,7 +14,7 @@ from gemini.errors import PhysicsError
 from gemini.modules import Module
 from gemini.modules.declarations import Control, Inlet, Outlet, Output
 from gemini.plants._utils.plan import Solve
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures.engine_plants import (
     Booster,
     holder_plant,

@@ -2,35 +2,45 @@
 
 ## Folders and imports
 
-The run lives in `engine/` (`Engine`, `Clock`, `executor.py`, `eager.py`, `rows.py`, `evaluation.py`,
-`loader.py`, `runner.py`, `chunks.py`, `checkpoint.py`, ...) and `run/` (`schedule`, `simulate`, `replay`, `live`, `resume`, `call`, `Results`, `Dataset`, and
-`run/_utils/` with `demand.py`, `roles.py`, `limits.py`, `sources.py`).
+The run lives in `engine/`, one folder for one plant on one case over time:
+
+- the runs: `simulate.py` (`simulate`, `replay`, `live`, `resume`), `check.py`, `engine.py` (`Engine`),
+  `runner.py`, `chunks.py`, `clock.py`, `checkpoint.py`, `archive.py`, `callbacks.py`, `health.py`;
+- what a run gives: `results.py` (`Results`);
+- the case on the plant: `apply.py` (`apply_case`, used by `evaluate` and `study` too);
+- the schedule and its policy: `schedule/` (`schedule.py` the function `gm.schedule`, `dispatch.py` which
+  doublet runs at what for a heat need, `sources.py` the marginal cost of each source, `limits.py` the
+  requirements the schedule enforces, `fleet.py` the units it sets);
+- the bindings (below): `bindings.py` (`RunBindings`), `loader.py` and `columns.py` (align the data to ticks);
+- the executors: `executor.py` (the interface), `eager.py`, `chunkresult.py` (`ChunkResult`, what an
+  executor gives for one module over the rows of a chunk), `twinresult.py` (`TwinResult`, what one twin
+  gave over a chunk), `rowwise.py` (call a module for real, row by row).
+
+`Dataset` is a series of the case (`gemini/case/dataset.py`); the engine only aligns it to the ticks.
+
+**Words.** *plan* is the plant's module order (`plants/_utils/plan.py`); *bindings* are the columns that
+feed the inputs of a run (`engine/bindings.py`; the bindings a module declares are
+`modules/bindings.py`); *graph* is the compiler's traced form. Each keeps this one meaning.
 
 **Dependency rules.** The run folders are `modules`, `plants`, `physics`, `ops`, `runtime`,
-`engine`, `run`, `types`, `units`, `errors` and `_utils`. They import none of `compiler`, `data`,
+`engine`, `streams`, `units`, `errors` and `_utils`. They import none of `compiler`, `data`,
 `study`, `evaluate` and `analysis`, not even inside a function; those sit above the run and import
-it. `modules` imports neither `plants` nor `run`: `gm.call` is `gemini/modules/call.py`, which needs
-no engine, and `run` re-exports it.
-
-`engine` imports `run` for `Results` and `Dataset`, and `run` imports `engine.engine`.
-`gemini/engine/__init__.py` imports `gemini.run` first and never `.engine`, which keeps one import
-order from either side of that cycle.
-
-`gemini/case/_utils/demand.py` holds the demand frame (`from_csv`, `from_values`), because a `Case` reads it and `case` imports no `data`; `gm.data`
-exports `from_csv` and `from_values` from it.
+it. `modules` imports neither `plants` nor `engine`: `gm.call` is `gemini/modules/call.py`, which needs
+no engine. The direction is one way (`structure.md`, R4): `engine` imports `plants` and `case`, and nothing
+below imports `engine`, so the import of `gemini.engine` needs no special order.
 
 **The compiler is optional.** `gemini/compiler/__init__.py` registers its executor
 (`register_executor(COMPILED, compile)`) when it is imported, and `gemini/__init__.py` imports it.
 The run works without it: `executor_for(plant, compile)` (`gemini/engine/executor.py`) takes the
 compiled executor when `compile=True` and one is registered, else the eager one. The eager executor
 (`gemini/engine/eager.py`) runs `forward` on arrays over a chunk, and row by row
-(`gemini/engine/rows.py`) for a plant with a constraint (`Solve`), a module with state or a
+(`gemini/engine/rowwise.py`) for a plant with a constraint (`Solve`), a module with state or a
 pre-hook, on the python backend, at a precision other than float64, or when the array call raises
-something no row can be blamed for (then `Evaluation.breaks` keeps the exception). A plant with a
+something no row can be blamed for (then `ChunkResult.breaks` keeps the exception). A plant with a
 loop is not on that list: eager, it runs on arrays and `loops.iterate` keeps one Wegstein iterate
 per row, masked so that a row that settled or failed stops moving; compiled, the loop is one
 `fixed_point` node that runs the same iteration. A row that fails a check is a failed row of the
-array call, not a reason to leave it: the executor runs the call under `ops.failures.marking`, so the
+array call, not a reason to leave it: the executor runs the call under `ops.failedrows.marking`, so the
 failing rows of a physics function travel with its results (`FailedRows`) and fail those rows
 with the row call's exception; an inline check in `forward` raises with the failures of all its
 rows and the call runs again on the others. `gm.simulate(..., compile=False)` and
@@ -39,7 +49,7 @@ rows and the call runs again on the others. `gm.simulate(..., compile=False)` an
 ## Functions or engine
 
 A run has two levels and one implementation. `gm.simulate`, `gm.replay`, `gm.live` and `gm.resume`
-(`gemini/run/simulate.py`) are for everyday use: each builds an `Engine`, calls the matching method
+(`gemini/engine/simulate.py`) are for everyday use: each builds an `Engine`, calls the matching method
 and returns its `Results`, with no run logic of its own. `gm.Engine` stays public for complex
 tasks: a stateful run over several calls, a callback that reads the engine, a live run held in
 memory, a manual checkpoint.
@@ -47,8 +57,8 @@ memory, a manual checkpoint.
 ```python
 import gemini as gm
 
-case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
+case = gm.Case.from_json("examples/shallow_district/case.json")
+plant = gm.Plant.from_json("examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 print(results.summary(units={"power": "MW", "temperature": "degC"}))
 ```
@@ -60,7 +70,7 @@ case applied and `simulate` raises its issues (a run with no case skips it). A b
 demand: `case` may be `None` only with a `plan`, else `ValidationError` (code `missing_value`).
 
 No object is kept between calls of the functions, except the traced graphs of the compiled
-executor, which the process holds (`gemini.compiler.graph.graph_cache`, at most 16 graphs, the least
+executor, which the process holds (`gemini.compiler.cache.graph_cache`, at most 16 graphs, the least
 recently used dropped): calling a function hundreds of times with other parameter values, on one
 plant or on copies of it (a study copies the plant for each trial), traces its
 structure once, and an `Engine` shares the same graphs. The key of [`GraphCache`](native-engine.md)
@@ -104,7 +114,7 @@ it was, so its rows are processed again by the next call.
 
 A plant dict holds only the plant: its design values, never the ground, the reservoir, the fluid,
 the air, the return and supply temperatures or the prices. `gm.simulate` and `gm.schedule` call
-`apply_case(plant, case)` (`gemini/run/_utils/apply.py`) on a **copy** of the plant, which sets
+`apply_case(plant, case)` (`gemini/engine/apply.py`) on a **copy** of the plant, which sets
 what the case holds **by module class**, one private function for each kind, never by a path
 written in the case:
 
@@ -129,7 +139,7 @@ written in the case:
   `utilities.electricity.import_limit` and `export_limit` (absent means unlimited);
 - every unit on a supply line (`HeatPump`, `Boiler`, `ElectricBoiler`, `AbsorptionUnit`,
   `AdsorptionChiller` whose useful outlet reaches the `HeatingGrid` or the `CoolingGrid`, found with
-  `plant.feeds`, `gemini/plants/_utils/roles.py` `supply_service`): the `temperature_setpoint` is
+  `plant.feeds`, `gemini/plants/roles.py` `supply_service`): the `temperature_setpoint` is
   the supply temperature of the service plus the unit's `supply_margin` (minus it for cold), set
   as an input. A unit without a margin keeps the setpoint the plant gives; a margin on a unit on
   no supply line is `invalid_design`;
@@ -153,17 +163,17 @@ values of the case as ordinary parameters (`set_params`), as the unit tests do.
 ```python
 import gemini as gm
 
-case = gm.Case.from_json("inputs/examples/hackathon_2026/case.json")
-plant = gm.Plant.from_json("inputs/examples/hackathon_2026/plants/HeatingPlant.json")
+case = gm.Case.from_json("examples/hackathon_2026/case.json")
+plant = gm.Plant.from_json("examples/hackathon_2026/plants/HeatingPlant.json")
 plan = gm.schedule(plant, case)
 results = gm.simulate(plant, case, plan)
 ```
 
-`gm.schedule(plant, case)` (`gemini/run/schedule.py`, formulas in `physics/dispatch.py`) decides
+`gm.schedule(plant, case)` (`gemini/engine/schedule/schedule.py`, formulas in `gemini/engine/schedule/dispatch.py`) decides
 the controls of each step of the demand, at any constant step (hourly, daily, ...) and any length,
 from an energy balance on the plant's design values, with no simulation inside. The case is applied on
 a copy; `plant` never changes. It reads the `Doublet`
-children, the grids and the units by **role, from the wiring** (`gemini/run/_utils/roles.py`, on
+children, the grids and the units by **role, from the wiring** (`gemini/engine/schedule/fleet.py`, on
 `plant.feeds`): a unit whose useful outlet feeds the `HeatingGrid` is a heating unit and one that
 feeds the `CoolingGrid` a cooling unit, directly or through mixers, splitters and other units. A
 `HeatPump` is either: on the cooling grid it is the compression chiller, with its condenser heat
@@ -175,7 +185,7 @@ closed list of the one implemented value. A plant without them makes `gm.schedul
 `missing_value` naming the path; another value is refused when the plant is read.
 
 **Cost dispatch.** Every heat and cold source gets a marginal cost at each step
-(`gemini/run/_utils/sources.py`, `physics/dispatch.marginal_cost`): `price / efficiency +
+(`gemini/engine/schedule/sources.py`, `schedule/dispatch.marginal_cost`): `price / efficiency +
 co2 price * emission`, with the prices of `case.economics.energy`, the CO2 price `economics.carbon.price`, the grid factor `utilities.electricity.co2_intensity` and the efficiency of the source at
 its design values: the COP of a heat pump or compression chiller, the efficiency of a boiler, the
 pump electricity of a doublet, the `thermal_cop` of a heat-driven chiller on the cheapest heat. A
@@ -192,7 +202,7 @@ seasonal commands (`storage.mode`, `source_valve.split_fraction`, `load_valve.sp
 stay inputs of a run.
 
 **Requirements.** The schedule reads the requirements of the case by **role and quantity**
-(`gemini/run/_utils/limits.py`), each applying to every unit of its role on its own. Per `doublet`:
+(`gemini/engine/schedule/limits.py`), each applying to every unit of its role on its own. Per `doublet`:
 
 - a flow range: quantity `production_flow`, `over="each"`, `when="running"`, `min` and `max`;
 - a maximum brine cooling: quantity `brine_cooling`, `over="each"`, `max`;
@@ -241,14 +251,14 @@ belong to the caller. Every call returns `Results`.
 The pieces fit together as follows: the plant `Module` owns its design and bindings, the
 in-memory `Dataset` holds raw observations, the internal `Loader` aligns rows to the engine
 `Clock`, one private `Engine._run` hands the run to the `Runner`, which evaluates chunks of ticks and replays the callbacks,
-`to_checkpoint`/`from_checkpoint`/`resume` persist and continue a run, and `gm.analysis.calibrate`
+`to_checkpoint`/`from_checkpoint`/`resume` persist and continue a run, and `gm.study.calibrate`
 fits parameters by calling `Engine.replay` on a copy of the plant.
 
 ## Run input
 
 One format serves `simulate`, `replay` and `live`: a `gm.Dataset`, or a pandas DataFrame with a
 timezone-aware `DatetimeIndex` (any zone; the instants become UTC) and one column per binding
-`column`. A DataFrame is wrapped by `gemini.run.dataset.as_dataset`; a naive index, a
+`column`. A DataFrame is wrapped by `gemini.case.dataset.as_dataset`; a naive index, a
 non-time index or any other object raises `RunError`. Values have the unit of the binding,
 except that a unit recorded in `Dataset` metadata replaces it (the rule below stays). Without
 `clock`, `simulate` and `replay` use the ticks of the input (`Clock.from_data`).
@@ -288,7 +298,7 @@ select ticks and keep the final step.
 
 ## Runs
 
-One binding plan is compiled per run, and binding errors raise `ValidationError` before the first
+One `RunBindings` is compiled per run, and binding errors raise `ValidationError` before the first
 step: missing bound columns, `only` paths without measured bindings, and volumetric flow columns
 bound to a kg/s input that cannot be converted (a control or boundary on a module without
 `pressure` and `temperature` parameters, or an inlet without `p` and `T`). A column's unit in the
@@ -321,7 +331,7 @@ simulation step raises its exception.
 ## The runner
 
 `Engine.replay`, `live`, `simulate` and `resume` all reach `Engine._run`, which builds the
-`BindingPlan` and the `Loader` arrays and hands them to `Runner` (`gemini/engine/runner.py`).
+`RunBindings` and the `Loader` arrays and hands them to `Runner` (`gemini/engine/runner.py`).
 There is no tick loop and no second path for a failing row: a run is a list of **twins** (the
 equipment twins of a replay; the plant in simulate) evaluated over **chunks** of ticks.
 
@@ -334,15 +344,15 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
   volumetric flows with `flows.mass_flow`) and gives every tick a status in the order a plain call
   meets its problems: the first missing column (a skip counted by its name; the missing rule is
   `Aligned.present`), or an inlet stream the limits refuse (an error with the text of the real
-  `Stream` constructor). `outcome.evaluate_twin` builds the inlet streams of the ticks that can be
+  `Stream` constructor). `twinresult.evaluate_twin` builds the inlet streams of the ticks that can be
   evaluated and hands them to the engine's executor (`executor.prepare`, then `executor.evaluate`;
-  the places an executor ran a module for real are `Evaluation.breaks`, kept per twin path in
+  the places an executor ran a module for real are `ChunkResult.breaks`, kept per twin path in
   `engine.graph_breaks`). The compiled executor (`gemini/compiler/executor.py`) takes the graph
-  from the plant's `GraphCache` and calls `gemini.compiler.graph.evaluate`; the eager executor
+  from the plant's `GraphCache` and calls `gemini.compiler.interpret.run_graph.run_graph`; the eager executor
   calls the module on arrays, or row by row where [it must](#folders-and-imports). The backend is
   the one of `gm.runtime.settings(backend=...)`, NumPy over arrays by default, Python row by row
   (`backend="python"` is how to debug) and the results are the same. A failing row gets the
-  check's class and exact message from `Evaluation.error`; a bound violation on a declaration reads
+  check's class and exact message from `ChunkResult.error`; a bound violation on a declaration reads
   `declaration.validate`. Then `health.assess` runs `Module.health` once on the arrays (row by row on
   the Python backend, or when the call on arrays raises, which finds the rows whose health fails:
   they are errors), and the columns are spread over the chunk (`PathColumns.spread`).
@@ -354,12 +364,12 @@ equipment twins of a replay; the plant in simulate) evaluated over **chunks** of
   break: compiled, it is one `fixed_point` node whose interpreter runs the same iteration
   (`loops.iterate`) on arrays, masked per row (native-engine.md, Loops); eager, the plant runs on
   arrays with the same iteration. Eager has no graph: it goes by rows for a constraint, state or
-  pre-hook without a record, and records in `Evaluation.breaks` (kept per twin path in
+  pre-hook without a record, and records in `ChunkResult.breaks` (kept per twin path in
   `engine.graph_breaks`) only a fall back to rows after an array call raised.
 - **Skips and errors.** A twin is skipped for the first missing column in this order: controls,
   boundaries, inlet fields (each inlet's stream is checked once its fields are read), observations,
   measured states. In simulate the plant is the one twin: root inlets, then the leaf inputs; a skip
-  is counted under `""`. A failing row is recorded as the problem `path`, `code`, `message=str(error)`; in simulate, whatever fails is a whole-step error under `""` and the
+  is counted under `""`. A failing row is recorded as the problem `path`, `code`, `message=str(error)` (the one record, built by `gemini/errors/rows.py`: `failed_row`, `skipped_row`, `row_code`; `gm.evaluate.failures` reads it with the same `SKIPPED` code); in simulate, whatever fails is a whole-step error under `""` and the
   states stay as they were.
 - **Inputs.** Each tick sets the module's controls and boundaries on its twin
   before the module is called, so a failing tick has persisted them; the runner sets them at the

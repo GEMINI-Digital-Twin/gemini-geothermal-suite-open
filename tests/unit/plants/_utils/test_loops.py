@@ -5,15 +5,16 @@ import pytest
 
 import gemini as gm
 from gemini import ops, runtime
-from gemini.compiler.graph.tracer import Tracer
+from gemini.compiler.trace.tracer import Tracer
 from gemini.modules import CirculationPump, Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.storage import ThermalStorage
-from gemini.ops.failures import failures_of, marking
+from gemini.ops.failedrows import failures_of, marking
 from gemini.plants._utils import loops
 from gemini.plants._utils.plan import Loop
 from gemini.plants.plant import Plant
-from gemini.types import Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 from tests.fixtures.parity import BACKENDS
@@ -86,10 +87,10 @@ class Circuit(Plant):
         self.relaxer = self.relaxer_class()
 
         # Inlets
-        self.power_in = Inlet(gm.types.Power, kind="electricity")
+        self.power_in = Inlet(Power, kind="electricity")
 
         # Outlets
-        self.loss_out = Outlet(gm.types.Power, kind="heat")
+        self.loss_out = Outlet(Power, kind="heat")
 
         # Connections
         self.connect("power_in", "pump.power_in")

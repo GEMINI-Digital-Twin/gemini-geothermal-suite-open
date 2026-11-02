@@ -2,7 +2,7 @@
 
 from gemini.modules.declarations import Inlet
 from gemini.modules.module import Module
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 
 class WasteGrid(Module):

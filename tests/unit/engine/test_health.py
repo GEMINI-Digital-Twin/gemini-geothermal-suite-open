@@ -8,8 +8,8 @@ from gemini.engine.health import UNAVAILABLE, HealthColumns, assess
 from gemini.errors import PhysicsError
 from gemini.modules import Module
 from gemini.modules.declarations import Output
-from gemini.types import Health, ModuleResult, Ports, Values
-from gemini.types.results import NOT_ASSESSED
+from gemini.modules.results import NOT_ASSESSED, Health, ModuleResult, Values
+from gemini.streams.ports import Ports
 
 
 class Gauge(Module):

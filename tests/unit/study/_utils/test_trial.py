@@ -6,7 +6,7 @@ from gemini.units import Quantity
 from tests.fixtures.cases import make_case
 from tests.fixtures.errors import raises
 from tests.fixtures.result_tables import make_results
-from tests.unit.evaluate.test_totals import overflowing
+from tests.unit.evaluate.test_summary import overflowing
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
 PRICE = "case.economics.energy.electricity"

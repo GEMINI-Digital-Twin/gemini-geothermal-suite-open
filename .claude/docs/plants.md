@@ -25,7 +25,8 @@ from gemini.modules.grids import HeatingGrid
 from gemini.modules.piping import Valve
 from gemini.modules.pumps import CirculationPump
 from gemini.plants import Plant
-from gemini.types import Power, Stream
+from gemini.streams import Stream
+from gemini.units.quantities import Power
 
 
 class HeatingSubstation(Plant):
@@ -289,8 +290,8 @@ The engine finds the value of the control or boundary `by` at which `target` rea
 `ops.brentq`, running the modules between them without recording them; then it calls those modules
 once with it. `target` and the value are paths; `bounds` is the path of a pair, or two numbers or
 paths. With `at_least` a target that reaches its value at the lower bound keeps that bound: the
-injection pump adds no head when the column of brine is enough. `plants/_utils/constraints.py` is the
-solve; `gm.analysis.nodal` keeps its own curves in `gemini/analysis/solves.py`.
+injection pump adds no head when the column of brine is enough. `plants/_utils/targets.py` is the
+solve; `gm.analysis.nodal` keeps its own curves in `gemini/analysis/nodal.py`.
 
 ## Outputs
 
@@ -337,17 +338,17 @@ grid, and its setpoints as `inputs`:
 
 | A plant with values plus `gm.schedule` | Status |
 | --- | --- |
-| `HeatingPlant`, `HeatingCoolingPlant`, `HeatingFullCoolingPlant`, `HeatingAbsorptionCoolingPlant`, `HeatingHeatPumpCoolingPlant`, and a plant dict of the same units | schedulable: a design is a plant dict, and `inputs/examples/` holds two that run with no failed step |
+| `HeatingPlant`, `HeatingCoolingPlant`, `HeatingFullCoolingPlant`, `HeatingAbsorptionCoolingPlant`, `HeatingHeatPumpCoolingPlant`, and a plant dict of the same units | schedulable: a design is a plant dict, and `examples/` holds two that run with no failed step |
 | `DoubletHeatPlant` | schedulable up to 165 m3/h: the measured ESP curve, which the replay goldens hold, has no head at 60 Hz for more, so the flow range constraint must stop there |
 | `Doublet`, `NodalDoublet`, `HeatingSubstation`, `CoolingSubstation`, `DistrictNetwork`, `MultiWellPlant`, `ATESPlant` | building blocks: a run sets their controls and boundaries |
 | `DistrictEnergyPlant`, `BoilerChpPlant`, `ParallelExchangerPlant` | cases: their examples set their inputs |
 
-Example plants live in `inputs/plants/<Name>.json` and `inputs/examples/*/plants/`, in a source
+Example plants live in `tests/fixtures/plants/<Name>.json` and `examples/*/plants/`, in a source
 checkout only: they are plant files of the form above (`kind: plant`, `format: 1`). The values of
 nature that moved to the case are in `tests/fixtures/plant_case_values.json`, and
 `example_plant(name)` of `tests/fixtures/sample_cases.py` builds the plant from its file and sets
 them on the modules. The five template plants have no values of their own: a design is its plant
-file. A plant with no file raises `FileNotFoundError` and a missing `inputs/` raises `inputs_missing`.
+file. A plant with no file raises `FileNotFoundError` and a missing `tests/fixtures/` raises `inputs_missing`.
 
 `ATESPlant` has one wiring for both seasons: the `split_fraction` of `source_valve` and `load_valve`
 sends the flow to the exchanger or to the heat pump, and the one that stands still is called at zero

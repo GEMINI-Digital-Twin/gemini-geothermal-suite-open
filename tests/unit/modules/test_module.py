@@ -14,8 +14,10 @@ from gemini import ops, runtime
 from gemini.errors import ValidationError
 from gemini.modules import Module, ModuleDict
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter
-from gemini.types import Electricity, Frequency, Ports, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.ports import Ports
 from gemini.units import Quantity
+from gemini.units.quantities import Electricity, Frequency
 from tests.fixtures import si
 from tests.fixtures.errors import raises
 

@@ -6,7 +6,7 @@ Every test belongs to one automatically marked folder tier:
 
 - `tests/unit/` mirrors source files and receives `unit`. Its folders are those of `gemini/`:
   `_utils`, `analysis`, `compiler`, `data`, `engine`, `errors`, `evaluate`, `modules`, `ops`,
-  `study`, `physics`, `plants`, `run`, `runtime`, `types` and `units`; the files at its top
+  `study`, `physics`, `plants`, `run`, `streams` and `units` (and `test_runtime.py` at its top); the files at its top
   (`test_code_quality.py`, `test_package_boundaries.py`, `test_public_api.py`, `test_mirror.py`, ...)
   guard the package as a whole.
 - `tests/integration/` combines runtime components and receives `integration`.
@@ -42,9 +42,10 @@ module that imports a changed module, directly or transitively:
    affected test file runs; imports made by `conftest.py` files are not followed;
 4. any changed file under `examples/` selects `tests/e2e/test_examples.py`;
 5. any other changed file selects the tests (or `conftest.py` scopes) whose source names its path;
-   a file below `inputs/` also selects its readers: those that name its folder, what `INPUT_READERS`
-   gives for a folder read through the public API, or a constant of `tests/fixtures/__init__.py`
-   that holds it, and `tests/e2e/test_examples.py`;
+   a data file (below `examples/<name>/` or `tests/fixtures/<folder>/`) also selects its readers:
+   those that name its folder, what `DATA_READERS` gives for a folder read through the public API
+   (`sample_cases` for a sample project), or a constant of `tests/fixtures/__init__.py` that holds
+   it;
 6. `tests/unit/test_code_quality.py` always runs, whatever changed and also when nothing else is
    selected, and its reason is printed.
 
@@ -116,7 +117,7 @@ budget.
 ## Fast and slow datasets
 
 `--dataset=fast` selects the committed 2,976-row July 2024 calendar month at
-`inputs/doublet_heat/doublet_2024_15min_month.csv`. July is the first complete month
+`tests/fixtures/doublet_heat/doublet_2024_15min_month.csv`. July is the first complete month
 after the source begins on June 7 and retains 15-minute cadence, daily boundaries, calibration
 and holdout periods, replay, simulation, checkpoints and live paths. Behaviour tests use short
 windows, normally one point to seven days. The shared `fast_dataset` fixture is independent of
@@ -124,7 +125,7 @@ the e2e option. The 96-row `reference_dataset` is the narrow June window require
 pre-refactor engine-frame goldens.
 
 `--dataset=slow` selects the unchanged 17,280-row source at
-`inputs/doublet_heat/doublet_2024_15min.csv`. Never delete, replace or shrink either
+`tests/fixtures/doublet_heat/doublet_2024_15min.csv`. Never delete, replace or shrink either
 dataset or any golden. Full-year replay/simulate goldens remain under
 `tests/fixtures/module_api_baseline/`; the fast replay golden is under
 `tests/fixtures/module_api_fast/`.
@@ -228,11 +229,11 @@ The suite must remain safe under `pytest -n auto`:
 ## Structure and quality tests
 
 `tests/unit/test_code_quality.py` also enforces the [data layout](data.md#where-data-lives): no file
-under `gemini/` names a sample case or `inputs/examples/`, no data file in `gemini/`, only the
-allowed keys and a registered plant in `inputs/plants/`, no `datasets/` folder, and no path to the
-data folders outside `gemini/_utils/paths.py`. It enforces the structure of the package:
+under `gemini/` names a sample case or `examples/`, no data file in `gemini/`, only the
+allowed keys and a registered plant in `tests/fixtures/plants/`, no `datasets/` folder, and no path to the
+data folders outside `tests/fixtures/paths.py`. It enforces the structure of the package:
 
-- the run folders (`modules`, `plants`, `physics`, `ops`, `runtime`, `engine`, `run`, `types`,
+- the run folders (`modules`, `plants`, `physics`, `ops`, `runtime`, `engine`, `run`, `streams`,
   `units`, `errors`, `_utils`) import none of `compiler`, `data`, `study`, `evaluate`, `analysis`,
   apart from `gm.modules.check`, which imports inside a function ([conventions.md](conventions.md#dependencies));
 - `modules` never imports `plants`;
@@ -253,7 +254,7 @@ data folders outside `gemini/_utils/paths.py`. It enforces the structure of the 
   of the repository, a page in runs of 12 snippets so each run fits the CPU budget of a fast test; a
   snippet that is only illustrative is fenced `text`, never skipped;
 - runtime settings cannot change a result (P4 of [inputs.md](inputs.md)):
-  `tests/unit/runtime/test_context.py` runs a plant compiled and eager and compares the numbers
+  `tests/unit/test_runtime.py` runs a plant compiled and eager and compares the numbers
   within 1e-9, and `test_a_sample_in_workers_equals_the_serial_sample` of
   `tests/unit/study/_utils/test_parallel.py` compares a real sample in workers with the serial one;
 - the names of the old inputs (`assumptions`, `finance`, `lifetime`) are among the old names
@@ -271,7 +272,7 @@ data folders outside `gemini/_utils/paths.py`. It enforces the structure of the 
 `tests/unit/<path>/test_<name>.py` that defines at least one test.
 `tests/unit/test_package_boundaries.py` checks that `gemini.errors` and the topic files of
 `gemini._utils` import nothing else from `gemini` (`paths.py` and `registry.py` may import
-`gemini.errors`), and that `gemini/run/dataset.py` imports no module or engine code. `tests/unit/test_code_quality.py` enforces the comment rule, the
+`gemini.errors`), and that `gemini/case/dataset.py` imports no module or engine code. `tests/unit/test_code_quality.py` enforces the comment rule, the
 nesting limit, the function-length limit with its `LONG_FUNCTIONS` exceptions and the ban on the
 framework name (see [conventions.md](conventions.md#code-quality)); flake8 enforces complexity.
 The same file fails on a formula in a module and on two physics functions with one normalised body;
@@ -294,7 +295,7 @@ runs agent-written modules in it. It is a slim Python 3.11, the oldest supported
 and its runtime dependencies installed from the repository, about 640 MB, and a non-root user
 `sandbox`. `docker/sandbox.Dockerfile.dockerignore` lets only `pyproject.toml`, `README.md`, `LICENSE`
 and `gemini/` into the build. Nothing in the image needs a network at run time: it runs under
-`--read-only --network none`, the flags of `DockerSandbox`. `inputs/` is not in the image, so
+`--read-only --network none`, the flags of `DockerSandbox`. `tests/fixtures/` and `examples/` are not in the image, so
 `example_plant` raises `inputs_missing` there, as in any installed package.
 
 The image lives on the machine that built it. Publishing it needs a registry name, such as
@@ -315,12 +316,12 @@ terms, so a sample case is never the only proof that gemini can do it:
   the reinjection ratio, the supply temperatures;
 - a levelised cost of heat and cold together (LCTS).
 
-`inputs/examples/hackathon_2026/` and `inputs/examples/shallow_district/` run through these same
+`examples/hackathon_2026/` and `examples/shallow_district/` run through these same
 general functions in `examples/`. Tests read a sample case only through
 `tests/fixtures/sample_cases.py`: it holds the folders (`HACKATHON_2026`, `SHALLOW_DISTRICT`) and
 builds the case and the plants of a sample (`sample_case()`, `shallow_case()`,
 `template_plant(name)`, `treatment_plant()`, `filled_plant(name)`) with `gm.Case.from_json` and
-`gm.Plant.from_dict`, so no test builds a path into `inputs/examples/` by hand.
+`gm.Plant.from_dict`, so no test builds a path into `examples/` by hand.
 `tests/fixtures/heating_cooling.py` builds small cases in code (`days_case`, `two_days_case`).
 A public door takes a quantity for every value with a dimension, so a test that holds SI numbers
 passes them through `tests/fixtures/si.py` (`si.params`, `si.set_params`, `si.add`, `si.inputs`,
@@ -342,7 +343,7 @@ the golden reconstructions that build equipment from the original `.param` files
 wells and exchangers unit tests, `tests/unit/modules/test_monitoring_golden.py`,
 `tests/unit/physics/test_geometry.py` and the historical
 `tests/fixtures/capture_golden.py`. Shared paths live in `tests/fixtures/__init__.py` (`ROOT`,
-`FIXTURES`, `OLD_PROJECT`), and test code reaches `inputs/` through `gemini/_utils/paths.py`.
+`FIXTURES`, `OLD_PROJECT`), and test code reaches the data folders through `tests/fixtures/paths.py`.
 
 `tests/e2e/test_examples.py` has one case per `.py` file under `examples/`. The cases run in both
 profiles (the development profile selects them when any file under `examples/` changes) and are
@@ -357,7 +358,7 @@ with `python tests/fixtures/capture_example_outputs.py` and review the diff: a c
 changed result, as a changed golden is.
 `tests/unit/test_code_quality.py` checks the style of an example: a docstring with `Shows` and the
 command, `main()` under the `__main__` guard, imports of `gemini` and the public names of `gemini.engine`, `gemini.modules` and
-`gemini.types` only, no
+`gemini.streams` only, no
 `__init__.py` under `examples/`, and no code that imports from `examples`.
 Expensive module-scoped e2e fixtures carry `pytest.mark.xdist_group`; the default
 `--dist loadgroup` runs each group on one worker so the fixture is built once. E2E retains the

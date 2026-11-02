@@ -7,7 +7,8 @@ from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Paramet
 from gemini.modules.module import Module
 from gemini.modules.treatment import _physics
 from gemini.physics import fluid, hydraulics
-from gemini.types import Fraction, MassConcentration, MassFlow, PressureDifference, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction, MassConcentration, MassFlow, PressureDifference
 
 
 class Desander(Module):

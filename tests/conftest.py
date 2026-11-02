@@ -9,9 +9,9 @@ import pandas as pd
 import pytest
 
 import gemini as gm
-from gemini._utils import paths
 from gemini.modules import Module
 from tests.cpu_budget import BUDGET_S, exceeds_budget, measure_cpu
+from tests.fixtures import paths
 from tests.fixtures.sample_cases import example_plant
 
 TIER_MARKERS = {

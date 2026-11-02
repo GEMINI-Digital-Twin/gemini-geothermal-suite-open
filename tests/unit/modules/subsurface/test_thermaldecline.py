@@ -5,12 +5,13 @@ import math
 import pytest
 
 import gemini as gm
-from gemini.modules import Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.subsurface import ThermalDecline
-from gemini.types import Stream
-from gemini.types.fluid import BRINE as DEFAULT_FLUID
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
 from tests.fixtures.reading import reading
@@ -120,8 +121,8 @@ def test_balances_show_the_boundary_correction():
     """Mass passes unchanged; the energy residual is the documented boundary correction."""
     module = decline()
     _, result = module.step({"injected_volume": 3 * BREAKTHROUGH}, 3600, {"fluid_in": STREAM})
-    assert mass_balance(module, result)["residual"] == 0
-    residual = energy_balance(module, result)["residual"]
+    assert call_mass_balance(module, result)["residual"] == 0
+    residual = call_energy_balance(module, result)["residual"]
     assert residual == pytest.approx(50 * 4217.4 * 20, rel=1e-9)
 
 

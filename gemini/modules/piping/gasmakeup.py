@@ -1,10 +1,10 @@
 """Gas makeup: the co-produced gas first, the grid for the shortfall, the surplus to a flare."""
 
 from gemini import ops
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.module import Module
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 
 class GasMakeup(Equipment, Module):
@@ -50,6 +50,6 @@ class GasMakeup(Equipment, Module):
         outlets = dict(excess_out=excess_out, grid_in=grid_in)
         return outlets
 
-    def capex(self, economics):
-        """Return the cost of the grid connection, a fixed item."""
-        return self.capex_of(economics, 1)
+    def cost_size(self):
+        """Return the size that the cost of the grid connection scales with: 1, a fixed item."""
+        return 1

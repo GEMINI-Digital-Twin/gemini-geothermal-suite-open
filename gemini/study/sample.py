@@ -4,14 +4,14 @@ import numpy as np
 
 from gemini import units
 from gemini._utils.jsonable import to_plain
+from gemini.engine.check import check
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
-from gemini.run import check
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.target import quantities
 from gemini.study._utils.trial import checked_metric, drawn_trial
 from gemini.study._utils.uncertain import declared
-from gemini.types.shapes import measure
+from gemini.units.shapes import measure
 
 ATTEMPTS = 10000
 """Draws of a truncated normal before its bounds are judged out of reach."""

@@ -55,7 +55,7 @@ else:
 from gemini import modules, plants, run
 from gemini.engine import engine as engine_module
 from gemini.modules.declarations import Control, Output
-from gemini.types.bindings import Binding, ModuleBindings
+from gemini.modules.bindings import Binding, ModuleBindings
 
 
 class Gain(modules.Module):
@@ -117,12 +117,12 @@ def test_the_scan_finds_a_compiler_import(tmp_path):
     """The scan reads imports of every form."""
     source = tmp_path / "late.py"
     source.write_text(
-        "from gemini.compiler.graph import evaluate\n"
+        "from gemini.compiler.run import run\n"
         "def f():\n    from gemini import compiler\n    import gemini.compiler\n"
     )
     assert _compiler_imports(_imports(source)) == [
-        "gemini.compiler.graph",
-        "gemini.compiler.graph.evaluate",
+        "gemini.compiler.run",
+        "gemini.compiler.run.run",
         "gemini.compiler",
         "gemini.compiler",
     ]

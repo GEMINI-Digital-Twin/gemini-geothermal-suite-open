@@ -13,9 +13,9 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from gemini import units
-from gemini.engine.step import VOLUMETRIC_UNITS
-from gemini.types import Fluid, Stream
-from gemini.types.flows import STREAM_FIELDS, mass_flow, stream_valid
+from gemini.engine.bindings import VOLUMETRIC_UNITS
+from gemini.streams.flows import STREAM_FIELDS, Stream, mass_flow, stream_valid
+from gemini.streams.fluid import Fluid
 
 
 @dataclass

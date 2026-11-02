@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from gemini import ops, units
-from gemini.compiler.graph import Graph
+from gemini.compiler.ir import Graph
 from gemini.physics import chemistry
 from tests.fixtures.equivalence import RTOL, assert_function_matches
 from tests.fixtures.graph_run import graph_outputs

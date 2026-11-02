@@ -16,7 +16,7 @@ import it as `scripts.legacy`:
 - `wiring.py`: `check_wiring(plant, project)` compares the stream identities of one step of a copy
   of the plant with the old diagram and returns an empty list when the wiring matches.
 
-The old project folder is `inputs/legacy_project/` (`tests.fixtures.OLD_PROJECT`). It is read by the
+The old project folder is `tests/fixtures/legacy_project/` (`tests.fixtures.OLD_PROJECT`). It is read by the
 golden reconstructions of the subsurface, wells and exchangers unit tests, by
 `tests/unit/modules/test_monitoring_golden.py` and by the `check_wiring` audits of
 `tests/integration/test_plant.py` and `tests/e2e/test_full_replay.py`. Nothing converts an old

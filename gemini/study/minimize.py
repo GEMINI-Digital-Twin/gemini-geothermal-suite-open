@@ -6,16 +6,16 @@ import numpy as np
 from scipy.optimize import differential_evolution
 
 from gemini import units
+from gemini.engine.check import check
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
-from gemini.run import check
+from gemini.plants._utils.resize import resized
 from gemini.study._utils.best import Best
 from gemini.study._utils.parallel import mapped
-from gemini.study._utils.resize import resized
 from gemini.study._utils.target import unit_of
 from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, run_judged
 from gemini.study._utils.variables import DOUBLETS, counts, variables
-from gemini.types.shapes import Value, measure
+from gemini.units.shapes import Value, measure
 
 POPULATION_PER_VARIABLE = 5
 """Candidates of a generation per variable: a small budget still sees several generations."""

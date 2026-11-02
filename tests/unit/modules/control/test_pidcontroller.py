@@ -10,7 +10,8 @@ from gemini.modules import Module
 from gemini.modules.control import PIDController
 from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output
 from gemini.modules.storage import ThermalStorage
-from gemini.types import Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Temperature
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values

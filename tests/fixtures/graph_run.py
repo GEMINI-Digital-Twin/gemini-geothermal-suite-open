@@ -3,7 +3,7 @@
 import numpy as np
 
 from gemini import runtime
-from gemini.compiler.graph import evaluate
+from gemini.compiler.interpret.run_graph import run_graph
 
 
 def graph_outputs(graph, feeds, backend="numpy", module=None):
@@ -13,7 +13,7 @@ def graph_outputs(graph, feeds, backend="numpy", module=None):
     """
     rows = max([np.size(value) for value in feeds.values()], default=1)
     with runtime.settings(backend=backend):
-        evaluation = evaluate(graph, feeds, rows, module=module)
+        evaluation = run_graph(graph, feeds, rows, module=module)
     evaluation.raise_first()
     scalar = all(np.ndim(value) == 0 for value in feeds.values())
     return {

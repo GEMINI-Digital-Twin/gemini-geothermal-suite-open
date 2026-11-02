@@ -150,15 +150,13 @@ Pipe hydraulics: Darcy–Weisbach with Swamee–Jain, Beggs–Brill, path marchi
   `dp = (rho / rho_0) (q / Kv)^2`.
 - `hydrostatic_dp(rho, height, inclination_sine)`: hydrostatic pressure difference [Pa] of a fluid
   column, `dp = rho g h s`.
-- `pipe_path_profile(path, stream, fluid, direction, heat_transfer_coefficient, ambient_temperature,
-  correlation, correlation_2p)`: march the pressure and temperature of a stream along a pipe path.
 - `radial_pressure_drops(volume_flow, viscosity, permeability, thickness, drainage_radius,
   wellbore_radius, skin)`: radial Darcy and skin pressure drops [Pa] of an inflow to a well (Akin
   2019).
-- `corrosion_profile(path, stream, fluid, direction, heat_transfer_coefficient, ambient_temperature,
-  chemistry, model)`: CO2 corrosion rate [mm/year] of each section along the hydraulic profile.
-- `erosion_check(path, stream, fluid)`: compare section velocities with the API erosional velocity
-  limit.
+
+The path marcher takes a `Stream` and a `Fluid`, so it is not physics: `pipe_path_profile`,
+`corrosion_profile` (CO2 corrosion rate [mm/year] of each section) and `erosion_check` (section
+velocities against the API erosional limit) are in `gemini/modules/wells/_physics.py`.
 
 The doublet design adds `radial_index` (the inverse of `radial_pressure_drops`),
 `hydrostatic_pressure`, `pump_setting_depth` and `design_pump_head` to `hydraulics.py`,
@@ -588,9 +586,9 @@ Health-scoring relations shared by the modules: drift, bounded score, margin, li
 - `gemini.units._UNITS` is the single table of public data units (SI unit, scale, offset). A declared
   difference quantity converts by scale only, so `{"value": 5, "unit": "degC"}` as a temperature difference is 5 K.
 - Do not perform database I/O, logging or mutate global state during calculations.
-- `Fluid` definitions in `gemini.types.fluid` own immutable overrides and cache their
-  `FluidProperties` snapshot; physics must not import types at runtime (`hydraulics` imports
-  `Stream` and `Fluid` for type checking only).
+- `Fluid` definitions in `gemini.streams.fluid` own immutable overrides and cache their
+  `FluidProperties` snapshot; physics imports no `Stream` or `Fluid`: a function that takes
+  one lives in the `_physics.py` of its module category.
 - Do not hide undefined diagnostics as valid numbers. The receiving aquifer's unconfigured
   drainage radius leaves radial estimates unavailable while its pressure-flow model works.
 - Inputs outside a correlation's domain raise `gm.errors.PhysicsError` instead of dividing
@@ -610,7 +608,7 @@ Health-scoring relations shared by the modules: drift, bounded score, margin, li
 
 ## Fluid properties
 
-`fluid.py` holds the constant-property snapshot `FluidProperties` and `types/fluid.py` the
+`fluid.py` holds the constant-property snapshot `FluidProperties` and `streams/fluid.py` the
 immutable `Fluid` that selects it (the inherited GEMINI `PVTConstantSTP` model, property model
 `constant_stp`). Pressure and temperature do not change any property: `Fluid.properties(p, T)`
 returns one cached snapshot per complete `Fluid` value.
@@ -644,7 +642,8 @@ limits are `gemini.ops.check` calls.
 
 ## Hydraulics
 
-`hydraulics.py` marches pressure and temperature along a `PipePath` of `PipeSection`s (length
+`hydraulics.py` holds the drops of one interval, and `gemini/modules/wells/_physics.py` marches
+pressure and temperature along a `PipePath` of `PipeSection`s (length
 [m], inclination [rad], inner diameter [m], roughness [m]). Inclination is measured from
 horizontal, positive when descending in surface-to-bottom order. Friction and gravity drops are
 signed so that the pressure rises by both when flowing down and falls by both when flowing up.
@@ -675,7 +674,7 @@ signed so that the pressure rises by both when flowing down and falls by both wh
   and gravity `(H_l rho_l + (1 - H_l) rho_g) g L sin(theta)` [Pa]. The SI terms use inputs
   converted to the US basis and back, which changes the last bits and is kept for the goldens.
 - `pipe_path_profile(path, stream, fluid, direction, heat_transfer_coefficient,
-  ambient_temperature)` takes each section from `Fluid.properties`: `Q = fluid.volume_flow(m_dot,
+  ambient_temperature)` (in `modules/wells/_physics.py`) takes each section from `Fluid.properties`: `Q = fluid.volume_flow(m_dot,
   density)`, the velocities `geometry.mean_velocity(m, rho, D)` = `m / rho / A` with `A =
   pi D^2 / 4`, `us_l` from `(1 - gmf) m` and `rho_l`, and Darcy-Weisbach when the gas mass
   fraction is zero, otherwise Beggs-Brill with `us_g = mean_velocity(m_g, rho_g, D)` and `rho_g` the density of the gas at the section's `p` and `T` (`Fluid.gas_density_at`). Pressures are floored at 0.001

@@ -7,14 +7,14 @@ from gemini.modules.declarations import Inlet, Outlet, Output, Parameter, State
 from gemini.modules.module import Module
 from gemini.modules.storage import _physics
 from gemini.physics import heat_transfer
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Energy,
     Fraction,
     HeatAccumulation,
     Mass,
     SpecificEnthalpy,
     SpecificHeat,
-    Stream,
     Temperature,
     ThermalConductance,
 )

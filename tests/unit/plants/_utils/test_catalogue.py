@@ -18,7 +18,7 @@ TEMPLATE_PLANTS = (
     "HeatingAbsorptionCoolingPlant",
     "HeatingHeatPumpCoolingPlant",
 )
-"""The plants whose values are the sample problem's, in ``inputs/examples/``, not an example."""
+"""The plants whose values are the sample problem's, in ``examples/``, not an example."""
 FORMER_EXAMPLES = {
     "ATESPlant": "8aa9d46daaa933276799cb86763a972fdf7000693459d6513d275a08fe7d4941",
     "BoilerChpPlant": "f297023560de79d991173e2696a2b4aa2d04ebee14bd389ce7244b6a5c1b6de8",
@@ -98,7 +98,7 @@ def test_every_spec_plant_and_special_case_has_an_example_that_round_trips(name)
 
 @pytest.mark.parametrize("name", EXAMPLES)
 def test_every_example_equals_the_plant_of_its_former_file(name):
-    """``get`` and the values of ``inputs/plants/`` give the structure and the values pinned."""
+    """``get`` and the values of the plant fixtures give the structure and the values pinned."""
     spec = example_plant(name).to_dict(structure=True)
     if name == "Doublet":
         del spec["outputs"]

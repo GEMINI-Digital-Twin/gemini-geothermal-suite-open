@@ -9,8 +9,8 @@ from gemini.modules.heating import Boiler, HeatPump
 from gemini.modules.piping import GasMakeup, Mixer, Pipe, Splitter
 from gemini.modules.pumps import InjectionPump
 from gemini.modules.treatment import Degasser, Filter, Flare
+from gemini.plants._utils.cascades import connect_cooler, connect_gas
 from gemini.plants._utils.doublets import DoubletsPlant
-from gemini.plants._utils.wiring import connect_cooler, connect_gas
 
 
 class HeatingCoolingPlant(DoubletsPlant):

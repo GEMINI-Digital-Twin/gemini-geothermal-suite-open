@@ -12,8 +12,7 @@ evidence of a numerical change, never a routine update (see ``.claude/docs/testi
 import pandas as pd
 
 import gemini as gm
-from gemini._utils import paths
-from tests.fixtures import FIXTURES
+from tests.fixtures import FIXTURES, paths
 from tests.fixtures.frames import path_frame
 from tests.fixtures.sample_cases import example_plant
 

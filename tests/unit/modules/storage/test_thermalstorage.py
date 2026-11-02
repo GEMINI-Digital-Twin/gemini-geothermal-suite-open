@@ -8,10 +8,11 @@ import pytest
 
 import gemini as gm
 from gemini import ops
-from gemini.modules import ElectricBoiler, Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import ElectricBoiler, Module
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.storage import ThermalStorage
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
@@ -74,9 +75,9 @@ def test_hot_tank_step_matches_the_exact_solution_and_audits():
     equilibrium = (1.0 * CP * 353.15 + 0.5 * CP * 313.15 + 10 * 293.15) / b
     expected = equilibrium + (343.15 - equilibrium) * math.exp(-b * 600 / CAPACITY)
     assert state["temperature"] == pytest.approx(expected, rel=1e-14)
-    audit = energy_balance(tank, result)
+    audit = call_energy_balance(tank, result)
     assert audit["relative_residual"] < 1e-12
-    assert mass_balance(tank, result)["residual"] == 0
+    assert call_mass_balance(tank, result)["residual"] == 0
     state, result = tank.step(state, 600, _inlets())
     assert result.outputs.tank_temperature == pytest.approx(expected, rel=1e-14)
 
@@ -101,7 +102,7 @@ def test_heat_exchanger_effectiveness_sets_the_circuit_outlets():
     assert result.outlets.charge_out.T == pytest.approx(353.15 - 0.6 * 60)
     assert result.outlets.discharge_out.T == pytest.approx(313.15 - 0.8 * 20)
     assert reading(result).charge_duty == pytest.approx(0.6 * CP * 60)
-    audit = energy_balance(tank, result)
+    audit = call_energy_balance(tank, result)
     assert audit["relative_residual"] < 1e-12
 
 
@@ -125,7 +126,7 @@ def test_chilled_tank_in_a_warm_room_absorbs_heat():
     assert out.discharge_duty == pytest.approx(1.0 * CP * 6)
     assert out.heat_loss == 0 and out.heat_absorbed == pytest.approx(10 * 19)
     assert out.heat_accumulation == pytest.approx(-2.0 * CP * 2 + 1.0 * CP * 6 + 190)
-    audit = energy_balance(tank, result)
+    audit = call_energy_balance(tank, result)
     assert audit["relative_residual"] < 1e-12
     assert state["temperature"] > 279.15
 
@@ -210,9 +211,9 @@ def test_composite_step_charges_the_tank():
     storage = reading(result.children["storage"])
     assert state["storage"]["temperature"] > storage.tank_temperature > 293.15
     assert reading(result.children["boiler"]).electricity > 0
-    audit = energy_balance(plant, result)
+    audit = call_energy_balance(plant, result)
     assert audit["relative_residual"] < 1e-12
-    assert mass_balance(plant, result)["residual"] == 0
+    assert call_mass_balance(plant, result)["residual"] == 0
 
 
 def _rows():

@@ -11,10 +11,9 @@ import pandas as pd
 import pytest
 
 import gemini as gm
-from gemini.plants._utils import form
-from gemini.plants._utils import inputs as plant_inputs
-from gemini.types import Fluid
-from gemini.types.bindings import DatedParams
+from gemini.modules.bindings import DatedParams
+from gemini.plants._utils import form, plant_inputs
+from gemini.streams.fluid import Fluid
 from tests.fixtures.parity import BACKENDS, on_each_backend, run_engine
 from tests.fixtures.sample_cases import example_plant
 

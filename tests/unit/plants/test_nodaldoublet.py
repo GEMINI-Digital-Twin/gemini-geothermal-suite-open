@@ -144,4 +144,4 @@ def test_a_call_closes_mass_and_hands_power_and_losses_on(vertical):
     result = vertical(return_in=RETURNED)
     assert result.inlets.power_in == result.children["esp"].inlets.power_in
     assert len(result.children["formation"].inlets.heat_in) == 3
-    assert gm.modules.mass_balance(vertical, result)["residual"] == 0
+    assert gm.evaluate.call_mass_balance(vertical, result)["residual"] == 0

@@ -6,7 +6,7 @@ import pytest
 import gemini as gm
 from gemini.case._utils import node
 from gemini.errors import ValidationError
-from gemini.types import inputs
+from gemini.units import inputs
 from tests.fixtures.errors import raises
 
 

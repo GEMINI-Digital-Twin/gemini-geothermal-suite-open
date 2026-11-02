@@ -17,10 +17,9 @@ import pytest
 from mccabe import PathGraphingAstVisitor
 
 import gemini as gm
-from gemini._utils import paths
 from gemini._utils.files import from_json
 from gemini.plants.plant import Plant
-from tests.fixtures import ROOT
+from tests.fixtures import ROOT, paths
 
 PYTHON_FOLDERS = ("gemini", "examples", "tests", "scripts")
 SECTION_HEADERS = {
@@ -65,15 +64,17 @@ RAISED_CLASSES = {
 }
 """What the package raises; the built-ins are for the exempt topics of ``gemini._utils``."""
 VALIDATORS = {"model_validator", "field_validator"}
-DATA_FOLDER = re.compile(r"""/ *["'](inputs|assets)\b|["'][^"'`\n]*\b(inputs|assets)/""")
+DATA_FOLDERS = "assets|doublet_heat|legacy_project"
+DATA_FOLDER = re.compile(rf"""/ *["']({DATA_FOLDERS})\b|["'][^"'`\n]*\b({DATA_FOLDERS})/""")
 BUILDS_NO_DATA_PATH = {
-    "gemini/_utils/paths.py",
+    "tests/fixtures/paths.py",
     "scripts/test_changed.py",
     "tests/unit/scripts/test_test_changed.py",
+    "tests/unit/test_fixture_paths.py",
     "tests/unit/test_code_quality.py",
 }
 """Files allowed to name the data folders; the first is the one that knows where they are."""
-SAMPLE_PROBLEM = re.compile(r"hackathon|challenge|inputs/examples", re.IGNORECASE)
+SAMPLE_PROBLEM = re.compile(r"hackathon|challenge|shallow_district", re.IGNORECASE)
 """What no file of ``gemini/`` may name: it is a general package, and a problem is only an input."""
 VALUE_KEYS = {"format", "kind", "name", "about", "type", "size", "params", "fluids", "boundary"}
 FRAMEWORK = re.compile("py" + "tor" + "ch|\\b" + "tor" + "ch\\b", re.IGNORECASE)
@@ -102,7 +103,11 @@ FORMULA_EXCEPTIONS = {
     "gemini/modules/module.py: np.ndarray": "a type test of the array path, not maths",
     "gemini/modules/pumps/esp.py: np.asarray": "the float32 cast of the retained precision",
     "gemini/modules/pumps/esp.py: np.float32": "the float32 cast of the retained precision",
-    "gemini/modules/_utils/serialization.py: literal 2": "the plant file format number",
+    "gemini/modules/results.py: np.floating": "a type test of a recorded scalar, not maths",
+    "gemini/modules/results.py: np.generic": "a type test of a recorded scalar, not maths",
+    "gemini/modules/results.py: np.integer": "a type test of a recorded scalar, not maths",
+    "gemini/modules/results.py: np.ndarray": "a type test of the array path, not maths",
+    "gemini/plants/_utils/serialization.py: literal 2": "the plant file format number",
 }
 """``file: marker`` of what a module may keep, each with its reason; see ``formula_markers``."""
 SAME_FORM = {
@@ -123,7 +128,7 @@ SAME_FORM = {
         "storage/_physics.py::ice_stored_cold",
     ): "a product of three: stored heat, shaft friction, latent cold and burned heat",
     (
-        "dispatch.py::circuit_flow",
+        "energy.py::circuit_flow",
         "pumps.py::best_efficiency_ratio",
         "refrigeration.py::cooling_minimum_sink_rate",
     ): "a over a "
@@ -188,16 +193,18 @@ def nesting(node, depth=0):
 
 
 PYTHON_FILES = python_files()
-EXAMPLE_IMPORTS = ("gemini.engine", "gemini.modules", "gemini.types")
+EXAMPLE_IMPORTS = ("gemini.engine", "gemini.modules", "gemini.streams")
 EXAMPLE_FILES = [path for path in PYTHON_FILES if path.startswith("examples/")]
 IMPORTS_EXAMPLES = re.compile(r"^\s*(from|import) examples\b", re.MULTILINE)
 CORE_MODULE_FILES = (
     "__init__.py",
+    "bindings.py",
     "call.py",
     "check.py",
     "container.py",
     "declarations.py",
     "module.py",
+    "results.py",
 )
 PACKAGE_FILES = [
     path
@@ -334,7 +341,7 @@ def test_package_code_raises_gemini_errors(path):
 def test_package_code_raises_only_the_allowed_classes(path):
     """A raise names a public class of ``gm.errors``, a private lookup or a Python protocol error.
 
-    ``TraceError`` is internal to ``gemini/compiler/graph/``; a former class has no way back in.
+    ``TraceError`` is internal to ``gemini/compiler/``; a former class has no way back in.
     """
     found = [
         f"{path}:{node.lineno} {raised_name(node)}"
@@ -344,7 +351,7 @@ def test_package_code_raises_only_the_allowed_classes(path):
         if raised_name(node) not in RAISED_CLASSES
     ]
     assert found == []
-    if not str(path).startswith("gemini/compiler/graph/"):
+    if not str(path).startswith("gemini/compiler/"):
         assert "TraceError" not in {raised_name(node) for node in _raises(path)}
 
 
@@ -391,7 +398,13 @@ PHYSICS_FILES = [
     if path.startswith("gemini/physics/") or path.endswith("/_physics.py")
 ]
 CATEGORY_PHYSICS = [path for path in PHYSICS_FILES if path.startswith("gemini/modules/")]
-PHYSICS_IMPORTS = ("gemini.errors", "gemini.ops", "gemini.physics", "gemini.types", "gemini.units")
+PHYSICS_IMPORTS = (
+    "gemini.errors",
+    "gemini.ops",
+    "gemini.physics",
+    "gemini.streams",
+    "gemini.units",
+)
 
 
 @pytest.mark.parametrize("path", MODULE_FILES)
@@ -589,11 +602,18 @@ def test_an_example_uses_the_public_api(path):
     assert internal == set()
 
 
-def test_examples_are_scripts_without_packages():
-    """Nothing under ``examples/`` is a package, and it holds only scripts and its README."""
+def test_examples_are_scripts_beside_the_folders_of_their_sample_projects():
+    """Nothing under ``examples/`` is a package; the scripts and the README sit at the top.
+
+    A sample project is a folder ``examples/<name>/`` with its case, plants and data, so a user can
+    copy it; the scripts are the only Python files, and they sit beside those folders.
+    """
     files = [path for path in tracked_files() if path.startswith("examples/")]
     assert [path for path in files if path.endswith("__init__.py")] == []
-    assert {path.rpartition(".")[2] for path in files} == {"py", "md"}
+    assert [path for path in files if path.endswith(".py") and path.count("/") > 1] == []
+    top = {path.rpartition(".")[2] for path in files if path.count("/") == 1}
+    assert top == {"py", "md"}
+    assert {path.split("/")[1] for path in files if path.count("/") > 1} >= {"hackathon_2026"}
 
 
 def test_nothing_imports_an_example():
@@ -604,9 +624,10 @@ def test_nothing_imports_an_example():
 
 
 def test_only_the_paths_module_builds_a_path_to_the_data_folders():
-    """Code reaches ``inputs/`` through ``gemini/_utils/paths.py``.
+    """Code reaches the sample projects and the test data through ``tests/fixtures/paths.py``.
 
-    An example is a standalone script on the public API, so it finds ``inputs/`` from ``__file__``.
+    The package does not know them. An example is a standalone script on the public API, so it
+    finds its own folder from ``__file__``.
     ``scripts/test_changed.py`` and its test match repository paths and build none.
     """
     code = [path for path in PYTHON_FILES if not path.startswith("examples/")]
@@ -618,7 +639,7 @@ def test_only_the_paths_module_builds_a_path_to_the_data_folders():
 
 
 def test_the_package_holds_no_data_files():
-    """Every file of ``gemini/`` is Python: a plant is a class, its values are in ``inputs/``."""
+    """Every file of ``gemini/`` is Python: a plant is a class, its values are in the fixtures."""
     assert [
         path for path in tracked_files() if path.startswith("gemini/") and not path.endswith(".py")
     ] == []
@@ -631,10 +652,14 @@ def test_the_module_package_holds_only_its_core_classes_and_folders():
 
 
 def test_plants_holds_only_plant_classes():
-    """Every public file of ``gemini/plants/`` defines a registered plant class."""
+    """Every public file of ``gemini/plants/`` defines a registered plant class, but ``roles.py``.
+
+    ``roles.py`` is the one owner of the roles of a plant (``gm.plants.roles``), with no class.
+    """
     files = [path for path in tracked_files() if re.fullmatch(r"gemini/plants/[^_/][^/]*", path)]
     assert "gemini/plants/plant.py" in files
     files.remove("gemini/plants/plant.py")
+    files.remove("gemini/plants/roles.py")
     for path in files:
         tree = ast.parse((ROOT / path).read_text())
         classes = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
@@ -642,8 +667,8 @@ def test_plants_holds_only_plant_classes():
 
 
 def test_a_file_of_example_values_has_only_the_allowed_keys_and_names_a_registered_plant():
-    """``inputs/plants/`` holds the values of plants that exist, under the keys of a plant file."""
-    files = sorted(paths.INPUTS.glob("plants/*.json"))
+    """``tests/fixtures/plants/`` holds values of existing plants, under a plant file's keys."""
+    files = sorted(paths.DATA.glob("plants/*.json"))
     assert files
     for path in files:
         values = from_json(path)
@@ -665,7 +690,7 @@ def test_the_package_knows_no_sample_problem():
 
 
 def test_the_repository_has_no_datasets_folder():
-    """Data lives in ``inputs/``."""
+    """Data lives in ``examples/<name>/`` and ``tests/fixtures/``."""
     assert not (ROOT / "datasets").exists()
     assert [path for path in tracked_files() if path.startswith("datasets/")] == []
 
@@ -707,8 +732,19 @@ RUN_FOLDERS = (
     "errors",
     "_utils",
 )
-ABOVE_THE_RUN = ("compiler", "data", "study", "evaluate", "analysis")
-REMOVED_FOLDERS = {"core", "base", "testing", "backends", "checks", "economics", "profiles"}
+ABOVE_THE_RUN = ("compiler", "study", "evaluate", "analysis")
+REMOVED_FOLDERS = {
+    "data",
+    "run",
+    "types",
+    "core",
+    "base",
+    "testing",
+    "backends",
+    "checks",
+    "economics",
+    "profiles",
+}
 READ_WRITE_NAME = re.compile(r"^\s*(?:def|class) (_?(?:read|write|load|save|parse|dump)_\w*)", re.M)
 """What a reader or a writer is never called: ``from_<format>`` and ``to_<format>`` are the rule."""
 
@@ -748,12 +784,10 @@ def test_the_run_folders_import_nothing_above_the_run():
 
 
 CASE_NEVER_IMPORTS = (
-    "gemini.run",
     "gemini.engine",
     "gemini.evaluate",
     "gemini.study",
     "gemini.compiler",
-    "gemini.data",
     "gemini.analysis",
 )
 
@@ -875,7 +909,7 @@ def _identifiers(tree):
 def test_no_problem_name_is_left_in_the_package():
     """The input is a case: no name or docstring of ``gemini/`` calls it a problem.
 
-    The return shape ``problem`` is the one use of the word, and ``gemini/types/shapes.py`` names
+    The return shape ``problem`` is the one use of the word, and ``gemini/units/shapes.py`` names
     it in prose.
     """
     found = []
@@ -885,7 +919,7 @@ def test_no_problem_name_is_left_in_the_package():
             continue
         names = _identifiers(tree(path)) - SHAPE_NAMES
         found += [f"{path}: {name}" for name in names if "problem" in name.lower()]
-        if path != "gemini/types/shapes.py":
+        if path != "gemini/units/shapes.py":
             found += [f"{path}: {m.group()}" for m in OLD_INPUT_WORDS.finditer(text)]
     assert found == []
 
@@ -897,7 +931,7 @@ def test_modules_never_import_plants():
         for path in PACKAGE_FILES
         if path.startswith("gemini/modules/")
         for name in every_import(path)
-        if name.startswith(("gemini.plants", "gemini.run.")) or name == "gemini.run"
+        if name.startswith(("gemini.plants", "gemini.engine"))
     ] == []
 
 

@@ -3,9 +3,9 @@
 from copy import deepcopy
 
 from gemini.errors import ValidationError
-from gemini.modules._utils.wiring import trace_wiring
+from gemini.modules._utils.trace import trace_wiring
 from gemini.runtime import get_default_fluid
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 
 from . import tables
 

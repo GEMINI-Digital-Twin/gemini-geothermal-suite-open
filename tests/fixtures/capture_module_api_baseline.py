@@ -12,9 +12,8 @@ from time import perf_counter
 import pandas as pd
 
 import gemini as gm
-from gemini._utils import paths
-from gemini.types import Profile
-from tests.fixtures import FIXTURES
+from gemini.case.profile import Profile
+from tests.fixtures import FIXTURES, paths
 from tests.fixtures.frames import path_frame
 from tests.fixtures.sample_cases import example_plant
 

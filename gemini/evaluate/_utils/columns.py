@@ -4,9 +4,9 @@ import numpy as np
 
 from gemini._utils.strings import close_matches, did_you_mean, join_path, split_path
 from gemini._utils.time import to_utc
+from gemini.engine.results import PORT_QUANTITIES, port_fields
 from gemini.errors import ValidationError
-from gemini.run.results import PORT_QUANTITIES, port_fields
-from gemini.types.flows import FIELD_QUANTITIES
+from gemini.streams.flows import FIELD_QUANTITIES
 
 
 def split_target(target):

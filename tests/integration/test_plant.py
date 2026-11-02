@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 import gemini as gm
-from gemini.modules._utils.balance import collect_flows, energy_balance, mass_balance
-from gemini.modules._utils.wiring import trace_wiring
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance, collect_flows
+from gemini.modules._utils.trace import trace_wiring
 from scripts.legacy import wiring
 from scripts.legacy.project import GeminiProject
 from tests.fixtures import OLD_PROJECT
@@ -50,8 +50,8 @@ def test_handwritten_wiring_and_split_helpers(example):
         well.wellhead_from_discharge(discharge) == leaves["doublet.riser"].outlets["wellhead_out"]
     )
     assert reading(result).electricity == collect_flows(result)["electricity"]
-    assert mass_balance(plant, result)["relative_residual"] < 1e-12
-    balance = energy_balance(plant, result)
+    assert call_mass_balance(plant, result)["relative_residual"] < 1e-12
+    balance = call_energy_balance(plant, result)
     assert balance["relative_thermal_residual"] < 1e-12
     assert balance["residual"] == pytest.approx(reading(result).electricity)
 

@@ -2,7 +2,8 @@
 
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
-from gemini.types import Pressure, PressureDifference, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Pressure, PressureDifference
 
 
 class Booster(Module):

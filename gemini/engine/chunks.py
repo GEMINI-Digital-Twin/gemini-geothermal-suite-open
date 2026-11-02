@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from gemini.errors import ValidationError
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 
 ADDED_QUANTITIES = (
     "mass_flow",

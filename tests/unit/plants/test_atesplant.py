@@ -3,10 +3,11 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.plants import ATESPlant
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import with_values
@@ -74,10 +75,10 @@ def _plant(mode="charge"):
 
 def _check_balances(plant, result):
     """Check that the audit closes except for the pump's flow work and that mass is conserved."""
-    audit = energy_balance(plant, result)
+    audit = call_energy_balance(plant, result)
     hydraulic = result.children["pump"].outputs.hydraulic_power
     assert abs(audit["residual"] - hydraulic) / audit["in"] < 1e-12
-    assert mass_balance(plant, result)["residual"] == 0
+    assert call_mass_balance(plant, result)["residual"] == 0
     assert_plant_closes(plant, result)
 
 

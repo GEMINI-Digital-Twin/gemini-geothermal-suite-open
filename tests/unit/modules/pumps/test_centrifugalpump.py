@@ -3,9 +3,9 @@
 import pytest
 
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.pumps import CentrifugalPump
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
@@ -93,8 +93,8 @@ def test_first_law_closure_with_flow_work():
     sensible = suction.m_dot * CP * (discharge.T - suction.T)
     flow_work = out.flow * (discharge.p - suction.p)
     assert out.electricity == pytest.approx(sensible + flow_work + out.heat_loss, rel=1e-12)
-    assert mass_balance(machine, result)["residual"] == 0
-    balance = energy_balance(machine, result)
+    assert call_mass_balance(machine, result)["residual"] == 0
+    balance = call_energy_balance(machine, result)
     assert balance["residual"] == pytest.approx(out.hydraulic_power, rel=1e-9)
     assert balance["unresolved_power"] == 0
 

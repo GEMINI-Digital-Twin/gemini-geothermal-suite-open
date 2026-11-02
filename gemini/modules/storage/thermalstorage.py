@@ -3,18 +3,18 @@
 from typing import Literal
 
 from gemini import ops
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter, State
 from gemini.modules.module import Module
 from gemini.modules.storage import _physics
 from gemini.physics import heat_transfer
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Energy,
     Fraction,
     HeatAccumulation,
     Power,
-    Stream,
     Temperature,
     ThermalConductance,
     Volume,
@@ -155,9 +155,9 @@ class ThermalStorage(Equipment, Module):
         outlets = dict(charge_out=charge_out, discharge_out=discharge_out, loss_out=loss_out)
         return outlets
 
-    def capex(self, economics):
-        """Return the cost of the tank from its volume."""
-        return self.capex_of(economics, self.volume)
+    def cost_size(self):
+        """Return the size that the cost of the tank scales with: volume."""
+        return self.volume
 
     def _advance_states(self, inlets, outlets, dt):
         charge_in, discharge_in = inlets.charge_in, inlets.discharge_in

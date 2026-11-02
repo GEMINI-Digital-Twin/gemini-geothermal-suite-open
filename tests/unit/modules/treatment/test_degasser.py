@@ -2,10 +2,10 @@
 
 import pytest
 
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.treatment import Degasser
-from gemini.types import Fluid
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -57,8 +57,8 @@ def test_separation_conserves_gas_mass_and_energy():
     assert liquid.p == gas.p == 2e5 and liquid.T == gas.T == 350
     assert reading(result).gas_mass_flow == gas.m_dot
     assert result.outputs.pressure_drop == 8e5
-    assert mass_balance(degasser, result)["residual"] == 0
-    assert energy_balance(degasser, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(degasser, result)["residual"] == 0
+    assert call_energy_balance(degasser, result)["relative_residual"] < 1e-12
 
 
 def test_full_efficiency_and_zero_flow():

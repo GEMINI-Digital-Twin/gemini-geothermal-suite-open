@@ -7,10 +7,12 @@ import pytest
 
 import gemini as gm
 from gemini import ops
-from gemini.modules import Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.storage import IceStorage
-from gemini.types import GLYCOL_30, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import GLYCOL_30
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_function_matches, assert_module_matches
 from tests.fixtures.errors import raises
@@ -57,8 +59,8 @@ def test_plain_call_charges_an_empty_store():
     assert out.stored_cold == 0 and out.is_empty and not out.is_full
     assert result.outlets.fluid_out.m_dot == COLD.m_dot and result.outlets.fluid_out.p == COLD.p
     assert out.heat_accumulation == pytest.approx(out.signed_duty)
-    assert energy_balance(store, result)["relative_residual"] < 1e-12
-    assert mass_balance(store, result)["residual"] == 0
+    assert call_energy_balance(store, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(store, result)["residual"] == 0
 
 
 def test_latent_steps_freeze_at_constant_duty():
@@ -172,10 +174,10 @@ def test_composite_step_freezes_both_stores():
     state, _ = line.step(None, 1800, {"fluid_in": COLD})
     state, result = line.step(state, 1800, {"fluid_in": COLD})
     assert state["first"]["ice_fraction"] > state["second"]["ice_fraction"] > 0
-    audit = energy_balance(line, result)
+    audit = call_energy_balance(line, result)
     assert audit["relative_residual"] < 1e-12
     assert audit["heat_accumulation"] == pytest.approx(_stream_gain(result), rel=1e-12)
-    assert mass_balance(line, result)["residual"] == 0
+    assert call_mass_balance(line, result)["residual"] == 0
 
 
 STORE_STATES = [

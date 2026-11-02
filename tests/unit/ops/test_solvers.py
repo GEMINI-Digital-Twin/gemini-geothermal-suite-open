@@ -7,8 +7,8 @@ import pytest
 from scipy import optimize
 
 from gemini import ops
-from gemini.compiler.graph import Graph
-from gemini.compiler.graph.passes.cse import eliminate_common_subexpressions
+from gemini.compiler.ir import Graph
+from gemini.compiler.passes.cse import eliminate_common_subexpressions
 from gemini.errors import ValidationError
 from gemini.ops.solvers import wegstein
 from tests.fixtures.equivalence import RTOL

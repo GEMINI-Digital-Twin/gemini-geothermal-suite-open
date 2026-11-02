@@ -10,7 +10,7 @@ operators through the same entry.
 import numpy as np
 
 from gemini.ops import kernels, registry
-from gemini.ops.failures import FailedRows, applied
+from gemini.ops.failedrows import FailedRows, applied
 
 SCALARS = frozenset({float, int, bool, type(None), np.float64, np.int64, np.bool_})
 """Exact types of the scalars of the fast path: Python numbers, ``None`` (a ``where`` branch)

@@ -6,7 +6,8 @@ import gemini as gm
 from gemini.modules import Filter, Module, ProductionReservoir
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.plants.plant import Plant
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises

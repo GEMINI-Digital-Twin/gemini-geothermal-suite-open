@@ -8,8 +8,12 @@ import numpy as np
 
 from gemini import units as physics_units
 from gemini.errors import PhysicsError, ValidationError
+from gemini.modules.pumps import ESP
 from gemini.physics import constants, heat_transfer
-from gemini.types.shapes import OutputUnits, value
+from gemini.units.shapes import OutputUnits, value
+
+PUMP_CURVE_POINTS = 50
+"""Number of flows on the head curve of ``pump_curve``, from zero to twice the maximum flow."""
 
 CURVE_COEFFICIENTS = 6
 """Number of ascending polynomial coefficients of an ESP curve, so at least so many flows."""
@@ -186,3 +190,120 @@ def estimate_conductance(
             f"HeatExchanger: positive LMTD required; got {delta} K", code="too_little_data"
         )
     return output.value(apparent, "W/K", "thermal_conductance")
+
+
+def _points(measured):
+    """Return the measured head points in SI as a list of ``{flow, frequency, head}``."""
+    return [
+        {
+            "flow": float(
+                physics_units.value_in_si(point["flow"], "m3/s", "measured.flow", "volume_flow")
+            ),
+            "frequency": float(
+                physics_units.value_in_si(
+                    point["frequency"], "Hz", "measured.frequency", "frequency"
+                )
+            ),
+            "head": float(
+                physics_units.value_in_si(
+                    point["head"], "Pa", "measured.head", "pressure_difference"
+                )
+            ),
+        }
+        for point in measured or ()
+    ]
+
+
+def _correction(points, units):
+    """Return the affine correction of theoretical head on measured head, or why it has none."""
+    if not points:
+        return value(None, "-", "no measured points")
+    try:
+        return fit_head_correction(
+            [point["head"] for point in points],
+            [point["theoretical_head"] for point in points],
+            units,
+        )
+    except PhysicsError as error:
+        return value(None, "-", str(error))
+
+
+def _measured_point(point, output):
+    """Return one measured point with every number as a value."""
+    return {
+        "flow": output.value(point["flow"], "m3/s", "volume_flow"),
+        "frequency": output.value(point["frequency"], "Hz", "frequency"),
+        "head": output.value(point["head"], "Pa", "pressure_difference"),
+        "theoretical_head": output.value(point["theoretical_head"], "Pa", "pressure_difference"),
+    }
+
+
+def _head_curve(module, frequency):
+    """Return plotting points (flow [m3/s], head [Pa]) of an ESP at a frequency [Hz].
+
+    The flows run from zero to twice the speed-scaled maximum flow; the head is evaluated at the
+    flow referred to the reference speed.
+    """
+    if frequency <= 0:
+        raise ValidationError(
+            f"{module.path}: positive frequency required; got frequency = {frequency} Hz",
+            code="invalid_design",
+        )
+    scale = frequency / constants.ESP_REFERENCE_FREQUENCY
+    return [
+        (float(flow), module.head_function(flow / scale, frequency))
+        for flow in np.linspace(0, 2 * module.maximum_flow * scale, PUMP_CURVE_POINTS)
+    ]
+
+
+def pump_curve(plant, pump, measured=None, units=None):
+    """Return an ESP's head curve at the reference frequency and the fit of measured points.
+
+    The curve is the pump's polynomial head curve (``_head_curve``) at the reference
+    frequency of 60 Hz, for flows from zero to twice the maximum flow. Head is a pressure
+    difference in Pa; the head of a fluid column in metres is ``head / (density * g)`` with the
+    density of the pumped fluid.
+
+    Parameters
+    ----------
+    plant : Module
+        A plant with parameter values.
+    pump : str
+        Dotted path of an ``ESP``, for example ``"doublet.esp"``.
+    measured : list of dict, optional
+        Points ``{flow, frequency, head}`` in m3/s, Hz and Pa (SI numbers or ``Quantity`` values).
+    units : dict, optional
+        A map from quantity to unit for the returned values.
+
+    Returns
+    -------
+    dict
+        Plain JSON ``{pump, frequency, curve, measured, correction}``, every number a value.
+        ``curve`` is ``{flow, head}``. Each measured point gains ``theoretical_head`` [Pa], the
+        pump's head at its flow and frequency. ``correction`` is ``{slope, offset}`` of the
+        least-squares line ``theoretical_head = slope * head + offset`` (offset in Pa), or a value
+        ``None`` with a ``reason`` when fewer than two distinct measured heads are given. This is
+        the retained ``fit_head_correction``; no module applies the correction yet, so it is a
+        diagnosis, not a parameter to set.
+    """
+    output = OutputUnits(units)
+    module = plant.get_submodule(pump)
+    if not isinstance(module, ESP):
+        raise ValidationError(
+            f"pump_curve: pump = {pump!r}; expected the path of an ESP", path=pump
+        )
+    points = _points(measured)
+    for point in points:
+        point["theoretical_head"] = float(module.head_function(point["flow"], point["frequency"]))
+    reference = constants.ESP_REFERENCE_FREQUENCY.value
+    flows, heads = zip(*_head_curve(module, reference))
+    return {
+        "pump": pump,
+        "frequency": output.value(reference, "Hz", "frequency"),
+        "curve": {
+            "flow": output.value(flows, "m3/s", "volume_flow"),
+            "head": output.value(heads, "Pa", "pressure_difference"),
+        },
+        "measured": [_measured_point(point, output) for point in points],
+        "correction": _correction(points, units),
+    }

@@ -8,21 +8,21 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.modules.pumps import _physics
+from gemini.modules.results import Health
 from gemini.ops import kernels
 from gemini.physics import constants, diagnostics, energy, pumps
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Count,
     Dimensionless,
     Efficiency,
     Fraction,
     Frequency,
-    Health,
     Length,
     Power,
     Pressure,
     PressureDifference,
     Ratio,
-    Stream,
     VolumeFlow,
 )
 

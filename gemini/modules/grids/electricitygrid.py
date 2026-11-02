@@ -4,7 +4,7 @@ from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.grids import _physics
 from gemini.modules.module import Module
 from gemini.physics import energy
-from gemini.types import Power
+from gemini.units.quantities import Power
 
 
 class ElectricityGrid(Module):

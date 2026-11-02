@@ -12,8 +12,8 @@ from pydantic import ValidationError as PydanticError
 
 from gemini._utils.files import from_cells, from_json, to_cells
 from gemini._utils.version import OLDEST_CHECKPOINT, is_older, package_version
+from gemini.case.dataset import Dataset
 from gemini.errors import RunError, ValidationError
-from gemini.run.dataset import Dataset
 
 
 class Checkpoint(BaseModel):

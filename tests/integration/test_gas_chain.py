@@ -3,7 +3,7 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.physics import combustion, gas
 from tests.fixtures.designs import with_values
 from tests.fixtures.gas import GRID_COMPOSITION
@@ -121,8 +121,8 @@ def test_without_co_produced_gas_the_grid_covers_everything():
 def test_the_chain_closes_its_mass_and_energy_balance(setpoint):
     """Every kilogram that enters leaves or burns, and every watt is accounted for."""
     plant, result = run(setpoint)
-    assert mass_balance(plant, result)["relative_residual"] < 1e-12
-    assert energy_balance(plant, result)["relative_thermal_residual"] < 1e-12
+    assert call_mass_balance(plant, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(plant, result)["relative_thermal_residual"] < 1e-12
 
 
 def test_the_chain_conserves_the_carbon_it_reports():

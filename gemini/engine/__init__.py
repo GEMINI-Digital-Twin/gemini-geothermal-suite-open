@@ -1,10 +1,9 @@
-"""The run engine: ``Engine``, ``Clock``, executors, runner, chunks, checkpoints.
+"""One run of a plant on a case: ``Engine``, ``simulate``, ``Results``, the schedule and the rest.
 
-``Results`` and ``Dataset`` live in ``gemini.run``, whose functions import ``gemini.engine.engine``:
-importing ``gemini.run`` first gives one import order from either side of that cycle.
+``Clock`` and the executor registry are exported here; every other name is read from its file
+(``gemini.engine.engine.Engine``, ``gemini.engine.simulate.simulate``,
+``gemini.engine.results.Results``, ``gemini.engine.schedule.schedule.schedule``).
 """
-
-from gemini import run  # noqa: F401
 
 from .clock import Clock
 from .executor import Executor, register_executor

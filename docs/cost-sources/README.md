@@ -14,7 +14,7 @@ the `id`. Several rows often share one key: choosing between them is a project d
 ## Columns
 
 `path` is the key a scenario uses for the value, spelled as in
-`inputs/examples/hackathon_2026/case.json`. It is empty when no case key takes the figure. `in_case`
+`examples/hackathon_2026/case.json`. It is empty when no case key takes the figure. `in_case`
 is what that example case held for the key on 2026-11-01, so the gap between the example and the
 evidence is visible. It is a snapshot, and the example is not changed to match. `note` says when the
 units of a row and its key differ, in which case the two numbers cannot be compared directly.

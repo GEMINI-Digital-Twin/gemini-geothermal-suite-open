@@ -3,9 +3,10 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.piping import Mixer
-from gemini.types import WATER, Fluid, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER, Fluid
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
@@ -30,8 +31,8 @@ def test_mixing_matches_hand_calculation():
     assert mixed.T == pytest.approx(353.15, rel=1e-14)
     assert reading(result).fluid_out_T == mixed.T
     assert result.outputs.pressure_imbalance == 1e5
-    assert energy_balance(Mixer(), result)["relative_residual"] < 1e-12
-    assert mass_balance(Mixer(), result)["residual"] == 0
+    assert call_energy_balance(Mixer(), result)["relative_residual"] < 1e-12
+    assert call_mass_balance(Mixer(), result)["residual"] == 0
 
 
 def test_zero_flows():
@@ -40,7 +41,7 @@ def test_zero_flows():
     assert one.T == pytest.approx(HOT.T, rel=1e-15) and one.m_dot == 6
     none = Mixer()(branch1_in=HOT._with_si(m_dot=0), branch2_in=COLD._with_si(m_dot=0))
     assert none.outlets.fluid_out.T == pytest.approx(343.15) and none.outlets.fluid_out.m_dot == 0
-    assert energy_balance(Mixer(), none)["residual"] == 0
+    assert call_energy_balance(Mixer(), none)["residual"] == 0
 
 
 def test_invalid_inputs_raise():

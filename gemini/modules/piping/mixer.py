@@ -6,7 +6,8 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer
-from gemini.types import PressureDifference, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import PressureDifference
 
 
 class Mixer(Module):

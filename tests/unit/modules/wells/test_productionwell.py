@@ -3,10 +3,11 @@
 import numpy as np
 import pytest
 
-from gemini.compiler.graph import GraphCache, run
+from gemini.compiler.cache import GraphCache
+from gemini.compiler.run import run
 from gemini.modules.wells import ProductionWell
-from gemini.types.flows import Stream
-from gemini.types.fluid import BRINE as DEFAULT_FLUID
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from gemini.units import Quantity
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si

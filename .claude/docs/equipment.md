@@ -30,8 +30,8 @@ Shared conventions, stated once here and not repeated per module:
   ([types.md](types.md#energy-on-ports-and-balances)): `power_in`, `power_out`, `loss_out` (signed,
   heat to the surroundings), the output `fuel` and the signed output `heat_accumulation`. A value
   a port shows is read from the port, under `<port>.<quantity>` in the results.
-- **Energy audit** below states what `energy_balance(module, result)` shows for one call.
-  *Closed* means `relative_residual < 1e-12` and `mass_balance(...)["residual"] == 0` are
+- **Energy audit** below states what `call_energy_balance(module, result)` shows for one call.
+  *Closed* means `relative_residual < 1e-12` and `call_mass_balance(...)["residual"] == 0` are
   tested. Otherwise the documented residual is named; it is never hidden by an invented loss.
 - Stateful modules integrate their `State` values in `_advance_states`; call them with
   `module.step(state, dt, inlets)`. A plain call evaluates at the initial states.
@@ -108,10 +108,10 @@ Shared conventions, stated once here and not repeated per module:
 
 ## Cost kinds and the Equipment mixin
 
-A module that is equipment subclasses the mixin `Equipment` (`gemini/modules/_utils/cost.py`), sets
-`equipment_kind` to one of the 19 kinds of `gm.case.Capex` and defines `capex(economics)`; its
-`fixed_opex(economics)` is the share of the kind times that capex. The factor is read from
-`case.economics`; one the case lacks raises `missing_assumption` naming its path. These
+A module that is equipment subclasses the mixin `Equipment` (`gemini/modules/_utils/equipment.py`), sets
+`equipment_kind` to one of the 19 kinds of `gm.case.Capex` and defines `cost_size()`, the size its
+cost scales with; `gemini/evaluate` prices it, and the fixed opex is the share of the kind times
+that capex. The factor is read from `case.economics`; one the case lacks raises `missing_assumption` naming its path. These
 modules are equipment, with the size the factor multiplies ([economics.md](economics.md#costs)):
 
 | Kind | Module |
@@ -197,7 +197,8 @@ basis (`gemini.physics.pumps`).
 
 ```python
 import gemini as gm
-from gemini.modules import ESP, energy_balance
+from gemini.evaluate import call_energy_balance
+from gemini.modules import ESP
 
 esp = ESP().set_params("", {
     "stage_count": 12,
@@ -215,7 +216,7 @@ esp = ESP().set_params("", {
 result = esp(fluid_in=gm.Stream(flow={"value": 200, "unit": "m3/h"}, T={"value": 70, "unit": "C"}, p={"value": 10, "unit": "bar"}), frequency={"value": 50, "unit": "Hz"})
 assert round(result.outputs.get("head", unit="bar"), 2) == 16.23
 assert round(result.inlets["power_in"]) == 118246
-assert energy_balance(esp, result)["unresolved_power"] == result.inlets["power_in"]
+assert call_energy_balance(esp, result)["unresolved_power"] == result.inlets["power_in"]
 ```
 
 ### InjectionPump
@@ -287,7 +288,7 @@ quadratic head curve and affinity-law speed scaling. It replaces the former `Boo
 - **Validity**: zero flow is a stopped pump (no head, no power). `x >= 2`, a negative head or
   reverse flow raise `PhysicsError` (pump off its curve). Deadhead (running against a
   closed valve) is outside the steady model.
-- **Energy audit**: first-law closed when the flow work `Q H` is counted; `energy_balance`
+- **Energy audit**: first-law closed when the flow work `Q H` is counted; `call_energy_balance`
   excludes pressure energy, so its `residual` equals `hydraulic_power` and `unresolved_power`
   is zero (both tested).
 
@@ -388,7 +389,7 @@ intercooled stages.
   the suction temperature without pressure loss; stage ratios up to about 4. A setpoint below
   the suction pressure or reverse flow raises `PhysicsError`; zero flow draws no power.
 - **Energy audit**: closed in gas enthalpy, `power_in = m_dot cp (T_2 - T_1) + loss_out`
-  (tested). `energy_balance` values streams with the liquid `cp_l`, so its residual
+  (tested). `call_energy_balance` values streams with the liquid `cp_l`, so its residual
   `m_dot (T_2 - T_1) (cp - cp_l)` is not meaningful here.
 
 ```python
@@ -452,7 +453,8 @@ surroundings.
 
 ```python
 import gemini as gm
-from gemini.modules import Pipe, energy_balance
+from gemini.evaluate import call_energy_balance
+from gemini.modules import Pipe
 
 pipe = Pipe().set_params("", {
     "length": {"value": 1500, "unit": "m"},
@@ -465,7 +467,7 @@ supply = gm.Stream(flow={"value": 40, "unit": "m3/h"}, T={"value": 80, "unit": "
 result = pipe(fluid_in=supply, air_in=gm.modules.Atmosphere.ambient_air({"value": 10, "unit": "degC"}))
 assert round(result.outputs.get("pressure_drop", unit="bar"), 3) == 2.134
 assert round(result.outlets.loss_out) == 32821
-assert energy_balance(pipe, result)["relative_residual"] < 1e-12
+assert call_energy_balance(pipe, result)["relative_residual"] < 1e-12
 ```
 
 ### Valve
@@ -960,7 +962,7 @@ Auxiliary gas boiler heating a stream to a setpoint, burning co-produced gas fir
   `combustion.emission_rate`, `gas.emission_per_energy`
 - **Validity**: negative flow raises `PhysicsError`.
 - **Energy audit**: closed; purchased gas enters no stream, so it is in `fuel` and not in
-  `mass_balance`, and the burned co-produced gas leaves through `burned_mass_flow`.
+  `call_mass_balance`, and the burned co-produced gas leaves through `burned_mass_flow`.
 
 ```python
 import gemini as gm
@@ -1150,7 +1152,7 @@ Ground and aquifer heat is `loss_out`, signed: the ground is the plant's environ
 ### ProductionReservoir and InjectionReservoir
 
 The aquifer supplying the production well and the one receiving the injected brine. They are
-open boundaries: `mass_balance` and `energy_balance` count the production rate as a source and
+open boundaries: `call_mass_balance` and `call_energy_balance` count the production rate as a source and
 the injected stream as a sink.
 
 - **Ports**: none -> `sandface_out`.
@@ -1334,7 +1336,7 @@ assert round(result.outlets["fluid_out"].T - 273.15, 2) == 35.92
 
 Wells traversing a geothermal `PipePath` with the original GEMINI DPDT equations,
 Swamee–Jain friction, Beggs–Brill two-phase flow and explicit heat loss
-(`hydraulics.pipe_path_profile`).
+(`_physics.pipe_path_profile` of `modules/wells/`).
 
 - **Ports**: `bottom_in` -> `wellhead_out`, `loss_out` (power).
 - **Parameters**: the pipe path as four parallel lists with one item per constant-diameter section
@@ -1356,8 +1358,8 @@ Swamee–Jain friction, Beggs–Brill two-phase flow and explicit heat loss
   incoming sign. Helpers: `intake_conditions`, `wellhead_from_discharge`,
   `discharge_from_wellhead`, `corrosion_profile` (mm/year), `erosion_check`.
 - **Physics**: `fluid.heat_capacity_rate`, `heat_transfer.heat_rate`,
-  `hydraulics.affine_correction`, `hydraulics.corrosion_profile`, `hydraulics.erosion_check`,
-  `hydraulics.pipe_path_profile`
+  `hydraulics.affine_correction`, and in `modules/wells/_physics.py` `corrosion_profile`,
+  `erosion_check` and `pipe_path_profile`
 - **Energy audit**: closed; `loss_out` is signed here (negative when the soil heats the brine).
 
 ```python
@@ -1461,7 +1463,7 @@ tracking.
 ```python
 import gemini as gm
 from gemini.modules import IceStorage
-from gemini.types import GLYCOL_30
+from gemini.streams import GLYCOL_30
 
 store = IceStorage().set_params("", {"water_mass": {"value": 50, "unit": "t"}, "thermal_conductance": {"value": 20000, "unit": "W/K"}, "initial_ice_fraction": 0, "initial_temperature": {"value": 0, "unit": "C"}})
 glycol = gm.Stream(flow={"value": 8, "unit": "kg/s"}, T={"value": -5, "unit": "C"}, p={"value": 3, "unit": "bar"}, fluid=GLYCOL_30)
@@ -1623,7 +1625,7 @@ Plants*, 4th ed., section 5.2).
   setpoint 611.213 Pa to 16.529 MPa. Reverse flow, a steam inlet or a setpoint above the inlet
   pressure raise `PhysicsError`.
 - **Energy audit**: closed in IF97 enthalpies, `m h_in = m_g h_g + m_l h_f` (tested);
-  `energy_balance` cannot represent latent heat, so its residual is not meaningful. Mass
+  `call_energy_balance` cannot represent latent heat, so its residual is not meaningful. Mass
   closes.
 
 ```python
@@ -1653,7 +1655,7 @@ Single-flash condensing steam turbine with generator and condenser.
 - **Validity**: pressures within 611.213 Pa to 16.529 MPa, a wet exhaust. A non-steam inlet,
   reverse flow, an inlet at or below the condenser pressure or a dry exhaust raise
   `PhysicsError`. No non-condensable gases or gland losses.
-- **Energy audit**: closed in IF97 enthalpies (tested); `energy_balance` is not valid across
+- **Energy audit**: closed in IF97 enthalpies (tested); `call_energy_balance` is not valid across
   the phase change. Mass closes.
 
 ```python
@@ -1836,12 +1838,12 @@ Reusable production and reinjection limbs of a geothermal doublet (`gm.plants.ge
 ```python
 import gemini as gm
 
-doublet = gm.Plant.from_json("inputs/doublet_heat/plant.json").doublet
+doublet = gm.Plant.from_json("tests/fixtures/doublet_heat/plant.json").doublet
 doublet.reservoir.production_rate = {"value": 42.4, "unit": "kg/s"}
 doublet.esp.frequency = {"value": 55.5, "unit": "Hz"}
 result = doublet(return_in=gm.Stream(m_dot={"value": 40, "unit": "kg/s"}, T={"value": 45, "unit": "C"}, p={"value": 20, "unit": "bar"}, fluid=doublet.fluid))
 assert round(result.outlets.supply_out.T - 273.15, 2) == 72.54
-assert gm.modules.mass_balance(doublet, result)["residual"] == 0
+assert gm.evaluate.call_mass_balance(doublet, result)["residual"] == 0
 ```
 
 `brine_cooling` is the production minus the injection temperature, `reservoir.liquid_flow` the
@@ -1853,7 +1855,7 @@ at reservoir conditions.
 
 #### A doublet from its depth
 
-`gm.plants.Doublet` takes design parameters; the formulas are in `gemini/physics/doublet.py`.
+`gm.plants.Doublet` takes design parameters; the formulas are in `gemini/plants/_utils/doublet_design.py`.
 
 ```python
 import gemini as gm
@@ -1920,7 +1922,7 @@ dict.
 ```python
 import gemini as gm
 
-doublet = gm.Plant.from_json("inputs/doublet_heat/plant.json").doublet
+doublet = gm.Plant.from_json("tests/fixtures/doublet_heat/plant.json").doublet
 field = gm.plants.MultiWellPlant(producers=2, injectors=2)
 for limb, rate in zip(field.producers, (40.0, 30.0)):
     for name in ("reservoir", "well", "esp", "riser"):
@@ -1965,7 +1967,7 @@ and Cooling*).
 
 ```python
 import gemini as gm
-from gemini.modules import energy_balance
+from gemini.evaluate import call_energy_balance
 from gemini.plants import HeatingSubstation
 
 substation = HeatingSubstation()
@@ -1984,7 +1986,7 @@ substation.valve.opening = 0.8
 substation.consumer.heat_demand = {"value": 150, "unit": "kW"}
 result = substation(supply_in=gm.Stream(flow={"value": 2.0, "unit": "kg/s"}, T={"value": 75, "unit": "degC"}, p={"value": 6, "unit": "bar"}))
 print(result.children["consumer"].outlets["return_out"].T)  # 325.44 K
-assert energy_balance(substation, result)["relative_residual"] < 1e-12
+assert call_energy_balance(substation, result)["relative_residual"] < 1e-12
 ```
 
 ### CoolingSubstation
@@ -2058,7 +2060,7 @@ structural: `gm.plants.DistrictNetwork(consumers=3, service="cooling")`.
 
 ```python
 import gemini as gm
-from gemini.modules import energy_balance
+from gemini.evaluate import call_energy_balance
 
 network = gm.plants.DistrictNetwork(consumers=2)
 network.pump.set_params("", {
@@ -2100,7 +2102,7 @@ for substation in network.substations:
 air = gm.modules.Atmosphere.ambient_air({"value": 10, "unit": "degC"})
 result = network(supply_in=gm.Stream(flow={"value": 4.0, "unit": "kg/s"}, T={"value": 75, "unit": "degC"}, p={"value": 6, "unit": "bar"}), air_in=air)
 print(result.outlets.return_out.T)  # 329.36 K
-audit = energy_balance(network, result)
+audit = call_energy_balance(network, result)
 print(audit["residual"], result.children["pump"].outputs.hydraulic_power)  # 1536.0 1536.0
 ```
 
@@ -2192,7 +2194,7 @@ convergence of iterative processes", Communications of the ACM 1(6), 9-13), tole
 
 ### Nodal well analysis
 
-`gemini.analysis.solves` (`gm.analysis.nodal` is its public face) finds the operating point at which
+`gemini/analysis/nodal.py` (`gm.analysis.nodal` is its public face) finds the operating point at which
 well and reservoir agree, ported from the upstream GEMINI simulator (`nodal_solver`, `well_flow`).
 Each function evaluates the plant's own modules without a running call, and solves with
 `ops.brentq`. A plant states the same balances with `Plant.constrain`.
@@ -2230,7 +2232,7 @@ A run sets `esp.frequency`, `wellhead_pressure`, the `split_fraction`s and the s
 
 ```python
 from gemini.modules import ESP, ProductionReservoir, ProductionWell
-from gemini.analysis import solves
+from gemini.analysis.nodal import solve_production_rate
 from gemini.physics.geometry import build_path, section_values
 
 path = build_path([dict(MD=d, TVD=d, ID=0.15, roughness=0.01) for d in (0, 300, 400, 600, 2400)])
@@ -2275,14 +2277,14 @@ esp = ESP().set_params("", {
     "drift_threshold": 0.1,
 })
 esp.frequency = {"value": 69, "unit": "Hz"}
-rate = solves.solve_production_rate(reservoir, well, 3e5, (5, 60), esp=esp, riser=riser)
+rate = solve_production_rate(reservoir, well, 3e5, (5, 60), esp=esp, riser=riser)
 assert round(rate * 3.6, 4) == 135.8666
 reservoir.production_rate = {"value": rate, "unit": "kg/s"}
 ```
 
 ### The plants of the cases
 
-`example_plant(name)` of `tests/fixtures/sample_cases.py` gives each plant with a file in `inputs/plants/` with its design values; controls and
+`example_plant(name)` of `tests/fixtures/sample_cases.py` gives each plant with a file in `tests/fixtures/plants/` with its design values; controls and
 boundaries stay inputs of the run.
 
 - `DistrictEnergyPlant` (`plants/districtenergyplant.py`): a `DistrictNetwork` of two heating
@@ -2312,7 +2314,7 @@ below; a design is its plant dict.
   with fewer units. An agent removes a unit by editing `to_dict(structure=True)`.
 - **Doublets and depth.** `size={"doublets": n}`, 1 to 3, and a plant-level `depth`
   ([plants.md](plants.md#registered-plants)).
-- **Run check.** The sample cases of `inputs/examples/` hold plant dicts of these classes, and
+- **Run check.** The sample cases of `examples/` hold plant dicts of these classes, and
   each runs its demand with no failed step (`examples/hackathon.py`, `examples/quickstart.py`). `tests/integration/test_heating_cooling.py` (slow tier) runs
   two days of every plant and of one with a unit removed from its dict. `adsorption_chiller` keeps
   its 90 degC limit: behind the absorption chiller its drive water has already cooled, and a circuit

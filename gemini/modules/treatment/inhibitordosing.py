@@ -4,7 +4,8 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.modules.treatment import _physics
-from gemini.types import Fraction, MassFlow, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Fraction, MassFlow
 
 
 class InhibitorDosing(Module):

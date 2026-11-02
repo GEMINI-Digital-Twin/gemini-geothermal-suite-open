@@ -9,7 +9,7 @@ and read from `self`.
 
 Write a module with `Module` and the declarations (`Parameter`, `Inlet`, `Outlet`, `Output`,
 `Control`, `Boundary`, `State`) from `gemini.modules` (`gm.modules.Module`), and the quantity types
-and streams from `gemini.types`. The base class has no string catalogue, sequential
+and streams from `gemini.streams`. The base class has no string catalogue, sequential
 container, fidelity flag or cost method. The shipped equipment, with each model's ports, parameters, equations and energy-audit status, is
 listed in [equipment.md](equipment.md); its classes are good references for new modules.
 
@@ -17,7 +17,7 @@ listed in [equipment.md](equipment.md); its classes are good references for new 
 define physics. `gemini/physics/` keeps the textbook formulas and anything more than one category,
 or `analysis`, `study` or `evaluate`, reads. Physics of one category lives in
 `gemini/modules/<category>/_physics.py`, which imports only `gemini.physics`, `gemini.ops`,
-`gemini.types` and `gemini.errors`, never another category's `_physics.py`; when a second category
+`gemini.streams` and `gemini.errors`, never another category's `_physics.py`; when a second category
 needs a function it moves up into `gemini/physics/`. Its functions keep `@ops.physics` and stay
 traceable on every backend. Reuse existing physics functions wherever possible and combine them; add
 a new physics function only when nothing existing can do the job, and generalise an existing one
@@ -33,8 +33,8 @@ belongs in `gemini/plants/`; `gemini.modules` never imports `gemini.plants`.
   `Boundary`, `State`), `container.py` (`ModuleList`, `ModuleDict`) and `check.py`
   (`gm.modules.check`). `Plant` is `gemini/plants/plant.py`.
 - Machinery goes in an `_utils/` folder, even if some of its functions are exported publicly:
-  `gemini/modules/_utils/` (`balance`, `description`, `design`, `serialization`, `wiring`),
-  `gemini/plants/_utils/` for the plant tools and `gemini/_utils/registry.py` for the registry.
+  `gemini/modules/_utils/` (`balance`, `description`, `design`, `equipment`, `trace`),
+  `gemini/plants/_utils/` for the plant tools (the plant dict `serialization` among them) and `gemini/_utils/registry.py` for the registry.
 - Code shared by the modules of one category goes in that category folder as a private file:
   `heating/_burner.py`, `cooling/_sorption.py`.
 - `gemini/plants/` holds only plant classes.
@@ -83,7 +83,7 @@ from the import path of the class, so a shipped class never declares it and the 
 `gemini/plants/` read `plants`. A class from outside has no folder: it states the class attribute
 `category`, one of the list, and a subclass of a shipped class states its own.
 
-A port declares its label: `Inlet(Stream, kind="brine")`, one of `gm.types.streams.names()`.
+A port declares its label: `Inlet(Stream, kind="brine")`, one of `gemini.streams.kinds.names()`.
 A port without one, `kind=None`, takes whatever flows through it: piping, `CentrifugalPump`,
 `HeatExchanger` and the source side of `HeatPump`. Labels never change a calculation; they say what may be connected.
 
@@ -133,7 +133,7 @@ measured, state, inlets, outlets, outputs, children, connections, values}`:
   `default` is `null` for `UNSET`. `minimum` and `maximum` are the closest limit, so a strict bound
   (`gt`, `lt`) shows as the bound itself. `enum` comes from a `Literal`. Only the module's own
   declarations are listed; children appear under `children`.
-- `measured` lists every output of the module itself: replay (`engine/step.py`) takes a measured
+- `measured` lists every output of the module itself: replay (`engine/bindings.py`) takes a measured
   binding for any output name and compares it with that output; no narrower rule exists.
 - `inlets` and `outlets` map a port to `{kind, fields: {m_dot: {unit: "kg/s"}, T: {unit: "K"},
   p: {unit: "Pa"}}}`; `kind` is `null` for a port that takes any stream.
@@ -178,8 +178,9 @@ reading `self.flow` afterwards gives it back.
 ```python
 from gemini.modules import Control, Inlet, Module, Outlet, Output, Parameter
 from gemini.physics import pumps
-from gemini.types import (
-    Count, Electricity, Frequency, Power, PressureDifference, Stream, VolumeFlow,
+from gemini.streams import Stream
+from gemini.units.quantities import (
+    Count, Electricity, Frequency, Power, PressureDifference, VolumeFlow,
 )
 
 
@@ -253,7 +254,7 @@ dimension, converts the quantities to SI and calls `_set_si_params`. Never overr
 from gemini.modules import Parameter, ProductionReservoir
 from gemini.physics import hydraulics
 from gemini.plants import Plant
-from gemini.types import Density, Length
+from gemini.units.quantities import Density, Length
 
 
 class Column(Plant):
@@ -293,7 +294,7 @@ Every route that sets parameters reaches this method: `add(..., params=)`, `from
 section and attribute assignment (a bare SI number, author-level). Setting the fluid of a plant passes it to every child and derives
 again.
 
-All of this is done once, in `Plant`: the formulas go into physics (`gemini/physics/doublet.py`) and
+All of this is done once, in `Plant`: the formulas go into physics (`gemini/plants/_utils/doublet_design.py`) and
 the plant keeps a short `_set_si_params`. `to_dict` stores the plant's own parameters and the explicit
 child values, never a derived value: `from_dict(p.to_dict())` derives them again and rebuilds the
 same numbers. Dated entries of a child that only hold derived values are left out in the same way.
@@ -404,7 +405,7 @@ returned `ModuleResult`.
 
 ## Traced calls
 
-While `gemini.compiler.graph` traces a module, its `_Call` carries the running `Trace` (`call.trace`) and a
+While `gemini.compiler` traces a module, its `_Call` carries the running `Trace` (`call.trace`) and a
 child call made inside it is recorded in the graph by `Trace.child` instead of evaluated: the child's controls, boundaries
 and numeric parameters become graph inputs named `<path below the root>.<name>`, supplied keyword
 values win without validation, and the `ModuleResult` of traced values joins the parent's call
@@ -422,7 +423,7 @@ break (`graph.breaks` lists the leaf breaks with their reasons).
 
 An output of a list or tuple of traced values (the per-section profiles of the wells) is a vector
 output of fixed length: `Graph.output` records each item as `<name>[<index>]`, `graph.vectors`
-keeps the length, and `gemini.compiler.graph.run` returns one array of shape `(rows, length)`.
+keeps the length, and `gemini.compiler.run.run` returns one array of shape `(rows, length)`.
 
 A traced call is not validated, so the tracer adds the validation as graph checks. For every
 traced call (children included, break nodes excepted) each control, boundary and output with
@@ -474,7 +475,7 @@ leaves (`ThermalDecline`, `AquiferStorage`, `BoreholeField`, `ThermalStorage`, `
 ```python
 from gemini.physics import heat_transfer
 from gemini.modules import State
-from gemini.types import Power, Temperature
+from gemini.units.quantities import Power, Temperature
 
 
 class Tank(Module):
@@ -527,7 +528,7 @@ assert result.outlets.fluid_out.T == 300 and state["temperature"] > 300
 A module with a diagnostic model overrides `health(self, result, measured)`. It receives the
 call's `ModuleResult` and the measured outputs of that tick and returns a `Health` (`assessed`,
 `score`, `alarm`, `message`, `metrics`); the base method returns `None`, which the engine records
-as `assessed=False`. A module that declares its own cost defines `capex(economics)` returning an amount in the currency of the case;
+as `assessed=False`. A module that is equipment defines `cost_size()`, the size its cost scales with, and a kind; `gm.evaluate` prices it;
 see [types.md](types.md#profiles-and-costs).
 
 ## Energy flow

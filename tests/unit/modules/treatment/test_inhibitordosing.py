@@ -3,10 +3,10 @@
 import pytest
 
 import gemini as gm
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.grids import ChemicalGrid
 from gemini.modules.treatment import InhibitorDosing
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
@@ -28,8 +28,8 @@ def test_hand_computed_dose_in_ppm():
     assert reading(result).product_mass_flow == pytest.approx(1e-3)
     assert result.outputs.active_mass_flow == pytest.approx(4e-4)
     assert result.outlets.fluid_out == INLET._with_si(m_dot=INLET.m_dot + 1e-3)
-    assert mass_balance(dosing, result)["residual"] == 0
-    assert energy_balance(dosing, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(dosing, result)["residual"] == 0
+    assert call_energy_balance(dosing, result)["relative_residual"] < 1e-12
 
 
 def test_limits():

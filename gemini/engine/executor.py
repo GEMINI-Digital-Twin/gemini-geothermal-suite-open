@@ -3,7 +3,7 @@
 An ``Executor`` has two steps. ``prepare(module, streams, inputs, stepped)`` takes the inlet
 streams and the controls and boundaries (dotted path to column) of the selected rows and returns
 what ``evaluate`` needs; an exception of this step is the error of every selected row.
-``evaluate(prepared, rows, context)`` returns an ``Evaluation`` (``gemini.engine.evaluation``);
+``evaluate(prepared, rows, context)`` returns an ``ChunkResult`` (``gemini.engine.chunkresult``);
 ``context`` holds ``dt`` (the seconds of every row) and ``states`` (the state tree of a stepped
 call). The eager executor of ``gemini.engine.eager`` is always there; a package that evaluates
 better registers a factory under the name ``"compiled"`` with ``register_executor``, and an
@@ -26,7 +26,7 @@ class Executor:
         raise NotImplementedError(f"{type(self).__name__} does not prepare")
 
     def evaluate(self, prepared, rows, context):
-        """Return the ``Evaluation`` of the prepared call over ``rows`` rows."""
+        """Return the ``ChunkResult`` of the prepared call over ``rows`` rows."""
         raise NotImplementedError(f"{type(self).__name__} does not evaluate")
 
 

@@ -30,8 +30,9 @@ def test_a_unit_that_does_not_fit_is_refused():
 
 def test_the_display_unit_of_an_si_unit_comes_from_the_one_table():
     """Flow in m3/h, temperature in degC, energy in MWh."""
-    from gemini.evaluate._utils.display import by_si_unit, shown
+    from gemini.evaluate._utils.display import shown
     from gemini.units import Quantity
+    from gemini.units.display import by_si_unit
 
     table = by_si_unit()
     assert table["m3/s"] == "m3/h" and table["K"] == "degC" and table["J"] == "MWh"
@@ -52,7 +53,8 @@ def _check(role, quantity, value, limit, unit):
 
 def test_a_temperature_difference_shows_in_kelvin_and_a_temperature_in_celsius():
     """40 K of lift is 40 K, not -233 degC; the supply temperature of the same report is degC."""
-    from gemini.evaluate._utils.display import by_si_unit, shown
+    from gemini.evaluate._utils.display import shown
+    from gemini.units.display import by_si_unit
 
     found = shown(
         [
@@ -92,8 +94,9 @@ def test_long_durations_show_in_years_and_operating_durations_in_days():
 
 def test_the_years_a_result_carries_stay_years():
     """``analysis_period`` of a net present value is in yr, not days."""
-    from gemini.evaluate._utils.display import by_si_unit, shown
-    from gemini.types.shapes import measure
+    from gemini.evaluate._utils.display import shown
+    from gemini.units.display import by_si_unit
+    from gemini.units.shapes import measure
 
     npv = measure(1.0, "currency", analysis_period=measure(25.0, "yr"))
     assert shown({"npv": npv}, by_si_unit())["npv"].parts["analysis_period"].unit == "yr"

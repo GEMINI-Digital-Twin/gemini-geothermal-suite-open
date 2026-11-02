@@ -11,10 +11,10 @@ from gemini.case._utils.kinds import EQUIPMENT_KINDS
 from gemini.engine.chunks import ResultChunk
 from gemini.errors.base import problem
 from gemini.evaluate.verdict import LARGEST_VIOLATION, Verdict, reason
-from gemini.plants._utils.roles import units_of
+from gemini.plants.roles import units_of
 from gemini.study._utils import execute, trial
-from gemini.types.shapes import measure
 from gemini.units import Quantity
+from gemini.units.shapes import measure
 from tests.fixtures.result_tables import START, make_results
 from tests.fixtures.sample_cases import SHALLOW_DISTRICT
 

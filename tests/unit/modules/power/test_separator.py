@@ -3,9 +3,10 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import mass_balance
+from gemini.evaluate import call_mass_balance
 from gemini.modules.power import Separator, _physics
-from gemini.types import STEAM, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import STEAM
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
 
@@ -27,7 +28,7 @@ def test_flash_split_matches_steam_tables():
     assert gas.fluid == STEAM and liquid.fluid == GEOFLUID.fluid
     assert liquid.T == gas.T == out.saturation_temperature
     assert liquid.p == gas.p == 6e5
-    assert mass_balance(Separator(), result)["residual"] == 0
+    assert call_mass_balance(Separator(), result)["residual"] == 0
 
 
 def test_closed_in_if97_enthalpies():

@@ -1,0 +1,105 @@
+"""Run bindings: which twins a run evaluates, their sources and the columns they need."""
+
+import pandas as pd
+
+import gemini as gm
+from gemini.engine.bindings import RunBindings, bound_unit
+from gemini.modules.bindings import Binding, ModuleBindings
+from tests.fixtures.engine_tank import ROW, TIME, Valve, dataset, tank
+from tests.fixtures.errors import raises
+
+
+def test_replay_plan_selects_twins_and_takes_units_from_the_dataset(fresh_plant, reference_dataset):
+    """The composite root is not a twin; ``only`` selects twins; dataset units win."""
+    plan = RunBindings(fresh_plant, reference_dataset, "replay")
+    paths = [twin.path for twin in plan.twins]
+    assert "" not in paths and "doublet.esp" in paths
+    only = RunBindings(fresh_plant, reference_dataset, "replay", only=["doublet.esp"])
+    assert [twin.path for twin in only.twins] == ["doublet.esp"]
+    assert "doublet.esp.frequency" in only.columns
+    module = tank()
+    data = gm.Dataset.from_dict({k: [v] for k, v in ROW.items()}, [TIME], units={"rate": "t/h"})
+    (twin,) = RunBindings(module, data, "replay").twins
+    assert twin.inputs()[0].binding.unit == "t/h"
+    assert module.bindings[""].controls["m_dot"].unit == "kg/s"
+
+
+def test_plan_rejects_bad_selections_and_missing_columns(fresh_plant, reference_dataset):
+    """Unknown ``only`` paths and all absent columns fail before the first step."""
+    with raises(gm.errors.ValidationError, "invalid_binding", match="only path = 'doublet'"):
+        RunBindings(fresh_plant, reference_dataset, "replay", only=["doublet"])
+    with raises(gm.errors.ValidationError, "missing_column", match="flow, p") as caught:
+        RunBindings(tank(), dataset(rate=1.0, T=300.0), "replay")
+    assert isinstance(caught.value, gm.errors.ValidationError)
+    assert caught.value.code == "missing_column"
+
+
+def test_plan_rejects_volumetric_flows_it_cannot_convert():
+    """Volumetric flows need a reference state (controls) or p and T (inlets)."""
+    valve = Valve()
+    valve.bindings = {"": ModuleBindings(controls={"m_dot": Binding(column="rate", unit="m3/h")})}
+    with raises(
+        gm.errors.ValidationError, "invalid_binding", match="pressure and temperature parameters"
+    ):
+        RunBindings(valve, dataset(rate=1.0), "replay")
+    module = tank()
+    module.bindings[""].inlets["fluid_in"]["m_dot"].unit = "m3/s"
+    del module.bindings[""].inlets["fluid_in"]["p"]
+    with raises(
+        gm.errors.ValidationError, "invalid_binding", match=r"fluid_in.m_dot = 'flow' \[m3/s\]"
+    ):
+        RunBindings(module, dataset(**ROW), "replay")
+
+
+def test_simulation_plan_requires_a_column_or_default_for_every_input():
+    """A leaf input without data or default fails; bound inputs become chained inputs."""
+    module = tank()
+    with raises(gm.errors.ValidationError, "invalid_binding", match="simulation inputs = m_dot"):
+        RunBindings(module, dataset(flow=10.0, p=3e5, T=330.0), "simulate")
+    plan = RunBindings(module, dataset(**ROW), "simulate")
+    (twin,) = plan.twins
+    assert [source.key for source in twin.inputs()] == ["m_dot"] and twin.leaves
+    assert plan.columns == {"rate", "flow", "p", "T"}
+
+
+def test_parameter_stretches_follow_the_dated_transitions(fresh_plant, reference_dataset):
+    """Ticks share a stretch until the first tick at or after a later date."""
+    plan = RunBindings(fresh_plant, reference_dataset, "replay")
+    ticks = [(TIME + pd.Timedelta(minutes=minutes)).to_pydatetime() for minutes in (0, 30, 60, 90)]
+    plan._dates = [TIME + pd.Timedelta(hours=1)]
+    assert plan.parameter_stretches(ticks) == [(0, 2), (2, 4)]
+    assert plan.parameter_stretches(ticks[:1]) == [(0, 1)]
+
+
+def _level_plant(binding):
+    """Return a valve whose control ``m_dot`` is bound as given."""
+    plant = Valve()
+    plant.set_bindings("", {"m_dot": binding})
+    return plant
+
+
+def test_a_column_alone_takes_the_unit_of_the_run_input_or_else_the_declared_one():
+    """The metadata of the dataset wins; without it the declaration's SI unit holds."""
+    plant = _level_plant("rate")
+    index = pd.date_range("2024-01-01", periods=2, freq="15min", tz="UTC")
+    frame = pd.DataFrame({"rate": [1.0, 2.0]}, index=index)
+    declared = RunBindings(plant, gm.Dataset.from_frame(frame), "replay")
+    assert declared.twins[0].inputs()[0].binding.unit == "kg/s"
+    stated = gm.Dataset.from_frame(frame, units={"rate": "t/h"})
+    assert RunBindings(plant, stated, "replay").twins[0].inputs()[0].binding.unit == "t/h"
+
+
+def test_a_stated_unit_is_the_one_used_without_metadata():
+    """``{column, unit}`` states the unit of the column."""
+    plant = _level_plant({"column": "rate", "unit": "t/h"})
+    index = pd.date_range("2024-01-01", periods=2, freq="15min", tz="UTC")
+    data = gm.Dataset.from_frame(pd.DataFrame({"rate": [1.0, 2.0]}, index=index))
+    assert RunBindings(plant, data, "replay").twins[0].inputs()[0].binding.unit == "t/h"
+
+
+def test_the_dataset_unit_beats_the_binding_unit():
+    """A column with metadata gives its unit; a column without keeps the binding's."""
+    time = pd.date_range("2024-01-01", periods=2, freq="15min", tz="UTC")
+    data = gm.Dataset.from_dict({"flow": [1, 2], "other": [3, 4]}, time, units={"flow": "m3/h"})
+    assert bound_unit(data, Binding(column="flow", unit="kg/s")) == "m3/h"
+    assert bound_unit(data, Binding(column="other", unit="kg/s")) == "kg/s"

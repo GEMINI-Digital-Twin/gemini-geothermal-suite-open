@@ -1,7 +1,7 @@
 # GEMINI examples
 
 Five scripts, each runs alone from any folder with `gemini` installed (`pip install -e .`), reads its
-data from `inputs/examples/` through its own path and writes nothing to the repository except the
+data from `examples/` through its own path and writes nothing to the repository except the
 run records of `hackathon.py` in `runs/`.
 
 | File | What it shows | Main names |

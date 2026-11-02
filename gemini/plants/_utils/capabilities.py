@@ -2,8 +2,8 @@
 
 from gemini._utils import registry
 from gemini.modules.grids import CoolingGrid, HeatingGrid
-from gemini.plants._utils.roles import roles_of
 from gemini.plants.doublet import Doublet
+from gemini.plants.roles import roles_of
 
 
 def _count(plant, cls):
@@ -41,7 +41,7 @@ def capabilities():
 
     Every registered plant class is built at its smallest size and read. For each, the dict holds:
 
-    - ``roles``: the roles (``gm.case.roles()``) of which it has a unit;
+    - ``roles``: the roles (``gm.plants.roles()``) of which it has a unit;
     - ``schedulable``: whether ``gm.schedule`` can plan it;
     - ``ranges``: the leaves of the plant file that may state a ``range``: ``size.doublets`` when
       its class takes a structural size of that name and ``params.depth`` when it has a ``depth``

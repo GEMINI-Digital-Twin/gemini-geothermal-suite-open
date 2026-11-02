@@ -291,6 +291,10 @@ def test_every_data_entry_of_the_page_is_walked(entries):
         "report",
         "compare",
         "failures",
+        "call_energy_balance",
+        "call_mass_balance",
+        "call_emissions",
+        "collect_flows",
     }
     assert listed - later <= entries.keys()
 

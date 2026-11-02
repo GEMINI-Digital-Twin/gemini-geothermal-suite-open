@@ -5,7 +5,7 @@ import pytest
 
 import gemini as gm
 from gemini.modules.wells import InjectionWell, ProductionWell
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si
 from tests.fixtures.errors import raises

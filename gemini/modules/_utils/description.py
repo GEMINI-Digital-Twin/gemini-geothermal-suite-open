@@ -12,8 +12,8 @@ from gemini._utils.strings import close_matches, did_you_mean, first_paragraph
 from gemini.errors import ValidationError
 from gemini.errors.base import Issue, reported
 from gemini.modules.declarations import UNSET
-from gemini.types import bare
-from gemini.types.shapes import problem
+from gemini.units import bare
+from gemini.units.shapes import problem
 
 STREAM_FIELDS = {"m_dot": {"unit": "kg/s"}, "T": {"unit": "K"}, "p": {"unit": "Pa"}}
 """The fields every port stream shows and their SI units."""

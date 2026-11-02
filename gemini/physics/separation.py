@@ -1,9 +1,6 @@
-"""Flow splitting, gas separation, cyclone sand removal, chemical dosing and filter defaults."""
+"""Flow splitting, gas separation, cyclone sand removal and chemical dosing."""
 
 from gemini import ops
-
-FILTER_CLOGGING_BAR = 0.5
-"""Default clogging pressure-loss limit [bar] of a filter, also that of an old project."""
 
 
 @ops.physics

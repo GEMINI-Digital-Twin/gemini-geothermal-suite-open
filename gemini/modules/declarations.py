@@ -22,9 +22,9 @@ from pydantic import ValidationError as PydanticError
 from gemini import ops, units
 from gemini._utils.strings import did_you_mean, join_names
 from gemini.errors import DefinitionError, PhysicsError, ValidationError
-from gemini.types import streams
-from gemini.types.flows import Stream
-from gemini.types.quantities import Power
+from gemini.streams import kinds as streams
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 
 
 class _Unset:

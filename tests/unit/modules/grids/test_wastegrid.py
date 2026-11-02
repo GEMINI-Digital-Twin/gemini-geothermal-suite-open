@@ -1,7 +1,7 @@
 """The plant's edge for discarded flows."""
 
 from gemini.modules import WasteGrid
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from gemini.units import Quantity
 from tests.fixtures.equivalence import assert_module_matches
 

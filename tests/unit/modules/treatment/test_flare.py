@@ -4,7 +4,8 @@ import pytest
 
 import gemini as gm
 from gemini.errors import PhysicsError
-from gemini.modules import Flare, energy_balance
+from gemini.evaluate import call_energy_balance
+from gemini.modules import Flare
 from gemini.physics import combustion, gas
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
@@ -80,4 +81,4 @@ def test_the_heat_of_burning_leaves_through_a_loss_port():
     burned = 0.1 * fluid.heating_value() * flare.combustion_efficiency
     assert result.outlets.loss_out == pytest.approx(burned)
     assert result.outputs.fuel == pytest.approx(burned)
-    assert energy_balance(flare, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(flare, result)["relative_residual"] < 1e-12

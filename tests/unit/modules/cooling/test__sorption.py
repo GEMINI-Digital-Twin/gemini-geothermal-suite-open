@@ -6,7 +6,7 @@ import pytest
 
 from gemini.errors import PhysicsError
 from gemini.modules.cooling import _sorption
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from gemini.units import Quantity
 
 

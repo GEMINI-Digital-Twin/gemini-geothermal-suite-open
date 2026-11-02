@@ -3,9 +3,10 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.piping import Valve
-from gemini.types import Fluid, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 
@@ -33,8 +34,8 @@ def test_fully_open_valve_matches_the_catalogue_kv():
     assert result.outputs.pressure_drop == pytest.approx(0.36**2 * 1e5, rel=1e-12)
     outlet = result.outlets.fluid_out
     assert outlet.T == STREAM.T and outlet.m_dot == STREAM.m_dot
-    assert energy_balance(valve(), result)["residual"] == 0
-    assert mass_balance(valve(), result)["residual"] == 0
+    assert call_energy_balance(valve(), result)["residual"] == 0
+    assert call_mass_balance(valve(), result)["residual"] == 0
 
 
 def test_inherent_characteristics():

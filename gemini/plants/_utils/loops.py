@@ -14,9 +14,9 @@ import numpy as np
 from gemini import ops
 from gemini._utils.strings import join_path
 from gemini.errors import PhysicsError, ValidationError
-from gemini.ops.failures import Failures, attached, is_marking, merge, stripped
+from gemini.ops.failedrows import RowFailures, attached, is_marking, merge, stripped
 from gemini.ops.solvers import wegstein
-from gemini.types.flows import STREAM_FIELDS, Stream
+from gemini.streams.flows import STREAM_FIELDS, Stream
 
 TOLERANCE = 1e-9
 """Default convergence of a loop: a pass may change a tear stream field by at most this, in SI."""
@@ -224,7 +224,7 @@ def _unconverged(run, loop, tear, active):
     def build(row):
         return _not_converged(run, loop.tears[0], float(temperature[row]))
 
-    failures = Failures.at(active, build)
+    failures = RowFailures.at(active, build)
     for field in tear.fields.values():
         field.current = attached(field.current, failures)
     ops.require(tear.fields["T"].current)

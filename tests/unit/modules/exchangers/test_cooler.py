@@ -3,9 +3,9 @@
 import pytest
 
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.exchangers import Cooler
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.air import air
@@ -37,8 +37,8 @@ def test_dry_cooler_approach_limit_and_closure():
     assert gained == pytest.approx(1.02 * out.duty)
     assert out.evaporation_rate == 0 and not out.is_capped
     assert result.outlets.fluid_out.m_dot == HOT.m_dot and result.outlets.fluid_out.p == HOT.p
-    assert energy_balance(unit, result)["relative_residual"] < 1e-12
-    assert mass_balance(unit, result)["residual"] == 0
+    assert call_energy_balance(unit, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(unit, result)["residual"] == 0
     warm = reading(unit(fluid_in=HOT, temperature_setpoint=308.15, air_in=air(280)))
     assert warm.fluid_out_T == pytest.approx(308.15)
 
@@ -55,7 +55,7 @@ def test_wet_cooler_uses_wet_bulb_and_reports_evaporation():
     assert out.fluid_out_T == pytest.approx(300.15)
     assert out.evaporation_rate == pytest.approx(20 * CP * 13 / 2.43e6)
     assert result.outlets.fluid_out.m_dot == HOT.m_dot
-    assert energy_balance(unit, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(unit, result)["relative_residual"] < 1e-12
 
 
 def test_capacity_cap_and_no_cooling():

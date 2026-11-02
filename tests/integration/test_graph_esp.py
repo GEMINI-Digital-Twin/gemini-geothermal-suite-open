@@ -10,10 +10,12 @@ import numpy as np
 import pytest
 
 import gemini as gm
-from gemini.compiler.graph import GraphCache, Proxy, run
+from gemini.compiler.cache import GraphCache
+from gemini.compiler.run import run
+from gemini.compiler.trace.proxy import Proxy
 from gemini.errors import PhysicsError
 from gemini.modules.pumps import esp as esp_file
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures.parity import RTOL
 
 COLUMNS = ["suction.m_dot", "suction.T", "suction.p", "frequency"]

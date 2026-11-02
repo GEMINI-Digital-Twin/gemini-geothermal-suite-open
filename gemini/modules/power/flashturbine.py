@@ -6,7 +6,9 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.modules.power import _physics
-from gemini.types import WATER, Efficiency, Fraction, Power, Pressure, Ratio, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER
+from gemini.units.quantities import Efficiency, Fraction, Power, Pressure, Ratio
 
 
 class FlashTurbine(Module):

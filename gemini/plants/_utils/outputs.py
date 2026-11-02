@@ -10,8 +10,8 @@ from gemini import ops
 from gemini._utils.strings import close_matches, did_you_mean, join_names, split_path
 from gemini.errors import DefinitionError, ValidationError
 from gemini.modules.declarations import Output
-from gemini.types.flows import STREAM_FIELDS
-from gemini.types.quantities import (
+from gemini.streams.flows import STREAM_FIELDS
+from gemini.units.quantities import (
     MassFlow,
     Pressure,
     PressureDifference,

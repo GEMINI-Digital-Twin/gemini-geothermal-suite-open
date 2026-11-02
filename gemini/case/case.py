@@ -27,7 +27,7 @@ from gemini.case.time import Time
 from gemini.case.utilities import Utilities
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
-from gemini.types import inputs
+from gemini.units import inputs
 
 HEADER = ("format", "kind", "name")
 SECTIONS = {"site": Site, "demand": Demand, "utilities": Utilities}

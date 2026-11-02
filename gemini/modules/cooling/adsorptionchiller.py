@@ -2,17 +2,17 @@
 
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.supply import supply_margin
 from gemini.modules.cooling import _physics, _sorption
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, refrigeration
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Dimensionless,
     Power,
     Ratio,
-    Stream,
     Temperature,
     TemperatureDifference,
     ThermalConductance,
@@ -23,7 +23,7 @@ class AdsorptionChiller(Equipment, Module):
     """Silica-gel/water adsorption chiller driven by hot water of 55 to 90 degC.
 
     On a supply line the chilled setpoint is the supply temperature of ``demand.cooling`` minus the
-    ``supply_margin`` the plant states (``gm.run.apply_case``).
+    ``supply_margin`` the plant states (``gemini.engine.apply.apply_case``).
 
     Three circuits as in ``AbsorptionUnit``: ``generator_in`` carries the driving hot water that
     desorbs the bed, ``chilled_in`` the evaporator water and ``cooling_in`` the cooling water of
@@ -150,9 +150,9 @@ class AdsorptionChiller(Equipment, Module):
         )
         return outlets
 
-    def capex(self, economics):
-        """Return the cost of the adsorption chiller from its capacity."""
-        return self.capex_of(economics, self.capacity)
+    def cost_size(self):
+        """Return the size that the cost of the adsorption chiller scales with: capacity."""
+        return self.capacity
 
     def _performance(self, inlets):
         """Return the duties [W], COP and outlet temperatures [K] of one operating point."""

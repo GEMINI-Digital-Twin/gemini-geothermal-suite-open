@@ -7,7 +7,8 @@ from gemini.errors import ValidationError
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.wells.well import _Well
 from gemini.physics import fluid, heat_transfer
-from gemini.types import Length, Power, Pressure, PressureDifference, Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Length, Power, Pressure, PressureDifference, Temperature
 
 
 class ProductionWell(_Well):
@@ -102,8 +103,8 @@ class ProductionWell(_Well):
         result = self.traverse(wellhead_stream, 0, self._esp_depth(), "down")
         return self.corrected(wellhead_stream, result)
 
-    def _drilled_length(self):
-        """Return the length [m] of the selected segment of the well."""
+    def cost_size(self):
+        """Return the length [m] of the selected segment, the size the cost scales with."""
         start, end = self._segment_interval()
         return abs(start - end)
 

@@ -5,7 +5,7 @@ import pytest
 import gemini as gm
 from gemini._utils.jsonable import to_plain
 from gemini.evaluate._utils import outcome
-from gemini.types.shapes import measure
+from gemini.units.shapes import measure
 from tests.fixtures.errors import raises
 
 

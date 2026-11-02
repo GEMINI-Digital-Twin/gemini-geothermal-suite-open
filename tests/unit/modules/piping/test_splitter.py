@@ -3,9 +3,10 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.modules.piping import Splitter
-from gemini.types import WATER, Stream
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.errors import raises
 
@@ -24,8 +25,8 @@ def test_split_divides_mass_and_keeps_the_state():
     assert (first.m_dot, second.m_dot) == (7.5, 2.5)
     for branch in (first, second):
         assert (branch.T, branch.p, branch.fluid) == (FEED.T, FEED.p, WATER)
-    assert mass_balance(Splitter(), result)["residual"] == 0
-    assert energy_balance(Splitter(), result)["relative_residual"] < 1e-12
+    assert call_mass_balance(Splitter(), result)["residual"] == 0
+    assert call_energy_balance(Splitter(), result)["relative_residual"] < 1e-12
 
 
 def test_limits_of_the_split():
@@ -35,7 +36,7 @@ def test_limits_of_the_split():
     stopped = Splitter()(fluid_in=FEED._with_si(m_dot=0), split_fraction=0.5).outlets
     assert stopped.branch1_out.m_dot == stopped.branch2_out.m_dot == 0
     odd = Splitter()(fluid_in=FEED._with_si(m_dot=0.7), split_fraction=0.3)
-    assert mass_balance(Splitter(), odd)["relative_residual"] < 1e-15
+    assert call_mass_balance(Splitter(), odd)["relative_residual"] < 1e-15
 
 
 def test_invalid_inputs_raise():

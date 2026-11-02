@@ -6,12 +6,13 @@ import pytest
 
 import gemini as gm
 from gemini import ops
-from gemini.modules import Module, energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
+from gemini.modules import Module
 from gemini.modules.declarations import Inlet, Outlet
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.subsurface import BoreholeField
-from gemini.types import Stream
-from gemini.types.fluid import BRINE as DEFAULT_FLUID
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
@@ -101,8 +102,8 @@ def test_plain_call_extracts_with_the_loop_effectiveness():
     assert out.fluid_mean_temperature == pytest.approx((273.15 + out.fluid_out_T) / 2)
     assert out.ground_temperature == 283.15 and out.heat_absorbed == out.heat_extraction_rate
     assert out.heat_loss == 0
-    assert energy_balance(module, result)["relative_residual"] < 1e-12
-    assert mass_balance(module, result)["residual"] == 0
+    assert call_energy_balance(module, result)["relative_residual"] < 1e-12
+    assert call_mass_balance(module, result)["residual"] == 0
 
 
 def test_two_steps_follow_the_exact_ground_response():
@@ -128,7 +129,7 @@ def test_heat_rejection_recovery_and_zero_flow():
     result = module(fluid_in=BRINE._with_si(T=303.15))
     assert reading(result).heat_extraction_rate < 0 and reading(result).heat_absorbed == 0
     assert reading(result).heat_loss == -reading(result).heat_extraction_rate
-    assert energy_balance(module, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(module, result)["relative_residual"] < 1e-12
     still = BRINE._with_si(m_dot=0)
     state, result = module.step({"ground_temperature_change": -2.0}, 365 * DAY, {"fluid_in": still})
     decay = math.exp(-surroundings() * 365 * DAY / (2.2e6 * 360 * 150))

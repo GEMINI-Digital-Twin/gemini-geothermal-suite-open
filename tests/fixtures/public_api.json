@@ -291,24 +291,8 @@
   "check": [
    "example"
   ],
-  "collect_flows": [
-   "result_tree"
-  ],
-  "emissions": [
-   "result_tree",
-   "fuel_factor",
-   "electricity_factor"
-  ],
-  "energy_balance": [
-   "module",
-   "result"
-  ],
   "get": [
    "name"
-  ],
-  "mass_balance": [
-   "module",
-   "result"
   ],
   "names": [
    "category"
@@ -321,16 +305,6 @@
  },
  "namespaces": {
   "analysis": {
-   "CalibrationResult": "class",
-   "calibrate": [
-    "plant",
-    "dataset",
-    "params",
-    "start",
-    "end",
-    "backend",
-    "apply"
-   ],
    "corrosion_forecast": [
     "model",
     "until",
@@ -406,14 +380,6 @@
    "Time": "class",
    "Uncertainty": "class",
    "Utilities": "class",
-   "roles": []
-  },
-  "compiler": {
-   "compile": [
-    "plant"
-   ]
-  },
-  "data": {
    "from_csv": [
     "path",
     "columns",
@@ -428,6 +394,11 @@
    ],
    "profile_schema": []
   },
+  "compiler": {
+   "compile": [
+    "plant"
+   ]
+  },
   "evaluate": {
    "annualised_cost": [
     "plant",
@@ -439,6 +410,19 @@
     "plant",
     "case",
     "results"
+   ],
+   "call_emissions": [
+    "result_tree",
+    "fuel_factor",
+    "electricity_factor"
+   ],
+   "call_energy_balance": [
+    "module",
+    "result"
+   ],
+   "call_mass_balance": [
+    "module",
+    "result"
    ],
    "capacities": [
     "plant",
@@ -455,6 +439,9 @@
     "case",
     "results",
     "on_error"
+   ],
+   "collect_flows": [
+    "result_tree"
    ],
    "compare": [
     "reports",
@@ -771,10 +758,7 @@
    "combustion": "module",
    "constants": "module",
    "corrosion": "module",
-   "costs": "module",
    "diagnostics": "module",
-   "dispatch": "module",
-   "doublet": "module",
    "energy": "module",
    "erosion": "module",
    "fluid": "module",
@@ -813,6 +797,7 @@
    "names": [
     "category"
    ],
+   "roles": [],
    "schema": []
   },
   "runtime": {
@@ -822,12 +807,31 @@
    ],
    "state": []
   },
+  "streams": {
+   "BRINE": "Fluid",
+   "Fluid": "class",
+   "GLYCOL_30": "Fluid",
+   "Ports": "class",
+   "STEAM": "Fluid",
+   "Stream": "class",
+   "WATER": "Fluid"
+  },
   "study": {
+   "CalibrationResult": "class",
    "Run": "class",
    "Sample": "class",
    "Study": "class",
    "StudyResult": "class",
    "Tornado": "class",
+   "calibrate": [
+    "plant",
+    "dataset",
+    "params",
+    "start",
+    "end",
+    "backend",
+    "apply"
+   ],
    "minimize": [
     "plant",
     "case",
@@ -977,7 +981,6 @@
   "case",
   "check",
   "compiler",
-  "data",
   "errors",
   "evaluate",
   "live",
@@ -990,8 +993,9 @@
   "runtime",
   "schedule",
   "simulate",
+  "streams",
   "study",
   "units"
  ],
- "version": "0.3.0"
+ "version": "0.4.0"
 }

@@ -3,8 +3,10 @@
 from gemini import ops
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
+from gemini.modules.results import Health
 from gemini.physics import diagnostics, hydraulics
-from gemini.types import Health, MassFlow, PressureDifference, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import MassFlow, PressureDifference
 
 
 class Filter(Module):

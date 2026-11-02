@@ -7,7 +7,8 @@ from gemini.modules.piping import Mixer, Splitter
 from gemini.modules.pumps import CentrifugalPump
 from gemini.modules.storage import AquiferStorage
 from gemini.plants.plant import Plant
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power
 
 
 class ATESPlant(Plant):

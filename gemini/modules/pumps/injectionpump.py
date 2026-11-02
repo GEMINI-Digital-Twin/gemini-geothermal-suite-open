@@ -2,20 +2,20 @@
 
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.modules.pumps import _physics
 from gemini.physics import constants, energy, pumps
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Count,
     Efficiency,
     Frequency,
     Power,
     Pressure,
     PressureDifference,
-    Stream,
     VolumeFlow,
 )
 
@@ -185,8 +185,8 @@ class InjectionPump(Equipment, Module):
             code="invalid_design",
         )
 
-    def capex(self, economics):
-        """Return the cost of the pump from its shaft power at the nominal flow.
+    def cost_size(self):
+        """Return the shaft power [W] at the nominal flow, the size the cost scales with.
 
         The power is the power curve at ``nominal_flow`` and the catalogue frequency of the curves
         for a pump with both curves, else the hydraulic power of ``nominal_flow`` and
@@ -202,13 +202,13 @@ class InjectionPump(Equipment, Module):
                 self.stage_count,
                 self.power_coefficients,
             )
-            return self.capex_of(economics, power)
+            return power
         if self.nominal_head is None:
             raise _missing_design(self.path, "nominal_head")
         if self.efficiency is None:
             raise _missing_design(self.path, "efficiency")
         hydraulic = pumps.hydraulic_power(self.nominal_flow, self.nominal_head)
-        return self.capex_of(economics, energy.input_power(hydraulic, self.efficiency))
+        return energy.input_power(hydraulic, self.efficiency)
 
 
 def _missing_design(path, name):

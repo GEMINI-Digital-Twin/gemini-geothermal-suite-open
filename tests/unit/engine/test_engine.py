@@ -6,8 +6,8 @@ import pytest
 import gemini as gm
 from gemini import runtime
 from gemini.modules import Module
+from gemini.modules.bindings import Binding, ModuleBindings
 from gemini.modules.declarations import Control, Output
-from gemini.types.bindings import Binding, ModuleBindings
 from tests.fixtures.errors import raises
 
 

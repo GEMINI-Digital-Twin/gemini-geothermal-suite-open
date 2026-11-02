@@ -2,19 +2,19 @@
 
 from gemini import ops
 from gemini.errors import PhysicsError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import energy, heat_transfer, pumps
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Efficiency,
     Fraction,
     Frequency,
     HydraulicPower,
     Power,
     PressureDifference,
-    Stream,
     VolumeFlow,
 )
 
@@ -127,12 +127,12 @@ class CentrifugalPump(Equipment, Module):
         outlets = dict(fluid_out=discharge, loss_out=loss_out, power_in=power_in)
         return outlets
 
-    def capex(self, economics):
-        """Return the cost of the pump from its shaft power at the best-efficiency flow."""
+    def cost_size(self):
+        """Return the shaft power [W] at the best-efficiency flow, the size the cost scales with."""
         flow = self.best_efficiency_flow
         head = pumps.centrifugal_head(flow, 1.0, self.head_coefficients)
         hydraulic = pumps.hydraulic_power(flow, head)
-        return self.capex_of(economics, energy.input_power(hydraulic, self.best_efficiency))
+        return energy.input_power(hydraulic, self.best_efficiency)
 
     def _performance(self, suction):
         """Return flow [m3/s], head [Pa], hydraulic and shaft power [W] and efficiency [-]."""

@@ -5,9 +5,9 @@ import math
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.plants import CoolingSubstation, HeatingSubstation
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures.air import air
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.errors import raises
@@ -57,10 +57,10 @@ def test_heating_network_serves_both_substations(plants):
     expected = 283.15 + (mixed.T - 283.15) * math.exp(-transfer)
     assert out.return_out_T == pytest.approx(expected, rel=1e-12)
     assert result.outlets.return_out.T == out.return_out_T
-    audit = energy_balance(network, result)
+    audit = call_energy_balance(network, result)
     hydraulic = children["pump"].outputs.hydraulic_power
     assert abs(audit["residual"] - hydraulic) / audit["in"] < 1e-12
-    assert mass_balance(network, result)["residual"] == 0
+    assert call_mass_balance(network, result)["residual"] == 0
 
 
 def test_nested_substations_show_what_their_consumers_take(plants):
@@ -82,7 +82,7 @@ def test_three_way_split_and_mix(plants):
     assert feeds == pytest.approx([1.5] * 3, rel=1e-15)
     assert len(network.splitters) == len(network.mixers) == 2
     assert result.outlets.return_out.m_dot == pytest.approx(4.5, rel=1e-15)
-    assert mass_balance(network, result)["residual"] == pytest.approx(0, abs=1e-12)
+    assert call_mass_balance(network, result)["residual"] == pytest.approx(0, abs=1e-12)
 
 
 def test_cooling_network_absorbs_building_and_ground_heat(plants):
@@ -93,7 +93,7 @@ def test_cooling_network_absorbs_building_and_ground_heat(plants):
     result = network(supply_in=CHILLED, air_in=air(283.15))
     assert _leaf_sum(result, "heat_absorbed") > 1.4e5
     assert_plant_closes(network, result)
-    audit = energy_balance(network, result)
+    audit = call_energy_balance(network, result)
     hydraulic = result.children["pump"].outputs.hydraulic_power
     assert abs(audit["residual"] - hydraulic) / audit["in"] < 1e-12
 

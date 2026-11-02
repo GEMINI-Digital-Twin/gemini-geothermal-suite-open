@@ -5,8 +5,8 @@ import json
 import pytest
 
 import gemini as gm
+from gemini.plants._utils.resize import resized
 from gemini.study import study
-from gemini.study._utils.resize import resized
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
 

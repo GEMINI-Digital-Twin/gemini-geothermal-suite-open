@@ -8,11 +8,14 @@ import pytest
 
 import gemini as gm
 from gemini.engine.chunks import PathColumns, ResultChunk
+from gemini.engine.results import Results
 from gemini.modules import Module
 from gemini.modules.declarations import Output
-from gemini.run.results import Results
-from gemini.types import Health, ModuleResult, Ports, Ratio, Stream, Values
-from gemini.types.shapes import problem
+from gemini.modules.results import Health, ModuleResult, Values
+from gemini.streams.flows import Stream
+from gemini.streams.ports import Ports
+from gemini.units.quantities import Ratio
+from gemini.units.shapes import problem
 from tests.fixtures.errors import raises
 from tests.fixtures.frames import path_frame
 

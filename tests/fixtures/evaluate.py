@@ -15,8 +15,8 @@ from gemini.modules.pumps import ESP
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.physics import chemistry, corrosion, erosion, geometry, heat_transfer, hydraulics
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
 from gemini.units import Quantity
 from tests.fixtures import FIXTURES, si
 from tests.fixtures.designs import WELL

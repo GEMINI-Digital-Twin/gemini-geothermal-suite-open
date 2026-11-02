@@ -8,7 +8,8 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter, State
 from gemini.modules.module import Module
 from gemini.physics import energy, fluid, ground, heat_transfer
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Dimensionless,
     Duration,
     Energy,
@@ -18,7 +19,6 @@ from gemini.types import (
     MassFlow,
     Power,
     Pressure,
-    Stream,
     Temperature,
     TemperatureDifference,
     ThermalConductivity,

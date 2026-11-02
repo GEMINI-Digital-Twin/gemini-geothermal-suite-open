@@ -1,14 +1,14 @@
-"""The sample cases of ``inputs/examples/``: only examples and tests read them."""
+"""The sample cases of ``examples/``: only examples and tests read them."""
 
 import json
 from pathlib import Path
 
 import gemini as gm
-from gemini._utils import paths
-from gemini.run._utils.apply import apply_case
+from gemini.engine.apply import apply_case
+from tests.fixtures import paths
 
-HACKATHON_2026 = paths.INPUTS / "examples/hackathon_2026"
-SHALLOW_DISTRICT = paths.INPUTS / "examples/shallow_district"
+HACKATHON_2026 = paths.example("hackathon_2026")
+SHALLOW_DISTRICT = paths.example("shallow_district")
 SAMPLE_PLANT = "HeatingCoolingPlant"
 """The class of the main candidate; every candidate is in ``plants/``."""
 TEMPLATES = (
@@ -20,7 +20,7 @@ TEMPLATES = (
 
 
 CASE_VALUES = json.loads((Path(__file__).parent / "plant_case_values.json").read_text())
-"""``{plant: {path: leaf}}``: the values of a case that the unit tests of ``inputs/plants`` set."""
+"""``{plant: {path: leaf}}``: the values of a case that the unit tests of the plants set."""
 
 
 def _quantity(leaf):
@@ -71,14 +71,14 @@ def filled_plant(name):
 
 
 def example_plant(name):
-    """Return plant ``name`` with the design values of ``inputs/plants/<name>.json``.
+    """Return plant ``name`` with the design values of ``tests/fixtures/plants/<name>.json``.
 
     ``Doublet`` and ``DoubletHeatPlant`` carry the values of the measured doublet, the other plants
     the values their unit tests use, and the two doublets their bindings to the measured columns,
-    which a plant file does not hold (``inputs/doublet_heat/bindings.json``). The values a case
+    which a plant file does not hold (``fixtures/doublet_heat/bindings.json``). The values a case
     owns (the grid gas, the return limits of a consumer, the ambient pressure) are not in these
     plant files; ``plant_case_values.json`` holds the ones the unit tests of the plant use, and
-    they are set on the modules here. Only tests, scripts and examples read ``inputs/``.
+    they are set on the modules here. Only tests, scripts and examples read the data folders.
     """
     plant = gm.Plant.from_json(paths.plant_values(name))
     for path, leaf in CASE_VALUES.get(name, {}).items():

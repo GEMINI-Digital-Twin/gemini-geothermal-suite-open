@@ -11,9 +11,8 @@ from typing import Any, NamedTuple
 import numpy as np
 
 from gemini.modules.module import Module
+from gemini.modules.results import NOT_ASSESSED, Health
 from gemini.ops import kernels
-from gemini.types import Health
-from gemini.types.results import NOT_ASSESSED
 
 UNAVAILABLE = Health(score=1, alarm=False, assessed=False, message=NOT_ASSESSED)
 """The one health of every module without a diagnostic model, shared by all results."""

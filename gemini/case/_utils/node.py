@@ -1,7 +1,7 @@
 """The base of every section of the case: values as read, SI attributes, one reader and writer.
 
 A section class lists its ``fields`` (leaves, each a ``Field``) and its ``sections`` (children).
-``Node.read`` goes through ``gemini.types.inputs`` for every leaf and appends an ``Issue`` for each
+``Node.read`` goes through ``gemini.units.inputs`` for every leaf and appends an ``Issue`` for each
 thing wrong, so one pass reports everything. An object keeps the leaves as given (``to_dict`` writes
 them back unchanged, a series in kW stays kW) and exposes plain SI numbers or arrays on the steps of
 ``time`` as attributes. Objects are immutable.
@@ -22,7 +22,7 @@ from gemini import units
 from gemini._utils.strings import join_path
 from gemini.errors import ValidationError
 from gemini.errors.base import Issue, raise_issues
-from gemini.types import inputs
+from gemini.units import inputs
 
 
 @dataclass(frozen=True)

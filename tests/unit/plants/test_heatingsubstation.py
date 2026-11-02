@@ -5,9 +5,9 @@ import math
 import pytest
 
 import gemini as gm
-from gemini.modules import energy_balance, mass_balance
+from gemini.evaluate import call_energy_balance, call_mass_balance
 from gemini.plants import HeatingSubstation
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
@@ -52,9 +52,9 @@ def test_met_demand_closes_the_building_loop(plants):
     assert result.outlets.return_out.p == pytest.approx(
         6e5 - result.children["valve"].outputs.pressure_drop - 2e4
     )
-    assert energy_balance(substation, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(substation, result)["relative_residual"] < 1e-12
     assert_plant_closes(substation, result)
-    assert mass_balance(substation, result)["residual"] == 0
+    assert call_mass_balance(substation, result)["residual"] == 0
     assert list(result.leaves()) == ["valve", "pump", "heat_exchanger", "consumer"]
 
 

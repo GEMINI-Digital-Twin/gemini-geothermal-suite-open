@@ -11,10 +11,10 @@ import gemini as gm
 from gemini import runtime
 from gemini.engine import checkpoint
 from gemini.engine.callbacks import AutoCheckpoint, Callback, EventLog
+from gemini.engine.results import Results
+from gemini.modules.bindings import Binding, DatedParams, ModuleBindings
 from gemini.modules.declarations import Control, Output
 from gemini.ops import kernels
-from gemini.run.results import Results
-from gemini.types.bindings import Binding, DatedParams, ModuleBindings
 from tests.fixtures.errors import raises
 from tests.fixtures.frames import on_ports, path_frame
 from tests.fixtures.old_names import RENAMED_NAMES

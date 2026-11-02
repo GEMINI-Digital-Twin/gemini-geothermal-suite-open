@@ -18,11 +18,10 @@ from collections.abc import Mapping
 import numpy as np
 import pytest
 
-from gemini.compiler.graph import run, run_function
-from gemini.types import Stream
-from gemini.types.flows import STREAM_FIELDS
-from gemini.types.ports import Ports
-from gemini.types.results import ModuleResult, Values
+from gemini.compiler.run import run, run_function
+from gemini.modules.results import ModuleResult, Values
+from gemini.streams.flows import STREAM_FIELDS, Stream
+from gemini.streams.ports import Ports
 from tests.fixtures.parity import REFERENCE, RTOL, on_each_backend, others
 
 

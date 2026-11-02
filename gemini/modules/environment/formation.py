@@ -2,7 +2,7 @@
 
 from gemini.modules.declarations import Inlet, Parameter
 from gemini.modules.module import Module
-from gemini.types import Power, Temperature, TemperatureGradient
+from gemini.units.quantities import Power, Temperature, TemperatureGradient
 
 
 class Formation(Module):

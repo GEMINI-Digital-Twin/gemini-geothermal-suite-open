@@ -20,7 +20,7 @@ as the graph, evaluated on the Python backend. One mechanism makes plain operato
   returns ``Failed(error)`` for it at each function boundary (see ``gemini.ops.failed``).
   Outside any scope the caller sees the real error. A failing check on an eager array raises at
   once, for its first failing row, and is never turned into a ``Failed``; the eager executor asks
-  for ``gemini.ops.failures.marking`` instead, and then the failing rows of a physics function
+  for ``gemini.ops.failedrows.marking`` instead, and then the failing rows of a physics function
   travel with its results as ``FailedRows``, the array counterpart of ``Failed``.
 - **In a trace** (``tracing(graph)``) a physics function keeps the checks recorded directly in it
   and guards every traced value it returns with them, so the graph attaches an error to the
@@ -41,8 +41,8 @@ import numpy as np
 from gemini._utils.context import ContextSetting
 from gemini.ops.dispatch import Symbolic
 from gemini.ops.failed import Failed, is_marked
-from gemini.ops.failures import Frame, is_marking
-from gemini.ops.failures import require as require_rows
+from gemini.ops.failedrows import Frame, is_marking
+from gemini.ops.failedrows import require as require_rows
 from gemini.ops.kernels import PLAIN, WRAP
 from gemini.ops.kernels.scalars import scope_mode, scope_variable
 

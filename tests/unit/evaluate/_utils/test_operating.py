@@ -2,11 +2,11 @@
 
 import pytest
 
-import gemini as gm
+from gemini.engine.apply import apply_case
 from gemini.evaluate._utils.operating import breaches
 from gemini.units import Quantity
 from tests.fixtures.cases import make_case
-from tests.unit.evaluate.test_totals import overflowing
+from tests.unit.evaluate.test_summary import overflowing
 
 
 def limited(sense, held):
@@ -14,7 +14,7 @@ def limited(sense, held):
     plant, run = overflowing()
     plant.boiler.capacity = Quantity(held, "W")
     plant.boiler.operating_limits = (("fuel", sense, "capacity"),)
-    return gm.run._utils.apply.apply_case(plant, make_case()), run
+    return apply_case(plant, make_case()), run
 
 
 def test_a_maximum_is_breached_above_and_a_minimum_below():

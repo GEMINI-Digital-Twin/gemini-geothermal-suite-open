@@ -3,8 +3,8 @@
 import pytest
 
 from gemini.modules.heating import _burner
-from gemini.types.flows import Stream
-from gemini.types.fluid import Fluid
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
 from gemini.units import Quantity
 from tests.fixtures.gas import GRID_COMPOSITION
 

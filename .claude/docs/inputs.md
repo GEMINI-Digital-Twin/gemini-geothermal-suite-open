@@ -106,7 +106,7 @@ alternatives became plant files.
 `always`, `running`). `over` and `when` keep the two defaults of the case, `each` and `always`.
 
 - `on` is a role (`doublet`, `heat_pump`, `plant`, `heating_supply`, ...) from the closed table
-  `gm.case.roles()`, never a module name, so one case judges any plant (P2).
+  `gm.plants.roles()`, never a module name, so one case judges any plant (P2).
 - A requirement may judge a result (flow, brine cooling, running time, unmet energy) or a plant
   property (pump efficiency). Both are rules about the outcome; the value itself stays in the plant
   (P1).
@@ -294,7 +294,7 @@ today's setpoints is in 7.14.
 **7.10 Names: where the code's name is kept and where it changes** (rule: section 11, section 4).
 Kept, because Appendix A gives no reason against: `Case` / `gm.Case`, `Results`, `Dataset`, `size`
 (see 7.12), `bindings` (see 7.15), `param_history` (kept as the name of the dated values, see 7.16),
-`kind` and `role`, the closed role table `gm.case.roles()`, `over`, `when`, `metrics`, `objective`,
+`kind` and `role`, the closed role table `gm.plants.roles()`, `over`, `when`, `metrics`, `objective`,
 `seed`, `evaluations`, `temperature_setpoint`, `return_temperature`, `supply_temperature`. Changed,
 because Appendix A gives the reason: `environment` becomes `site` (the word names the party that
 owns it, test 4); `environment.fluid.gas` becomes `site.fluid.dissolved_gas` (not confused with grid
@@ -311,7 +311,7 @@ case.
 **7.11 File header and the format number** (rule: section 3, P7). Every file starts with `{"format":
 1, "kind": ..., "name": ...}`. Today's plant dicts say `format: 2` and carry no `kind`; case and
 demand files have no header. The new numbering is per kind and starts at 1: the generation marker 2
-of the old plant dict (`FORMAT` in `gemini/modules/_utils/serialization.py`) is retired, a file with
+of the old plant dict (`FORMAT` in `gemini/plants/_utils/serialization.py`) is retired, a file with
 `format: 2` and no `kind` raises `ValidationError` with code `old_format` (the plant dict already
 does this for older formats), and the shipped sample files are rewritten once. `name` is metadata
 like `about`: it never changes a result. Numbers do not change because the conversion only moves
@@ -456,7 +456,7 @@ a setting of the run call, recorded in the run record, and `float64` is the one 
 arithmetic. Open: whether `float32` should exist outside the golden tests at all.
 
 **7.27 The default fluid and `fluids`** (rule: P5, tests 2 and 4). `runtime.default_fluid` (the
-brine of `gemini.types.fluid.BRINE`) is copied into every new module and stream, a hidden value that
+brine of `gemini.streams.fluid.BRINE`) is copied into every new module and stream, a hidden value that
 changes results. It is removed as a setting. The brine of the reservoir is `site.fluid` (it already
 is, through `apply_case`); the working fluid of a closed circuit (water, glycol 30 %) is the
 designer's choice and is the plant's `fluids` entry (`{path: {...}}`, test 2), which stays. The
@@ -529,7 +529,7 @@ rule: it is written as `control.outages = lowest_demand`, a closed list of one s
 visible and replaceable (P5). The values that the plan computes are results, not inputs.
 
 **7.38 `time_column` and the CSV readers** (rule: P6). `demand.time_column` ("date", "timestamp")
-and `gm.data.from_csv(time_column=)` disappear: the first column is always `time`. The sample CSVs
+and `gm.case.from_csv(time_column=)` disappear: the first column is always `time`. The sample CSVs
 are rewritten once with that header and ISO 8601 timestamps with offset, so the index values do not
 change (the readers parse them to UTC as today).
 
@@ -539,7 +539,7 @@ a result (a test keeps `backend`, `compile` and `processes` true). They are runt
 no file. `discount_rate` and `lifetime` arguments of the `gm.evaluate` costs are removed (P1: the
 economics file owns them).
 
-**7.40 The reader of the shared formats** (rule: P6, section 10). `gemini/types/inputs.py` is the one
+**7.40 The reader of the shared formats** (rule: P6, section 10). `gemini/units/inputs.py` is the one
 reader and writer of the leaf forms of section 3, below `plants` and `case` and above `units`. A
 leaf is always an object: a bare number or text for a quantity is a `unit` issue, a bare number for
 a dimensionless value or a choice a `missing` issue. A `Leaf` keeps the value and unit as given and
@@ -556,7 +556,7 @@ series is, it has the dimension `power`, and `case.demand.heating.power` is the 
 and is absent for a window quantity or a property of the plant (`pump_efficiency`, `count`,
 `unmet_share`): a missing `over` on the first and a given one on the second are issues. `when` is
 optional and absent means every step; a quantity read over the whole period takes none. The role
-table (`gm.case.roles()`) says for each quantity its dimension and whether it takes `over`.
+table (`gm.plants.roles()`) says for each quantity its dimension and whether it takes `over`.
 `reinjection_ratio` of `doublet` is the plant output `Doublet.reinjection_ratio` (injected over
 produced liquid volume flow, none without production); `volume_imbalance` stays a `Doublet` output
 for gemini's own balance check and leaves the role table. `count` (the number of doublets) and
@@ -596,7 +596,7 @@ the depth table. The module glossary has the word `reinjection`, for `Doublet.re
 converts the file to the flat plant dict the reader builds a plant from, and back, so there is one
 reader and one writer of the flat dict (the private form a checkpoint also uses for a tree that is
 no plant); `leaves.py` reads every leaf against the declaration it sets, with the readers of
-`gemini/types/inputs.py`, collecting all issues. (a) `type` with `modules`/`connections` is read as
+`gemini/units/inputs.py`, collecting all issues. (a) `type` with `modules`/`connections` is read as
 the class and the structure is compared with the class's (`modules` issue when they differ);
 `to_json(structure=True)` writes both. (b) `size` is one leaf per structural argument, an integer
 at least 1, or a choice of the class (`DistrictNetwork.service`, `size_choices`); `plant.size` is the
@@ -609,7 +609,7 @@ with `history` and no value is a dated parameter whose current value is the hist
 that names a control or a boundary of a module, or a field of a plant inlet (`return_in.T`), sets
 a plant input; the `inputs` key is refused. (f) `bindings` is refused in a file (7.15); they stay in
 memory, a checkpoint stores them in its own `bindings` key, and the bindings of the measured
-examples are `inputs/doublet_heat/bindings.json`, read by the test fixture. (g) `fluids` and
+examples are `tests/fixtures/doublet_heat/bindings.json`, read by the test fixture. (g) `fluids` and
 `boundary` stay keys by module path (7.27 is not built). (h) A string parameter without a `Literal`
 is a free label (`pump_type`, a pump catalogue name): it has no closed list and no options; every
 other string parameter of the modules and plants declares its list as a `Literal`. (i) The search
@@ -618,7 +618,7 @@ rule below.
 **The variable of a search** (for `gm.study.minimize`, worker F). `plant.ranges` and
 `plant.options` give the leaves in file order. A variable is the set of leaves with the same
 parameter name (the last part of the path), the same role of the module that owns it (the roles of
-`gm.case.roles()`; the plant itself is the role `plant`) and an equal range in SI; options are
+`gm.plants.roles()`; the plant itself is the role `plant`) and an equal range in SI; options are
 grouped the same way, with equal options. Three chillers of one plant with the same `capacity` range
 are one variable; `depth` and `nominal_flow` of `d0` and `d1` are one variable each; the `depth` of
 the plant is tied to the doublets by the class. The order of the variables is the first appearance
@@ -658,13 +658,13 @@ Pa (both rows left `DECLARED_DEFAULTS`). (e) `gm.schedule` raises `missing_value
 50/30/20 split) are the `split_fraction` controls of both splitter cascades in the plant file. (g)
 `technical_life` is not built: gemini models no replacement (`npv` has "no degradation, tax,
 replacement"), so a value would be read by nothing; it stays in section 8. (h) The plant files of
-`inputs/plants/` have no case: the values that moved out of them are in
+`tests/fixtures/plants/` have no case: the values that moved out of them are in
 `tests/fixtures/plant_case_values.json` and the test fixture `example_plant` sets them on the modules.
 `.tmp/inputs/convert_moves.py` made the moves and checked against the files before that nothing else
 changed.
 
 **7.48 The study and `gm.check` as built** (rule: P5, section 10, 7.28, test 5). (a) `gm.check(plant,
-case)` (`gemini/run/check.py`, exported at `gm.check`, imported by `simulate` and every study
+case)` (`gemini/engine/check.py`, exported at `gm.check`, imported by `simulate` and every study
 function; the run folder imports nothing from `study` or `evaluate`) applies the case to a copy of
 the plant and returns the issues of: a parameter without a value (`missing`, path `params.<path>`),
 a capex and a fixed opex for every equipment kind the plant contains (`missing`, code
@@ -753,7 +753,7 @@ disk, and a case in memory needs only `files` (`{name: bytes}`, no folder). The 
 `gm.case.Economics.from_dict(data, files=None, time=None)` have no `folder`; `from_json` reads the
 folder of its file through a private path. (c) `gm.plants.capabilities()` reports `ranges`, the
 leaves of the plant file that may state a `range` (`size.doublets`, `params.depth`), in place of
-`choices`. (d) `gm.data.from_csv(path, columns, unit)` requires the first column `time` (7.38);
+`choices`. (d) `gm.case.from_csv(path, columns, unit)` requires the first column `time` (7.38);
 `gm.Dataset.from_frame(frame, time_column=)` stays, because a pandas frame has any column names and
 is no file of the project. (e) The cost functions of `gm.evaluate` take no `discount_rate` or
 `lifetime` (7.39); the part of their results is `analysis_period`, not `lifetime_years`.
@@ -787,8 +787,8 @@ keeps `plan` and `clock`, and `size` computes what it computes today.
 | `ops.brentq` `xtol`, `maxiter` | 2e-12, 100 | `gemini/ops/solvers.py`; `BRENT_RTOL` 8.88e-16 |
 | `ops.newton` `tolerance`, `max_iterations` | 1e-6, 100 | `gemini/ops/solvers.py` |
 | call-site `xtol` of `brentq` | 1e-9 (psychrometrics), 1e-14 (ground) | `physics/psychrometrics.py:114`, `physics/ground.py:236` |
-| requirement slack | 1e-9, relative | `evaluate/requirements.py` `TOLERANCE`: a value on a limit passes (this is also how `equals`, now min = max, passes) |
-| mass, energy and plant balance residuals | 1e-12, 1e-9, 1e-9 (module), 1e-6 (plant) | `evaluate/mass_balance.py`, `energy_balance.py`, `plant_balance.py`: when a `numerical` reason is raised (section 6) |
+| requirement slack | 1e-9, relative | `evaluate/verdict.py` `TOLERANCE`: a value on a limit passes (this is also how `equals`, now min = max, passes) |
+| mass, energy and plant balance residuals | 1e-12, 1e-9, 1e-9 (module), 1e-6 (plant) | `evaluate/balances.py`: when a `numerical` reason is raised (section 6) |
 | gas composition sum | 1e-9 | `physics/gas.py` `COMPOSITION_TOLERANCE` |
 | saturation and corrosion Newton | 1e-9; 1e-6, 100 | `modules/power/_physics.py` `SATURATION_TOLERANCE`; `physics/corrosion.py` |
 | floors and guards | `DRIFT_FLOOR` 1e-12, `MIN_PATH_PRESSURE` 1e-3 Pa, `ESP_MIN_EFFICIENCY_POWER` 0.1 W, `DUTY_AGREEMENT_TOLERANCE` 0.05, ground angle guards | `physics/diagnostics.py`, `physics/constants.py`, `modules/pumps/_physics.py`, `physics/heat_transfer.py`, `physics/ground.py` |

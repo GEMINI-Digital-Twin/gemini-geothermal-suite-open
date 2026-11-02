@@ -1,7 +1,7 @@
 """Mass conservation for Filter."""
 
 from gemini.modules.treatment import Filter
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from gemini.units import Quantity
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_health_matches, assert_module_matches

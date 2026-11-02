@@ -10,6 +10,7 @@ from gemini.evaluate.verdict import Verdict, reason
 from gemini.study._utils import trial
 from gemini.study._utils.best import Best
 from gemini.units import Quantity
+from gemini.units.shapes import measure
 from tests.fixtures import si
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import clean_verdict, shallow_case, shallow_plant
@@ -121,7 +122,7 @@ def test_an_option_is_a_discrete_variable(runs, monkeypatch):
 
     def dearer_in_parallel(plant, case, results, name):
         extra = 5.0 if plant.heat_exchanger.arrangement == "parallel" else 0.0
-        return gm.types.shapes.measure(cost(plant, case, results, name).value + extra, "currency/J")
+        return measure(cost(plant, case, results, name).value + extra, "currency/J")
 
     monkeypatch.setattr(trial, "metric", dearer_in_parallel)
     result = minimized(plant)

@@ -2,13 +2,15 @@
 
 import pytest
 
-from gemini.modules import Module, collect_flows, energy_balance
+from gemini.evaluate import call_energy_balance, collect_flows
+from gemini.modules import Module
 from gemini.modules.declarations import Control, Inlet, Outlet, Output
 from gemini.modules.grids import ElectricityGrid
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.power import ORC
-from gemini.types import Power, Stream
+from gemini.streams.flows import Stream
 from gemini.units import Quantity
+from gemini.units.quantities import Power
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.equivalence import assert_module_matches
@@ -114,7 +116,7 @@ def test_grid_is_not_counted_in_the_energy_audit():
     assert result.outputs.net_export == pytest.approx(
         orc.electricity_generated - boiler.electricity, rel=1e-12
     )
-    assert energy_balance(plant, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(plant, result)["relative_residual"] < 1e-12
 
 
 class Connected(Module):

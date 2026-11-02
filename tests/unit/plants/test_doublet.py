@@ -7,9 +7,9 @@ import pytest
 
 import gemini as gm
 from gemini import units
+from gemini.engine.apply import apply_case
 from gemini.physics import constants, hydraulics
-from gemini.run._utils.apply import apply_case
-from gemini.types import Stream
+from gemini.streams.flows import Stream
 from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import WELL

@@ -4,11 +4,11 @@ from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter, State
 from gemini.modules.module import Module
 from gemini.physics import fluid, ground
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Duration,
     Fraction,
     Length,
-    Stream,
     Temperature,
     TemperatureDifference,
     Volume,

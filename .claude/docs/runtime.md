@@ -1,6 +1,6 @@
 # Runtime settings
 
-`gm.runtime` (`gemini/runtime/context.py`) contains process defaults that should not be design parameters:
+`gm.runtime` (`gemini/runtime.py`) contains process defaults that should not be design parameters:
 
 - `set_default_fluid` / `get_default_fluid`
 - `set_precision("float64" | "float32")` / `get_precision`

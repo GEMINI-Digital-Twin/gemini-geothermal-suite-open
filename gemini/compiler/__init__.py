@@ -6,7 +6,7 @@ package depends on it. ``compile(plant)`` returns the executor of a plant. The d
 in ``.claude/docs/native-engine.md``.
 """
 
-from gemini.compiler.executor import compile
+from gemini.compiler.compile import compile
 from gemini.engine.executor import COMPILED, register_executor
 
 register_executor(COMPILED, compile)

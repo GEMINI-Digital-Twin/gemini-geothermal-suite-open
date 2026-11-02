@@ -10,8 +10,8 @@ The short form, on a sample case of the repository:
 ```python
 import gemini as gm
 
-case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
+case = gm.Case.from_json("examples/shallow_district/case.json")
+plant = gm.Plant.from_json("examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 report = gm.evaluate.report(plant, case, results)
 print(report["heat_delivered"].to("MWh").value, report["lcts"].to("EUR/MWh").value)
@@ -39,7 +39,7 @@ import pandas as pd
 
 import gemini as gm
 
-plant = gm.Plant.from_json("inputs/doublet_heat/plant.json")
+plant = gm.Plant.from_json("tests/fixtures/doublet_heat/plant.json")
 design = {
     name: parameter.value
     if parameter.unit in (None, "-")
@@ -61,7 +61,7 @@ assert dict(fluid_only.outputs) == {}
 esp.frequency = 50.0
 plant.doublet.esp.frequency = {"value": 50, "unit": "Hz"}
 
-frame = pd.read_csv("inputs/doublet_heat/doublet_2024_15min.csv", parse_dates=["time"])
+frame = pd.read_csv("tests/fixtures/doublet_heat/doublet_2024_15min.csv", parse_dates=["time"])
 data = gm.Dataset.from_frame(frame, time_column="time")
 
 results = gm.replay(plant, data, checkpoint="runs/replay.ckpt")
@@ -69,7 +69,7 @@ print(results.to_frame(table="energy"))
 print(results["doublet.esp"].power)
 assert len(gm.resume("runs/replay.ckpt")) == len(results)
 
-fit = gm.analysis.calibrate(plant, data, params=[plant.get("heat_exchanger.thermal_conductance")])
+fit = gm.study.calibrate(plant, data, params=[plant.get("heat_exchanger.thermal_conductance")])
 print(fit)
 ```
 
@@ -83,19 +83,22 @@ A leaf module computes and a plant connects: every composite is a `Plant` class 
 children, ports and connections, and `gm.Plant(name)` builds one with `add` and `connect`.
 `gm.plants.names()` lists the plant classes, `gm.plants.get(name)` returns one without values.
 The plant dict is the JSON form agents read and write: `plant.to_dict()`, `gm.Plant.from_dict`, `gm.plants.schema()`, and
-`plant.to_json(path)`, `gm.Plant.from_json(path)` for a file. `gm.data` reads your demand, from a CSV
-file (`gm.data.from_csv`) or from values (`from_values`). Readers are `from_<format>` and writers
+`plant.to_json(path)`, `gm.Plant.from_json(path)` for a file. `gm.case` reads your demand, from a CSV
+file (`gm.case.from_csv`) or from values (`from_values`). Readers are `from_<format>` and writers
 `to_<format>` everywhere.
 
-gemini holds no data file. The example values of the plants are in `inputs/`, which is in a
-source checkout and not installed; read a stored plant with `gm.Plant.from_json(path)`:
+gemini holds no data file. A sample project is a folder of `examples/` (its case, plants and
+demand), in a source checkout and not installed; read a stored plant with `gm.Plant.from_json(path)`:
 
 ```text
-inputs/             # repository only
-  examples/         # sample cases: case.json, demand CSV, plant dicts; examples and tests only
-  plants/           # example values of plants
-  doublet_heat/     # measured data and the plant dict that fits it
-  legacy_project/   # an old project folder
+examples/               # repository only
+  quickstart.py ...     # the scripts
+  shallow_district/     # a sample project: case.json, economics.json, plants/, data/
+  hackathon_2026/       # another one, with its study files
+tests/fixtures/         # what the tests read
+  plants/               # example values of plants
+  doublet_heat/         # measured data and the plant dict that fits it
+  legacy_project/       # an old project folder
 ```
 
 A plant can be designed from its depth. A `Doublet` derives its reservoir, wells and pump from a few
@@ -105,16 +108,16 @@ several cases. `gm.schedule` plans each step from the demand of the case with no
 sizes a design and searches the ranges its plant file states:
 
 ```python
-case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
+case = gm.Case.from_json("examples/shallow_district/case.json")
+plant = gm.Plant.from_json("examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 sized = gm.study.size(plant, case)
 results = gm.simulate(sized, case)
 checks = gm.evaluate.requirements(sized, case, results)
 print([check["name"] for check in checks if check["passed"] is False])
 ```
 
-`examples/hackathon.py` runs that path on the sample case of `inputs/examples/hackathon_2026/`, and
-`examples/quickstart.py` on `inputs/examples/shallow_district/`, an hourly demand on one shallow
+`examples/hackathon.py` runs that path on the sample case of `examples/hackathon_2026/`, and
+`examples/quickstart.py` on `examples/shallow_district/`, an hourly demand on one shallow
 doublet, each with its own requirements. A control of a stored design is a leaf of the plant file
 (`params.peak_boiler.temperature_setpoint`), and a template plant takes its size, `gm.plants.HeatingCoolingPlant(doublets=2)`.
 

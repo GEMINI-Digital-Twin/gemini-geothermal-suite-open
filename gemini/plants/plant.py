@@ -8,7 +8,6 @@ from gemini._utils import files
 from gemini._utils.strings import join_path, snake_case
 from gemini.errors import ValidationError
 from gemini.modules._utils import design
-from gemini.modules._utils.serialization import tree_params
 from gemini.modules.container import ModuleList
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
@@ -16,18 +15,19 @@ from gemini.physics import energy
 from gemini.plants._utils import (
     circuits,
     form,
-    inputs,
     leaves,
     listing,
     loops,
     outputs,
+    plant_inputs,
     reader,
     writer,
 )
+from gemini.plants._utils.call import Call
 from gemini.plants._utils.factory import make_module
 from gemini.plants._utils.plan import STATE, PlanConstraint, compile_plan, is_group, port_ends
 from gemini.plants._utils.ports import PortResolver
-from gemini.plants._utils.run import Run
+from gemini.plants._utils.serialization import tree_params
 
 
 class Plant(PortResolver, Module):
@@ -175,16 +175,16 @@ class Plant(PortResolver, Module):
         and a value assigned on a module is not stored.
         """
         for path, value in values.items():
-            inputs.refuse_bare(self, path, value)
-            inputs.refuse_fluid(self, path, value)
+            plant_inputs.refuse_bare(self, path, value)
+            plant_inputs.refuse_fluid(self, path, value)
         return self._set_si_inputs(values)
 
     def _set_si_inputs(self, values):
         """Set inputs of SI numbers or quantities as ``set_inputs`` does, without the unit rule."""
-        checked = inputs.checked(self, values)
+        checked = plant_inputs.checked(self, values)
         declared = self.inputs()
         self._set_inputs({path: item for path, item in checked.items() if path in declared})
-        self._inputs |= inputs.as_stated(values, checked)
+        self._inputs |= plant_inputs.as_stated(values, checked)
         return self
 
     def input_value(self, path):
@@ -192,11 +192,11 @@ class Plant(PortResolver, Module):
 
         The value of ``set_inputs`` wins; otherwise the value persisted on the module.
         """
-        return inputs.value(self, path)
+        return plant_inputs.value(self, path)
 
     def _root_inputs(self):
         """Return the plant inlet fields of ``set_inputs`` as ``{port: {field: value}}``."""
-        return inputs.root_streams(self)
+        return plant_inputs.root_streams(self)
 
     def _own_values(self, params, valid_from=None):
         """Return the own parameters in force at ``valid_from`` with those of ``params``, in SI."""
@@ -520,10 +520,10 @@ class Plant(PortResolver, Module):
 
     def forward(self, inlets):
         """Call the modules in connection order, close the loops and return the plant outlets."""
-        run = Run(self, inlets)
+        call = Call(self, inlets)
         for item in self._compiled().items:
-            run.execute(item)
+            call.execute(item)
 
         # Outlets
-        outlets = dict(self._plan_outlets(run.results))
+        outlets = dict(self._plan_outlets(call.results))
         return outlets

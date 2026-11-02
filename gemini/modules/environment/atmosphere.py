@@ -5,9 +5,10 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
 from gemini.physics import energy, gas
-from gemini.types import MassFlow, Power, Pressure, Stream, Temperature
-from gemini.types.fluid import AIR
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import AIR
 from gemini.units import Quantity
+from gemini.units.quantities import MassFlow, Power, Pressure, Temperature
 
 
 class Atmosphere(Module):

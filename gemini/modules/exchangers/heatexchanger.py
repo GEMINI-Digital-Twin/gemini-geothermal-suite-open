@@ -6,24 +6,23 @@ import numpy as np
 
 from gemini import ops
 from gemini.errors import PhysicsError
-from gemini.modules._utils.cost import Equipment
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
 from gemini.modules.module import Module
+from gemini.modules.results import NOT_ASSESSED, Health
 from gemini.physics import diagnostics, heat_transfer, hydraulics
-from gemini.types import (
+from gemini.streams.flows import Stream
+from gemini.units.quantities import (
     Duty,
     Fraction,
-    Health,
     MassFlow,
     PressureDifference,
     Ratio,
-    Stream,
     Temperature,
     TemperatureDifference,
     ThermalConductance,
 )
-from gemini.types.results import NOT_ASSESSED
 
 
 class HeatExchanger(Equipment, Module):
@@ -145,9 +144,9 @@ class HeatExchanger(Equipment, Module):
         cold, hot = inlets.get("cold_in"), inlets.get("hot_in")
         return (None if cold is None else cold.T), (None if hot is None else hot.T)
 
-    def capex(self, economics):
-        """Return the cost of the exchanger from its thermal conductance."""
-        return self.capex_of(economics, self.thermal_conductance)
+    def cost_size(self):
+        """Return the size that the cost of the exchanger scales with: thermal conductance."""
+        return self.thermal_conductance
 
     def _performance(self, hot_in, cold_in):
         self._check_inlets(hot_in, cold_in)

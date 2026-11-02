@@ -8,9 +8,9 @@ from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import check_on_error
 from gemini.modules._utils import design
 from gemini.modules.module import Module
-from gemini.types import bare
-from gemini.types.flows import FIELD_SI, STREAM_FIELDS, Stream
-from gemini.types.shapes import OutputUnits
+from gemini.streams.flows import FIELD_SI, STREAM_FIELDS, Stream
+from gemini.units import bare
+from gemini.units.shapes import OutputUnits
 
 FLOW = ("m3/s", "volume_flow")
 """The SI unit and the quantity of ``flow``, the volume flow in place of ``m_dot``."""

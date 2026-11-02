@@ -4,9 +4,9 @@ import pytest
 
 from gemini import units
 from gemini.errors import PhysicsError
-from gemini.modules._utils.balance import energy_balance, mass_balance
+from gemini.evaluate.balances import call_energy_balance, call_mass_balance
 from gemini.modules.pumps import ESP, LineShaftPump
-from gemini.types.flows import Stream
+from gemini.streams.flows import Stream
 from gemini.units import Quantity
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_module_matches
@@ -53,10 +53,10 @@ def test_isothermal_electricity_is_unresolved_pump_power():
         fluid_in=Stream(m_dot=Quantity(40, "kg/s"), T=Quantity(340, "K"), p=Quantity(1e6, "Pa")),
         frequency=55,
     )
-    balance = energy_balance(machine, result)
+    balance = call_energy_balance(machine, result)
     assert balance["unresolved_power"] == reading(result).electricity
     assert balance["relative_thermal_residual"] < 1e-12
-    assert mass_balance(machine, result)["residual"] == 0
+    assert call_mass_balance(machine, result)["residual"] == 0
 
 
 def test_zero_flow_runs_at_shutoff():

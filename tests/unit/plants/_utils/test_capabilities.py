@@ -17,8 +17,8 @@ def test_every_plant_class_is_listed(found):
 
 
 def test_the_roles_are_roles_of_the_case(found):
-    """Every role is a key of ``gm.case.roles()``,."""
-    assert all(set(item["roles"]) <= set(gm.case.roles()) for item in found.values())
+    """Every role is a key of ``gm.plants.roles()``,."""
+    assert all(set(item["roles"]) <= set(gm.plants.roles()) for item in found.values())
 
 
 def test_a_heating_cooling_plant_has_what_it_is_made_of(found):

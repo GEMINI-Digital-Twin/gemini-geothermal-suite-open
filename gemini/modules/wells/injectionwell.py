@@ -4,7 +4,8 @@ from gemini import ops
 from gemini.modules.declarations import Inlet, Outlet, Output
 from gemini.modules.wells.well import _Well
 from gemini.physics import fluid, heat_transfer, hydraulics
-from gemini.types import Power, Pressure, PressureDifference, Stream, Temperature
+from gemini.streams.flows import Stream
+from gemini.units.quantities import Power, Pressure, PressureDifference, Temperature
 
 
 class InjectionWell(_Well):

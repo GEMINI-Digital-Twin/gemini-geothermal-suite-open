@@ -13,6 +13,7 @@ SNAPSHOTS = {
     "0.1.0": "f19ae90f18bb5a5a85e1b1f730276c9a50fdba0d46108c4bcd56488b48178a8b",
     "0.2.0": "cdfa3a358974d1b7ed055e0b94bd0711ffc54fff204bd0f9f4fe573a1ffe7b0d",
     "0.3.0": "98a5053ab31fbcd6432558ce481b181bbc1d361e933fdc1dba21920b2e01a3c4",
+    "0.4.0": "8a096f05017622ef69edfe859d036edc261bbc6436c0d12744e3a916d93028cc",
 }
 """Hash of the snapshot per ``gm.__version__``: a released entry never changes."""
 
@@ -48,7 +49,7 @@ EXPECTED = {
     "runtime",
     "units",
     "errors",
-    "data",
+    "streams",
     "study",
     "evaluate",
     "analysis",
@@ -82,7 +83,8 @@ def test_version_matches_the_package_metadata():
 
 def test_the_public_api_equals_the_stored_snapshot():
     """Every name, its parameter names and the schema files are as frozen."""
-    assert capture() == json.loads(SNAPSHOT.read_text())
+    stored = json.loads(SNAPSHOT.read_text())
+    assert capture() == stored
 
 
 def test_the_snapshot_changes_only_with_the_version():
@@ -101,7 +103,7 @@ def test_the_change_log_lists_the_version():
 def test_the_package_has_one_version():
     """``gm.API_VERSION`` is gone; ``gm.__version__`` is the one version."""
     assert not hasattr(gm, "API_VERSION")
-    assert gm.__version__ == "0.3.0"
+    assert gm.__version__ == "0.4.0"
 
 
 def test_every_economics_function_takes_the_plant_the_case_and_the_results():

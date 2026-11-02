@@ -4,17 +4,17 @@ import numpy as np
 import pytest
 
 import gemini as gm
+from gemini.engine.bindings import RunBindings
 from gemini.engine.columns import read
 from gemini.engine.loader import Aligned
-from gemini.engine.step import BindingPlan
 from gemini.errors import PhysicsError
-from gemini.types.bindings import Binding, ModuleBindings
+from gemini.modules.bindings import Binding, ModuleBindings
 from tests.fixtures.engine_tank import ROW, TIME, dataset, tank
 
 
 def _read(module, **changes):
     """Return the block of the first twin over the columns of ``ROW`` with some replaced."""
-    plan = BindingPlan(module, dataset(**ROW), "replay")
+    plan = RunBindings(module, dataset(**ROW), "replay")
     columns = {
         name: np.asarray(changes.get(name, [value]), dtype=float) for name, value in ROW.items()
     }
@@ -61,6 +61,6 @@ def test_measured_differences_convert_without_unit_offsets():
     module.bindings = {
         "": ModuleBindings(measured={"pressure_drop": Binding(column="dp", unit="barg")})
     }
-    plan = BindingPlan(module, gm.Dataset.from_dict({"dp": [0.5]}, [TIME]), "replay")
+    plan = RunBindings(module, gm.Dataset.from_dict({"dp": [0.5]}, [TIME]), "replay")
     block = read(plan.twins[0], _aligned({"dp": np.array([0.5])}), 0, 1)
     assert block.measured["pressure_drop"][0] == pytest.approx(5e4)

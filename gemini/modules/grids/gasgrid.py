@@ -4,8 +4,9 @@ from gemini.errors import ValidationError
 from gemini.modules.declarations import Outlet, Parameter
 from gemini.modules.module import Module
 from gemini.physics import gas
-from gemini.types import Fraction, Stream
-from gemini.types.fluid import grid_gas
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import grid_gas
+from gemini.units.quantities import Fraction
 
 
 class GasGrid(Module):

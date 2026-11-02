@@ -2,10 +2,10 @@
 
 import numpy as np
 
-from gemini.compiler.graph import run
+from gemini.compiler.run import run
 from gemini.modules.wells import InjectionWell
-from gemini.types.flows import Stream
-from gemini.types.fluid import BRINE as DEFAULT_FLUID
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE as DEFAULT_FLUID
 from gemini.units import Quantity
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si

@@ -4,7 +4,6 @@ from gemini import (
     analysis,
     case,
     compiler,
-    data,
     errors,
     evaluate,
     modules,
@@ -12,27 +11,23 @@ from gemini import (
     physics,
     plants,
     runtime,
+    streams,
     study,
     units,
 )
 from gemini._utils.version import package_version
 from gemini.case import Case
+from gemini.case.dataset import Dataset
+from gemini.engine.check import check
 from gemini.engine.engine import Engine
+from gemini.engine.results import Results
+from gemini.engine.schedule.schedule import schedule
+from gemini.engine.simulate import live, replay, resume, simulate
 from gemini.modules import Inlet, Module, Outlet, Output, Parameter
+from gemini.modules.call import evaluate as call
 from gemini.plants import Plant
-from gemini.run import (
-    Dataset,
-    Results,
-    call,
-    check,
-    live,
-    replay,
-    resume,
-    schedule,
-    simulate,
-)
+from gemini.streams import BRINE, WATER, Fluid, Stream
 from gemini.study import Study
-from gemini.types import BRINE, WATER, Fluid, Stream
 
 __version__ = package_version()
 __all__ = [
@@ -65,8 +60,8 @@ __all__ = [
     "ops",
     "runtime",
     "units",
+    "streams",
     "errors",
-    "data",
     "study",
     "evaluate",
     "analysis",
