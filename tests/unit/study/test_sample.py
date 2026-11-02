@@ -1,15 +1,18 @@
 """``gm.study.sample`` on the uncertainty declared in the case, with the run replaced by a cost."""
 
+import importlib
 import json
 
 import numpy as np
 import pytest
 
 import gemini as gm
+from gemini.evaluate.verdict import Verdict, reason
 from gemini.study._utils import trial as trial_module
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
+sample_module = importlib.import_module("gemini.study.sample")
 PRICE = "case.economics.energy.electricity"
 PATH = "economics.energy.electricity"
 DECLARED = {
@@ -173,3 +176,68 @@ def test_the_draws_of_a_call_are_one_batch(monkeypatch, runs):
     monkeypatch.setattr(trial_module, "run_trials", counting)
     gm.study.sample(shallow_plant(), declared_case(), ["co2"], 6, 3)
     assert sizes == [6]
+
+
+def test_the_percentiles_are_the_linear_ones_of_the_draws():
+    """Five hand numbers: p5, p50 and p95 by linear interpolation, the mean, the unit."""
+    draws = [
+        {"parameters": {}, "metrics": {"x": gm.units.shapes.measure(number, "kg")}}
+        for number in (4.0, 1.0, 5.0, 2.0, 3.0)
+    ]
+    spread = sample_module._spread(draws, "x")
+    assert spread["p5"].value == pytest.approx(1.2)
+    assert spread["p50"].value == 3.0 and spread["p95"].value == pytest.approx(4.8)
+    assert spread["mean"].value == 3.0 and spread["p50"].unit == "kg"
+    assert spread["failed"].value == 0
+
+
+def test_a_draw_with_a_nan_metric_is_left_out_of_the_summary(runs, monkeypatch):
+    """A figure that is not a number would turn the mean and the percentiles into NaN."""
+    real = trial_module.metric
+
+    def lost_above(plant, case, results, name):
+        if case.economics.energy.electricity * 3.6e9 > 120:
+            return gm.units.shapes.measure(float("nan"), "currency/J")
+        return real(plant, case, results, name)
+
+    monkeypatch.setattr(trial_module, "metric", lost_above)
+    found = gm.study.sample(shallow_plant(), declared_case(), ["lcts"], 8, 3)
+    nan = [i for i in found["samples"] if np.isnan(i["metrics"]["lcts"].value)]
+    good = [i["metrics"]["lcts"].value for i in found["samples"] if i not in nan]
+    assert nan and good
+    spread = found["summary"]["lcts"]
+    assert spread["mean"].value == pytest.approx(np.mean(good))
+    json.dumps(found.to_dict()["summary"], allow_nan=False)
+
+
+def test_a_negative_seed_is_refused_as_a_value(runs):
+    """Numpy refuses it with a bare ValueError; the call names the argument."""
+    with raises(gm.errors.ValidationError, "invalid_value", match="seed"):
+        gm.study.sample(shallow_plant(), declared_case(), ["co2"], 2, -1)
+    assert runs == []
+
+
+def test_a_difference_of_temperature_stays_in_kelvin_through_the_round_trip():
+    """The flag that keeps K in the JSON survives ``from_dict``."""
+    name = "case.site.surface_temperature_difference"
+    drawn = {name: gm.units.Quantity(5.0, "K")}
+    given = gm.study.Sample(samples=[{"parameters": drawn, "metrics": {}}], summary={})
+    given["differences"] = [name]
+    plain = given.to_dict()
+    assert plain["differences"] == [name]
+    assert plain["samples"][0]["parameters"][name] == {"value": 5.0, "unit": "K"}
+    again = gm.study.Sample.from_dict(json.loads(json.dumps(plain)))
+    assert again["differences"] == [name] and again["samples"][0]["parameters"][name].unit == "K"
+    assert again.to_dict() == plain
+
+
+def test_a_draw_that_breaks_a_requirement_is_a_plain_number_in_the_summary(runs, monkeypatch):
+    """Pinned for the owner (t2.md): the draws run unjudged: no feasible count."""
+    broken = reason("requirement", "heating_supply_unmet", "unmet demand above its limit")
+    monkeypatch.setattr(
+        trial_module, "verdict", lambda *a: Verdict(feasible=False, reasons=[broken])
+    )
+    found = gm.study.sample(shallow_plant(), declared_case(), ["lcts"], 4, 3)
+    assert all(item["metrics"]["lcts"].value is not None for item in found["samples"])
+    assert set(found["summary"]["lcts"]) == {"mean", "p5", "p50", "p95", "failed"}
+    assert found["summary"]["lcts"]["failed"].value == 0

@@ -337,3 +337,43 @@ def test_a_search_with_batches_has_the_history_of_a_search_that_runs_every_trial
         item.to_dict() for item in single["history"]
     ]
     assert batched["best"].to_dict() == single["best"].to_dict()
+
+
+def test_a_feasible_trial_whose_objective_is_nan_is_infeasible_and_never_the_best(
+    monkeypatch, runs
+):
+    """A run that gives a figure that is not a number is no better than one that gives none."""
+    cost = trial.metric
+
+    def deep_is_nan(plant, case, results, name):
+        if plant.depth > 1700:
+            return measure(float("nan"), "currency/J")
+        return cost(plant, case, results, name)
+
+    monkeypatch.setattr(trial, "metric", deep_is_nan)
+    result = minimized(searching(DEPTH), evaluations=10)
+    lost = [item for item in result["history"] if item.parts["parameters"]["depth"].value > 1700]
+    assert lost and all(item.value is None and item.reason for item in lost)
+    assert all(item.parts["violation"] == trial.LARGEST_VIOLATION for item in lost)
+    assert result["feasible"] and result["best"].parts["parameters"]["depth"].value <= 1700
+
+
+def test_the_ranking_of_a_nan_objective_is_that_of_an_infeasible_trial():
+    """The search sees a trial that is not a number above every feasible one."""
+    assert minimize_module._is_number(1.5) and not minimize_module._is_number(float("nan"))
+    assert not minimize_module._is_number(None)
+    assert minimize_module._ranked(1.0, 5.0, None, 0.0) < 1
+
+
+def test_a_trial_that_raises_something_other_than_a_gemini_error_ends_the_search(monkeypatch, runs):
+    """Pinned for the owner (t2.md): only ``GeminiError`` is a failed trial."""
+    cost = trial.metric
+
+    def deep_breaks(plant, case, results, name):
+        if plant.depth > 1700:
+            raise ValueError("a bug in a module")
+        return cost(plant, case, results, name)
+
+    monkeypatch.setattr(trial, "metric", deep_breaks)
+    with pytest.raises(ValueError, match="a bug in a module"):
+        minimized(searching(DEPTH), evaluations=10)

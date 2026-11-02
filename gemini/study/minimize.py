@@ -25,6 +25,15 @@ SMALLEST_POPULATION = 5
 """The fewest candidates of a generation, which ``differential_evolution`` needs."""
 
 
+NOT_A_NUMBER = "the objective is not a number"
+"""The reason of a trial whose objective is NaN, which a run without failed steps can give."""
+
+
+def _is_number(value):
+    """Whether an objective is a finite number; ``None`` and NaN rank a trial as infeasible."""
+    return value is not None and bool(np.isfinite(value))
+
+
 def _ranked(sign, number, reason, violation):
     """Return the objective the search sees: feasible trials in (-1, 1), the others above 2.
 
@@ -247,8 +256,9 @@ def _counted(shared, count):
 
     def evaluated(point):
         metrics, reason, violation = population.outcome(point)
-        if reason is None and metrics[name].value is None:
-            reason, violation = metrics[name].reason, LARGEST_VIOLATION
+        if reason is None and not _is_number(metrics[name].value):
+            reason, violation = metrics[name].reason or NOT_A_NUMBER, LARGEST_VIOLATION
+            metrics = metrics | {name: measure(None, metrics[name].unit, reason)}
         shown = chosen | _shown(design, case, found, point)
         history.append(_entry(shown, metrics, name, reason, violation, lifts))
         return _ranked(sign, history[-1].value, reason, violation)
