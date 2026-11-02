@@ -54,7 +54,11 @@ SAMPLES = (
     ("hackathon-structure", "hackathon_2026", PLANTS / "HackathonPlant.json"),
     ("hackathon-absorption", "hackathon_2026", PLANTS / "HeatingAbsorptionCoolingPlant.json"),
     ("hackathon-full-cooling", "hackathon_2026", PLANTS / "HeatingFullCoolingPlant.json"),
-    ("shallow-district", "shallow_district", EXAMPLES / "shallow_district" / "plant.json"),
+    (
+        "shallow-district",
+        "shallow_district",
+        EXAMPLES / "shallow_district" / "plants/HeatingHeatPumpCoolingPlant.json",
+    ),
 )
 COUNTED = {
     "rows_by_row": ("engine/rows.py", "_call_row"),

@@ -193,8 +193,8 @@ Each has:
 - `case.json`: a `gm.Case` (`gm.Case.from_json`), see [the case](#the-case). It names `economics.json` and the demand CSV;
 - `economics.json`: a `gm.case.Economics`, given by path from the case;
 - `data/demand.csv`, read through `case.json` (`demand.heating.power`), first column `time`;
-- the plant dicts (`gm.Plant.from_json`): `plant.json` for `shallow_district/`, and one file for
-  each candidate in `plants/` for `hackathon_2026/`; a design without the world;
+- the plant dicts (`gm.Plant.from_json`): one file for each candidate in `plants/<Class>.json`; a design without the world;
+- `study.json` (`gm.Study.from_json`): what to run on them, see the study;
 - `README.md`: the source of the files and what the case asks.
 
 `hackathon_2026/` also keeps its organiser files (the requirements PDF and the two daily demand
@@ -204,7 +204,7 @@ CSVs). A whole run is:
 import gemini as gm
 
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 ```
 

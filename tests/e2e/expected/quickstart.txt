@@ -1,8 +1,12 @@
+Check: ready
 production_flow_range                         ok
 brine_cooling_limit                           ok
 running_time_limit                            ok
 pump_efficiency                               ok
 full_reinjection                              ok
+doublet_count                                 ok
+heat_delivered                                ok
+cold_delivered                                ok
 heating_supply_temperature                    ok
 cooling_supply_temperature                    ok
 Heat delivered         691.69 MWh

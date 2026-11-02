@@ -8,8 +8,8 @@ and ``failures`` groups the steps that failed.
 
 A value with a dimension is a ``Quantity``: ``set_params`` refuses a bare number for it.
 
-Shows ``check``, ``set_params`` with a quantity,
-``gm.study.size`` with its ``sizing`` notes, ``gm.simulate`` and ``gm.evaluate.failures``.
+Shows ``check``, ``set_params`` with a quantity, ``gm.study.size`` with its ``sizing`` notes,
+``gm.check`` of the sized plant on the case, ``gm.simulate`` and ``gm.evaluate.failures``.
 
 Run with ``python examples/plant.py``.
 """
@@ -68,7 +68,7 @@ def build(stored):
 
 def main():
     """Fill the plant, size it, read the notes, simulate and group the failed steps."""
-    stored = json.loads((SAMPLE / "plant.json").read_text())
+    stored = json.loads((SAMPLE / "plants/HeatingHeatPumpCoolingPlant.json").read_text())
     case = gm.Case.from_json(SAMPLE / "case.json")
     plant = build(stored)
     sized = gm.study.size(plant, case)
@@ -77,6 +77,8 @@ def main():
     print(f"Left unchanged: {[item['path'] for item in sized.sizing['unchanged']]}")
     print(f"Constraints broken by the start: {len(sized.sizing['broken'])}")
     print(f"Simulation of the start: {sized.sizing['simulation']}")
+    issues = gm.check(sized, case)
+    print("Check of the sized plant on the case: ready" if not issues else f"Check: {issues}")
     results = gm.simulate(sized, case)
     print(f"Failed steps: {gm.evaluate.failures(results).to_dict()['total']}")
     report = gm.evaluate.report(sized, case, results)

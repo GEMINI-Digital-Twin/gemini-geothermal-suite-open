@@ -31,11 +31,8 @@ NO_VALUE = "no_value: the run gives no value of this field"
 NO_FLOW = "the module carried no flow in this run"
 """The reason when ``when="running"`` leaves no step."""
 
-NO_DEMAND = "no_value: the service demanded no energy in this run"
-"""The reason when a share of the demanded energy has no demand to divide by."""
-
-DEMANDED = {"unmet_demand": "heat_demand", "unmet_sensible": "sensible_cooling_demand"}
-"""The boundary of a consumer that holds the demand, for each of its unmet outputs."""
+DEMANDED = {"unmet_demand": "heating_demand", "unmet_sensible": "cooling_demand"}
+"""The column of ``case.demand.frame`` holding the demand, for each unmet output of a consumer."""
 
 
 def requirements(plant, case, results):
@@ -279,17 +276,20 @@ def _values(plant, case, results, frame, requirement, unit_path):
     )
 
 
-def _share(plant, results, frame, requirement, unit_path):
-    """Return the check of the unmet energy over the demanded energy of one supply unit."""
+def _share(plant, case, results, frame, requirement, unit_path):
+    """Return the check of the unmet energy over the demand of the case for one supply unit.
+
+    A service that demands nothing has nothing unmet: its share is 0.
+    """
     read = reads(requirement.on, requirement.quantity)
     unmet, _ = series(plant, frame, unit_path, read.path)
-    demand, _ = series(plant, frame, unit_path, DEMANDED[read.path])
-    if not unmet.size or not demand.size:
+    if not unmet.size:
         return _undecided(requirement, unit_path, NO_VALUE, "-")
+    column = DEMANDED[read.path]
+    demand = case.demand.frame[column].to_numpy(dtype=float)
     wanted = float((demand * results.durations).sum())
-    if wanted <= 0:
-        return _undecided(requirement, unit_path, NO_DEMAND, "-")
-    measured = float((unmet * results.durations).sum()) / wanted
+    spent = float((unmet * results.durations).sum())
+    measured = spent / wanted if wanted > 0 else 0.0
     return _judged(requirement, unit_path, None, measured, TOLERANCE * abs(measured), "-")
 
 
@@ -304,7 +304,7 @@ def _undecided(requirement, unit_path, reason, unit):
 def _check(plant, case, results, frame, requirement, unit_path):
     """Return the check of one requirement on one unit of its role."""
     if reads(requirement.on, requirement.quantity).source == "share":
-        return _share(plant, results, frame, requirement, unit_path)
+        return _share(plant, case, results, frame, requirement, unit_path)
     values, keep, unit, _, timed = _values(plant, case, results, frame, requirement, unit_path)
     unit = "s" if requirement.over == "duration" else unit
     bounds = _bounds(requirement)

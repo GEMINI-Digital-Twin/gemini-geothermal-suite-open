@@ -2,8 +2,8 @@
 
 Runs the hackathon sample plant ``HeatingCoolingPlant`` for 2027 and reads its costs with
 ``gm.evaluate.capex``, ``opex``, ``lcts`` and ``co2``. Then it removes one capex factor from the
-case and shows the ``missing_assumption`` error that names the factor. Shows ``gm.evaluate.capex``
-and ``gm.errors.ValidationError``.
+case and shows the ``missing_assumption`` error that names the factor. Shows ``gm.check``,
+``gm.evaluate.capex`` and ``gm.errors.ValidationError``.
 
 A limit on the electricity the plant buys is a requirement of the case, a limit of 6 MW, and
 ``gm.evaluate.requirements`` checks it.
@@ -77,6 +77,8 @@ def main():
     """Cost the sample design, then show what a missing factor reports."""
     case = gm.Case.from_json(SAMPLE / "case.json")
     plant = gm.Plant.from_json(SAMPLE / "plants/HeatingCoolingPlant.json")
+    issues = gm.check(plant, case)
+    print("Check: ready" if not issues else f"Check: {issues}")
     results = gm.simulate(plant, case)
     print_costs(plant, case, results)
     print_bought(plant, case, results)

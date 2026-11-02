@@ -271,7 +271,7 @@ named by binding `column`, units from the binding. A missing bound column raises
 import gemini as gm
 
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 print(results.summary(units={"power": "MW", "temperature": "degC"}))
 ```
@@ -570,7 +570,7 @@ Names removed or renamed in the unreleased changes of 0.2.0:
 | `report.to_dict()` parts in SI (`annualised_cost` in EUR/yr, `kg` parts of `co2`) | the parts in display units too: MEUR/yr, MWh/yr, kt, days |
 | `gm.evaluate.requirements` item key `path` | `unit_path`, with `role` and `quantity` |
 | `gm.evaluate.compare(plant, problem, results, other)` (a stub) | `gm.evaluate.compare(reports, by)` |
-| `gm.plants.example(name)` | a stored plant dict, `gm.Plant.from_json(path)` (`inputs/examples/*/plant.json`, `inputs/doublet_heat/plant.json`), or the class `gm.plants.<Class>(...)` and `plant.missing_parameters()` to see what to `set_params` |
+| `gm.plants.example(name)` | a stored plant dict, `gm.Plant.from_json(path)` (`inputs/examples/*/plants/*.json`, `inputs/doublet_heat/plant.json`), or the class `gm.plants.<Class>(...)` and `plant.missing_parameters()` to see what to `set_params` |
 | `gm.study.size(plant, case)` | `gm.study.size(plant, case, backup="peak" or "none")`; the policy has no default |
 | `gm.study.sample(plant, case, distributions, metrics, count, seed=0)` | `gm.study.sample(plant, case, metrics, count, seed)`: the distributions are the `uncertainty` of the case, a plant parameter is never drawn, `seed` has no default |
 | `gm.study.sensitivity(plant, case, parameters, metrics)` | `gm.study.sensitivity(plant, case, metrics)`: every value the case declares an `uncertainty` for, at its `min` and `max` |

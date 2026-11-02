@@ -12,5 +12,6 @@ Problems found by check: 0
 Left unchanged: ['heat_exchanger']
 Constraints broken by the start: 0
 Simulation of the start: simulated
+Check of the sized plant on the case: ready
 Failed steps: 0
 Heat delivered: 691.7 MWh

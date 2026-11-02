@@ -57,7 +57,7 @@ gemini is a general package and knows no sample: `inputs/examples/` holds sample
 
 ```python
 case = gm.Case.from_json("inputs/examples/shallow_district/case.json")
-plant = gm.Plant.from_json("inputs/examples/shallow_district/plant.json")
+plant = gm.Plant.from_json("inputs/examples/shallow_district/plants/HeatingHeatPumpCoolingPlant.json")
 results = gm.simulate(plant, case)
 print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value)
 ```
