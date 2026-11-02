@@ -9,6 +9,7 @@ import pytest
 import gemini as gm
 from gemini.units import Quantity
 from tests.fixtures.errors import raises
+from tests.fixtures.sample_cases import sample_case
 from tests.unit.case.conftest import codes, csv_text
 
 
@@ -171,6 +172,13 @@ def test_check_returns_the_issues_and_never_raises(case):
     assert bad.check() == []
     with raises(gm.errors.ValidationError, "out_of_bounds"):
         case.with_value("site.reservoir.thickness", -5.0)
+
+
+def test_check_names_a_value_of_another_type_in_an_economics_file():
+    """A value set with another type than the file can hold is an issue, with its path."""
+    case = sample_case().with_value("economics.accounting.gwp.standard", Quantity(1, "m"))
+    found = case.check()
+    assert found and found[0].path == "economics.accounting.gwp.standard"
 
 
 def test_a_value_is_replaced_by_its_path_and_a_series_becomes_a_constant(case):

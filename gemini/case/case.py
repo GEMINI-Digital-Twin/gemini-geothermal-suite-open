@@ -26,7 +26,7 @@ from gemini.case.site import Site
 from gemini.case.time import Time
 from gemini.case.utilities import Utilities
 from gemini.errors import ValidationError
-from gemini.errors.base import raise_issues
+from gemini.errors.base import Issue, raise_issues
 from gemini.units import inputs
 
 HEADER = ("format", "kind", "name")
@@ -38,6 +38,26 @@ OLD = {
     "assumptions": '"economics" (a file or an object) and "utilities.electricity.co2_intensity"',
     "choices": 'a "range" on the plant leaves "size.doublets" and "params.depth"',
 }
+
+
+def _unwritable(data, path):
+    """Return the ``incompatible`` issues of the values of ``data`` that no file can hold."""
+    if isinstance(data, dict):
+        return [
+            found
+            for key, value in data.items()
+            for found in _unwritable(value, path if key == "value" else join_path(path, key))
+        ]
+    if isinstance(data, list):
+        return [
+            found
+            for number, value in enumerate(data)
+            for found in _unwritable(value, f"{path}[{number}]")
+        ]
+    if data is None or isinstance(data, (str, int, float, bool)):
+        return []
+    message = f"{path} = {data!r}; expected a number, a text or a Boolean"
+    return [Issue(path, "incompatible", message)]
 
 
 class Case(Frozen):
@@ -180,8 +200,12 @@ class Case(Frozen):
         The case is written and read again, so a value changed by ``with_value`` is judged by the
         rules that judge a file.
         """
+        try:
+            files = self.files()
+        except TypeError:
+            return _unwritable(self.economics.to_dict(), "economics")
         issues = []
-        self._read(self.to_dict(), inputs.Source(None, self.files()), issues)
+        self._read(self.to_dict(), inputs.Source(None, files), issues)
         return issues
 
     @property
