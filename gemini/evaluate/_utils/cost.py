@@ -25,7 +25,11 @@ ECONOMICS = pricing.ECONOMICS
 
 
 def annuity(rate, years):
-    """Return the sum of ``1 / (1 + rate) ** t`` for the years ``t = 1 .. years``."""
+    """Return the sum of ``1 / (1 + rate) ** t`` for the years ``t = 1 .. years``.
+
+    The closed form ``(1 - (1 + rate) ** -years) / rate`` is used, so a part of a year gives its
+    continuous value and not a sum of whole years.
+    """
     if rate == 0:
         return float(years)
     return (1 - (1 + rate) ** -years) / rate

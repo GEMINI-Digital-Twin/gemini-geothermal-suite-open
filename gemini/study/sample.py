@@ -102,11 +102,16 @@ def _draw(generator, name, uncertainty, value):
     )
 
 
+def _is_number(value):
+    """Whether a metric value is a finite number: ``None`` and NaN are left out of a summary."""
+    return value is not None and bool(np.isfinite(value))
+
+
 def _spread(samples, name):
     """Return ``{mean, p5, p50, p95}``, each a ``Value``, of a metric over the samples giving it."""
     metrics = [item["metrics"][name] for item in samples if name in item["metrics"]]
-    numbers = [item.value for item in metrics if item.value is not None]
-    unit = next((item.unit for item in metrics if item.value is not None), "-")
+    numbers = [item.value for item in metrics if _is_number(item.value)]
+    unit = next((item.unit for item in metrics if _is_number(item.value)), "-")
     failed = measure(len([item for item in samples if "reason" in item]), "-")
     if not numbers:
         reason = "no sample gives this metric"
@@ -143,8 +148,8 @@ def sample(plant, case, metrics, samples, seed, *, plan=None):
     samples : int
         The number of random draws, one simulation each. It has no default.
     seed : int
-        Seed of ``numpy.random.default_rng``; the same seed gives the same draws. A seed is a
-        reproducibility choice, so there is no default.
+        Seed of ``numpy.random.default_rng``, 0 or more; the same seed gives the same draws. A
+        seed is a reproducibility choice, so there is no default.
     plan : DataFrame, optional
         The run input held fixed over the draws, as for ``minimize``.
 
@@ -154,9 +159,9 @@ def sample(plant, case, metrics, samples, seed, *, plan=None):
         A dict ``{samples, summary}``: ``samples`` lists each draw's ``parameters``, ``Quantity``
         values in SI by ``case.<path>``, and ``metrics``, a ``Value`` per metric, with a
         ``reason`` for a draw whose run failed; ``summary`` gives, for each metric,
-        ``{mean, p5, p50, p95}`` over the draws that give it, each a ``Value`` that is ``None``
-        with a ``reason`` when none does, and ``failed``, the number of draws left out because
-        their run had failed steps (their ``reason`` names the count and the most frequent
+        ``{mean, p5, p50, p95}`` over the draws that give a finite number, each a ``Value`` that
+        is ``None`` with a ``reason`` when none does, and ``failed``, the number of draws left out
+        because their run had failed steps (their ``reason`` names the count and the most frequent
         failure). ``to_dict()`` is plain JSON; ``Sample.from_dict`` reads it back.
     """
     raise_issues(check(plant, case))
@@ -164,6 +169,8 @@ def sample(plant, case, metrics, samples, seed, *, plan=None):
         raise ValidationError(
             f"study.sample: samples = {samples}; expected at least 1", path="samples"
         )
+    if seed < 0:
+        raise ValidationError(f"study.sample: seed = {seed}; expected 0 or more", path="seed")
     names = [checked_metric(name) for name in metrics]
     found = declared(case, "sample")
     generator = np.random.default_rng(seed)

@@ -26,11 +26,12 @@ def cold_ports(values):
     }
 
 
-def make_results(columns, step=3600.0, units=None):
+def make_results(columns, step=3600.0, units=None, errors=()):
     """Return results holding ``columns`` as ``{path: {field: values}}`` at ``step`` seconds.
 
     ``units`` is ``{path: {field: unit}}`` as the engine records it; every column needs the
-    same number of values.
+    same number of values. ``errors`` is ``[(tick, row)]`` of failed rows as ``errors.problem``
+    builds them.
     """
     count = len(next(iter(next(iter(columns.values())).values())))
     times = [START + timedelta(seconds=step * tick) for tick in range(count)]
@@ -42,5 +43,5 @@ def make_results(columns, step=3600.0, units=None):
         for path, fields in columns.items()
     }
     results = Results(units)
-    results.commit(ResultChunk(times, [step] * count, tables, [{}] * count))
+    results.commit(ResultChunk(times, [step] * count, tables, [{}] * count, errors))
     return results

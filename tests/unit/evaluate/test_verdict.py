@@ -5,12 +5,14 @@ import math
 from copy import deepcopy
 
 import numpy as np
+import pandas as pd
 import pytest
 
 import gemini as gm
 from gemini._utils.jsonable import to_plain
 from gemini.engine import apply
-from gemini.evaluate.verdict import ranked
+from gemini.errors.rows import problem
+from gemini.evaluate.verdict import _outside, ranked
 from gemini.modules import CoolingGrid, HeatingGrid
 from gemini.units import Quantity
 from tests.fixtures.cases import costed_economics, make_case, requirement
@@ -901,3 +903,101 @@ def test_a_sample_plant_in_breach_of_its_esp_limit_runs_every_row_and_gets_a_bou
     )
     assert len(run.to_frame()) == len(held.to_frame()) and not run.errors()
     assert run.to_frame().fillna(0).equals(held.to_frame().fillna(0))
+
+
+GAP = 2
+"""The tick of the runs below that has no value."""
+
+
+def gapped(errors=()):
+    """Return a four-tick run of the heat consumer whose tick ``GAP`` has no value."""
+    unmet_demand = [1.0, 1.0, math.nan, 1.0]
+    temperature = [300.0, 300.0, math.nan, 300.0]
+    columns = {
+        "unmet_demand": unmet_demand,
+        "return_out.temperature": temperature,
+        "operating": [1.0] * 4,
+    }
+    return make_results({"heat": columns}, errors=errors)
+
+
+def lost_step():
+    """Return the failed row of the heat consumer at the tick ``GAP``."""
+    return [(GAP, problem("heat", "out_of_range", "flow too high"))]
+
+
+def test_a_tick_with_no_value_and_a_failed_row_makes_the_run_infeasible():
+    """A failed step is NaN in the judged columns and the failed row is the reason.
+
+    The requirement and the bound skip the tick, so the plant never looks better for it.
+    """
+    case = make_case(count=4, requirements=[unmet(max=watts(5.0))])
+    found = gm.evaluate.verdict(heating_plant(), case, gapped(lost_step()))
+    assert found["feasible"] is False
+    assert kinds(found) == {"failed_steps": "failed_step"}
+    assert gm.evaluate.requirements(heating_plant(), case, gapped(lost_step()))[0]["passed"]
+    assert gm.evaluate.bounds(heating_plant(), case, gapped(lost_step()))["passed"] is True
+
+
+def test_a_tick_with_no_value_and_no_failed_row_is_a_missing_tick_not_a_reason():
+    """Pinned for the owner (t2.md): the verdict does not read a NaN tick without a failed row."""
+    case = make_case(count=4, requirements=[unmet(max=watts(5.0))])
+    found = gm.evaluate.verdict(heating_plant(), case, gapped())
+    assert found["feasible"] is True and found["reasons"] == []
+
+
+def test_a_nan_tick_is_never_counted_as_a_violation_by_the_bounds():
+    """``_outside`` leaves a NaN out of the count, with and without a failed row."""
+    values = pd.Series([300.0, math.nan, -1.0])
+    assert _outside(values, {"gt": 0.0}) == 1
+    assert _outside(pd.Series([math.nan]), {"gt": 0.0, "lt": 1.0}) == 0
+
+
+def test_an_undecided_requirement_beside_a_passing_one_does_not_make_the_run_infeasible():
+    """Pinned for the owner (t2.md): a check of ``passed`` None beside a pass is no reason.
+
+    ``tally`` is True when any check passed.
+    """
+    results = make_results(
+        {"heat": {"unmet_demand": [1.0], "return_out.temperature": [300.0], "operating": [1.0]}}
+    )
+    passing = unmet(max=watts(5.0))
+    absent = requirement("doublet", "production_flow", max=Quantity(300, "m3/h"))
+    both = make_case(count=1, requirements=[passing, absent])
+    checks = gm.evaluate.requirements(heating_plant(), both, results)
+    assert [item["passed"] for item in checks] == [True, None]
+    assert gm.evaluate.verdict(heating_plant(), both, results)["feasible"] is True
+    alone = make_case(count=1, requirements=[absent])
+    found = gm.evaluate.verdict(heating_plant(), alone, results)
+    assert kinds(found) == {"requirements": "requirement"}
+
+
+def test_a_failed_requirement_beside_an_undecided_one_is_infeasible():
+    """A check that failed is a reason whatever the others say."""
+    results = make_results(
+        {"heat": {"unmet_demand": [9.0], "return_out.temperature": [300.0], "operating": [1.0]}}
+    )
+    absent = requirement("doublet", "production_flow", max=Quantity(300, "m3/h"))
+    case = make_case(count=1, requirements=[unmet(max=watts(5.0)), absent])
+    found = gm.evaluate.verdict(heating_plant(), case, results)
+    assert found["feasible"] is False and "heating_supply_unmet" in kinds(found)
+
+
+def test_two_units_of_a_role_that_both_breach_give_one_reason_of_the_first():
+    """Pinned for the owner (t2.md): ``_distinct`` keeps one reason per name.
+
+    The ranked violation of two breaching units is the first one's, not the sum.
+    """
+    plant = heating_plant()
+    plant._add_module("heat2", HeatingGrid())
+    results = make_results(
+        {
+            "heat": {"unmet_demand": [7.0], "operating": [1.0], "return_out.temperature": [300.0]},
+            "heat2": {"unmet_demand": [9.0], "operating": [1.0], "return_out.temperature": [300.0]},
+        }
+    )
+    case = make_case(count=1, requirements=[unmet(max=watts(5.0))])
+    found = gm.evaluate.verdict(plant, case, results)
+    breaches = [item for item in found["reasons"] if item["name"] == "heating_supply_unmet"]
+    assert len(breaches) == 1 and breaches[0]["path"] == "heat"
+    assert len(ranked(found)) == 1

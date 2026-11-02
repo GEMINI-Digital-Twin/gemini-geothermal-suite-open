@@ -1,5 +1,6 @@
 """``gm.study.size`` on the shallow sample."""
 
+import importlib
 from copy import deepcopy
 
 import pandas as pd
@@ -11,6 +12,8 @@ from gemini.units import Quantity
 from tests.fixtures.errors import raises
 from tests.fixtures.sample_cases import HACKATHON_2026 as HACKATHON
 from tests.unit.study.conftest import SAMPLE, shallow_case, shallow_plant
+
+size_module = importlib.import_module("gemini.study.size")
 
 
 def limited(flow_max):
@@ -375,3 +378,26 @@ def test_the_boiler_is_rated_for_the_heating_and_the_drive_heat_of_the_sorption_
     if backup == "peak":
         assert design.get_submodule("peak_boiler").capacity > heating
         assert [i for i in design.sizing["broken"] if i["role"] == "heating_supply"] == []
+
+
+def test_a_supply_equal_to_the_return_is_refused_naming_the_path():
+    """The share of the heat pump divides by their difference."""
+    case = shallow_case()
+    supply = case.demand.heating.supply_temperature
+    flat = case.with_value("demand.heating.return_temperature", supply)
+    with raises(gm.errors.ValidationError, "invalid_value") as caught:
+        size_module._lift_share(shallow_plant(), flat)
+    assert caught.value.path == "demand.heating.supply_temperature"
+
+
+def test_a_case_with_no_demand_leaves_the_boiler_heat_pump_and_chiller_unsized(tmp_path):
+    """A zero peak is a note for each unit, not a division by zero."""
+    case = quick(tmp_path)
+    case.demand.frame[["heating_demand", "cooling_demand"]] *= 0.0
+    plant, notes = shallow_plant(), {"sized": [], "unchanged": []}
+    size_module._capacities(plant, case, notes, "peak", 0.0)
+    skipped = {item["path"]: item["reason"] for item in notes["unchanged"]}
+    assert {"peak_boiler", "heat_pump", "compression_chiller"} <= set(skipped)
+    for path in ("peak_boiler", "heat_pump", "compression_chiller"):
+        assert "no" in skipped[path] and "demand" in skipped[path]
+    assert notes["sized"] == []
