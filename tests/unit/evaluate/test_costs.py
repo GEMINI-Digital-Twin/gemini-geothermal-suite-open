@@ -6,7 +6,9 @@ import gemini as gm
 from gemini._utils.jsonable import to_plain
 from gemini.case._utils.kinds import EQUIPMENT_KINDS
 from gemini.engine.apply import apply_case
+from gemini.errors.rows import problem
 from gemini.evaluate._utils import cost
+from gemini.evaluate._utils.flows import Flows
 from gemini.modules import CoolingGrid, Module
 from gemini.physics import pumps
 from gemini.streams.fluid import BRINE
@@ -669,3 +671,52 @@ def test_a_plant_without_equipment_has_no_payback():
     assert "no module of the plant is equipment" in recorded.reason
     with raises(gm.errors.ValidationError, "no_value", match="no module of the plant is equipment"):
         gm.evaluate.payback(plant, SELLING, day())
+
+
+def lost_tick(errors=()):
+    """Return a day whose electricity and heat series have no value at the fourth hour."""
+    grid = [100.0] * 24
+    heat = [1000.0] * 24
+    grid[3] = heat[3] = float("nan")
+    columns = {
+        "grid": {"net_import": grid, "power_out": grid, "power_in": [0.0] * 24},
+        "heat": {
+            "supply_in.enthalpy_flow": heat,
+            "return_out.enthalpy_flow": [0.0] * 24,
+            "unmet_demand": [0.0] * 24,
+            "operating": [1.0] * 24,
+        },
+    }
+    return make_results(columns, errors=errors)
+
+
+def test_a_tick_with_no_value_adds_no_energy_to_the_bills_and_the_denominator():
+    """Pinned: a NaN tick is zero joules, so the bill and the delivered heat fall by 1 hour in 24.
+
+    The verdict of a run that lost the step (below) is what keeps it honest.
+    """
+    run = lost_tick()
+    flows = gm.evaluate.opex(heating_plant(), priced_opex(electricity=2e-8), run)
+    bill = flows.parts["components"]["electricity"].value
+    assert bill == pytest.approx(2e-8 * GRID_PER_YEAR * 23 / 24, rel=1e-12)
+    result = gm.evaluate.lcts(heating_plant(), PRICES, run)
+    assert result.parts["heat"].value == pytest.approx(HEAT * 23 / 24, rel=1e-12)
+
+
+def test_a_run_that_lost_a_step_has_a_cheaper_bill_and_is_infeasible():
+    """The failed step is NaN in the series, so the bill looks lower; the verdict says no."""
+    errors = [(3, problem("heat", "out_of_range", "flow too high"))]
+    run = lost_tick(errors)
+    found = gm.evaluate.verdict(heating_plant(), make_case(count=24), run)
+    assert found["feasible"] is False
+    assert "failed_step" in {item["kind"] for item in found["reasons"]}
+    report = gm.evaluate.report(heating_plant(), PRICES, run)
+    assert report["verdict"]["feasible"] is False
+
+
+def test_electricity_sold_to_the_grid_earns_nothing():
+    """A run that exports has a negative net import: the electricity component is zero."""
+    run = make_results({"grid": {"net_import": [-50.0] * 24}})
+    assert Flows(heating_plant(), run).series["electricity"].sum() < 0
+    result = gm.evaluate.opex(heating_plant(), priced_opex(electricity=2e-8), run)
+    assert result.parts["components"]["electricity"].value == 0.0

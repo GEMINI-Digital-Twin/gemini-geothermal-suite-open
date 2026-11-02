@@ -316,3 +316,49 @@ def test_an_unknown_metric_or_sense_is_refused():
         gm.evaluate.compare(reports(), {"lcts": "smallest"})
     with raises(gm.errors.ValidationError, "invalid_value"):
         gm.evaluate.compare(reports(), [])
+
+
+def test_a_nan_metric_ranks_last_and_is_off_the_front():
+    """A figure that is not a number is no better than a missing one."""
+    mixed = reports() + [{"lcts": float("nan"), "co2": 0.0, "verdict": FEASIBLE}]
+    found = gm.evaluate.compare(mixed, ["lcts", "co2"])
+    assert found[4]["ranks"]["lcts"] == 5 and found[4]["pareto"] is False
+    assert [entry["ranks"]["lcts"] for entry in gm.evaluate.compare(mixed, "lcts")] == [
+        2,
+        1,
+        3,
+        4,
+        5,
+    ]
+    larger = gm.evaluate.compare(mixed, {"lcts": "max"})
+    assert [entry["ranks"]["lcts"] for entry in larger] == [3, 4, 2, 1, 5]
+
+
+def test_a_nan_metric_ranks_last_among_the_infeasible_of_the_same_reasons():
+    """A run with failed steps that also has a NaN figure does not tie with the best."""
+    lost = {"reasons": [{"kind": "failed_step", "name": "failed_steps", "message": "2 failed"}]}
+    lost["feasible"] = False
+    given = [
+        {"x": float("nan"), "verdict": lost},
+        {"x": 3.0, "verdict": lost},
+        {"x": 1.0, "verdict": lost},
+    ]
+    found = gm.evaluate.compare(given, "x")
+    assert [entry["ranks"]["x"] for entry in found] == [3, 2, 1]
+
+
+def test_a_missing_value_and_the_reasons_survive_the_round_trip():
+    """``None`` for a metric and the list of reasons of an infeasible report come back."""
+    lost = {
+        "feasible": False,
+        "reasons": [{"kind": "failed_step", "name": "failed_steps", "message": "2 failed"}],
+    }
+    given = [
+        {"lcts": measure(None, "currency/J", "no cost"), "verdict": lost},
+        {"lcts": measure(2.0, "currency/J"), "verdict": FEASIBLE},
+    ]
+    found = gm.evaluate.compare(given, "lcts")
+    again = Comparison.from_dict(json.loads(json.dumps(found.to_dict(), allow_nan=False)))
+    assert again[0]["values"]["lcts"] is None
+    assert again[0]["reasons"] == found[0]["reasons"] and again[0]["feasible"] is False
+    assert [entry["ranks"] for entry in again] == [entry["ranks"] for entry in found]

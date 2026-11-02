@@ -131,3 +131,13 @@ def test_check_judges_a_changed_value_like_a_file(money):
     assert found.check() == []
     with raises(gm.errors.ValidationError, "out_of_bounds"):
         found.with_value("accounting.allocation.heat_cost_share", 1.5)
+
+
+def test_a_later_cost_of_a_depth_table_is_checked_like_the_first(money):
+    """A negative cost in the second row is refused, naming the cost column."""
+    money["capex"]["drilling"] = {
+        "depth": {"value": [1000, 2000], "unit": "m"},
+        "cost_per_metre": {"value": [1000, -100], "unit": "EUR/m"},
+    }
+    with raises(gm.errors.ValidationError, "out_of_bounds", match="capex.drilling.cost_per_metre"):
+        gm.case.Economics.from_dict(money)

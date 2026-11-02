@@ -171,6 +171,9 @@ def _capacities(design, case, notes, backup, cover):
         if not paths:
             continue
         peak = _peak(case, service)
+        if peak <= 0:
+            _skip(notes, paths, f"the case has no {service} demand")
+            continue
         if role == "heat_pump":
             part = _lift_share(design, case)
             duty = part * peak
@@ -291,6 +294,12 @@ def _lift_share(design, case):
         )
     supply = require(case, "demand.heating.supply_temperature")
     back = require(case, "demand.heating.return_temperature")
+    if supply == back:
+        raise ValidationError(
+            f"demand.heating: supply_temperature = return_temperature = {supply} K; expected a "
+            "supply above the return",
+            path="demand.heating.supply_temperature",
+        )
     reservoir = case.site.temperature_at(depth)
     return min(1.0, max(0.0, (supply - reservoir) / (supply - back)))
 

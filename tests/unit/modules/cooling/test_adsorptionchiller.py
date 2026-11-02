@@ -141,3 +141,16 @@ def test_a_stopped_drive_circuit_has_no_driving_temperature():
         temperature_setpoint=285.15,
     )
     assert result.outlets.chilled_out.T == 291.15
+
+
+def test_the_driving_temperature_limits_are_inclusive():
+    """The minimum runs, a hundredth below is off; the maximum runs, a hundredth above raises."""
+    free = reading(call(chiller(), 280))
+    at_minimum = reading(call(chiller(minimum_driving_temperature=343.15), 280))
+    assert at_minimum.evaporator_duty == free.evaporator_duty > 0
+    below = reading(call(chiller(minimum_driving_temperature=343.16), 280))
+    assert below.evaporator_duty == 0
+    at_maximum = reading(call(chiller(maximum_driving_temperature=343.15), 280))
+    assert at_maximum.evaporator_duty == free.evaporator_duty
+    with pytest.raises(PhysicsError, match="maximum_driving_temperature"):
+        call(chiller(maximum_driving_temperature=343.14), 280)

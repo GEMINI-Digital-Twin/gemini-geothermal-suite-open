@@ -5,6 +5,8 @@ import json
 import pytest
 
 import gemini as gm
+from gemini.evaluate.verdict import Verdict, reason
+from gemini.study._utils import trial
 from tests.fixtures.errors import raises
 from tests.unit.study.conftest import shallow_case, shallow_plant
 
@@ -146,3 +148,27 @@ def test_a_bound_whose_run_failed_has_no_value_and_no_effect(failing_runs):
     assert "2 steps failed" in row["at_high"].reason and "d0.esp" in row["at_high"].reason
     assert row["effect"].value is None and row["effect"].reason == row["at_high"].reason
     json.dumps(found.to_dict(), allow_nan=False)
+
+
+def test_a_row_whose_end_failed_round_trips_with_its_missing_value_and_reason(runs):
+    """The ``None`` value and the reason of the effect come back from the JSON."""
+    declared = {
+        "economics.energy.electricity": {"kind": "normal", "std": 150},
+        "economics.energy.gas": DECLARED["economics.energy.gas"],
+    }
+    found = gm.study.sensitivity(shallow_plant(), shallow_case(uncertain=declared), ["lcts"])
+    plain = json.loads(json.dumps(found.to_dict(), allow_nan=False))
+    again = gm.study.Tornado.from_dict(plain)
+    assert [row["parameter"] for row in again] == [row["parameter"] for row in found]
+    assert again[-1]["effect"].value is None
+    assert again[-1]["effect"].reason == found[-1]["effect"].reason
+    assert again.to_dict() == plain
+
+
+def test_an_end_that_breaks_a_requirement_is_a_plain_number_in_its_row(monkeypatch, runs):
+    """Pinned for the owner (t2.md): the ends run unjudged, so the row carries no flag."""
+    broken = reason("requirement", "heating_supply_unmet", "unmet demand above its limit")
+    monkeypatch.setattr(trial, "verdict", lambda *a: Verdict(feasible=False, reasons=[broken]))
+    found = gm.study.sensitivity(shallow_plant(), shallow_case(uncertain=DECLARED), ["lcts"])
+    assert all(row["at_high"].value is not None and row["at_high"].reason is None for row in found)
+    assert not any("feasible" in row or "verdict" in row for row in found)

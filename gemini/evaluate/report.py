@@ -323,9 +323,10 @@ def _quantity(report, name):
 
 
 def _worse(values, sense):
-    """Return the values as numbers where a smaller one is better; no value is infinite."""
+    """Return the values as numbers where a smaller one is better; no value or NaN is infinite."""
     sign = 1.0 if sense == "min" else -1.0
-    return np.array([np.inf if value is None else sign * value for value in values])
+    missing = [value is None or np.isnan(value) for value in values]
+    return np.array([np.inf if gap else sign * value for gap, value in zip(missing, values)])
 
 
 def _ranks(values, sense, reasons):

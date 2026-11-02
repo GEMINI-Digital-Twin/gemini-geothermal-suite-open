@@ -6,7 +6,7 @@ import pytest
 
 import gemini as gm
 from tests.fixtures.plant_files import file_of, issues
-from tests.fixtures.sample_cases import example_plant, filled_plant
+from tests.fixtures.sample_cases import example_plant, filled_plant, treatment_plant
 
 HISTORY = [
     {"valid_from": "2020-01-01T00:00:00Z", "value": 30.48},
@@ -213,3 +213,12 @@ def test_both_a_type_and_a_structure_must_agree():
     assert issues(data) == []
     data["modules"] = {"pipe": {"type": "Pipe"}}
     assert [item.path for item in issues(data)] == ["modules"]
+
+
+def test_the_competition_plant_survives_a_file_write_and_read(tmp_path):
+    """Written with a design and read back: the same plant, in both forms."""
+    plant = treatment_plant()
+    for structure in (False, True):
+        path = tmp_path / f"plant_{structure}.json"
+        plant.to_json(path, structure=structure)
+        assert gm.Plant.from_json(path).to_dict(structure) == plant.to_dict(structure)
