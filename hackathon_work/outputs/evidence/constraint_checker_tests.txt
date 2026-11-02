@@ -1,0 +1,133 @@
+=== T0_reference: compliant reference: 200 m3/h, dT 35 K, eta 0.70, 100 C / 20 C
+expected: feasible -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+PASS     flow_range         doublet_1                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_1                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_1.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: FEASIBLE
+
+=== T1_flow_350: proposed 350 m3/h per doublet
+expected: rejected by flow_range=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+FAIL     flow_range         doublet_1                  350.00 m3/h exceeds the 300 m3/h hard cap
+PASS     volume_balance     doublet_1                  production 350.00 = injection 350.00 m3/h
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_1.ESP              384.7 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    13.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: REJECTED (1 check(s) not passed)
+
+=== T2_flow_30: proposed 30 m3/h per active doublet
+expected: rejected by flow_range=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+FAIL     flow_range         doublet_1                  30.00 m3/h is below the 50 m3/h minimum stable flow while active
+PASS     volume_balance     doublet_1                  production 30.00 = injection 30.00 m3/h
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_1.ESP              33.0 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    1.2 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: REJECTED (1 check(s) not passed)
+
+=== T3_dT_45: brine cooled 85 -> 40 C (45 K)
+expected: rejected by brine_dT=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+PASS     flow_range         doublet_1                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_1                  production 200.00 = injection 200.00 m3/h
+FAIL     brine_dT           doublet_1                  45.00 K brine cooling exceeds the 40 K cap
+PASS     pump_efficiency    doublet_1.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: REJECTED (1 check(s) not passed)
+
+=== T4_four_doublets: 4 doublets
+expected: rejected by doublet_count=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+FAIL     doublet_count      plant                      4 doublets is outside the allowed 1-3
+PASS     flow_range         doublet_1                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_1                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_1.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     flow_range         doublet_2                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_2                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_2                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_2.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_2.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     flow_range         doublet_3                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_3                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_3                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_3.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_3.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     flow_range         doublet_4                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_4                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_4                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_4.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_4.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: REJECTED (1 check(s) not passed)
+
+=== T5_supply_77.75: task-1 heating supply 77.75 C
+expected: rejected by heating_supply_T=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+PASS     flow_range         doublet_1                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_1                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_1.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+FAIL     heating_supply_T   plant                      77.75 C is -22.25 K from the fixed 100 C supply
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: REJECTED (1 check(s) not passed)
+
+=== T6_esp_curve_power: extra: ESP power taken from the curve at eta 0.65
+expected: rejected by pump_efficiency=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+PASS     flow_range         doublet_1                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_1                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+FAIL     pump_efficiency    doublet_1.ESP              236.8 kW implies eta 0.650, required 0.7 -> expected 219.8 kW
+PASS     pump_efficiency    doublet_1.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: REJECTED (1 check(s) not passed)
+
+=== T7_volume_imbalance: extra: 200 m3/h produced, 190 m3/h injected
+expected: rejected by volume_balance=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+PASS     flow_range         doublet_1                  200.00 m3/h within 50-300 m3/h
+FAIL     volume_balance     doublet_1                  production 200.00 != injection 190.00 m3/h (imbalance +10.00 m3/h)
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_1.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+PASS     cooling_supply_T   plant                      20.00 C meets 20 C
+VERDICT: REJECTED (1 check(s) not passed)
+
+=== T8_no_cooling_model: extra: cooling supply not modeled
+expected: rejected by cooling_supply_T=MISSING -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     doublet_count      plant                      1 doublet(s) within 1-3
+PASS     flow_range         doublet_1                  200.00 m3/h within 50-300 m3/h
+PASS     volume_balance     doublet_1                  production 200.00 = injection 200.00 m3/h
+PASS     brine_dT           doublet_1                  35.00 K within 0-40 K
+PASS     pump_efficiency    doublet_1.ESP              219.8 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     pump_efficiency    doublet_1.injector_pump    7.9 kW = Q*dp/0.7 (implied eta 0.700)
+PASS     heating_supply_T   plant                      100.00 C meets 100 C
+MISSING  cooling_supply_T   plant                      not modeled yet; cannot be shown compliant
+VERDICT: REJECTED (1 check(s) not passed)
+
+9/9 expectations met

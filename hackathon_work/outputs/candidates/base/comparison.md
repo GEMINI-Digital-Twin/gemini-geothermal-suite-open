@@ -1,0 +1,30 @@
+| Metric | C1_2dbl_s1.8_UA1000 | C2_3dbl_s1.8_UA1000 | C3_2dbl_s1.0_UA250 |
+|---|---|---|---|
+| Doublets / ESP / UA | 2 / s=1.8 (24 st) / 1000 kW/K | 3 / s=1.8 (24 st) / 1000 kW/K | 2 / s=1.0 (10 st) / 250 kW/K |
+| Heat pump (eta, COP cap) | 0.45, 6.0 | 0.45, 6.0 | 0.45, 6.0 |
+| Unmet heat / cooling (GWh) | 0.000 / 0.000 | 0.000 / 0.000 | 0.000 / 0.000 |
+| Heat: HEX / HP / CHP / boiler-ext (GWh) | 45.7 / 54.6 / 11.4 / 0.00 | 45.7 / 53.9 / 12.0 / 0.00 | 29.1 / 63.1 / 8.7 / 10.76 |
+| Cooling: absorption / electric (GWh) | 21.24 / 2.50 | 23.36 / 0.39 | 13.19 / 10.55 |
+| External gas (GWh fuel / Mm3) | 0.0043 / 0.0004 | 0.0043 / 0.0004 | 13.4522 / 1.3527 |
+| Produced gas: CHP / boiler / flared (GWh fuel) | 21.40 / 0.00 / 0.03 | 22.53 / 0.00 / 0.19 | 16.33 / 0.00 / 0.00 |
+| Electricity load (GWh): ESP / inj / HP / chiller | 6.51 / 0.013 / 11.08 / 0.50 | 6.32 / 0.015 / 10.97 / 0.08 | 2.91 / 0.072 / 11.00 / 2.11 |
+| CHP electricity (GWh) | 5.71 | 6.01 | 4.36 |
+| Net grid import / export (GWh) | 12.39 / 0.00 | 11.37 / 0.00 | 11.73 / 0.00 |
+| HP seasonal COP (days at cap) | 4.93 (117) | 4.92 (116) | 5.73 (133) |
+| Emissions (t CO2/yr): total | 9011 | 9025 | 10295 |
+|   produced gas / external gas / grid el. | 5293 / 1 / 3718 | 5612 / 1 / 3412 | 4034 / 2741 / 3520 |
+| Peak HP (MWth) | 15.19 | 15.19 | 12.68 |
+| Peak absorption / electric chiller (MWcool) | 7.56 / 3.63 | 10.00 / 2.36 | 4.18 / 5.82 |
+| Peak CHP (MWth / MWel) / boiler (MWth) | 2.04 / 1.02 / 0.03 | 2.39 / 1.20 / 0.03 | 1.19 / 0.60 / 10.52 |
+| Peak external gas (MW fuel) | 0.04 | 0.04 | 13.15 |
+| Max brine dT (K) | 40.000 | 40.000 | 40.000 |
+| Flow when on (m3/h) | 155-300 | 155-300 | 90-176 |
+| Days geothermal + CHP meet need | 276/365 | 347/365 | 127/365 |
+| Hard constraints (daily + annual) | PASS | PASS | PASS |
+| Rank | 1 | 2 | 3 |
+| Verdict | ACCEPTED | REJECTED | REJECTED |
+
+Ranking verdicts:
+- **C1_2dbl_s1.8_UA1000**: ACCEPTED - selected: feasible; external gas 0.0043 GWh, emissions 9011 t, grid import 12.39 GWh, 2 doublets
+- **C2_3dbl_s1.8_UA1000**: REJECTED - extra doublet not justified vs C1_2dbl_s1.8_UA1000: external gas +0.0%, emissions -0.2% (extra doublet needs >= 5% on either)
+- **C3_2dbl_s1.0_UA250**: REJECTED - same doublet count as C1_2dbl_s1.8_UA1000 but ranks lower: external gas 13.4522 vs 0.0043 GWh, emissions 10295 vs 9011 t, grid import 11.73 vs 12.39 GWh

@@ -1,0 +1,50 @@
+{
+  "_description": "Daily (365-day) model settings and design candidates for run_candidates.py. The brine chain (producer, separator, filters, HEX, injector) comes from doublet_challenge.json and is run in GEMINI; everything downstream is the setpoint energy-balance model in daily_model.py.",
+  "_provenance": {
+    "esp_options.*.flow_scale": "ASSUMED pump size: HC27000 curve stretched along the flow axis (flow x s, power x s, efficiency shape unchanged). s = 1.0 is the GEMINI example pump.",
+    "esp_options.s1.8.no_stages": "ASSUMED 24 stages: reaches 300 m3/h at ~63 Hz (332 m3/h at 70 Hz); 20 stages would need ~69 Hz.",
+    "esp_options.s1.0.no_stages": "GEMINI example (10 stages); max ~176 m3/h at 70 Hz.",
+    "heat_pump.eta_lorenz / cop_cap": "ASSUMED Lorenz efficiency 0.45 with COP cap 6.0 (base case); sink out 100 C (OFFICIAL supply). Sensitivity: eta 0.5, no cap (GEMINI HeatpumpBasic default).",
+    "heat_pump.mode / COP_0": "GEMINI HeatpumpBasic defaults (COP_0 only used by its own optimizer in the cross-check).",
+    "absorption_chiller.cop_th": "ASSUMED 0.7 (user decision 3).",
+    "absorption_chiller.min_drive_inlet_C": "ASSUMED 75 C, single-effect LiBr; the chiller sits at the hot end of the brine (after filter_a, before the HEX).",
+    "absorption_chiller.min_drive_outlet_C": "ASSUMED 70 C drive-water outlet (typical single-effect hot-water glide ~80/70 C); limits how much drive heat the brine can give.",
+    "chp": "Produced gas goes to the GEMINI CHP model first (efficiency 0.8 from doublet_challenge.json, fixed 1/3 electric, 2/3 heat); its heat feeds the 100 C top-up stage, so the heat pump only covers the lift CHP heat cannot. Remaining produced gas -> boiler; flared only if its heat cannot be used.",
+    "electricity_export_credit": "ASSUMED none: CHP electricity offsets plant load; any export earns no emission credit.",
+    "ranking.extra_doublet_min_improvement": "User decision: an extra doublet is accepted only if it improves external gas or emissions by >= 5%.",
+    "electric_chiller_cop": "ASSUMED 5.0 (user decision 3).",
+    "cooling_supply_return_C": "20 C OFFICIAL supply / 26 C ASSUMED return; the energy balance uses the MW demand directly.",
+    "external_gas.emission_factor_kg_per_GJ": "ASSUMED 56.6 kg CO2/GJ pipeline natural gas (GEMINI example value).",
+    "external_gas.lhv_MJ_per_Nm3": "ASSUMED 35.8 MJ/Nm3 (methane LHV), only used to report Nm3.",
+    "produced_gas_not_burned": "ASSUMED flared: its CO2 (combustion + 20% pass-through) is emitted whether it is burned in CHP/boiler or flared.",
+    "dispatch.flow_step_m3h": "ASSUMED 5 m3/h dispatch resolution.",
+    "dispatch.summer_window": "ASSUMED May-September; maintenance windows are placed in the lowest heat + cooling-drive need (H + C/COP_abs) inside it.",
+    "dispatch.maintenance_days_per_doublet": "330-day rule interpretation (pending organizer confirmation): 35 consecutive days per doublet, non-overlapping.",
+    "dispatch.heating_tolerance_K": "ASSUMED: geothermal (HEX + heat pump) counts as meeting heating when within 0.05 K of 100 C."
+  },
+  "esp_options": {
+    "s1.0": {"flow_scale": 1.0, "no_stages": 10},
+    "s1.8": {"flow_scale": 1.8, "no_stages": 24}
+  },
+  "heat_pump": {"mode": "lorenz", "eta_lorenz": 0.45, "COP_0": 3.0, "cop_cap": 6.0},
+  "absorption_chiller": {"cop_th": 0.7, "min_drive_inlet_C": 75.0, "min_drive_outlet_C": 70.0},
+  "electric_chiller_cop": 5.0,
+  "electricity_export_credit": false,
+  "ranking": {"extra_doublet_min_improvement": 0.05},
+  "sensitivities": [
+    {"name": "HP_eta0.5_nocap", "heat_pump": {"eta_lorenz": 0.5, "cop_cap": null}}
+  ],
+  "cooling_supply_return_C": [20, 26],
+  "external_gas": {"emission_factor_kg_per_GJ": 56.6, "lhv_MJ_per_Nm3": 35.8},
+  "dispatch": {
+    "flow_step_m3h": 5,
+    "summer_window": ["2027-05-01", "2027-09-30"],
+    "maintenance_days_per_doublet": 35,
+    "heating_tolerance_K": 0.05
+  },
+  "candidates": [
+    {"name": "C1_2dbl_s1.8_UA1000", "n_doublets": 2, "esp": "s1.8", "hex_ua_W_K": 1000000},
+    {"name": "C2_3dbl_s1.8_UA1000", "n_doublets": 3, "esp": "s1.8", "hex_ua_W_K": 1000000},
+    {"name": "C3_2dbl_s1.0_UA250", "n_doublets": 2, "esp": "s1.0", "hex_ua_W_K": 250000}
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "C1_2dbl_s1.8_UA1000": {
+    "status": "ACCEPTED",
+    "reason": "selected: feasible; external gas 0.0039 GWh, emissions 8655 t, grid import 11.10 GWh, 2 doublets",
+    "rank": 1
+  },
+  "C2_3dbl_s1.8_UA1000": {
+    "status": "REJECTED",
+    "reason": "extra doublet not justified vs C1_2dbl_s1.8_UA1000: external gas +0.0%, emissions -0.2% (extra doublet needs >= 5% on either)",
+    "rank": 2
+  },
+  "C3_2dbl_s1.0_UA250": {
+    "status": "REJECTED",
+    "reason": "same doublet count as C1_2dbl_s1.8_UA1000 but ranks lower: external gas 14.1894 vs 0.0039 GWh, emissions 10047 vs 8655 t, grid import 10.35 vs 11.10 GWh",
+    "rank": 3
+  }
+}

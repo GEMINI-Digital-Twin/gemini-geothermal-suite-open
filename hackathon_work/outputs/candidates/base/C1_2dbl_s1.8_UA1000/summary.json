@@ -1,0 +1,118 @@
+{
+  "candidate": {
+    "name": "C1_2dbl_s1.8_UA1000",
+    "n_doublets": 2,
+    "esp": "s1.8",
+    "hex_ua_W_K": 1000000
+  },
+  "heat_pump": {
+    "mode": "lorenz",
+    "eta_lorenz": 0.45,
+    "COP_0": 3.0,
+    "cop_cap": 6.0
+  },
+  "esp": {
+    "flow_scale": 1.8,
+    "no_stages": 24
+  },
+  "esp_max_flow_m3h": 300,
+  "maintenance_windows": [
+    "2027-05-05..2027-06-08",
+    "2027-08-25..2027-09-28"
+  ],
+  "heating_demand_GWh": 111.66767999999986,
+  "heat_hex_GWh": 45.66646995721171,
+  "heat_hp_GWh": 54.581943707502916,
+  "heat_chp_GWh": 11.415812369027044,
+  "heat_boiler_produced_gas_GWh": 0.0,
+  "heat_boiler_external_gas_GWh": 0.003453966258435305,
+  "heat_unmet_GWh": 5.945563316345213e-15,
+  "geothermal_heat_share": 0.8977388413972132,
+  "cooling_demand_GWh": 23.742528000000014,
+  "cool_absorption_GWh": 21.23881744891036,
+  "cool_electric_GWh": 2.503710551089661,
+  "cool_unmet_GWh": 0.0,
+  "el_load_GWh": 18.09966048770864,
+  "el_esp_GWh": 6.509343080302594,
+  "el_injector_GWh": 0.013178437443302677,
+  "el_hp_GWh": 11.076396859744806,
+  "el_chiller_GWh": 0.5007421102179324,
+  "el_chp_GWh": 5.707906184513522,
+  "grid_import_GWh": 12.391754303195121,
+  "grid_export_GWh": 0.0,
+  "produced_gas_fuel_GWh": 21.430694804712243,
+  "produced_gas_chp_GWh": 21.40464819192573,
+  "produced_gas_boiler_GWh": 0.0,
+  "produced_gas_flared_GWh": 0.02604661278649409,
+  "external_gas_fuel_GWh": 0.004317457823044109,
+  "external_gas_Mm3": 0.0004341577699150513,
+  "emissions_t": 9010.93040513628,
+  "emissions_produced_gas_t": 5292.5243889717185,
+  "emissions_external_gas_t": 0.879725206023472,
+  "emissions_electricity_t": 3717.526290958539,
+  "capacity_MW": {
+    "heat_pump_th": 15.190630023252076,
+    "absorption_chiller_cool": 7.560042279657842,
+    "electric_chiller_cool": 3.627978860171079,
+    "chp_th": 2.0366542933316913,
+    "chp_el": 1.0183271466658457,
+    "boiler_th": 0.028730749454495032,
+    "external_gas_fuel": 0.03591343681811879
+  },
+  "max_brine_dT_K": 40.00000000000027,
+  "flow_min_when_on_m3h": 155.00000002488392,
+  "flow_max_m3h": 299.999999999758,
+  "doublet_days_active": 581,
+  "days_geothermal_meets_need": 276,
+  "hp_seasonal_COP": 4.927770681986963,
+  "hp_days": 345,
+  "hp_days_capped": 117,
+  "hp_days_heatpumpbasic_checked": 228,
+  "hp_days_heatpumpbasic_agrees": 228,
+  "days_failing_daily_checks": 0,
+  "failing_checks": [],
+  "annual_checks": [
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_1",
+      "status": "PASS",
+      "value": 330,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-05-05..2027-06-08 (35 days), operated 330 days"
+    },
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_2",
+      "status": "PASS",
+      "value": 251,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-08-25..2027-09-28 (35 days), operated 251 days"
+    },
+    {
+      "check": "never_all_off",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) with every doublet in maintenance"
+    },
+    {
+      "check": "daily_constraints",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) failing a daily check"
+    }
+  ],
+  "feasible": true,
+  "case": "base",
+  "run_utc": "2026-11-02T23:45:03.212718+00:00",
+  "git_commit": "d86e8bbcd128f1217eefa19d34c6b117039df74d",
+  "runtime_s": 0.8402719497680664,
+  "ranking": {
+    "status": "ACCEPTED",
+    "reason": "selected: feasible; external gas 0.0043 GWh, emissions 9011 t, grid import 12.39 GWh, 2 doublets",
+    "rank": 1
+  }
+}

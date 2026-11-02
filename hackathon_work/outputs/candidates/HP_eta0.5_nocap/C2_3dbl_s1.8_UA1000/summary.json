@@ -1,0 +1,127 @@
+{
+  "candidate": {
+    "name": "C2_3dbl_s1.8_UA1000",
+    "n_doublets": 3,
+    "esp": "s1.8",
+    "hex_ua_W_K": 1000000
+  },
+  "heat_pump": {
+    "mode": "lorenz",
+    "eta_lorenz": 0.5,
+    "COP_0": 3.0,
+    "cop_cap": null
+  },
+  "esp": {
+    "flow_scale": 1.8,
+    "no_stages": 24
+  },
+  "esp_max_flow_m3h": 300,
+  "maintenance_windows": [
+    "2027-05-05..2027-06-08",
+    "2027-07-21..2027-08-24",
+    "2027-08-25..2027-09-28"
+  ],
+  "heating_demand_GWh": 111.66767999999986,
+  "heat_hex_GWh": 46.014834548300335,
+  "heat_hp_GWh": 53.55978818176051,
+  "heat_chp_GWh": 12.089972315230929,
+  "heat_boiler_produced_gas_GWh": 0.0,
+  "heat_boiler_external_gas_GWh": 0.0030849547082248364,
+  "heat_unmet_GWh": 5.800276994705197e-15,
+  "geothermal_heat_share": 0.8917049474840075,
+  "cooling_demand_GWh": 23.742528000000014,
+  "cool_absorption_GWh": 23.3572262648122,
+  "cool_electric_GWh": 0.38530173518781247,
+  "cool_unmet_GWh": 0.0,
+  "el_load_GWh": 16.131246863313798,
+  "el_esp_GWh": 6.389101068357639,
+  "el_injector_GWh": 0.014902153931146201,
+  "el_hp_GWh": 9.650183293987462,
+  "el_chiller_GWh": 0.0770603470375625,
+  "el_chp_GWh": 6.0449861576154635,
+  "grid_import_GWh": 10.093020161022153,
+  "grid_export_GWh": 0.006759455323791051,
+  "produced_gas_fuel_GWh": 22.8596623730848,
+  "produced_gas_chp_GWh": 22.668698091058005,
+  "produced_gas_boiler_GWh": 0.0,
+  "produced_gas_flared_GWh": 0.19096428202677118,
+  "external_gas_fuel_GWh": 0.003856193385281032,
+  "external_gas_Mm3": 0.0003877736365087077,
+  "emissions_t": 8674.114005927844,
+  "emissions_produced_gas_t": 5645.422219657001,
+  "emissions_external_gas_t": 0.7857379641848653,
+  "emissions_electricity_t": 3027.9060483066487,
+  "capacity_MW": {
+    "heat_pump_th": 15.190630023252076,
+    "absorption_chiller_cool": 10.0,
+    "electric_chiller_cool": 2.3569577203421583,
+    "chp_th": 2.3930687946118834,
+    "chp_el": 1.1965343973059415,
+    "boiler_th": 0.024837505944694624,
+    "external_gas_fuel": 0.03104688243086828
+  },
+  "max_brine_dT_K": 40.00000000202724,
+  "flow_min_when_on_m3h": 155.00000002488392,
+  "flow_max_m3h": 299.999999999758,
+  "doublet_days_active": 653,
+  "days_geothermal_meets_need": 347,
+  "hp_seasonal_COP": 5.550131696993868,
+  "hp_days": 344,
+  "hp_days_capped": 0,
+  "hp_days_heatpumpbasic_checked": 344,
+  "hp_days_heatpumpbasic_agrees": 238,
+  "days_failing_daily_checks": 0,
+  "failing_checks": [],
+  "annual_checks": [
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_1",
+      "status": "PASS",
+      "value": 330,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-05-05..2027-06-08 (35 days), operated 330 days"
+    },
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_2",
+      "status": "PASS",
+      "value": 244,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-07-21..2027-08-24 (35 days), operated 244 days"
+    },
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_3",
+      "status": "PASS",
+      "value": 79,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-08-25..2027-09-28 (35 days), operated 79 days"
+    },
+    {
+      "check": "never_all_off",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) with every doublet in maintenance"
+    },
+    {
+      "check": "daily_constraints",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) failing a daily check"
+    }
+  ],
+  "feasible": true,
+  "case": "HP_eta0.5_nocap",
+  "run_utc": "2026-11-02T23:45:08.407908+00:00",
+  "git_commit": "d86e8bbcd128f1217eefa19d34c6b117039df74d",
+  "runtime_s": 1.3444726467132568,
+  "ranking": {
+    "status": "REJECTED",
+    "reason": "extra doublet not justified vs C1_2dbl_s1.8_UA1000: external gas +0.0%, emissions -0.2% (extra doublet needs >= 5% on either)",
+    "rank": 2
+  }
+}
