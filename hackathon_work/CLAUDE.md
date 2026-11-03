@@ -156,6 +156,13 @@ Cascade per active doublet:
   claude_cli backend: bundled VS Code `claude.exe` if not on PATH (or $CLAUDE_CLI); `-p --output-format
   json --tools "" --no-session-persistence`, neutral cwd; outputs in `outputs/agent/claude_cli/`.
   `--retrace NOTE` rebuilds agent_trace.md from a saved decision_log.jsonl (no calls, no simulation).
+  `--interactive` (human in the loop, judges' test i): scenario A with the heating return removed; the agent
+  asks in the terminal (AGENT ASKED / USER ANSWERED, timestamped in decision_log.jsonl and agent_trace.md),
+  accepts only a number in 40–80 °C (ASSUMED plausible range, `ASKABLE_INPUTS`), re-asks otherwise, 'q' or
+  no stdin halts; the answer is written to `project_with_user_answers.json` and the design loop continues.
+  Outputs in `outputs/agent/interactive/`; the default run is unchanged and needs no input.
+- `make_dashboard.py`: reads existing outputs only → `dashboard/index.html` (self-contained, ECharts 5.5.1
+  vendored in `dashboard/vendor/`, Apache-2.0) + 300 dpi panel PNGs in `outputs/figures/` via headless Edge.
 
 ## Prioritized tasks
 1. [done] `projects/doublet_challenge.json` + run script with logged inputs/outputs.

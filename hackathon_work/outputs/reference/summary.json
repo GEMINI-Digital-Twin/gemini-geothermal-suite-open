@@ -16,30 +16,30 @@
   "emissions_t": 26706.11443199997,
   "candidates_vs_reference": {
     "C1_2dbl_s1.8_UA1000": {
-      "emissions_t": 9010.93040513628,
-      "emissions_reduction": 0.6625892385775466,
-      "external_gas_GWh": 0.004317457823044109,
-      "external_gas_reduction": 0.9999652028945103,
-      "grid_import_GWh": 12.391754303195121,
-      "grid_import_change": 1.6096113908331735,
+      "emissions_t": 8908.052249370818,
+      "emissions_reduction": 0.6664414708454572,
+      "external_gas_GWh": 0.001987292797905484,
+      "external_gas_reduction": 0.9999839831586175,
+      "grid_import_GWh": 12.013944280294352,
+      "grid_import_change": 1.530047406976701,
       "verdict": "ACCEPTED"
     },
     "C2_3dbl_s1.8_UA1000": {
-      "emissions_t": 9025.406784337198,
-      "emissions_reduction": 0.6620471762255793,
-      "external_gas_GWh": 0.004317457823043949,
-      "external_gas_reduction": 0.9999652028945103,
-      "grid_import_GWh": 11.374336668866512,
-      "grid_import_change": 1.3953507960202267,
+      "emissions_t": 8994.36366739989,
+      "emissions_reduction": 0.6632095735865415,
+      "external_gas_GWh": 0.001987292797905313,
+      "external_gas_reduction": 0.9999839831586175,
+      "grid_import_GWh": 11.13852592185367,
+      "grid_import_change": 1.3456908046720346,
       "verdict": "REJECTED"
     },
     "C3_2dbl_s1.0_UA250": {
-      "emissions_t": 10294.798398667015,
-      "emissions_reduction": 0.614515304168265,
-      "external_gas_GWh": 13.452187987683285,
-      "external_gas_reduction": 0.8915803642655156,
-      "grid_import_GWh": 11.73230829182097,
-      "grid_import_change": 1.4707369602388092,
+      "emissions_t": 9559.162393224342,
+      "emissions_reduction": 0.6420609064053773,
+      "external_gas_GWh": 7.498121357698847,
+      "external_gas_reduction": 0.9395679285006282,
+      "grid_import_GWh": 12.371686843644174,
+      "grid_import_change": 1.6053853329443615,
       "verdict": "REJECTED"
     }
   }

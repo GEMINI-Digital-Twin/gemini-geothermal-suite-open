@@ -1,0 +1,141 @@
+{
+  "candidate": {
+    "name": "n2_q300_s1.8_ua1000_z3250",
+    "n_doublets": 2,
+    "flow_cap_m3h": 300,
+    "esp": "s1.8",
+    "hex_ua_W_K": 1000000.0,
+    "depth_m": 3250
+  },
+  "heat_pump": {
+    "mode": "lorenz",
+    "eta_lorenz": 0.45,
+    "COP_0": 3.0,
+    "cop_cap": 6.0
+  },
+  "esp": {
+    "flow_scale": 1.8,
+    "no_stages": 24
+  },
+  "esp_max_flow_m3h": 300,
+  "esp_setting_depth_m": 700,
+  "esp_intake_at_max_flow_bar": 30.881522156318212,
+  "tubing_velocity_at_max_flow_m_s": 3.348797354961397,
+  "flow_cap_m3h": 300,
+  "depth_m": 3250,
+  "reservoir_temperature_C": 109.5,
+  "reservoir_pressure_bar": 325.78225,
+  "drilled_m": 13000,
+  "maintenance_windows": [
+    "2027-05-05..2027-06-08",
+    "2027-08-25..2027-09-28"
+  ],
+  "heating_demand_GWh": 111.66767999999986,
+  "heat_hex_GWh": 90.32205952466923,
+  "heat_hp_GWh": 11.416318182077662,
+  "heat_chp_GWh": 9.926245688356243,
+  "heat_boiler_produced_gas_GWh": 0.0,
+  "heat_boiler_external_gas_GWh": 0.003056604896825486,
+  "heat_unmet_GWh": 7.163733243942255e-15,
+  "geothermal_heat_share": 0.9110816818863525,
+  "cooling_demand_GWh": 23.742528000000014,
+  "cool_absorption_GWh": 23.742528000000014,
+  "cool_electric_GWh": 0.0,
+  "cool_unmet_GWh": 0.0,
+  "el_load_GWh": 6.720117999457501,
+  "el_esp_GWh": 4.111116647344034,
+  "el_injector_GWh": 0.660350403899206,
+  "el_hp_GWh": 1.948650948214271,
+  "el_chiller_GWh": 0.0,
+  "el_chp_GWh": 4.963122844178121,
+  "grid_import_GWh": 1.8358067238176385,
+  "grid_export_GWh": 0.07881156853826439,
+  "produced_gas_fuel_GWh": 18.61171066566799,
+  "produced_gas_chp_GWh": 18.611710665667985,
+  "produced_gas_boiler_GWh": 0.0,
+  "produced_gas_flared_GWh": 9.996219453646856e-16,
+  "external_gas_fuel_GWh": 0.0038207561210318497,
+  "external_gas_Mm3": 0.0003842101127294598,
+  "emissions_t": 5147.8686004058745,
+  "emissions_produced_gas_t": 4596.348065993362,
+  "emissions_external_gas_t": 0.778517267221451,
+  "emissions_electricity_t": 550.7420171452916,
+  "capacity_MW": {
+    "heat_pump_th": 3.1689089741995984,
+    "absorption_chiller_cool": 10.0,
+    "electric_chiller_cool": 0.0,
+    "chp_th": 2.0366542933455962,
+    "chp_el": 1.018327146672798,
+    "boiler_th": 0.030313101700389058,
+    "external_gas_fuel": 0.03789137712548633
+  },
+  "max_brine_dT_K": 39.9999999999995,
+  "flow_min_when_on_m3h": 154.9999981714968,
+  "flow_max_m3h": 300.0000000018063,
+  "doublet_days_active": 544,
+  "days_geothermal_meets_need": 365,
+  "days_hex_bypass": 0,
+  "hp_seasonal_COP": 5.858575232542026,
+  "hp_days": 365,
+  "hp_days_capped": 191,
+  "hp_days_heatpumpbasic_checked": 174,
+  "hp_days_heatpumpbasic_agrees": 0,
+  "days_failing_daily_checks": 0,
+  "failing_checks": [],
+  "annual_checks": [
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_1",
+      "status": "PASS",
+      "value": 330,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-05-05..2027-06-08 (35 days), operated 330 days"
+    },
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_2",
+      "status": "PASS",
+      "value": 214,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-08-25..2027-09-28 (35 days), operated 214 days"
+    },
+    {
+      "check": "never_all_off",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) with every doublet in maintenance"
+    },
+    {
+      "check": "daily_constraints",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) failing a daily check"
+    },
+    {
+      "check": "esp_intake_pressure",
+      "scope": "producer_well",
+      "status": "PASS",
+      "value": 30.881522156318212,
+      "limit": ">= 30 bar at 300 m3/h",
+      "reason": "ESP set at 700 m (deepest allowed 3150 m): intake 30.88 bar"
+    },
+    {
+      "check": "tubing_velocity",
+      "scope": "producer_well + injector_well",
+      "status": "PASS",
+      "value": 3.348797354961397,
+      "limit": "<= 4 m/s",
+      "reason": "300 m3/h in ID 0.178 m: 3.35 m/s"
+    }
+  ],
+  "feasible": true,
+  "ranking": {
+    "status": "ACCEPTED",
+    "reason": "selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled",
+    "rank": 1
+  }
+}

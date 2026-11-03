@@ -29,6 +29,7 @@ decision_log.jsonl (machine-readable) and agent_trace.md (readable, for the repo
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import math
@@ -56,6 +57,16 @@ FLOW_ROUNDING_M3H = 50
 HEX_APPROACH_ESTIMATE_K = 5.0  # ASSUMED, only for the direct-supply depth estimate in the temperature assessment
 ESP_INTAKE_MARGIN_BAR = 5.0    # ASSUMED margin of ESP intake pressure above the brine vapour pressure
 ESP_FREQ_MARGIN_HZ = 2.0
+
+# Inputs the interactive mode may ask the user for: plausible range (ASSUMED) and the
+# GEMINI boundary input that receives the answer.
+ASKABLE_INPUTS = {
+    "heating return temperature": {
+        "unit": "C", "min": 40.0, "max": 80.0, "component": "heat_exchanger", "key": "secondary_temperature_in",
+        "range_reason": "a district heating return for a 100 C supply is typically 40-80 C: below 40 C is atypical for a 100 C "
+                        "network, above 80 C leaves less than 20 K for the district water and the HEX/heat-pump lift",
+    },
+}
 
 
 def design_space(settings: dict) -> dict:
@@ -289,11 +300,13 @@ BACKENDS = {"rules": RulesBackend, "claude_cli": ClaudeCliBackend}
 
 # --- agent -------------------------------------------------------------------------
 class DesignAgent:
-    def __init__(self, backend, log: DecisionLog, out_dir: Path, budget: int = 14):
+    def __init__(self, backend, log: DecisionLog, out_dir: Path, budget: int = 14, interactive: bool = False):
         self.backend = backend
         self.log = log
         self.out_dir = out_dir
         self.budget = budget
+        self.interactive = interactive
+        self.project_path = PROJECT_PATH  # replaced by the completed project once the user answers
         self.settings = load_json(CANDIDATES_PATH)
         self.space = design_space(self.settings)
         self.limits = load_limits()
@@ -360,6 +373,65 @@ class DesignAgent:
                        rationale="All required inputs present." if not missing else
                        f"{len(missing)} required input(s) missing: {', '.join(m['input'] for m in missing)}.")
         return missing
+
+    def project_key(self):
+        """Cache-key part for the project: None for the official project file, else its answered inputs."""
+        if self.project_path == PROJECT_PATH:
+            return None
+        return hashlib.sha1(self.project_path.read_bytes()).hexdigest()[:16]
+
+    # 2b. human in the loop (--interactive): ask for missing inputs instead of halting
+    def ask_user(self, scenario, missing, project) -> bool:
+        """Ask in the terminal for each missing askable input, validate it, write the completed
+        project file and use it for every evaluation. Returns False if nothing was answered."""
+        answered = False
+        for m in missing:
+            spec = ASKABLE_INPUTS.get(m["input"])
+            if spec is None:
+                continue
+            question = (f"I cannot size the plant without the {m['input']}. It is needed because it {m['needed_for']}. "
+                        f"It is not in the organizers' inputs and I will not invent it. "
+                        f"Please type a value in {spec['unit']} (plausible range {spec['min']:g}-{spec['max']:g} {spec['unit']}), or 'q' to stop.")
+            attempt = 0
+            while True:
+                attempt += 1
+                self.log.event(scenario, "ask", "AGENT ASKED", rationale=question,
+                               data={"input": m["input"], "attempt": attempt, "range": [spec["min"], spec["max"]], "unit": spec["unit"]})
+                print(f"\nAGENT ASKED: {question}", flush=True)
+                try:
+                    raw = input(f"USER ANSWER ({m['input']}, {spec['unit']}) > ").strip()
+                except EOFError:
+                    raw = "q"
+                value, reason = self.validate_answer(raw, spec)
+                if raw.lower() in ("q", "quit", "stop"):
+                    self.log.event(scenario, "answer", "USER ANSWERED", rationale=f"'{raw}': the user stopped the run; the agent halts without the value.",
+                                   data={"input": m["input"], "raw": raw, "valid": False, "stopped": True})
+                    print("AGENT: stopping without the value, as asked.", flush=True)
+                    return answered
+                self.log.event(scenario, "answer", "USER ANSWERED", rationale=f"'{raw}': " + (f"accepted, {value:g} {spec['unit']}." if value is not None else f"rejected - {reason}"),
+                               data={"input": m["input"], "raw": raw, "valid": value is not None, "value": value, "reason": reason})
+                if value is not None:
+                    print(f"AGENT: thank you - using {m['input']} = {value:g} {spec['unit']} and continuing the design loop.", flush=True)
+                    break
+                print(f"AGENT: I cannot use '{raw}': {reason}. Let me ask again.", flush=True)
+            entry = next(b for b in load_json(PROJECT_PATH)["boundary_inputs"] if b["component"] == spec["component"] and b["key"] == spec["key"])
+            project["boundary_inputs"].append({**entry, "value": value, "_source": f"USER ANSWER (interactive, {datetime.now(timezone.utc).isoformat()})"})
+            answered = True
+        if answered:
+            self.project_path = self.out_dir / "project_with_user_answers.json"
+            self.project_path.write_text(json.dumps(project, indent=2), encoding="utf-8")
+        return answered
+
+    @staticmethod
+    def validate_answer(raw: str, spec: dict):
+        """(value, None) for a number inside the plausible range, else (None, reason)."""
+        match = re.fullmatch(r"\s*([-+]?\d+(?:[.,]\d+)?)\s*(?:°?\s*c)?\s*", raw, re.IGNORECASE)
+        if not match:
+            return None, f"it is not a number (expected e.g. 60 for 60 {spec['unit']})"
+        value = float(match.group(1).replace(",", "."))
+        if not spec["min"] <= value <= spec["max"]:
+            return None, f"{value:g} {spec['unit']} is outside the plausible {spec['min']:g}-{spec['max']:g} {spec['unit']} range ({spec['range_reason']})"
+        return value, None
 
     # 3. temperature assessment (judges' test iii)
     def assess_temperature(self, scenario, inputs) -> dict:
@@ -471,10 +543,11 @@ class DesignAgent:
 
     # 7. evaluate (cached)
     def evaluate(self, candidate: dict) -> dict:
-        key = hashlib.sha1(json.dumps({"candidate": candidate, "settings": self.settings}, sort_keys=True, default=str).encode()).hexdigest()[:16]
+        key = hashlib.sha1(json.dumps({"candidate": candidate, "settings": self.settings, "project": self.project_key()},
+                                      sort_keys=True, default=str).encode()).hexdigest()[:16]
         cache_path = CACHE / f"{key}.json"
         start = time.perf_counter()
-        plant = Plant({"name": candidate_id(candidate), **candidate}, self.settings)
+        plant = Plant({"name": candidate_id(candidate), **candidate}, self.settings, self.project_path)
         json_check = self.build_and_validate_json(candidate, plant)
         checks = self.well_checks(plant)
         cached = cache_path.exists()
@@ -495,6 +568,8 @@ class DesignAgent:
         self.log.event(scenario, "start", f"Scenario {scenario}: start", data={"backend": self.backend.name, "budget": self.budget, "design_space": self.space})
         inputs = self.interpret_inputs(scenario, project, challenge)
         missing = self.check_required_inputs(scenario, project, challenge)
+        if missing and self.interactive and self.ask_user(scenario, missing, project):
+            missing = self.check_required_inputs(scenario, project, challenge)
         if missing:
             question = (f"I cannot size the plant without: {', '.join(m['input'] for m in missing)}. "
                         + " ".join(f"'{m['input']}' is needed because it {m['needed_for']}." for m in missing)
@@ -601,6 +676,7 @@ class DesignAgent:
             self.log.event(scenario, "final", "No feasible design found", rationale="Budget or design space exhausted without a feasible candidate.")
             return {"status": "no_feasible_design", "history": history, "runtime_s": runtime}
         final = self.conclude(scenario, history, incumbent, runtime)
+        self.write_final_design(incumbent)
         return {"status": "selected", "pick": incumbent, "history": history, "runtime_s": runtime, **final}
 
     def conclude(self, scenario, history, incumbent, runtime):
@@ -631,6 +707,20 @@ class DesignAgent:
                              "capacity_MW": s["capacity_MW"], "timing": timing, "marginal_cases": marginal_cases}, rationale=text)
         return {"reference": ref, "emissions_reduction": reduction, "conclusion": text, "timing": timing, "marginal_cases": marginal_cases}
 
+    def write_final_design(self, incumbent: dict):
+        """Daily rows + summary of the pick in <out_dir>/final_design/ (the annual cache keeps summaries only)."""
+        folder = self.out_dir / "final_design"
+        folder.mkdir(parents=True, exist_ok=True)
+        candidate = {"name": candidate_id(incumbent["candidate"]), **incumbent["candidate"]}
+        plant = Plant(candidate, self.settings, self.project_path)
+        result = plant.simulate_year(self.heating, self.cooling)
+        with (folder / "daily.csv").open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=list(result["rows"][0]))
+            writer.writeheader()
+            writer.writerows(result["rows"])
+        summary = dict(annual_summary(candidate, plant, result), ranking=incumbent["verdict"])
+        (folder / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
+
     def marginal_case(self, h: dict, history: list[dict]) -> dict:
         """A candidate rejected only because its step improvement is within the tie tolerance of the threshold."""
         c = h["candidate"]
@@ -656,10 +746,12 @@ class DesignAgent:
 
 
 # --- trace -------------------------------------------------------------------------------
-def judges_tests(entries: list[dict]) -> list[dict]:
+def judges_tests(entries: list[dict], design_scenario: str = "B_design") -> list[dict]:
     a = [e for e in entries if e["scenario"] == "A_missing_input"]
-    b = [e for e in entries if e["scenario"] == "B_design"]
+    b = [e for e in entries if e["scenario"] == design_scenario]
     halt = next((e for e in a if e["phase"] == "halt"), None)
+    asked = next((e for e in a if e["phase"] == "ask"), None)
+    answer = next((e for e in a if e["phase"] == "answer" and e["data"].get("valid")), None)
     rejected = next((e for e in b if e["phase"] == "validate" and any(v.get("check") == "flow_range" and v.get("value", 0) >= 350 for v in e["data"]["violations"])), None)
     revise_after = next((e for e in b if rejected and e["phase"] == "revise" and e["step"] == rejected["step"] + 1), None)
     temp = next((e for e in b if e["phase"] == "temperature_assessment"), None)
@@ -670,8 +762,12 @@ def judges_tests(entries: list[dict]) -> list[dict]:
     ranked_out = [e for e in b if e["phase"] == "propose" and "ranked out" in (e["rationale"] or "")]
     recovered = next((e for e in evals if failed and e["step"] > failed["step"] and e["data"]["feasible"]), None)
     return [
-        {"test": "(i) missing physical quantity -> stop and ask", "pass": halt is not None and "heating return temperature" in halt["data"]["missing"],
-         "evidence": f"step {halt['step']}: {halt['rationale']}" if halt else "no halt"},
+        {"test": "(i) missing physical quantity -> stop and ask",
+         "pass": (halt is not None and "heating return temperature" in halt["data"]["missing"])
+                 or (asked is not None and asked["data"]["input"] == "heating return temperature" and answer is not None),
+         "evidence": f"step {halt['step']}: {halt['rationale']}" if halt else
+                     f"step {asked['step']} AGENT ASKED: {asked['rationale']} -> step {answer['step']} USER ANSWERED {answer['rationale']}" if asked and answer
+                     else "no halt / question"},
         {"test": "(ii) >= 350 m3/h per doublet -> rejected with reason, revised", "pass": rejected is not None and revise_after is not None,
          "evidence": (f"step {rejected['step']}: {rejected['rationale']} -> step {revise_after['step']}: {revise_after['title']}") if rejected and revise_after else "not triggered"},
         {"test": "(iii) 87 C reservoir vs 100 C supply -> shortfall stated, deeper well vs surface upgrade decided",
@@ -714,17 +810,17 @@ def evaluation_table(entries, scenario="B_design") -> list[str]:
     return rows
 
 
-def write_trace(path, entries, backend, results, note=None):
-    lines = [f"# Design agent trace ({backend} backend)", "",
+def write_trace(path, entries, backend, results, note=None, design_scenario="B_design"):
+    lines = [f"# Design agent trace ({backend} backend{', interactive' if design_scenario != 'B_design' else ''})", "",
              f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC from `decision_log.jsonl` ({len(entries)} logged steps). "
              f"Rerun: `$env:PYTHONPATH=\"src\"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend {backend}`.", ""]
     if note:
         lines += [f"> **Note:** {note}", ""]
-    tests = judges_tests(entries)
+    tests = judges_tests(entries, design_scenario)
     lines += ["## Judges' agent-reasoning tests", "", "| Test | Result | Evidence |", "|---|---|---|"]
     lines += [f"| {t['test']} | {'PASS' if t['pass'] else 'FAIL'} | {t['evidence']} |" for t in tests]
-    b = results.get("B_design", {})
-    lines += ["", "## Evaluations (scenario B)", ""] + evaluation_table(entries)
+    b = results.get(design_scenario, {})
+    lines += ["", f"## Evaluations (scenario {design_scenario[0]})", ""] + evaluation_table(entries, design_scenario)
     if b.get("status") == "selected":
         t = b["timing"]
         lines += ["", "## Final pick", "", b["conclusion"], ""]
@@ -750,12 +846,16 @@ def write_trace(path, entries, backend, results, note=None):
                 u = c.get("usage") or {}
                 lines.append(f"| {i} | {c['purpose']} | {c['wall_s']:.1f} | {u.get('input_tokens', '-')} | {u.get('cache_read_input_tokens', '-')} | "
                              f"{u.get('output_tokens', '-')} | {c.get('total_cost_usd') if c.get('total_cost_usd') is not None else '-'} |")
-    scenario_titles = {"A_missing_input": "Scenario A: heating return temperature removed from the inputs",
+    scenario_titles = {"A_missing_input": "Scenario A: heating return temperature removed from the inputs"
+                                          + (" (interactive: the agent asks, the user answers, the design loop continues)" if design_scenario != "B_design" else ""),
                        "B_design": "Scenario B: complete inputs, design loop"}
     for scenario, title in scenario_titles.items():
         lines += ["", f"## {title}", ""]
         for e in (x for x in entries if x["scenario"] == scenario):
-            lines.append(f"**{e['step']}. [{e['phase']}] {e['title']}**")
+            if e["phase"] in ("ask", "answer"):
+                lines.append(f"**{e['step']}. {e['title']}** ({e['time_utc'][:19].replace('T', ' ')} UTC)")
+            else:
+                lines.append(f"**{e['step']}. [{e['phase']}] {e['title']}**")
             rationale = e["rationale"]
             if e["phase"] == "stop" and (model_reason := stop_reasoning(e)) and model_reason != rationale:
                 rationale = f"Backend's own stop reasoning: {model_reason}"
@@ -793,10 +893,15 @@ def main():
     parser.add_argument("--backend", choices=sorted(BACKENDS), default="rules")
     parser.add_argument("--budget", type=int, default=14, help="maximum annual evaluations in scenario B")
     parser.add_argument("--clear-cache", action="store_true", help="recompute every annual evaluation (honest timings)")
+    parser.add_argument("--interactive", action="store_true",
+                        help="human-in-the-loop demo: scenario A (heating return temperature removed); the agent asks in the terminal, "
+                             "validates the answer and continues the design loop with it (outputs in <out>/interactive/)")
     parser.add_argument("--retrace", metavar="NOTE", help="only rebuild agent_trace.md from the saved decision_log.jsonl, with this note")
     args = parser.parse_args()
 
     out_dir = AGENT_OUT if args.backend == "rules" else AGENT_OUT / args.backend
+    if args.interactive:
+        out_dir = out_dir / "interactive"
     if args.retrace:
         retrace(out_dir, args.backend, args.retrace)
         return
@@ -810,12 +915,14 @@ def main():
     project_missing = load_json(PROJECT_PATH)
     project_missing["boundary_inputs"] = [b for b in project_missing["boundary_inputs"]
                                           if not (b["component"] == "heat_exchanger" and b["key"] == "secondary_temperature_in")]
-    results["A_missing_input"] = DesignAgent(backend, log, out_dir, args.budget).run("A_missing_input", project_missing)
-    results["B_design"] = DesignAgent(backend, log, out_dir, args.budget).run("B_design")
+    design_scenario = "A_missing_input" if args.interactive else "B_design"
+    results["A_missing_input"] = DesignAgent(backend, log, out_dir, args.budget, interactive=args.interactive).run("A_missing_input", project_missing)
+    if not args.interactive:
+        results["B_design"] = DesignAgent(backend, log, out_dir, args.budget).run("B_design")
     total = time.perf_counter() - start
 
-    tests = write_trace(out_dir / "agent_trace.md", log.entries, backend.name, results)
-    b = results["B_design"]
+    tests = write_trace(out_dir / "agent_trace.md", log.entries, backend.name, results, design_scenario=design_scenario)
+    b = results[design_scenario]
     summary = {"backend": backend.name, "total_runtime_s": total, "status": b["status"], "timing": b.get("timing"),
                "pick": b["pick"]["candidate"] if b.get("pick") else None, "pick_summary": {k: b["pick"]["summary"][k] for k in
                ("external_gas_fuel_GWh", "emissions_t", "grid_import_GWh", "drilled_m", "reservoir_temperature_C")} if b.get("pick") else None,
@@ -823,9 +930,10 @@ def main():
                "marginal_cases": b.get("marginal_cases", []), "judges_tests": tests, "backend_calls": backend.calls}
     (out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
 
-    print(f"[{backend.name}] Scenario A: {results['A_missing_input']['status']}")
-    print(f"[{backend.name}] Scenario B: {b['status']}, {len(b.get('history', []))} annual evaluations, total runtime {total:.1f} s")
-    print("\n".join(evaluation_table(log.entries)))
+    if not args.interactive:
+        print(f"[{backend.name}] Scenario A: {results['A_missing_input']['status']}")
+    print(f"[{backend.name}] Scenario {design_scenario[0]}: {b['status']}, {len(b.get('history', []))} annual evaluations, total runtime {total:.1f} s")
+    print("\n".join(evaluation_table(log.entries, design_scenario)))
     if b.get("status") == "selected":
         print(f"FINAL: {b['conclusion']}")
         print(f"TIMING: {json.dumps(b['timing'])}")
