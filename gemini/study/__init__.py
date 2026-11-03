@@ -2,7 +2,7 @@
 
 from .calibrate import CalibrationResult, calibrate
 from .kinds import kinds
-from .minimize import minimize
+from .minimize import Search, minimize
 from .result import Run, StudyResult
 from .sample import Sample, sample
 from .sensitivity import Tornado, sensitivity
@@ -14,6 +14,7 @@ __all__ = [
     "kinds",
     "CalibrationResult",
     "minimize",
+    "Search",
     "sample",
     "Sample",
     "size",

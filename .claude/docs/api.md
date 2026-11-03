@@ -417,9 +417,11 @@ error.
 | `gm.evaluate.co2(plant, case, results, on_error="raise")` | real: stepwise; a factor is needed only when its source is non-zero |
 | `gm.evaluate.npv(plant, case, results, on_error="raise")` | real |
 | `gm.evaluate.payback(plant, case, results, on_error="raise")` | real |
+| `gm.evaluate.missing(plant, case, results)` | real: every value of the economics the costs (`capex` to `payback`) and `co2` of a run need and the case lacks, in one call, as `Issue`s of kind `missing` and code `missing_assumption` (the shape of `gm.case.missing`), in the order the costs ask; an empty list when every cost can be evaluated. Each cost raises its first missing value; this asks each in turn with a placeholder for what it found, on a copy of the case | real |
 | `gm.evaluate.capacities(plant, case, results)` | real: `{path: {kind, capacity, peak, share}}`, each a `Value` but `kind`, for the equipment that has a rating |
 | `gm.evaluate.daily_coverage(plant, case, results)` | real: `{service: [day, ...]}` for `heating` and `cooling` (a service the plant has no consumer for is left out), the days in time order, each `{date, source, demand, geothermal, backup, short, failed_steps}`; `date` is a UTC day `YYYY-MM-DD` (the time of a case is UTC); the energies are `Quantity` values in the display unit of energy (MWh, `gm.units.display`) and `failed_steps` a count (`-`); `to_plain` gives the JSON; `demand = geothermal + backup + short`; `backup` is what the units of the roles `boiler` and `chp` (`gm.plants.roles()`) gave their water, never a class list, `geothermal` the rest of the useful heat, `short` the unmet demand (no role is a backup of cooling, so its `backup` is 0); `failed_steps` counts the ticks of the day that failed, were skipped or show no demand: they add no energy, as in `totals`, but the day is `short`; `source` (`geothermal`, `backup` or `short`, the colour of the day) is `short` with a failed step or an unmet demand above a millionth of the demand, else `backup` with a backup above that. The sums over the days are `heat_useful` (`cold_useful`) of `totals`, and `heating_coverage` (`cooling_coverage`) is their ratio to the sum of `demand` |
 | `gm.study.kinds()` | real: `[{kind, use, title, description, settings}]` for `run`, `minimize`, `sample`, `sensitivity` (`use` `"method"`) and `size` (`use` `"prepare"`); plain words; `settings` the JSON Schema of the keys the kind reads beyond `cases` and `plants` (`objective`, `evaluations`, `seed` for `minimize`; `metrics`, `samples`, `seed` for `sample`; `metrics` for `sensitivity`), with `required`, titles and the choices of metrics | real |
+| `gm.study.Search` | real: what `gm.study.minimize` returns, the dict `{best, feasible, history, evaluations}` it always was, with `to_dict()`: plain JSON in display units, `best` without its plant (`plant` is `None`) and every trial of `history` with its `parameters` and `violation`; the `found` of a minimize run in `StudyResult.to_dict` | real |
 | `gm.case.missing(case)` | real: `Issue`s of kind `missing` for what a `Case` or a partial case dict lacks: header, `time` keys, the required leaves of the sections given, the header of an inline economics, the keys of each requirement; `quantity` and `accepted` units where the value has a dimension; never raises. It takes no plant: what a plant needs from the case is `gm.check(plant, case)` | real |
 | `units="display"` | real: on `Results.get/summary/to_frame/to_dict/energy_report`, `Comparison.to_dict` and (keyword-only) the cost functions, the one table `gm.units.display`; a map by quantity still works; `"si"` and the default are unchanged | real |
 | `gm.evaluate.metrics()` | real: the metrics a table of results shows, `[{name, quantity, unit, title, objective}]` in a fixed order (`title` a readable label, `objective` whether `gm.study.minimize` may target it: costs and CO2), `quantity` the key of `gm.units.display.DISPLAY_UNITS` and `unit` the display unit (`yr` for the durations of years); plain JSON, a new list on each call. The names are the keys of the private table the backend read before |
@@ -774,12 +776,14 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.evaluate.co2` | `(plant, case, results, on_error='raise')` | function |
 | `gm.evaluate.npv` | `(plant, case, results, on_error='raise', *, units='si')` | function |
 | `gm.evaluate.payback` | `(plant, case, results, on_error='raise', *, units='si')` | function |
+| `gm.evaluate.missing` | `(plant, case, results)` | function |
 
 ### gm.study
 
 | Name | Signature | Kind |
 | --- | --- | --- |
 | `gm.study.minimize` | `(plant, case, objective, evaluations, seed, *, plan=None, on_progress=None)` | function |
+| `gm.study.Search` |  | class |
 | `gm.study.sample` | `(plant, case, metrics, samples, seed, *, plan=None, on_progress=None)` | function |
 | `gm.study.Sample` |  | class |
 | `gm.study.size` | `(plant, case)` | function |
@@ -914,6 +918,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.5.9 | 2026-11-03 | **Additions and a fix, no break** (the frozen file unchanged). `gm.evaluate.missing(plant, case, results)` lists every value of the economics the costs need at once; `gm.study.Search` is the dict `minimize` returns, with `to_dict()` holding the history; `gm.plants.capabilities()[class]["ranges"]` lists the leaves of every doublet the class may have (it listed `d0` only). |
 | 0.5.8 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). A trial takes about 14% less CPU; every table and number is the same as 0.5.7. |
 | 0.5.7 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). A study runs about a third faster; every number and the output of the examples are the same as 0.5.6. |
 | 0.5.6 | 2026-11-03 | **Fix, no API change** (the frozen file unchanged). `effectiveness_counterflow` and `logarithmic_mean` keep their digits near equal rates and near equal values, so the split of the heat no longer depends on the last bit of a calculation; the numbers of days with equal capacity rates in a counterflow exchanger change on purpose (LCTS of the sample plants by at most 0.15%; no rank or feasibility changes). |

@@ -496,6 +496,11 @@
     "results"
    ],
    "metrics": [],
+   "missing": [
+    "plant",
+    "case",
+    "results"
+   ],
    "npv": [
     "plant",
     "case",
@@ -838,6 +843,7 @@
    "CalibrationResult": "class",
    "Run": "class",
    "Sample": "class",
+   "Search": "class",
    "Study": "class",
    "StudyResult": "class",
    "Tornado": "class",
@@ -1019,5 +1025,5 @@
   "study",
   "units"
  ],
- "version": "0.5.8"
+ "version": "0.5.9"
 }
