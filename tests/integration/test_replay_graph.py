@@ -1,4 +1,4 @@
-"""The doublet heat replay on arrays equals the replay row by row exactly."""
+"""The doublet heat replay on arrays equals the replay row by row, to the backend tolerance."""
 
 import copy
 
@@ -7,7 +7,7 @@ import pytest
 
 import gemini as gm
 from tests.fixtures.designs import with_values
-from tests.fixtures.parity import BACKENDS
+from tests.fixtures.parity import BACKENDS, assert_frames_match
 
 
 def _replay(plant, dataset, backend):
@@ -16,16 +16,18 @@ def _replay(plant, dataset, backend):
 
 
 def test_doublet_heat_replay_is_identical_on_both_backends(shared_plant, fast_frame):
-    """Every column, dtype, skip count, error and summary entry is exact over one day."""
+    """Every column, dtype, skip count, error and summary entry agrees over one day.
+
+    The numbers agree to the backend tolerance: NumPy's kernels and ``math`` differ in the last bit
+    of ``log`` and ``pow`` on some CPUs. Dtypes and skips, which do not depend on it, are exact.
+    """
     dataset = gm.Dataset.from_frame(fast_frame.iloc[:96], time_column="time")
     engine, traced = _replay(copy.deepcopy(shared_plant), dataset, "numpy")
     _, plain = _replay(copy.deepcopy(shared_plant), dataset, "python")
-    pd.testing.assert_frame_equal(traced.to_frame(), plain.to_frame(), check_exact=True)
+    assert_frames_match(traced.to_frame(), plain.to_frame())
     assert traced.to_frame().dtypes.tolist() == plain.to_frame().dtypes.tolist()
     assert traced.skip_counts == plain.skip_counts and traced.errors() == plain.errors()
-    pd.testing.assert_frame_equal(
-        traced.to_frame(table="energy"), plain.to_frame(table="energy"), check_exact=True
-    )
+    assert_frames_match(traced.to_frame(table="energy"), plain.to_frame(table="energy"))
     assert all(reasons == [] for reasons in engine.graph_breaks.values())
 
 

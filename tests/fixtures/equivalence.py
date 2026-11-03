@@ -13,6 +13,7 @@ failing row that reaches the result.
 
 import dataclasses
 import math
+import re
 from collections.abc import Mapping
 
 import numpy as np
@@ -23,6 +24,9 @@ from gemini.modules.results import ModuleResult, Values
 from gemini.streams.flows import STREAM_FIELDS, Stream
 from gemini.streams.ports import Ports
 from tests.fixtures.parity import REFERENCE, RTOL, on_each_backend, others
+
+NUMBER = re.compile(r"(?<![\w.])-?\d+\.\d+(?:e[+-]?\d+)?")
+"""A number with a fraction in an error message, whose last digits depend on the NumPy kernels."""
 
 
 def flatten(value):
@@ -57,6 +61,11 @@ def assert_function_matches(function, rows, **fixed):
         assert_close(value, [row[name] for row in expected], f"{function.__name__}: {name}")
 
 
+def _rounded(message):
+    """Return an error message with its numbers to ten digits, what the kernels agree on."""
+    return NUMBER.sub(lambda found: f"{float(found.group()):.10g}", message)
+
+
 def assert_same_error(function, rows, error, **fixed):
     """Assert the first failing row raises the same ``error`` and message as the traced run."""
     with pytest.raises(error) as on_arrays:
@@ -65,7 +74,7 @@ def assert_same_error(function, rows, error, **fixed):
         try:
             function(*row, **fixed)
         except error as on_floats:
-            assert str(on_arrays.value) == str(on_floats)
+            assert _rounded(str(on_arrays.value)) == _rounded(str(on_floats))
             return
     pytest.fail(f"{function.__name__}: no row failed on Python floats")
 
