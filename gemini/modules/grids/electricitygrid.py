@@ -21,6 +21,9 @@ class ElectricityGrid(Module):
     reactive power, losses or demand charges.
     """
 
+    bypass = {}
+    """Removable: a connection point that goes when what it fed and what fed it go."""
+
     def __init__(self):
         """Declare the connection limits, both sides and the exchange."""
         super().__init__()

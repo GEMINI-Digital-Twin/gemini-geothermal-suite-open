@@ -1,9 +1,14 @@
-Valid structures: 16
-Simulations: 64, structures refused: 0
+Valid structures: 32
+Simulations: 64, structures refused: 19
 Front on LCTS and CO2:
-  heat_pump, absorption=off, adsorption=off, compression=on: 37.52 EUR/MWh, 11.53 kt CO2, feasible
-  heat_pump, absorption=off, adsorption=off, compression=on: 38.21 EUR/MWh, 10.93 kt CO2, feasible
-  heat_pump, absorption=off, adsorption=off, compression=on: 38.78 EUR/MWh, 10.84 kt CO2, feasible
-  heat_pump, absorption=off, adsorption=off, compression=on: 38.85 EUR/MWh, 10.83 kt CO2, feasible
+  heat_pump, boiler=on, cooling=on, absorption=off, adsorption=off, compression=on: 37.53 EUR/MWh, 11.30 kt CO2, feasible
+  heat_pump, boiler=on, cooling=on, absorption=off, adsorption=off, compression=on: 38.65 EUR/MWh, 10.86 kt CO2, feasible
+  heat_pump, boiler=on, cooling=on, absorption=off, adsorption=off, compression=on: 38.79 EUR/MWh, 10.83 kt CO2, feasible
+  heat_pump, boiler=on, cooling=on, absorption=off, adsorption=off, compression=on: 38.80 EUR/MWh, 10.83 kt CO2, feasible
+  heat_pump, boiler=on, cooling=on, absorption=off, adsorption=off, compression=on: 38.99 EUR/MWh, 10.81 kt CO2, feasible
+  heat_pump, boiler=on, cooling=on, absorption=off, adsorption=off, compression=on: 39.01 EUR/MWh, 10.81 kt CO2, feasible
+  heat_pump, boiler=on, cooling=off, absorption=off, adsorption=off, compression=off: 39.07 EUR/MWh, 10.65 kt CO2, feasible
+  heat_pump, boiler=on, cooling=off, absorption=off, adsorption=off, compression=off: 40.59 EUR/MWh, 10.18 kt CO2, feasible
+  heat_pump, boiler=on, cooling=off, absorption=off, adsorption=off, compression=off: 40.61 EUR/MWh, 10.18 kt CO2, feasible
 Best on LCTS:
-  heat_pump, absorption=off, adsorption=off, compression=on: 37.52 EUR/MWh, 11.53 kt CO2, feasible
+  heat_pump, boiler=on, cooling=on, absorption=off, adsorption=off, compression=on: 37.53 EUR/MWh, 11.30 kt CO2, feasible

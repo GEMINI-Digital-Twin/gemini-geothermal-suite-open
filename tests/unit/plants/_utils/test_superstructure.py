@@ -10,6 +10,7 @@ from gemini.errors import ValidationError
 from gemini.modules import Port
 from gemini.modules.module import Module
 from gemini.plants._utils import superstructure
+from gemini.plants._utils.plan import split_end
 from gemini.plants._utils.serialization import tree_params
 from gemini.streams.fluid import Fluid
 from gemini.streams.kinds import Direction, Flow, Level, Phase
@@ -117,13 +118,14 @@ def test_a_module_with_inlet_and_outlet_pairs_may_be_optional(kind):
     )
 
 
-@pytest.mark.parametrize("kind", ["Doublet", "Mixer", "Degasser", "Splitter", "ElectricityGrid"])
+@pytest.mark.parametrize("kind", ["Doublet", "Mixer", "Splitter", "ProductionWell", "Formation"])
 def test_a_module_without_a_pair_cannot_be_optional(kind):
-    """No ``<x>_in`` with a stream outlet ``<x>_out``: the bypass is ambiguous."""
+    """No ``<x>_in`` with a stream outlet ``<x>_out``: the bypass is ambiguous, and says how."""
     plant = gm.Plant()
     plant.add(kind, "m")
-    with raises(ValidationError, "invalid_design", match="bypass"):
+    with raises(ValidationError, "invalid_design", match="set_bypass") as caught:
         plant.set_optional("m")
+    assert "bypass = {inlet: outlet}" in str(caught.value)
     assert plant.optional == []
 
 
@@ -203,8 +205,9 @@ def test_an_optional_module_cannot_be_in_a_choice():
         plant.set_choice("trim", {"pump": ["x"], "none": []})
     with raises(ValidationError, "invalid_design"):
         plant.set_choice("x", {"valve": ["y"], "none": []})
+    plant.add("Mixer", "m")
     with raises(ValidationError, "invalid_design"):
-        plant.set_choice("trim", {"well": ["users"], "none": []})
+        plant.set_choice("trim", {"mix": ["m"], "none": []})
 
 
 def test_the_bypass_joins_a_chain_through_two_modules_off():
@@ -355,18 +358,23 @@ def test_a_bad_declaration_in_a_file_is_an_issue_with_its_path():
     data = loop().to_dict() | {
         "optional": ["boiller", "users"],
         "choices": {"trim": {"valve": ["y"]}},
+        "bypass": {"x": {"fluid_in": "nope_out"}, "users": {}, "pipe": {}},
     }
+    data["modules"]["m"] = {"type": "Mixer"}
+    data["optional"].append("m")
     with pytest.raises(ValidationError) as caught:
         gm.Plant.from_dict(data)
-    found = {item.path: item.kind for item in caught.value.issues}
+    found = {item.path: item.kind for item in caught.value.issues if "m." not in item.path}
     assert found == {
+        "bypass.x": "incompatible",
+        "bypass.pipe": "unknown_key",
         "optional[0]": "unknown_key",
-        "optional[1]": "incompatible",
+        "optional[2]": "incompatible",
         "choices.trim": "incompatible",
     }
     issues = []
-    superstructure.from_file(gm.Plant(), {"optional": "x", "choices": []}, issues)
-    assert [item.path for item in issues] == ["optional", "choices"]
+    superstructure.from_file(gm.Plant(), {"optional": "x", "choices": [], "bypass": []}, issues)
+    assert [item.path for item in issues] == ["bypass", "optional", "choices"]
 
 
 def test_check_reports_a_superstructure_without_a_valid_structure():
@@ -401,3 +409,160 @@ def test_a_bypass_that_joins_a_module_to_itself_is_dropped():
     assert plant.structures() == [{"v": True}]
     with pytest.raises(ValidationError, match="users.return_out: unconnected port"):
         plant.with_structure({"v": False})
+
+
+SUPERSTRUCTURE = HACKATHON_2026.parent / "hackathon_superstructure/plants"
+SUPERSTRUCTURE = SUPERSTRUCTURE / "HackathonSuperstructure.json"
+"""The sample superstructure: the peak boiler, cooling and each cooling unit on or off."""
+
+
+def heating_only(**changes):
+    """Return a structure of the sample superstructure: heating only, with ``changes``."""
+    off = {"cooling": "off", "absorption": "off", "adsorption": "off", "compression": "off"}
+    return {"heat_pump": True, "boiler": "on"} | off | changes
+
+
+def mixed():
+    """Return a plant ``feed -> m.branch1_in``, ``other -> m.branch2_in``, ``m -> v -> product``."""
+    plant = gm.Plant()
+    plant.add("Mixer", "m")
+    plant.add("Valve", "v")
+    plant.connect("feed", "m.branch1_in")
+    plant.connect("other", "m.branch2_in")
+    plant.connect("m.fluid_out", "v.fluid_in")
+    plant.connect("v.fluid_out", "product")
+    return plant
+
+
+def test_a_declared_bypass_makes_a_mixer_optional():
+    """``{branch1_in: fluid_out}``: the first branch goes on, the second goes with the mixer."""
+    plant = mixed()
+    assert plant.set_bypass("m", {"branch1_in": "fluid_out"}) is plant
+    data = plant.set_optional("m").with_structure({"m": False}).to_dict()
+    assert data["inlets"] == {"feed": "v.fluid_in"} and "m" not in data["modules"]
+    assert data["connections"] == []
+    assert plant.to_dict()["bypass"] == {"m": {"branch1_in": "fluid_out"}}
+
+
+def test_an_empty_bypass_removes_the_module_with_all_its_connections():
+    """The valve declared ``{}`` goes and joins nothing: the mixer is left without an outlet."""
+    plant = mixed().set_bypass("v", {}).set_optional("v")
+    with pytest.raises(ValidationError, match="m.fluid_out: unconnected port"):
+        plant.with_structure({"v": False})
+    assert "v" in dict(plant.with_structure({"v": True}).named_modules())
+
+
+def test_a_removed_supply_goes_with_what_it_fed():
+    """The gas grid declares ``bypass = {}``: off with the boiler, the plant is valid."""
+    plant = loop().set_optional("boiler").set_optional("gas")
+    assert plant.structures() == [
+        {"boiler": True, "gas": True},
+        {"boiler": False, "gas": False},
+    ]
+    found = plant.with_structure({"boiler": False, "gas": False})
+    assert {"boiler", "gas"}.isdisjoint(dict(found.named_modules()))
+    with pytest.raises(ValidationError, match="boiler.fuel_in: unconnected port"):
+        plant.with_structure({"boiler": True, "gas": False})
+
+
+def test_the_declaration_wins_over_the_class_and_the_name_pairs(crossed):
+    """Plant declaration, then the class's ``bypass``, then ``<x>_in``/``<x>_out``."""
+    plant = gm.Plant()
+    module = plant.add(Crossed, "c")
+    valve = plant.add("Valve", "v")
+    assert superstructure.pairs(module, "c") == {"left_in": "right_out"}
+    assert superstructure.pairs(valve, "v") == {"fluid_in": "fluid_out"}
+    plant.set_bypass("c", {"left_in": "spare_out"}).set_bypass("v", {})
+    assert superstructure._pairs_of(plant, "c") == {"left_in": "spare_out"}
+    assert superstructure._pairs_of(plant, "v") == {}
+    assert superstructure.pairs(plant.add("Degasser", "d"), "d") == {"fluid_in": "liquid_out"}
+
+
+def test_a_bypass_names_stream_ports_of_the_module_each_outlet_once():
+    """An unknown port, a heat port, an outlet twice, a wrong shape, an unknown module."""
+    plant = loop()
+    for pairs, code in (
+        ({"fluid_in": "nope_out"}, "invalid_design"),
+        ({"fluid_in": "loss_out"}, "invalid_design"),
+        ({"power_in": "fluid_out"}, "invalid_design"),
+        ({"fluid_out": "fluid_in"}, "invalid_design"),
+        (["fluid_in"], "invalid_value"),
+        ({"fluid_in": 1}, "invalid_value"),
+    ):
+        with raises(ValidationError, code, match="bypass.x"):
+            plant.set_bypass("x", pairs)
+    mixer = gm.Plant()
+    mixer.add("Mixer", "m")
+    with raises(ValidationError, "invalid_design", match="each outlet once"):
+        mixer.set_bypass("m", {"branch1_in": "fluid_out", "branch2_in": "fluid_out"})
+    with raises(ValidationError, "unknown_name") as caught:
+        plant.set_bypass("boiller", {})
+    assert "boiler" in caught.value.suggestions
+    assert "bypass" not in plant.to_dict()
+
+
+def test_none_removes_a_declaration_unless_the_module_needs_it():
+    """A valve falls back on its name pairs; an optional mixer has no other bypass."""
+    plant = mixed().set_bypass("v", {}).set_optional("v")
+    assert plant.set_bypass("v", None).set_bypass("v", None) is plant
+    assert "bypass" not in plant.to_dict()
+    assert plant.with_structure({"v": False}).to_dict()["outlets"] == {"product": "m.fluid_out"}
+    plant.set_bypass("m", {"branch2_in": "fluid_out"}).set_optional("m")
+    with raises(ValidationError, "invalid_design", match="in optional"):
+        plant.set_bypass("m", None)
+    plant.set_optional("m", False).set_bypass("m", None)
+    assert "bypass" not in plant.to_dict()
+
+
+def test_a_bypass_round_trips_through_the_file_and_the_schema(tmp_path):
+    """``to_dict``/``from_dict``, ``to_json``/``from_json`` and the plant schema keep it."""
+    plant = mixed().set_bypass("m", {"branch2_in": "fluid_out"}).set_bypass("v", {})
+    plant.set_optional("m")
+    data = plant.to_dict()
+    assert data["bypass"] == {"m": {"branch2_in": "fluid_out"}, "v": {}}
+    again = gm.Plant.from_dict(json.loads(json.dumps(data)))
+    assert again.to_dict() == data and again.optional == ["m"]
+    plant.to_json(tmp_path / "bypass.json")
+    assert gm.Plant.from_json(tmp_path / "bypass.json").to_dict() == data
+    schema = gm.plants.schema()
+    assert json_schema.check(data, schema) == []
+    assert json_schema.check(data | {"bypass": {"m": ["branch2_in"]}}, schema)
+    found = plant.with_structure({"m": False}).to_dict()
+    assert "bypass" not in found and found["inlets"] == {"other": "v.fluid_in"}
+
+
+def test_turning_cooling_off_removes_the_cooling_branch():
+    """The splitter and mixer bypassed, the consumer, chillers and coolers removed."""
+    plant = gm.Plant.from_json(SUPERSTRUCTURE)
+    found = plant.with_structure(heating_only())
+    names = {name for name, _ in found.named_modules() if name}
+    gone = {"cooling_consumer", "drive_splitter", "drive_mixer", "absorption_chiller"}
+    assert gone.isdisjoint(names) and "heating_consumer" in names
+    joined = links(found)
+    assert ("peak_boiler.fluid_out", "heating_supply_pipe.fluid_in") in joined
+    assert ("heating_return_pipe.fluid_out", "heat_exchanger.cold_in") in joined
+    assert not [item for item in found.check() if item.kind != "missing"]
+    staying = {
+        key: kind
+        for key, kind in links(plant).items()
+        if all(split_end(end)[0].split(".")[0] in names for end in key)
+    }
+    assert staying.items() <= joined.items()
+
+
+def test_the_boiler_off_takes_its_gas_chain_and_flares_the_gas():
+    """The gas makeup is bypassed to the flare and the gas grid is removed."""
+    plant = gm.Plant.from_json(SUPERSTRUCTURE)
+    found = plant.with_structure(heating_only(boiler="off"))
+    assert {"peak_boiler", "gas_makeup", "gas_grid"}.isdisjoint(dict(found.named_modules()))
+    assert ("degasser.gas_out", "flare.gas_in") in links(found)
+    assert ("heat_pump.sink_out", "heating_supply_pipe.fluid_in") in links(found)
+
+
+def test_a_cooling_unit_without_cooling_and_cooling_without_a_unit_are_refused():
+    """Cooling on with every unit off leaves its consumer unconnected, and the reverse."""
+    plant = gm.Plant.from_json(SUPERSTRUCTURE)
+    with pytest.raises(ValidationError, match="cooling_consumer.supply_in: unconnected port"):
+        plant.with_structure(heating_only(cooling="on"))
+    with pytest.raises(ValidationError, match="unconnected port"):
+        plant.with_structure(heating_only(compression="on"))

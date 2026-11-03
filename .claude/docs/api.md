@@ -203,7 +203,8 @@ are in `gm.plants`, not in `gm.modules`; `gm.modules` never imports `gm.plants`.
 | `p.size` | the structural size as a plain mapping, `{"doublets": 2}` | real |
 | `p.ranges`, `p.options` | the search space the file states: `{path: Range}` in SI and `{path: tuple}`, in file order, `size.doublets` first | real |
 | `p.set_range(path, min=None, max=None)`, `p.set_options(path, options)` | the plant; checked as a file's range and options are | real |
-| `p.set_optional(name, optional=True)`, `p.set_choice(name, groups)` | the plant; a superstructure: module `name` may be off (bypassed: each `<x>_in` joined to `<x>_out`, or the class's `bypass` pairs; power ports dropped), or exactly one group of `{group: [modules]}` is on (`"none": []` allowed, groups apart, no optional module in a group); `False` / `groups=None` removes; a module with no pair raises `invalid_design`, see [plants.md](plants.md#superstructure) | real |
+| `p.set_optional(name, optional=True)`, `p.set_choice(name, groups)` | the plant; a superstructure: module `name` may be off (bypassed by its `set_bypass` declaration, else the class's `bypass`, else each `<x>_in` joined to `<x>_out`; power ports dropped), or exactly one group of `{group: [modules]}` is on (`"none": []` allowed, groups apart, no optional module in a group); `False` / `groups=None` removes; a module with no bypass raises `invalid_design` saying how to declare one, see [plants.md](plants.md#superstructure) | real |
+| `p.set_bypass(name, pairs)` | the plant; how module `name` is bypassed when a structure turns it off: `{inlet: outlet}` of its stream ports (each outlet once), `{}` removes it with all its connections (a port it leaves unconnected makes the structure invalid); wins over the class's `bypass` and the name pairs; `None` removes the declaration (`invalid_design` when an optional module or one in a choice then has no bypass); plant file key `bypass`, see [plants.md](plants.md#superstructure) | real |
 | `p.optional`, `p.choices` | the optional modules (a list) and `{choice: {group: [modules]}}`, in the order stated | real |
 | `p.structures()` | every valid structure, `[{module: bool, choice: group}]` in a fixed order; valid = `with_structure(...)` reads and its `check()` has no error but a missing value | real |
 | `p.with_structure(structure)` | an ordinary plant: the modules that are off taken out and bypassed with their values, ranges and options; a class plant with a module off becomes a plant of modules and connections with every module value stated (its own values and `size` go); a missing or unknown key raises | real |
@@ -609,6 +610,7 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.Plant.set_options` | `(path, options)` | method |
 | `gm.Plant.set_optional` | `(name, optional=True)` | method |
 | `gm.Plant.set_choice` | `(name, groups)` | method |
+| `gm.Plant.set_bypass` | `(name, pairs)` | method |
 | `gm.Plant.structures` | `()` | method |
 | `gm.Plant.with_structure` | `(structure)` | method |
 | `gm.Plant.summary` | `()` | method |

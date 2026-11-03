@@ -43,6 +43,11 @@ class Degasser(Equipment, Module):
     plant sets them from design data or a measured gas flow.
     """
 
+    bypass = {"fluid_in": "liquid_out"}
+    """Off, nothing is degassed: the whole stream goes on as the liquid, and what the gas fed loses
+    its feed (bypass it or remove it too).
+    """
+
     equipment_kind = "degasser"
 
     def __init__(self):

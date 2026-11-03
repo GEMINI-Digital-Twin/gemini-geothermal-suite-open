@@ -73,6 +73,7 @@ class Plant(PortResolver, Module):
         self._search = {}
         self._optional = []
         self._choices = {}
+        self._bypass = {}
         self._file = {}
         self._inputs = {}
         self._connections = []
@@ -437,10 +438,11 @@ class Plant(PortResolver, Module):
     def set_optional(self, name, optional=True):
         """State that the module ``name`` may be off in a structure; ``False`` makes it fixed.
 
-        A module that is off is bypassed: each stream inlet ``<x>_in`` is joined to its outlet
-        ``<x>_out`` (or the pairs of the ``bypass`` its class declares), its power and other ports
-        go, and it costs nothing. A module with no such pair raises ``invalid_design``; one in a
-        choice raises too. Returns the plant.
+        A module that is off is bypassed: each inlet of its bypass is joined to its outlet, its
+        power and other ports go, and it costs nothing. The bypass is the one ``set_bypass``
+        declares for this module, else the ``bypass`` its class declares, else each stream inlet
+        ``<x>_in`` with its outlet ``<x>_out``. A module with none raises ``invalid_design``; one
+        in a choice raises too. Returns the plant.
         """
         superstructure.set_optional(self, name, optional)
         return self
@@ -453,6 +455,19 @@ class Plant(PortResolver, Module):
         ``groups=None`` removes the choice. Returns the plant.
         """
         superstructure.set_choice(self, name, groups)
+        return self
+
+    def set_bypass(self, name, pairs):
+        """Declare how the module ``name`` is bypassed when a structure turns it off.
+
+        ``pairs`` is ``{inlet: outlet}``, stream ports of the module: what fed the inlet feeds
+        what the outlet fed. An empty dict ``{}`` means the module is removed: it goes with all
+        its connections and nothing is joined, so a port it was connected to is left
+        unconnected and a structure in which that plant fails ``check`` is invalid. The
+        declaration wins over the class's ``bypass`` and the ``<x>_in``/``<x>_out`` pairs;
+        ``pairs=None`` removes it. Returns the plant.
+        """
+        superstructure.set_bypass(self, name, pairs)
         return self
 
     @property

@@ -51,6 +51,9 @@ class HeatingGrid(Module):
     Handbook - HVAC Systems and Equipment (2020), chapter 13, "Hydronic heating and cooling".
     """
 
+    bypass = {}
+    """Removable: a demand the plant may decline to serve, with its branch."""
+
     plant_role = "heating_supply"
 
     def __init__(self):

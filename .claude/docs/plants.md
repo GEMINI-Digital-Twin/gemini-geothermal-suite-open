@@ -249,13 +249,23 @@ the sizes, `set_range` and `set_options` change them with the checks of a file. 
 A plant may state which of its modules are open to a search of structures
 (`gemini/plants/_utils/superstructure.py`), next to its ranges and options:
 
-- `plant.set_optional("peak_boiler")`: the module may be off. Off is a **bypass**: each stream
-  inlet `<x>_in` is joined to its stream outlet `<x>_out` (`fluid_in` to `fluid_out`, `hot_in` to
-  `hot_out`, `source_in` to `source_out`, ...), so what fed the module feeds what it fed; its power
-  ports and its other ports go with it, and it costs nothing. A module class may declare
-  `bypass = {inlet: outlet}` instead of the name pairs. A module with no pair and no `bypass`
-  (`Doublet`, `Mixer`, `Splitter`, `Degasser`) cannot be optional: which outlet an inlet joins is
-  ambiguous, and `set_optional` raises `invalid_design`. `set_optional(name, False)` removes it.
+- `plant.set_optional("peak_boiler")`: the module may be off. Off is a **bypass**: each inlet of
+  the module's bypass is joined to its outlet, so what fed the module feeds what it fed; its power
+  ports and its other ports go with it, and it costs nothing. The bypass of a module is, first
+  found:
+  1. the plant's declaration `plant.set_bypass(name, {inlet: outlet})`, stream ports of the module,
+     each outlet once (`drive_splitter`: `{"fluid_in": "branch1_out"}`);
+  2. the class's `bypass = {inlet: outlet}` (`GasMakeup`: `{"gas_in": "excess_out"}`); the audit
+     of every shipped class is the table [Bypass](equipment.md#bypass);
+  3. each stream inlet `<x>_in` with its stream outlet `<x>_out` (`fluid_in` to `fluid_out`,
+     `hot_in` to `hot_out`, `source_in` to `source_out`, ...).
+
+  An empty bypass `{}` means **removed**: the module goes with all its connections and nothing is
+  joined (`GasGrid`, a consumer). A module with none of the three (`Doublet`, `Mixer`, `Splitter`)
+  cannot be optional: which outlet an inlet joins is ambiguous, and `set_optional` raises
+  `invalid_design` saying to declare one with `set_bypass` or on the class.
+  `set_optional(name, False)` removes it; `set_bypass(name, None)` removes a declaration, and
+  raises `invalid_design` when an optional module or one of a choice is then left without a bypass.
 - `plant.set_choice("cooling", {"absorption": ["chiller", "chiller_cooler"], "none": []})`: exactly
   one group is on, the modules of the others are bypassed. The groups are apart, a group may be
   empty, a module of a choice is not optional, and `groups=None` removes the choice.
@@ -264,9 +274,24 @@ A plant may state which of its modules are open to a search of structures
   gives the ordinary plant of one, without optional modules and choices. A structure is valid when
   that plant reads and its `check()` has no error other than a missing value. A missing or unknown
   key of `s` raises; there is no default structure.
-- The plant file holds them as `"optional": [...]` and `"choices": {name: {group: [...]}}`;
-  `from_dict` reports a bad declaration as an issue at its path, and `plant.check()` of a
+- The plant file holds them as `"optional": [...]`, `"choices": {name: {group: [...]}}` and
+  `"bypass": {module: {inlet: outlet}}` (read first, since `optional` and `choices` need it);
+  `from_dict` reports a bad declaration as an issue at its path (`bypass.<module>`, `optional[i]`,
+  `choices.<name>`), and `plant.check()` of a
   superstructure judges the ports in each structure and reports `invalid_design` when none is valid.
+
+A module that is removed, or a port a bypass drops, leaves the ports it was connected to
+unconnected: when the plant that stays then fails `check()`, the structure is invalid and refused
+before any simulation, never run as a silently infeasible plant. So what is removed goes as a
+whole: a supply with what it fed (the gas grid with the boiler and its gas makeup), and a branch
+with its consumer. A connection whose two ends both stay is never dropped. To remove a branch, list
+in one group (or as optional modules) the splitter and the mixer that open and close it, each with
+the bypass that keeps the other branch (`{"fluid_in": "branch1_out"}`, `{"branch1_in":
+"fluid_out"}`), and every module of the branch, bypassed or removed. In
+`examples/hackathon_superstructure` the choice `cooling` lists the drive splitter, the drive mixer
+and the cooling consumer: off, the plant is a valid heating-only plant; the chillers sit on the
+consumer directly, so cooling on with every unit off leaves the consumer unconnected and is
+refused, and a unit on with cooling off leaves its chilled water unconnected.
 
 The plant of a structure keeps the values, ranges and options of the modules that stay. Alternatives
 sit in series on one circuit (the chillers one after the other on the chilled water), so that the

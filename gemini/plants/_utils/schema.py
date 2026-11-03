@@ -115,6 +115,25 @@ def _constraint():
     }
 
 
+def _superstructure():
+    """Return the properties of the superstructure: ``optional``, ``choices`` and ``bypass``."""
+    return {
+        "optional": {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
+        "choices": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "minProperties": 2,
+                "additionalProperties": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+        "bypass": {
+            "type": "object",
+            "additionalProperties": {"type": "object", "additionalProperties": {"type": "string"}},
+        },
+    }
+
+
 def schema():
     """Return the JSON Schema (draft 2020-12) of a plant file, generated from the code."""
     ports = {
@@ -144,15 +163,7 @@ def schema():
             "params": {"$ref": "#/$defs/tree"},
             "fluids": SECTION,
             "boundary": SECTION,
-            "optional": {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
-            "choices": {
-                "type": "object",
-                "additionalProperties": {
-                    "type": "object",
-                    "minProperties": 2,
-                    "additionalProperties": {"type": "array", "items": {"type": "string"}},
-                },
-            },
-        },
+        }
+        | _superstructure(),
         "$defs": {"module": _module(), "leaf": _leaf(), "tree": _tree()},
     }

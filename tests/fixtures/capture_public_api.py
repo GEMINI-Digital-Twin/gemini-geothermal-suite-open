@@ -72,6 +72,7 @@ METHODS = {
         "set_options",
         "set_optional",
         "set_choice",
+        "set_bypass",
         "structures",
         "with_structure",
         "summary",

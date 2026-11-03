@@ -1,7 +1,9 @@
 """Evolve: the best structures of the hackathon superstructure on LCTS and CO2.
 
-One plant file states the six candidate plants of the hackathon at once: the heat pump is
-optional and each cooling unit is on or off. ``gm.study.evolve`` searches the structures and the
+One plant file states the candidate plants of the hackathon at once: the heat pump is optional,
+the peak boiler with its gas makeup and gas grid is on or off, cooling is on or off with its whole
+branch (the plant file's ``bypass`` says how the drive splitter and mixer are bypassed), and each
+cooling unit is on or off. ``gm.study.evolve`` searches the structures and the
 ranges of the plant together by a genetic algorithm (NSGA-II) and returns the designs no other
 beats on both LCTS and CO2. The budget is small, so the front is a first look, not the optimum.
 

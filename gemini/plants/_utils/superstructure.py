@@ -4,9 +4,10 @@ A plant states which of its modules may be absent (``set_optional``) and which g
 are alternatives (``set_choice``). A structure says, for each optional module, whether it is on and,
 for each choice, which group is on. ``concrete`` returns the ordinary plant of a structure: every
 module that is off is taken out and bypassed, each stream inlet joined to its outlet of the same
-path, so that what fed the module feeds what the module fed. A module's bypass is its pairs
-``<name>_in`` -> ``<name>_out``, or the ``bypass`` its class declares; its power ports and its
-other ports are dropped with it. A module with no pair and no declared bypass cannot be off.
+path, so that what fed the module feeds what the module fed. A module's bypass is the one the
+plant declares for it (``set_bypass``), else the ``bypass`` its class declares, else its pairs
+``<name>_in`` -> ``<name>_out``; its power ports and its other ports are dropped with it. An empty
+bypass ``{}`` removes the module with all its connections. A module with no bypass cannot be off.
 """
 
 from copy import deepcopy
@@ -20,7 +21,8 @@ from gemini.plants._utils.serialization import tree_params
 
 OPTIONAL = "optional"
 CHOICES = "choices"
-KEYS = (OPTIONAL, CHOICES)
+BYPASS = "bypass"
+KEYS = (OPTIONAL, CHOICES, BYPASS)
 """The keys of the plant file that state a superstructure."""
 OWN = {"control", "dispatch", "outages", "backup"}
 """The values of a plant without a class, which the plant of a structure keeps."""
@@ -45,28 +47,66 @@ def _known(plant, name, where):
     return plant.get_submodule(name)
 
 
-def pairs(module, name):
+HOW = (
+    "declare it with plant.set_bypass(name, {inlet: outlet}), {} to remove the module with its "
+    "connections, or on the class as bypass = {inlet: outlet}"
+)
+"""How to give a module a bypass, said by every refusal of one."""
+
+
+def _checked(module, name, found, where, owner):
+    """Return ``found``, a bypass ``{inlet: outlet}`` of ``module``, or raise ``invalid_design``.
+
+    Each key is a stream inlet of the module and each value a stream outlet, named once: a bypass
+    joins one inlet to one outlet. ``owner`` says who declared it.
+    """
+    if not isinstance(found, dict) or not all(
+        isinstance(key, str) and isinstance(value, str) for key, value in found.items()
+    ):
+        raise ValidationError(
+            f"{where}: {owner} = {found!r}; expected {{inlet: outlet}}, names of ports",
+            path=where,
+            code="invalid_value",
+        )
+    inlets, outlets = module.inlets(), module.outlets()
+    unknown = [p for p in found if p not in inlets or not inlets[p].carries_stream] + [
+        p for p in found.values() if p not in outlets or not outlets[p].carries_stream
+    ]
+    if unknown:
+        streams = [p for p, d in inlets.items() if d.carries_stream] + [
+            p for p, d in outlets.items() if d.carries_stream
+        ]
+        raise ValidationError(
+            f"{where}: {owner} names {join_names(unknown)}; expected stream inlets and outlets "
+            f"of the {type(module).__name__} {name!r}: {join_names(streams) or 'none'}",
+            path=where,
+            code="invalid_design",
+        )
+    twice = sorted({p for p in found.values() if list(found.values()).count(p) > 1})
+    if twice:
+        raise ValidationError(
+            f"{where}: {owner} joins two inlets to {join_names(twice)}; expected each outlet "
+            "once",
+            path=where,
+            code="invalid_design",
+        )
+    return dict(found)
+
+
+def pairs(module, name, declared=None):
     """Return ``{inlet: outlet}``, the bypass of the module at ``name``, or raise.
 
-    The class's ``bypass`` when it declares one, else every stream inlet ``<x>_in`` with a stream
-    outlet ``<x>_out``. A module with neither cannot be bypassed: which outlet an inlet joins is
-    ambiguous, and ``invalid_design`` asks for a ``bypass`` on the class.
+    ``declared``, the bypass the plant declares for this module (``set_bypass``), when there is
+    one; else the class's ``bypass``; else every stream inlet ``<x>_in`` with a stream outlet
+    ``<x>_out``. An empty dict removes the module. A module with none cannot be bypassed: which
+    outlet an inlet joins is ambiguous, and ``invalid_design`` says how to declare one.
     """
-    inlets, outlets = module.inlets(), module.outlets()
-    declared = getattr(type(module), "bypass", None)
     if declared is not None:
-        found = dict(declared)
-        unknown = [p for p in found if p not in inlets] + [
-            p for p in found.values() if p not in outlets
-        ]
-        if unknown:
-            raise ValidationError(
-                f"{name}: {type(module).__name__}.bypass names {join_names(unknown)}; expected "
-                "inlets and outlets of the module",
-                path=name,
-                code="invalid_design",
-            )
-        return found
+        return _checked(module, name, declared, name, f"{BYPASS}.{name}")
+    stated = getattr(type(module), "bypass", None)
+    if stated is not None:
+        return _checked(module, name, stated, name, f"{type(module).__name__}.bypass")
+    inlets, outlets = module.inlets(), module.outlets()
     found = {}
     for port, declaration in inlets.items():
         if not port.endswith("_in") or not declaration.carries_stream:
@@ -77,12 +117,40 @@ def pairs(module, name):
     if not found:
         raise ValidationError(
             f"{name}: a {type(module).__name__} has no stream inlet <name>_in with an outlet "
-            "<name>_out, so how to bypass it is ambiguous; expected a class that declares "
-            "bypass = {inlet: outlet}",
+            f"<name>_out, so how to bypass it is ambiguous; {HOW}",
             path=name,
             code="invalid_design",
         )
     return found
+
+
+def _pairs_of(plant, name):
+    """Return the bypass of the module ``name`` of ``plant``, its own declaration first."""
+    return pairs(plant.get_submodule(name), name, plant._bypass.get(name))
+
+
+def set_bypass(plant, name, given):
+    """Declare the bypass ``given`` of the module ``name``; ``None`` removes the declaration."""
+    where = f"{BYPASS}.{name}"
+    module = _known(plant, name, BYPASS)
+    if given is None:
+        if name not in plant._bypass:
+            return
+        rest = {key: value for key, value in plant._bypass.items() if key != name}
+        if name in _declared(plant):
+            try:
+                pairs(module, name)
+            except ValidationError as error:
+                raise ValidationError(
+                    f"{where}: {name!r} is in {_declared(plant)[name]} and has no other bypass; "
+                    "expected it taken out of the superstructure first",
+                    path=where,
+                    code="invalid_design",
+                ) from error
+        plant._bypass = rest
+        return
+    found = _checked(module, name, given, where, where)
+    plant._bypass = plant._bypass | {name: found}
 
 
 def _declared(plant):
@@ -128,7 +196,7 @@ def set_optional(plant, name, optional):
         return
     if name in plant._optional:
         return
-    pairs(_known(plant, name, OPTIONAL), name)
+    pairs(_known(plant, name, OPTIONAL), name, plant._bypass.get(name))
     _free(plant, name, OPTIONAL)
     if name in plant._choices:
         raise ValidationError(
@@ -169,7 +237,7 @@ def set_choice(plant, name, groups):
                 f"{at}: expected a group name with a list of modules", path=at, code="invalid_value"
             )
         for member in members:
-            pairs(_known(plant, member, at), member)
+            pairs(_known(plant, member, at), member, plant._bypass.get(member))
             _free(plant, member, at, ignore=where)
             if member in seen:
                 raise ValidationError(
@@ -409,9 +477,9 @@ def concrete(plant, structure, cls):
     names = off(plant, structure)
     if not names:
         copy = deepcopy(plant)
-        copy._optional, copy._choices = [], {}
+        copy._optional, copy._choices, copy._bypass = [], {}, {}
         return copy
-    bypass = {name: pairs(plant.get_submodule(name), name) for name in names}
+    bypass = {name: _pairs_of(plant, name) for name in names}
     data = _plain_file(plant, cls)
     for key in KEYS:
         data.pop(key, None)
@@ -477,7 +545,11 @@ def none_valid(plant, cls):
 
 
 def from_file(plant, stated, issues):
-    """Read the ``optional`` and ``choices`` of a plant file onto ``plant``; append each issue."""
+    """Read the superstructure of a plant file onto ``plant``; append each issue.
+
+    The ``bypass`` declarations first, which ``optional`` and ``choices`` need.
+    """
+    _bypass_from_file(plant, stated, issues)
     optional = stated.get(OPTIONAL, [])
     choices = stated.get(CHOICES, {})
     if not isinstance(optional, list):
@@ -496,6 +568,19 @@ def from_file(plant, stated, issues):
             set_choice(plant, name, groups)
         except ValidationError as error:
             issues.append(_issue(f"{CHOICES}.{name}", error))
+
+
+def _bypass_from_file(plant, stated, issues):
+    """Read the ``bypass`` of a plant file onto ``plant``; append each issue."""
+    bypass = stated.get(BYPASS, {})
+    if not isinstance(bypass, dict):
+        issues.append(Issue(BYPASS, "incompatible", "bypass: expected {module: {inlet: outlet}}"))
+        return
+    for name, given in bypass.items():
+        try:
+            set_bypass(plant, name, given)
+        except ValidationError as error:
+            issues.append(_issue(f"{BYPASS}.{name}", error))
 
 
 def _issue(path, error):

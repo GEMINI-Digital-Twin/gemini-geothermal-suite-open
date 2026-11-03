@@ -36,6 +36,11 @@ class Separator(Module):
     m_in h_in = m_gas h_g + m_liquid h_f, which the unit tests check.
     """
 
+    bypass = {"fluid_in": "liquid_out"}
+    """Off, nothing flashes: the whole stream goes on as the liquid, and the steam branch loses its
+    feed (remove it too).
+    """
+
     def __init__(self):
         """Declare the separator inlet, pressure control, outputs and phase outlets."""
         super().__init__()
