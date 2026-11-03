@@ -1,5 +1,6 @@
 """Context-local settings used as blocks and as decorators."""
 
+import sys
 import threading
 from contextvars import ContextVar
 
@@ -52,10 +53,13 @@ def test_decorator_computes_the_value_on_each_call():
 
 
 def test_threads_do_not_share_settings():
-    """A setting entered in one thread is invisible in another."""
+    """A setting entered in one thread is invisible in another that starts from its own context.
+
+    Free-threaded Python starts a thread from a copy of the caller's context instead.
+    """
     seen = []
     with deeper():
         thread = threading.Thread(target=lambda: seen.append(LEVEL.get()))
         thread.start()
         thread.join()
-    assert seen == [0]
+    assert seen == [1 if getattr(sys.flags, "thread_inherit_context", 0) else 0]
