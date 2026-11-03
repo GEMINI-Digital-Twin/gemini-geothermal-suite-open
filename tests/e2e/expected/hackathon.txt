@@ -1,11 +1,11 @@
 Ranking with the rules of the brief only (no pump intake limits)
                                lcts [EUR/MWh]  co2 [kt]  rank_lcts  rank_co2  pareto  feasible
 HackathonPlant                          44.25     13.05          4         4   False      True
-HeatingAbsorptionCoolingPlant           50.52     20.97          5         5   False      True
+HeatingAbsorptionCoolingPlant            50.5     20.96          5         5   False      True
 HeatingCoolingPlant                     42.54     10.34          3         2   False      True
 HeatingFullCoolingPlant                 40.29     9.651          1         1    True      True
 HeatingHeatPumpCoolingPlant             40.34      12.9          2         3   False      True
-HeatingPlant                            29.45     7.622          6         6   False     False
+HeatingPlant                            29.41     7.605          6         6   False     False
 Pareto front of the feasible designs: ['HeatingFullCoolingPlant']
 
 Ranking with the pump intake limits of standard stages
@@ -17,11 +17,11 @@ HeatingHeatPumpCoolingPlant: 240 trials, feasible True, []
 HeatingPlant: 120 trials, feasible False, ['cold_delivered']
                                lcts [EUR/MWh]  co2 [kt]  rank_lcts  rank_co2  pareto  feasible
 HackathonPlant                          44.25     13.05          3         3   False      True
-HeatingAbsorptionCoolingPlant           50.52     20.97          4         4   False      True
+HeatingAbsorptionCoolingPlant            50.5     20.96          4         4   False      True
 HeatingCoolingPlant                     42.54     10.34          2         1    True      True
-HeatingFullCoolingPlant                 55.59     23.47          5         5   False      True
+HeatingFullCoolingPlant                 55.57     22.16          5         5   False      True
 HeatingHeatPumpCoolingPlant             40.34      12.9          1         2    True      True
-HeatingPlant                            29.83     7.843          6         6   False     False
+HeatingPlant                            29.79     7.827          6         6   False     False
 Pareto front of the feasible designs: ['HeatingCoolingPlant', 'HeatingHeatPumpCoolingPlant']
                            parameter metric  low  high value_unit  at_low  at_high  effect     unit
 0          case.site.ground.gradient   lcts   25    35       K/km   47.16    33.76    13.4  EUR/MWh

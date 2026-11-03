@@ -71,7 +71,7 @@ def test_the_ranking_has_the_fields_and_numbers_the_script_prints(ranking):
     frame = ranking.comparison[name].to_frame()
     assert list(frame.columns) == ["lcts [EUR/MWh]", "rank_lcts", "pareto", "feasible"]
     assert [run.plant_name for run in ranking.runs] == ["HackathonPlant", "HeatingPlant"]
-    assert list(frame["lcts [EUR/MWh]"]) == pytest.approx([48.478634, 47.813020], rel=1e-5)
+    assert list(frame["lcts [EUR/MWh]"]) == pytest.approx([48.478634, 47.792945], rel=1e-5)
     assert list(frame["rank_lcts"]) == [1, 2]
     assert list(frame["feasible"]) == [True, False]
     run = ranking.runs[0]

@@ -26,8 +26,8 @@ capex adsorption_cooler (cooler)                 1.00 MEUR
 capex compression_cooler (cooler)                2.00 MEUR
 capex                                           38.92 MEUR
 opex                                             4.38 MEUR/yr
-LCTS                                            52.69 EUR/MWh
+LCTS                                            52.68 EUR/MWh
 CO2                                             14.49 kt
-electricity_bought_limit: 5.321 MW, limit 6 MW
+electricity_bought_limit: 5.325 MW, limit 6 MW
   passed: True
 missing_assumption: economics.capex.heat_pump

@@ -154,11 +154,20 @@ def effectiveness_counterflow(transfer_units: float, c_ratio: float) -> float:
     Reference: Incropera et al., Fundamentals of Heat and Mass Transfer,
     counterflow effectiveness–NTU relation, including the equal-capacity limit:
     e = (1-exp(-NTU(1-Cr)))/(1-Cr exp(-NTU(1-Cr))), and NTU/(1+NTU) at Cr = 1.
+
+    Written as a / (a + (1-Cr) exp(-x)), with x = NTU (1-Cr) and a = 1-exp(-x) from ``expm1``: as
+    printed, both sides of the fraction vanish near Cr = 1 and rounding leaves whole units in the
+    last place of each, so two rates that differ in their last bit would give an effectiveness that
+    jumps by percents. This form tends to NTU/(1+NTU) smoothly.
     """
     _check_effectiveness_inputs("effectiveness_counterflow", transfer_units, c_ratio)
     balanced = ops.where(ops.isinf(transfer_units), 1.0, transfer_units / (1 + transfer_units))
-    term = ops.exp(-transfer_units * (1 - c_ratio))
-    return ops.where(c_ratio == 1, balanced, (1 - term) / (1 - c_ratio * term))
+    excess = 1 - c_ratio
+    exponent = -transfer_units * excess
+    transferred = -ops.expm1(exponent)
+    return ops.where(
+        c_ratio == 1, balanced, transferred / (transferred + excess * ops.exp(exponent))
+    )
 
 
 @ops.physics
@@ -218,8 +227,14 @@ def logarithmic_mean(first: float, second: float) -> float:
     Reference: Incropera et al., Fundamentals of Heat and Mass Transfer, LMTD method; Lorenz
     (1894) for the mean temperature of a glide. The callers ``lmtd`` and
     ``refrigeration.log_mean_temperature`` guard the equal and the pinched case.
+
+    Written with the ratio r = first / second as ``second (r - 1) / ln r`` (Kahan's device for
+    ``log1p``): in ``(first - second) / ln r`` the rounding of r stays in the logarithm alone, which
+    for values a few bits apart is off by percents, while here it is the same in both factors and
+    cancels. Values so close that r rounds to 1 give ``first``, their mean to rounding.
     """
-    return (first - second) / ops.log(first / second)
+    ratio = first / second
+    return ops.where(ratio == 1, first, second * (ratio - 1) / ops.log(ratio))
 
 
 @ops.physics
