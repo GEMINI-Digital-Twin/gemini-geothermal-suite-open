@@ -273,18 +273,22 @@ def merge(chunks):
 def assemble(chunk, order, times):
     """Return the table of a merged chunk, columns in ``order``, dtypes as pandas infers them."""
     index = pd.DatetimeIndex(times, name="timestamp")
-    columns = {}
-    for position, (path, name) in enumerate(order):
-        values = _combined(_pieces([chunk], [len(chunk)], path, name))
-        typed = values.dtype != object
-        columns[position] = values if typed else pd.Series(values, index=index).infer_objects()
-    frame = pd.DataFrame(columns, index=index)
-    names = ["module_path", "field"]
-    if order:
-        frame.columns = pd.MultiIndex.from_tuples(order, names=names)
-    else:
-        frame.columns = pd.MultiIndex.from_arrays([[], []], names=names)
-    return frame
+    arrays = [merged_column(chunk, *key) for key in order]
+    paths, fields = [path for path, _ in order], [name for _, name in order]
+    columns = pd.MultiIndex.from_arrays([paths, fields], names=["module_path", "field"])
+    return pd.DataFrame._from_arrays(arrays, columns, index, verify_integrity=False)
+
+
+def merged_column(chunk, path, name):
+    """Return column ``(path, name)`` of a merged chunk as ``assemble`` puts it in the table."""
+    return _inferred(_combined(_pieces([chunk], [len(chunk)], path, name)))
+
+
+def _inferred(values):
+    """Return a typed column as it is, and an object column with the type pandas infers for it."""
+    if values.dtype != object:
+        return values
+    return pd.Series(values).infer_objects().array
 
 
 def _pieces(chunks, sizes, path, name):
