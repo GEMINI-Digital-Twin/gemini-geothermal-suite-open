@@ -965,9 +965,9 @@
   ]
  },
  "schemas": {
-  "case.schema.json": "ed90a4f8b197e0fb98c098cd9a27035818c19ce164f1c5498486a58f69fefadd",
+  "case.schema.json": "e3386b332bf2efff4999b18d176dca30189c1474f360d2f57bb82df3985a7c83",
   "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
-  "economics.schema.json": "d0859d839e56aa62f071d92e656286b2297c5e202b95ee5b367c33bdd12ab00d",
+  "economics.schema.json": "2e7c44c418cebb74de78ae46ca42b63004496a6cd805d197166209ee2ee41056",
   "module_description.schema.json": "f40388d592d69073cba6a90dc83a23e69e7b3a8c7f9e88d48fdd3e19c6d1779e",
   "plant.schema.json": "4c0f2416861812feb5c7eb063a466318019a693243c1bda4c2c38376497fb0c6",
   "problem.schema.json": "98fbbd71c3cdb8b5c55b3cca2d2829999ab8665e4eb7dd1062fcc77d970383b4",
