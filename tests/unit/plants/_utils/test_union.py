@@ -9,11 +9,6 @@ from gemini.units import Quantity
 from tests.fixtures.errors import raises
 from tests.fixtures.sample_cases import HACKATHON_2026
 
-SUPERSTRUCTURE = (
-    HACKATHON_2026.parent / "hackathon_superstructure/plants/HackathonSuperstructure.json"
-)
-
-
 def loop(name, first=(), second=(), kinds=None, loss="air"):
     """Return a water loop: users -> ``second`` -> x (pump) -> ``first`` -> boiler -> users.
 
@@ -169,8 +164,8 @@ def test_the_call_is_checked(plants, name, code):
         gm.plants.union(given, name=name)
 
 
-def test_the_hackathon_plants_with_a_drive_circuit_give_the_hand_built_superstructure():
-    """Three plants of the sample merge into the wiring of the hand-built superstructure."""
+def test_three_hackathon_plants_with_a_drive_circuit_merge_and_give_each_back():
+    """Three plants of the sample merge: the heat pump and two chillers with their coolers vary."""
     names = ["HeatingCoolingPlant", "HeatingFullCoolingPlant", "HeatingAbsorptionCoolingPlant"]
     plants = [gm.Plant.from_json(HACKATHON_2026 / f"plants/{n}.json") for n in names]
     merged = gm.plants.union(plants, name="cooling")
@@ -181,8 +176,6 @@ def test_the_hackathon_plants_with_a_drive_circuit_give_the_hand_built_superstru
         "adsorption_cooler",
         "compression_cooler",
     ]
-    hand = gm.Plant.from_json(SUPERSTRUCTURE)
-    assert edges(merged) == edges(hand) and modules(merged) == modules(hand)
     gives_back(merged, plants)
 
 

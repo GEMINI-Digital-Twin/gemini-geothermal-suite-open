@@ -85,6 +85,21 @@
     },
     "seed": {
       "type": "integer"
+    },
+    "stop": {
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "generations": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "seconds": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
     }
   },
   "required": [

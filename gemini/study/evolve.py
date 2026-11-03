@@ -802,12 +802,18 @@ def evolve(
         polished, extra = _polished(archive, ordered, polish, population, seed, plan)
         if count is not None:
             count.reach(total)
-    front, best = _final(archive, designs + polished)
-    summaries = _structures(archive, designs + polished)
+    return _result(archive, history, stopped, designs + polished, extra)
+
+
+def _result(archive, history, stopped, designs, extra):
+    """Return the ``Evolution`` of the designs: front, best, structures, history and budget."""
+    front, best = _final(archive, designs)
+    summaries = _structures(archive, designs)
     for design in [*front, best, *(item["best"] for item in summaries if item["best"])]:
         _with_plant(design)
     _PLANTS.clear()
     _hypervolumes(archive, history, front)
+    names, signs = archive.names, archive.signs
     return Evolution(
         front=front,
         best=best,
@@ -815,7 +821,7 @@ def evolve(
         evaluations=archive.evaluations + extra,
         invalid=archive.invalid,
         structures=summaries,
-        rejected=space.rejected,
+        rejected=archive.space.rejected,
         objectives=[name if sign > 0 else f"-{name}" for name, sign in zip(names, signs)],
         budget={
             "evaluations": archive.evaluations + extra,
