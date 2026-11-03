@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import numpy as np
 import pandas as pd
+from pytz.exceptions import InvalidTimeError
 
 from gemini import units
 from gemini._utils.strings import close_matches, join_names
@@ -713,10 +714,14 @@ def _stamp(text, file, number, path, issues, zone=None):
 
 
 def _localized(stamp, zone, text, file, number, path, issues):
-    """Return the local ``stamp`` in ``zone`` as an aware datetime, or ``None`` with an issue."""
+    """Return the local ``stamp`` in ``zone`` as an aware datetime, or ``None`` with an issue.
+
+    pandas raises ``ValueError`` for a time the clock skips or repeats; before 2.3 it raised the
+    ``pytz`` errors.
+    """
     try:
         return pd.Timestamp(stamp).tz_localize(zone, ambiguous="raise", nonexistent="raise")
-    except (ValueError, OverflowError) as error:
+    except (ValueError, OverflowError, InvalidTimeError) as error:
         _issue(
             issues,
             f"{path}.file",
