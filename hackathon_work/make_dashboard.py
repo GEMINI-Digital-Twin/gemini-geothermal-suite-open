@@ -38,7 +38,7 @@ DAILY_COLS = [
 # Export size per panel in CSS px; 960 px x 2.03125 = 1950 px = 6.5 in at 300 dpi.
 PANELS = [("p1", "kpis", 330), ("p2", "heating", 520), ("p3", "cooling", 460), ("p4", "brine", 600),
           ("p5", "agent_path", 560), ("p6", "emissions", 460), ("p7", "schematic", 560),
-          ("p8", "constraints", 640), ("p9", "judges_tests", 440)]
+          ("p8", "constraints", 640), ("p9", "judges_tests", 600)]
 EXPORT_WIDTH_PX, EXPORT_INCH, DPI = 960, 6.5, 300
 
 
@@ -79,6 +79,7 @@ def constraints(s: dict, d: dict) -> list[dict]:
         return status(all(c["status"] == "PASS" for c in checks.get(name, [])) and name in checks)
 
     op_days = [c["value"] for c in checks.get("330_day_rule", [])]
+    unmet_days = sum(1 for i in range(len(d["date"])) if d["heat_unmet_MW"][i] > 1e-3 or d["cool_unmet_MW"][i] > 1e-3)
     return [
         {"name": "Flow per doublet when on", "limit": "50 – 300 m³/h", "worst": f"{min(flows):.0f} – {max(flows):.0f} m³/h",
          "status": status(min(flows) >= 50 - 0.01 and max(flows) <= 300 + 0.01)},
@@ -90,7 +91,10 @@ def constraints(s: dict, d: dict) -> list[dict]:
         {"name": "Pump hydraulic efficiency", "limit": "70 %", "worst": "P = Q·Δp / 0.70 for ESP and injector pump (by construction)", "status": "PASS"},
         {"name": "330 operating days per doublet", "limit": "≤ 330 d, 35-day maintenance", "worst": f"max {max(op_days):.0f} d" if op_days else "-",
          "status": from_checks("330_day_rule")},
-        {"name": "Never all doublets off", "limit": "0 days", "worst": f"{checks['never_all_off'][0]['value']} days", "status": from_checks("never_all_off")},
+        # organizer clarification (Discord, 2026-11-01): the full system must meet demand on all 365 days; days with
+        # every doublet off are allowed (design attribute, see no_geothermal_days). Older outputs lack the check.
+        {"name": "Demand met all 365 days (full system)", "limit": "0 days unmet", "worst": f"{unmet_days} days",
+         "status": from_checks("demand_met_365") if "demand_met_365" in checks else status(unmet_days == 0)},
         {"name": "Daily constraint checker", "limit": "0 failing days", "worst": f"{s['days_failing_daily_checks']} days", "status": from_checks("daily_constraints")},
         {"name": "ESP intake at max flow", "limit": "≥ 30 bar", "worst": f"{checks['esp_intake_pressure'][0]['value']:.2f} bar (ESP at {s['esp_setting_depth_m']:g} m)",
          "status": from_checks("esp_intake_pressure")},
@@ -146,7 +150,8 @@ def collect() -> dict:
         s = load_json(folder / "summary.json")
         d = read_daily(folder / "daily.csv")
         designs[label] = {"label": "Final design" if label == "FINAL" else label, "name": s["candidate"]["name"], "summary": s, "daily": d,
-                          "constraints": constraints(s, d), "point": design_point(d, hexp["fluid_density"], hexp["specific_heat"], t_return)}
+                          "constraints": constraints(s, d), "no_geothermal_days": sum(1 for a in d["active_doublets"] if not a),
+                          "point": design_point(d, hexp["fluid_density"], hexp["specific_heat"], t_return)}
     return {"designs": designs, "order": [label for label, _ in folders], "reference": ref, "agent": agent_data(),
             "sources": {"candidates": "outputs/candidates/base/", "final": "outputs/agent/final_design/", "reference": "outputs/reference/summary.json",
                         "agent": "outputs/agent/{decision_log.jsonl, run_summary.json}"}}
@@ -420,7 +425,7 @@ function renderAgent() {
     : `<b>${fmt(p.depth)} m</b>: ladder start, ${fmt(p.em)} t/a`;
   chart("c-agent").setOption({
     ...base(),
-    legend: { ...LEGEND, data: Object.values(STATUS).map(s => s.label) },
+    legend: { ...LEGEND, data: Object.keys(STATUS).filter(k => ev.some(e => e.status === k)).map(k => STATUS[k].label) },  // only statuses that occur
     grid: [{ left: 64, right: "45%", top: 76, bottom: 56 }, { left: "62%", right: 22, top: 76, bottom: 56 }],
     title: [{ text: "Evaluations in order (t CO₂/a)", left: 0, top: 36, textStyle: { fontSize: 14, fontWeight: 600, color: C.ink } },
             { text: "Depth ladder, 2 doublets (t CO₂/a)", left: "57%", top: 36, textStyle: { fontSize: 14, fontWeight: 600, color: C.ink } }],
@@ -536,7 +541,9 @@ function renderChecks(d) {
   const rows = d.constraints, n = rows.filter(r => r.status === "PASS").length;
   document.getElementById("p8-sub").textContent = `${d.label}: ${n} / ${rows.length} pass · ${d.summary.feasible ? "feasible" : "INFEASIBLE"} · worst case over 365 days`;
   document.getElementById("checks").innerHTML = `<table><thead><tr><th>Constraint</th><th>Limit</th><th>Worst case</th><th>Status</th></tr></thead><tbody>` +
-    rows.map(r => `<tr><td>${r.name}</td><td>${r.limit}</td><td class="num">${r.worst}</td><td>${badge(r.status)}</td></tr>`).join("") + `</tbody></table>`;
+    rows.map(r => `<tr><td>${r.name}</td><td>${r.limit}</td><td class="num">${r.worst}</td><td>${badge(r.status)}</td></tr>`).join("") + `</tbody></table>` +
+    `<p class="sub">Design attribute, not a constraint: ${d.no_geothermal_days} day(s) without geothermal supply (backup covers them). ` +
+    `The 330-day rule limits the geothermal source; the full system must meet demand all 365 days (organizer clarification, Discord, 1 Nov 2026).</p>`;
 }
 
 // ---------- 9. judges' tests ----------

@@ -25,6 +25,11 @@ Workspace for designing a 1–3 doublet geothermal heating + cooling system for 
   (do not use the ESP curve's own power/efficiency for reported power).
 - Production = injection liquid volume, same reservoir.
 - Geothermal doublet operation: 330 daily steps; demand covered on all 365 days.
+  **Organizer clarification (Discord, 2026-11-01):** the 330-day rule is the availability of the
+  geothermal SOURCE; the full system must meet demand on all 365 days. Staggered maintenance OR
+  one doublet with backup are both valid design choices. "Never all doublets off" is therefore
+  NOT a constraint: days without geothermal supply are a reported design attribute
+  (`days_without_geothermal`), and the hard check is `demand_met_365` (no unmet heat/cooling).
 - Supply temperature: heating 100 °C, cooling 20 °C.
 - Reservoir (OFFICIAL): 2500 m TVD midpoint, 100 m thick, 30 °C/km, 12 °C surface,
   250 bar(g), 200 mD → T_res = 87 °C (DERIVED). Other depths: hydrostatic P, gradient T.
@@ -56,7 +61,7 @@ quantity is missing, ask the user rather than invent it.
 | Heating return temperature | 60 °C (sensitivity 50 / 70 °C) | ASSUMED |
 | Cooling | absorption chiller, COP_th 0.7, driven by geothermal heat; electric chiller backup COP 5.0 | ASSUMED |
 | Cooling supply / return | 20 °C (OFFICIAL) / 26 °C (ASSUMED) | |
-| 330-day schedule | per doublet: 35 maintenance days each, staggered in the summer low-demand window, never all doublets off at once. Sensitivity: global 35-day outage | ASSUMED — interpretation pending organizer confirmation |
+| 330-day schedule | per doublet: 35 maintenance days each, staggered (non-overlapping) in the summer low-demand window; with 1 doublet the backup covers its 35 days | ASSUMED schedule; rule confirmed by the organizers (Discord, 2026-11-01): source availability, demand met all 365 days |
 | Separator / filter temperature drops | 0.2 K each | ASSUMED (short insulated surface equipment) |
 | Brine flow Q per doublet | design/control variable, 50–300 m³/h | solved via `esp_freq_hz` in 30–70 Hz (ASSUMED VSD range); else wellhead pressure in [surface floor, 30 bar] |
 | Wellhead pressure | 3 bar nominal, never below the floor | floor = 1.0 bar min surface pressure (ASSUMED) + surface Δp(Q) |
@@ -76,7 +81,9 @@ quantity is missing, ask the user rather than invent it.
 | Example carry-overs | ESP 10 stages (HC27000 curve; 650 m only as the placement start), separator & filter resistances, splits 0.8/0.2, boiler/CHP η 0.8 | ASSUMED (GEMINI doublet_plant.json values) |
 
 ## Ranking rule (user decision, 2026-11-02)
-1. Hard constraints: pass/fail (daily checker + annual 330-day / never-all-off checks).
+1. Hard constraints: pass/fail (daily checker + annual 330-day, demand-met-365 and well checks).
+   Backup peak duties (boiler, electric chiller) are reported per candidate so a 1-doublet
+   design with backup and a staggered design are compared on equal terms.
 2. Among feasible candidates minimize, in order: external gas → emissions → net grid
    electricity import → number of doublets → total drilled metres (final tie-break).
    Tie tolerance (approved 2026-11-03): values within max(1%, 0.01 GWh / 10 t) count as
@@ -180,5 +187,8 @@ Cascade per active doublet:
    (no hourly peaks); no capex/opex yet.
 6. [done] Design agent (rules backend, depth ladder): 9 annual evaluations, all four judges'
    tests PASS; final pick n2_q300_s1.8_ua1000_z3250 (2 doublets at 3250 m, 110 °C reservoir):
-   5 376 t CO₂/yr, 79.9% below the conventional reference; 3500 m step rejected (−2.8% < 5%).
+   5 148 t CO₂/yr, 80.7% below the conventional reference; 3500 m step marginal (−4.994%, not taken).
+   After the 2026-11-01 clarification the 1-doublet design is feasible (35 days on backup:
+   13.7 MWth boiler, 6.3 MWcool electric chiller peak; 28.6 GWh external gas, 12 968 t) and is
+   ranked out on external gas; the pick is unchanged.
 7. Report artifacts: comparison tables, plots, ≤5-page report or ≤10 slides, ≤5 min pitch.

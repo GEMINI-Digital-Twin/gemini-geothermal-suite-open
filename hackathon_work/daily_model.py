@@ -58,6 +58,7 @@ CANDIDATES_PATH = ROOT / "projects" / "candidates_2027.json"
 BRINE_CHAIN = ("producer_well", "separator", "filter_a", "heat_exchanger", "filter_b", "injector_well")
 ABSORBER = "absorber_generator"
 HP_COP_REL_TOLERANCE = 0.01  # HeatpumpBasic cross-check agreement
+UNMET_TOLERANCE_MW = 1e-3    # daily unmet heating/cooling above 1 kW fails demand_met_365
 GRAVITY = 9.81
 HP_MIN_SOURCE_DT_K = 1e-3  # heat pump runs only if the brine is at least this far above its minimum
 
@@ -579,9 +580,13 @@ class Plant:
             results.append({"check": "330_day_rule", "scope": name, "status": status, "value": op_days,
                             "limit": f"<= {op_limit} operating days, {required} maintenance days",
                             "reason": f"maintenance {span[0]}..{span[-1]} ({len(span)} days), operated {op_days} days"})
-        all_off = [d for d in days if all(d in span for span in schedule)]
-        results.append({"check": "never_all_off", "scope": "plant", "status": PASS if not all_off else "FAIL", "value": len(all_off),
-                        "limit": "0 days", "reason": f"{len(all_off)} day(s) with every doublet in maintenance"})
+        # Organizer clarification (Discord, 2026-11-01): the 330-day rule limits the geothermal SOURCE; the full
+        # system must meet demand on all 365 days. Days with every doublet off are allowed (backup covers them)
+        # and are reported as a design attribute (run_candidates.annual_summary), not checked here.
+        unmet = [r["date"] for r in rows if r["heat_unmet_MW"] > UNMET_TOLERANCE_MW or r["cool_unmet_MW"] > UNMET_TOLERANCE_MW]
+        results.append({"check": "demand_met_365", "scope": "plant", "status": PASS if not unmet else "FAIL", "value": len(unmet),
+                        "limit": "0 days", "reason": f"{len(unmet)} day(s) with unmet heating or cooling (full system incl. backup)"
+                                                     + (f" (first {unmet[0]})" if unmet else "")})
         bad_days = [r["date"] for r in rows if not r["constraints_pass"]]
         results.append({"check": "daily_constraints", "scope": "plant", "status": PASS if not bad_days else "FAIL", "value": len(bad_days),
                         "limit": "0 days", "reason": f"{len(bad_days)} day(s) failing a daily check" + (f" (first {bad_days[0]})" if bad_days else "")})

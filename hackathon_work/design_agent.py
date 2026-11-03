@@ -242,11 +242,22 @@ class RulesBackend:
                 return None
             failed = ", ".join(last["failing"]) or "hard constraints"
             return self._baseline(ctx, n, (
-                f"Recovery: {candidate_id(last['candidate'])} failed ({failed}). With "
-                f"{last['candidate']['n_doublets']} doublet(s) the 35-day maintenance window leaves the plant without "
-                f"geothermal supply, which the 'never all off' interpretation forbids; add a doublet so maintenance can be staggered."))
+                f"Recovery: {candidate_id(last['candidate'])} failed ({failed}); add a doublet to share the load."))
         if incumbent is None:
             return None
+        # External gas is the first ranking criterion: a feasible plant that leans on gas backup is compared
+        # with n + 1 doublets (staggered maintenance) before its other design variables are refined.
+        s, n = incumbent["summary"], incumbent["candidate"]["n_doublets"]
+        if (len(history) == 1 and n < space["n_doublets"][-1]
+                and s["external_gas_fuel_GWh"] > max(0.01, 0.01 * s["heating_demand_GWh"])):
+            cap = s["capacity_MW"]
+            return self._baseline(ctx, n + 1, (
+                f"{candidate_id(incumbent['candidate'])} is feasible (the 330-day rule limits the geothermal source; backup may "
+                f"cover the outage - organizer clarification 2026-11-01), but it has {s['days_without_geothermal']} day(s) "
+                f"without geothermal supply and needs {s['external_gas_fuel_GWh']:.1f} GWh of external gas with a "
+                f"{cap['boiler_th']:.1f} MWth backup boiler and a {cap['electric_chiller_cool']:.1f} MWcool electric chiller. "
+                f"External gas ranks first, so compare {n + 1} doublets with staggered maintenance before refining "
+                f"the {n}-doublet design."))
 
         base = incumbent["candidate"]
         notes = []
@@ -760,7 +771,8 @@ class DesignAgent:
                            + f"Not modelled: {result['well_checks']['not_modelled']}.")
             metrics = {k: s[k] for k in ("external_gas_fuel_GWh", "emissions_t", "grid_import_GWh", "drilled_m", "geothermal_heat_share",
                                          "max_brine_dT_K", "flow_max_m3h", "esp_max_flow_m3h", "reservoir_temperature_C", "heat_hp_GWh", "el_hp_GWh",
-                                         "el_esp_GWh", "esp_setting_depth_m", "esp_intake_at_max_flow_bar", "tubing_velocity_at_max_flow_m_s", "days_hex_bypass", "days_failing_daily_checks", "capacity_MW")}
+                                         "el_esp_GWh", "esp_setting_depth_m", "esp_intake_at_max_flow_bar", "tubing_velocity_at_max_flow_m_s", "days_hex_bypass", "days_failing_daily_checks", "capacity_MW",
+                                         "days_without_geothermal", "days_all_doublets_in_maintenance")}
             failing = sorted(set([c["check"] for c in s["annual_checks"] if c["status"] != "PASS"] + s["failing_checks"]))
             self.log.event(scenario, "evaluate", f"Annual model + constraint check: {candidate_id(candidate)}",
                            data={"evaluation": self.evaluations, "cached": result["cached"], "wall_s": result["wall_s"], "feasible": s["feasible"],
@@ -768,6 +780,9 @@ class DesignAgent:
                            rationale=(f"{'FEASIBLE' if s['feasible'] else 'INFEASIBLE'}: external gas {s['external_gas_fuel_GWh']:.3f} GWh, "
                                       f"emissions {s['emissions_t']:.0f} t, grid import {s['grid_import_GWh']:.2f} GWh, drilled {s['drilled_m']:.0f} m"
                                       + (f"; fails {', '.join(failing)}" if failing else "")
+                                      + (f"; {s['days_without_geothermal']} day(s) without geothermal supply, covered by backup "
+                                         f"(boiler {s['capacity_MW']['boiler_th']:.1f} MWth, electric chiller {s['capacity_MW']['electric_chiller_cool']:.1f} MWcool peak)"
+                                         if s["days_without_geothermal"] else "")
                                       + f" ({result['wall_s']:.1f} s{', cached' if result['cached'] else ''})"))
             history.append({"candidate": candidate, "summary": s, "feasible": s["feasible"], "failing": failing, "metrics": metrics,
                             "well_flags": result["well_checks"]["flags"], "well_points": result["well_checks"]["points"], "verdict": None, "wall_s": result["wall_s"], "cached": result["cached"]})
@@ -813,6 +828,15 @@ class DesignAgent:
                            f"{e['data']['marginal_abatement_t_per_yr_per_m']:.3f} t/yr/m "
                            f"({'kept' if e['data']['accepted'] else 'rejected, marginal' if e['data'].get('marginal') else 'rejected'})" for e in steps)
         marginal_cases = [self.marginal_case(h, history) for h in history if h["verdict"].get("marginal")]
+        backup = [{"candidate": candidate_id(h["candidate"]), "n_doublets": h["candidate"]["n_doublets"], "status": h["verdict"]["status"],
+                   "days_without_geothermal": h["summary"]["days_without_geothermal"],
+                   "boiler_peak_MWth": h["summary"]["capacity_MW"]["boiler_th"],
+                   "boiler_external_gas_peak_MWth": h["summary"]["capacity_MW"]["boiler_external_gas_th"],
+                   "electric_chiller_peak_MWcool": h["summary"]["capacity_MW"]["electric_chiller_cool"],
+                   "chp_peak_MWth": h["summary"]["capacity_MW"]["chp_th"],
+                   "external_gas_GWh": h["summary"]["external_gas_fuel_GWh"], "emissions_t": h["summary"]["emissions_t"]}
+                  for h in history if h["feasible"]]
+        single = min((b for b in backup if b["n_doublets"] == 1), key=lambda b: b["emissions_t"], default=None)
         ref = reference_summary()
         s = incumbent["summary"]
         reduction = (ref["emissions_t"] - s["emissions_t"]) / ref["emissions_t"]
@@ -829,11 +853,18 @@ class DesignAgent:
                 f"{ref['grid_import_GWh']:.2f} GWh. Well checks at the pick: "
                 + ("; ".join(incumbent["well_flags"]) if incumbent["well_flags"] else "no flags")
                 + ". Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule."
-                + "".join(f" Marginal sensitivity case: {m['text']}" for m in marginal_cases))
+                + "".join(f" Marginal sensitivity case: {m['text']}" for m in marginal_cases)
+                + (f" One-doublet alternative (valid per the organizer clarification of 2026-11-01, backup covers the source outage): "
+                   f"{single['candidate']} is feasible with {single['days_without_geothermal']} day(s) without geothermal supply, "
+                   f"a {single['boiler_peak_MWth']:.1f} MWth boiler and a {single['electric_chiller_peak_MWcool']:.1f} MWcool electric "
+                   f"chiller (peak duties), but needs {single['external_gas_GWh']:.1f} GWh external gas and emits {single['emissions_t']:.0f} t, "
+                   f"so it is ranked out." if single else ""))
         self.log.event(scenario, "final", f"Final pick: {candidate_id(incumbent['candidate'])}",
                        data={"pick": incumbent["candidate"], "verdict": incumbent["verdict"], "reference": ref, "emissions_reduction_vs_reference": reduction,
-                             "capacity_MW": s["capacity_MW"], "timing": timing, "marginal_cases": marginal_cases}, rationale=text)
-        return {"reference": ref, "emissions_reduction": reduction, "conclusion": text, "timing": timing, "marginal_cases": marginal_cases}
+                             "capacity_MW": s["capacity_MW"], "timing": timing, "marginal_cases": marginal_cases,
+                             "backup_sizing": backup}, rationale=text)
+        return {"reference": ref, "emissions_reduction": reduction, "conclusion": text, "timing": timing, "marginal_cases": marginal_cases,
+                "backup_sizing": backup}
 
     def write_final_design(self, incumbent: dict):
         """Daily rows + summary of the pick in <out_dir>/final_design/ (the annual cache keeps summaries only)."""
@@ -900,9 +931,27 @@ def judges_tests(entries: list[dict], design_scenario: str = "B_design") -> list
     depths = sorted({e["data"]["metrics"]["reservoir_temperature_C"] for e in b if e["phase"] == "evaluate"})
     final = next((e for e in b if e["phase"] == "final"), None)
     evals = [e for e in b if e["phase"] == "evaluate"]
+    # (iv) a real hard failure and its recovery: an infeasible annual run, or a design rejected at validation
+    # (hard limit) -> revised -> evaluated feasible; plus the feasible candidates the ranking rejected
     failed = next((e for e in evals if not e["data"]["feasible"]), None)
-    ranked_out = [e for e in b if e["phase"] == "propose" and "ranked out" in (e["rationale"] or "")]
     recovered = next((e for e in evals if failed and e["step"] > failed["step"] and e["data"]["feasible"]), None)
+    hard = []
+    if failed and recovered:
+        hard.append(f"step {failed['step']}: {failed['title'].split(': ', 1)[1]} infeasible ({', '.join(failed['data']['failing'])}) -> "
+                    f"step {recovered['step']}: {recovered['title'].split(': ', 1)[1]} feasible")
+    for _, v, r in sorted(flow_rejections, key=lambda t: t[1]["step"])[:1]:
+        ok = next((e for e in evals if e["step"] > r["step"]), None)
+        if ok and ok["data"]["feasible"]:
+            hard.append(f"step {v['step']}: {v['rationale']} (hard limit) -> step {r['step']}: {r['title']} -> "
+                        f"step {ok['step']}: {ok['title'].split(': ', 1)[1]} feasible")
+    ranks = next((e["data"] for e in reversed(b) if e["phase"] == "rank"), {})
+    feasible_names = {e["title"].split(": ", 1)[1] for e in evals if e["data"]["feasible"]}
+    ranked_out = sorted(((name, v) for name, v in ranks.items() if v["status"] == "REJECTED" and name in feasible_names),
+                        key=lambda kv: (not kv[0].startswith("n1_"), kv[1]["rank"]))
+    ranked_text = [f"{name} feasible but ranked out (rank {v['rank']}): {v['reason']}" for name, v in ranked_out if name.startswith("n1_")]
+    if len(ranked_out) > len(ranked_text):
+        ranked_text.append(f"{len(ranked_out) - len(ranked_text)} more feasible candidate(s) ranked out: "
+                           + ", ".join(name for name, _ in ranked_out if not name.startswith("n1_")))
     return [
         {"test": "(i) missing physical quantity -> stop and ask",
          "pass": (halt is not None or answered_all) and all(r in halted_for or answered(r) for r in removed),
@@ -918,9 +967,8 @@ def judges_tests(entries: list[dict], design_scenario: str = "B_design") -> list
         {"test": "(iii) 87 C reservoir vs 100 C supply -> shortfall stated, deeper well vs surface upgrade decided",
          "pass": temp is not None and len(depths) > 1 and final is not None,
          "evidence": (f"step {temp['step']} (assessment); candidates evaluated at reservoir temperatures {depths} C; step {final['step']} (decision)") if temp and final else "missing"},
-        {"test": "(iv) recovery after a failed / ranked-out candidate", "pass": (failed is not None and recovered is not None) or bool(ranked_out),
-         "evidence": ((f"step {failed['step']}: {failed['title']} infeasible ({', '.join(failed['data']['failing'])}) -> step {recovered['step']}: {recovered['title']} feasible")
-                      if failed and recovered else "") + (f"; ranked-out recoveries at steps {[e['step'] for e in ranked_out]}" if ranked_out else "") or "not triggered"},
+        {"test": "(iv) recovery after a failed / ranked-out candidate", "pass": bool(hard) or bool(ranked_out),
+         "evidence": "; also ".join(hard + ranked_text) or "not triggered"},
     ]
 
 
@@ -986,6 +1034,20 @@ def write_trace(path, entries, backend, results, note=None, design_scenario="B_d
             lines += [f"| {m['candidate']} | {m.get('from_depth_m', float('nan')):g} -> {m['depth_m']:g} m | {m.get('emissions_change', float('nan')) * 100:+.3f}% | "
                       f"{m.get('marginal_abatement_t_per_yr_per_m', float('nan')):.2f} | {m['T_wellhead_max_C']:.1f} "
                       f"(vs {m.get('T_wellhead_max_from_C', float('nan')):.1f}; PVT range <= 100) |" for m in b["marginal_cases"]]
+            lines.append("")
+        final = next((e for e in reversed(entries) if e["scenario"] == design_scenario and e["phase"] == "final"), None)
+        if final and final["data"].get("backup_sizing"):
+            lines += ["## Backup equipment sizing (feasible candidates)", "",
+                      "Peak daily duties the backup must be built for, so a 1-doublet design (backup covers its maintenance "
+                      "window) and a staggered multi-doublet design are compared on equal terms. Organizer clarification "
+                      "(Discord, 2026-11-01): the 330-day rule limits the geothermal source; the full system must meet demand "
+                      "on all 365 days.", "",
+                      "| Candidate | Verdict | Days without geothermal | Boiler peak (MWth) | of which external gas | "
+                      "Electric chiller peak (MWcool) | CHP peak (MWth) | External gas (GWh) | Emissions (t) |",
+                      "|---|---|---|---|---|---|---|---|---|"]
+            lines += [f"| {x['candidate']} | {x['status']} | {x['days_without_geothermal']} | {x['boiler_peak_MWth']:.2f} | "
+                      f"{x['boiler_external_gas_peak_MWth']:.2f} | {x['electric_chiller_peak_MWcool']:.2f} | {x['chp_peak_MWth']:.2f} | "
+                      f"{x['external_gas_GWh']:.3f} | {x['emissions_t']:.0f} |" for x in final["data"]["backup_sizing"]]
             lines.append("")
         lines += ["## Runtime", "",
                   f"- Annual evaluations: {t['evaluations']} ({t['computed']} computed, {t['cached']} from cache); "
@@ -1094,7 +1156,7 @@ def main():
                "pick": b["pick"]["candidate"] if b.get("pick") else None, "pick_summary": {k: b["pick"]["summary"][k] for k in
                ("external_gas_fuel_GWh", "emissions_t", "grid_import_GWh", "drilled_m", "reservoir_temperature_C")} if b.get("pick") else None,
                "evaluated": [{"candidate": h["candidate"], "feasible": h["feasible"], "verdict": h["verdict"]} for h in b.get("history", [])],
-               "marginal_cases": b.get("marginal_cases", []), "judges_tests": tests, "backend_calls": backend.calls}
+               "marginal_cases": b.get("marginal_cases", []), "backup_sizing": b.get("backup_sizing", []), "judges_tests": tests, "backend_calls": backend.calls}
     (out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
 
     if not args.interactive:

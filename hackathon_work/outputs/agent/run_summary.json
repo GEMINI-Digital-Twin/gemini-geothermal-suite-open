@@ -1,14 +1,14 @@
 {
   "backend": "rules",
-  "total_runtime_s": 11.582866000011563,
+  "total_runtime_s": 22.884818200021982,
   "status": "selected",
   "timing": {
     "evaluations": 9,
     "computed": 9,
     "cached": 0,
-    "wall_s_per_computed_evaluation_mean": 1.1233831444470626,
-    "wall_s_per_computed_evaluation_max": 1.8597928000381216,
-    "scenario_runtime_s": 10.155410600011237,
+    "wall_s_per_computed_evaluation_mean": 2.087705355551508,
+    "wall_s_per_computed_evaluation_max": 4.107686499948613,
+    "scenario_runtime_s": 18.865881200064905,
     "backend_calls": 0,
     "backend_wall_s": 0
   },
@@ -35,10 +35,10 @@
         "hex_ua_W_K": 1000000.0,
         "depth_m": 2500
       },
-      "feasible": false,
+      "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "fails hard constraints: annual checks",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z2500: ranks better than n1_q300_s1.8_ua1000_z2500; extra doublet: external gas +100.0%, emissions +31.3% (needs >= 5% on either, beyond the tie tolerance)",
         "rank": 9
       }
     },
@@ -180,6 +180,116 @@
       "text": "n2_q300_s1.8_ua1000_z3500 (3500 m) changes emissions -4.994% vs 3250 m (0.26 t CO2/yr per extra metre), within the tie tolerance of the 5% threshold, so it is not taken (drilling cost and risk not modelled); its wellhead reaches 114.1 C vs 107.0 C at 3250 m, further above the 100 C brine-property (PVTConstantSTP) range."
     }
   ],
+  "backup_sizing": [
+    {
+      "candidate": "n1_q300_s1.8_ua1000_z2500",
+      "n_doublets": 1,
+      "status": "REJECTED",
+      "days_without_geothermal": 35,
+      "boiler_peak_MWth": 13.672109214778915,
+      "boiler_external_gas_peak_MWth": 13.672109214778915,
+      "electric_chiller_peak_MWcool": 6.277705625180794,
+      "chp_peak_MWth": 1.0183271469331316,
+      "external_gas_GWh": 28.59657714781029,
+      "emissions_t": 12968.21820099736
+    },
+    {
+      "candidate": "n2_q300_s1.8_ua1000_z2500",
+      "n_doublets": 2,
+      "status": "REJECTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 0.015686986417388776,
+      "boiler_external_gas_peak_MWth": 0.015686986417388776,
+      "electric_chiller_peak_MWcool": 3.6857056251807943,
+      "chp_peak_MWth": 2.0366542938662633,
+      "external_gas_GWh": 0.001987292797905484,
+      "emissions_t": 8908.052249370818
+    },
+    {
+      "candidate": "n2_q300_s1.8_ua500_z2500",
+      "n_doublets": 2,
+      "status": "REJECTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 0.03267471924845758,
+      "boiler_external_gas_peak_MWth": 0.03267471924845758,
+      "electric_chiller_peak_MWcool": 3.6857056251807943,
+      "chp_peak_MWth": 2.0366542938662633,
+      "external_gas_GWh": 0.007855649314474827,
+      "emissions_t": 9036.183343673541
+    },
+    {
+      "candidate": "n2_q300_s1.0_ua1000_z2500",
+      "n_doublets": 2,
+      "status": "REJECTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 8.632825524972962,
+      "boiler_external_gas_peak_MWth": 8.632825524972962,
+      "electric_chiller_peak_MWcool": 5.417901417028249,
+      "chp_peak_MWth": 1.3238252906689687,
+      "external_gas_GWh": 8.090360000538418,
+      "emissions_t": 9429.139162034415
+    },
+    {
+      "candidate": "n2_q300_s1.8_ua1000_z2750",
+      "n_doublets": 2,
+      "status": "REJECTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 0.03713361537842266,
+      "boiler_external_gas_peak_MWth": 0.03713361537842266,
+      "electric_chiller_peak_MWcool": 1.9152083564687576,
+      "chp_peak_MWth": 1.9008773409663458,
+      "external_gas_GWh": 0.006064704313888481,
+      "emissions_t": 7267.029162464662
+    },
+    {
+      "candidate": "n2_q300_s1.8_ua1000_z3000",
+      "n_doublets": 2,
+      "status": "REJECTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 0.02771245572660095,
+      "boiler_external_gas_peak_MWth": 0.02771245572660095,
+      "electric_chiller_peak_MWcool": 0.15205063359367474,
+      "chp_peak_MWth": 1.9687658169946722,
+      "external_gas_GWh": 0.004447853487115811,
+      "emissions_t": 6038.165566443616
+    },
+    {
+      "candidate": "n2_q300_s1.8_ua1000_z3250",
+      "n_doublets": 2,
+      "status": "ACCEPTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 0.030313101700389058,
+      "boiler_external_gas_peak_MWth": 0.030313101700389058,
+      "electric_chiller_peak_MWcool": 0.0,
+      "chp_peak_MWth": 2.0366542933455962,
+      "external_gas_GWh": 0.0038207561210318497,
+      "emissions_t": 5147.8686004058745
+    },
+    {
+      "candidate": "n2_q300_s1.8_ua1000_z3500",
+      "n_doublets": 2,
+      "status": "REJECTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 0.2323123732819222,
+      "boiler_external_gas_peak_MWth": 0.2323123732819222,
+      "electric_chiller_peak_MWcool": 0.0,
+      "chp_peak_MWth": 2.0366542933367553,
+      "external_gas_GWh": 0.01572551248391401,
+      "emissions_t": 4890.791068599023
+    },
+    {
+      "candidate": "n3_q300_s1.8_ua1000_z3250",
+      "n_doublets": 3,
+      "status": "REJECTED",
+      "days_without_geothermal": 0,
+      "boiler_peak_MWth": 0.030313101700389058,
+      "boiler_external_gas_peak_MWth": 0.030313101700389058,
+      "electric_chiller_peak_MWcool": 0.0,
+      "chp_peak_MWth": 2.0366542933455962,
+      "external_gas_GWh": 0.0038207561210318497,
+      "emissions_t": 5147.8686004058745
+    }
+  ],
   "judges_tests": [
     {
       "test": "(i) missing physical quantity -> stop and ask",
@@ -199,7 +309,7 @@
     {
       "test": "(iv) recovery after a failed / ranked-out candidate",
       "pass": true,
-      "evidence": "step 14: Annual model + constraint check: n1_q300_s1.8_ua1000_z2500 infeasible (never_all_off) -> step 21: Annual model + constraint check: n2_q300_s1.8_ua1000_z2500 feasible; ranked-out recoveries at steps [28, 33, 57]"
+      "evidence": "step 10: 650.00 m3/h exceeds the 300 m3/h hard cap (hard limit) -> step 11: Revised to n1_q300_s1.8_ua1000_z2500 -> step 14: n1_q300_s1.8_ua1000_z2500 feasible; also n1_q300_s1.8_ua1000_z2500 feasible but ranked out (rank 9): superseded by n2_q300_s1.8_ua1000_z2500: ranks better than n1_q300_s1.8_ua1000_z2500; extra doublet: external gas +100.0%, emissions +31.3% (needs >= 5% on either, beyond the tie tolerance); also 7 more feasible candidate(s) ranked out: n3_q300_s1.8_ua1000_z3250, n2_q300_s1.8_ua1000_z3000, n2_q300_s1.8_ua1000_z2750, n2_q300_s1.8_ua1000_z2500, n2_q300_s1.8_ua1000_z3500, n2_q300_s1.8_ua500_z2500, n2_q300_s1.0_ua1000_z2500"
     }
   ],
   "backend_calls": []

@@ -24,7 +24,7 @@
     "produced_gas_not_burned": "ASSUMED flared: its CO2 (combustion + 20% pass-through) is emitted whether it is burned in CHP/boiler or flared.",
     "dispatch.flow_step_m3h": "ASSUMED 5 m3/h dispatch resolution.",
     "dispatch.summer_window": "ASSUMED May-September; maintenance windows are placed in the lowest heat + cooling-drive need (H + C/COP_abs) inside it.",
-    "dispatch.maintenance_days_per_doublet": "330-day rule interpretation (pending organizer confirmation): 35 consecutive days per doublet, non-overlapping.",
+    "dispatch.maintenance_days_per_doublet": "330-day rule = geothermal source availability, demand met all 365 days (organizer clarification, Discord, 2026-11-01): 35 consecutive days per doublet, non-overlapping; with 1 doublet the backup covers them.",
     "dispatch.heating_tolerance_K": "ASSUMED: geothermal (HEX + heat pump) counts as meeting heating when within 0.05 K of 100 C."
   },
   "esp_options": {
