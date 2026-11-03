@@ -98,7 +98,7 @@ jobs:
     - name: Take the notes of this version from the changelog
       run: |
         awk -v head="## [$VERSION]" 'index($0, head) == 1 {found = 1; next} /^## \[/ {found = 0} found' \
-          CHANGELOG.md > notes.md
+          docs/CHANGELOG.md > notes.md
         test -s notes.md
     - name: Create the tag and the release
       run: gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" --title "$VERSION" --notes-file notes.md

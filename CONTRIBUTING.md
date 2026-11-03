@@ -2,7 +2,7 @@
 
 GEMINI supports Python 3.11, 3.12, 3.13 and 3.14. Install the package with its development
 dependency groups with `poetry install` or with `uv pip install -e . --group dev`. Read
-[AGENTS.md](AGENTS.md) and the documents it links before changing equipment or physics; the implementation rules are in
+[docs/rules.md](docs/rules.md) and [AGENTS.md](AGENTS.md) and the documents it links before changing equipment or physics; the implementation rules are in
 [.claude/docs/conventions.md](.claude/docs/conventions.md).
 
 ## Bug reports
@@ -17,16 +17,16 @@ It prints the Python, platform, GEMINI and dependency versions and the git commi
 
 ## Development process
 
-Coding agents follow the branching rule in [AGENTS.md](AGENTS.md#branching). Human contributors
+Everyone follows the [branching rule](docs/rules.md#branches). Human contributors
 work as follows:
 
 - create a branch from `dev`: `feature/<name>`, `fix/<name>` or `docs/<name>`, as in
-  [AGENTS.md](AGENTS.md#branching);
+  [the rules](docs/rules.md#branches);
 - make the change, including tests and documentation, and commit with a clear message;
 - push the branch and open a pull request into `dev`;
 - discuss with the reviewer what changes are needed; the reviewer merges once every discussion is
   resolved;
-- record user-visible changes under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md).
+- record user-visible changes under `## [Unreleased]` in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 CI runs the development test profile on pushes to feature branches and on pull requests into other
 branches, and the release profile on pushes to `main`, on release tags, on pull requests into
@@ -54,7 +54,7 @@ developers. They should be of value.
   text such as `"150 m3/h"`.
 - Nothing a user must decide has a default: a field is required or absent, and a call that needs it
   raises `missing_value` naming its path. Both rules are in
-  [AGENTS.md](AGENTS.md#start-here) and [conventions.md](.claude/docs/conventions.md#units), and
+  [docs/rules.md](docs/rules.md#values) and [conventions.md](.claude/docs/conventions.md#units), and
   `tests/unit/test_code_quality.py` checks what it can.
 
 ### Documentation

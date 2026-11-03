@@ -18,16 +18,16 @@ The version has one source: `version` in the `[project]` section of `pyproject.t
 
 ## Release notes source of truth
 
-- Release notes are maintained in [`CHANGELOG.md`](./CHANGELOG.md).
+- Release notes are maintained in [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 - New work is recorded under `## [Unreleased]`.
 - At release time, move relevant items from `Unreleased` to a new version section.
 
 ## Recommended release process
 
-1. Ensure `CHANGELOG.md` (`Unreleased`) is up to date.
+1. Ensure `docs/CHANGELOG.md` (`Unreleased`) is up to date.
 2. Choose next SemVer number (`MAJOR.MINOR.PATCH`).
 3. Update the version in `pyproject.toml`.
-4. Create a new section in `CHANGELOG.md`:
+4. Create a new section in `docs/CHANGELOG.md`:
    - `## [X.Y.Z] - YYYY-MM-DD`
 5. Commit the version/changelog changes and merge them into `dev`.
 

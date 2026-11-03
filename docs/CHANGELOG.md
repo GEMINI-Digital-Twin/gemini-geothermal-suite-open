@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
+  `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
+- Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
+
 ## [0.5.7] - 2026-11-03
 
 Every public name, default and number is the same as 0.5.6.
