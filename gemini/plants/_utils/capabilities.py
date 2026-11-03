@@ -27,10 +27,13 @@ def _ranges(plant):
     """Return the paths of the leaves a plant file may give a ``range`` for a study to search.
 
     These are ``size.doublets`` when the class takes that structural size, then every leaf of
-    ``params`` that holds a number: a parameter, a control or a boundary of any module.
+    ``params`` that holds a number: a parameter, a control or a boundary of any module, read on
+    the plant at its largest size, so that the leaves of every doublet it may have are listed.
     """
-    found = ["size.doublets"] if "doublets" in (getattr(plant, "_size", None) or {}) else []
-    return found + leaves.numeric_paths(plant)
+    if "doublets" not in (getattr(plant, "_size", None) or {}):
+        return leaves.numeric_paths(plant)
+    largest = type(plant)(doublets=plant.maximum_doublets)
+    return ["size.doublets"] + leaves.numeric_paths(largest)
 
 
 def capabilities():
@@ -42,7 +45,9 @@ def capabilities():
     - ``schedulable``: whether ``gm.schedule`` can plan it;
     - ``ranges``: every leaf of the plant file that may state a ``range``: ``size.doublets`` when
       its class takes a structural size of that name, then ``params.<path>`` for each parameter,
-      control and boundary that is a number (``params.depth``, ``params.doublet.nominal_flow``).
+      control and boundary that is a number (``params.depth``, ``params.doublet.nominal_flow``),
+      for every doublet of the largest size the class allows (``params.d0.nominal_flow`` to
+      ``params.d2.nominal_flow``).
 
     Returns
     -------
