@@ -1,8 +1,9 @@
 """Pressure-holding (expansion) vessel that fixes the static pressure of a closed circuit."""
 
-from gemini.modules.declarations import Control, Inlet, Outlet, Output
+from gemini.modules.declarations import Control, Output, Port
 from gemini.modules.module import Module
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Pressure, PressureDifference
 
 
@@ -31,7 +32,14 @@ class PressurizationTank(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
         # Controls
         self.pressure_setpoint = Control(
@@ -44,7 +52,14 @@ class PressurizationTank(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Set the circuit pressure to the setpoint."""

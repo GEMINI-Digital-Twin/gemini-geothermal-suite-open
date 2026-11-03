@@ -108,7 +108,7 @@ from its own `__init__`; the files inside a folder are private.
 | Name | Returns | Status |
 | --- | --- | --- |
 | `gm.__version__` | text, the version in `pyproject.toml` | real |
-| `gm.Module`, `gm.Parameter`, `gm.Inlet`, `gm.Outlet`, `gm.Output` | see [modules.md](modules.md) | real |
+| `gm.Module`, `gm.Parameter`, `gm.Port`, `gm.Output` | see [modules.md](modules.md) | real |
 | `gm.Plant` | see [plants.md](plants.md) | real |
 | `gm.Stream`, `gm.Fluid`, `gm.BRINE`, `gm.WATER` | see [types.md](types.md); `Stream(m_dot=, T=, p=, fluid=)` and `Fluid(...)` take quantities for what has a dimension | real |
 | `gm.Case`, `gm.Study` | see [Case](#case) and [Evaluate and study](#evaluate-and-study) | real |
@@ -130,7 +130,8 @@ folder at the top.
 | `gm.modules.get(name)` | the class. Unknown: `ValidationError` with `suggestions` | real |
 | `gm.modules.categories()` | `subsurface`, `wells`, `pumps`, `treatment`, `exchangers`, `heating`, `cooling`, `power`, `storage`, `piping`, `grids`, `environment`, `control`, `plants`, in display order; each is the folder that holds the module | real |
 | `gm.modules.<Equipment>`, `Module`, `ModuleList`, `ModuleDict`, `trace_wiring` | classes, see [equipment.md](equipment.md) | real |
-| `gm.modules.Parameter`, `Control`, `Boundary`, `State`, `Inlet`, `Outlet`, `Output`, `no_outputs()` | the declarations of a module class, see [modules.md](modules.md) | real |
+| `gm.modules.Parameter`, `Control`, `Boundary`, `State`, `Port`, `Output`, `no_outputs()` | the declarations of a module class, see [modules.md](modules.md); a `Port` takes a `Direction`, a `gm.Fluid` preset or a `gm.streams.Energy` preset, and `Phase`, `Level`, `Flow` | real |
+| `plant.suggest(port=None, *, free=True, loose=True, limit=None)`, `plant.check()` | real: `Suggestion(port, match, exact, loose, closes_loop)` best first, no score; `check` lists `stream_mismatch`, `generic_conflict` and `unconnected_port` | real |
 | `gm.modules.check(cls, example=None)` | for developers of a new module class only: a report, never raises; `example` goes through `gm.call`, so a value with a dimension is a quantity | real |
 | `gm.modules.Boiler`, `ElectricBoiler`, `CHP`, `Flare`, `GasGrid`, `GasMakeup` | the gas chain: `boiler.fuel_in`, `boiler.gas_out`, see [equipment.md](equipment.md) | real |
 
@@ -539,12 +540,11 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.Dataset` | `(frame, units=None)` | class |
 | `gm.Engine` | `(plant, backend='numpy', callbacks=None, on_error='raise', compile=True)` | class |
 | `gm.Fluid` | `(*, kind='brine', salinity=0.0, co2_mass_fraction=0.0, gas_mass_fraction=0.0, gas_liquid_ratio=None, gas_composition=None, grid_composition=None, glycol_fraction=0.0, property_model='constant_stp', density=None, viscosity=None, specific_heat=None, thermal_conductivity=None)` | class |
-| `gm.Inlet` | `(type=..., *, kind=None, many=False, drawn=None, description=None)` | class |
 | `gm.Module` | `()` | class |
-| `gm.Outlet` | `(type=..., *, kind=None, many=False, drawn=False, offered=False, description=None)` | class |
 | `gm.Output` | `(type, *, soft_sensor=False, description=None)` | class |
 | `gm.Parameter` | `(type, *, default=UNSET, shape=None, calibratable=False, structural=False, case=None, description=None, **bounds)` | class |
 | `gm.Plant` | `(name=None)` | class |
+| `gm.Port` | `(direction, *, fluid=None, energy=None, phase=..., level=..., generic=None, many=False, flow=None, required=True, temperature=None, pressure=None, offered=False, description=None)` | class |
 | `gm.Results` | `(declared=None)` | class |
 | `gm.Stream` | `(**data)` | class |
 | `gm.Study` | `(found, name, files=None, folder=None, about=None)` | class |
@@ -598,7 +598,7 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.Plant.target_of` | `(source)` | method |
 | `gm.Plant.source_of` | `(target)` | method |
 | `gm.Plant.feeds` | `(source)` | method |
-| `gm.Plant.check` | `()` | method |
+| `gm.Plant.check` | `(*, results=None)` | method |
 | `gm.Plant.set_range` | `(path, min=None, max=None)` | method |
 | `gm.Plant.set_options` | `(path, options)` | method |
 | `gm.Plant.summary` | `()` | method |
@@ -650,12 +650,15 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.modules.check` | `(example=None)` | function |
 | `gm.modules.no_outputs` | `()` | function |
 | `gm.modules.Parameter` | `(type, *, default=UNSET, shape=None, calibratable=False, structural=False, case=None, description=None, **bounds)` | class |
-| `gm.modules.Inlet` | `(type=..., *, kind=None, many=False, drawn=None, description=None)` | class |
+| `gm.modules.Port` | `(direction, *, fluid=None, energy=None, phase=..., level=..., generic=None, many=False, flow=None, required=True, temperature=None, pressure=None, offered=False, description=None)` | class |
+| `gm.modules.Direction` |  | class |
+| `gm.modules.Phase` |  | class |
+| `gm.modules.Level` |  | class |
+| `gm.modules.Flow` |  | class |
 | `gm.modules.Control` | `(type, *, default=UNSET, description=None, **bounds)` | class |
 | `gm.modules.Boundary` | `(type, *, case=None, **kwargs)` | class |
 | `gm.modules.State` | `(type, *, default=UNSET, description=None, **bounds)` | class |
 | `gm.modules.Output` | `(type, *, soft_sensor=False, description=None)` | class |
-| `gm.modules.Outlet` | `(type=..., *, kind=None, many=False, drawn=False, offered=False, description=None)` | class |
 | `gm.modules.<Equipment>` | | catalogue |
 
 ### gm.plants
@@ -663,6 +666,8 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | Name | Signature | Kind |
 | --- | --- | --- |
 | `gm.plants.Plant` | `(name=None)` | class |
+| `gm.plants.Suggestion` | `(port, match, exact, loose, closes_loop)` | class |
+| `gm.plants.Match` |  | class |
 | `gm.plants.capabilities` | `()` | function |
 | `gm.plants.schema` | `()` | function |
 | `gm.plants.names` | `(category=None)` | function |
@@ -721,6 +726,7 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | --- | --- | --- |
 | `gm.streams.Stream` | `(**data)` | class |
 | `gm.streams.Fluid` | `(*, kind='brine', salinity=0.0, co2_mass_fraction=0.0, gas_mass_fraction=0.0, gas_liquid_ratio=None, gas_composition=None, grid_composition=None, glycol_fraction=0.0, property_model='constant_stp', density=None, viscosity=None, specific_heat=None, thermal_conductivity=None)` | class |
+| `gm.streams.Energy` | `(name, unit='W')` | class |
 | `gm.streams.Ports` | `(values=None, *, path='module')` | class |
 | `gm.streams.BRINE` |  | value |
 | `gm.streams.WATER` |  | value |
@@ -918,6 +924,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.6.0 | 2026-11-03 | **Breaking, approved by the owner.** `Inlet` and `Outlet` are removed; ports are `gm.Port(direction, *, fluid=None, energy=None, ...)` with `Direction`, `Phase`, `Level`, `Flow`, the `gm.Fluid` presets and `gm.streams.Energy`. `connect` checks phase, fluid, level and energy; `Plant.check` reports `stream_mismatch` and `generic_conflict`; `Plant.suggest` gives `gm.plants.Suggestion`s. Every number is the same as 0.5.14. |
 | 0.5.14 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). `Study.run` runs its plants in worker processes when `processes` > 1; the same result. |
 | 0.5.13 | 2026-11-03 | **Addition, the last feature release** (the frozen file unchanged). A series takes the optional key `time_zone` (an IANA name): a CSV time without an offset is local in it; without it such a time is refused as before. Bug fixes only from here. |
 | 0.5.12 | 2026-11-03 | **Freeze, no API change** (the frozen file unchanged). The last planned release: bug fixes only from here, as 0.5.x patches. |

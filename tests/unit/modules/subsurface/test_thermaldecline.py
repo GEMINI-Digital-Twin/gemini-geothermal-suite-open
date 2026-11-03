@@ -6,13 +6,15 @@ import pytest
 
 import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Output
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.subsurface import ThermalDecline
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import BRINE
 from gemini.streams.fluid import BRINE as DEFAULT_FLUID
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.streams.ports import Ports
 from tests.fixtures import si
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
@@ -60,13 +62,17 @@ class Producer(Module):
         )
 
         # Inlets
-        self.sandface = Inlet(Stream)
+        self.sandface = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.temperature_drop = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the produced stream through both children."""

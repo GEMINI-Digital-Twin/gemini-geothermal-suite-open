@@ -1,10 +1,11 @@
 """Degasser separating a share of the free gas from the liquid, with a pressure loss."""
 
 from gemini.modules._utils.equipment import Equipment
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import separation
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Fraction, Pressure, PressureDifference, ThermalConductance
 
 
@@ -77,7 +78,13 @@ class Degasser(Equipment, Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.pressure_drop = Output(
@@ -87,8 +94,20 @@ class Degasser(Equipment, Module):
         )
 
         # Outlets
-        self.liquid_out = Outlet(Stream, kind="brine")
-        self.gas_out = Outlet(Stream, kind="gas")
+        self.liquid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.gas_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Split the separated free gas from the liquid at the vessel pressure."""

@@ -4,15 +4,16 @@ from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import geometry, heat_transfer, hydraulics
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Elevation,
     HeatTransferCoefficient,
     Length,
-    Power,
     PressureDifference,
     Speed,
 )
@@ -74,8 +75,17 @@ class Pipe(Equipment, Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
-        self.air_in = Inlet(Stream, kind="air")
+        self.fluid_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.pressure_drop = Output(
@@ -84,8 +94,15 @@ class Pipe(Equipment, Module):
         self.velocity = Output(Speed, description="Mean flow velocity in the pipe")
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Apply friction, static head and heat exchange to the inlet stream."""

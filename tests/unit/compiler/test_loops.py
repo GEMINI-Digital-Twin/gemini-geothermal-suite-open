@@ -9,12 +9,12 @@ from gemini.compiler.cache import GraphCache
 from gemini.compiler.interpret.run_graph import run_graph
 from gemini.compiler.run import graph_feeds
 from gemini.errors import PhysicsError
-from gemini.modules import CirculationPump, Module
-from gemini.modules.declarations import Control, Inlet, Outlet, Output
+from gemini.modules import CirculationPump, Module, Port
+from gemini.modules.declarations import Control, Output
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
-from gemini.units.quantities import Power
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures.designs import with_values
 from tests.fixtures.engine_plants import loop_plant
 
@@ -50,7 +50,9 @@ class Relaxer(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.target = Control(float, default=300.0)
@@ -62,7 +64,9 @@ class Relaxer(Module):
         self.drop = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Relax the temperature, linearly, and set the flow."""
@@ -113,10 +117,10 @@ class Circuit(Plant):
         self.relaxer = self.relaxer_class()
 
         # Inlets
-        self.power_in = gm.modules.declarations.Inlet(Power, kind="electricity")
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outlets
-        self.loss_out = gm.modules.declarations.Outlet(Power, kind="heat")
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
         # Connections
         self.connect("power_in", "pump.power_in")

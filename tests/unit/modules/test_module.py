@@ -12,10 +12,11 @@ import pytest
 import gemini as gm
 from gemini import ops, runtime
 from gemini.errors import ValidationError
-from gemini.modules import Module, ModuleDict
-from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter
+from gemini.modules import Module, ModuleDict, Port
+from gemini.modules.declarations import Boundary, Control, Output, Parameter
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.streams.ports import Ports
 from gemini.units import Quantity
 from gemini.units.quantities import Electricity, Frequency
@@ -34,7 +35,9 @@ class PassThrough(Module):
         self.value = Parameter(float, gt=0, calibratable=True)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.multiplier = Control(float, default=1, gt=0)
@@ -43,7 +46,9 @@ class PassThrough(Module):
         self.result = Output(float, soft_sensor=True)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Record the scalar product and return the stream."""
@@ -55,6 +60,10 @@ class PassThrough(Module):
         outputs = dict(result=self.value * inputs["multiplier"])
         outlets = dict(fluid_out=outlet)
         return outputs, outlets
+
+
+ANY_STREAM = {"fluid": Fluid.ANY, "phase": Phase.ANY, "level": Level.ANY, "flow": Flow.IMPOSED}
+"""The fields of a stream port that takes any fluid."""
 
 
 def test_registration_construction_and_state():
@@ -181,13 +190,17 @@ class NestedParent(Module):
         self.children_by_name = ModuleDict({"child": PassThrough().set_params("", {"value": 3})})
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.child_value = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Call the child and copy its recorded output."""
@@ -278,7 +291,9 @@ class RequiredInputs(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.frequency = Control(Frequency, gt=0, le=60)
@@ -290,7 +305,9 @@ class RequiredInputs(Module):
         self.total = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Read applied values from the inputs."""
@@ -473,9 +490,9 @@ def test_missing_output_and_named_hook_ordering():
 
         def __init__(self):
             super().__init__()
-            self.fluid_in = Inlet(Stream)
+            self.fluid_in = Port(Direction.IN, **ANY_STREAM)
             self.value = Output(float)
-            self.fluid_out = Outlet(Stream)
+            self.fluid_out = Port(Direction.OUT, **ANY_STREAM)
 
         def forward(self, inputs, inlets, state):
             outlets = dict(fluid_out=inlets.fluid_in)
@@ -546,9 +563,13 @@ class EnergyLeaf(Module):
     def __init__(self):
         """Declare one stream path and an electricity output."""
         super().__init__()
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
         self.electricity = Output(Electricity)
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the inlet stream."""
@@ -666,7 +687,9 @@ class Quotient(Module):
         self.coefficients = Parameter(list[float], default=[1.0, 2.0], shape=(2,))
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.divisor = Control(float, default=0.0)
@@ -680,7 +703,9 @@ class Quotient(Module):
         self.again = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Divide the inlet flow by the control and raise the pressure by one pascal."""
@@ -754,7 +779,9 @@ class ColumnOutputs(Module):
     def __init__(self):
         """Declare an inlet and the outputs."""
         super().__init__()
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
         self.sections = Output(list[float])
         self.share = Output(float | None)
 

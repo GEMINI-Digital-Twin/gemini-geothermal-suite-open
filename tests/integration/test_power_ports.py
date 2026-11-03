@@ -7,11 +7,12 @@ import gemini as gm
 from gemini._utils import registry
 from gemini.compiler.run import run
 from gemini.errors import ValidationError
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Output, Parameter
 from gemini.physics import energy
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Power
 from tests.fixtures.designs import with_values
 
@@ -38,14 +39,18 @@ class Consumer(Module):
         self.rating = Parameter(Power)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
-        self.power_in = Inlet(Power, kind="electricity")
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outputs
         self.drawn = Output(Power)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Draw what the flow needs."""
@@ -70,13 +75,13 @@ class Bus(Module):
         super().__init__()
 
         # Inlets
-        self.power_in = Inlet(Power, kind="electricity", many=True)
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.IMPOSED, many=True)
 
         # Outputs
         self.net = Output(Power)
 
         # Outlets
-        self.power_out = Outlet(Power, kind="electricity", many=True)
+        self.power_out = Port(Direction.OUT, energy=Energy.ELECTRICITY, flow=Flow.DRAWN, many=True)
 
     def forward(self, inputs, inlets, state):
         """Nothing leaves but what its takers draw."""
@@ -102,13 +107,22 @@ class Source(Module):
         self.temperature = Parameter(float)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.back = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream, offered=True)
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.ANY,
+            level=Level.ANY,
+            flow=Flow.IMPOSED,
+            offered=True,
+        )
 
     def _offer(self, inputs, inlets, state):
         return {
@@ -143,10 +157,14 @@ class Taker(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream, drawn=True)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.DRAWN
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Draw half of the offer."""
@@ -173,7 +191,14 @@ class Offer(Module):
         self.taken = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream, offered=True, drawn=True)
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.ANY,
+            level=Level.ANY,
+            flow=Flow.DRAWN,
+            offered=True,
+        )
 
     def _offer(self, inputs, inlets, state):
         return {

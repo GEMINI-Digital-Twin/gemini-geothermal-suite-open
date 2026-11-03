@@ -6,10 +6,12 @@ from gemini import ops
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.supply import supply_margin
 from gemini.modules.cooling import _sorption
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, refrigeration
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Dimensionless,
     Power,
@@ -109,10 +111,20 @@ class AbsorptionUnit(Equipment, Module):
         self.supply_margin = supply_margin()
 
         # Inlets
-        self.generator_in = Inlet(Stream, kind="hot_water")
-        self.chilled_in = Inlet(Stream, kind="chilled_water")
-        self.cooling_in = Inlet(Stream, kind="hot_water")
-        self.power_in = Inlet(Power, kind="electricity")
+        self.generator_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.chilled_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.CHILLED,
+            flow=Flow.IMPOSED,
+        )
+        self.cooling_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.WARM, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Controls
         self.temperature_setpoint = Control(
@@ -134,9 +146,23 @@ class AbsorptionUnit(Equipment, Module):
         self.is_capped = Output(bool, description="True when the duty was limited by the capacity")
 
         # Outlets
-        self.generator_out = Outlet(Stream, kind="hot_water")
-        self.chilled_out = Outlet(Stream, kind="chilled_water")
-        self.cooling_out = Outlet(Stream, kind="hot_water")
+        self.generator_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.chilled_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.CHILLED,
+            flow=Flow.IMPOSED,
+        )
+        self.cooling_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.WARM,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Cool the generator and chilled circuits and heat the cooling circuit."""

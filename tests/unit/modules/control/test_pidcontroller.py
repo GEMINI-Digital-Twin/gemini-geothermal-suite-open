@@ -4,12 +4,13 @@ import numpy as np
 import pytest
 
 import gemini as gm
-from gemini.modules import Module
+from gemini.modules import Module, Port
 from gemini.modules.control import PIDController
-from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output
+from gemini.modules.declarations import Boundary, Control, Output
 from gemini.modules.storage import ThermalStorage
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Temperature
 from tests.fixtures import si
 from tests.fixtures.air import air
@@ -131,8 +132,12 @@ class ControlledTank(Module):
         )
 
         # Inlets
-        self.charge_in = Inlet(Stream)
-        self.discharge_in = Inlet(Stream)
+        self.charge_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.discharge_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.temperature_setpoint = Control(Temperature)
@@ -144,8 +149,12 @@ class ControlledTank(Module):
         self.command = Output(float)
 
         # Outlets
-        self.charge_out = Outlet(Stream)
-        self.discharge_out = Outlet(Stream)
+        self.charge_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.discharge_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Throttle the charge flow by the controller command, then pass the tank."""

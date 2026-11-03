@@ -11,11 +11,11 @@ from gemini.compiler.executor import GraphExecutor
 from gemini.engine.eager import EagerExecutor, _by_rows
 from gemini.engine.executor import executor_for
 from gemini.errors import PhysicsError
-from gemini.modules import Module
-from gemini.modules.declarations import Control, Inlet, Outlet, Output
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Control, Output
 from gemini.plants._utils.plan import Solve
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures.engine_plants import (
     TANK_START,
     Booster,
@@ -93,7 +93,9 @@ class Gate(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.level = Control(float)
@@ -102,7 +104,9 @@ class Gate(Module):
         self.rate = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the stream and the rate, zero when stopped."""

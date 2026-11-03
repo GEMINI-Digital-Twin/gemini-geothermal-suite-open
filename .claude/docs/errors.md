@@ -105,7 +105,8 @@ code is never renamed without raising the minor number of `gm.__version__`.
 | `invalid_format` | `ValidationError` | A document has the wrong structure |
 | `old_format` | `ValidationError` | A plant dict is older than the current format, a checkpoint was written before 0.3.0, or a results file before 0.1.0 |
 | `invalid_connection` | `ValidationError` | A connection breaks a wiring rule |
-| `stream_mismatch` | `ValidationError` | The two ends of a connection have different kinds |
+| `stream_mismatch` | `ValidationError` | The two ends of a connection carry different things: a stream and a power, or the phase, fluid, level or energy |
+| `generic_conflict` | `Issue` of `Plant.check` | A generic letter of a module is asked to carry two different values through its connections |
 | `ambiguous_port` | `ValidationError` | Automatic port matching found no port or more than one |
 | `port_in_use` | `ValidationError` | An inlet already has a source, or an outlet already has a target |
 | `unconnected_port` | `ValidationError` | A port of a module has no connection and no plant name |

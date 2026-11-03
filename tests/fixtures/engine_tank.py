@@ -3,11 +3,11 @@
 import pandas as pd
 
 import gemini as gm
-from gemini.modules import Module
+from gemini.modules import Module, Port
 from gemini.modules.bindings import Binding, ModuleBindings
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.modules.declarations import Control, Output, Parameter
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import MassFlow, Pressure, Temperature
 
 TIME = pd.Timestamp("2024-01-01", tz="UTC")
@@ -26,7 +26,9 @@ class Tank(Module):
         self.temperature = Parameter(Temperature)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.m_dot = Control(MassFlow)
@@ -35,7 +37,9 @@ class Tank(Module):
         self.flow = Output(MassFlow)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the inlet stream through."""

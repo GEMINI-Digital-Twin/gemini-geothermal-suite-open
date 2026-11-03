@@ -8,11 +8,11 @@ import pytest
 import gemini as gm
 from gemini import ops
 from gemini.evaluate import call_energy_balance, call_mass_balance
-from gemini.modules import ElectricBoiler, Module
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules import ElectricBoiler, Module, Port
 from gemini.modules.storage import ThermalStorage
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import AIR, BRINE
+from gemini.streams.fluid import AIR, BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.streams.ports import Ports
 from tests.fixtures import si
 from tests.fixtures.air import air
@@ -185,13 +185,23 @@ class BoilerCharging(Module):
         self.storage = _tank()
 
         # Inlets
-        self.charge_in = Inlet(Stream)
-        self.discharge_in = Inlet(Stream)
-        self.air_in = Inlet(Stream, kind="air")
+        self.charge_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.discharge_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.charge_out = Outlet(Stream)
-        self.discharge_out = Outlet(Stream)
+        self.charge_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.discharge_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Heat the charge water, then pass both circuits through the tank."""

@@ -138,7 +138,23 @@ def test_the_current_api_contains_the_whole_frozen_api(frozen):
     found += [
         f"row code {code} removed" for code in set(frozen["row_codes"]) - set(now["row_codes"])
     ]
+    found = [
+        item
+        for item in found
+        if item not in APPROVED_BREAKS and not item.endswith(APPROVED_CHECK_ARGUMENT)
+    ]
     assert not found, RULE + "\n" + "\n".join(found[:30])
+
+
+APPROVED_BREAKS = {
+    "scopes.top.Inlet: removed",
+    "scopes.top.Outlet: removed",
+    "scopes.modules.Inlet: removed",
+    "scopes.modules.Outlet: removed",
+}
+"""The breaks the owner approved for 0.6.0: ``Inlet`` and ``Outlet`` are one class, ``Port``."""
+APPROVED_CHECK_ARGUMENT = ".methods.check: [] -> [['results', 'KEYWORD_ONLY', 'None']]"
+"""``Plant.check(*, results=None)``, approved for 0.6.0: a call without it is unchanged."""
 
 
 def test_the_schemas_keep_every_key(frozen):

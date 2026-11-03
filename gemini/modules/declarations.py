@@ -12,7 +12,6 @@ from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache, partial
-from inspect import isclass
 from typing import Annotated, Any
 
 import numpy as np
@@ -23,7 +22,9 @@ from gemini import ops, units
 from gemini._utils.strings import did_you_mean, join_names
 from gemini.errors import DefinitionError, PhysicsError, ValidationError
 from gemini.streams import kinds as streams
+from gemini.streams.energy import Energy
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
 from gemini.units.quantities import Power
 
 
@@ -345,34 +346,82 @@ class Parameter(Declaration):
         return self.value
 
 
-class _Port(Declaration):
-    """Port declaration; ``type`` is a ``Stream`` type or the quantity ``Power``.
+class Port(Declaration):
+    """A port of a module: what it takes (``Direction.IN``) or gives (``Direction.OUT``).
 
-    A stream port has no JSON schema, quantity or unit: ``schema`` is empty, ``quantity`` and
-    ``unit`` are ``None``. Stream dataclasses do not go through Pydantic.
-    A ``Power`` port has the unit of its quantity. ``kind`` is the label of the connection, one of
-    ``streams.NAMES``, or ``None`` for a port that takes whatever flows through it (a pipe, a
-    valve, either side of a heat exchanger). ``many`` lets several ports connect: the value of the
-    port is the list of what they give. ``drawn`` says that the taker decides the flow, see
-    ``modules.md``.
+    A port carries a stream of a ``fluid`` (a ``gm.Fluid`` preset such as ``Fluid.WATER``,
+    compared by its family; ``Fluid.ANY`` takes any) or a power of an ``energy`` (a
+    ``gm.streams.Energy`` preset such as ``Energy.ELECTRICITY``; ``Energy.ANY`` takes any):
+    exactly one of the two. A stream port also has a ``phase`` and a ``level`` (the temperature
+    role of its circuit), ``ANY`` when not given, and may state ``temperature`` and ``pressure``
+    ranges ``(low, high)`` in SI that it is meant for, which
+    ``Plant.check(results=...)`` checks a run against. gemini's
+    own modules state every field, so that a connection is checked precisely.
+
+    ``generic`` names a type variable shared by ports of one module: a pipe's ``fluid_in`` and
+    ``fluid_out`` are both ``"T"``, so they carry the same fluid, which the plant infers from the
+    connections. ``flow`` says who decides what the port carries: ``Flow.DRAWN``, the taker (a
+    grid, a power inlet the module computes), or ``Flow.IMPOSED``, the giver; without it a single
+    power inlet and an outlet that feeds many ports are drawn, the rest imposed. ``many`` lets
+    several ports connect: the value is the list of what they give. ``required`` is whether the
+    port must be connected. ``offered`` (outlets only) says the value exists before the other
+    modules run, which ``Module._offer`` gives.
+
+    A stream port has no JSON schema, quantity or unit; a power port has the unit W. ``kind``
+    is the label of the port before 0.6.0, which descriptions keep.
     """
 
-    def __init__(self, type=Stream, *, kind=None, many=False, drawn=False, description=None):
-        """Declare a port carrying values of ``type`` with the connection label ``kind``."""
-        if kind is not None and kind not in streams.NAMES:
+    def __init__(
+        self,
+        direction,
+        *,
+        fluid=None,
+        energy=None,
+        phase=streams.Phase.ANY,
+        level=streams.Level.ANY,
+        generic=None,
+        many=False,
+        flow=None,
+        required=True,
+        temperature=None,
+        pressure=None,
+        offered=False,
+        description=None,
+    ):
+        """Declare a port of a ``fluid`` or of an ``energy``; see the class for the rest."""
+        self.direction = _member(streams.Direction, direction, "direction")
+        if (fluid is None) == (energy is None):
             raise DefinitionError(
-                f"{self.__class__.__name__}: kind = {kind!r}; expected one of "
-                f"{join_names(streams.NAMES)}{did_you_mean(kind, streams.NAMES)}"
+                f"Port: fluid = {fluid!r}, energy = {energy!r}; expected exactly one: a fluid "
+                "for a stream port (Fluid.ANY for any), an energy for a power port (Energy.ANY)"
             )
-        self.carries_stream = isclass(type) and issubclass(type, Stream)
-        if not self.carries_stream and type is not Power:
+        stream = fluid is not None
+        if stream and not isinstance(fluid, (Fluid, type(Fluid.ANY))):
             raise DefinitionError(
-                f"{self.__class__.__name__}: type = {type!r}; expected a Stream type or Power"
+                f"Port: fluid = {fluid!r}; expected a gm.Fluid such as Fluid.WATER or Fluid.ANY"
             )
-        self.type = type
-        self.kind = kind
+        own = {"phase": phase, "level": level, "temperature": temperature, "pressure": pressure}
+        if not stream and (
+            phase != "any" or level != "any" or temperature is not None or pressure is not None
+        ):
+            raise DefinitionError(f"Port: a power port has no phase, level or ranges; got {own}")
+        if offered and self.direction is not streams.Direction.OUT:
+            raise DefinitionError("Port: offered is for an outlet; this port is an inlet")
+        self.flow = _member(streams.Flow, flow or _flow(self.direction, stream, many), "flow")
+        if many and self.direction is streams.Direction.OUT and self.flow is not streams.Flow.DRAWN:
+            raise DefinitionError("Port: an outlet that feeds many ports has its flow drawn")
+        self.fluid = fluid
+        self.energy = None if stream else _form(energy)
+        self.phase = _member(streams.Phase, phase, "phase") if stream else None
+        self.level = _member(streams.Level, level, "level") if stream else None
+        self.generic = generic
         self.many = many
-        self.drawn = drawn
+        self.required = required
+        self.temperature = None if temperature is None else tuple(temperature)
+        self.pressure = None if pressure is None else tuple(pressure)
+        self.offered = offered
+        self.carries_stream = stream
+        self.type = Stream if stream else Power
         self.default = UNSET
         self.description = description
         self.bounds = {}
@@ -380,8 +429,74 @@ class _Port(Declaration):
         self.owner = None
         self._limits = None
         self.schema, self.quantity, self.unit = {}, None, None
-        if not self.carries_stream:
+        if not stream:
             self.quantity, self.unit = "power", "W"
+
+    @property
+    def section(self):
+        """Return ``"inlet"`` or ``"outlet"``, the section of the port in a module."""
+        return "inlet" if self.direction is streams.Direction.IN else "outlet"
+
+    @property
+    def drawn(self):
+        """Return whether the taker decides what the port carries."""
+        return self.flow is streams.Flow.DRAWN
+
+    @property
+    def gives(self):
+        """Return whether a call computes this inlet and nobody supplies it: a drawn power."""
+        return self.direction is streams.Direction.IN and self.drawn and not self.carries_stream
+
+    @property
+    def kind(self):
+        """Return the label of the port before 0.6.0, ``None`` for one of any fluid."""
+        if self.generic is not None:
+            return None
+        return streams.label(
+            self.carries_stream,
+            self.phase,
+            self.value_of("fluid"),
+            self.level,
+            self.value_of("energy"),
+        )
+
+    def value_of(self, name):
+        """Return the text of field ``name`` that connections compare, ``None`` if it has none.
+
+        The fluid compares by its family (``Fluid.family``), ``"any"`` when the port takes any.
+        """
+        if name == "fluid":
+            if not self.carries_stream:
+                return None
+            return self.fluid.family
+        if name == "energy":
+            return None if self.carries_stream else self.energy.name
+        value = getattr(self, name)
+        return None if value is None else value.value
+
+    def fields(self):
+        """Return the fields of the port as keyword arguments of ``Port``, without its direction.
+
+        A stream port gives its phase, fluid and level, a power port its energy.
+        """
+        own = (
+            {
+                "phase": self.phase,
+                "fluid": self.fluid,
+                "level": self.level,
+                "temperature": self.temperature,
+                "pressure": self.pressure,
+            }
+            if self.carries_stream
+            else {"energy": self.energy}
+        )
+        return own | {
+            "flow": self.flow,
+            "generic": self.generic,
+            "many": self.many,
+            "required": self.required,
+            "description": self.description,
+        }
 
     def validate(self, value):
         """Return the value of the port; a ``many`` port holds a list of them."""
@@ -390,7 +505,7 @@ class _Port(Declaration):
         return self._item(value)
 
     def _item(self, value):
-        """Return a stream of ``type``, or a number: a mapping of fields builds a stream."""
+        """Return a stream, or a number: a mapping of fields builds a stream."""
         if not self.carries_stream:
             return self._power(value)
         if isinstance(value, self.type):
@@ -411,26 +526,63 @@ class _Port(Declaration):
         return float(value)
 
 
-class Inlet(_Port):
-    """Incoming port: a ``Stream`` by default.
+def _flow(direction, stream, many):
+    """Return the flow of a port that states none: drawn or imposed.
 
-    A single ``Power`` inlet is drawn: the module decides the value and returns it from ``forward``
-    under the name of the port. A stream inlet with ``drawn=True`` receives the conditions its
-    source offers, and the module returns the stream it took.
+    The taker draws a single power inlet and an outlet that feeds many ports; the giver imposes
+    the rest.
     """
+    if direction is streams.Direction.OUT:
+        return streams.Flow.DRAWN if many else streams.Flow.IMPOSED
+    return streams.Flow.DRAWN if not stream and not many else streams.Flow.IMPOSED
 
-    section = "inlet"
 
-    def __init__(self, type=Stream, *, kind=None, many=False, drawn=None, description=None):
-        """Declare an incoming port; a single ``Power`` inlet is drawn unless stated."""
-        if drawn is None:
-            drawn = type is Power and not many
-        super().__init__(type, kind=kind, many=many, drawn=drawn, description=description)
+def _carried(port):
+    """Return ``"stream"`` or ``"power"``, what a port carries."""
+    return "stream" if port.carries_stream else "power"
 
-    @property
-    def gives(self):
-        """Return whether a call computes this port and nobody supplies it."""
-        return self.drawn and not self.carries_stream
+
+def _form(value):
+    """Return the ``Energy`` preset of a form or its name, or raise ``DefinitionError``."""
+    try:
+        return Energy.of(value)
+    except ValidationError as error:
+        raise DefinitionError(f"Port: {error}") from None
+
+
+def _member(enum, value, name):
+    """Return ``value`` as a member of ``enum``, or raise ``DefinitionError`` naming ``name``."""
+    try:
+        return enum(value)
+    except ValueError:
+        choices = [item.value for item in enum]
+        raise DefinitionError(
+            f"Port: {name} = {value!r}; expected one of {join_names(choices)}"
+            f"{did_you_mean(str(value), choices)}"
+        ) from None
+
+
+def mismatch(source, target):
+    """Return why the outlet ``source`` cannot feed the inlet ``target``, or ``None`` if it can.
+
+    The one rule of a connection: an outlet to an inlet, a stream to a stream or a power to a
+    power, and each of phase,
+    fluid (by family), level and energy equal or ``ANY`` on one side. A generic port compares as
+    ``ANY`` here; the plant checks what its type variable becomes (``gemini.plants._utils.ports``).
+    """
+    if (
+        source.direction is not streams.Direction.OUT
+        or target.direction is not streams.Direction.IN
+    ):
+        return "expected an outlet to an inlet"
+    if source.carries_stream != target.carries_stream:
+        return f"{_carried(source)} to {_carried(target)}"
+    for name in ("phase", "fluid", "level", "energy"):
+        first, second = source.value_of(name), target.value_of(name)
+        if first is None or second is None or first == second or "any" in (first, second):
+            continue
+        return f"{name} {first} to {second}"
+    return None
 
 
 class Control(Declaration):
@@ -507,21 +659,3 @@ class Output(Declaration):
     def sum(cls, first, second, *others, description=None):
         """Declare the sum of two or more paths of a plant."""
         return cls._combination(("sum", first, second, *others), description)
-
-
-class Outlet(_Port):
-    """Outgoing port.
-
-    ``offered`` says the value exists before the other modules run: ``Module._offer`` gives it. A
-    ``many`` outlet feeds several ports. With ``drawn=True``, always so for ``many``, its takers
-    decide the flow and the module receives what they took under the name of the port.
-    """
-
-    section = "outlet"
-
-    def __init__(
-        self, type=Stream, *, kind=None, many=False, drawn=False, offered=False, description=None
-    ):
-        """Declare an outgoing port."""
-        super().__init__(type, kind=kind, many=many, drawn=drawn or many, description=description)
-        self.offered = offered

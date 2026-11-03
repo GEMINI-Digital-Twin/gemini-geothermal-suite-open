@@ -1,10 +1,11 @@
 """Continuous blowdown bleeding a commanded share of a circuit's flow to drain."""
 
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet
+from gemini.modules.declarations import Control, Port
 from gemini.modules.module import Module
 from gemini.physics import separation
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Fraction
 
 
@@ -34,7 +35,13 @@ class Blowdown(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Controls
         self.blowdown_fraction = Control(
@@ -42,8 +49,16 @@ class Blowdown(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="brine")
-        self.waste_out = Outlet(Stream, kind="waste")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.waste_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WASTE, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Split the commanded bleed from the feed."""

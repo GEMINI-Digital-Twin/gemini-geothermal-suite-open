@@ -1,13 +1,15 @@
 """Doublet produced against a wellhead pressure and injected through a solved pump head."""
 
-from gemini.modules.declarations import Boundary, Inlet, Outlet, Parameter
+from gemini.modules.declarations import Boundary, Parameter, Port
 from gemini.modules.environment import Formation
 from gemini.modules.pumps import ESP, InjectionPump
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.units.quantities import MassFlow, Power, Pressure
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import MassFlow, Pressure
 
 
 class NodalDoublet(Plant):
@@ -55,8 +57,14 @@ class NodalDoublet(Plant):
         )
 
         # Inlets
-        self.return_in = Inlet(Stream)
-        self.power_in = Inlet(Power, kind="electricity")
+        self.return_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Boundaries
         self.wellhead_pressure = Boundary(
@@ -64,7 +72,13 @@ class NodalDoublet(Plant):
         )
 
         # Outlets
-        self.supply_out = Outlet(Stream)
+        self.supply_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Connections
         self.connect("return_in", "injection_pump.fluid_in")

@@ -1,12 +1,13 @@
 """A district heating network and a district cooling network on an aquifer store."""
 
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.environment import Atmosphere
 from gemini.modules.grids import ElectricityGrid
 from gemini.plants.atesplant import ATESPlant
 from gemini.plants.districtnetwork import DistrictNetwork
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 class DistrictEnergyPlant(Plant):
@@ -33,13 +34,23 @@ class DistrictEnergyPlant(Plant):
         self.air = Atmosphere()
 
         # Inlets
-        self.hot_in = Inlet(Stream)
-        self.cold_in = Inlet(Stream)
-        self.air_in = Inlet(Stream, kind="air")
+        self.hot_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.cold_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.hot_out = Outlet(Stream)
-        self.cold_out = Outlet(Stream)
+        self.hot_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.cold_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Connections
         self.connect("hot_in", "heating.supply_in")

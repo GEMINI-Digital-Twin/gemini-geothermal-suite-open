@@ -2,13 +2,14 @@
 
 from typing import Literal
 
-from gemini import ops
+from gemini import ops, streams
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Output, Parameter, Port, State
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Energy,
     Fraction,
@@ -94,9 +95,15 @@ class ThermalStorage(Equipment, Module):
         )
 
         # Inlets
-        self.charge_in = Inlet(Stream, kind="hot_water")
-        self.discharge_in = Inlet(Stream, kind="hot_water")
-        self.air_in = Inlet(Stream, kind="air")
+        self.charge_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.discharge_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # States
         self.temperature = State(Temperature, description="Uniform temperature of the tank content")
@@ -120,9 +127,13 @@ class ThermalStorage(Equipment, Module):
         )
 
         # Outlets
-        self.charge_out = Outlet(Stream, kind="hot_water")
-        self.discharge_out = Outlet(Stream, kind="hot_water")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.charge_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.discharge_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=streams.Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Return both circuits after exchanging heat with the start-of-step tank."""

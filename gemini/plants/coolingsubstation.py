@@ -1,13 +1,14 @@
 """Building cooling substation: valve, heat exchanger, the building's loads and its pump."""
 
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.grids import CoolingGrid
 from gemini.modules.piping import Valve
 from gemini.modules.pumps import CirculationPump
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.units.quantities import Power
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 class CoolingSubstation(Plant):
@@ -56,12 +57,16 @@ class CoolingSubstation(Plant):
         self.pump = CirculationPump()
 
         # Inlets
-        self.supply_in = Inlet(Stream, kind="chilled_water")
-        self.power_in = Inlet(Power, kind="electricity")
+        self.supply_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outlets
-        self.return_out = Outlet(Stream, kind="chilled_water")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
         # Connections
         self.connect("supply_in", "valve.fluid_in")

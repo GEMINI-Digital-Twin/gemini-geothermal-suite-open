@@ -4,11 +4,13 @@ from typing import Literal
 
 from gemini import ops
 from gemini.errors import ValidationError
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.wells.well import _Well
 from gemini.physics import fluid, heat_transfer
-from gemini.streams.flows import Stream
-from gemini.units.quantities import Length, Power, Pressure, PressureDifference, Temperature
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import Length, Pressure, PressureDifference, Temperature
 
 
 class ProductionWell(_Well):
@@ -42,7 +44,13 @@ class ProductionWell(_Well):
         )
 
         # Inlets
-        self.bottom_in = Inlet(Stream, kind="brine")
+        self.bottom_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.friction_pressure_drop = Output(
@@ -60,8 +68,14 @@ class ProductionWell(_Well):
         )
 
         # Outlets
-        self.wellhead_out = Outlet(Stream, kind="brine")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.wellhead_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Traverse the selected segment upward and apply the pressure correction."""

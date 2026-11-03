@@ -6,16 +6,17 @@ import pytest
 import gemini as gm
 from gemini import ops, runtime
 from gemini.compiler.trace.tracer import Tracer
-from gemini.modules import CirculationPump, Module
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules import CirculationPump, Module, Port
+from gemini.modules.declarations import Output
 from gemini.modules.storage import ThermalStorage
 from gemini.ops.failedrows import failures_of, marking
 from gemini.plants._utils import loops
 from gemini.plants._utils.plan import Loop
 from gemini.plants.plant import Plant
+from gemini.streams.energy import Energy
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
-from gemini.units.quantities import Power
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
@@ -48,13 +49,17 @@ class Relaxer(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.drop = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Relax the temperature; the rule of the class is linear, as an exchanger is."""
@@ -93,10 +98,10 @@ class Circuit(Plant):
         self.relaxer = self.relaxer_class()
 
         # Inlets
-        self.power_in = Inlet(Power, kind="electricity")
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outlets
-        self.loss_out = Outlet(Power, kind="heat")
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
         # Connections
         self.connect("power_in", "pump.power_in")
@@ -411,7 +416,9 @@ class Probed(Relaxer):
         """Declare the second outlet."""
         super().__init__()
         self.fluid = BRINE
-        self.return_out = Outlet(Stream)
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Relax as the base class does and probe the entering temperature on the side."""
@@ -427,7 +434,9 @@ class ProbedCircuit(Circuit):
         """Name the side outlet."""
         super().__init__()
         self.fluid = BRINE
-        self.return_out = Outlet(Stream)
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
         self.connect("relaxer.return_out", "return_out")
 
 

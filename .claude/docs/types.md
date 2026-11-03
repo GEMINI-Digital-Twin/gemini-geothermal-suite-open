@@ -4,7 +4,7 @@ There is no `gemini.types`: the folder was split by job ([structure.md](structur
 aliases are `gemini/units/quantities.py`, the unit rule `units/bare.py`, the return shapes
 `units/shapes.py`; `Stream`, `Fluid` and `Ports` are `gemini.streams`; `Health`, `ModuleResult`,
 `Values` and the bindings are `modules/results.py` and `modules/bindings.py`; `Profile` and the
-input readers are `case/profile.py` and `units/inputs.py`. The declarations (`Parameter`, `Inlet`, `Outlet`, `Output`, `Control`,
+input readers are `case/profile.py` and `units/inputs.py`. The declarations (`Parameter`, `Port`, `Output`, `Control`,
 `Boundary`, `State`) are in `gemini.modules`, and `Quantity` in `gemini.units`. Types depend on the
 standard library, Pydantic, pandas/NumPy for profiles, `gemini.physics` for property calculations,
 `gemini.units`, `gemini.errors` and `gemini._utils`. They never
@@ -49,9 +49,9 @@ inputs` and is not exported from `gemini.case`.
 
 ## Quantities and declarations
 
-Use `Parameter`, `Inlet`, `Control`, `Boundary`, `State`, `Output` and `Outlet` in module
-constructors. Output types may be quantity aliases or Python types; inlet and outlet types are a
-`Stream` type or `Power`. `Parameter(kind, default=, shape=, calibratable=, description=, **bounds)`
+Use `Parameter`, `Port`, `Control`, `Boundary`, `State` and `Output` in module
+constructors. Output types may be quantity aliases or Python types; a port has a `Direction` and carries a `Stream`
+(`fluid=`) or a `Power` (`energy=`). `Parameter(kind, default=, shape=, calibratable=, description=, **bounds)`
 holds design data; `Control` and `Boundary` take `kind`, `default`, `description` and bounds;
 `State(kind, default=)` declares a stepped value (see [modules.md](modules.md#state-and-health));
 `Output(kind, soft_sensor=, description=)`; `Output.difference`, `Output.ratio` and `Output.sum` are

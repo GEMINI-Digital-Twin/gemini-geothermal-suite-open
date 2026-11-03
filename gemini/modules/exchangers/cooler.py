@@ -6,11 +6,13 @@ from gemini import ops
 from gemini.errors import ValidationError
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import energy, heat_transfer, psychrometrics
+from gemini.streams.energy import Energy
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import WATER
+from gemini.streams.fluid import WATER, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     MassFlow,
     Power,
@@ -88,9 +90,13 @@ class Cooler(Equipment, Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="hot_water")
-        self.air_in = Inlet(Stream, kind="air", drawn=True)
-        self.power_in = Inlet(Power, kind="electricity")
+        self.fluid_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.DRAWN
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Controls
         self.temperature_setpoint = Control(
@@ -111,8 +117,17 @@ class Cooler(Equipment, Module):
         self.is_capped = Output(bool, description="True when the duty was limited by the capacity")
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="hot_water", offered=True)
-        self.air_out = Outlet(Stream, kind="air")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.ANY,
+            flow=Flow.IMPOSED,
+            offered=True,
+        )
+        self.air_out = Port(
+            Direction.OUT, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
     def _offers(self):
         """Offer only on a closed loop; otherwise the outlet follows from the inlet."""

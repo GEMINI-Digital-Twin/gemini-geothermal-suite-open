@@ -1,10 +1,11 @@
 """Production temperature decline of a geothermal doublet after thermal breakthrough."""
 
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Boundary, Output, Parameter, Port, State
 from gemini.modules.module import Module
 from gemini.physics import fluid, ground
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Duration,
     Fraction,
@@ -70,7 +71,13 @@ class ThermalDecline(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Boundaries
         self.injection_temperature = Boundary(
@@ -93,7 +100,13 @@ class ThermalDecline(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="brine")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Lower the reservoir temperature by the cold-water share of the produced flow."""

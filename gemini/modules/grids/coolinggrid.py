@@ -3,11 +3,12 @@
 from gemini import ops
 from gemini.errors import ValidationError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Boundary, Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, psychrometrics
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import WATER
+from gemini.streams.fluid import WATER, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Fraction,
     MassFlow,
@@ -118,7 +119,13 @@ class CoolingGrid(Module):
         )
 
         # Inlets
-        self.supply_in = Inlet(Stream, kind="chilled_water")
+        self.supply_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.CHILLED,
+            flow=Flow.IMPOSED,
+        )
 
         # Controls
         self.flow = Control(
@@ -159,7 +166,14 @@ class CoolingGrid(Module):
         self.is_unmet = Output(bool, description="True when the demand was not fully served")
 
         # Outlets
-        self.return_out = Outlet(Stream, kind="chilled_water", offered=True)
+        self.return_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.CHILLED,
+            flow=Flow.IMPOSED,
+            offered=True,
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the supply stream warmed by the absorbed building heat."""

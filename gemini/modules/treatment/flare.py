@@ -2,12 +2,13 @@
 
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import combustion, gas
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
 from gemini.streams.fluid import FLUE_CO2, Fluid
-from gemini.units.quantities import Efficiency, Fuel, MassFlow, Power
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import Efficiency, Fuel, MassFlow
 
 
 class Flare(Equipment, Module):
@@ -34,7 +35,13 @@ class Flare(Equipment, Module):
         )
 
         # Inlets
-        self.gas_in = Inlet(Stream, kind="gas")
+        self.gas_in = Port(
+            Direction.IN,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.burned_mass_flow = Output(MassFlow, description="Mass flow of gas burned")
@@ -43,8 +50,14 @@ class Flare(Equipment, Module):
         )
 
         # Outlets
-        self.flue_out = Outlet(Stream, kind="gas")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.flue_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.FLUE_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Refuse reverse flow and release what burning leaves."""

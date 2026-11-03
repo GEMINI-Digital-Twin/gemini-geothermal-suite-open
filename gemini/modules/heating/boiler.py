@@ -4,11 +4,13 @@ from gemini import ops
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules._utils.supply import supply_margin
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.heating import _burner
 from gemini.modules.module import Module
 from gemini.physics import energy, heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Efficiency, Fuel, Power, Temperature
 
 
@@ -36,7 +38,9 @@ class _BoilerBody(Equipment, Module):
         self.supply_margin = supply_margin()
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="hot_water")
+        self.fluid_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.temperature_setpoint = Control(
@@ -47,7 +51,9 @@ class _BoilerBody(Equipment, Module):
         self.is_capped = Output(bool, description="True when the duty was limited by the capacity")
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="hot_water")
+        self.fluid_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
 
     def cost_size(self):
         """Return the size that the cost of the boiler scales with: capacity."""
@@ -88,14 +94,26 @@ class Boiler(_BoilerBody):
         super().__init__()
 
         # Inlets
-        self.fuel_in = Inlet(Stream, kind="gas", drawn=True)
+        self.fuel_in = Port(
+            Direction.IN,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+        )
 
         # Outputs
         self.fuel = Output(Fuel, description="Fuel power burned, the duty over the efficiency")
 
         # Outlets
-        self.flue_out = Outlet(Stream, kind="gas")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.flue_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.FLUE_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Heat the stream up to its setpoint and return the gas it burned."""
@@ -138,10 +156,10 @@ class ElectricBoiler(_BoilerBody):
         super().__init__()
 
         # Inlets
-        self.power_in = Inlet(Power, kind="electricity")
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outlets
-        self.loss_out = Outlet(Power, kind="heat")
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Heat the stream up to its setpoint."""

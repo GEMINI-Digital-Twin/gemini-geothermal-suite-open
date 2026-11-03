@@ -1,14 +1,15 @@
 """Low-temperature ATES plant: well pair, well pump, cooling heat exchanger and heat pump."""
 
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.heating import HeatPump
 from gemini.modules.piping import Mixer, Splitter
 from gemini.modules.pumps import CentrifugalPump
 from gemini.modules.storage import AquiferStorage
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.units.quantities import Power
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 class ATESPlant(Plant):
@@ -66,12 +67,16 @@ class ATESPlant(Plant):
         self.load_mixer = Mixer()
 
         # Inlets
-        self.return_in = Inlet(Stream)
-        self.power_in = Inlet(Power, kind="electricity")
+        self.return_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outlets
-        self.supply_out = Outlet(Stream)
-        self.loss_out = Outlet(Power, kind="heat")
+        self.supply_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
         # Connections
         self.connect("return_in", "load_valve.fluid_in")

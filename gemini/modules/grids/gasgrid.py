@@ -1,11 +1,12 @@
 """The gas grid: the plant's edge for bought gas."""
 
 from gemini.errors import ValidationError
-from gemini.modules.declarations import Outlet, Parameter
+from gemini.modules.declarations import Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import gas
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import grid_gas
+from gemini.streams.fluid import Fluid, grid_gas
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Fraction
 
 
@@ -35,7 +36,14 @@ class GasGrid(Module):
         )
 
         # Outlets
-        self.gas_out = Outlet(Stream, kind="gas", offered=True, drawn=True)
+        self.gas_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+            offered=True,
+        )
 
     def _offer(self, inputs, inlets, state):
         """Offer the grid gas at normal conditions."""

@@ -3,15 +3,16 @@
 from gemini import ops
 from gemini.errors import ValidationError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Parameter
+from gemini.modules.declarations import Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import ground, heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Duration,
     Length,
     LinearThermalResistance,
-    Power,
     Temperature,
     TemperatureGradient,
     ThermalConductivity,
@@ -80,11 +81,15 @@ class DownholeHeatExchanger(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="hot_water")
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.WARM, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="hot_water")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.WARM, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Return the fluid at the temperature it reaches at the bottom of the annulus."""

@@ -2,13 +2,15 @@
 
 from typing import Literal
 
-from gemini import ops
+from gemini import ops, streams
 from gemini.errors import PhysicsError, ValidationError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Control, Output, Parameter, Port, State
 from gemini.modules.module import Module
 from gemini.physics import energy, fluid, ground, heat_transfer
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Dimensionless,
     Duration,
@@ -17,7 +19,6 @@ from gemini.units.quantities import (
     HeatAccumulation,
     Length,
     MassFlow,
-    Power,
     Pressure,
     Temperature,
     TemperatureDifference,
@@ -130,7 +131,13 @@ class AquiferStorage(Module):
         )
 
         # Inlets
-        self.injection_in = Inlet(Stream, kind="brine")
+        self.injection_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Controls
         self.mode = Control(
@@ -173,8 +180,15 @@ class AquiferStorage(Module):
         )
 
         # Outlets
-        self.production_out = Outlet(Stream, kind="brine", offered=True)
-        self.loss_out = Outlet(Power, kind="heat")
+        self.production_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+            offered=True,
+        )
+        self.loss_out = Port(Direction.OUT, energy=streams.Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Produce the injected mass flow from the source store of the current mode."""

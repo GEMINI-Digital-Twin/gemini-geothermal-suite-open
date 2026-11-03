@@ -54,10 +54,12 @@ import pandas as pd
 
 import gemini as gm
 from gemini import ops
-from gemini.modules import Boundary, Control, Inlet, Module, Outlet, Output, Parameter, State
+from gemini.modules import (
+    Boundary, Control, Direction, Module, Output, Parameter, Port, State,
+)
 from gemini.physics import pumps
 from gemini.plants import Plant
-from gemini.streams import Stream
+from gemini.streams import Fluid, Stream
 from gemini.units.quantities import (
     Count,
     Dimensionless,
@@ -80,7 +82,7 @@ class Submersible(Module):
         self.power_coefficients = Parameter(list[float], shape=(6,), description="Power curve")
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(Direction.IN, fluid=Fluid.ANY)
 
         # Controls
         self.frequency = Control(Frequency, description="Frequency of the motor")
@@ -90,7 +92,7 @@ class Submersible(Module):
         self.power = Output(Power, description="Power on the shaft")
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(Direction.OUT, fluid=Fluid.ANY)
 
     def forward(self, inputs, inlets, state):
         """Raise the suction pressure by the head of the curve at this flow and frequency."""
@@ -149,10 +151,10 @@ class Lift(Plant):
         self.pump = Submersible()
 
         # Inlets
-        self.suction_in = Inlet(Stream)
+        self.suction_in = Port(Direction.IN, fluid=Fluid.ANY)
 
         # Outlets
-        self.discharge_out = Outlet(Stream)
+        self.discharge_out = Port(Direction.OUT, fluid=Fluid.ANY)
 
         # Connections
         self.connect("suction_in", "pump.fluid_in")

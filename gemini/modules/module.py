@@ -1,8 +1,9 @@
 """Equipment modules: declarations and children registered in ``__init__``, called with inlets.
 
-A module registers what ``__init__`` assigns: ``Parameter``, ``Inlet``, ``Control``, ``Boundary``,
-``State``, ``Output`` and ``Outlet`` declarations go to ordered registries and ``Module`` values
-become children with dotted paths. A module is written as two pure methods:
+A module registers what ``__init__`` assigns: ``Parameter``, ``Port`` (its inlets and outlets, by
+direction), ``Control``, ``Boundary``, ``State`` and ``Output`` declarations go to ordered
+registries and ``Module`` values become children with dotted paths. A module is written as two
+pure methods:
 ``forward(self, inputs, inlets, state) -> (outputs, outlets)`` and, if it has states,
 ``update(self, inputs, inlets, outlets, state, dt) -> state``. They write nothing to ``self``, which
 holds the parameters only. Calling a module validates the inlets, resolves the controls and
@@ -57,10 +58,9 @@ from gemini.modules.declarations import (
     Boundary,
     Control,
     Declaration,
-    Inlet,
-    Outlet,
     Output,
     Parameter,
+    Port,
     State,
 )
 from gemini.modules.display import describe, display
@@ -75,13 +75,21 @@ from gemini.units import bare
 
 _REGISTRIES = (
     (Parameter, "_parameters"),
-    (Inlet, "_inlets"),
+    ("in", "_inlets"),
     (Control, "_controls"),
     (Boundary, "_boundaries"),
     (State, "_states"),
     (Output, "_outputs"),
-    (Outlet, "_outlets"),
+    ("out", "_outlets"),
 )
+"""The registry of each kind of declaration; a ``Port`` goes by its direction."""
+
+
+def _registered_as(declaration, kind):
+    """Return whether ``declaration`` goes in the registry of ``kind``."""
+    if isinstance(kind, str):
+        return isinstance(declaration, Port) and declaration.direction == kind
+    return isinstance(declaration, kind)
 
 
 def _describe_unknown_member(name, module):
@@ -239,7 +247,7 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         registry = next(
             getattr(self, registry)
             for kind, registry in _REGISTRIES
-            if isinstance(declaration, kind)
+            if _registered_as(declaration, kind)
         )
         if isinstance(declaration, State) and declaration.default is not UNSET:
             raise DefinitionError(f"{self.path}.{name}: a state has no default")

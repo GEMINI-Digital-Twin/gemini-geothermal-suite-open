@@ -2,13 +2,15 @@
 
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Boundary, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import energy, gas
+from gemini.streams.energy import Energy
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import AIR
+from gemini.streams.fluid import AIR, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units import Quantity
-from gemini.units.quantities import MassFlow, Power, Pressure, Temperature
+from gemini.units.quantities import MassFlow, Pressure, Temperature
 
 
 class Atmosphere(Module):
@@ -50,9 +52,23 @@ class Atmosphere(Module):
         )
 
         # Inlets
-        self.air_in = Inlet(Stream, kind="air", many=True)
-        self.heat_in = Inlet(Power, kind="heat", many=True)
-        self.gas_in = Inlet(Stream, kind="gas", many=True)
+        self.air_in = Port(
+            Direction.IN,
+            phase=Phase.GAS,
+            fluid=Fluid.AIR,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+            many=True,
+        )
+        self.heat_in = Port(Direction.IN, energy=Energy.HEAT, flow=Flow.IMPOSED, many=True)
+        self.gas_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+            many=True,
+        )
 
         # Boundaries
         self.temperature = Boundary(Temperature, description="Ambient dry-bulb air temperature")
@@ -71,8 +87,24 @@ class Atmosphere(Module):
         )
 
         # Outlets
-        self.air_out = Outlet(Stream, kind="air", many=True, offered=True)
-        self.wet_air_out = Outlet(Stream, kind="air", many=True, offered=True)
+        self.air_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.AIR,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+            many=True,
+            offered=True,
+        )
+        self.wet_air_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.AIR,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+            many=True,
+            offered=True,
+        )
 
     def _offer(self, inputs, inlets, state):
         """Offer the air at the ambient conditions, at no flow."""

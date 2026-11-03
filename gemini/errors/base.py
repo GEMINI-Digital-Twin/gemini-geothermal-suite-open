@@ -20,6 +20,7 @@ CODES = (
     "migration_failed",
     "invalid_connection",
     "stream_mismatch",
+    "generic_conflict",
     "ambiguous_port",
     "port_in_use",
     "unconnected_port",
@@ -77,6 +78,7 @@ ISSUE_KINDS = {
     "incompatible": "invalid_value",
     "coverage": "invalid_data",
     "deprecated": "deprecated",
+    "warning": "out_of_range",
 }
 """Every kind of an ``Issue`` with the code its problem carries."""
 
@@ -109,8 +111,8 @@ class Issue:
 
     @property
     def is_warning(self):
-        """Whether this issue is a warning (kind ``deprecated``): reported, never a refusal."""
-        return self.kind == "deprecated"
+        """Whether this issue is a warning (kind ``deprecated`` or ``warning``): never a refusal."""
+        return self.kind in ("deprecated", "warning")
 
     def problem(self):
         """Return the problem ``{path, code, message, suggestions}`` of this issue."""

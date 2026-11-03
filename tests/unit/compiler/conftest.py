@@ -5,12 +5,13 @@ import pytest
 
 from gemini import ops
 from gemini.errors import PhysicsError
-from gemini.modules import Module
+from gemini.modules import Module, Port
 from gemini.modules.callrecord import outputs_enabled
-from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Boundary, Control, Output, Parameter, State
 from gemini.ops import Constant
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE, WATER
+from gemini.streams.fluid import BRINE, WATER, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units import Quantity
 from gemini.units.quantities import Electricity, Pressure, Ratio, Temperature
 
@@ -30,7 +31,9 @@ class Gain(Module):
         self.label = Parameter(str, default="x")
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.gain = Control(float)
@@ -40,7 +43,9 @@ class Gain(Module):
         self.boost = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Raise the pressure."""
@@ -95,10 +100,14 @@ class Stepper(Module):
         self.increment = Parameter(float, default=1.0)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Add the increment once per step."""
@@ -131,7 +140,9 @@ class Source(Module):
         self.double = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Emit the stream."""
@@ -166,7 +177,9 @@ class Meter(Module):
         self.scale = Parameter(float, default=2.0)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.draw = Control(float, ge=0)
@@ -175,7 +188,9 @@ class Meter(Module):
         self.electricity = Output(Electricity)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream."""
@@ -198,7 +213,9 @@ class Line(Module):
         self.second = Meter()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.boost = Control(float, default=1.0)
@@ -210,7 +227,9 @@ class Line(Module):
         self.efficiency = Output(float | None)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Connect the children in series; the second meter draws the line's own control."""
@@ -257,13 +276,17 @@ class Tank(Module):
         self.level = State(float)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.content = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream."""
@@ -288,10 +311,14 @@ class Twice(Module):
         self.gain = Gain().set_params("", {"scale": 3.0})
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Call the child twice; both calls share its inputs."""
@@ -332,7 +359,9 @@ class Chain(Module):
         self.last = Meter()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.drive = Control(float, default=1.0)
@@ -342,7 +371,9 @@ class Chain(Module):
         self.pressure = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Connect the children in series; every control of the middle module gets ``drive``."""
@@ -397,13 +428,17 @@ class Opaque(Module):
         self.meter = Meter()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.electricity = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Refuse a traced value."""
@@ -428,13 +463,17 @@ class Switcher(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.seen = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream; the fluid depends on the value of a row."""
@@ -462,13 +501,17 @@ class Vectored(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.profile = Output(list[float])
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream."""
@@ -486,7 +529,9 @@ class Bounded(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.setpoint = Control(Pressure)
@@ -500,7 +545,9 @@ class Bounded(Module):
         self.share = Output(Ratio | None)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream."""

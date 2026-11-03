@@ -3,9 +3,10 @@
 import pytest
 
 from gemini.errors import DefinitionError
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules import Port
 from gemini.streams import kinds as streams
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 def test_names_are_the_fixed_list():
@@ -26,11 +27,25 @@ def test_names_are_the_fixed_list():
 
 def test_a_port_keeps_its_stream():
     """A port may name a stream type or take whatever flows through it."""
-    assert Inlet(Stream, kind="brine").kind == "brine"
-    assert Outlet(Stream).kind is None
+    assert (
+        Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        ).kind
+        == "brine"
+    )
+    assert (
+        Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        ).kind
+        is None
+    )
 
 
 def test_an_unknown_stream_suggests_the_closest():
-    """A misspelt stream type fails while the class is built."""
-    with pytest.raises(DefinitionError, match="did you mean 'brine'"):
-        Inlet(Stream, kind="brin")
+    """A misspelt medium fails while the class is built."""
+    with pytest.raises(DefinitionError, match="did you mean 'liquid'"):
+        Port(Direction.IN, fluid=Fluid.ANY, phase="liqid", level=Level.ANY, flow=Flow.IMPOSED)

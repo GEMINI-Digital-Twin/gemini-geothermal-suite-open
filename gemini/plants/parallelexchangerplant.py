@@ -1,7 +1,7 @@
 """Nodal doublet with three parallel heat exchangers on one secondary network."""
 
 from gemini.modules.container import ModuleList
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.grids import ElectricityGrid
 from gemini.modules.piping import Mixer, Splitter
@@ -9,7 +9,8 @@ from gemini.modules.treatment import Degasser, Filter
 from gemini.plants._utils.cascades import mix_chain
 from gemini.plants.nodaldoublet import NodalDoublet
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 EXCHANGERS = 3
 """The heat exchangers in parallel; the share of the flow each takes is the ``split_fraction`` of
@@ -51,11 +52,21 @@ class ParallelExchangerPlant(Plant):
         self.electricity_grid = ElectricityGrid()
 
         # Inlets
-        self.return_in = Inlet(Stream)
+        self.return_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.supply_out = Outlet(Stream)
-        self.gas_out = Outlet(Stream, kind="gas")
+        self.supply_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.gas_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
 
         # Connections
         self.connect("return_in", "secondary_splitters.0.fluid_in")

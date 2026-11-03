@@ -1,10 +1,11 @@
 """Flow splitter dividing one stream into two branches."""
 
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet
+from gemini.modules.declarations import Control, Port
 from gemini.modules.module import Module
 from gemini.physics import separation
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Fraction
 
 
@@ -24,7 +25,14 @@ class Splitter(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
         # Controls
         self.split_fraction = Control(
@@ -32,8 +40,22 @@ class Splitter(Module):
         )
 
         # Outlets
-        self.branch1_out = Outlet(Stream)
-        self.branch2_out = Outlet(Stream)
+        self.branch1_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.branch2_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Divide the feed mass flow between the two branches."""

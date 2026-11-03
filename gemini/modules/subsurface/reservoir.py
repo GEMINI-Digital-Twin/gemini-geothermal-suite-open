@@ -4,13 +4,15 @@ from typing import Literal
 
 from gemini import ops
 from gemini.errors import PhysicsError, ValidationError
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.modules.results import NOT_ASSESSED, Health
 from gemini.physics import diagnostics
 from gemini.physics import fluid as fluid_physics
 from gemini.physics import hydraulics
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Dimensionless,
     Fraction,
@@ -215,7 +217,13 @@ class ProductionReservoir(_Reservoir):
         )
 
         # Outlets
-        self.sandface_out = Outlet(Stream, kind="brine")
+        self.sandface_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Apply the linear production IPR and emit the sandface stream."""
@@ -261,7 +269,13 @@ class InjectionReservoir(_Reservoir):
         super().__init__("injection")
 
         # Inlets
-        self.sandface_in = Inlet(Stream, kind="brine")
+        self.sandface_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.liquid_flow = Output(

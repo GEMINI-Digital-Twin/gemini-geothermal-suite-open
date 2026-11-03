@@ -2,10 +2,12 @@
 
 from gemini import ops
 from gemini.errors import PhysicsError
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import energy, gas
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Count, Efficiency, Power, Pressure, Ratio, SpecificHeat
 
 
@@ -63,8 +65,10 @@ class GasCompressor(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="gas")
-        self.power_in = Inlet(Power, kind="electricity")
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.GAS, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Controls
         self.pressure_setpoint = Control(
@@ -80,8 +84,10 @@ class GasCompressor(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="gas")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.GAS, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Compress the gas to the pressure setpoint and heat it by the last stage."""

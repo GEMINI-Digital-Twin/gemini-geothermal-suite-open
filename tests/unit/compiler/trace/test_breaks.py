@@ -5,10 +5,10 @@ import numpy as np
 import gemini as gm
 from gemini.compiler.ir import Graph
 from gemini.compiler.trace.breaks import PROBE, evaluate_break, record_break
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet, Output
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Output
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.streams.ports import Ports
 from tests.fixtures.graph_run import graph_outputs
 
@@ -22,13 +22,17 @@ class Relay(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.content = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream."""

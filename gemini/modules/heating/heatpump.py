@@ -8,10 +8,12 @@ from gemini.errors import PhysicsError, ValidationError
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules._utils.supply import supply_margin
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer, refrigeration
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Efficiency,
     Fraction,
@@ -115,9 +117,18 @@ class HeatPump(Equipment, Module):
         self.supply_margin = supply_margin()
 
         # Inlets
-        self.source_in = Inlet(Stream)
-        self.sink_in = Inlet(Stream, kind="hot_water")
-        self.power_in = Inlet(Power, kind="electricity")
+        self.source_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="S",
+            flow=Flow.IMPOSED,
+        )
+        self.sink_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Controls
         self.temperature_setpoint = Control(
@@ -139,8 +150,17 @@ class HeatPump(Equipment, Module):
         self.is_running = Output(bool, description="True when the machine is on")
 
         # Outlets
-        self.source_out = Outlet(Stream)
-        self.sink_out = Outlet(Stream, kind="hot_water")
+        self.source_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="S",
+            flow=Flow.IMPOSED,
+        )
+        self.sink_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Cool the source and heat the sink circuit by the solved duties."""

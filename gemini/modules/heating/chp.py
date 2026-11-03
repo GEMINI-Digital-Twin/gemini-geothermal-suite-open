@@ -4,11 +4,13 @@ from gemini import ops
 from gemini.errors import ValidationError
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.heating import _burner
 from gemini.modules.module import Module
 from gemini.physics import combustion, heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Efficiency, Fraction, Fuel, Power, Temperature
 
 
@@ -72,8 +74,16 @@ class CHP(Equipment, Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="hot_water")
-        self.fuel_in = Inlet(Stream, kind="gas", drawn=True)
+        self.fluid_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.fuel_in = Port(
+            Direction.IN,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+        )
 
         # Controls
         self.load_fraction = Control(
@@ -90,10 +100,18 @@ class CHP(Equipment, Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="hot_water")
-        self.flue_out = Outlet(Stream, kind="gas")
-        self.power_out = Outlet(Power, kind="electricity")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.flue_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.FLUE_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
+        self.power_out = Port(Direction.OUT, energy=Energy.ELECTRICITY, flow=Flow.IMPOSED)
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Heat the water circuit by the recovered engine heat and return the gas it burned."""

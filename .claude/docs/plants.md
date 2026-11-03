@@ -23,14 +23,14 @@ agents use: `gm.Plant.from_dict`, `plant.to_dict`, `gm.Plant.from_json`, `plant.
 ## A plant class
 
 ```python
-from gemini.modules import Inlet, Outlet, Output
+from gemini.modules import Direction, Level, Output, Phase, Port
 from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.grids import HeatingGrid
 from gemini.modules.piping import Valve
 from gemini.modules.pumps import CirculationPump
 from gemini.plants import Plant
-from gemini.streams import Stream
-from gemini.units.quantities import Power
+from gemini.streams import Fluid
+from gemini.streams.energy import Energy
 
 
 class HeatingSubstation(Plant):
@@ -47,12 +47,16 @@ class HeatingSubstation(Plant):
         self.pump = CirculationPump()
 
         # Inlets
-        self.supply_in = Inlet(Stream, kind="hot_water")
-        self.power_in = Inlet(Power, kind="electricity")
+        self.supply_in = Port(
+            Direction.IN, fluid=Fluid.WATER, phase=Phase.LIQUID, level=Level.HOT
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY)
 
         # Outlets
-        self.return_out = Outlet(Stream, kind="hot_water")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.WATER, phase=Phase.LIQUID, level=Level.HOT
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT)
 
         # Connections
         self.connect("supply_in", "valve.fluid_in")

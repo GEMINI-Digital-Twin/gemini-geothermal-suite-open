@@ -13,18 +13,18 @@ from gemini.evaluate.balances import (
     call_mass_balance,
     collect_flows,
 )
-from gemini.modules import Module, Pipe
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules import Module, Pipe, Port
 from gemini.modules.grids import GasGrid
 from gemini.modules.heating import CHP, Boiler, ElectricBoiler
 from gemini.modules.pumps import ESP, InjectionPump
 from gemini.modules.results import ModuleResult, Values
 from gemini.runtime import settings
+from gemini.streams.energy import Energy
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.streams.ports import Ports
 from gemini.units import Quantity
-from gemini.units.quantities import Power
 from tests.fixtures import si
 from tests.fixtures.air import air
 from tests.fixtures.balance import assert_plant_closes
@@ -132,10 +132,14 @@ class Leak(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass nine tenths of the flow."""
@@ -155,10 +159,14 @@ class Line(Module):
         self.child = child
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream through the child."""
@@ -243,11 +251,15 @@ class Radiator(Module):
         super().__init__()
 
         # Inlets
-        self.supply_in = Inlet(Stream)
+        self.supply_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.return_out = Outlet(Stream)
-        self.loss_out = Outlet(Power, kind="heat")
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Cool the stream by 10 K."""
@@ -373,10 +385,14 @@ class GasHeatedInjection(Module):
         self.pump = InjectionPump().set_params("", {"pump_type": "unspecified", "efficiency": 0.8})
 
         # Inlets
-        self.return_in = Inlet(Stream)
+        self.return_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.injected = Outlet(Stream)
+        self.injected = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream through CHP, boiler and pump in flow order."""

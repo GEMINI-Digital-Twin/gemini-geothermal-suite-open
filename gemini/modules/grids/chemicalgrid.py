@@ -1,9 +1,11 @@
 """The plant's edge for bought chemicals."""
 
-from gemini.modules.declarations import Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.module import Module
 from gemini.physics import gas
 from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 class ChemicalGrid(Module):
@@ -19,7 +21,14 @@ class ChemicalGrid(Module):
         super().__init__()
 
         # Outlets
-        self.chemical_out = Outlet(Stream, kind="chemical", offered=True, drawn=True)
+        self.chemical_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.CHEMICAL,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+            offered=True,
+        )
 
     def _offer(self, inputs, inlets, state):
         """Offer the product at normal conditions, with the module's fluid."""

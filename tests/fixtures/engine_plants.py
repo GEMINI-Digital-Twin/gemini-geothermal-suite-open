@@ -10,13 +10,13 @@ import pandas as pd
 
 from gemini import ops
 from gemini.errors import PhysicsError
-from gemini.modules import Module
+from gemini.modules import Module, Port
 from gemini.modules.bindings import Binding, DatedParams, ModuleBindings
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Control, Output, Parameter, State
 from gemini.modules.results import Health
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams import kinds
+from gemini.streams.fluid import BRINE, Fluid
 from gemini.units.quantities import Electricity, Ratio
 
 TICKS = pd.date_range("2024-01-01", periods=12, freq="15min", tz="UTC")
@@ -36,7 +36,13 @@ class Booster(Module):
         self.gain = Parameter(float, default=2.0)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            kinds.Direction.IN,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
         # Controls
         self.level = Control(float)
@@ -48,7 +54,13 @@ class Booster(Module):
         self.inverse = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            kinds.Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Raise the pressure."""
@@ -93,13 +105,25 @@ class Reservoir(Module):
         self.total = State(float)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            kinds.Direction.IN,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
         # Outputs
         self.content = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            kinds.Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream."""
@@ -206,7 +230,13 @@ class Duo(Module):
         self.back = Booster()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            kinds.Direction.IN,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
         # Controls
         self.level = Control(float)
@@ -216,7 +246,13 @@ class Duo(Module):
         self.power = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            kinds.Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Both boosters get the duo's level."""
@@ -275,13 +311,25 @@ class Warmer(Module):
         self.target = Control(float)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            kinds.Direction.IN,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
         # Outputs
         self.drop = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            kinds.Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the warmed stream, flowing at 2 kg/s, and the change of temperature."""
@@ -306,10 +354,22 @@ class Carrier(Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            kinds.Direction.IN,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            kinds.Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=kinds.Phase.ANY,
+            level=kinds.Level.ANY,
+            flow=kinds.Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the stream at 2 bar."""

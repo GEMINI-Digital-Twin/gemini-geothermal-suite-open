@@ -3,12 +3,13 @@
 import pytest
 
 import gemini as gm
-from gemini.modules import Filter, Module, ProductionReservoir
+from gemini.modules import Filter, Module, Port, ProductionReservoir
 from gemini.modules.callrecord import active_call
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter
 from gemini.plants.plant import Plant
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Power
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
@@ -32,10 +33,14 @@ def define_module():
             super().__init__()
 
             # Inlets
-            self.fluid_in = Inlet(Stream)
+            self.fluid_in = Port(
+                Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+            )
 
             # Outlets
-            self.fluid_out = Outlet(Stream)
+            self.fluid_out = Port(
+                Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+            )
 
         def forward(self, inputs, inlets, state):
             """Return the inlet."""
@@ -119,10 +124,14 @@ class Child(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the inlet."""
@@ -146,13 +155,17 @@ class Parent(Module):
         self.child = Child()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.setting = Control(float, default=1.0)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream through the child."""

@@ -4,11 +4,12 @@ import pytest
 
 import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Output
 from gemini.modules.piping import Mixer, Pipe, PressurizationTank, Splitter, Valve
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures.air import air
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
@@ -48,8 +49,12 @@ class Network(Module):
         self.tank = PressurizationTank()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
-        self.air_in = Inlet(Stream, kind="air")
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # Boundaries
 
@@ -57,7 +62,9 @@ class Network(Module):
         self.pressure_correction = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Split, pass both branches, mix and hold the circuit pressure."""

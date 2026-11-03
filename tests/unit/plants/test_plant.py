@@ -138,7 +138,8 @@ def test_ambiguous_matches_list_the_candidates():
         plant.connect("splitter", "exchanger")
     assert caught.value.code == "ambiguous_port"
     assert len(caught.value.suggestions) == 4
-    assert "splitter.branch1_out [any] -> exchanger.hot_in [any]" in caught.value.suggestions
+    pair = "splitter.branch1_out [liquid, any, any, generic T] -> "
+    assert pair + "exchanger.hot_in [liquid, any, any, generic H]" in caught.value.suggestions
 
 
 def test_a_stream_type_mismatch_is_refused(chain):

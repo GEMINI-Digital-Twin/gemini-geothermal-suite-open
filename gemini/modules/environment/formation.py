@@ -1,8 +1,10 @@
 """The rock around the wells of a doublet."""
 
-from gemini.modules.declarations import Inlet, Parameter
+from gemini.modules.declarations import Parameter, Port
 from gemini.modules.module import Module
-from gemini.units.quantities import Power, Temperature, TemperatureGradient
+from gemini.streams.energy import Energy
+from gemini.streams.kinds import Direction, Flow
+from gemini.units.quantities import Temperature, TemperatureGradient
 
 
 class Formation(Module):
@@ -34,7 +36,7 @@ class Formation(Module):
         )
 
         # Inlets
-        self.heat_in = Inlet(Power, kind="heat", many=True)
+        self.heat_in = Port(Direction.IN, energy=Energy.HEAT, flow=Flow.IMPOSED, many=True)
 
     def forward(self, inputs, inlets, state):
         """End the heat of the wells here."""

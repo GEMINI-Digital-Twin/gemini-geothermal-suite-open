@@ -8,11 +8,12 @@ from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.modules.results import NOT_ASSESSED, Health
 from gemini.physics import diagnostics, heat_transfer, hydraulics
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Duty,
     Fraction,
@@ -84,8 +85,22 @@ class HeatExchanger(Equipment, Module):
         )
 
         # Inlets
-        self.hot_in = Inlet(Stream)
-        self.cold_in = Inlet(Stream)
+        self.hot_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="H",
+            flow=Flow.IMPOSED,
+        )
+        self.cold_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="C",
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.duty = Output(
@@ -116,8 +131,22 @@ class HeatExchanger(Equipment, Module):
         )
 
         # Outlets
-        self.hot_out = Outlet(Stream)
-        self.cold_out = Outlet(Stream)
+        self.hot_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="H",
+            flow=Flow.IMPOSED,
+        )
+        self.cold_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="C",
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Solve the heat balance and retain both streams' mass flows."""

@@ -1,6 +1,7 @@
 """Public composable equipment and module API."""
 
 from gemini._utils.registry import categories, get, names
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 from ._utils.trace import trace_wiring
 from .callrecord import no_outputs
@@ -8,7 +9,7 @@ from .check import check
 from .container import ModuleDict, ModuleList
 from .control import PIDController
 from .cooling import AbsorptionUnit, AdsorptionChiller
-from .declarations import Boundary, Control, Inlet, Outlet, Output, Parameter, State
+from .declarations import Boundary, Control, Output, Parameter, Port, State
 from .environment import Atmosphere, Formation
 from .exchangers import Cooler, HeatExchanger
 from .grids import ChemicalGrid, CoolingGrid, ElectricityGrid, GasGrid, HeatingGrid, WasteGrid
@@ -94,10 +95,13 @@ __all__ = [
     "check",
     "no_outputs",
     "Parameter",
-    "Inlet",
+    "Port",
+    "Direction",
+    "Phase",
+    "Level",
+    "Flow",
     "Control",
     "Boundary",
     "State",
     "Output",
-    "Outlet",
 ]

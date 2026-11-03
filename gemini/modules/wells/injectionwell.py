@@ -1,11 +1,13 @@
 """Injection well from the wellhead down to the sandface."""
 
 from gemini import ops
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules.declarations import Output, Port
 from gemini.modules.wells.well import _Well
 from gemini.physics import fluid, heat_transfer, hydraulics
-from gemini.streams.flows import Stream
-from gemini.units.quantities import Power, Pressure, PressureDifference, Temperature
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import Pressure, PressureDifference, Temperature
 
 
 class InjectionWell(_Well):
@@ -25,7 +27,13 @@ class InjectionWell(_Well):
         super().__init__()
 
         # Inlets
-        self.wellhead_in = Inlet(Stream, kind="brine")
+        self.wellhead_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.friction_pressure_drop = Output(
@@ -43,8 +51,14 @@ class InjectionWell(_Well):
         )
 
         # Outlets
-        self.bottom_out = Outlet(Stream, kind="brine")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.bottom_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Traverse the injection path with the legacy negative flow convention."""

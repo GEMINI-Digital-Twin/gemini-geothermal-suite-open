@@ -15,7 +15,7 @@ the step starts from (`{}` for a module without states). Every composite is a `P
 ([plants.md](plants.md)): it declares children, ports and connections in `__init__` and never
 writes `forward` or `update`; the plant implements both once, for any graph.
 
-Write a module with `Module` and the declarations (`Parameter`, `Inlet`, `Outlet`, `Output`,
+Write a module with `Module` and the declarations (`Parameter`, `Port`, `Output`,
 `Control`, `Boundary`, `State`) from `gemini.modules` (`gm.modules.Module`), and the quantity types
 and streams from `gemini.streams`. The base class has no string catalogue, sequential
 container, fidelity flag or cost method. The shipped equipment, with each model's ports, parameters, equations and energy-audit status, is
@@ -40,7 +40,7 @@ belongs in `gemini/plants/`; `gemini.modules` never imports `gemini.plants`.
 **Where a file goes under `gemini/modules/`.** There are four homes:
 
 - A file that defines a core class users subclass or build goes directly in `gemini/modules/`:
-  `module.py` (`Module`), `declarations.py` (`Parameter`, `Inlet`, `Outlet`, `Output`, `Control`,
+  `module.py` (`Module`), `declarations.py` (`Parameter`, `Port`, `Output`, `Control`,
   `Boundary`, `State`), `container.py` (`ModuleList`, `ModuleDict`) and `check.py`
   (`gm.modules.check`). `Plant` is `gemini/plants/plant.py`. The class `Module` is split by job:
   `callrecord.py` (the record of a call in progress and the context that holds it), `callargs.py`
@@ -100,28 +100,92 @@ from the import path of the class, so a shipped class never declares it and the 
 `gemini/plants/` read `plants`. A class from outside has no folder: it states the class attribute
 `category`, one of the list, and a subclass of a shipped class states its own.
 
-A port declares its label: `Inlet(Stream, kind="brine")`, one of `gemini.streams.kinds.names()`.
-A port without one, `kind=None`, takes whatever flows through it: piping, `CentrifugalPump`,
-`HeatExchanger` and the source side of `HeatPump`. Labels never change a calculation; they say what may be connected.
-
 ## Ports
 
-A port carries a `Stream` or a `Power`, and connections check that their `kind`s match:
-`Inlet(Power, kind="electricity")`, `Outlet(Power, kind="heat")`. `many=True` lets several ports
-connect to one port; its value is the list of what arrives, and the module sums it with an explicit
-function (`energy.total_power`). A `many` port may stay empty.
+A port is `Port(direction, *, fluid=None, energy=None, ...)`. `direction` is `Direction.IN` or
+`Direction.OUT`. Exactly one of `fluid` and `energy` is given: `fluid` makes a stream port (a
+`Stream`), `energy` a power port (a power in W). "Any" is the preset `Fluid.ANY` or `Energy.ANY`.
+The other fields say what may be connected:
+
+| Field | Applies to | Values | Default |
+|---|---|---|---|
+| `fluid` | stream port | a `Fluid` preset such as `Fluid.WATER`, `BRINE`, `GLYCOL`, `STEAM`, `AIR`, `NATURAL_GAS`, `FLUE_GAS`, `CHEMICAL`, `WASTE`, or `Fluid.ANY`; compared by `Fluid.family` | required for a stream port |
+| `energy` | power port | `Energy.ELECTRICITY`, `Energy.HEAT`, `Energy.FUEL`, or `Energy.ANY` | required for a power port |
+| `phase` | stream port | `Phase.LIQUID`, `GAS`, `TWO_PHASE`, `ANY` | `ANY` |
+| `level` | stream port | `Level.HOT`, `WARM`, `COOL`, `CHILLED`, `AMBIENT`, `GEOTHERMAL`, `ANY` | `ANY` |
+| `temperature`, `pressure` | stream port | optional `(low, high)` ranges in SI, described and not checked | `None` |
+| `generic` | both | a letter such as `"T"`, see below | `None` |
+| `flow` | both | `Flow.IMPOSED` (the giver decides) or `Flow.DRAWN` (the taker decides) | drawn for a single power inlet and a `many` outlet, imposed otherwise |
+| `many`, `required`, `offered` | both | as described here | `False`, `True`, `False` |
+
+```python
+from gemini.modules import Direction, Flow, Level, Phase, Port
+from gemini.streams import Fluid
+from gemini.streams.energy import Energy
+
+fluid_in = Port(
+    Direction.IN,
+    fluid=Fluid.WATER, phase=Phase.LIQUID, level=Level.HOT, flow=Flow.IMPOSED,
+)
+power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
+any_out = Port(Direction.OUT, fluid=Fluid.ANY)
+fluid_t = Port(Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, generic="T")
+```
+
+A field not given is "any". Giving both `fluid` and `energy`, neither, or a phase, level,
+temperature or pressure on a power port is a `DefinitionError`. A port has no `kind=` argument;
+`port.kind` is still readable as a label derived from its fields, and it never changes a calculation.
+
+**The compatibility rule.** Two ports connect when they have opposite directions and the same
+kind of content (both stream or both power), and each of phase, fluid (by family), level and energy is equal on both sides or "any" on
+one of them. A connection that fails it is a `stream_mismatch`.
+
+**Generic letters.** A side of a pipe, pump, mixer, splitter or valve is `generic="T"`: what it
+carries is whatever its connections carry, and the ports of one module with the same letter carry
+the same thing. A heat exchanger uses `"H"` and `"C"` for its hot and cold sides, a heat pump
+`"S"` for its source. The plant infers what a letter carries from the connections around it; a
+letter asked to carry two different values is a `generic_conflict`.
+
+**Checking and suggesting.** `plant.check()` returns the issues of the plant and never raises. For
+ports they are `stream_mismatch` (a connection whose ends are not compatible once the generic
+letters have taken their values), `generic_conflict` and `unconnected_port` (a required port with
+no connection). `plant.suggest(port=None, *, free=True, loose=True, limit=None)` lists the ports a
+port may connect to, best first, as `Suggestion(port, match, exact, loose, closes_loop)`. `port` is
+a `"path.port"`, a bound port or a module (a module gives a dict of lists); without it the
+suggestions are for every unconnected required port. `match` is `Match.EXACT` when every field is
+equal and `Match.LOOSE` when some matched through "any" or a generic letter, `exact` and `loose`
+list the fields of each kind, and `closes_loop` is true when the two modules are connected the
+other way already. The order is exact matches, then more equal fields, then a port that closes a
+loop; there is no score. `free=False` includes ports already connected, `loose=False` keeps the
+exact matches only. `plant.connect(end, suggestion)` accepts a suggestion in place of a target.
+
+```python
+import gemini as gm
+from gemini.modules.piping import Pipe
+from gemini.modules.pumps import CirculationPump
+
+plant = gm.Plant()
+plant.add(CirculationPump, "pump")
+plant.add(Pipe, "pipe")
+found = plant.suggest("pump.fluid_out")
+plant.connect("pump.fluid_out", found[0])
+print(found[0].port.path, found[0].match, plant.check()[0].code)
+```
+
+`many=True` lets several ports connect to one port; its value is the list of what arrives, and the module sums it with an explicit
+function (`energy.total_power`). A `many` port may stay empty.function (`energy.total_power`). A `many` port may stay empty.
 
 A plant runs its modules in the order the values travel, and on some connections the value travels
 against the energy, because the module that receives the energy decides how much it takes:
 
 - **A drawn port.** A single `Power` inlet is drawn: a call needs no value for it, `forward` computes
   it and returns it under the name of the port, beside the outlets, and `result.inlets.power_in`
-  shows it. A stream inlet is drawn with `Inlet(Stream, drawn=True)`: it receives the conditions the
+  shows it. A stream inlet is drawn with `Port(Direction.IN, fluid=Fluid.ANY, flow=Flow.DRAWN)`: it receives the conditions the
   source offers and `forward` returns the stream it took. A `many` outlet is drawn, as is any
-  `Outlet(..., drawn=True)`: the module receives what its takers drew under the name of the outlet
+  outlet with `flow=Flow.DRAWN`: the module receives what its takers drew under the name of the outlet
   (`inlets.power_out` in `forward`). The taker runs before
   the source. The drawn values are returned in the `outlets` dict of `forward`, with the outlets.
-- **An offered outlet.** `Outlet(Stream, offered=True)` exists before the other modules run. Its
+- **An offered outlet.** `Port(Direction.OUT, fluid=Fluid.ANY, offered=True)` exists before the other modules run. Its
   module defines `_offer(self, inputs, inlets, state)`, pure like `forward` and reading
   parameters, its inputs, its state and the inlets it names in `offer_inlets`; the plan gives the
   module one offer step and one call. A forward that needs the offer calls
@@ -197,9 +261,9 @@ key. Parameters are read on `self`; the controls and boundaries are `inputs["fre
 `self.frequency`, which is refused inside a call.
 
 ```python
-from gemini.modules import Control, Inlet, Module, Outlet, Output, Parameter
+from gemini.modules import Control, Direction, Module, Output, Parameter, Port
 from gemini.physics import pumps
-from gemini.streams import Stream
+from gemini.streams import Fluid, Stream
 from gemini.units.quantities import (
     Count, Electricity, Frequency, Power, PressureDifference, VolumeFlow,
 )
@@ -217,7 +281,7 @@ class Pump(Module):
         self.power_coefficients = Parameter(list[float], shape=(6,))
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(Direction.IN, fluid=Fluid.ANY)
 
         # Controls
         self.frequency = Control(Frequency)
@@ -229,7 +293,7 @@ class Pump(Module):
         self.electricity = Output(Electricity)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(Direction.OUT, fluid=Fluid.ANY)
 
     def forward(self, inputs, inlets, state):
         """Raise the suction pressure."""
@@ -523,7 +587,7 @@ class Tank(Module):
         self.heat_capacity = Parameter(float, gt=0)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(Direction.IN, fluid=Fluid.ANY)
 
         # States
         self.temperature = State(Temperature)
@@ -532,7 +596,7 @@ class Tank(Module):
         self.duty = Output(Power)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(Direction.OUT, fluid=Fluid.ANY)
 
     def forward(self, inputs, inlets, state):
         """Leave at the tank temperature of the start of the step."""
@@ -609,7 +673,7 @@ when it returns outputs, in that order. It writes nothing to `self` and ends wit
 `forward(self, inputs, inlets, state)`, including modules with no ports; parameters have no defaults
 or variadic forms.
 
-Inlets and outlets accept a `Stream` or a `Power`. What crosses a port is shown by the port, see
+A port carries a `Stream` or a `Power`. What crosses a port is shown by the port, see
 [types.md](types.md#port-quantities). Results keep the same dotted
 `<module path>.<name>` addressing scheme. Port, control and output names follow the naming rule
 in [conventions.md](conventions.md#naming).

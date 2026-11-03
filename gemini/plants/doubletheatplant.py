@@ -1,14 +1,15 @@
 """The measured doublet and its surface equipment: filters, degasser, exchanger, pump."""
 
 from gemini.modules.container import ModuleDict
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.pumps import InjectionPump
 from gemini.modules.treatment import Degasser, Filter
 from gemini.plants.doublet import Doublet
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.units.quantities import Power
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 class DoubletHeatPlant(Plant):
@@ -26,12 +27,22 @@ class DoubletHeatPlant(Plant):
         self.injection_pump = InjectionPump()
 
         # Inlets
-        self.return_in = Inlet(Stream)
-        self.power_in = Inlet(Power, kind="electricity")
+        self.return_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outlets
-        self.supply_out = Outlet(Stream)
-        self.gas_out = Outlet(Stream, kind="gas")
+        self.supply_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.gas_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
 
         # Connections
         self.connect("return_in", "heat_exchanger.cold_in")

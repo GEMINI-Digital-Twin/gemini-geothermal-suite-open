@@ -3,10 +3,11 @@
 from gemini import ops
 from gemini.errors import ValidationError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Output, Parameter, Port, State
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Energy,
     Fraction,
@@ -100,7 +101,13 @@ class IceStorage(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="chilled_water")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.CHILLED,
+            flow=Flow.IMPOSED,
+        )
 
         # States
         self.ice_fraction = State(Fraction, description="Frozen share of the water of the store")
@@ -121,7 +128,13 @@ class IceStorage(Module):
         self.is_empty = Output(bool, description="True when the store is completely melted")
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="chilled_water")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.CHILLED,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the glycol after exchanging heat with the start-of-step store."""

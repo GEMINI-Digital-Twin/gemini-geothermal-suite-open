@@ -1,10 +1,11 @@
 """Scale or corrosion inhibitor injection at a commanded mass dose."""
 
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import separation
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Fraction, MassFlow
 
 
@@ -38,8 +39,20 @@ class InhibitorDosing(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
-        self.chemical_in = Inlet(Stream, kind="chemical", drawn=True)
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.chemical_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.CHEMICAL,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+        )
 
         # Controls
         self.dose = Control(Fraction, description="Mass of product per mass of treated fluid")
@@ -48,7 +61,13 @@ class InhibitorDosing(Module):
         self.active_mass_flow = Output(MassFlow, description="Mass flow of active substance dosed")
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="brine")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the treated stream through unchanged."""

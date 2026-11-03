@@ -8,13 +8,13 @@ from gemini import ops
 from gemini.compiler.cache import GraphCache
 from gemini.compiler.trace.tracer import Tracer
 from gemini.errors import PhysicsError
-from gemini.modules import Module
+from gemini.modules import Module, Port
 from gemini.modules.control import PIDController
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, State
+from gemini.modules.declarations import Control, Output, State
 from gemini.modules.storage import IceStorage, ThermalStorage
 from gemini.modules.subsurface import BoreholeField, ThermalDecline
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import AIR, BRINE, GLYCOL_30
+from gemini.streams.fluid import AIR, BRINE, GLYCOL_30, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures import purity, si
 from tests.fixtures.designs import with_values
 from tests.fixtures.scan_run import same_rows, scanned, stepped
@@ -163,7 +163,9 @@ class Cistern(Module):
         self.level = State(float, ge=0)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.draw = Control(float)
@@ -172,7 +174,9 @@ class Cistern(Module):
         self.left = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Report the level after the draw; refuse a draw above 5."""

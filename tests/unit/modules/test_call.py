@@ -5,7 +5,9 @@ import json
 import pytest
 
 import gemini as gm
-from gemini.streams.fluid import BRINE
+from gemini.modules import Port
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units import Quantity
 from gemini.units.quantities import Energy, Temperature
 from tests.fixtures import si
@@ -295,8 +297,12 @@ class _Broken(gm.modules.Module):
 
     def __init__(self):
         super().__init__()
-        self.fluid_in = gm.modules.Inlet(gm.Stream)
-        self.fluid_out = gm.modules.Outlet(gm.Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Raise a TypeError that is no input error."""

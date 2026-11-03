@@ -10,9 +10,10 @@ from gemini.compiler.interpret.run_graph import run_graph
 from gemini.compiler.run import graph_feeds
 from gemini.engine.rowwise import stacked
 from gemini.errors import PhysicsError
-from gemini.modules.declarations import Inlet, Outlet, Output
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.modules import Port
+from gemini.modules.declarations import Output
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.unit.compiler.conftest import Chain, Gain, Opaque, Tank
 
 
@@ -111,13 +112,17 @@ class Listing(gm.modules.Module):
         self.fluid = BRINE
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.profile = Output(list[float])
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """List the temperature and the pressure."""

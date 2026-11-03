@@ -23,7 +23,7 @@ from gemini.engine.engine import Engine
 from gemini.engine.results import Results
 from gemini.engine.schedule.schedule import schedule
 from gemini.engine.simulate import live, replay, resume, simulate
-from gemini.modules import Inlet, Module, Outlet, Output, Parameter
+from gemini.modules import Module, Output, Parameter, Port
 from gemini.modules.call import evaluate as call
 from gemini.plants import Plant
 from gemini.streams import BRINE, WATER, Fluid, Stream
@@ -34,8 +34,7 @@ __all__ = [
     "Module",
     "Plant",
     "Parameter",
-    "Inlet",
-    "Outlet",
+    "Port",
     "Output",
     "Stream",
     "Fluid",

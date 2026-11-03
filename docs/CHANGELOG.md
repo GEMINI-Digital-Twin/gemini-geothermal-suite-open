@@ -12,6 +12,46 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.0] - 2026-11-03
+
+A breaking release, approved by the owner: the ports of a module are one class, `Port`, with
+typed fields, so a connection is checked by what it carries and a plant can suggest its
+connections. Every number of 0.5.14 is the same: `examples/hackathon.py` prints the same output.
+
+### Removed (breaking)
+- `gm.Inlet`, `gm.Outlet`, `gm.modules.Inlet`, `gm.modules.Outlet` and their `kind=`, `drawn=`
+  arguments. A module declares `Port(Direction.IN, ...)` or `Port(Direction.OUT, ...)` instead:
+  `Inlet(Stream, kind="hot_water")` is
+  `Port(Direction.IN, fluid=Fluid.WATER, phase=Phase.LIQUID, level=Level.HOT)`,
+  `Inlet(Power, kind="electricity")` is `Port(Direction.IN, energy=Energy.ELECTRICITY)`, and
+  `Inlet(Stream)` is `Port(Direction.IN, fluid=Fluid.ANY)`. `drawn=True` is `flow=Flow.DRAWN`.
+  A port still reports its label of before as `port.kind`, and `describe()` still gives `kind`.
+
+### Added
+- `gm.Port` (also `gm.modules.Port`): `Port(direction, *, fluid=None, energy=None, phase, level,
+  generic, many, flow, required, temperature, pressure, offered, description)`. Exactly one of
+  `fluid` (a stream port) and `energy` (a power port) is given; a field not given is any.
+- `gm.modules.Direction`, `Phase`, `Level`, `Flow`; `gm.streams.Energy` (`Energy.ELECTRICITY`,
+  `HEAT`, `FUEL`, `ANY`); the `gm.Fluid` presets `Fluid.WATER`, `BRINE`, `GLYCOL`, `STEAM`, `AIR`,
+  `NATURAL_GAS`, `FLUE_GAS`, `CHEMICAL`, `WASTE`, `ANY` and `Fluid.family`, by which a port
+  compares fluids; `Fluid.kind` takes `chemical` and `waste`.
+- One rule for a connection: an outlet to an inlet, a stream to a stream or a power to a power,
+  and each of phase, fluid, level and energy equal or any. `connect` refuses the rest with
+  `stream_mismatch`, naming both ends, their fields, the field that differs and the free ports
+  that would fit (`suggestions`). Gas into a pipe of liquid is now refused.
+- Generic ports: a pipe, a pump, a mixer, a splitter, a valve, each side of a heat exchanger and
+  the source of a heat pump carry what they are connected to, the same through the module.
+- `Plant.check()` also reports, at once, every connection the inferred fields refuse
+  (`stream_mismatch`) and every generic letter asked to carry two values (`generic_conflict`).
+- `Plant.suggest(port=None, *, free=True, loose=True, limit=None)`: the ports a port, a module
+  or every open port may connect to, best first, as `gm.plants.Suggestion(port, match, exact,
+  loose, closes_loop)` with `match` `gm.plants.Match.EXACT` or `LOOSE`; no score. The partner
+  that closes a loop comes first. `plant.connect(end, suggestion)` takes a suggestion.
+- The code `generic_conflict`.
+
+### Changed
+- `docs/rules.md`: the freeze is from 0.6.0.
+
 ## [0.5.14] - 2026-11-03
 
 Every public name, default and number is the same as 0.5.13; a speed exception to the freeze,

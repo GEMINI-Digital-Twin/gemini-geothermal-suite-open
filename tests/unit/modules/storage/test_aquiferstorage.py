@@ -7,13 +7,14 @@ import pytest
 import gemini as gm
 from gemini import ops
 from gemini.evaluate import call_energy_balance, call_mass_balance
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Output
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.storage import AquiferStorage
 from gemini.physics import ground
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures import si
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_function_matches, assert_same_error
@@ -79,13 +80,17 @@ class Plant(Module):
         self.storage = storage()
 
         # Inlets
-        self.supply_in = Inlet(Stream)
+        self.supply_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.stored_energy = Output(float)
 
         # Outlets
-        self.return_out = Outlet(Stream)
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Heat the supply, store it and return the cold-well water."""
@@ -217,10 +222,14 @@ class Reader(Module):
         si.assign(self.storage, "groundwater_flow", 30.0)
 
         # Inlets
-        self.supply_in = Inlet(Stream)
+        self.supply_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.return_out = Outlet(Stream)
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Read the production temperature, then call the storage."""

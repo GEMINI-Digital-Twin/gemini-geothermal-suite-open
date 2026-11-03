@@ -2,9 +2,10 @@
 
 from gemini import ops
 from gemini.modules._utils.equipment import Equipment
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.module import Module
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 class GasMakeup(Equipment, Module):
@@ -25,12 +26,37 @@ class GasMakeup(Equipment, Module):
         super().__init__()
 
         # Inlets
-        self.gas_in = Inlet(Stream, kind="gas")
-        self.grid_in = Inlet(Stream, kind="gas", drawn=True)
+        self.gas_in = Port(
+            Direction.IN,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
+        self.grid_in = Port(
+            Direction.IN,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+        )
 
         # Outlets
-        self.fuel_out = Outlet(Stream, kind="gas", offered=True, drawn=True)
-        self.excess_out = Outlet(Stream, kind="gas")
+        self.fuel_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.DRAWN,
+            offered=True,
+        )
+        self.excess_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.NATURAL_GAS,
+            level=Level.AMBIENT,
+            flow=Flow.IMPOSED,
+        )
 
     def _offer(self, inputs, inlets, state):
         """Offer the co-produced gas with the mark that the grid covers the rest."""

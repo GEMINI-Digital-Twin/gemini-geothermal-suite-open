@@ -2,15 +2,16 @@
 
 from gemini.errors import ValidationError
 from gemini.modules.container import ModuleList
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.piping import Mixer, Pipe, Splitter
 from gemini.modules.pumps import CentrifugalPump
 from gemini.plants._utils.cascades import mix_chain, split_chain
 from gemini.plants.coolingsubstation import CoolingSubstation
 from gemini.plants.heatingsubstation import HeatingSubstation
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.units.quantities import Power
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 SUBSTATIONS = {"heating": HeatingSubstation, "cooling": CoolingSubstation}
 """Substation class per network service."""
@@ -51,13 +52,19 @@ class DistrictNetwork(Plant):
         self.return_pipe = Pipe()
 
         # Inlets
-        self.supply_in = Inlet(Stream)
-        self.power_in = Inlet(Power, kind="electricity")
-        self.air_in = Inlet(Stream, kind="air")
+        self.supply_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.return_out = Outlet(Stream)
-        self.loss_out = Outlet(Power, kind="heat")
+        self.return_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
         # Connections
         self.connect("supply_in", "pump.fluid_in")

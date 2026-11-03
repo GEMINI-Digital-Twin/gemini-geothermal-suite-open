@@ -2,15 +2,16 @@
 
 from gemini.errors import ValidationError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Output, Parameter, Port, State
 from gemini.modules.module import Module
 from gemini.physics import ground, heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Count,
     Length,
     LinearThermalResistance,
-    Power,
     Temperature,
     TemperatureDifference,
     ThermalConductivity,
@@ -85,7 +86,9 @@ class BoreholeField(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="hot_water")
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.WARM, flow=Flow.IMPOSED
+        )
 
         # States
         self.ground_temperature_change = State(
@@ -102,8 +105,10 @@ class BoreholeField(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="hot_water")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.WARM, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Exchange heat between the loop fluid and the start-of-step ground temperature."""

@@ -9,12 +9,12 @@ import numpy as np
 import pandas as pd
 
 import gemini as gm
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules import Port
 from gemini.modules.storage import ThermalStorage
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
-from gemini.units.quantities import Power
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures import si
 
 START = pd.Timestamp("2024-01-01", tz="UTC")
@@ -84,12 +84,18 @@ class LaggedBuffer(Plant):
         self.tank = GuessingTank()
 
         # Inlets
-        self.discharge_in = Inlet(Stream, kind="hot_water")
-        self.air_in = Inlet(Stream, kind="air")
+        self.discharge_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.charge_out = Outlet(Stream, kind="hot_water")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.charge_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
         # Connections
         self.connect("discharge_in", "tank.discharge_in")

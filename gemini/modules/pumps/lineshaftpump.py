@@ -3,10 +3,12 @@
 from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import constants, energy, pumps
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Count,
     Dimensionless,
@@ -75,8 +77,14 @@ class LineShaftPump(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
-        self.power_in = Inlet(Power, kind="electricity")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Controls
         self.frequency = Control(Frequency, description="Operating frequency of the pump motor")
@@ -101,7 +109,13 @@ class LineShaftPump(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="brine")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Raise the suction pressure by the pump-curve head."""

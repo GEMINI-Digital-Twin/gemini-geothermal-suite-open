@@ -281,14 +281,16 @@ def test_functions_nest_at_most_three_blocks(path):
 def test_functions_are_short_or_documented_exceptions(path):
     """Functions stay within about 40 lines; each longer one is listed with its reason.
 
-    The ``__init__`` of a module or plant class is exempt: it is one list of declarations.
+    The ``__init__`` of a module or plant class, in the package or a test, is exempt: it is one list
+    of declarations.
     """
     long = {
         f"{path}::{function.name}"
         for function in functions(path)
         if body_lines(function) > MAX_LINES
         and not (
-            path.startswith(("gemini/plants/", "gemini/modules/")) and function.name == "__init__"
+            path.startswith(("gemini/plants/", "gemini/modules/", "tests/"))
+            and function.name == "__init__"
         )
     }
     assert long == {name for name in LONG_FUNCTIONS if name.startswith(f"{path}::")}

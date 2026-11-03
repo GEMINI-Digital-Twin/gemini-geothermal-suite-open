@@ -1,8 +1,10 @@
 """A small valid module in a file of its own, as a user would write and load one."""
 
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules import Port
+from gemini.modules.declarations import Output, Parameter
 from gemini.modules.module import Module
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Pressure, PressureDifference
 
 
@@ -20,13 +22,17 @@ class Booster(Module):
         self.gain = Parameter(PressureDifference, default=1e5)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.head = Output(Pressure)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the suction stream at a pressure raised by the gain."""

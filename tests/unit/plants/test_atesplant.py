@@ -4,11 +4,12 @@ import pytest
 
 import gemini as gm
 from gemini.evaluate import call_energy_balance, call_mass_balance
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Output
 from gemini.plants import ATESPlant
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures import si
 from tests.fixtures.balance import assert_plant_closes
 from tests.fixtures.designs import EMPTY_AQUIFER, with_values
@@ -169,13 +170,17 @@ class Campus(Module):
         self.ates = _plant()
 
         # Inlets
-        self.return_in = Inlet(Stream)
+        self.return_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.stored_energy = Output(float)
 
         # Outlets
-        self.supply_out = Outlet(Stream)
+        self.supply_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Cool the building return."""

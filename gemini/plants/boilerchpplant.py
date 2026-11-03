@@ -1,6 +1,6 @@
 """Nodal doublet with a heat exchanger, a boiler and a CHP on the secondary network."""
 
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules.declarations import Port
 from gemini.modules.environment import Atmosphere
 from gemini.modules.exchangers import HeatExchanger
 from gemini.modules.grids import ElectricityGrid, GasGrid
@@ -9,7 +9,8 @@ from gemini.modules.piping import Mixer, Splitter
 from gemini.modules.treatment import Degasser, Filter
 from gemini.plants.nodaldoublet import NodalDoublet
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 
 
 class BoilerChpPlant(Plant):
@@ -47,10 +48,14 @@ class BoilerChpPlant(Plant):
         self.air = Atmosphere()
 
         # Inlets
-        self.return_in = Inlet(Stream)
+        self.return_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.supply_out = Outlet(Stream)
+        self.supply_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.LIQUID, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Connections
         self.connect("return_in", "splitter.fluid_in")

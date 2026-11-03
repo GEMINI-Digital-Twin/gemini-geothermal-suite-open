@@ -9,19 +9,19 @@ import numpy as np
 import pytest
 
 from gemini.errors import DefinitionError, ValidationError
-from gemini.modules import Module
+from gemini.modules import Module, Port
 from gemini.modules.bindings import DatedParams
 from gemini.modules.declarations import (
     _MISS,
     UNSET,
     Boundary,
     Control,
-    Inlet,
-    Outlet,
     Output,
     Parameter,
 )
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Length,
     Pressure,
@@ -45,7 +45,9 @@ class Declared(Module):
         self.coefficients = Parameter(list[float], shape=(2,))
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.command = Control(float, default=1)
@@ -57,7 +59,9 @@ class Declared(Module):
         self.value = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the inlet after recording a value."""
@@ -115,12 +119,65 @@ def test_all_sections_list_own_declarations():
     assert list(module.outlets()) == ["fluid_out"]
 
 
-def test_inlets_and_outlets_accept_fluid_stream_types_only():
-    """Scalar and energy values belong in inputs or outputs, never flow ports."""
-    with pytest.raises(DefinitionError, match="Stream type or Power"):
-        Inlet(float)
-    with pytest.raises(DefinitionError, match="Stream type or Power"):
-        Outlet(float)
+HOT_WATER = {"phase": Phase.LIQUID, "fluid": Fluid.WATER, "level": Level.HOT}
+"""The fields of a hot water port."""
+
+
+def test_a_port_of_any_fluid_or_energy_takes_anything():
+    """``Fluid.ANY`` and ``Energy.ANY``; phase and level are ``ANY`` when not given."""
+    stream = Port(Direction.IN, fluid=Fluid.ANY)
+    power = Port(Direction.IN, energy=Energy.ANY)
+    assert (stream.phase, stream.level, stream.flow, stream.kind) == ("any", "any", "imposed", None)
+    assert (power.flow, power.kind, power.carries_stream) == ("drawn", None, False)
+    assert Port(Direction.OUT, fluid=Fluid.ANY, many=True).drawn
+
+
+@pytest.mark.parametrize(
+    ("fields", "message"),
+    [
+        ({}, "expected exactly one"),
+        ({"fluid": Fluid.WATER, "energy": Energy.HEAT}, "expected exactly one"),
+        ({"energy": Energy.HEAT, "phase": Phase.GAS}, "power port has no phase"),
+        ({"energy": Energy.HEAT, "temperature": (0, 1)}, "power port has no phase"),
+        ({"fluid": "water"}, "expected a gm.Fluid"),
+        ({"energy": "steam"}, "energy = 'steam'"),
+        ({"fluid": Fluid.ANY, "offered": True}, "offered is for an outlet"),
+        ({"fluid": Fluid.ANY, "phase": "plasma"}, "phase = 'plasma'"),
+    ],
+)
+def test_a_port_refuses_fields_that_contradict(fields, message):
+    """One of fluid and energy, the fields of its kind only, an offered outlet."""
+    with pytest.raises(DefinitionError, match=message):
+        Port(Direction.IN, **fields)
+    with pytest.raises(DefinitionError, match="direction = 'sideways'"):
+        Port("sideways", fluid=Fluid.ANY)
+    with pytest.raises(DefinitionError, match="flow drawn"):
+        Port(Direction.OUT, fluid=Fluid.ANY, many=True, flow="imposed")
+
+
+def test_a_port_keeps_its_label_of_before():
+    """``kind`` is the label of 0.5: hot water, chilled water, gas, a power by its energy."""
+    hot = Port(Direction.IN, **HOT_WATER)
+    chilled = Port(Direction.OUT, **HOT_WATER | {"level": Level.CHILLED})
+    flue = Port(Direction.OUT, phase="gas", fluid=Fluid.FLUE_GAS, level="ambient")
+    power = Port(Direction.IN, energy="electricity")
+    pipe = Port(Direction.IN, fluid=Fluid.ANY, phase="liquid", generic="T")
+    assert [hot.kind, chilled.kind, flue.kind, power.kind, pipe.kind] == [
+        "hot_water",
+        "chilled_water",
+        "gas",
+        "electricity",
+        None,
+    ]
+    assert power.gives and not hot.drawn and hot.section == "inlet" and flue.section == "outlet"
+
+
+def test_a_fluid_compares_by_family_not_by_its_properties():
+    """A brine of any salinity is brine; air, flue gas and natural gas are told apart."""
+    salty = Port(Direction.IN, fluid=Fluid(kind="brine", salinity=0.1))
+    assert salty.value_of("fluid") == "brine"
+    families = [item.family for item in (Fluid.AIR, Fluid.FLUE_GAS, Fluid.NATURAL_GAS)]
+    assert families == ["air", "flue_gas", "natural_gas"]
 
 
 def test_unset_keeps_its_identity_through_copy_and_pickle():
@@ -165,7 +222,12 @@ def test_limits_come_from_the_quantity_and_the_bounds():
     assert Output(list[Pressure]).limits() == {"ge": 0}
     assert Output(bool).limits() == {}
     assert Output(Ratio | None).accepts_none() and not Output(float).accepts_none()
-    assert Inlet(Stream).limits() == {}
+    assert (
+        Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        ).limits()
+        == {}
+    )
 
 
 SAMPLES = [
@@ -224,7 +286,7 @@ def test_the_quick_check_gives_the_result_or_error_of_the_full_path(module_class
     for _, owner in module.named_modules():
         for declaration in owner._declarations().values():
             signature = (repr(declaration.type), repr(declaration.bounds), declaration.unit)
-            if isinstance(declaration, (Inlet, Outlet)) or signature in seen:
+            if isinstance(declaration, Port) or signature in seen:
                 continue
             seen.add(signature)
             full = _full_path(declaration)

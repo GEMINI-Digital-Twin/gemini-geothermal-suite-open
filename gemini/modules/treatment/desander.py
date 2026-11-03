@@ -3,10 +3,11 @@
 from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Boundary, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Boundary, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import fluid, hydraulics, separation
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Fraction, MassConcentration, MassFlow, PressureDifference
 
 
@@ -52,7 +53,13 @@ class Desander(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Boundaries
         self.sand_concentration = Boundary(
@@ -73,8 +80,16 @@ class Desander(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="brine")
-        self.waste_out = Outlet(Stream, kind="waste")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.waste_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WASTE, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Apply the quadratic cyclone pressure loss."""

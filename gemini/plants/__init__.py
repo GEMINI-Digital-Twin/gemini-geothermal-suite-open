@@ -2,6 +2,7 @@
 
 from ._utils.capabilities import capabilities
 from ._utils.catalogue import get, names
+from ._utils.connections import Match, Suggestion
 from ._utils.schema import schema
 from .atesplant import ATESPlant
 from .boilerchpplant import BoilerChpPlant
@@ -24,6 +25,8 @@ from .roles import roles
 
 __all__ = [
     "Plant",
+    "Suggestion",
+    "Match",
     "capabilities",
     "schema",
     "roles",

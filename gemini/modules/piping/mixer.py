@@ -3,10 +3,11 @@
 from gemini import ops
 from gemini.errors import ValidationError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output
+from gemini.modules.declarations import Output, Port
 from gemini.modules.module import Module
 from gemini.physics import heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import PressureDifference
 
 
@@ -33,8 +34,22 @@ class Mixer(Module):
         super().__init__()
 
         # Inlets
-        self.branch1_in = Inlet(Stream)
-        self.branch2_in = Inlet(Stream)
+        self.branch1_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.branch2_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.pressure_imbalance = Output(
@@ -42,7 +57,14 @@ class Mixer(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Combine both inlet streams at the lower inlet pressure."""

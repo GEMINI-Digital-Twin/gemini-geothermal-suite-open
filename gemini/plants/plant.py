@@ -10,12 +10,13 @@ from gemini.errors import ValidationError
 from gemini.modules._utils import design
 from gemini.modules.callrecord import outputs_enabled
 from gemini.modules.container import ModuleList
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.modules.states import merged
 from gemini.physics import energy
 from gemini.plants._utils import (
     circuits,
+    connections,
     delays,
     form,
     leaves,
@@ -31,6 +32,8 @@ from gemini.plants._utils.factory import make_module
 from gemini.plants._utils.plan import STATE, PlanConstraint, compile_plan, is_group, port_ends
 from gemini.plants._utils.ports import PortResolver
 from gemini.plants._utils.serialization import tree_params
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Level
 
 
 class Plant(PortResolver, Module):
@@ -338,7 +341,7 @@ class Plant(PortResolver, Module):
 
     def _register_declaration(self, name, declaration):
         """Register a declaration; a port assigned by a plant class stays through ``_refresh``."""
-        if isinstance(declaration, (Inlet, Outlet)):
+        if isinstance(declaration, Port):
             self._declared.add(name)
         if isinstance(declaration, Output) and declaration.formula is not None:
             self._output_entries = (self._output_entries or {}) | {
@@ -349,7 +352,7 @@ class Plant(PortResolver, Module):
 
     def _refresh(self):
         self._plan = None
-        for side, declare in (("inlets", Inlet), ("outlets", Outlet)):
+        for side, direction in (("inlets", Direction.IN), ("outlets", Direction.OUT)):
             for name, ends in self._port_map(side).items():
                 if name in self._declared:
                     continue
@@ -357,7 +360,7 @@ class Plant(PortResolver, Module):
                 end = getattr(self.get_submodule(path), side)()[port]
                 registry = getattr(self, f"_{side}")
                 registry.pop(name, None)
-                Module._register_declaration(self, name, declare(end.type, kind=end.kind))
+                Module._register_declaration(self, name, _named_port(end, direction))
 
     def target_of(self, source):
         """Return the ``"path.port"`` that the outlet ``source`` feeds, or ``None``.
@@ -428,19 +431,53 @@ class Plant(PortResolver, Module):
         leaves.set_options(self, path, options)
         return self
 
-    def check(self):
+    def check(self, *, results=None):
         """Return the issues of the plant, an empty list when it is ready; it never raises.
 
         The plant is written and read again, so it is judged by the rules that judge a file
         (units, ranges inside bounds, options allowed, connections valid), and every parameter
-        without a value is a ``missing`` issue.
+        without a value is a ``missing`` issue. The ports are checked as a whole: every
+        connection by the fields its ends carry once the generic ports have taken theirs
+        (``stream_mismatch``), every generic letter asked to carry two values
+        (``generic_conflict``), every required port left unconnected (``unconnected_port``).
+        With the ``results`` of a run, each port whose temperature or pressure left the range it
+        declares is a warning (kind ``warning``, code ``out_of_range``), which never refuses.
         """
         _, found = reader.read(Plant, self.to_dict(), ports=True)
         missing = [
             replace(item, path=join_path("params", form.file_path(item.path)))
             for item in super().check()
         ]
-        return [item for item in found if not reader.tolerated(item)] + missing
+        listed = [item for item in found if not reader.tolerated(item)] + missing
+        known = {item.path for item in listed}
+        ports = [item for item in connections.issues(self) if item.path not in known]
+        ranges = [] if results is None else connections.out_of_range(self, results)
+        return listed + ports + ranges
+
+    def suggest(self, port=None, *, free=True, loose=True, limit=None):
+        """Return the ports of the plant that ``port`` may connect to, best first.
+
+        ``port`` is a ``"path.port"``, a bound ``Port`` (``plant.hx.cold_out``) or a ``Module``.
+        A port gives a list of ``Suggestion``; a module gives ``{Port: [Suggestion]}`` for each of
+        its ports, and no ``port`` the same for every required port left unconnected. ``free``
+        keeps only the ports not yet connected, ``loose`` the matches through ``ANY`` or a
+        generic letter as well as the exact ones, and ``limit`` at most that many per port.
+        The order is fixed, without a score: exact matches first, then the most fields equal,
+        then a port that closes a loop. ``plant.connect(end, suggestion)`` makes the connection.
+        """
+
+        def listed(path, name, declaration):
+            found = connections.suggestions(
+                self, path, name, declaration, free_only=free, loose=loose
+            )
+            return found if limit is None else found[:limit]
+
+        if port is not None and not connections.names_module(self, port):
+            return listed(*connections.resolve(self, port)[0])
+        ends = connections.open_ports(self) if port is None else connections.resolve(self, port)
+        if port is not None and free:
+            ends = [item for item in ends if connections.free(self, *item)]
+        return {declaration: listed(path, name, declaration) for path, name, declaration in ends}
 
     def to_dict(self, structure=False):
         """Return the plant file as a dict.
@@ -574,3 +611,11 @@ class Plant(PortResolver, Module):
         take; a step through ``Module.step`` reuses the call it has made.
         """
         return self._advance(self(dict(inlets), state=state), dt)
+
+
+def _named_port(end, direction):
+    """Return the plant port of ``direction`` that names the child port ``end``: its fields."""
+    fields = end.fields() | {"many": False}
+    if fields["generic"] is not None:
+        fields |= {"generic": None, "fluid": Fluid.ANY, "level": Level.ANY}
+    return Port(direction, **fields)

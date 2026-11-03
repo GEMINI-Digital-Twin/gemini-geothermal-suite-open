@@ -1,11 +1,11 @@
 """Stream-identity wiring traces leaf-to-leaf transfers and always removes its hooks."""
 
 import gemini as gm
-from gemini.modules import Filter, Module
+from gemini.modules import Filter, Module, Port
 from gemini.modules._utils.trace import trace_wiring
-from gemini.modules.declarations import Inlet, Outlet
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures.designs import with_values
 from tests.fixtures.errors import raises
 
@@ -29,10 +29,14 @@ class Train(Module):
         self.second = with_values(Filter())
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream through both filters."""

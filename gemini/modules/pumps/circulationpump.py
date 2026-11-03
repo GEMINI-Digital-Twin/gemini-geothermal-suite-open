@@ -1,15 +1,16 @@
 """Circulation pump of a closed circuit: a fixed flow, a pressure rise and an efficiency."""
 
 from gemini.modules._utils.equipment import Equipment
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import energy, fluid, pumps
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Efficiency,
     HydraulicPower,
     MassFlow,
-    Power,
     Pressure,
     PressureDifference,
 )
@@ -51,15 +52,29 @@ class CirculationPump(Equipment, Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
-        self.power_in = Inlet(Power, kind="electricity")
+        self.fluid_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outputs
         self.pumping_power = Output(HydraulicPower, description="Electric power drawn by the pump")
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Set the flow and the pressure of the circuit and draw the electricity."""

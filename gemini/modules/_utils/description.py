@@ -127,6 +127,7 @@ def _ports(declarations):
     return {
         name: {
             "kind": declaration.kind,
+            "port": _port_fields(declaration),
             "fields": (
                 {k: dict(v) for k, v in STREAM_FIELDS.items()}
                 if declaration.carries_stream
@@ -135,6 +136,31 @@ def _ports(declarations):
         }
         for name, declaration in declarations.items()
     }
+
+
+def _port_fields(declaration):
+    """Return what a port carries as plain JSON: its direction, what it carries and its fields."""
+    carried = "stream" if declaration.carries_stream else "power"
+    found = {"direction": declaration.direction.value, "carrier": carried}
+    names = ("phase", "fluid", "level") if declaration.carries_stream else ("energy",)
+    found |= {name: declaration.value_of(name) for name in names}
+    found |= (
+        {"temperature": _range(declaration.temperature), "pressure": _range(declaration.pressure)}
+        if declaration.carries_stream
+        else {}
+    )
+    return found | {
+        "generic": declaration.generic,
+        "flow": declaration.flow.value,
+        "many": declaration.many,
+        "required": declaration.required,
+        "offered": declaration.offered,
+    }
+
+
+def _range(limits):
+    """Return a ``(low, high)`` range as a list, or ``None``."""
+    return None if limits is None else list(limits)
 
 
 def _outputs(declarations):

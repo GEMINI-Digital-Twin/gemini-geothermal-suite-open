@@ -177,7 +177,7 @@ formula twice.
 **Where a file goes under `gemini/modules/`.** There are four homes:
 
 - A file that defines a core class users subclass or build goes directly in `gemini/modules/`:
-  `module.py` (`Module`), `declarations.py` (`Parameter`, `Inlet`, `Outlet`, `Output`, `Control`,
+  `module.py` (`Module`), `declarations.py` (`Parameter`, `Port`, `Output`, `Control`,
   `Boundary`, `State`), `container.py` (`ModuleList`, `ModuleDict`), `call.py` (`gm.call`) and `check.py`
   (`gm.modules.check`). `Plant` is `gemini/plants/plant.py`. `Module` is split by job beside
   `module.py`: `callrecord.py`, `callargs.py`, `states.py`, `tree.py`, `values.py`, `display.py`,
@@ -224,7 +224,7 @@ or `gm.study`, not in modules; a plant class belongs in `gemini/plants/`, never 
 9. Keep value arguments out of `__init__`; structural tree-shape arguments are the exception.
    Build a configured module with `ESP().set_params("", {...})`.
 10. Never declare metadata or lists that `Module` derives.
-11. Inlets and outlets carry a `Stream` or a `Power`: see [ports](modules.md#ports). A single
+11. Ports (`Port(Direction.IN, ...)` and `Port(Direction.OUT, ...)`) carry a `Stream` or a `Power`: see [ports](modules.md#ports). A single
     `Power` inlet is drawn: the module computes it in `forward` and returns it under the port's
     name.
 12. Pre-hooks are exactly `(module, inputs, inlets, state)` and forward hooks are exactly
@@ -309,8 +309,9 @@ Every port name is `<role>_in` or `<role>_out`. A module with one circuit uses `
 Add a role only when no existing one fits, here and in [glossary.md](glossary.md).
 `test_every_port_follows_the_naming_rule` in `tests/unit/test_code_quality.py` checks every port of
 every registered module against the rule and this list. A port's label says what may be connected:
-`Inlet(Stream, kind="hot_water")`, one of `gemini.streams.kinds.names()`; `kind` means only this label, and the
-first argument of every declaration is its `type`.
+`Port(Direction.IN, fluid=Fluid.WATER, phase=Phase.LIQUID, level=Level.HOT)`; `kind` is still
+readable on a port and is the label derived from these fields. The first argument of a port is its `Direction`,
+of every other declaration its `type`.
 
 Outputs derived from a port field are named `<port>_<field>`, for example `hot_out_T`. Controls
 and boundaries name the commanded quantity in full words (`frequency`, `production_rate`);
@@ -413,8 +414,8 @@ test-first bug fixes) are checked in review.
 The package avoids hidden behaviour. These are the only implicit mechanisms left, each with the
 reason it is needed:
 
-- `Module.__setattr__` registers what `__init__` assigns: a `Parameter`, `Inlet`, `Control`,
-  `Boundary`, `State`, `Output` or `Outlet` goes to its ordered registry and a `Module` becomes a
+- `Module.__setattr__` registers what `__init__` assigns: a `Parameter`, `Port`, `Control`,
+  `Boundary`, `State` or `Output` goes to its ordered registry and a `Module` becomes a
   child with a dotted path. Assigning to a declared name sets the parameter or persists the control
   or boundary as a pre-run value (`esp.frequency = Quantity(50, "Hz")`: a `Quantity` at the door,
   SI inside, poured into `inputs` by a call and by the engine). Inside a call of a converted module

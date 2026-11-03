@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from functools import lru_cache
-from typing import Literal, get_args
+from typing import ClassVar, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic import ValidationError as PydanticError
@@ -80,7 +80,17 @@ class Fluid(BaseModel):
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False)
-    kind: Literal["brine", "water", "glycol_water", "steam", "gas"] = "brine"
+    WATER: ClassVar["Fluid"]
+    BRINE: ClassVar["Fluid"]
+    GLYCOL: ClassVar["Fluid"]
+    STEAM: ClassVar["Fluid"]
+    AIR: ClassVar["Fluid"]
+    NATURAL_GAS: ClassVar["Fluid"]
+    FLUE_GAS: ClassVar["Fluid"]
+    CHEMICAL: ClassVar["Fluid"]
+    WASTE: ClassVar["Fluid"]
+    ANY: ClassVar[object]
+    kind: Literal["brine", "water", "glycol_water", "steam", "gas", "chemical", "waste"] = "brine"
     salinity: Fraction = 0.0
     co2_mass_fraction: Fraction = 0.0
     gas_mass_fraction: Fraction = Field(0.0, lt=1)
@@ -145,6 +155,24 @@ class Fluid(BaseModel):
         if isinstance(value, cls):
             return value
         return cls._si(**value) if isinstance(value, Mapping) else cls.model_validate(value)
+
+    @property
+    def family(self):
+        """Return what this fluid is for a port, whatever its properties: ``"water"``, ...
+
+        One of ``water``, ``brine``, ``glycol``, ``steam``, ``air``, ``flue_gas``,
+        ``natural_gas``, ``chemical`` and ``waste``. A brine of any salinity is ``brine``; a gas
+        is ``air`` with the composition of air, ``flue_gas`` when it is mostly CO2 and holds no
+        methane, ``natural_gas`` otherwise. A port compares fluids by this, never by a property.
+        """
+        if self.kind != "gas":
+            return {"glycol_water": "glycol"}.get(self.kind, self.kind)
+        composition = self.gas_composition or {}
+        if composition == gas.AIR_COMPOSITION:
+            return "air"
+        if composition.get("CO2", 0.0) >= 0.5 and not composition.get("CH4", 0.0):
+            return "flue_gas"
+        return "natural_gas"
 
     def __hash__(self):
         """Hash every field; a composition by its items, because a dictionary has no hash."""
@@ -406,3 +434,38 @@ BRINE = Fluid._si()
 WATER = Fluid._si(kind="water")
 GLYCOL_30 = Fluid._si(kind="glycol_water", glycol_fraction=0.3)
 STEAM = Fluid._si(kind="steam")
+NATURAL_GAS = Fluid._si(kind="gas", gas_composition={"CH4": 1.0})
+"""Gas burned as fuel, as a port declares it: grid gas or the co-produced gas of a degasser."""
+CHEMICAL = Fluid._si(kind="chemical")
+"""A dosed chemical, such as an inhibitor."""
+WASTE = Fluid._si(kind="waste")
+"""What a treatment unit removes: sand, solids, blowdown water."""
+
+
+class _AnyFluid:
+    """The fluid of a port that takes any: ``Fluid.ANY``, never the fluid of a stream."""
+
+    family = "any"
+
+    def __repr__(self):
+        """Return ``Fluid.ANY``."""
+        return "Fluid.ANY"
+
+    def __reduce__(self):
+        """Pickle as the one ``Fluid.ANY``."""
+        return (_any_fluid, ())
+
+
+def _any_fluid():
+    """Return ``Fluid.ANY``."""
+    return Fluid.ANY
+
+
+Fluid.ANY = _AnyFluid()
+Fluid.WATER, Fluid.BRINE, Fluid.GLYCOL, Fluid.STEAM, Fluid.AIR = WATER, BRINE, GLYCOL_30, STEAM, AIR
+Fluid.NATURAL_GAS, Fluid.FLUE_GAS, Fluid.CHEMICAL, Fluid.WASTE = (
+    NATURAL_GAS,
+    FLUE_CO2,
+    CHEMICAL,
+    WASTE,
+)

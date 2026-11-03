@@ -3,11 +3,12 @@
 from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import steam
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import WATER
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import WATER, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Efficiency, Fraction, Power, Pressure, Ratio
 
 
@@ -56,7 +57,13 @@ class FlashTurbine(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="gas")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.GAS,
+            fluid=Fluid.STEAM,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Outputs
         self.gross_power = Output(
@@ -68,9 +75,15 @@ class FlashTurbine(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="gas")
-        self.power_out = Outlet(Power, kind="electricity")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.TWO_PHASE,
+            fluid=Fluid.STEAM,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.power_out = Port(Direction.OUT, energy=Energy.ELECTRICITY, flow=Flow.IMPOSED)
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Expand the steam and return the condensate at the condenser saturation state."""

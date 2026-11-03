@@ -5,12 +5,12 @@ import pytest
 import gemini as gm
 from gemini.errors import PhysicsError
 from gemini.evaluate import call_mass_balance
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules import Module, Port
 from gemini.modules.power import FlashTurbine, Separator
 from gemini.physics import steam
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE, STEAM, WATER
+from gemini.streams.fluid import BRINE, STEAM, WATER, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_module_matches
 from tests.fixtures.reading import reading
@@ -80,11 +80,17 @@ class SingleFlash(Module):
         self.turbine = turbine()
 
         # Inlets
-        self.geofluid_in = Inlet(Stream)
+        self.geofluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
-        self.condensate_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.condensate_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Separate, then expand the steam."""

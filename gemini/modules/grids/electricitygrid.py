@@ -1,8 +1,10 @@
 """The public electricity grid: the plant's edge for bought and sold electricity."""
 
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import energy
+from gemini.streams.energy import Energy
+from gemini.streams.kinds import Direction, Flow
 from gemini.units.quantities import Power
 
 
@@ -40,7 +42,7 @@ class ElectricityGrid(Module):
         )
 
         # Inlets
-        self.power_in = Inlet(Power, kind="electricity", many=True)
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.IMPOSED, many=True)
 
         # Outputs
         self.net_import = Output(Power, description="Power imported from the grid")
@@ -55,7 +57,7 @@ class ElectricityGrid(Module):
         self.is_export_limited = Output(bool, description="True when the export limit was reached")
 
         # Outlets
-        self.power_out = Outlet(Power, kind="electricity", many=True)
+        self.power_out = Port(Direction.OUT, energy=Energy.ELECTRICITY, flow=Flow.DRAWN, many=True)
 
     def forward(self, inputs, inlets, state):
         """Exchange electricity only: what leaves is what the consumers drew."""

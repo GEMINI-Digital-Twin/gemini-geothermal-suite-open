@@ -8,11 +8,11 @@ import pytest
 import gemini as gm
 from gemini import ops
 from gemini.evaluate import call_energy_balance, call_mass_balance
-from gemini.modules import Module
-from gemini.modules.declarations import Inlet, Outlet
+from gemini.modules import Module, Port
 from gemini.modules.storage import IceStorage
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import GLYCOL_30
+from gemini.streams.fluid import GLYCOL_30, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.streams.ports import Ports
 from tests.fixtures.designs import with_values
 from tests.fixtures.equivalence import assert_close, assert_function_matches
@@ -151,10 +151,14 @@ class StoreLine(Module):
         self.second = _store()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the glycol through both stores."""

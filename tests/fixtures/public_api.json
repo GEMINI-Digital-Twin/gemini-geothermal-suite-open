@@ -122,7 +122,9 @@
     "name",
     "params"
    ],
-   "check": [],
+   "check": [
+    "results"
+   ],
    "connect": [
     "source",
     "target",
@@ -249,6 +251,7 @@
   "migration_failed",
   "invalid_connection",
   "stream_mismatch",
+  "generic_conflict",
   "ambiguous_port",
   "port_in_use",
   "unconnected_port",
@@ -283,13 +286,16 @@
  "modules": {
   "Boundary": "class",
   "Control": "class",
-  "Inlet": "class",
+  "Direction": "class",
+  "Flow": "class",
+  "Level": "class",
   "Module": "class",
   "ModuleDict": "class",
   "ModuleList": "class",
-  "Outlet": "class",
   "Output": "class",
   "Parameter": "class",
+  "Phase": "class",
+  "Port": "class",
   "State": "class",
   "categories": [],
   "check": [
@@ -809,10 +815,12 @@
    "HeatingHeatPumpCoolingPlant": "class",
    "HeatingPlant": "class",
    "HeatingSubstation": "class",
+   "Match": "class",
    "MultiWellPlant": "class",
    "NodalDoublet": "class",
    "ParallelExchangerPlant": "class",
    "Plant": "class",
+   "Suggestion": "class",
    "capabilities": [],
    "get": [
     "name"
@@ -832,6 +840,7 @@
   },
   "streams": {
    "BRINE": "Fluid",
+   "Energy": "class",
    "Fluid": "class",
    "GLYCOL_30": "Fluid",
    "Ports": "class",
@@ -968,7 +977,7 @@
   "case.schema.json": "030b9b633ef1847709f99782cb086b7755d481e987c90f11f0ff1dbc2dfbaad4",
   "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
   "economics.schema.json": "6fdcabd9151525720e1c26b88290061d0758873f05a7c4dfc5401bdff87a84c9",
-  "module_description.schema.json": "f40388d592d69073cba6a90dc83a23e69e7b3a8c7f9e88d48fdd3e19c6d1779e",
+  "module_description.schema.json": "ab505f2142d76ff6792ebcea84d05fe3a3896f43b56ae910ce9213cf28dc6e45",
   "plant.schema.json": "4c0f2416861812feb5c7eb063a466318019a693243c1bda4c2c38376497fb0c6",
   "problem.schema.json": "98fbbd71c3cdb8b5c55b3cca2d2829999ab8665e4eb7dd1062fcc77d970383b4",
   "profile.schema.json": "a6a417ba35af581a0b082bbf9fc560785303c51dde6bb2466770f499f7440805",
@@ -994,12 +1003,11 @@
   "Dataset",
   "Engine",
   "Fluid",
-  "Inlet",
   "Module",
-  "Outlet",
   "Output",
   "Parameter",
   "Plant",
+  "Port",
   "Results",
   "Stream",
   "Study",
@@ -1025,5 +1033,5 @@
   "study",
   "units"
  ],
- "version": "0.5.14"
+ "version": "0.6.0"
 }

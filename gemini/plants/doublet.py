@@ -2,7 +2,7 @@
 
 from gemini.errors import ValidationError
 from gemini.modules._utils.equipment import Equipment
-from gemini.modules.declarations import UNSET, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import UNSET, Output, Parameter, Port
 from gemini.modules.environment import Formation
 from gemini.modules.pumps import ESP
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
@@ -10,12 +10,13 @@ from gemini.modules.wells import InjectionWell, ProductionWell
 from gemini.physics import constants, pumps
 from gemini.plants._utils import doublet_design
 from gemini.plants.plant import Plant
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import (
     Efficiency,
     Length,
     Permeability,
-    Power,
     Pressure,
     Temperature,
     TemperatureGradient,
@@ -139,11 +140,23 @@ class Doublet(Equipment, Plant):
         )
 
         # Inlets
-        self.return_in = Inlet(Stream)
-        self.power_in = Inlet(Power, kind="electricity")
+        self.return_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
 
         # Outlets
-        self.supply_out = Outlet(Stream)
+        self.supply_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Connections
         self.connect("return_in", "injector.wellhead_in")

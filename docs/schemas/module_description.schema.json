@@ -82,6 +82,25 @@
         "additionalProperties": false,
         "properties": {
           "kind": {"type": ["string", "null"]},
+          "port": {
+            "type": "object",
+            "required": ["direction", "carrier", "flow", "many", "required", "offered", "generic"],
+            "properties": {
+              "direction": {"enum": ["in", "out"]},
+              "carrier": {"enum": ["stream", "power"]},
+              "phase": {"enum": ["liquid", "gas", "two_phase", "any"]},
+              "fluid": {"type": "string"},
+              "level": {"enum": ["hot", "warm", "cool", "chilled", "ambient", "geothermal", "any"]},
+              "energy": {"type": "string"},
+              "temperature": {"type": ["array", "null"], "items": {"type": "number"}},
+              "pressure": {"type": ["array", "null"], "items": {"type": "number"}},
+              "generic": {"type": ["string", "null"]},
+              "flow": {"enum": ["imposed", "drawn"]},
+              "many": {"type": "boolean"},
+              "required": {"type": "boolean"},
+              "offered": {"type": "boolean"}
+            }
+          },
           "fields": {
             "type": "object",
             "additionalProperties": {

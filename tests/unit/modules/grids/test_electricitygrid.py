@@ -3,13 +3,14 @@
 import pytest
 
 from gemini.evaluate import call_energy_balance, collect_flows
-from gemini.modules import Module
-from gemini.modules.declarations import Control, Inlet, Outlet, Output
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Control, Output
 from gemini.modules.grids import ElectricityGrid
 from gemini.modules.heating import ElectricBoiler
 from gemini.modules.power import ORC
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units import Quantity
 from gemini.units.quantities import Power
 from tests.fixtures import si
@@ -70,15 +71,23 @@ class GridPlant(Module):
         self.grid = grid(export_limit={"value": 10, "unit": "MW"})
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
-        self.water_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.water_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.net_export = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
-        self.water_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.water_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Generate, consume, then settle with the grid."""
@@ -136,7 +145,9 @@ class Connected(Module):
         self.grid = grid(import_limit={"value": 2, "unit": "MW"})
 
         # Inlets
-        self.rows = Inlet(Stream)
+        self.rows = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.consumption = Control(Power)

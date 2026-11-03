@@ -1,10 +1,12 @@
 """Binary organic Rankine cycle plant driven by geothermal brine, with an air-cooled condenser."""
 
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import cycles, heat_transfer
-from gemini.streams.flows import Stream
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Efficiency, Fraction, Power, Temperature, TemperatureDifference
 
 
@@ -73,8 +75,16 @@ class ORC(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
-        self.air_in = Inlet(Stream, kind="air")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
 
         # Outputs
         self.gross_power = Output(
@@ -96,9 +106,15 @@ class ORC(Module):
         self.is_capped = Output(bool, description="True when the duty was limited by the capacity")
 
         # Outlets
-        self.fluid_out = Outlet(Stream, kind="brine")
-        self.power_out = Outlet(Power, kind="electricity")
-        self.loss_out = Outlet(Power, kind="heat")
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.power_out = Port(Direction.OUT, energy=Energy.ELECTRICITY, flow=Flow.IMPOSED)
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
 
     def forward(self, inputs, inlets, state):
         """Cool the brine by the heat the cycle takes at the operating point."""

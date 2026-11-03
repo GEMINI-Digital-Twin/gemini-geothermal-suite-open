@@ -5,10 +5,11 @@ from typing import Literal
 from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter
+from gemini.modules.declarations import Control, Output, Parameter, Port
 from gemini.modules.module import Module
 from gemini.physics import hydraulics
-from gemini.streams.flows import Stream
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import FlowCoefficient, Fraction, PressureDifference, Ratio
 
 
@@ -58,7 +59,14 @@ class Valve(Module):
         )
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
         # Controls
         self.opening = Control(Fraction, description="Valve opening as a share of full travel")
@@ -72,7 +80,14 @@ class Valve(Module):
         )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Throttle the inlet stream by the sizing-equation pressure drop."""

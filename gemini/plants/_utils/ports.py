@@ -4,20 +4,50 @@ from gemini._utils.strings import close_matches, did_you_mean, join_names, join_
 from gemini.errors import ValidationError
 from gemini.modules.declarations import Declaration
 from gemini.modules.module import Module
+from gemini.plants._utils import connections
 from gemini.plants._utils.plan import is_group, members, port_ends, split_end
 
 SIDE_OF = {"source": "outlets", "target": "inlets"}
 
 
 def _connectable(first, second):
+    """Return whether two ports carry the same: the carrier, and each field equal or ``ANY``.
+
+    The direction is not compared: a plant port and the child port it names share one.
+    """
+    return _difference(first, second) is None
+
+
+def _difference(first, second):
+    """Return the first field the two ports carry differently, as text, or ``None``."""
     if first.carries_stream != second.carries_stream:
-        return False
-    return first.kind is None or second.kind is None or first.kind == second.kind
+        return f"{_carried(first)} to {_carried(second)}"
+    for name in ("phase", "fluid", "level", "energy"):
+        one, other = first.value_of(name), second.value_of(name)
+        if one is None or other is None or one == other or "any" in (one, other):
+            continue
+        return f"{name} {one} to {other}"
+    return None
+
+
+def _carried(declaration):
+    """Return ``"stream"`` or ``"power"``, what a port carries."""
+    return "stream" if declaration.carries_stream else "power"
+
+
+def _fields_text(declaration):
+    """Return the fields of a port in brackets, as an error names them."""
+    if not declaration.carries_stream:
+        return f"[power, {declaration.value_of('energy')}]"
+    names = [declaration.value_of(name) for name in ("phase", "fluid", "level")]
+    if declaration.generic is not None:
+        names.append(f"generic {declaration.generic}")
+    return f"[{', '.join(names)}]"
 
 
 def _describe_end(candidate):
     path, port, declaration = candidate
-    return f"{join_path(path, port)} [{declaration.kind or 'any'}]"
+    return f"{join_path(path, port)} {_fields_text(declaration)}"
 
 
 class PortResolver:
@@ -41,7 +71,7 @@ class PortResolver:
         own = getattr(self, f"_{side}").get(name)
         if own is not None and not _connectable(own, declaration):
             raise ValidationError(
-                f"stream mismatch: plant port {name} [{own.kind or 'any'}] to "
+                f"stream mismatch: plant port {name} {_fields_text(own)} to "
                 f"{_describe_end(candidates[0])}",
                 path=field,
                 code="stream_mismatch",
@@ -123,6 +153,8 @@ class PortResolver:
         return path, port
 
     def _from_handle(self, value, field):
+        if isinstance(value, connections.Suggestion):
+            value = value.port
         if isinstance(value, Declaration):
             return self._descendant_path(value.owner) or "", value.name
         if isinstance(value, Module):
@@ -159,13 +191,20 @@ class PortResolver:
         if len(pairs) == 1:
             return pairs[0]
         if not pairs:
+            reasons = {_difference(a[2], b[2]) for a in first for b in second}
             raise ValidationError(
                 f"stream mismatch: {', '.join(map(_describe_end, first))} to "
-                f"{', '.join(map(_describe_end, second))}",
+                f"{', '.join(map(_describe_end, second))}: {'; '.join(sorted(reasons))}",
                 path="target",
                 code="stream_mismatch",
+                suggestions=self._free_fits(first),
             )
         raise self._ambiguous([" -> ".join(map(_describe_end, pair)) for pair in pairs], "target")
+
+    def _free_fits(self, ends):
+        """Return the ``"path.port"`` of the free ports that would fit the first of ``ends``."""
+        path, port, declaration = ends[0]
+        return [item.path for item in connections.suggestions(self, path, port, declaration)]
 
     def _ambiguous(self, listed, field):
         return ValidationError(

@@ -4,10 +4,11 @@ import pytest
 
 import gemini as gm
 from gemini.errors import DefinitionError, ValidationError
-from gemini.modules import Module
-from gemini.modules.declarations import Boundary, Control, Inlet, Outlet, Output, Parameter, State
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Boundary, Control, Output, Parameter, State
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.streams.ports import Ports
 from gemini.units import Quantity
 from gemini.units.quantities import Frequency, Temperature
@@ -28,7 +29,9 @@ class Gain(Module):
         self.scale = Parameter(float, gt=0)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Controls
         self.boost = Control(Frequency)
@@ -40,7 +43,9 @@ class Gain(Module):
         self.rise = Output(float)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Return the gain of the boost and the offset, and the inlet."""

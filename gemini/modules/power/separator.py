@@ -3,11 +3,11 @@
 from gemini import ops
 from gemini.errors import PhysicsError
 from gemini.modules._utils.flow import require_forward
-from gemini.modules.declarations import Control, Inlet, Outlet, Output
+from gemini.modules.declarations import Control, Output, Port
 from gemini.modules.module import Module
 from gemini.physics import steam
-from gemini.streams.flows import Stream
-from gemini.streams.fluid import STEAM
+from gemini.streams.fluid import STEAM, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Fraction, Pressure, Temperature
 
 
@@ -41,7 +41,13 @@ class Separator(Module):
         super().__init__()
 
         # Inlets
-        self.fluid_in = Inlet(Stream, kind="brine")
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
         # Controls
         self.pressure_setpoint = Control(
@@ -57,8 +63,20 @@ class Separator(Module):
         )
 
         # Outlets
-        self.liquid_out = Outlet(Stream, kind="brine")
-        self.gas_out = Outlet(Stream, kind="gas")
+        self.liquid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.gas_out = Port(
+            Direction.OUT,
+            phase=Phase.GAS,
+            fluid=Fluid.STEAM,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
 
     def forward(self, inputs, inlets, state):
         """Flash the inlet to the setpoint pressure and split it into brine and steam."""

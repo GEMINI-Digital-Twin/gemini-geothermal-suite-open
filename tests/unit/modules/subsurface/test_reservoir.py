@@ -3,10 +3,11 @@
 import pytest
 
 from gemini.errors import ValidationError
-from gemini.modules.declarations import Inlet
+from gemini.modules import Port
 from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units import Quantity
 from scripts.legacy import tables as mapping
 from tests.fixtures import OLD_PROJECT, si
@@ -105,7 +106,9 @@ class RowCarrier(ProductionReservoir):
         """Declare the reservoir and the row-carrying inlet."""
         super().__init__()
         self.fluid = BRINE
-        self.rows = Inlet(Stream)
+        self.rows = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
 
 def _producer(**changes):

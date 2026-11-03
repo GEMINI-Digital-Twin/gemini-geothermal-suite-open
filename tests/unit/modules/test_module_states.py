@@ -4,11 +4,12 @@ import pandas as pd
 import pytest
 
 import gemini as gm
-from gemini.modules import Module
+from gemini.modules import Module, Port
 from gemini.modules.bindings import Binding, ModuleBindings
-from gemini.modules.declarations import Control, Inlet, Outlet, Output, Parameter, State
+from gemini.modules.declarations import Control, Output, Parameter, State
 from gemini.streams.flows import Stream
-from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
 from gemini.units.quantities import Duty, Energy, Temperature
 from tests.fixtures.errors import raises
 from tests.fixtures.reading import reading
@@ -32,7 +33,9 @@ class Tank(Module):
         self.heat_capacity = Parameter(float, default=4217.4 * 100, gt=0)
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # States
         self.temperature = State(Temperature)
@@ -41,7 +44,9 @@ class Tank(Module):
         self.duty = Output(Duty)
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Leave at the tank temperature of the start of the step."""
@@ -75,10 +80,14 @@ class Line(Module):
         self.second = Tank()
 
         # Inlets
-        self.fluid_in = Inlet(Stream)
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
         # Outlets
-        self.fluid_out = Outlet(Stream)
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
 
     def forward(self, inputs, inlets, state):
         """Pass the stream through both tanks."""

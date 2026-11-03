@@ -63,7 +63,17 @@
           "unit": "W"
         }
       },
-      "kind": "electricity"
+      "kind": "electricity",
+      "port": {
+        "carrier": "power",
+        "direction": "in",
+        "energy": "electricity",
+        "flow": "drawn",
+        "generic": null,
+        "many": false,
+        "offered": false,
+        "required": true
+      }
     },
     "return_in": {
       "fields": {
@@ -77,7 +87,21 @@
           "unit": "Pa"
         }
       },
-      "kind": null
+      "kind": "brine",
+      "port": {
+        "carrier": "stream",
+        "direction": "in",
+        "flow": "imposed",
+        "fluid": "brine",
+        "generic": null,
+        "level": "geothermal",
+        "many": false,
+        "offered": false,
+        "phase": "liquid",
+        "pressure": null,
+        "required": true,
+        "temperature": null
+      }
     }
   },
   "measured": {
@@ -129,7 +153,21 @@
           "unit": "Pa"
         }
       },
-      "kind": null
+      "kind": "brine",
+      "port": {
+        "carrier": "stream",
+        "direction": "out",
+        "flow": "imposed",
+        "fluid": "brine",
+        "generic": null,
+        "level": "geothermal",
+        "many": false,
+        "offered": false,
+        "phase": "liquid",
+        "pressure": null,
+        "required": true,
+        "temperature": null
+      }
     }
   },
   "outputs": {
