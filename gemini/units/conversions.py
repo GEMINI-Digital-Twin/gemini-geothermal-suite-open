@@ -295,6 +295,7 @@ _UNITS = {
     "mm": ("m", MILLI, 0),
     "in": ("m", M_PER_INCH, 0),
     "ft": ("m", M_PER_FOOT, 0),
+    "ms": ("s", MILLI, 0),
     "s": ("s", 1, 0),
     "min": ("s", SECONDS_PER_MINUTE, 0),
     "h": ("s", SECONDS_PER_HOUR, 0),

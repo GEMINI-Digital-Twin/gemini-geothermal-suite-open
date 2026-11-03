@@ -918,6 +918,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.5.10 | 2026-11-03 | **Addition, no break** (the frozen file unchanged). The time unit `ms`, a member of `gm.units.Unit`, converted like `s`. |
 | 0.5.9 | 2026-11-03 | **Additions and a fix, no break** (the frozen file unchanged). `gm.evaluate.missing(plant, case, results)` lists every value of the economics the costs need at once; `gm.study.Search` is the dict `minimize` returns, with `to_dict()` holding the history; `gm.plants.capabilities()[class]["ranges"]` lists the leaves of every doublet the class may have (it listed `d0` only). |
 | 0.5.8 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). A trial takes about 14% less CPU; every table and number is the same as 0.5.7. |
 | 0.5.7 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). A study runs about a third faster; every number and the output of the examples are the same as 0.5.6. |

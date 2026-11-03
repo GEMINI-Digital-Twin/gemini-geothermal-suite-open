@@ -256,3 +256,12 @@ def test_an_array_refuses_a_unit_of_another_dimension(target):
     """An array converts only between units of one dimension, as a scalar does."""
     with raises(ValidationError, "invalid_unit", match="units.convert"):
         units.Quantity(np.array([1.0, 2.0]), "bar").to(target)
+
+
+def test_a_millisecond_is_a_time_unit():
+    """``ms`` converts like ``s``, ``min``, ``h`` and ``d``, and is a member of ``Unit``."""
+    assert units.Quantity(1500, "ms").si == pytest.approx(1.5)
+    assert units.Quantity(2, "s").to("ms").value == pytest.approx(2000)
+    assert units.Quantity(90_000, "ms").to("min").value == pytest.approx(1.5)
+    assert units.Quantity(1, "d").to("ms").value == pytest.approx(86_400_000)
+    assert "ms" in {unit.value for unit in units.Unit}
