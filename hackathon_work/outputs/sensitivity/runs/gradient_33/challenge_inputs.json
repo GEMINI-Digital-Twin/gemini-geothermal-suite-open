@@ -1,0 +1,34 @@
+{
+  "source": "GEMINI Hackathon Challenge Requirements, 28 October 2026, page 2",
+  "reservoir": {
+    "midpoint_depth_m_TVD": 2500,
+    "gross_thickness_m": 100,
+    "gradient_C_per_km": 33,
+    "surface_temperature_C": 12,
+    "pressure_bar_g": 250,
+    "permeability_mD": 200
+  },
+  "fluid": {
+    "density_kg_m3": 1030,
+    "dynamic_viscosity_mPa_s": 0.4,
+    "gas_liquid_ratio_Nm3_per_m3": 0.8,
+    "gas_methane_mol_percent": 80,
+    "gas_carbon_dioxide_mol_percent": 20
+  },
+  "constraints": {
+    "minimum_doublets": 1,
+    "maximum_doublets": 3,
+    "flow_min_when_on_m3_per_h_per_doublet": 50,
+    "flow_max_m3_per_h_per_doublet": 300,
+    "maximum_brine_delta_T_C": 40,
+    "pump_efficiency": 0.7,
+    "geothermal_operating_days": 330,
+    "heating_supply_temperature_C": 100,
+    "cooling_supply_temperature_C": 20,
+    "equal_production_injection_liquid_volumes_required": true
+  },
+  "illustrative_assumptions_not_fixed_by_challenge": {
+    "brine_cp_J_per_kg_K": 4100,
+    "notes": "Illustrative constant heat capacity only; validate in GEMINI/PVT calculations before real system sizing."
+  }
+}

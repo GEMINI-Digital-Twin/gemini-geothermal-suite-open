@@ -25,6 +25,11 @@
     "dispatch.flow_step_m3h": "ASSUMED 5 m3/h dispatch resolution.",
     "dispatch.summer_window": "ASSUMED May-September; maintenance windows are placed in the lowest heat + cooling-drive need (H + C/COP_abs) inside it.",
     "dispatch.maintenance_days_per_doublet": "330-day rule = geothermal source availability, demand met all 365 days (organizer clarification, Discord, 2026-11-01): 35 consecutive days per doublet, non-overlapping; with 1 doublet the backup covers them.",
+    "gas_handling.options": "Agent design variable. chp: all produced gas to CHP (then boiler, flare); co2_reinject: separate the CO2 (20 mol%, OFFICIAL) and reinject it with the brine, CH4 to CHP; reinject_all: reinject all produced gas with the brine, no combustion (no CHP heat or electricity). Reinjected gas is ASSUMED to redissolve at injection pressure (injection-side gas handling not modelled).",
+    "gas_handling.co2_reinject emission factor": "DERIVED: only CH4 combustion CO2 counts: 68.6 kg/GJ x x_CH4 / (x_CH4 + x_CO2) = 68.6 x 0.8 = 54.9 kg CO2/GJ (the 0.2 Nm3 pass-through CO2 per Nm3 gas is reinjected).",
+    "gas_handling.separation_compression_kWh_per_kg_CO2": "ASSUMED 0.1 kWh per kg CO2 for separation + compression to injection pressure (order of magnitude for membrane/amine separation plus multistage compression; not modelled in detail). 0.2 Nm3 CO2/Nm3 gas x 1.9635 kg/Nm3 = 0.393 kg CO2 per Nm3 gas (DERIVED).",
+    "gas_handling.reinjection_compression_kWh_per_kg_gas": "ASSUMED 0.1 kWh per kg of produced gas (0.9653 kg/Nm3) to compress all gas to injection pressure; no separation.",
+    "n_minus_1": "ASSUMED resilience case: UNPLANNED outage of one doublet on the peak heating day and the peak cooling day (in addition to any planned maintenance). Installed backup (boiler, electric chiller) = max(annual peak duty, N-1 duty).",
     "dispatch.heating_tolerance_K": "ASSUMED: geothermal (HEX + heat pump) counts as meeting heating when within 0.05 K of 100 C."
   },
   "esp_options": {
@@ -43,6 +48,12 @@
   ],
   "cooling_supply_return_C": [20, 26],
   "external_gas": {"emission_factor_kg_per_GJ": 56.6, "lhv_MJ_per_Nm3": 35.8},
+  "gas_handling": {
+    "options": ["chp", "co2_reinject", "reinject_all"],
+    "default": "chp",
+    "separation_compression_kWh_per_kg_CO2": 0.1,
+    "reinjection_compression_kWh_per_kg_gas": 0.1
+  },
   "dispatch": {
     "flow_step_m3h": 5,
     "summer_window": ["2027-05-01", "2027-09-30"],

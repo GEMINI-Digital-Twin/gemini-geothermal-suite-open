@@ -38,7 +38,8 @@ DAILY_COLS = [
 # Export size per panel in CSS px; 960 px x 2.03125 = 1950 px = 6.5 in at 300 dpi.
 PANELS = [("p1", "kpis", 330), ("p2", "heating", 520), ("p3", "cooling", 460), ("p4", "brine", 600),
           ("p5", "agent_path", 560), ("p6", "emissions", 460), ("p7", "schematic", 560),
-          ("p8", "constraints", 640), ("p9", "judges_tests", 600)]
+          ("p8", "constraints", 640), ("p9", "judges_tests", 600),
+          ("p10", "sensitivity_tornado", 560), ("p11", "resilience_gas", 470)]
 EXPORT_WIDTH_PX, EXPORT_INCH, DPI = 960, 6.5, 300
 
 
@@ -133,6 +134,7 @@ def agent_data() -> dict:
     steps = [e["data"] for e in b if e["phase"] == "depth_step"]
     summary = load_json(OUT / "agent" / "run_summary.json")
     return {"evaluations": evaluations, "depth_steps": steps, "judges_tests": summary["judges_tests"],
+            "gas_handling": summary.get("gas_handling"),
             "timing": summary["timing"], "pick": summary["pick"], "marginal_cases": summary.get("marginal_cases", [])}
 
 
@@ -152,7 +154,9 @@ def collect() -> dict:
         designs[label] = {"label": "Final design" if label == "FINAL" else label, "name": s["candidate"]["name"], "summary": s, "daily": d,
                           "constraints": constraints(s, d), "no_geothermal_days": sum(1 for a in d["active_doublets"] if not a),
                           "point": design_point(d, hexp["fluid_density"], hexp["specific_heat"], t_return)}
+    sens_path = OUT / "sensitivity" / "summary.json"
     return {"designs": designs, "order": [label for label, _ in folders], "reference": ref, "agent": agent_data(),
+            "sensitivity": load_json(sens_path) if sens_path.exists() else None,
             "sources": {"candidates": "outputs/candidates/base/", "final": "outputs/agent/final_design/", "reference": "outputs/reference/summary.json",
                         "agent": "outputs/agent/{decision_log.jsonl, run_summary.json}"}}
 
@@ -199,6 +203,8 @@ table { border-collapse: collapse; width: 100%; font-size: 15px; }
 th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
 th { color: var(--ink-2); font-weight: 600; font-size: 14px; }
 td.num { font-variant-numeric: tabular-nums; }
+.small { color: var(--ink-2); font-size: 13px; }
+.panel h3 { font-size: 16px; margin: 18px 0 6px; }
 .badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; white-space: nowrap; }
 .badge .dot { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; }
 .badge.pass { color: var(--good-text); } .badge.pass .dot { background: var(--good); }
@@ -239,6 +245,9 @@ body.export .kpis { grid-template-columns: repeat(3, 1fr); }
   <section class="panel span-6" id="p8"><h2>Hard-constraint checklist</h2><p class="sub" id="p8-sub"></p><div id="checks"></div></section>
   <section class="panel span-6" id="p9"><h2>Judges' agent-reasoning tests</h2><p class="sub" id="p9-sub"></p><ul class="tests" id="tests"></ul>
     <p class="note" id="p9-note"></p></section>
+  <section class="panel span-7" id="p10"><h2>Sensitivity of the final design (one input at a time)</h2><p class="sub" id="p10-sub"></p><div class="chart" id="c-tornado"></div>
+    <p class="note" id="p10-note"></p></section>
+  <section class="panel span-5" id="p11"><h2>N-1 resilience and gas handling</h2><p class="sub" id="p11-sub"></p><div id="resilience"></div></section>
 </main>
 <script>__ECHARTS__</script>
 <script id="data" type="application/json">__DATA__</script>
@@ -489,6 +498,9 @@ function renderEmissions() {
 }
 
 // ---------- 7. schematic ----------
+const GAS = { chp: ["gas → CHP", "produced gas (dashed) → CHP, then boiler"],
+              co2_reinject: ["CO₂ reinjected", "CH₄ (dashed) → CHP, then boiler; CO₂ reinjected with the brine"],
+              reinject_all: ["gas reinjected", "all produced gas reinjected with the brine, no combustion"] };
 function renderSchematic(d) {
   const p = d.point, s = d.summary, n = s.candidate.n_doublets;
   document.getElementById("p7-sub").textContent =
@@ -504,10 +516,11 @@ function renderSchematic(d) {
   const marker = c => `<marker id="ah-${c.slice(1)}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`;
   const T = v => `${fmt(v, 1)} °C`;
   const q = p.flow_per_doublet_m3h * p.n_active;
+  const gasMode = s.gas_handling || "chp";
   const svg = `<svg viewBox="0 0 1020 480" class="schem" role="img" aria-label="System schematic" preserveAspectRatio="xMidYMid meet">
   <defs>${marker(brine)}${marker(water)}${marker(chill)}${marker(C.muted)}</defs>
   ${box(10, 40, 140, 120, `${n} producer well${n > 1 ? "s" : ""}`, [`${fmt(s.depth_m)} m, ${fmt(s.reservoir_temperature_C, 1)} °C`, `ESP at ${fmt(s.esp_setting_depth_m)} m`, `${p.n_active} on × ${fmt(p.flow_per_doublet_m3h)} m³/h`], brine)}
-  ${box(210, 40, 100, 120, "Separator", ["+ filters", "gas → CHP", "GLR 0.8"])}
+  ${box(210, 40, 100, 120, "Separator", ["+ filters", GAS[gasMode][0], "GLR 0.8"])}
   ${box(370, 40, 130, 120, "Absorption", ["chiller (hot end)", `${fmt(p.cool_cool_absorption_MW, 1)} MW cool`, `drive ${fmt(p.cool_absorber_drive_MW, 1)} MWth`], chill)}
   ${box(560, 40, 100, 330, "HEX", [`UA ${fmt(s.candidate.hex_ua_W_K / 1000)} kW/K`, `${fmt(p.heat_hex_MW, 1)} MW`])}
   ${box(720, 40, 100, 330, "Heat pump", [`${fmt(p.heat_hp_MW, 1)} MWth`, `COP ${p.hp_COP == null ? "–" : fmt(p.hp_COP, 2)}`])}
@@ -527,7 +540,7 @@ function renderSchematic(d) {
   ${arrow(435, 40, 435, 12, chill, "", 0)}
   <text x="445" y="22" font-size="13" font-weight="600" fill="${C.ink}">chilled water 20 °C to district cooling</text>
   <path d="M260 160 V 405 H 860 V 350 H 876" fill="none" stroke="${C.muted}" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ah-${C.muted.slice(1)})"/>
-  <text x="270" y="424" font-size="13" fill="${C.ink2}">produced gas (dashed) → CHP, then boiler</text>
+  <text x="270" y="424" font-size="13" fill="${C.ink2}">${GAS[gasMode][1]}</text>
   <text x="10" y="200" font-size="13" fill="${C.ink2}"><tspan x="10" dy="0" fill="${brine}" font-weight="650">━ brine</tspan><tspan x="10" dy="20" fill="${water}" font-weight="650">━ heating water</tspan><tspan x="10" dy="20" fill="${chill}" font-weight="650">━ chilled water</tspan><tspan x="10" dy="20">brine ${fmt(q)} m³/h total</tspan><tspan x="10" dy="20">HP source: brine</tspan><tspan x="10" dy="18">after the HEX</tspan></text>
 </svg>`;
   document.getElementById("schem").innerHTML = svg;
@@ -553,14 +566,79 @@ function renderTests() {
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   document.getElementById("tests").innerHTML = t.map(x =>
     `<li>${badge(x.pass ? "PASS" : "FAIL")}<span class="t">${esc(x.test)}</span><span class="e">${esc(x.evidence).split("; also ").join("<br>")}</span></li>`).join("");
-  document.getElementById("p9-note").textContent = "The claude_cli backend reached the same pick; its run never proposed an invalid flow or a failing design, so tests (ii) and (iv) were not triggered there.";
+  document.getElementById("p9-note").textContent = "The claude_cli run predates gas handling as a design variable (it picked 2 doublets at 3 250 m with CHP); it never proposed an invalid flow or a failing design, so tests (ii) and (iv) were not triggered there.";
+}
+
+// ---------- 10. sensitivity tornado ----------
+function renderTornado() {
+  const S = D.sensitivity, el = document.getElementById("p10-sub");
+  if (!S) { el.textContent = "Run hackathon_work/sensitivity.py to fill this panel."; return; }
+  const params = [...new Set(S.cases.map(c => c.parameter))];
+  const rows = params.map(p => {
+    const low = S.cases.find(c => c.parameter === p && c.side === "low"), high = S.cases.find(c => c.parameter === p && c.side === "high");
+    return { p, label: low.label, unit: low.unit, base: low.base, low, high, span: Math.abs(high.delta_emissions_t - low.delta_emissions_t) };
+  }).sort((a, b) => a.span - b.span);  // largest spread on top
+  const changed = S.cases.filter(c => c.pick_changed);
+  el.textContent = `${S.base.candidate}: ${fmt(S.base.emissions_t)} t/a at base inputs · bars = change in the final design's emissions when one input moves (ASSUMED spread)`;
+  const u = r => r.unit === "-" ? "" : ` ${r.unit}`;
+  const num = v => fmt(v, v < 10 ? 2 : 0);
+  const bar = (name, color, side) => ({ name, type: "bar", color, barWidth: 14, barGap: "30%",
+    itemStyle: { borderRadius: 4, borderColor: C.surface, borderWidth: 1 },
+    data: rows.map(r => ({ value: r[side].delta_emissions_t, c: r[side], r })),
+    label: { show: true, position: "right", color: C.ink2, fontSize: 12,
+      formatter: q => `${num(q.data.c.value)}${u(q.data.r)}: ${q.value > 0 ? "+" : "−"}${fmt(Math.abs(q.value))} t` +
+        (q.data.c.final_design.feasible ? "" : " (fails)") + (q.data.c.pick_changed ? " · pick changes" : "") } });
+  chart("c-tornado").setOption({
+    ...base(),
+    grid: { left: 200, right: 190, top: 40, bottom: 48 },
+    tooltip: { ...TIP, trigger: "item", formatter: q => { const c = q.data.c, r = q.data.r;
+      return `<b>${r.label} = ${num(c.value)}${u(r)}</b> (base ${r.base}${u(r)})<br>` +
+        `final design ${fmt(c.final_design.emissions_t)} t/a (${q.value > 0 ? "+" : "−"}${fmt(Math.abs(q.value))} t, ${pct(c.delta_emissions_pct)})<br>` +
+        `hard constraints ${c.final_design.feasible ? "PASS" : "FAIL: " + c.final_design.failing.join(", ")}<br>` +
+        `agent pick ${c.agent_pick}${c.pick_changed ? " (changed)" : ""}`; } },
+    legend: { ...LEGEND, data: ["Low value", "High value"] },
+    xAxis: valueAxis("Δ emissions of the final design (t CO₂/a)", { nameLocation: "middle", nameGap: 30,
+      axisLabel: { color: C.ink2, fontSize: 13, formatter: v => (v > 0 ? "+" : v < 0 ? "−" : "") + fmt(Math.abs(v)) } }),
+    yAxis: { type: "category", data: rows.map(r => `${r.label}\n{s|base ${r.base}${u(r)}}`), ...AXIS, splitLine: { show: false },
+      axisLabel: { color: C.ink, fontSize: 13, rich: { s: { color: C.ink2, fontSize: 12, lineHeight: 18 } } } },
+    series: [bar("Low value", C.s1, "low"), bar("High value", C.s2, "high")],
+  }, true);
+  document.getElementById("p10-note").textContent = changed.length
+    ? `The agent's pick changes when: ${changed.map(c => `${c.label} = ${c.value} → ${c.agent_pick}`).join("; ")}. Every other case keeps ${S.base.candidate}.`
+    : `A fresh agent run with each changed input keeps ${S.base.candidate} in every case.`;
+}
+
+// ---------- 11. N-1 resilience and gas handling ----------
+function renderResilience() {
+  const rows = ["FINAL", "C1"].filter(k => D.designs[k] && D.designs[k].summary.n_minus_1).map(k => D.designs[k]);
+  document.getElementById("p11-sub").textContent = "Unplanned outage of one doublet on the peak heating and peak cooling days (ASSUMED case); installed backup = max(planned peak, N-1)";
+  const m = t => `<br><span class="small">${t}</span>`;
+  let html = `<table><thead><tr><th>Design</th><th>Peak heating day: boiler</th><th>Peak cooling day: chiller</th><th>Installed backup</th></tr></thead><tbody>` +
+    rows.map(d => { const n = d.summary.n_minus_1, ib = d.summary.installed_backup_MW;
+      return `<tr><td>${d.label}${m(d.name)}</td>` +
+        `<td class="num">${fmt(n[0].boiler_MWth, 1)} MWth${m(`${n[0].date}, ${n[0].n_active_normal} → ${n[0].n_active_n_minus_1} on`)}</td>` +
+        `<td class="num">${fmt(n[1].electric_chiller_MWcool, 1)} MWcool${m(`${n[1].date}, ${n[1].n_active_normal} → ${n[1].n_active_n_minus_1} on`)}</td>` +
+        `<td class="num">${fmt(ib.boiler_th, 1)} MWth boiler<br>${fmt(ib.electric_chiller_cool, 1)} MWcool chiller</td></tr>`; }).join("") +
+    `</tbody></table>`;
+  const g = D.agent.gas_handling;
+  if (g && g.options && g.options.length) {
+    const label = { chp: "a) CHP on all gas", co2_reinject: "b) CO₂ reinjected, CH₄ to CHP", reinject_all: "c) all gas reinjected" };
+    html += `<h3>Gas handling at ${g.options[0].candidate.replace(/_(co2ri|allri)$/, "")}</h3>` +
+      `<table><thead><tr><th>Option</th><th>External gas</th><th>Emissions</th><th>Grid import</th><th>Result</th></tr></thead><tbody>` +
+      g.options.map(o => `<tr><td>${label[o.gas_handling] || o.gas_handling}</td><td class="num">${fmt(o.external_gas_GWh, 3)} GWh</td>` +
+        `<td class="num">${fmt(o.emissions_t)} t</td><td class="num">${fmt(o.grid_import_GWh, 2)} GWh</td>` +
+        `<td>${o.gas_handling === g.chosen ? "<b>chosen</b>" : "ranked out"}</td></tr>`).join("") +
+      `</tbody></table><p class="sub">Ranking: external gas first (ties within 0.01 GWh / 1 %), then emissions.` +
+      (g.chosen === "co2_reinject" ? " Option (c) has the lowest emissions but needs more external gas on the coldest days, so it ranks below (b)." : "") + `</p>`;
+  }
+  document.getElementById("resilience").innerHTML = html;
 }
 
 function render() {
   const d = D.designs[current];
   renderSelector(); renderKpis(d); renderHeating(d); renderCooling(d); renderBrine(d); renderSchematic(d); renderChecks(d);
 }
-render(); renderAgent(); renderEmissions(); renderTests();
+render(); renderAgent(); renderEmissions(); renderTests(); renderTornado(); renderResilience();
 </script>
 </body>
 </html>

@@ -186,11 +186,16 @@ def design_space(settings: dict) -> dict:
         "esp": sorted(settings["esp_options"]),
         "hex_ua_W_K": [250e3, 500e3, 1000e3],
         "depth_m": {"min": 2500, "max": r["max_depth_m"], "step": r["depth_step_m"]},
+        "gas_handling": settings["gas_handling"]["options"],
     }
 
 
+GAS_TAGS = {"co2_reinject": "co2ri", "reinject_all": "allri"}  # chp (the default) keeps the plain id
+
+
 def candidate_id(c: dict) -> str:
-    return f"n{c['n_doublets']}_q{c['flow_cap_m3h']:g}_{c['esp']}_ua{c['hex_ua_W_K'] / 1e3:.0f}_z{c['depth_m']:g}"
+    gas = GAS_TAGS.get(c.get("gas_handling", "chp"), "")
+    return f"n{c['n_doublets']}_q{c['flow_cap_m3h']:g}_{c['esp']}_ua{c['hex_ua_W_K'] / 1e3:.0f}_z{c['depth_m']:g}" + (f"_{gas}" if gas else "")
 
 
 def saturation_pressure_bar(t_c: float) -> float:
@@ -270,30 +275,47 @@ class RulesBackend:
             ("hex_ua_W_K", 500e3, "Smaller HEX (500 kW/K, lower cost): check whether the heat pump can absorb the lost HEX duty without external gas."),
             ("esp", "s1.0", "Smaller ESP (s = 1.0, the GEMINI example pump): cheaper, but capped at ~176 m3/h; check the effect on external gas."),
             ("depth_step", None, None),
+            # Gas handling is compared at the accepted depth; if one is accepted the depth ladder re-opens
+            # (its token is per gas mode), because it shifts the emissions baseline of the 5% depth rule.
+            ("gas_handling", "co2_reinject", "Gas handling (b): separate the 20 mol% CO2 and reinject it with the brine, CH4 to CHP. Only CH4 "
+                                             "combustion CO2 counts (54.9 vs 68.6 kg/GJ, DERIVED); costs ~0.1 kWh/kg CO2 separation + compression "
+                                             "(ASSUMED). If accepted, the depth ladder re-opens: the lower emissions baseline changes the 5% depth rule."),
+            ("gas_handling", "reinject_all", "Gas handling (c): reinject all produced gas, no combustion: no produced-gas CO2, but no CHP heat "
+                                             "or electricity, so the heat pump must cover the whole lift (external gas if it cannot)."),
             ("n_doublets", base["n_doublets"] + 1, "More doublets: accepted only if external gas or emissions improve by >= 5%."),
+            ("n_doublets", 1, "Single doublet at the accepted depth and settings: check whether depth rescues one doublet; it still needs "
+                              "backup on its 35 maintenance days, so the ranking decides on external gas."),
         ]
         tried = ctx["tried_variants"]
         for key, value, why in variants:
-            if key in tried:
+            token = key if key in ("hex_ua_W_K", "esp") else f"{key}={value}"
+            if key == "depth_step":
+                token = f"depth_step@{base.get('gas_handling', 'chp')}"
+            if key == "n_doublets" and value == base["n_doublets"] + 1:
+                token = "n_doublets+1"
+            if token in tried:
                 continue
             if key == "depth_step":
                 if last is not incumbent and last["candidate"]["depth_m"] > base["depth_m"]:
-                    tried.add(key)
+                    tried.add(token)
                     notes.append(f"Depth step to {last['candidate']['depth_m']:g} m failed the parsimony rule; stop exploring deeper "
                                  f"(accepted depth stays {base['depth_m']:g} m).")
                     continue
                 d = base["depth_m"] + depth["step"]
                 if d > depth["max"]:
-                    tried.add(key)
+                    tried.add(token)
                     notes.append(f"Depth ladder reached the {depth['max']:g} m limit of the design space.")
+                    continue
+                if candidate_id({**base, "depth_m": d}) in evaluated:
+                    tried.add(token)
                     continue
                 t_res = ctx["inputs"]["reservoir"]["surface_temperature_C"] + ctx["inputs"]["reservoir"]["gradient_C_per_km"] * d / 1000
                 return {"candidate": {**base, "depth_m": d}, "rationale": " ".join(notes) + (
                     f" Depth ladder from incumbent {candidate_id(base)}: {base['depth_m']:g} -> {d:g} m (reservoir {t_res:.1f} C) to cut the "
                     f"heat-pump lift; accepted only if emissions improve >= 5% vs the {base['depth_m']:g} m design.")}
             candidate = {**base, key: value}
-            tried.add(key)
-            if (key == "n_doublets" and value > space["n_doublets"][-1]) or candidate_id(candidate) in evaluated:
+            tried.add(token)
+            if (key == "n_doublets" and not space["n_doublets"][0] <= value <= space["n_doublets"][-1]) or candidate_id(candidate) in evaluated:
                 continue
             return {"candidate": candidate, "rationale": " ".join(notes + [f"Variant of incumbent {candidate_id(base)}: {why}"])}
         return None
@@ -420,13 +442,14 @@ BACKENDS = {"rules": RulesBackend, "claude_cli": ClaudeCliBackend}
 
 # --- agent -------------------------------------------------------------------------
 class DesignAgent:
-    def __init__(self, backend, log: DecisionLog, out_dir: Path, budget: int = 14, interactive: bool = False):
+    def __init__(self, backend, log: DecisionLog, out_dir: Path, budget: int = 16, interactive: bool = False):
         self.backend = backend
         self.log = log
         self.out_dir = out_dir
         self.budget = budget
         self.interactive = interactive
         self.project_path = PROJECT_PATH  # replaced by the completed project once the user answers
+        self.challenge_path = CHALLENGE_PATH  # replaced only by sensitivity runs (e.g. the geothermal gradient)
         self.settings = load_json(CANDIDATES_PATH)
         self.space = design_space(self.settings)
         self.limits = load_limits()
@@ -491,10 +514,10 @@ class DesignAgent:
         return missing
 
     def project_key(self):
-        """Cache-key part for the project: None for the official project file, else its answered inputs."""
-        if self.project_path == PROJECT_PATH:
+        """Cache-key part for the project / challenge files: None for the official ones, else their content hashes."""
+        if self.project_path == PROJECT_PATH and self.challenge_path == CHALLENGE_PATH:
             return None
-        return hashlib.sha1(self.project_path.read_bytes()).hexdigest()[:16]
+        return [hashlib.sha1(path.read_bytes()).hexdigest()[:16] for path in (self.project_path, self.challenge_path)]
 
     # 2b. human in the loop (--interactive): ask for missing inputs instead of halting
     def ask_user(self, scenario, missing, project) -> bool:
@@ -604,6 +627,9 @@ class DesignAgent:
             if r["check"] == "flow_range" and r["status"] != "PASS" and r["scope"] == "doublet_1":
                 violations.append({"variable": "flow_cap_m3h", "value": candidate["flow_cap_m3h"], "min": lo, "max": hi,
                                    "reason": r["reason"], "check": "flow_range"})
+        if candidate.get("gas_handling", "chp") not in self.space["gas_handling"]:
+            violations.append({"variable": "gas_handling", "value": candidate["gas_handling"],
+                               "reason": f"{candidate['gas_handling']} not in design space {self.space['gas_handling']}"})
         for key in ("esp", "hex_ua_W_K"):
             if candidate[key] not in self.space[key]:
                 violations.append({"variable": key, "value": candidate[key], "reason": f"{candidate[key]} not in design space {self.space[key]}"})
@@ -674,7 +700,7 @@ class DesignAgent:
                                       sort_keys=True, default=str).encode()).hexdigest()[:16]
         cache_path = CACHE / f"{key}.json"
         start = time.perf_counter()
-        plant = Plant({"name": candidate_id(candidate), **candidate}, self.settings, self.project_path)
+        plant = Plant({"name": candidate_id(candidate), **candidate}, self.settings, self.project_path, self.challenge_path)
         json_check = self.build_and_validate_json(candidate, plant)
         checks = self.well_checks(plant)
         cached = cache_path.exists()
@@ -690,10 +716,10 @@ class DesignAgent:
 
     def run(self, scenario: str, project: dict | None = None, settings: dict | None = None, removed: list[str] | None = None) -> dict:
         run_start = time.perf_counter()
-        project = project if project is not None else load_json(PROJECT_PATH)
+        project = project if project is not None else load_json(self.project_path)
         if settings is not None:
             self.settings = settings
-        challenge = load_json(CHALLENGE_PATH)
+        challenge = load_json(self.challenge_path)
         self.log.event(scenario, "start", f"Scenario {scenario}: start", data={"backend": self.backend.name, "budget": self.budget, "design_space": self.space,
                                                                             **({"removed_inputs": removed} if removed else {})})
         inputs = self.interpret_inputs(scenario, project, challenge)
@@ -834,9 +860,14 @@ class DesignAgent:
                    "boiler_external_gas_peak_MWth": h["summary"]["capacity_MW"]["boiler_external_gas_th"],
                    "electric_chiller_peak_MWcool": h["summary"]["capacity_MW"]["electric_chiller_cool"],
                    "chp_peak_MWth": h["summary"]["capacity_MW"]["chp_th"],
+                   "n_minus_1_boiler_MWth": h["summary"]["n_minus_1"][0]["boiler_MWth"],
+                   "n_minus_1_electric_chiller_MWcool": h["summary"]["n_minus_1"][1]["electric_chiller_MWcool"],
+                   "installed_boiler_MWth": h["summary"]["installed_backup_MW"]["boiler_th"],
+                   "installed_electric_chiller_MWcool": h["summary"]["installed_backup_MW"]["electric_chiller_cool"],
                    "external_gas_GWh": h["summary"]["external_gas_fuel_GWh"], "emissions_t": h["summary"]["emissions_t"]}
                   for h in history if h["feasible"]]
-        single = min((b for b in backup if b["n_doublets"] == 1), key=lambda b: b["emissions_t"], default=None)
+        singles = [b for b in backup if b["n_doublets"] == 1]
+        gas = self.gas_decision(scenario, history, incumbent)
         ref = reference_summary()
         s = incumbent["summary"]
         reduction = (ref["emissions_t"] - s["emissions_t"]) / ref["emissions_t"]
@@ -854,24 +885,61 @@ class DesignAgent:
                 + ("; ".join(incumbent["well_flags"]) if incumbent["well_flags"] else "no flags")
                 + ". Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule."
                 + "".join(f" Marginal sensitivity case: {m['text']}" for m in marginal_cases)
-                + (f" One-doublet alternative (valid per the organizer clarification of 2026-11-01, backup covers the source outage): "
-                   f"{single['candidate']} is feasible with {single['days_without_geothermal']} day(s) without geothermal supply, "
-                   f"a {single['boiler_peak_MWth']:.1f} MWth boiler and a {single['electric_chiller_peak_MWcool']:.1f} MWcool electric "
-                   f"chiller (peak duties), but needs {single['external_gas_GWh']:.1f} GWh external gas and emits {single['emissions_t']:.0f} t, "
-                   f"so it is ranked out." if single else ""))
+                + f" Gas handling: {gas['text']}"
+                + f" N-1 (unplanned outage of one doublet, ASSUMED): " + "; ".join(
+                    f"{c['case']} {c['date']}: boiler {c['boiler_MWth']:.1f} MWth, electric chiller {c['electric_chiller_MWcool']:.1f} MWcool"
+                    for c in s["n_minus_1"])
+                + f"; installed backup {s['installed_backup_MW']['boiler_th']:.1f} MWth boiler + {s['installed_backup_MW']['electric_chiller_cool']:.1f} "
+                  f"MWcool electric chiller covers it."
+                + "".join(f" One-doublet alternative {x['candidate']} (valid per the organizer clarification of 2026-11-01, backup covers the "
+                          f"source outage): feasible with {x['days_without_geothermal']} day(s) without geothermal supply, installed backup "
+                          f"{x['installed_boiler_MWth']:.1f} MWth boiler + {x['installed_electric_chiller_MWcool']:.1f} MWcool chiller, but "
+                          f"{x['external_gas_GWh']:.1f} GWh external gas and {x['emissions_t']:.0f} t, so it is ranked out." for x in singles))
         self.log.event(scenario, "final", f"Final pick: {candidate_id(incumbent['candidate'])}",
                        data={"pick": incumbent["candidate"], "verdict": incumbent["verdict"], "reference": ref, "emissions_reduction_vs_reference": reduction,
                              "capacity_MW": s["capacity_MW"], "timing": timing, "marginal_cases": marginal_cases,
-                             "backup_sizing": backup}, rationale=text)
+                             "backup_sizing": backup, "n_minus_1": s["n_minus_1"], "installed_backup_MW": s["installed_backup_MW"],
+                             "gas_handling": gas}, rationale=text)
         return {"reference": ref, "emissions_reduction": reduction, "conclusion": text, "timing": timing, "marginal_cases": marginal_cases,
-                "backup_sizing": backup}
+                "backup_sizing": backup, "n_minus_1": s["n_minus_1"], "installed_backup_MW": s["installed_backup_MW"], "gas_handling": gas}
+
+    def gas_decision(self, scenario, history, incumbent) -> dict:
+        """Compare the gas-handling options evaluated at the same doublets/depth/HEX/ESP and log the ranking reason."""
+        groups = {}
+        for h in history:
+            c = h["candidate"]
+            groups.setdefault(tuple(c[k] for k in ("n_doublets", "flow_cap_m3h", "esp", "hex_ua_W_K", "depth_m")), []).append(h)
+        compared = max((g for g in groups.values() if len({x["candidate"].get("gas_handling", "chp") for x in g}) > 1), key=len, default=[])
+        rows = [{"candidate": candidate_id(h["candidate"]), "gas_handling": h["candidate"].get("gas_handling", "chp"), "feasible": h["feasible"],
+                 "external_gas_GWh": h["summary"]["external_gas_fuel_GWh"], "emissions_t": h["summary"]["emissions_t"],
+                 "emissions_produced_gas_t": h["summary"]["emissions_produced_gas_t"], "grid_import_GWh": h["summary"]["grid_import_GWh"],
+                 "el_gas_handling_GWh": h["summary"]["el_gas_handling_GWh"], "heat_chp_GWh": h["summary"]["heat_chp_GWh"],
+                 "verdict": h["verdict"]["status"], "rank": h["verdict"]["rank"], "reason": h["verdict"]["reason"]} for h in compared]
+        chosen = incumbent["candidate"].get("gas_handling", "chp")
+        if rows:
+            best = min((r for r in rows if r["feasible"]), key=lambda r: r["rank"])  # the ranking rule's choice at this design
+            lowest = min(rows, key=lambda r: r["emissions_t"])
+            why = (" (without CHP heat the heat pump cannot cover the whole lift on the coldest days)"
+                   if lowest["gas_handling"] == "reinject_all" else "")
+            text = (f"options compared at {candidate_id({**compared[0]['candidate'], 'gas_handling': 'chp'})}: "
+                    + "; ".join(f"{r['gas_handling']} external gas {r['external_gas_GWh']:.3f} GWh, {r['emissions_t']:.0f} t, grid "
+                                f"{r['grid_import_GWh']:.2f} GWh" for r in rows)
+                    + f". The ranking keeps {best['gas_handling']} at that design (external gas first, then emissions)"
+                    + (f"; {lowest['gas_handling']} has the lowest emissions but needs more external gas "
+                       f"({lowest['external_gas_GWh']:.3f} vs {best['external_gas_GWh']:.3f} GWh{why}), and external gas ranks first."
+                       if lowest is not best and lowest["external_gas_GWh"] > best["external_gas_GWh"] else ".")
+                    + f" Final pick uses {chosen}.")
+        else:
+            text = f"{chosen} (no alternative evaluated)."
+        self.log.event(scenario, "gas_decision", f"Gas handling: {chosen}", data={"chosen": chosen, "options": rows}, rationale=text)
+        return {"chosen": chosen, "options": rows, "text": text}
 
     def write_final_design(self, incumbent: dict):
         """Daily rows + summary of the pick in <out_dir>/final_design/ (the annual cache keeps summaries only)."""
         folder = self.out_dir / "final_design"
         folder.mkdir(parents=True, exist_ok=True)
         candidate = {"name": candidate_id(incumbent["candidate"]), **incumbent["candidate"]}
-        plant = Plant(candidate, self.settings, self.project_path)
+        plant = Plant(candidate, self.settings, self.project_path, self.challenge_path)
         result = plant.simulate_year(self.heating, self.cooling)
         with (folder / "daily.csv").open("w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=list(result["rows"][0]))
@@ -1037,18 +1105,40 @@ def write_trace(path, entries, backend, results, note=None, design_scenario="B_d
             lines.append("")
         final = next((e for e in reversed(entries) if e["scenario"] == design_scenario and e["phase"] == "final"), None)
         if final and final["data"].get("backup_sizing"):
+            fd = final["data"]
             lines += ["## Backup equipment sizing (feasible candidates)", "",
-                      "Peak daily duties the backup must be built for, so a 1-doublet design (backup covers its maintenance "
-                      "window) and a staggered multi-doublet design are compared on equal terms. Organizer clarification "
-                      "(Discord, 2026-11-01): the 330-day rule limits the geothermal source; the full system must meet demand "
+                      "Peak daily duties the backup must be built for, in planned operation and in the N-1 case (UNPLANNED outage of one "
+                      "doublet on the peak heating and peak cooling days, ASSUMED). Installed backup = max of the two, so a 1-doublet design "
+                      "(backup covers its maintenance window) and a staggered multi-doublet design are compared on equal terms. Organizer "
+                      "clarification (Discord, 2026-11-01): the 330-day rule limits the geothermal source; the full system must meet demand "
                       "on all 365 days.", "",
-                      "| Candidate | Verdict | Days without geothermal | Boiler peak (MWth) | of which external gas | "
-                      "Electric chiller peak (MWcool) | CHP peak (MWth) | External gas (GWh) | Emissions (t) |",
-                      "|---|---|---|---|---|---|---|---|---|"]
+                      "| Candidate | Verdict | Days without geothermal | Boiler peak (MWth) | N-1 boiler (MWth) | Installed boiler (MWth) | "
+                      "Chiller peak (MWcool) | N-1 chiller (MWcool) | Installed chiller (MWcool) | External gas (GWh) | Emissions (t) |",
+                      "|---|---|---|---|---|---|---|---|---|---|---|"]
             lines += [f"| {x['candidate']} | {x['status']} | {x['days_without_geothermal']} | {x['boiler_peak_MWth']:.2f} | "
-                      f"{x['boiler_external_gas_peak_MWth']:.2f} | {x['electric_chiller_peak_MWcool']:.2f} | {x['chp_peak_MWth']:.2f} | "
-                      f"{x['external_gas_GWh']:.3f} | {x['emissions_t']:.0f} |" for x in final["data"]["backup_sizing"]]
+                      f"{x.get('n_minus_1_boiler_MWth', float('nan')):.2f} | {x.get('installed_boiler_MWth', float('nan')):.2f} | "
+                      f"{x['electric_chiller_peak_MWcool']:.2f} | {x.get('n_minus_1_electric_chiller_MWcool', float('nan')):.2f} | "
+                      f"{x.get('installed_electric_chiller_MWcool', float('nan')):.2f} | {x['external_gas_GWh']:.3f} | {x['emissions_t']:.0f} |"
+                      for x in fd["backup_sizing"]]
             lines.append("")
+            if fd.get("n_minus_1"):
+                lines += ["## N-1 resilience at the final pick", "",
+                          "| Case | Date | Doublet out | Doublets on (normal -> N-1) | Boiler (MWth): normal -> N-1 | of which external gas | "
+                          "Electric chiller (MWcool): normal -> N-1 | Unmet heat / cool (MW) |", "|---|---|---|---|---|---|---|---|"]
+                lines += [f"| {c['case']} | {c['date']} | {c['doublet_out']} | {c['n_active_normal']} -> {c['n_active_n_minus_1']} | "
+                          f"{c['boiler_MWth_normal']:.2f} -> {c['boiler_MWth']:.2f} | {c['boiler_external_gas_MWth']:.2f} | "
+                          f"{c['electric_chiller_MWcool_normal']:.2f} -> {c['electric_chiller_MWcool']:.2f} | {c['heat_unmet_MW']:.3f} / {c['cool_unmet_MW']:.3f} |"
+                          for c in fd["n_minus_1"]]
+                ib = fd["installed_backup_MW"]
+                lines += ["", f"Installed backup at the pick: {ib['boiler_th']:.2f} MWth boiler, {ib['electric_chiller_cool']:.2f} MWcool electric chiller.", ""]
+            if fd.get("gas_handling", {}).get("options"):
+                lines += ["## Gas handling (design variable)", "", fd["gas_handling"]["text"], "",
+                          "| Candidate | Gas handling | External gas (GWh) | Emissions (t) | of which produced gas (t) | Grid import (GWh) | "
+                          "Gas-handling el. (GWh) | CHP heat (GWh) | Verdict (rank) |", "|---|---|---|---|---|---|---|---|---|"]
+                lines += [f"| {r['candidate']} | {r['gas_handling']} | {r['external_gas_GWh']:.3f} | {r['emissions_t']:.0f} | {r['emissions_produced_gas_t']:.0f} | "
+                          f"{r['grid_import_GWh']:.2f} | {r['el_gas_handling_GWh']:.3f} | {r['heat_chp_GWh']:.1f} | {r['verdict']} ({r['rank']}) |"
+                          for r in fd["gas_handling"]["options"]]
+                lines.append("")
         lines += ["## Runtime", "",
                   f"- Annual evaluations: {t['evaluations']} ({t['computed']} computed, {t['cached']} from cache); "
                   f"computed wall time mean {t['wall_s_per_computed_evaluation_mean'] or 0:.1f} s, max {t['wall_s_per_computed_evaluation_max'] or 0:.1f} s",
@@ -1109,7 +1199,7 @@ def retrace(out_dir: Path, backend: str, note: str):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--backend", choices=sorted(BACKENDS), default="rules")
-    parser.add_argument("--budget", type=int, default=14, help="maximum annual evaluations in scenario B")
+    parser.add_argument("--budget", type=int, default=16, help="maximum annual evaluations in scenario B")
     parser.add_argument("--clear-cache", action="store_true", help="recompute every annual evaluation (honest timings)")
     parser.add_argument("--interactive", action="store_true",
                         help="human-in-the-loop demo: scenario A (inputs from --remove missing); the agent asks in the terminal, "
@@ -1156,7 +1246,9 @@ def main():
                "pick": b["pick"]["candidate"] if b.get("pick") else None, "pick_summary": {k: b["pick"]["summary"][k] for k in
                ("external_gas_fuel_GWh", "emissions_t", "grid_import_GWh", "drilled_m", "reservoir_temperature_C")} if b.get("pick") else None,
                "evaluated": [{"candidate": h["candidate"], "feasible": h["feasible"], "verdict": h["verdict"]} for h in b.get("history", [])],
-               "marginal_cases": b.get("marginal_cases", []), "backup_sizing": b.get("backup_sizing", []), "judges_tests": tests, "backend_calls": backend.calls}
+               "marginal_cases": b.get("marginal_cases", []), "backup_sizing": b.get("backup_sizing", []),
+               "n_minus_1": b.get("n_minus_1"), "installed_backup_MW": b.get("installed_backup_MW"), "gas_handling": b.get("gas_handling"),
+               "judges_tests": tests, "backend_calls": backend.calls}
     (out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
 
     if not args.interactive:

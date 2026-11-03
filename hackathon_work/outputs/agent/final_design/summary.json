@@ -1,11 +1,12 @@
 {
   "candidate": {
-    "name": "n2_q300_s1.8_ua1000_z3250",
+    "name": "n2_q300_s1.8_ua1000_z3250_co2ri",
     "n_doublets": 2,
     "flow_cap_m3h": 300,
     "esp": "s1.8",
     "hex_ua_W_K": 1000000.0,
-    "depth_m": 3250
+    "depth_m": 3250,
+    "gas_handling": "co2_reinject"
   },
   "heat_pump": {
     "mode": "lorenz",
@@ -42,24 +43,27 @@
   "cool_absorption_GWh": 23.742528000000014,
   "cool_electric_GWh": 0.0,
   "cool_unmet_GWh": 0.0,
-  "el_load_GWh": 6.720117999457501,
+  "el_load_GWh": 6.811987179877423,
   "el_esp_GWh": 4.111116647344034,
   "el_injector_GWh": 0.660350403899206,
   "el_hp_GWh": 1.948650948214271,
   "el_chiller_GWh": 0.0,
   "el_chp_GWh": 4.963122844178121,
-  "grid_import_GWh": 1.8358067238176385,
-  "grid_export_GWh": 0.07881156853826439,
+  "el_gas_handling_GWh": 0.09186918041991776,
+  "gas_handling": "co2_reinject",
+  "produced_gas_emission_factor_kg_per_GJ": 54.879999999999995,
+  "grid_import_GWh": 1.9125885182778557,
+  "grid_export_GWh": 0.06372418257856226,
   "produced_gas_fuel_GWh": 18.61171066566799,
   "produced_gas_chp_GWh": 18.611710665667985,
   "produced_gas_boiler_GWh": 0.0,
   "produced_gas_flared_GWh": 9.996219453646856e-16,
   "external_gas_fuel_GWh": 0.0038207561210318497,
   "external_gas_Mm3": 0.0003842101127294598,
-  "emissions_t": 5147.8686004058745,
-  "emissions_produced_gas_t": 4596.348065993362,
+  "emissions_t": 4251.633525545265,
+  "emissions_produced_gas_t": 3677.07845279469,
   "emissions_external_gas_t": 0.778517267221451,
-  "emissions_electricity_t": 550.7420171452916,
+  "emissions_electricity_t": 573.7765554833563,
   "capacity_MW": {
     "heat_pump_th": 3.1689089741995984,
     "absorption_chiller_cool": 10.0,
@@ -136,9 +140,51 @@
     }
   ],
   "feasible": true,
+  "n_minus_1": [
+    {
+      "case": "peak heating day",
+      "date": "2027-01-28",
+      "doublet_out": "doublet_1",
+      "heating_demand_MW": 30.0,
+      "cooling_demand_MW": 0.0,
+      "n_active_normal": 2,
+      "n_active_n_minus_1": 1,
+      "boiler_MWth": 15.116156186574772,
+      "boiler_external_gas_MWth": 15.116156186574772,
+      "external_gas_fuel_MW": 18.895195233218466,
+      "electric_chiller_MWcool": 0.0,
+      "boiler_MWth_normal": 0.0,
+      "electric_chiller_MWcool_normal": 0.0,
+      "heat_unmet_MW": 0.0,
+      "cool_unmet_MW": 0.0,
+      "constraints_pass": true
+    },
+    {
+      "case": "peak cooling day",
+      "date": "2027-07-19",
+      "doublet_out": "doublet_1",
+      "heating_demand_MW": 2.673,
+      "cooling_demand_MW": 10.0,
+      "n_active_normal": 2,
+      "n_active_n_minus_1": 1,
+      "boiler_MWth": 0.5984466254339073,
+      "boiler_external_gas_MWth": 0.5984466254339073,
+      "external_gas_fuel_MW": 0.748058281792384,
+      "electric_chiller_MWcool": 0.9882324565555416,
+      "boiler_MWth_normal": 2.328306436538696e-16,
+      "electric_chiller_MWcool_normal": 0.0,
+      "heat_unmet_MW": 0.0,
+      "cool_unmet_MW": 0.0,
+      "constraints_pass": true
+    }
+  ],
+  "installed_backup_MW": {
+    "boiler_th": 15.116156186574772,
+    "electric_chiller_cool": 0.9882324565555416
+  },
   "ranking": {
     "status": "ACCEPTED",
-    "reason": "selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled",
+    "reason": "selected: feasible; external gas 0.0038 GWh, emissions 4252 t, grid import 1.91 GWh, 2 doublets, 13000 m drilled",
     "rank": 1
   }
 }

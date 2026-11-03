@@ -1,0 +1,255 @@
+{
+  "base": {
+    "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+    "emissions_t": 4251.633525545265,
+    "values": {
+      "heating_return_T": 60,
+      "hp_eta_lorenz": 0.45,
+      "absorption_COP": 0.7,
+      "gradient": 30,
+      "brine_cp": 4100
+    }
+  },
+  "cases": [
+    {
+      "parameter": "heating_return_T",
+      "value": 50,
+      "runtime_s": 25.926311400020495,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4023.886428250462,
+        "external_gas_GWh": 0.010410763395260057,
+        "grid_import_GWh": 1.0151650078792294
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3250_co2ri",
+      "agent_pick_emissions_t": 4023.886428250462,
+      "agent_evaluations": 13,
+      "label": "Heating return temperature",
+      "unit": "C",
+      "base": 60,
+      "side": "low",
+      "delta_emissions_t": -227.7470972948031,
+      "delta_emissions_pct": -0.05356696336276888,
+      "pick_changed": false
+    },
+    {
+      "parameter": "heating_return_T",
+      "value": 70,
+      "runtime_s": 26.501928100013174,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 5012.3143594516,
+        "external_gas_GWh": 0.007595690621216963,
+        "grid_import_GWh": 4.6870539977534715
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 4172.446343246378,
+      "agent_evaluations": 14,
+      "label": "Heating return temperature",
+      "unit": "C",
+      "base": 60,
+      "side": "high",
+      "delta_emissions_t": 760.6808339063346,
+      "delta_emissions_pct": 0.17891495805927404,
+      "pick_changed": true
+    },
+    {
+      "parameter": "hp_eta_lorenz",
+      "value": 0.4,
+      "runtime_s": 41.78980849997606,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4288.733835334411,
+        "external_gas_GWh": 0.0020784257246641916,
+        "grid_import_GWh": 2.0495109404661913
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3250_co2ri",
+      "agent_pick_emissions_t": 4288.733835334411,
+      "agent_evaluations": 13,
+      "label": "Heat pump Lorenz efficiency",
+      "unit": "-",
+      "base": 0.45,
+      "side": "low",
+      "delta_emissions_t": 37.100309789146195,
+      "delta_emissions_pct": 0.008726130689824247,
+      "pick_changed": false
+    },
+    {
+      "parameter": "hp_eta_lorenz",
+      "value": 0.5,
+      "runtime_s": 25.76675609999802,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4242.694529601782,
+        "external_gas_GWh": 0.0061521988017237276,
+        "grid_import_GWh": 1.8781905165276698
+      },
+      "agent_pick": "n3_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 3978.9556832893218,
+      "agent_evaluations": 14,
+      "label": "Heat pump Lorenz efficiency",
+      "unit": "-",
+      "base": 0.45,
+      "side": "high",
+      "delta_emissions_t": -8.93899594348295,
+      "delta_emissions_pct": -0.0021024850542207866,
+      "pick_changed": true
+    },
+    {
+      "parameter": "absorption_COP",
+      "value": 0.6,
+      "runtime_s": 29.07155219989363,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4402.072194263287,
+        "external_gas_GWh": 0.11142854034904895,
+        "grid_import_GWh": 1.8520746194586335
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z2750_co2ri",
+      "agent_pick_emissions_t": 6602.008626291641,
+      "agent_evaluations": 11,
+      "label": "Absorption chiller COP",
+      "unit": "-",
+      "base": 0.7,
+      "side": "low",
+      "delta_emissions_t": 150.4386687180222,
+      "delta_emissions_pct": 0.035383733761185046,
+      "pick_changed": true
+    },
+    {
+      "parameter": "absorption_COP",
+      "value": 0.8,
+      "runtime_s": 29.996922999969684,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4137.464769483602,
+        "external_gas_GWh": 0.00368713444861305,
+        "grid_import_GWh": 1.897777501483526
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 3873.89056801407,
+      "agent_evaluations": 14,
+      "label": "Absorption chiller COP",
+      "unit": "-",
+      "base": 0.7,
+      "side": "high",
+      "delta_emissions_t": -114.16875606166286,
+      "delta_emissions_pct": -0.026852915561912383,
+      "pick_changed": true
+    },
+    {
+      "parameter": "gradient",
+      "value": 27,
+      "runtime_s": 35.07725560001563,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 5498.786639598353,
+        "external_gas_GWh": 0.0025968761866691863,
+        "grid_import_GWh": 5.743664931702892
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3750_co2ri",
+      "agent_pick_emissions_t": 4018.0726973869187,
+      "agent_evaluations": 15,
+      "label": "Geothermal gradient",
+      "unit": "C/km",
+      "base": 30,
+      "side": "low",
+      "delta_emissions_t": 1247.1531140530878,
+      "delta_emissions_pct": 0.2933350455912454,
+      "pick_changed": true
+    },
+    {
+      "parameter": "gradient",
+      "value": 33,
+      "runtime_s": 30.166832000017166,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 3962.903917479399,
+        "external_gas_GWh": 0.01878200837548261,
+        "grid_import_GWh": 0.7891031698600981
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3000_co2ri",
+      "agent_pick_emissions_t": 4103.705554836494,
+      "agent_evaluations": 12,
+      "label": "Geothermal gradient",
+      "unit": "C/km",
+      "base": 30,
+      "side": "high",
+      "delta_emissions_t": -288.72960806586616,
+      "delta_emissions_pct": -0.06791027644576611,
+      "pick_changed": true
+    },
+    {
+      "parameter": "brine_cp",
+      "value": 4000,
+      "runtime_s": 32.28907920001075,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4344.365757334653,
+        "external_gas_GWh": 0.02697382305821995,
+        "grid_import_GWh": 1.9142465519159264
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3000_co2ri",
+      "agent_pick_emissions_t": 5231.246602734126,
+      "agent_evaluations": 12,
+      "label": "Brine specific heat",
+      "unit": "J/(kg K)",
+      "base": 4100,
+      "side": "low",
+      "delta_emissions_t": 92.7322317893877,
+      "delta_emissions_pct": 0.021810965416520688,
+      "pick_changed": true
+    },
+    {
+      "parameter": "brine_cp",
+      "value": 4200,
+      "runtime_s": 30.487229299964383,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3250_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4168.691591948512,
+        "external_gas_GWh": 0.005037732630316294,
+        "grid_import_GWh": 1.9048819108715427
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 3903.657721887771,
+      "agent_evaluations": 14,
+      "label": "Brine specific heat",
+      "unit": "J/(kg K)",
+      "base": 4100,
+      "side": "high",
+      "delta_emissions_t": -82.94193359675319,
+      "delta_emissions_pct": -0.01950825091071696,
+      "pick_changed": true
+    }
+  ],
+  "pick_changed_in": [
+    "heating_return_T=70",
+    "hp_eta_lorenz=0.5",
+    "absorption_COP=0.6",
+    "absorption_COP=0.8",
+    "gradient=27",
+    "gradient=33",
+    "brine_cp=4000",
+    "brine_cp=4200"
+  ]
+}

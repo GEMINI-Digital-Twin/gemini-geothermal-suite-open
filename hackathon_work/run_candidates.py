@@ -93,6 +93,9 @@ def annual_summary(candidate: dict, plant: Plant, result: dict) -> dict:
         "el_hp_GWh": gwh("el_hp_MW"),
         "el_chiller_GWh": gwh("el_chiller_MW"),
         "el_chp_GWh": gwh("el_chp_MW"),
+        "el_gas_handling_GWh": gwh("el_gas_handling_MW"),
+        "gas_handling": plant.gas_mode,
+        "produced_gas_emission_factor_kg_per_GJ": plant.produced_gas_ef,
         "grid_import_GWh": gwh("el_grid_import_MW"),
         "grid_export_GWh": gwh("el_grid_export_MW"),
         "produced_gas_fuel_GWh": gwh("produced_gas_fuel_MW"),
@@ -133,6 +136,12 @@ def annual_summary(candidate: dict, plant: Plant, result: dict) -> dict:
         "failing_checks": fail_checks,
         "annual_checks": result["annual_checks"],
         "feasible": not fail_days and all(c["status"] == PASS for c in result["annual_checks"]),
+        "n_minus_1": result["n_minus_1"],
+        # installed backup covers both the planned-operation peak and the N-1 (unplanned outage) peak days
+        "installed_backup_MW": {
+            "boiler_th": max([peak("heat_boiler_produced_gas_MW", "heat_boiler_external_gas_MW")] + [c["boiler_MWth"] for c in result["n_minus_1"]]),
+            "electric_chiller_cool": max([peak("cool_electric_MW")] + [c["electric_chiller_MWcool"] for c in result["n_minus_1"]]),
+        },
     }
 
 
@@ -244,7 +253,10 @@ def rank(summaries: list[dict], min_improvement: float, depth_min_improvement: f
         gas_gain = improvement(incumbent["external_gas_fuel_GWh"], s["external_gas_fuel_GWh"])
         em_gain = improvement(incumbent["emissions_t"], s["emissions_t"])
         better = compare_ranked(s, incumbent) < 0
-        tests, details, marginal = [better], [f"ranks {'better' if better else 'not better'} than {name(incumbent)}"], False
+        decided = deciding_metric(s, incumbent)
+        decided_by = (f" (decided by {decided}: {_rank_value(s, decided):.4g} vs {_rank_value(incumbent, decided):.4g}"
+                      f"{', beyond its tie tolerance' if decided == RANK_TIE_TOLERANCE[0][0] else ''})" if decided else " (full tie)")
+        tests, details, marginal = [better], [f"ranks {'better' if better else 'not better'} than {name(incumbent)}{decided_by}"], False
         marginal_note = " - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)"
         if level(s)[0] > level(incumbent)[0]:
             gas_ok, gas_marginal = threshold_test("external_gas_fuel_GWh", incumbent["external_gas_fuel_GWh"], s["external_gas_fuel_GWh"], min_improvement)
@@ -339,6 +351,9 @@ COMPARISON = [
     ("Peak absorption / electric chiller (MWcool)", lambda s: f"{s['capacity_MW']['absorption_chiller_cool']:.2f} / {s['capacity_MW']['electric_chiller_cool']:.2f}"),
     ("Peak CHP (MWth / MWel) / boiler (MWth)", lambda s: f"{s['capacity_MW']['chp_th']:.2f} / {s['capacity_MW']['chp_el']:.2f} / {s['capacity_MW']['boiler_th']:.2f}"),
     ("Peak external gas (MW fuel)", lambda s: f"{s['capacity_MW']['external_gas_fuel']:.2f}"),
+    ("N-1 peak heating day: boiler (MWth)", lambda s: f"{s['n_minus_1'][0]['boiler_MWth']:.2f} ({s['n_minus_1'][0]['date']})"),
+    ("N-1 peak cooling day: electric chiller (MWcool)", lambda s: f"{s['n_minus_1'][1]['electric_chiller_MWcool']:.2f} ({s['n_minus_1'][1]['date']})"),
+    ("Installed backup: boiler / electric chiller (MW)", lambda s: f"{s['installed_backup_MW']['boiler_th']:.2f} / {s['installed_backup_MW']['electric_chiller_cool']:.2f}"),
     ("Max brine dT (K)", lambda s: f"{s['max_brine_dT_K']:.3f}"),
     ("Flow when on (m3/h)", lambda s: f"{s['flow_min_when_on_m3h']:.0f}-{s['flow_max_m3h']:.0f}"),
     ("Days geothermal + CHP meet need", lambda s: f"{s['days_geothermal_meets_need']}/365"),

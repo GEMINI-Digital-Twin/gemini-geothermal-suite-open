@@ -46,6 +46,9 @@
   "el_hp_GWh": 9.884835902617912,
   "el_chiller_GWh": 0.5367400711154189,
   "el_chp_GWh": 5.752620144225854,
+  "el_gas_handling_GWh": 0.0,
+  "gas_handling": "chp",
+  "produced_gas_emission_factor_kg_per_GJ": 68.6,
   "grid_import_GWh": 10.695580966480902,
   "grid_export_GWh": 0.0,
   "produced_gas_fuel_GWh": 21.603301258892635,
@@ -65,12 +68,15 @@
     "chp_th": 2.0366542938662633,
     "chp_el": 1.0183271469331314,
     "boiler_th": 0.029708533826425906,
+    "boiler_external_gas_th": 0.029708533826425906,
     "external_gas_fuel": 0.03713566728303238
   },
   "max_brine_dT_K": 40.000000004339604,
   "flow_min_when_on_m3h": 154.99999999947818,
   "flow_max_m3h": 300.0000000785007,
   "doublet_days_active": 582,
+  "days_without_geothermal": 0,
+  "days_all_doublets_in_maintenance": 0,
   "days_geothermal_meets_need": 274,
   "days_hex_bypass": 0,
   "hp_seasonal_COP": 5.545347246497087,
@@ -98,12 +104,12 @@
       "reason": "maintenance 2027-08-25..2027-09-28 (35 days), operated 252 days"
     },
     {
-      "check": "never_all_off",
+      "check": "demand_met_365",
       "scope": "plant",
       "status": "PASS",
       "value": 0,
       "limit": "0 days",
-      "reason": "0 day(s) with every doublet in maintenance"
+      "reason": "0 day(s) with unmet heating or cooling (full system incl. backup)"
     },
     {
       "check": "daily_constraints",
@@ -131,10 +137,52 @@
     }
   ],
   "feasible": true,
+  "n_minus_1": [
+    {
+      "case": "peak heating day",
+      "date": "2027-01-28",
+      "doublet_out": "doublet_1",
+      "heating_demand_MW": 30.0,
+      "cooling_demand_MW": 0.0,
+      "n_active_normal": 2,
+      "n_active_n_minus_1": 1,
+      "boiler_MWth": 13.846155688133665,
+      "boiler_external_gas_MWth": 13.846155688133665,
+      "external_gas_fuel_MW": 17.30769461016708,
+      "electric_chiller_MWcool": 0.0,
+      "boiler_MWth_normal": 0.0,
+      "electric_chiller_MWcool_normal": 0.0,
+      "heat_unmet_MW": 0.0,
+      "cool_unmet_MW": 0.0,
+      "constraints_pass": true
+    },
+    {
+      "case": "peak cooling day",
+      "date": "2027-07-19",
+      "doublet_out": "doublet_1",
+      "heating_demand_MW": 2.673,
+      "cooling_demand_MW": 10.0,
+      "n_active_normal": 2,
+      "n_active_n_minus_1": 1,
+      "boiler_MWth": 2.328306436538696e-16,
+      "boiler_external_gas_MWth": 2.328306436538696e-16,
+      "external_gas_fuel_MW": 2.9103830456733706e-16,
+      "electric_chiller_MWcool": 6.277705625180794,
+      "boiler_MWth_normal": 0.0,
+      "electric_chiller_MWcool_normal": 2.5554112503615887,
+      "heat_unmet_MW": 0.0,
+      "cool_unmet_MW": 0.0,
+      "constraints_pass": true
+    }
+  ],
+  "installed_backup_MW": {
+    "boiler_th": 13.846155688133665,
+    "electric_chiller_cool": 6.277705625180794
+  },
   "case": "HP_eta0.5_nocap",
-  "run_utc": "2026-11-03T04:55:08.116721+00:00",
-  "git_commit": "e5fa0d226684881dda789ae23b4973598bfd1162",
-  "runtime_s": 3.4632720947265625,
+  "run_utc": "2026-11-03T22:40:52.923244+00:00",
+  "git_commit": "98e275632b54fae3dfe23d344985a16fe8acae2b",
+  "runtime_s": 3.1888227462768555,
   "ranking": {
     "status": "ACCEPTED",
     "reason": "selected: feasible; external gas 0.0063 GWh, emissions 8545 t, grid import 10.70 GWh, 2 doublets, 10000 m drilled",

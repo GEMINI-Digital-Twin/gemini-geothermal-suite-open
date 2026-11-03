@@ -58,6 +58,7 @@ CANDIDATES_PATH = ROOT / "projects" / "candidates_2027.json"
 BRINE_CHAIN = ("producer_well", "separator", "filter_a", "heat_exchanger", "filter_b", "injector_well")
 ABSORBER = "absorber_generator"
 HP_COP_REL_TOLERANCE = 0.01  # HeatpumpBasic cross-check agreement
+CO2_KG_PER_NM3 = 1.9635      # DERIVED 44.01 g/mol / 22.414 L/mol
 UNMET_TOLERANCE_MW = 1e-3    # daily unmet heating/cooling above 1 kW fails demand_met_365
 GRAVITY = 9.81
 HP_MIN_SOURCE_DT_K = 1e-3  # heat pump runs only if the brine is at least this far above its minimum
@@ -111,11 +112,11 @@ def maintenance_schedule(need_w: dict, n_doublets: int, window: tuple[date, date
 class Plant:
     """One design candidate: n identical doublets + surface heating/cooling plant."""
 
-    def __init__(self, candidate: dict, settings: dict, project_path: Path = PROJECT_PATH):
+    def __init__(self, candidate: dict, settings: dict, project_path: Path = PROJECT_PATH, challenge_path: Path = CHALLENGE_PATH):
         self.candidate = candidate
         self.settings = settings
         project = load_json(project_path)
-        self.challenge = load_json(CHALLENGE_PATH)
+        self.challenge = load_json(challenge_path)
         self.limits = load_limits()
         pvt = install_brine_pvt(project["_brine_pvt_override"])
         install_scaled_esp()
@@ -139,6 +140,7 @@ class Plant:
         self.gas_density = gas["gas_density"]
         self.produced_gas_lhv_j_nm3 = gas["caloric_value"] * gas["gas_density"]
         self.produced_gas_ef = gas["gas_emission_factor"]
+        self.gas_mode, self.gas_handling_kwh_per_nm3 = self.gas_handling(gas)
         self.el_factor = self.producer_params["esp"]["electricity_emission_factor"]
         self.t_return = boundary(self.chain, "heat_exchanger", "secondary_temperature_in")["value"]
         self.t_supply = self.limits["heating_supply_temperature_C"]
@@ -149,6 +151,25 @@ class Plant:
         self.esp_placement = self.place_esp()
         self.flow_grid = self._flow_grid()
         self.engineering = self.engineering_checks()
+
+    def gas_handling(self, gas: dict) -> tuple[str, float]:
+        """Produced-gas option (design variable) -> (mode, handling electricity in kWh per Nm3 of produced gas).
+        Sets the produced-gas emission factor: co2_reinject counts only CH4 combustion CO2 (DERIVED),
+        reinject_all burns nothing."""
+        cfg = self.settings.get("gas_handling", {})
+        mode = self.candidate.get("gas_handling", cfg.get("default", "chp"))
+        fluid = self.challenge["fluid"]
+        x_ch4 = fluid["gas_methane_mol_percent"] / 100
+        x_co2 = 1 - x_ch4
+        if mode == "chp":
+            return mode, 0.0
+        if mode == "co2_reinject":
+            self.produced_gas_ef = gas["gas_emission_factor"] * x_ch4 / (x_ch4 + x_co2)
+            return mode, x_co2 * CO2_KG_PER_NM3 * cfg["separation_compression_kWh_per_kg_CO2"]
+        if mode == "reinject_all":
+            self.produced_gas_ef = 0.0
+            return mode, gas["gas_density"] * cfg["reinjection_compression_kWh_per_kg_gas"]
+        raise ValueError(f"unknown gas_handling {mode!r}")
 
     # --- brine side -------------------------------------------------------
     def apply_depth(self, components: dict, depth_m: float):
@@ -376,8 +397,11 @@ class Plant:
             t_hex_s_out = self.t_return + hex_w / (m_s * self.cp_s)
             t_brine = t_hex_p_in - hex_w / m_cp_b
         lift_w = max(0.0, m_s * self.cp_s * (self.t_supply - t_hex_s_out))
-        fuel_w = gas_nm3_s * self.produced_gas_lhv_j_nm3
-        chp_full = self.chp(gas_nm3_s, secondary_m3s, t_hex_s_out)
+        if self.gas_mode == "reinject_all":  # no combustion: no CHP heat or electricity, nothing flared
+            fuel_w, chp_full = 0.0, {"power_th": 0.0, "power_el": 0.0}
+        else:
+            fuel_w = gas_nm3_s * self.produced_gas_lhv_j_nm3
+            chp_full = self.chp(gas_nm3_s, secondary_m3s, t_hex_s_out)
 
         # Heat pump covers only the lift that CHP heat cannot (so produced gas is not flared).
         hp = {"Q_W": 0.0, "W_W": 0.0, "COP": None, "sink_fraction": 0.0, "inputs": None, "capped": False}
@@ -463,7 +487,8 @@ class Plant:
         cool_el = max(0.0, cooling_w - cool_abs)
         el_esp, el_inj = n * chain["pumps"][0]["power_w"], n * chain["pumps"][1]["power_w"]
         el_hp, el_chiller = n * s["hp"]["W_W"], cool_el / self.settings["electric_chiller_cop"]
-        el_load = el_esp + el_inj + el_hp + el_chiller
+        el_gas = n * chain["gas_Nm3_s"] * self.gas_handling_kwh_per_nm3 * 3.6e6  # Nm3/s * kWh/Nm3 * J/kWh = W
+        el_load = el_esp + el_inj + el_hp + el_chiller + el_gas
         el_chp = n * s["chp_el_W"]
         grid_import, grid_export = max(0.0, el_load - el_chp), max(0.0, el_chp - el_load)
         produced_fuel, external_fuel = n * s["produced_fuel_W"], n * s["boiler_external_fuel_W"]
@@ -503,7 +528,7 @@ class Plant:
             "cool_delivered_MW": (cool_abs + cool_el) / 1e6, "cool_unmet_MW": max(0.0, cooling_w - cool_abs - cool_el) / 1e6,
             "absorber_drive_MW": n * absorber["drive_W"] / 1e6, "absorber_brine_drop_K": absorber["drop_K"],
             "el_esp_MW": el_esp / 1e6, "el_injector_MW": el_inj / 1e6, "el_hp_MW": el_hp / 1e6, "el_chiller_MW": el_chiller / 1e6,
-            "el_load_MW": el_load / 1e6, "el_chp_MW": el_chp / 1e6,
+            "el_gas_handling_MW": el_gas / 1e6, "el_load_MW": el_load / 1e6, "el_chp_MW": el_chp / 1e6,
             "el_grid_import_MW": grid_import / 1e6, "el_grid_export_MW": grid_export / 1e6,
             "produced_gas_Nm3_day": n * chain["gas_Nm3_s"] * 86400,
             "produced_gas_fuel_MW": produced_fuel / 1e6, "produced_gas_chp_MW": n * s["chp_fuel_W"] / 1e6,
@@ -543,7 +568,7 @@ class Plant:
             "cool_absorption_MW": zero, "cool_electric_MW": cooling_w / 1e6, "cool_delivered_MW": cooling_w / 1e6, "cool_unmet_MW": zero,
             "absorber_drive_MW": zero, "absorber_brine_drop_K": zero,
             "el_esp_MW": zero, "el_injector_MW": zero, "el_hp_MW": zero, "el_chiller_MW": el_chiller / 1e6,
-            "el_load_MW": el_chiller / 1e6, "el_chp_MW": zero, "el_grid_import_MW": el_chiller / 1e6, "el_grid_export_MW": zero,
+            "el_gas_handling_MW": zero, "el_load_MW": el_chiller / 1e6, "el_chp_MW": zero, "el_grid_import_MW": el_chiller / 1e6, "el_grid_export_MW": zero,
             "produced_gas_Nm3_day": zero, "produced_gas_fuel_MW": zero, "produced_gas_chp_MW": zero,
             "produced_gas_boiler_MW": zero, "produced_gas_flared_MW": zero, "external_gas_fuel_MW": external_fuel / 1e6,
             "external_gas_Nm3_day": external_fuel * 86400 / (self.settings["external_gas"]["lhv_MJ_per_Nm3"] * 1e6),
@@ -566,7 +591,32 @@ class Plant:
         rows = [self.simulate_day(d, heating_mw[d] * 1e6, cooling_mw[d] * 1e6, off[d]) for d in days]
         if any(r.keys() != rows[0].keys() for r in rows):
             raise RuntimeError("daily rows have inconsistent columns (backup_day vs simulate_day)")
-        return {"schedule": schedule, "rows": rows, "annual_checks": self.annual_checks(rows, schedule, days)}
+        return {"schedule": schedule, "rows": rows, "annual_checks": self.annual_checks(rows, schedule, days),
+                "n_minus_1": self.n_minus_1(rows, heating_mw, cooling_mw, off)}
+
+    def n_minus_1(self, rows: list[dict], heating_mw: dict, cooling_mw: dict, off: dict) -> list[dict]:
+        """UNPLANNED outage of one more doublet on the peak heating and peak cooling days (ASSUMED
+        resilience case): the backup duty the installed boiler / electric chiller must cover."""
+        cases = []
+        for label, demand in (("peak heating day", heating_mw), ("peak cooling day", cooling_mw)):
+            day = max(demand, key=demand.get)
+            normal = next(r for r in rows if r["date"] == day.isoformat())
+            available = [i for i in range(self.candidate["n_doublets"]) if i not in off[day]]
+            lost = available[0] if available else None
+            r = self.simulate_day(day, heating_mw[day] * 1e6, cooling_mw[day] * 1e6, off[day] | ({lost} if lost is not None else set()))
+            cases.append({
+                "case": label, "date": day.isoformat(), "doublet_out": f"doublet_{lost + 1}" if lost is not None else None,
+                "heating_demand_MW": r["heating_demand_MW"], "cooling_demand_MW": r["cooling_demand_MW"],
+                "n_active_normal": normal["n_active"], "n_active_n_minus_1": r["n_active"],
+                "boiler_MWth": r["heat_boiler_produced_gas_MW"] + r["heat_boiler_external_gas_MW"],
+                "boiler_external_gas_MWth": r["heat_boiler_external_gas_MW"], "external_gas_fuel_MW": r["external_gas_fuel_MW"],
+                "electric_chiller_MWcool": r["cool_electric_MW"],
+                "boiler_MWth_normal": normal["heat_boiler_produced_gas_MW"] + normal["heat_boiler_external_gas_MW"],
+                "electric_chiller_MWcool_normal": normal["cool_electric_MW"],
+                "heat_unmet_MW": r["heat_unmet_MW"], "cool_unmet_MW": r["cool_unmet_MW"],
+                "constraints_pass": r["constraints_pass"],
+            })
+        return cases
 
     def annual_checks(self, rows: list[dict], schedule: list[list[date]], days: list[date]) -> list[dict]:
         results = []

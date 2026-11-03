@@ -6,7 +6,7 @@
   },
   "C2_3dbl_s1.8_UA1000": {
     "status": "REJECTED",
-    "reason": "parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000; extra doublet: external gas +0.0%, emissions -1.0% (needs >= 5% on either, beyond the tie tolerance)",
+    "reason": "parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000 (decided by grid_import_GWh: 11.14 vs 12.01); extra doublet: external gas +0.0%, emissions -1.0% (needs >= 5% on either, beyond the tie tolerance)",
     "marginal": false,
     "rank": 2
   },
