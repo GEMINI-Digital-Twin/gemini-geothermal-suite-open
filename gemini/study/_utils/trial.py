@@ -63,17 +63,25 @@ def failure_reason(results):
     )
 
 
-def judged(plant, case, results):
+STRUCTURAL = 1.0
+"""The violation of a structural reason when the structure is searched: a service missing whole."""
+
+
+def judged(plant, case, results, structural=False):
     """Return ``(reason, violation)`` of a finished run from its ``gm.evaluate.verdict``.
 
     The reasons a design variable can change are the ones with a ``violation`` (``ranked``): a
     failed requirement, an operating limit, a failed step, a balance out of its tolerance. The
     ``violation`` is their sum, at most ``LARGEST_VIOLATION``, and the ``reason`` is the first of
     them. A reason with none is structural (a service the plant has no unit for) and does not rank
-    the trials: it stays in the verdict of the run that ``report`` gives. A feasible run is
-    ``(None, 0.0)``.
+    the trials: it stays in the verdict of the run that ``report`` gives. With ``structural``, for a
+    search of the structure itself, a verdict that is not feasible only for such a reason is the
+    reason with the violation ``STRUCTURAL``. A feasible run is ``(None, 0.0)``.
     """
-    found = ranked(verdict(plant, case, results))
+    given = verdict(plant, case, results)
+    found = ranked(given)
+    if structural and not given["feasible"]:
+        found = found or [given["reasons"][0] | {"violation": STRUCTURAL}]
     if not found:
         return None, 0.0
     return found[0], min(sum(item["violation"] for item in found), LARGEST_VIOLATION)
@@ -82,7 +90,7 @@ def judged(plant, case, results):
 class _Trial:
     """One trial of a batch: its values, its metrics to read and the lane it runs in."""
 
-    def __init__(self, shared, case, plan, values, names, judge, flag=False):
+    def __init__(self, shared, case, plan, values, names, judge, flag=False, structural=False):
         """Prepare the trial of ``values`` on ``shared``.
 
         ``judge`` adds the verdict to the read; ``flag``, for a trial that is not judged, adds
@@ -90,6 +98,7 @@ class _Trial:
         """
         self.shared, self.case, self.plan = shared, case, plan
         self.values, self.names, self.judge, self.flag = values, names, judge, flag
+        self.structural = structural
         self.held = None
         self.lane = Lane(self._steps(), self._restore)
 
@@ -109,7 +118,7 @@ class _Trial:
             trial, changed, results = yield from self._simulated()
             if self.judge:
                 metrics = {item: metric(trial, changed, results, item) for item in self.names}
-                return (metrics, *judged(trial, changed, results))
+                return (metrics, *judged(trial, changed, results, self.structural))
             if results.failures:
                 reason = failure_reason(results)
                 found = {item: measure(None, "-", reason) for item in self.names}, reason
@@ -144,17 +153,19 @@ class _Trial:
         return plant, changed, results
 
 
-def run_trials(shared, case, plan, valued, names, judge, *, flag=False):
+def run_trials(shared, case, plan, valued, names, judge, *, flag=False, structural=False):
     """Return the outcome of each of the trials ``valued`` (a list of ``{name: SI number}``).
 
     The outcome is ``(metrics, reason)``, or ``(metrics, reason, violation)`` when ``judge``: a
     run that fails is infeasible with its message as the reason and ``LARGEST_VIOLATION``. With
     ``flag`` and no ``judge``, the outcome is ``(metrics, reason, feasible)``, the metrics being
-    those of the unjudged read. The trials run together on ``shared`` (a ``Shared``) and each
-    gives what it gives alone. Each trial that ends is counted for
-    ``gemini.study._utils.progress``.
+    those of the unjudged read; ``structural`` judges as ``judged`` says. The trials run together
+    on ``shared`` (a ``Shared``) and each gives what it gives alone. Each trial that ends is
+    counted for ``gemini.study._utils.progress``.
     """
-    trials = [_Trial(shared, case, plan, values, names, judge, flag) for values in valued]
+    trials = [
+        _Trial(shared, case, plan, values, names, judge, flag, structural) for values in valued
+    ]
     return lockstep([trial.lane for trial in trials], lambda lane: progress.finished())
 
 

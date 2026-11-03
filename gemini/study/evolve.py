@@ -351,7 +351,7 @@ def _batch(design, own, structure, valued, shared):
     case, plan, names = shared
     try:
         plant = _structured(design, own, structure)
-        return run_trials(Shared(plant), case, plan, valued, names, True)
+        return run_trials(Shared(plant), case, plan, valued, names, True, structural=True)
     except Exception as error:
         if len(valued) == 1:
             return [_failed(error)]
@@ -359,7 +359,9 @@ def _batch(design, own, structure, valued, shared):
     for values in valued:
         try:
             plant = _structured(design, own, structure)
-            found.append(run_trials(Shared(plant), case, plan, [values], names, True)[0])
+            found.append(
+                run_trials(Shared(plant), case, plan, [values], names, True, structural=True)[0]
+            )
         except Exception as error:
             found.append(_failed(error))
     return found
@@ -588,7 +590,9 @@ def _polished(archive, designs, polish, population, seed, plan):
         best = search["best"]["plant"]
         if best is None:
             continue
-        outcome = run_trials(Shared(best), archive.case, plan, [{}], set(archive.names), True)[0]
+        outcome = run_trials(
+            Shared(best), archive.case, plan, [{}], set(archive.names), True, structural=True
+        )[0]
         simulations += 1
         metrics, reason, violation = _judged(outcome, archive.names)
         found.append(
@@ -710,7 +714,9 @@ def evolve(
     simulated again. The new candidates of a generation run in the worker processes of
     ``gm.runtime.settings(processes=n)``, those of one structure as one batch; the same seed gives
     the same result, whatever ``n``. Each trial is judged as in ``minimize``; a candidate whose
-    plant cannot be built or whose run raises is infeasible with the error as its reason. The
+    plant cannot be built or whose run raises is infeasible with the error as its reason, and so is
+    one that has no unit at all for a service of the case (a structure without cooling), which
+    ``minimize`` does not hold against a trial since no value changes it. The
     search ends when ``evaluations`` simulations have run, after ``STALL`` generations in a row
     without a new simulation, or as ``stop`` says. The front is that of every design simulated.
 
