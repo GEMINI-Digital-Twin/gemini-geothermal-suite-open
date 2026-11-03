@@ -33,7 +33,7 @@ from gemini.physics import constants, energy
 from gemini.physics.fluid import mixture_mass_flow
 from gemini.plants._utils.plan import members, split_end
 from gemini.plants.doublet import Doublet
-from gemini.plants.roles import units_of
+from gemini.plants.roles import remembered, units_of
 
 RULES = {"dispatch": "least_cost", "outages": "lowest_demand"}
 """The rules the plant states (`control.dispatch`, `control.outages`), each with its one value:
@@ -498,6 +498,12 @@ def _stated_rules(plant):
 
 def scheduled(plant, case):
     """Return the plan of ``schedule`` for a ``plant`` that already has the values of ``case``."""
+    with remembered():
+        return _scheduled(plant, case)
+
+
+def _scheduled(plant, case):
+    """Return the plan of ``scheduled``, the roles of the plant read once."""
     plant._check_design()
     _stated_rules(plant)
     demand = case.demand.frame

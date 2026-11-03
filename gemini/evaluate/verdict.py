@@ -20,7 +20,7 @@ from gemini.evaluate._utils.tally import tally
 from gemini.evaluate.balances import energy_balance, mass_balance, plant_balance
 from gemini.evaluate.summary import totals
 from gemini.modules.declarations import Output
-from gemini.plants.roles import delivery_ports, reads, units_of
+from gemini.plants.roles import delivery_ports, reads, remembered, units_of
 from gemini.units.quantities import Temperature
 from gemini.units.shapes import check, measure
 
@@ -229,8 +229,9 @@ def requirements(plant, case, results):
     frame = results.to_frame()
     sited = apply_case(plant, case)
     checks = []
-    for requirement in (*(case.requirements or ()), *_services(case)):
-        checks += _checks(sited, case, results, frame, requirement)
+    with remembered():
+        for requirement in (*(case.requirements or ()), *_services(case)):
+            checks += _checks(sited, case, results, frame, requirement)
     return checks
 
 

@@ -3,7 +3,7 @@
 import gemini as gm
 from gemini.errors import ValidationError
 from gemini.modules import Module
-from gemini.plants.roles import TABLE, reads, roles_of, supply_service, units_of
+from gemini.plants.roles import TABLE, reads, remembered, roles_of, supply_service, units_of
 from tests.fixtures.errors import raises
 
 
@@ -115,3 +115,16 @@ def test_a_unit_on_both_grids_is_refused():
     plant.connect("pump.source_out", "cold.supply_in")
     with raises(ValidationError, "invalid_design", match="both"):
         supply_service(plant, "pump", plant.pump)
+
+
+def test_roles_read_once_in_a_block_are_the_roles_read_alone():
+    """Inside ``remembered`` every role gives the same paths; outside, a plant is read again."""
+    plant = gm.plants.HeatingCoolingPlant(doublets=2)
+    roles = ("doublet", "heat_pump", "chiller", "boiler", "plant", "heat_exchanger")
+    alone = {role: units_of(plant, role) for role in roles}
+    with remembered():
+        assert {role: units_of(plant, role) for role in roles} == alone
+        units_of(plant, "doublet").append("changed by the caller")
+        assert units_of(plant, "doublet") == alone["doublet"]
+    other = gm.plants.HeatingCoolingPlant(doublets=3)
+    assert len(units_of(other, "doublet")) == 3
