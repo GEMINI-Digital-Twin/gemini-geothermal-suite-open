@@ -12,6 +12,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.5.10] - 2026-11-03
+
+An addition; every name, signature, default and number of 0.5.9 is unchanged.
+
+### Added
+- The time unit `ms` (millisecond): `gm.units` converts it like `s`, `min`, `h` and `d`, and it is
+  a member of `gm.units.Unit`.
+
 ## [0.5.9] - 2026-11-03
 
 Additions and one fix; every name, signature, default and number of 0.5.8 is unchanged
