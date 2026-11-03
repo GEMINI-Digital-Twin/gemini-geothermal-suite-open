@@ -21,10 +21,10 @@
     "heat_exchanger/boiler/chp.fluid_density": "OFFICIAL 1030 kg/m3 brine; ASSUMED the same props on the district-water side (the models use one set for both sides).",
     "producer_well.reservoir_pressure_bar, injector_well.reservoir_pressure_bar": "OFFICIAL 250 bar(g); injector in the same reservoir.",
     "*.productivity_index_m3h_per_bar": "DERIVED 12.1 = 2*pi*k*h/(mu*ln(re/rw)) with k=200 mD, h=100 m, mu=0.4 mPa s; ASSUMED re/rw=1e4, skin=0, injectivity = productivity.",
-    "*.trajectory_table": "ASSUMED vertical wells to the OFFICIAL 2500 m TVD midpoint, ID 0.15 m (example ID).",
+    "*.trajectory_table": "ASSUMED vertical wells to the OFFICIAL 2500 m TVD midpoint, ID 0.178 m (ASSUMED 7-inch production/injection casing; replaces the 0.15 m GEMINI example ID).",
     "*.roughness_m": "ASSUMED 4.5e-5 m, commercial steel.",
     "producer_well.ambient_temperature_c": "DERIVED 49.5 C = mean formation temperature (12 + 87)/2; only used for the in-well temperature profile of the nodal solve, does not affect flow (constant PVT).",
-    "producer_well.esp_depth_m / esp": "ASSUMED: GEMINI example (HC27000 curve, 10 stages, 650 m). Reported pump power is recomputed as Q*dp/0.70 by the run script.",
+    "producer_well.esp_depth_m / esp": "ASSUMED: GEMINI example (HC27000 curve, 10 stages, 650 m). In the daily model and design agent the setting depth is a design variable: the pump is placed so the intake is >= 30 bar at the flow cap (ASSUMED gas-handling limit, see candidates_2027.json esp_placement). Reported pump power is recomputed as Q*dp/0.70 by the run script.",
     "producer_well.esp_freq_hz": "CONTROL: solved per run for the target brine flow; 65 Hz is only the stored starting value.",
     "_design_controls.esp_freq_hz_range": "ASSUMED 30-70 Hz variable-speed-drive range (example runs at 65 Hz).",
     "_design_controls.min_surface_pressure_bar": "ASSUMED 1.0 bar minimum anywhere in the surface chain (filter_b outlet = injector pump suction); sets the wellhead pressure floor.",
@@ -55,30 +55,30 @@
           {
             "MD": 0,
             "TVD": 0,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 300,
             "TVD": 300,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 400,
             "TVD": 400,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 600,
             "TVD": 600,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 3000,
             "TVD": 3000,
-            "ID": 0.15
+            "ID": 0.178
           }
         ],
-        "esp_depth_m": 650,
+        "esp_depth_m": 690,
         "esp": {
           "no_stages": 24,
           "head_coeff": [
@@ -113,27 +113,27 @@
           {
             "MD": 0,
             "TVD": 0,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 300,
             "TVD": 300,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 400,
             "TVD": 400,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 600,
             "TVD": 600,
-            "ID": 0.15
+            "ID": 0.178
           },
           {
             "MD": 3000,
             "TVD": 3000,
-            "ID": 0.15
+            "ID": 0.178
           }
         ],
         "injector_pump": {

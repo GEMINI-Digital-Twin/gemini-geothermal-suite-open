@@ -55,7 +55,6 @@ CACHE = AGENT_OUT / "cache"
 FLOW_ROUNDING_M3H = 50
 HEX_APPROACH_ESTIMATE_K = 5.0  # ASSUMED, only for the direct-supply depth estimate in the temperature assessment
 ESP_INTAKE_MARGIN_BAR = 5.0    # ASSUMED margin of ESP intake pressure above the brine vapour pressure
-TUBING_VELOCITY_LIMIT_M_S = 4.0  # ASSUMED erosion/vibration guideline for the 0.15 m tubing
 ESP_FREQ_MARGIN_HZ = 2.0
 
 
@@ -273,6 +272,7 @@ class ClaudeCliBackend:
             "Reply with ONLY a JSON object: {\"done\": bool, \"candidate\": {\"n_doublets\": int, \"flow_cap_m3h\": number, "
             "\"esp\": string, \"hex_ua_W_K\": number, \"depth_m\": number}, \"rationale\": string}.\n\nSTATE:\n" + self._context_text(ctx))
         if reply.get("done"):
+            self.stop_rationale = reply.get("rationale", "")
             return None
         return {"candidate": reply["candidate"], "rationale": reply.get("rationale", "")}
 
@@ -435,11 +435,13 @@ class DesignAgent:
     def well_checks(self, plant: Plant) -> dict:
         points, flags = [], []
         f_max = self.settings["dispatch"].get("esp_freq_hz_max", 70)
+        v_max = self.settings["well_checks"]["max_tubing_velocity_m_s"]
         for q in (plant.flow_grid[0], plant.flow_grid[-1]):
             chain = plant.run_gemini_chain(q, 0.01, 0.0)
             t_wh, p_wh = chain["T_wellhead_C"], chain["wellhead_pressure_bar"]
             p_sat = saturation_pressure_bar(t_wh)
-            area = math.pi / 4 * plant.producer_params["trajectory_table"][-1]["ID"] ** 2
+            tubing_id = plant.producer_params["trajectory_table"][-1]["ID"]
+            area = math.pi / 4 * tubing_id ** 2
             p = {"flow_m3h": chain["production_m3h"], "esp_freq_hz": chain["controls"]["esp_freq_hz"], "control_mode": chain["controls"]["mode"],
                  "wellhead_pressure_bar": p_wh, "T_wellhead_C": t_wh, "p_sat_at_T_wellhead_bar": p_sat,
                  "esp_intake_bar": chain["esp_intake_bar"], "esp_discharge_bar": chain["esp_discharge_bar"],
@@ -454,15 +456,18 @@ class DesignAgent:
                 flags.append(f"{q:g} m3/h: wellhead pressure {p_wh:.2f} bar is not above the {p_sat:.2f} bar vapour pressure at {t_wh:.1f} C - flashing risk")
             if p["esp_intake_bar"] < p_sat + ESP_INTAKE_MARGIN_BAR:
                 flags.append(f"{q:g} m3/h: ESP intake {p['esp_intake_bar']:.1f} bar < vapour pressure + {ESP_INTAKE_MARGIN_BAR:.0f} bar - cavitation risk")
-            if p["tubing_velocity_m_s"] > TUBING_VELOCITY_LIMIT_M_S:
-                flags.append(f"{q:g} m3/h: tubing velocity {p['tubing_velocity_m_s']:.1f} m/s > {TUBING_VELOCITY_LIMIT_M_S:.0f} m/s in the 0.15 m ID (all depths)")
+            if p["tubing_velocity_m_s"] > v_max:
+                flags.append(f"{q:g} m3/h: tubing velocity {p['tubing_velocity_m_s']:.2f} m/s > {v_max:g} m/s in the {tubing_id:g} m ID")
             if chain["controls"]["esp_freq_hz"] > f_max - ESP_FREQ_MARGIN_HZ:
                 flags.append(f"{q:g} m3/h: ESP at {chain['controls']['esp_freq_hz']:.1f} Hz, within {ESP_FREQ_MARGIN_HZ:.0f} Hz of the drive limit")
         if plant.max_flow_m3h < plant.flow_cap_m3h:
             flags.append(f"ESP reaches only {plant.max_flow_m3h:.0f} of the {plant.flow_cap_m3h:g} m3/h cap at this depth")
         if plant.unreachable_flows_m3h:
             flags.append(f"flows {plant.unreachable_flows_m3h} m3/h cannot be held (min dispatchable {plant.flow_grid[0]:g} m3/h)")
-        return {"points": points, "flags": flags, "not_modelled": "free gas at the ESP intake (GLR 0.8 brine, gas mass fraction 0 in the well model)"}
+        for c in plant.engineering:
+            if c["status"] != "PASS":
+                flags.append(f"HARD CHECK {c['check']} FAILS: {c['reason']} (limit {c['limit']})")
+        return {"points": points, "flags": flags, "esp_placement": plant.esp_placement, "engineering_checks": plant.engineering, "not_modelled": "free gas at the ESP intake (GLR 0.8 brine, gas mass fraction 0 in the well model)"}
 
     # 7. evaluate (cached)
     def evaluate(self, candidate: dict) -> dict:
@@ -514,7 +519,8 @@ class DesignAgent:
             calls = self.backend.calls[n_calls:]
             if proposal is None:
                 self.log.event(scenario, "stop", "Backend stops proposing", data={"backend_calls": calls},
-                               rationale="No untried variant can change the pick within the design space and the parsimony rules.")
+                               rationale=getattr(self.backend, "stop_rationale", None)
+                               or "No untried variant can change the pick within the design space and the parsimony rules.")
                 break
             candidate = proposal["candidate"]
             self.log.event(scenario, "propose", f"Proposal {candidate_id(candidate)}", data={"candidate": candidate, "backend_calls": calls},
@@ -550,7 +556,7 @@ class DesignAgent:
                            + f"Not modelled: {result['well_checks']['not_modelled']}.")
             metrics = {k: s[k] for k in ("external_gas_fuel_GWh", "emissions_t", "grid_import_GWh", "drilled_m", "geothermal_heat_share",
                                          "max_brine_dT_K", "flow_max_m3h", "esp_max_flow_m3h", "reservoir_temperature_C", "heat_hp_GWh", "el_hp_GWh",
-                                         "el_esp_GWh", "days_hex_bypass", "days_failing_daily_checks", "capacity_MW")}
+                                         "el_esp_GWh", "esp_setting_depth_m", "esp_intake_at_max_flow_bar", "tubing_velocity_at_max_flow_m_s", "days_hex_bypass", "days_failing_daily_checks", "capacity_MW")}
             failing = sorted(set([c["check"] for c in s["annual_checks"] if c["status"] != "PASS"] + s["failing_checks"]))
             self.log.event(scenario, "evaluate", f"Annual model + constraint check: {candidate_id(candidate)}",
                            data={"evaluation": self.evaluations, "cached": result["cached"], "wall_s": result["wall_s"], "feasible": s["feasible"],
@@ -647,23 +653,43 @@ def judges_tests(entries: list[dict]) -> list[dict]:
     ]
 
 
+def esp_cell(m: dict) -> str:
+    if m.get("esp_setting_depth_m") is None:
+        return "650 (fixed) / -"
+    return f"{m['esp_setting_depth_m']:g} / {m['esp_intake_at_max_flow_bar']:.1f}"
+
+
+def stop_reasoning(e: dict) -> str | None:
+    """The backend's own stop rationale, from the logged reply (logs written before it was stored on the event)."""
+    for c in (e.get("data") or {}).get("backend_calls", []):
+        match = re.search(r"\{.*\}", c.get("reply") or "", re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0)).get("rationale")
+            except json.JSONDecodeError:
+                pass
+    return None
+
+
 def evaluation_table(entries, scenario="B_design") -> list[str]:
-    rows = ["| # | Candidate | T_res (C) | Feasible | External gas (GWh) | Emissions (t) | Grid import (GWh) | Drilled (m) | Wall (s) | Final verdict |",
-            "|---|---|---|---|---|---|---|---|---|---|"]
+    rows = ["| # | Candidate | T_res (C) | ESP set (m) / intake (bar) | Feasible | External gas (GWh) | Emissions (t) | Grid import (GWh) | Drilled (m) | Wall (s) | Final verdict |",
+            "|---|---|---|---|---|---|---|---|---|---|---|"]
     ranks = next((e["data"] for e in reversed(entries) if e["scenario"] == scenario and e["phase"] == "rank"), {})
     for e in (x for x in entries if x["scenario"] == scenario and x["phase"] == "evaluate"):
         m, name = e["data"]["metrics"], e["title"].split(": ", 1)[1]
         v = ranks.get(name, {})
-        rows.append(f"| {e['data']['evaluation']} | {name} | {m['reservoir_temperature_C']:.0f} | {'yes' if e['data']['feasible'] else 'no (' + ', '.join(e['data']['failing']) + ')'} | "
+        rows.append(f"| {e['data']['evaluation']} | {name} | {m['reservoir_temperature_C']:.0f} | {esp_cell(m)} | {'yes' if e['data']['feasible'] else 'no (' + ', '.join(e['data']['failing']) + ')'} | "
                     f"{m['external_gas_fuel_GWh']:.3f} | {m['emissions_t']:.0f} | {m['grid_import_GWh']:.2f} | {m['drilled_m']:.0f} | "
                     f"{e['data']['wall_s']:.1f}{' (cached)' if e['data']['cached'] else ''} | {v.get('status', '-')} (rank {v.get('rank', '-')}) |")
     return rows
 
 
-def write_trace(path, entries, backend, results):
+def write_trace(path, entries, backend, results, note=None):
     lines = [f"# Design agent trace ({backend} backend)", "",
              f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC from `decision_log.jsonl` ({len(entries)} logged steps). "
              f"Rerun: `$env:PYTHONPATH=\"src\"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend {backend}`.", ""]
+    if note:
+        lines += [f"> **Note:** {note}", ""]
     tests = judges_tests(entries)
     lines += ["## Judges' agent-reasoning tests", "", "| Test | Result | Evidence |", "|---|---|---|"]
     lines += [f"| {t['test']} | {'PASS' if t['pass'] else 'FAIL'} | {t['evidence']} |" for t in tests]
@@ -674,7 +700,8 @@ def write_trace(path, entries, backend, results):
         lines += ["", "## Final pick", "", b["conclusion"], "", "## Runtime", "",
                   f"- Annual evaluations: {t['evaluations']} ({t['computed']} computed, {t['cached']} from cache); "
                   f"computed wall time mean {t['wall_s_per_computed_evaluation_mean'] or 0:.1f} s, max {t['wall_s_per_computed_evaluation_max'] or 0:.1f} s",
-                  f"- Scenario B runtime: {t['scenario_runtime_s']:.1f} s; scenario A runtime: {results['A_missing_input']['runtime_s']:.1f} s",
+                  f"- Scenario B runtime: {t['scenario_runtime_s']:.1f} s; scenario A runtime: "
+                  + (f"{results['A_missing_input']['runtime_s']:.1f} s" if results.get("A_missing_input", {}).get("runtime_s") is not None else "not logged"),
                   f"- Backend calls: {t['backend_calls']} ({t['backend_wall_s']:.1f} s)"]
         calls = [c for e in entries for c in (e["data"] or {}).get("backend_calls", []) if isinstance(e["data"], dict)]
         if calls:
@@ -689,8 +716,11 @@ def write_trace(path, entries, backend, results):
         lines += ["", f"## {title}", ""]
         for e in (x for x in entries if x["scenario"] == scenario):
             lines.append(f"**{e['step']}. [{e['phase']}] {e['title']}**")
-            if e["rationale"]:
-                lines.append(f"> {e['rationale']}")
+            rationale = e["rationale"]
+            if e["phase"] == "stop" and (model_reason := stop_reasoning(e)) and model_reason != rationale:
+                rationale = f"Backend's own stop reasoning: {model_reason}"
+            if rationale:
+                lines.append(f"> {rationale}")
             if e["phase"] == "required_inputs":
                 lines += ["", "| Input | Present | Source | Needed for |", "|---|---|---|---|"]
                 lines += [f"| {c['input']} | {'yes' if c['present'] else '**MISSING**'} | {c['source']} | {c['needed_for']} |" for c in e["data"]["checked"]]
@@ -708,14 +738,28 @@ def write_trace(path, entries, backend, results):
     return tests
 
 
+def retrace(out_dir: Path, backend: str, note: str):
+    """Rebuild agent_trace.md from a saved run (no backend calls, no simulation)."""
+    entries = [json.loads(line) for line in (out_dir / "decision_log.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    final = next((e for e in reversed(entries) if e["scenario"] == "B_design" and e["phase"] == "final"), None)
+    results = {"A_missing_input": {}, "B_design": {"status": "selected", "timing": final["data"]["timing"], "conclusion": final["rationale"]}
+               if final and final["data"].get("timing") else {}}
+    write_trace(out_dir / "agent_trace.md", entries, backend, results, note=note)
+    print(f"rebuilt {(out_dir / 'agent_trace.md').relative_to(REPO)} from {len(entries)} logged steps")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--backend", choices=sorted(BACKENDS), default="rules")
     parser.add_argument("--budget", type=int, default=14, help="maximum annual evaluations in scenario B")
     parser.add_argument("--clear-cache", action="store_true", help="recompute every annual evaluation (honest timings)")
+    parser.add_argument("--retrace", metavar="NOTE", help="only rebuild agent_trace.md from the saved decision_log.jsonl, with this note")
     args = parser.parse_args()
 
     out_dir = AGENT_OUT if args.backend == "rules" else AGENT_OUT / args.backend
+    if args.retrace:
+        retrace(out_dir, args.backend, args.retrace)
+        return
     if args.clear_cache and CACHE.exists():
         shutil.rmtree(CACHE)
     start = time.perf_counter()

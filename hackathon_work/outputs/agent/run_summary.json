@@ -1,14 +1,14 @@
 {
   "backend": "rules",
-  "total_runtime_s": 8.369670099928044,
+  "total_runtime_s": 19.266328700003214,
   "status": "selected",
   "timing": {
     "evaluations": 9,
     "computed": 9,
     "cached": 0,
-    "wall_s_per_computed_evaluation_mean": 0.9246197222059386,
-    "wall_s_per_computed_evaluation_max": 1.399266899912618,
-    "scenario_runtime_s": 8.36202310002409,
+    "wall_s_per_computed_evaluation_mean": 2.1324960333295166,
+    "wall_s_per_computed_evaluation_max": 4.0900106999324635,
+    "scenario_runtime_s": 19.256623500026762,
     "backend_calls": 0,
     "backend_wall_s": 0
   },
@@ -20,9 +20,9 @@
     "depth_m": 3250
   },
   "pick_summary": {
-    "external_gas_fuel_GWh": 0.004941023474088839,
-    "emissions_t": 5376.445753280504,
-    "grid_import_GWh": 2.5781082142271114,
+    "external_gas_fuel_GWh": 0.0038207561210318497,
+    "emissions_t": 5147.8686004058745,
+    "grid_import_GWh": 1.8358067238176385,
     "drilled_m": 13000,
     "reservoir_temperature_C": 109.5
   },
@@ -53,7 +53,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.5% (needs >= 5%), marginal abatement 1.669 t CO2/yr per extra metre drilled",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.4% (needs >= 5%), marginal abatement 1.641 t CO2/yr per extra metre drilled",
         "rank": 5
       }
     },
@@ -68,8 +68,8 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0040 vs 0.0043 GWh, emissions 9141 vs 9011 t, grid import 12.87 vs 12.39 GWh, drilled 10000 vs 10000 m",
-        "rank": 6
+        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m",
+        "rank": 7
       }
     },
     {
@@ -83,7 +83,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 14.1513 vs 0.0043 GWh, emissions 10168 vs 9011 t, grid import 10.79 vs 12.39 GWh, drilled 10000 vs 10000 m",
+        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m",
         "rank": 8
       }
     },
@@ -98,7 +98,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.0% (needs >= 5%), marginal abatement 1.178 t CO2/yr per extra metre drilled",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.9% (needs >= 5%), marginal abatement 1.229 t CO2/yr per extra metre drilled",
         "rank": 4
       }
     },
@@ -113,7 +113,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +12.8% (needs >= 5%), marginal abatement 0.788 t CO2/yr per extra metre drilled",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.7% (needs >= 5%), marginal abatement 0.890 t CO2/yr per extra metre drilled",
         "rank": 3
       }
     },
@@ -128,7 +128,7 @@
       "feasible": true,
       "verdict": {
         "status": "ACCEPTED",
-        "reason": "selected: feasible; external gas 0.0049 GWh, emissions 5376 t, grid import 2.58 GWh, 2 doublets, 13000 m drilled",
+        "reason": "selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled",
         "rank": 1
       }
     },
@@ -143,8 +143,8 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +2.8% (needs >= 5%), marginal abatement 0.150 t CO2/yr per extra metre drilled",
-        "rank": 7
+        "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +5.0% (needs >= 5%), marginal abatement 0.257 t CO2/yr per extra metre drilled",
+        "rank": 6
       }
     },
     {

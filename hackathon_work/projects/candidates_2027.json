@@ -14,6 +14,9 @@
     "ranking.extra_doublet_min_improvement": "User decision: an extra doublet is accepted only if it improves external gas or emissions by >= 5%.",
     "ranking.depth_step_m / depth_step_min_improvement": "User decision: depth explored in 250 m steps from 2500 m; a deeper step is accepted only if emissions improve by >= 5% vs the previous accepted depth.",
     "ranking.max_depth_m": "ASSUMED 4000 m upper bound on extrapolating the official 2500 m reservoir data (gradient T, hydrostatic P).",
+    "esp_placement.min_intake_bar": "ASSUMED 30 bar ESP intake pressure at the flow cap (gas-handling limit for GLR 0.8 brine; free gas at the intake is not modelled). The ESP setting depth is a design variable: the shallowest depth (rounded up to depth_step_m) meeting it. Hard engineering check.",
+    "esp_placement.min_clearance_above_reservoir_m": "ASSUMED: the pump must sit at least 100 m above the reservoir midpoint.",
+    "well_checks.max_tubing_velocity_m_s": "ASSUMED 4 m/s erosion/vibration guideline in the 0.178 m (7-inch) production/injection tubing, checked at the maximum flow. Hard engineering check.",
     "electric_chiller_cop": "ASSUMED 5.0 (user decision 3).",
     "cooling_supply_return_C": "20 C OFFICIAL supply / 26 C ASSUMED return; the energy balance uses the MW demand directly.",
     "external_gas.emission_factor_kg_per_GJ": "ASSUMED 56.6 kg CO2/GJ pipeline natural gas (GEMINI example value).",
@@ -28,6 +31,8 @@
     "s1.0": {"flow_scale": 1.0, "no_stages": 10},
     "s1.8": {"flow_scale": 1.8, "no_stages": 24}
   },
+  "esp_placement": {"min_intake_bar": 30.0, "depth_step_m": 10, "start_depth_m": 650, "min_clearance_above_reservoir_m": 100},
+  "well_checks": {"max_tubing_velocity_m_s": 4.0},
   "heat_pump": {"mode": "lorenz", "eta_lorenz": 0.45, "COP_0": 3.0, "cop_cap": 6.0},
   "absorption_chiller": {"cop_th": 0.7, "min_drive_inlet_C": 75.0, "min_drive_outlet_C": 70.0},
   "electric_chiller_cop": 5.0,

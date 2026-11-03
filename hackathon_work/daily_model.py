@@ -145,7 +145,9 @@ class Plant:
         self.hp = settings["heat_pump"]
         self.absorption = settings["absorption_chiller"]
         self.controls_cache = {}
+        self.esp_placement = self.place_esp()
         self.flow_grid = self._flow_grid()
+        self.engineering = self.engineering_checks()
 
     # --- brine side -------------------------------------------------------
     def apply_depth(self, components: dict, depth_m: float):
@@ -170,6 +172,52 @@ class Plant:
         if q_m3h not in self.controls_cache:
             self.controls_cache[q_m3h] = solve_producer_controls(self.chain, q_m3h, self.t_nominal)
         return self.controls_cache[q_m3h]
+
+    def esp_intake_at(self, esp_depth_m: float, q_m3h: float) -> tuple[float, float]:
+        """ESP intake pressure (bar) with the pump at ``esp_depth_m``, at q or the ESP maximum if lower."""
+        self.producer_params["esp_depth_m"] = esp_depth_m
+        self.controls_cache.clear()
+        c = self.controls(q_m3h)
+        q = q_m3h if c["reached"] else float(int(c["max_flow_m3h"]))
+        return self.run_gemini_chain(q, 0.01, 0.0)["esp_intake_bar"], q
+
+    def place_esp(self) -> dict:
+        """ESP setting depth (design variable): the shallowest depth, on the placement step, with the
+        intake >= min_intake_bar at the flow cap (ASSUMED gas-handling limit; free gas not modelled).
+        The intake is close to linear in setting depth, so a secant guess plus a step check suffices."""
+        cfg = self.settings["esp_placement"]
+        q_cap = self.candidate.get("flow_cap_m3h", self.limits["flow_max_m3_per_h_per_doublet"])
+        step, p_min = cfg["depth_step_m"], cfg["min_intake_bar"]
+        deepest = self.depth_m - cfg["min_clearance_above_reservoir_m"]
+        d0, d1 = cfg["start_depth_m"], cfg["start_depth_m"] + 100
+        p0, _ = self.esp_intake_at(d0, q_cap)
+        p1, _ = self.esp_intake_at(d1, q_cap)
+        guess = d0 + (p_min - p0) * (d1 - d0) / (p1 - p0)
+        depth = min(deepest, max(step, math.ceil(guess / step) * step))
+        p, q = self.esp_intake_at(depth, q_cap)
+        while p < p_min and depth + step <= deepest:
+            depth += step
+            p, q = self.esp_intake_at(depth, q_cap)
+        while depth - step >= step and self.esp_intake_at(depth - step, q_cap)[0] >= p_min:
+            depth -= step
+        p, q = self.esp_intake_at(depth, q_cap)
+        return {"esp_depth_m": depth, "intake_bar": p, "flow_m3h": q, "min_intake_bar": p_min, "deepest_allowed_m": deepest}
+
+    def engineering_checks(self) -> list[dict]:
+        """Hard engineering checks at the maximum dispatchable flow: ESP intake and tubing velocity."""
+        e = self.esp_placement
+        v_max = self.settings["well_checks"]["max_tubing_velocity_m_s"]
+        ids = [st["ID"] for w in ("producer_well", "injector_well")
+               for st in self.chain["components"][w]["parameters"]["trajectory_table"]]
+        velocity = self.max_flow_m3h / 3600 / (math.pi / 4 * min(ids) ** 2)
+        return [
+            {"check": "esp_intake_pressure", "scope": "producer_well", "status": PASS if e["intake_bar"] >= e["min_intake_bar"] - 1e-6 else "FAIL",
+             "value": e["intake_bar"], "limit": f">= {e['min_intake_bar']:g} bar at {e['flow_m3h']:g} m3/h",
+             "reason": f"ESP set at {e['esp_depth_m']:g} m (deepest allowed {e['deepest_allowed_m']:g} m): intake {e['intake_bar']:.2f} bar"},
+            {"check": "tubing_velocity", "scope": "producer_well + injector_well", "status": PASS if velocity <= v_max else "FAIL",
+             "value": velocity, "limit": f"<= {v_max:g} m/s",
+             "reason": f"{self.max_flow_m3h:g} m3/h in ID {min(ids):g} m: {velocity:.2f} m/s"},
+        ]
 
     def _flow_grid(self) -> list[float]:
         """Dispatchable flows: 50 m3/h .. min(300, ESP maximum) on the dispatch step."""
@@ -537,4 +585,4 @@ class Plant:
         bad_days = [r["date"] for r in rows if not r["constraints_pass"]]
         results.append({"check": "daily_constraints", "scope": "plant", "status": PASS if not bad_days else "FAIL", "value": len(bad_days),
                         "limit": "0 days", "reason": f"{len(bad_days)} day(s) failing a daily check" + (f" (first {bad_days[0]})" if bad_days else "")})
-        return results
+        return results + self.engineering

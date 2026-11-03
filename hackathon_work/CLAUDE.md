@@ -41,7 +41,9 @@ quantity is missing, ask the user rather than invent it.
 | Brine cp | 4100 J/(kg·K) | ASSUMED (technical guide illustrative value) |
 | Well fluid props in DPDT | 1030 kg/m³, 0.4 mPa·s, cp 4100 | OFFICIAL/ASSUMED; applied at runtime by patching `gemini_simulator.well_flow.PVTConstantSTP` |
 | HEX/boiler/CHP fluid props | `fluid_density` 1030, `specific_heat` 4100 | same props used on both HEX sides (ASSUMED simplification) |
-| Well trajectory | vertical to 2500 m TVD, ID 0.15 m | ASSUMED |
+| Well trajectory | vertical to 2500 m TVD (deeper in the depth ladder), production/injection tubing ID 0.178 m (7-inch casing) | ASSUMED |
+| ESP setting depth | design variable: shallowest depth (10 m steps, ≥ 100 m above the reservoir) with intake ≥ 30 bar at the flow cap → 660–710 m for s1.8 at 300 m³/h | ASSUMED 30 bar gas-handling limit (GLR 0.8; free gas not modelled); hard engineering check |
+| Tubing velocity | ≤ 4 m/s at the maximum flow (0.178 m ID: 3.35 m/s at 300 m³/h) | ASSUMED guideline; hard engineering check |
 | Roughness | 4.5e-5 m | ASSUMED (commercial steel) |
 | Productivity / injectivity index | 12.1 m³/h/bar (both wells) | DERIVED: 2πkh/(μ ln(re/rw)), k=200 mD, h=100 m, μ=0.4 mPa·s; ASSUMED re/rw=1e4, skin 0 |
 | Injector reservoir pressure | 250 bar | OFFICIAL ("same reservoir") |
@@ -71,7 +73,7 @@ quantity is missing, ask the user rather than invent it.
 | Dispatch | 5 m³/h grid; maintenance windows in May–Sep at lowest H + C/0.7 | ASSUMED |
 | Other well depths | T = 12 + 30·z/1000; P = 250 + ρ·g·(z − 2500) (hydrostatic from the official point); vertical wells, drilled m = 2·n·z | DERIVED |
 | Conventional reference | gas boiler η 0.90 (56.6 kg/GJ) + electric chiller COP 5.0, grid 0.3 kg/kWh → 26 706 t CO₂/yr | ASSUMED (user decision) |
-| Example carry-overs | ESP 10 stages / 650 m (HC27000 curve), separator & filter resistances, splits 0.8/0.2, boiler/CHP η 0.8 | ASSUMED (GEMINI doublet_plant.json values) |
+| Example carry-overs | ESP 10 stages (HC27000 curve; 650 m only as the placement start), separator & filter resistances, splits 0.8/0.2, boiler/CHP η 0.8 | ASSUMED (GEMINI doublet_plant.json values) |
 
 ## Ranking rule (user decision, 2026-11-02)
 1. Hard constraints: pass/fail (daily checker + annual 330-day / never-all-off checks).
@@ -115,11 +117,12 @@ Cascade per active doublet:
   challenge doublet reaches only ~176 m³/h → 300 m³/h needs a different (bigger) pump curve.
 - Surface Δp is linear in Q (filter_a dominates: ~3 bar at 300 m³/h).
 - Deep wells: the HEX gets a primary-side bypass (duty capped so district water ≤ 100 °C and
-  brine ≥ T_wellhead − 40 K). With the ESP fixed at 650 m, ESP intake pressure at 300 m³/h falls
-  with depth (16.5 bar at 2500 m → 7.6 bar at 3250 m → 4.7 bar at 3500 m, cavitation flag);
-  a deeper pump setting would be needed in a real design. Wellhead T > 100 °C from 3000 m
-  exceeds PVTConstantSTP's stated range (constant properties extrapolated). Free gas at the
-  ESP intake (GLR 0.8) is not modelled. 0.15 m tubing at 300 m³/h = 4.7 m/s at every depth.
+  brine ≥ T_wellhead − 40 K). The ESP is placed per design (`Plant.place_esp`): intake rises
+  ~1 bar per 10 m of setting depth, and the intake at a fixed setting falls only slowly with
+  reservoir depth (extra tubing friction), so 660 m (2500 m well) → 710 m (3500 m well).
+  `esp_intake_pressure` and `tubing_velocity` are annual hard checks (`Plant.engineering`).
+  Wellhead T > 100 °C from 3000 m exceeds PVTConstantSTP's stated range (constant properties
+  extrapolated). Free gas at the ESP intake (GLR 0.8) is not modelled.
 - `HeatpumpBasic` is NOT robust: its Nelder-Mead solve diverges at low lift / small sink flow
   (COP ~0, Th_out of hundreds of °C), its `Ts_in_minimum` fallback returns nonsense
   (e.g. 830 °C at COP 1.00), and `get_output()` returns its internal dict (copy it).
@@ -143,9 +146,10 @@ Cascade per active doublet:
   return removed → stops and asks) + scenario B (design loop) → `outputs/agent/decision_log.jsonl`,
   `agent_trace.md`, `designs/` (validated GEMINI brine-chain JSON per candidate), `cache/` (gitignored).
   Design space: n 1–3, flow cap 50–300, ESP s1.0/s1.8, UA 250/500/1000 kW/K, depth 2500–4000 m
-  in 250 m steps; budget 14; `--clear-cache` for honest timings (~0.9 s per annual evaluation).
+  in 250 m steps; budget 14; `--clear-cache` for honest timings (~2 s per annual evaluation incl. ESP placement).
   claude_cli backend: bundled VS Code `claude.exe` if not on PATH (or $CLAUDE_CLI); `-p --output-format
   json --tools "" --no-session-persistence`, neutral cwd; outputs in `outputs/agent/claude_cli/`.
+  `--retrace NOTE` rebuilds agent_trace.md from a saved decision_log.jsonl (no calls, no simulation).
 
 ## Prioritized tasks
 1. [done] `projects/doublet_challenge.json` + run script with logged inputs/outputs.
