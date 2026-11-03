@@ -34,7 +34,8 @@ def union(plants, *, name):
     when the plants put different modules at one place of a circuit (between the same two fixed
     modules); the modules that are always present with a group join it. Alternatives of one place
     sit in series, so that the bypass of those that are off restores each plant's wiring; a module
-    that is not fixed needs a stream pair ``<x>_in``/``<x>_out`` (or a class ``bypass``).
+    that is not fixed needs a stream pair ``<x>_in``/``<x>_out``, a class ``bypass`` or a bypass
+    one of the plants states for it (``set_bypass``), which the union keeps.
 
     A value stated differently in two plants keeps the first plant's value, its options joined
     and its range widened to cover every plant's range. The returned plant has the attribute
@@ -61,6 +62,10 @@ def union(plants, *, name):
     data = _file(files, labels, name, edges, notes)
     data["optional"] = optional
     data["choices"] = {key: dict(groups) for key, (groups, _) in choices.items()}
+    declared = {path: p._bypass[path] for p in plants for path in p._bypass if path in nonfixed}
+    data.pop("bypass", None)
+    if declared:
+        data["bypass"] = {path: dict(pairs) for path, pairs in declared.items()}
     try:
         merged = Plant.from_dict(data)
     except GeminiError as error:
@@ -169,8 +174,10 @@ def _bypasses(plants, labels, present, nonfixed):
     found, missing = {}, []
     for path in nonfixed:
         owner = next(i for i, label in enumerate(labels) if path in present[label])
+        declared = next((p._bypass[path] for p in plants if path in p._bypass), None)
         try:
-            found[path] = superstructure.pairs(plants[owner].get_submodule(path), path)
+            module = plants[owner].get_submodule(path)
+            found[path] = superstructure.pairs(module, path, declared)
         except ValidationError:
             missing.append(f"{path} ({present[labels[owner]][path]})")
     if missing:

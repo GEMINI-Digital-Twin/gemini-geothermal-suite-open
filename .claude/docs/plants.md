@@ -336,6 +336,11 @@ several concrete plants, so that a search of structures holds each of them:
   `"path.port"`, the type `state` included). Plants that no such series reproduces (two orders of
   the same modules, another connection between fixed modules, a module port at two places) raise
   `invalid_design` naming the plants and the connection.
+- **Bypasses stated on the plants.** A module that is not fixed and has no pair may carry a bypass
+  one of the plants states (`set_bypass`); the union keeps it. A whole branch that some plants
+  lack (a splitter and a mixer around a drive circuit) is not merged: the series of a union holds
+  one path per place, so such a superstructure is built by hand with `set_bypass` (as
+  `examples/hackathon_superstructure` is), and the union raises naming the connection.
 
 Of the six plants of `examples/hackathon_2026`, `HeatingCoolingPlant`, `HeatingFullCoolingPlant`
 and `HeatingAbsorptionCoolingPlant` merge into exactly the wiring and modules of the hand-built
