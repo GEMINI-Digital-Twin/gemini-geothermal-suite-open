@@ -41,6 +41,7 @@ def _evolved(study, plant, case):
         study.seed,
         population=study.population,
         polish=study.polish,
+        stop=study.stop,
     )
     return found["best"]["plant"], found, None
 

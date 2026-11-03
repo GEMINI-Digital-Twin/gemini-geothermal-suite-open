@@ -223,7 +223,17 @@ def test_the_result_is_plain_json(evolving, case):
     """``to_dict`` dumps as it is, with each plant as its plant dict."""
     found = evolved(case, objectives=["lcts", "co2"])
     plain = json.loads(json.dumps(found.to_dict(), allow_nan=False))
-    assert set(plain) == {"best", "front", "history", "evaluations", "invalid"}
+    assert set(plain) == {
+        "best",
+        "front",
+        "history",
+        "evaluations",
+        "invalid",
+        "structures",
+        "rejected",
+        "objectives",
+        "budget",
+    }
     assert plain["best"]["plant"] == found["best"]["plant"].to_dict()
     assert plain["best"]["metrics"]["lcts"].keys() == {"value", "unit"}
     assert plain["best"]["parameters"]["x"] is found["best"]["structure"]["x"]
@@ -305,7 +315,7 @@ def test_the_kinds_list_evolve_with_its_settings():
     assert item["use"] == "method" and item["title"] and item["description"].endswith(".")
     settings = item["settings"]
     assert settings["required"] == ["objectives", "evaluations", "population", "seed", "polish"]
-    assert set(settings["properties"]) == set(settings["required"])
+    assert set(settings["properties"]) == set(settings["required"]) | {"stop"}
     assert settings["additionalProperties"] is False
     assert settings["properties"]["population"]["minimum"] == 2
     assert settings["properties"]["polish"]["minimum"] == 0

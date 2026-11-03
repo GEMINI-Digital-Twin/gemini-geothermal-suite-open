@@ -75,6 +75,11 @@ SETTINGS = {
         "How many of the best designs are refined afterwards by a search of their values; 0 for "
         "none.",
     ),
+    "stop": (
+        "Stop early",
+        "Ends the search before its budget: after a number of generations with no new best "
+        "design, or after a time limit. Leave it out to use the whole budget.",
+    ),
     "seed": (
         "Random seed",
         "A whole number that fixes the random choices: the same seed gives the same study.",

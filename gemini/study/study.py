@@ -12,10 +12,12 @@ from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import Issue, raise_issues
 from gemini.evaluate import compare
 from gemini.plants import Plant
+from gemini.plants._utils import superstructure
 from gemini.study._utils.execute import executed, trials
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.progress import counting
 from gemini.study._utils.trial import checked_metric
+from gemini.study.evolve import checked_stop
 from gemini.study.result import Run, StudyResult
 from gemini.units import inputs
 
@@ -25,9 +27,9 @@ METHODS = ("run", "minimize", "sample", "sensitivity", "evolve")
 PREPARE = ("size",)
 """The actions that can run before the method."""
 KEYS = (*HEADER, "cases", "plants", "prepare", "method", "objective", "metrics")
-KEYS += ("evaluations", "samples", "seed", "objectives", "population", "polish")
+KEYS += ("evaluations", "samples", "seed", "objectives", "population", "polish", "stop")
 SETTING_KEYS = ("objective", "metrics", "evaluations", "samples", "seed")
-SETTING_KEYS += ("objectives", "population", "polish")
+SETTING_KEYS += ("objectives", "population", "polish", "stop")
 """The settings of the methods, each ``None`` when the file does not give it."""
 REQUIRED = {
     "run": (),
@@ -43,6 +45,7 @@ OWN = {
     "seed": ("minimize", "sample", "evolve"),
     "objectives": ("evolve",),
     "population": ("evolve",),
+    "stop": ("evolve",),
     "polish": ("evolve",),
 }
 """The keys that only some methods read; another method refuses them rather than ignore them."""
@@ -93,7 +96,21 @@ def _objectives(data, issues):
         message = f"objectives = {found!r}; expected a metric or a list of metrics"
         _issue(issues, "objectives", "incompatible", message)
         return None
+    names = [name.removeprefix("-") for name in listed]
+    if len(set(names)) != len(names):
+        message = f"objectives = {found!r}; expected each metric once"
+        _issue(issues, "objectives", "incompatible", message)
     return tuple(_known(name, f"objectives[{n}]", issues) for n, name in enumerate(listed))
+
+
+def _stop(data, issues):
+    """Return the ``stop`` of an ``evolve`` study, or ``None`` with an issue."""
+    try:
+        checked_stop(data["stop"])
+    except ValidationError as error:
+        _issue(issues, "stop", "incompatible", str(error))
+        return None
+    return dict(data["stop"])
 
 
 def _known(name, path, issues):
@@ -114,7 +131,7 @@ class Study:
     ``sensitivity`` or ``evolve``), the ``objective`` and ``metrics`` and the settings the method
     needs: ``evaluations`` and ``seed`` for ``minimize``, ``samples`` and ``seed`` for ``sample``,
     ``objectives`` (a metric or a list), ``evaluations``, ``population``, ``seed`` and ``polish``
-    for ``evolve``. A
+    for ``evolve``, which also reads an optional ``stop``. A
     setting has no default: one that the method needs and the file lacks is a ``missing`` issue,
     and one that the method does not read is refused. ``run`` calls the functions of ``gm.study``
     for every plant on every case; there is no second implementation.
@@ -125,7 +142,7 @@ class Study:
     Attributes
     ----------
     name, cases, plants, prepare, method, objective, metrics, evaluations, samples, seed,
-    objectives, population, polish
+    objectives, population, polish, stop
         As in the file; absent settings are ``None``.
     """
 
@@ -235,6 +252,12 @@ class Study:
         for key in ("evaluations", "samples", "seed", "population", "polish"):
             if key in data:
                 found[key] = _whole(data, key, issues)
+        if "stop" in data:
+            found["stop"] = _stop(data, issues)
+        budget, population = found["evaluations"], found["population"]
+        if method == "evolve" and budget and population and budget < population:
+            message = f"evaluations = {budget}; expected at least the population, {population}"
+            _issue(issues, "evaluations", "incompatible", message)
         return found
 
     def to_dict(self):
@@ -248,6 +271,7 @@ class Study:
             if getattr(self, key) is not None:
                 value = getattr(self, key)
                 data[key] = list(value) if key in ("metrics", "objectives") else value
+                data[key] = dict(value) if key == "stop" else data[key]
         return data
 
     def to_json(self, path):
@@ -276,6 +300,15 @@ class Study:
             "objectives": {"anyOf": [{"type": "string"}, names]},
             "population": {"type": "integer", "minimum": 2},
             "polish": {"type": "integer", "minimum": 0},
+            "stop": {
+                "type": "object",
+                "additionalProperties": False,
+                "minProperties": 1,
+                "properties": {
+                    "generations": {"type": "integer", "minimum": 1},
+                    "seconds": {"type": "number", "exclusiveMinimum": 0},
+                },
+            },
         }
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -322,11 +355,14 @@ class Study:
     def _unready(self, plant, case):
         """Return the issues of ``gm.check`` for one pair that the method itself would raise."""
         sized = "size" in self.prepare
-        return [
+        found = [
             item
             for item in check(plant, case)
             if not (sized and item.kind == "missing" and item.path.startswith("params."))
         ]
+        if self.method == "evolve" and (plant.optional or plant.choices):
+            found += superstructure.none_valid(plant, Plant)
+        return found
 
     @property
     def names(self):
