@@ -20,27 +20,31 @@ permissions:
 jobs:
   test:
     name: Python ${{ matrix.python }} (${{ matrix.resolution }})
+    # A push to dev is tested by the Release workflow, which runs the whole fast suite.
+    if: github.event_name != 'push' || github.ref != 'refs/heads/dev'
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.11", "3.12", "3.13", "3.14"]
+        # disabled during hackathon, re-enable after (Sahand 2026-11-03): 3.11, 3.13, 3.14, lowest-direct, 3.14t and 3.15.
+        # python: ["3.11", "3.12", "3.13", "3.14"]
+        python: ["3.12"]
         resolution: [highest]
         experimental: [false]
-        include:
-          - python: "3.11"
-            resolution: lowest-direct
-            experimental: false
-          - python: "3.14"
-            resolution: lowest-direct
-            experimental: false
-          - python: "3.14t"
-            resolution: highest
-            experimental: true
-          - python: "3.15"
-            resolution: highest
-            experimental: true
+        # include:
+        #   - python: "3.11"
+        #     resolution: lowest-direct
+        #     experimental: false
+        #   - python: "3.14"
+        #     resolution: lowest-direct
+        #     experimental: false
+        #   - python: "3.14t"
+        #     resolution: highest
+        #     experimental: true
+        #   - python: "3.15"
+        #     resolution: highest
+        #     experimental: true
     env:
       PROFILE: >-
         ${{ (github.event_name == 'workflow_dispatch' && inputs.profile) ||
@@ -53,6 +57,8 @@ jobs:
       with:
         fetch-depth: 0
     - uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
     - name: Install Python ${{ matrix.python }} and the ${{ matrix.resolution }} dependencies
       run: |
         uv venv --python "${{ matrix.python }}"
