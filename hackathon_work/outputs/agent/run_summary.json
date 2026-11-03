@@ -1,14 +1,14 @@
 {
   "backend": "rules",
-  "total_runtime_s": 19.266328700003214,
+  "total_runtime_s": 18.336555199930444,
   "status": "selected",
   "timing": {
     "evaluations": 9,
     "computed": 9,
     "cached": 0,
-    "wall_s_per_computed_evaluation_mean": 2.1324960333295166,
-    "wall_s_per_computed_evaluation_max": 4.0900106999324635,
-    "scenario_runtime_s": 19.256623500026762,
+    "wall_s_per_computed_evaluation_mean": 2.028629711091829,
+    "wall_s_per_computed_evaluation_max": 3.9244265999877825,
+    "scenario_runtime_s": 18.326464899932034,
     "backend_calls": 0,
     "backend_wall_s": 0
   },
@@ -53,7 +53,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.4% (needs >= 5%), marginal abatement 1.641 t CO2/yr per extra metre drilled",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled",
         "rank": 5
       }
     },
@@ -98,7 +98,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.9% (needs >= 5%), marginal abatement 1.229 t CO2/yr per extra metre drilled",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled",
         "rank": 4
       }
     },
@@ -113,7 +113,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.7% (needs >= 5%), marginal abatement 0.890 t CO2/yr per extra metre drilled",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.744% (needs >= 5% beyond the tie tolerance), marginal abatement 0.890 t CO2/yr per extra metre drilled",
         "rank": 3
       }
     },
@@ -143,7 +143,8 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +5.0% (needs >= 5%), marginal abatement 0.257 t CO2/yr per extra metre drilled",
+        "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +4.994% (needs >= 5% beyond the tie tolerance), marginal abatement 0.257 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)",
+        "marginal": true,
         "rank": 6
       }
     },
@@ -158,9 +159,25 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; extra doublet: external gas +0.0%, emissions +0.0% (needs >= 5% on either)",
+        "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; extra doublet: external gas +0.0%, emissions +0.0% (needs >= 5% on either, beyond the tie tolerance)",
+        "marginal": false,
         "rank": 2
       }
+    }
+  ],
+  "marginal_cases": [
+    {
+      "candidate": "n2_q300_s1.8_ua1000_z3500",
+      "depth_m": 3500,
+      "emissions_t": 4890.791068599023,
+      "T_wellhead_max_C": 114.08017120386583,
+      "pvt_temperature_max_C": 100.0,
+      "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +4.994% (needs >= 5% beyond the tie tolerance), marginal abatement 0.257 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)",
+      "from_depth_m": 3250,
+      "emissions_change": -0.049938635144374695,
+      "marginal_abatement_t_per_yr_per_m": 0.2570775318068518,
+      "T_wellhead_max_from_C": 106.982392517619,
+      "text": "n2_q300_s1.8_ua1000_z3500 (3500 m) changes emissions -4.994% vs 3250 m (0.26 t CO2/yr per extra metre), within the tie tolerance of the 5% threshold, so it is not taken (drilling cost and risk not modelled); its wellhead reaches 114.1 C vs 107.0 C at 3250 m, further above the 100 C brine-property (PVTConstantSTP) range."
     }
   ],
   "judges_tests": [

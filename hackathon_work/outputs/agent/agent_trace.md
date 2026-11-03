@@ -1,6 +1,6 @@
 # Design agent trace (rules backend)
 
-Generated 2026-11-03 04:46 UTC from `decision_log.jsonl` (63 logged steps). Rerun: `$env:PYTHONPATH="src"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend rules`.
+Generated 2026-11-03 04:55 UTC from `decision_log.jsonl` (63 logged steps). Rerun: `$env:PYTHONPATH="src"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend rules`.
 
 ## Judges' agent-reasoning tests
 
@@ -16,23 +16,31 @@ Generated 2026-11-03 04:46 UTC from `decision_log.jsonl` (63 logged steps). Reru
 | # | Candidate | T_res (C) | ESP set (m) / intake (bar) | Feasible | External gas (GWh) | Emissions (t) | Grid import (GWh) | Drilled (m) | Wall (s) | Final verdict |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | n1_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | no (never_all_off) | 28.597 | 12968 | 11.91 | 5000 | 0.8 | REJECTED (rank 9) |
-| 2 | n2_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | yes | 0.002 | 8908 | 12.01 | 10000 | 0.9 | REJECTED (rank 5) |
-| 3 | n2_q300_s1.8_ua500_z2500 | 87 | 660 / 30.3 | yes | 0.008 | 9036 | 12.50 | 10000 | 1.4 | REJECTED (rank 7) |
+| 2 | n2_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | yes | 0.002 | 8908 | 12.01 | 10000 | 0.8 | REJECTED (rank 5) |
+| 3 | n2_q300_s1.8_ua500_z2500 | 87 | 660 / 30.3 | yes | 0.008 | 9036 | 12.50 | 10000 | 1.1 | REJECTED (rank 7) |
 | 4 | n2_q300_s1.0_ua1000_z2500 | 87 | 530 / 30.7 | yes | 8.090 | 9429 | 11.49 | 10000 | 2.1 | REJECTED (rank 8) |
-| 5 | n2_q300_s1.8_ua1000_z2750 | 94 | 670 / 30.1 | yes | 0.006 | 7267 | 7.83 | 11000 | 2.3 | REJECTED (rank 4) |
+| 5 | n2_q300_s1.8_ua1000_z2750 | 94 | 670 / 30.1 | yes | 0.006 | 7267 | 7.83 | 11000 | 2.2 | REJECTED (rank 4) |
 | 6 | n2_q300_s1.8_ua1000_z3000 | 102 | 690 / 31.0 | yes | 0.004 | 6038 | 4.66 | 12000 | 2.2 | REJECTED (rank 3) |
-| 7 | n2_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 13000 | 4.1 | ACCEPTED (rank 1) |
-| 8 | n2_q300_s1.8_ua1000_z3500 | 117 | 710 / 30.7 | yes | 0.016 | 4891 | 0.80 | 14000 | 1.4 | REJECTED (rank 6) |
-| 9 | n3_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 19500 | 4.0 | REJECTED (rank 2) |
+| 7 | n2_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 13000 | 3.9 | ACCEPTED (rank 1) |
+| 8 | n2_q300_s1.8_ua1000_z3500 | 117 | 710 / 30.7 | yes | 0.016 | 4891 | 0.80 | 14000 | 1.3 | REJECTED (rank 6) |
+| 9 | n3_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 19500 | 3.9 | REJECTED (rank 2) |
 
 ## Final pick
 
-Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected). Selected n2_q300_s1.8_ua1000_z3250 (110 C reservoir): selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 80.7% lower emissions, external gas 0.004 vs 124.1 GWh, grid import 1.84 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 107.0 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule.
+Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected, marginal). Selected n2_q300_s1.8_ua1000_z3250 (110 C reservoir): selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 80.7% lower emissions, external gas 0.004 vs 124.1 GWh, grid import 1.84 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 107.0 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule. Marginal sensitivity case: n2_q300_s1.8_ua1000_z3500 (3500 m) changes emissions -4.994% vs 3250 m (0.26 t CO2/yr per extra metre), within the tie tolerance of the 5% threshold, so it is not taken (drilling cost and risk not modelled); its wellhead reaches 114.1 C vs 107.0 C at 3250 m, further above the 100 C brine-property (PVTConstantSTP) range.
+
+## Marginal sensitivity cases
+
+Rejected only because the step improvement is within the tie tolerance of the 5% threshold, which counts as not met (conservative: drilling cost and risk are not modelled).
+
+| Candidate | Step | Emissions change | Abatement (t/yr per m) | Wellhead T max (C) |
+|---|---|---|---|---|
+| n2_q300_s1.8_ua1000_z3500 | 3250 -> 3500 m | -4.994% | 0.26 | 114.1 (vs 107.0; PVT range <= 100) |
 
 ## Runtime
 
-- Annual evaluations: 9 (9 computed, 0 from cache); computed wall time mean 2.1 s, max 4.1 s
-- Scenario B runtime: 19.3 s; scenario A runtime: 0.0 s
+- Annual evaluations: 9 (9 computed, 0 from cache); computed wall time mean 2.0 s, max 3.9 s
+- Scenario B runtime: 18.3 s; scenario A runtime: 0.0 s
 - Backend calls: 0 (0.0 s)
 
 ## Scenario A: heating return temperature removed from the inputs
@@ -141,7 +149,7 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | 300 | 53.4 | 4.61 / 85.5 | 0.59 | 30.3 / 74.5 | 0.526 | 225.2 | 3.3 |
 
 **21. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z2500**
-> FEASIBLE: external gas 0.002 GWh, emissions 8908 t, grid import 12.01 GWh, drilled 10000 m (0.9 s)
+> FEASIBLE: external gas 0.002 GWh, emissions 8908 t, grid import 12.01 GWh, drilled 10000 m (0.8 s)
 
 **22. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z2500
@@ -166,7 +174,7 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | 300 | 53.4 | 4.61 / 85.5 | 0.59 | 30.3 / 74.5 | 0.526 | 225.2 | 3.3 |
 
 **26. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua500_z2500**
-> FEASIBLE: external gas 0.008 GWh, emissions 9036 t, grid import 12.50 GWh, drilled 10000 m (1.4 s)
+> FEASIBLE: external gas 0.008 GWh, emissions 9036 t, grid import 12.50 GWh, drilled 10000 m (1.1 s)
 
 **27. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z2500
@@ -219,7 +227,7 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | 300 | 54.1 | 4.61 / 92.7 | 0.78 | 30.1 / 75.6 | 0.541 | 250.5 | 3.3 |
 
 **36. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z2750**
-> FEASIBLE: external gas 0.006 GWh, emissions 7267 t, grid import 7.83 GWh, drilled 11000 m (2.3 s)
+> FEASIBLE: external gas 0.006 GWh, emissions 7267 t, grid import 7.83 GWh, drilled 11000 m (2.2 s)
 
 **37. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z2750 (was n2_q300_s1.8_ua1000_z2500)
@@ -227,13 +235,13 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | Candidate | Rank | Verdict | Reason |
 |---|---|---|---|
 | n2_q300_s1.8_ua1000_z2750 | 1 | ACCEPTED | selected: feasible; external gas 0.0061 GWh, emissions 7267 t, grid import 7.83 GWh, 2 doublets, 11000 m drilled |
-| n2_q300_s1.8_ua1000_z2500 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.4% (needs >= 5%), marginal abatement 1.641 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2500 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua500_z2500 | 3 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n2_q300_s1.0_ua1000_z2500 | 4 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 5 | REJECTED | fails hard constraints: annual checks |
 
 **38. [depth_step] Depth step 2500 -> 2750 m**
-> Emissions 8908 -> 7267 t (-18.4%) for +1000 m drilled: 1.641 t CO2/yr per extra metre. ACCEPTED (>= 5%).
+> Emissions 8908 -> 7267 t (-18.4%) for +1000 m drilled: 1.641 t CO2/yr per extra metre. ACCEPTED (>= 5% beyond the tie tolerance).
 
 **39. [propose] Proposal n2_q300_s1.8_ua1000_z3000**
 >  Depth ladder from incumbent n2_q300_s1.8_ua1000_z2750: 2750 -> 3000 m (reservoir 102.0 C) to cut the heat-pump lift; accepted only if emissions improve >= 5% vs the 2750 m design.
@@ -258,14 +266,14 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | Candidate | Rank | Verdict | Reason |
 |---|---|---|---|
 | n2_q300_s1.8_ua1000_z3000 | 1 | ACCEPTED | selected: feasible; external gas 0.0044 GWh, emissions 6038 t, grid import 4.66 GWh, 2 doublets, 12000 m drilled |
-| n2_q300_s1.8_ua1000_z2750 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.9% (needs >= 5%), marginal abatement 1.229 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z2500 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.4% (needs >= 5%), marginal abatement 1.641 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2750 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2500 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua500_z2500 | 4 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n2_q300_s1.0_ua1000_z2500 | 5 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 6 | REJECTED | fails hard constraints: annual checks |
 
 **44. [depth_step] Depth step 2750 -> 3000 m**
-> Emissions 7267 -> 6038 t (-16.9%) for +1000 m drilled: 1.229 t CO2/yr per extra metre. ACCEPTED (>= 5%).
+> Emissions 7267 -> 6038 t (-16.9%) for +1000 m drilled: 1.229 t CO2/yr per extra metre. ACCEPTED (>= 5% beyond the tie tolerance).
 
 **45. [propose] Proposal n2_q300_s1.8_ua1000_z3250**
 >  Depth ladder from incumbent n2_q300_s1.8_ua1000_z3000: 3000 -> 3250 m (reservoir 109.5 C) to cut the heat-pump lift; accepted only if emissions improve >= 5% vs the 3000 m design.
@@ -282,7 +290,7 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | 300 | 55.5 | 4.61 / 107.0 | 1.30 | 30.9 / 78.8 | 0.570 | 301.0 | 3.3 |
 
 **48. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z3250**
-> FEASIBLE: external gas 0.004 GWh, emissions 5148 t, grid import 1.84 GWh, drilled 13000 m (4.1 s)
+> FEASIBLE: external gas 0.004 GWh, emissions 5148 t, grid import 1.84 GWh, drilled 13000 m (3.9 s)
 
 **49. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3250 (was n2_q300_s1.8_ua1000_z3000)
@@ -290,15 +298,15 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | Candidate | Rank | Verdict | Reason |
 |---|---|---|---|
 | n2_q300_s1.8_ua1000_z3250 | 1 | ACCEPTED | selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled |
-| n2_q300_s1.8_ua1000_z3000 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.7% (needs >= 5%), marginal abatement 0.890 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z2750 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.9% (needs >= 5%), marginal abatement 1.229 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z2500 | 4 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.4% (needs >= 5%), marginal abatement 1.641 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z3000 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.744% (needs >= 5% beyond the tie tolerance), marginal abatement 0.890 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2750 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2500 | 4 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua500_z2500 | 5 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n2_q300_s1.0_ua1000_z2500 | 6 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 7 | REJECTED | fails hard constraints: annual checks |
 
 **50. [depth_step] Depth step 3000 -> 3250 m**
-> Emissions 6038 -> 5148 t (-14.7%) for +1000 m drilled: 0.890 t CO2/yr per extra metre. ACCEPTED (>= 5%).
+> Emissions 6038 -> 5148 t (-14.7%) for +1000 m drilled: 0.890 t CO2/yr per extra metre. ACCEPTED (>= 5% beyond the tie tolerance).
 
 **51. [propose] Proposal n2_q300_s1.8_ua1000_z3500**
 >  Depth ladder from incumbent n2_q300_s1.8_ua1000_z3250: 3250 -> 3500 m (reservoir 117.0 C) to cut the heat-pump lift; accepted only if emissions improve >= 5% vs the 3250 m design.
@@ -315,7 +323,7 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | 300 | 56.2 | 4.61 / 114.1 | 1.64 | 30.7 / 79.8 | 0.584 | 326.2 | 3.3 |
 
 **54. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z3500**
-> FEASIBLE: external gas 0.016 GWh, emissions 4891 t, grid import 0.80 GWh, drilled 14000 m (1.4 s)
+> FEASIBLE: external gas 0.016 GWh, emissions 4891 t, grid import 0.80 GWh, drilled 14000 m (1.3 s)
 
 **55. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3250
@@ -323,19 +331,19 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | Candidate | Rank | Verdict | Reason |
 |---|---|---|---|
 | n2_q300_s1.8_ua1000_z3250 | 1 | ACCEPTED | selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled |
-| n2_q300_s1.8_ua1000_z3000 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.7% (needs >= 5%), marginal abatement 0.890 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z2750 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.9% (needs >= 5%), marginal abatement 1.229 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z2500 | 4 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.4% (needs >= 5%), marginal abatement 1.641 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z3500 | 5 | REJECTED | parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +5.0% (needs >= 5%), marginal abatement 0.257 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z3000 | 2 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.744% (needs >= 5% beyond the tie tolerance), marginal abatement 0.890 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2750 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2500 | 4 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z3500 | 5 | REJECTED | parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +4.994% (needs >= 5% beyond the tie tolerance), marginal abatement 0.257 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case) |
 | n2_q300_s1.8_ua500_z2500 | 6 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n2_q300_s1.0_ua1000_z2500 | 7 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 8 | REJECTED | fails hard constraints: annual checks |
 
 **56. [depth_step] Depth step 3250 -> 3500 m**
-> Emissions 5148 -> 4891 t (-5.0%) for +1000 m drilled: 0.257 t CO2/yr per extra metre. REJECTED by the depth parsimony rule (< 5%).
+> Emissions 5148 -> 4891 t (-5.0%) for +1000 m drilled: 0.257 t CO2/yr per extra metre. REJECTED: within the tie tolerance of the 5% threshold, which counts as not met (conservative: drilling cost and risk are not modelled); recorded as a marginal sensitivity case.
 
 **57. [propose] Proposal n3_q300_s1.8_ua1000_z3250**
-> Previous candidate n2_q300_s1.8_ua1000_z3500 was ranked out (parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +5.0% (needs >= 5%), marginal abatement 0.257 t CO2/yr per extra metre drilled); keep incumbent n2_q300_s1.8_ua1000_z3250. Depth step to 3500 m failed the parsimony rule; stop exploring deeper (accepted depth stays 3250 m). Variant of incumbent n2_q300_s1.8_ua1000_z3250: More doublets: accepted only if external gas or emissions improve by >= 5%.
+> Previous candidate n2_q300_s1.8_ua1000_z3500 was ranked out (parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +4.994% (needs >= 5% beyond the tie tolerance), marginal abatement 0.257 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)); keep incumbent n2_q300_s1.8_ua1000_z3250. Depth step to 3500 m failed the parsimony rule; stop exploring deeper (accepted depth stays 3250 m). Variant of incumbent n2_q300_s1.8_ua1000_z3250: More doublets: accepted only if external gas or emissions improve by >= 5%.
 
 **58. [build_json] GEMINI JSON for n3_q300_s1.8_ua1000_z3250**
 > GEMINI load_project accepted the brine-chain file; all connections and boundary inputs reference declared components.
@@ -349,7 +357,7 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | 300 | 55.5 | 4.61 / 107.0 | 1.30 | 30.9 / 78.8 | 0.570 | 301.0 | 3.3 |
 
 **60. [evaluate] Annual model + constraint check: n3_q300_s1.8_ua1000_z3250**
-> FEASIBLE: external gas 0.004 GWh, emissions 5148 t, grid import 1.84 GWh, drilled 19500 m (4.0 s)
+> FEASIBLE: external gas 0.004 GWh, emissions 5148 t, grid import 1.84 GWh, drilled 19500 m (3.9 s)
 
 **61. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3250
@@ -357,11 +365,11 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 | Candidate | Rank | Verdict | Reason |
 |---|---|---|---|
 | n2_q300_s1.8_ua1000_z3250 | 1 | ACCEPTED | selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled |
-| n3_q300_s1.8_ua1000_z3250 | 2 | REJECTED | parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; extra doublet: external gas +0.0%, emissions +0.0% (needs >= 5% on either) |
-| n2_q300_s1.8_ua1000_z3000 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.7% (needs >= 5%), marginal abatement 0.890 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z2750 | 4 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.9% (needs >= 5%), marginal abatement 1.229 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z2500 | 5 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.4% (needs >= 5%), marginal abatement 1.641 t CO2/yr per extra metre drilled |
-| n2_q300_s1.8_ua1000_z3500 | 6 | REJECTED | parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +5.0% (needs >= 5%), marginal abatement 0.257 t CO2/yr per extra metre drilled |
+| n3_q300_s1.8_ua1000_z3250 | 2 | REJECTED | parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; extra doublet: external gas +0.0%, emissions +0.0% (needs >= 5% on either, beyond the tie tolerance) |
+| n2_q300_s1.8_ua1000_z3000 | 3 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +14.744% (needs >= 5% beyond the tie tolerance), marginal abatement 0.890 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2750 | 4 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z2500 | 5 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
+| n2_q300_s1.8_ua1000_z3500 | 6 | REJECTED | parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +4.994% (needs >= 5% beyond the tie tolerance), marginal abatement 0.257 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case) |
 | n2_q300_s1.8_ua500_z2500 | 7 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n2_q300_s1.0_ua1000_z2500 | 8 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 9 | REJECTED | fails hard constraints: annual checks |
@@ -370,5 +378,5 @@ Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1
 > No untried variant can change the pick within the design space and the parsimony rules.
 
 **63. [final] Final pick: n2_q300_s1.8_ua1000_z3250**
-> Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected). Selected n2_q300_s1.8_ua1000_z3250 (110 C reservoir): selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 80.7% lower emissions, external gas 0.004 vs 124.1 GWh, grid import 1.84 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 107.0 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule.
+> Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected, marginal). Selected n2_q300_s1.8_ua1000_z3250 (110 C reservoir): selected: feasible; external gas 0.0038 GWh, emissions 5148 t, grid import 1.84 GWh, 2 doublets, 13000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 80.7% lower emissions, external gas 0.004 vs 124.1 GWh, grid import 1.84 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 107.0 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule. Marginal sensitivity case: n2_q300_s1.8_ua1000_z3500 (3500 m) changes emissions -4.994% vs 3250 m (0.26 t CO2/yr per extra metre), within the tie tolerance of the 5% threshold, so it is not taken (drilling cost and risk not modelled); its wellhead reaches 114.1 C vs 107.0 C at 3250 m, further above the 100 C brine-property (PVTConstantSTP) range.
 

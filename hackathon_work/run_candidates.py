@@ -144,6 +144,25 @@ RANK_TIE_TOLERANCE = [
 ]
 
 
+def tie_tolerance(metric: str, a: float, b: float) -> float:
+    _, abs_tol, rel_tol = next(t for t in RANK_TIE_TOLERANCE if t[0] == metric)
+    return max(abs_tol, rel_tol * max(abs(a), abs(b)))
+
+
+def threshold_test(metric: str, base: float, new: float, threshold: float) -> tuple[bool, bool]:
+    """(meets, marginal) for a parsimony threshold on ``metric``. The saving must exceed
+    threshold * base by more than the metric's tie tolerance; a saving within the tie
+    tolerance of the threshold is marginal and counts as NOT meeting it (conservative:
+    drilling cost and risk are not modelled). Only a saving that is itself larger than
+    the tie tolerance (a real improvement) can be marginal."""
+    if base <= 0:
+        return False, False
+    saving = base - new
+    excess = saving - threshold * base
+    tol = tie_tolerance(metric, base, new)
+    return bool(excess > tol), bool(saving > tol and abs(excess) <= tol)
+
+
 def _rank_value(s: dict, metric: str) -> float:
     return s["candidate"]["n_doublets"] if metric == "n_doublets" else s[metric]
 
@@ -174,7 +193,9 @@ def rank(summaries: list[dict], min_improvement: float, depth_min_improvement: f
     in order of (doublets, depth); a candidate with more doublets replaces the
     incumbent only if it ranks better AND improves external gas or emissions by
     >= ``min_improvement``; a deeper one only if it ranks better AND improves
-    emissions by >= ``depth_min_improvement`` versus the accepted depth.
+    emissions by >= ``depth_min_improvement`` versus the accepted depth. An
+    improvement within the tie tolerance of a threshold does not meet it
+    (threshold_test); such candidates are flagged "marginal".
     """
     depth_min_improvement = min_improvement if depth_min_improvement is None else depth_min_improvement
     def key(s):
@@ -219,23 +240,32 @@ def rank(summaries: list[dict], min_improvement: float, depth_min_improvement: f
         gas_gain = improvement(incumbent["external_gas_fuel_GWh"], s["external_gas_fuel_GWh"])
         em_gain = improvement(incumbent["emissions_t"], s["emissions_t"])
         better = compare_ranked(s, incumbent) < 0
-        tests, details = [better], [f"ranks {'better' if better else 'not better'} than {name(incumbent)}"]
+        tests, details, marginal = [better], [f"ranks {'better' if better else 'not better'} than {name(incumbent)}"], False
+        marginal_note = " - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)"
         if level(s)[0] > level(incumbent)[0]:
-            tests.append(max(gas_gain, em_gain) >= min_improvement)
+            gas_ok, gas_marginal = threshold_test("external_gas_fuel_GWh", incumbent["external_gas_fuel_GWh"], s["external_gas_fuel_GWh"], min_improvement)
+            em_ok, em_marginal = threshold_test("emissions_t", incumbent["emissions_t"], s["emissions_t"], min_improvement)
+            step_marginal = not (gas_ok or em_ok) and (gas_marginal or em_marginal)
+            marginal |= step_marginal
+            tests.append(gas_ok or em_ok)
             details.append(f"extra doublet: external gas {gas_gain * 100:+.1f}%, emissions {em_gain * 100:+.1f}% "
-                           f"(needs >= {min_improvement * 100:.0f}% on either)")
+                           f"(needs >= {min_improvement * 100:.0f}% on either, beyond the tie tolerance)" + (marginal_note if step_marginal else ""))
         if level(s)[1] > level(incumbent)[1]:
             extra_m = s["drilled_m"] - incumbent["drilled_m"]
             abatement = (incumbent["emissions_t"] - s["emissions_t"]) / extra_m if extra_m else float("nan")
-            tests.append(em_gain >= depth_min_improvement)
-            details.append(f"deeper {level(incumbent)[1]:g} -> {level(s)[1]:g} m: emissions {em_gain * 100:+.1f}% "
-                           f"(needs >= {depth_min_improvement * 100:.0f}%), marginal abatement {abatement:.3f} t CO2/yr per extra metre drilled")
+            em_ok, em_marginal = threshold_test("emissions_t", incumbent["emissions_t"], s["emissions_t"], depth_min_improvement)
+            step_marginal = not em_ok and em_marginal
+            marginal |= step_marginal
+            tests.append(em_ok)
+            details.append(f"deeper {level(incumbent)[1]:g} -> {level(s)[1]:g} m: emissions {em_gain * 100:+.3f}% "
+                           f"(needs >= {depth_min_improvement * 100:.0f}% beyond the tie tolerance), marginal abatement {abatement:.3f} t CO2/yr "
+                           f"per extra metre drilled" + (marginal_note if step_marginal else ""))
         detail = "; ".join(details)
         if all(tests):
             verdicts[name(incumbent)] = {"status": "REJECTED", "reason": f"superseded by {name(s)}: {detail}"}
             incumbent = s
         else:
-            verdicts[name(s)] = {"status": "REJECTED", "reason": f"parsimony rule not met: {detail}"}
+            verdicts[name(s)] = {"status": "REJECTED", "reason": f"parsimony rule not met: {detail}", "marginal": marginal}
     if incumbent is not None:
         verdicts[name(incumbent)] = {"status": "ACCEPTED", "reason": (
             f"selected: feasible; external gas {incumbent['external_gas_fuel_GWh']:.4f} GWh, emissions "

@@ -132,9 +132,9 @@
   ],
   "feasible": true,
   "case": "HP_eta0.5_nocap",
-  "run_utc": "2026-11-03T04:46:30.742762+00:00",
-  "git_commit": "78639999d3d10f6e62088d52a98925b54f7b2bf7",
-  "runtime_s": 3.5184221267700195,
+  "run_utc": "2026-11-03T04:55:08.116721+00:00",
+  "git_commit": "e5fa0d226684881dda789ae23b4973598bfd1162",
+  "runtime_s": 3.4632720947265625,
   "ranking": {
     "status": "ACCEPTED",
     "reason": "selected: feasible; external gas 0.0063 GWh, emissions 8545 t, grid import 10.70 GWh, 2 doublets, 10000 m drilled",

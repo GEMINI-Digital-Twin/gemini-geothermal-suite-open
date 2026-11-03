@@ -509,7 +509,8 @@ class DesignAgent:
         repeats = 0
         ranking_rule = ("hard constraints pass/fail; then minimize external gas -> emissions -> net grid import -> doublets -> drilled metres "
                         "(values within 1% / 0.01 GWh / 10 t are ties); an extra doublet is kept only if external gas or emissions improve >= 5%; "
-                        "a deeper well (250 m ladder from 2500 m) is kept only if emissions improve >= 5% vs the previous accepted depth")
+                        "a deeper well (250 m ladder from 2500 m) is kept only if emissions improve >= 5% vs the previous accepted depth; "
+                        "an improvement within the tie tolerance of the 5% threshold counts as NOT meeting it (drilling cost and risk not modelled)")
         while self.evaluations < self.budget:
             ctx = {"inputs": inputs, "temperature_assessment": assessment, "limits": self.limits, "design_space": self.space,
                    "history": history, "incumbent": incumbent, "tried_variants": tried_variants,
@@ -566,7 +567,7 @@ class DesignAgent:
                                       + (f"; fails {', '.join(failing)}" if failing else "")
                                       + f" ({result['wall_s']:.1f} s{', cached' if result['cached'] else ''})"))
             history.append({"candidate": candidate, "summary": s, "feasible": s["feasible"], "failing": failing, "metrics": metrics,
-                            "well_flags": result["well_checks"]["flags"], "verdict": None, "wall_s": result["wall_s"], "cached": result["cached"]})
+                            "well_flags": result["well_checks"]["flags"], "well_points": result["well_checks"]["points"], "verdict": None, "wall_s": result["wall_s"], "cached": result["cached"]})
 
             verdicts = rank([dict(h["summary"], candidate={"name": candidate_id(h["candidate"]), **h["candidate"]}) for h in history],
                             self.settings["ranking"]["extra_doublet_min_improvement"], self.settings["ranking"]["depth_step_min_improvement"])
@@ -587,10 +588,13 @@ class DesignAgent:
                                data={"from_m": previous["candidate"]["depth_m"], "to_m": candidate["depth_m"], "emissions_from_t": p["emissions_t"],
                                      "emissions_to_t": s["emissions_t"], "emissions_change": -gain, "extra_drilled_m": extra_m,
                                      "marginal_abatement_t_per_yr_per_m": (p["emissions_t"] - s["emissions_t"]) / extra_m,
-                                     "accepted": incumbent is history[-1]},
+                                     "accepted": incumbent is history[-1], "marginal": history[-1]["verdict"].get("marginal", False)},
                                rationale=(f"Emissions {p['emissions_t']:.0f} -> {s['emissions_t']:.0f} t ({-gain * 100:+.1f}%) for {extra_m:+.0f} m drilled: "
                                           f"{(p['emissions_t'] - s['emissions_t']) / extra_m:.3f} t CO2/yr per extra metre. "
-                                          + ("ACCEPTED (>= 5%)." if incumbent is history[-1] else "REJECTED by the depth parsimony rule (< 5%).")))
+                                          + ("ACCEPTED (>= 5% beyond the tie tolerance)." if incumbent is history[-1]
+                                             else "REJECTED: within the tie tolerance of the 5% threshold, which counts as not met (conservative: "
+                                             "drilling cost and risk are not modelled); recorded as a marginal sensitivity case."
+                                             if history[-1]["verdict"].get("marginal") else "REJECTED by the depth parsimony rule (< 5%).")))
 
         runtime = time.perf_counter() - run_start
         if incumbent is None:
@@ -602,7 +606,9 @@ class DesignAgent:
     def conclude(self, scenario, history, incumbent, runtime):
         steps = [e for e in self.log.entries if e["scenario"] == scenario and e["phase"] == "depth_step"]
         ladder = "; ".join(f"{e['data']['from_m']:g}->{e['data']['to_m']:g} m: {e['data']['emissions_change'] * 100:+.1f}%, "
-                           f"{e['data']['marginal_abatement_t_per_yr_per_m']:.3f} t/yr/m ({'kept' if e['data']['accepted'] else 'rejected'})" for e in steps)
+                           f"{e['data']['marginal_abatement_t_per_yr_per_m']:.3f} t/yr/m "
+                           f"({'kept' if e['data']['accepted'] else 'rejected, marginal' if e['data'].get('marginal') else 'rejected'})" for e in steps)
+        marginal_cases = [self.marginal_case(h, history) for h in history if h["verdict"].get("marginal")]
         ref = reference_summary()
         s = incumbent["summary"]
         reduction = (ref["emissions_t"] - s["emissions_t"]) / ref["emissions_t"]
@@ -618,11 +624,35 @@ class DesignAgent:
                 f"external gas {s['external_gas_fuel_GWh']:.3f} vs {ref['gas_fuel_GWh']:.1f} GWh, grid import {s['grid_import_GWh']:.2f} vs "
                 f"{ref['grid_import_GWh']:.2f} GWh. Well checks at the pick: "
                 + ("; ".join(incumbent["well_flags"]) if incumbent["well_flags"] else "no flags")
-                + ". Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule.")
+                + ". Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule."
+                + "".join(f" Marginal sensitivity case: {m['text']}" for m in marginal_cases))
         self.log.event(scenario, "final", f"Final pick: {candidate_id(incumbent['candidate'])}",
                        data={"pick": incumbent["candidate"], "verdict": incumbent["verdict"], "reference": ref, "emissions_reduction_vs_reference": reduction,
-                             "capacity_MW": s["capacity_MW"], "timing": timing}, rationale=text)
-        return {"reference": ref, "emissions_reduction": reduction, "conclusion": text, "timing": timing}
+                             "capacity_MW": s["capacity_MW"], "timing": timing, "marginal_cases": marginal_cases}, rationale=text)
+        return {"reference": ref, "emissions_reduction": reduction, "conclusion": text, "timing": timing, "marginal_cases": marginal_cases}
+
+    def marginal_case(self, h: dict, history: list[dict]) -> dict:
+        """A candidate rejected only because its step improvement is within the tie tolerance of the threshold."""
+        c = h["candidate"]
+        base = max((x for x in history if x["feasible"] and x["candidate"]["n_doublets"] == c["n_doublets"]
+                    and x["candidate"]["depth_m"] < c["depth_m"]), key=lambda x: x["candidate"]["depth_m"], default=None)
+        t_wh = max(p["T_wellhead_C"] for p in h["well_points"])
+        case = {"candidate": candidate_id(c), "depth_m": c["depth_m"], "emissions_t": h["summary"]["emissions_t"],
+                "T_wellhead_max_C": t_wh, "pvt_temperature_max_C": 100.0, "reason": h["verdict"]["reason"]}
+        if base is not None:
+            b = base["summary"]
+            case.update(from_depth_m=base["candidate"]["depth_m"],
+                        emissions_change=(h["summary"]["emissions_t"] - b["emissions_t"]) / b["emissions_t"],
+                        marginal_abatement_t_per_yr_per_m=(b["emissions_t"] - h["summary"]["emissions_t"]) / (h["summary"]["drilled_m"] - b["drilled_m"]),
+                        T_wellhead_max_from_C=max(p["T_wellhead_C"] for p in base["well_points"]))
+            case["text"] = (f"{case['candidate']} ({c['depth_m']:g} m) changes emissions {case['emissions_change'] * 100:+.3f}% vs "
+                            f"{case['from_depth_m']:g} m ({case['marginal_abatement_t_per_yr_per_m']:.2f} t CO2/yr per extra metre), within the "
+                            f"tie tolerance of the 5% threshold, so it is not taken (drilling cost and risk not modelled); its wellhead reaches "
+                            f"{t_wh:.1f} C vs {case['T_wellhead_max_from_C']:.1f} C at {case['from_depth_m']:g} m, further above the 100 C "
+                            f"brine-property (PVTConstantSTP) range.")
+        else:
+            case["text"] = f"{case['candidate']}: {case['reason']}."
+        return case
 
 
 # --- trace -------------------------------------------------------------------------------
@@ -697,7 +727,17 @@ def write_trace(path, entries, backend, results, note=None):
     lines += ["", "## Evaluations (scenario B)", ""] + evaluation_table(entries)
     if b.get("status") == "selected":
         t = b["timing"]
-        lines += ["", "## Final pick", "", b["conclusion"], "", "## Runtime", "",
+        lines += ["", "## Final pick", "", b["conclusion"], ""]
+        if b.get("marginal_cases"):
+            lines += ["## Marginal sensitivity cases", "",
+                      "Rejected only because the step improvement is within the tie tolerance of the 5% threshold, which counts as not met "
+                      "(conservative: drilling cost and risk are not modelled).", "",
+                      "| Candidate | Step | Emissions change | Abatement (t/yr per m) | Wellhead T max (C) |", "|---|---|---|---|---|"]
+            lines += [f"| {m['candidate']} | {m.get('from_depth_m', float('nan')):g} -> {m['depth_m']:g} m | {m.get('emissions_change', float('nan')) * 100:+.3f}% | "
+                      f"{m.get('marginal_abatement_t_per_yr_per_m', float('nan')):.2f} | {m['T_wellhead_max_C']:.1f} "
+                      f"(vs {m.get('T_wellhead_max_from_C', float('nan')):.1f}; PVT range <= 100) |" for m in b["marginal_cases"]]
+            lines.append("")
+        lines += ["## Runtime", "",
                   f"- Annual evaluations: {t['evaluations']} ({t['computed']} computed, {t['cached']} from cache); "
                   f"computed wall time mean {t['wall_s_per_computed_evaluation_mean'] or 0:.1f} s, max {t['wall_s_per_computed_evaluation_max'] or 0:.1f} s",
                   f"- Scenario B runtime: {t['scenario_runtime_s']:.1f} s; scenario A runtime: "
@@ -780,7 +820,7 @@ def main():
                "pick": b["pick"]["candidate"] if b.get("pick") else None, "pick_summary": {k: b["pick"]["summary"][k] for k in
                ("external_gas_fuel_GWh", "emissions_t", "grid_import_GWh", "drilled_m", "reservoir_temperature_C")} if b.get("pick") else None,
                "evaluated": [{"candidate": h["candidate"], "feasible": h["feasible"], "verdict": h["verdict"]} for h in b.get("history", [])],
-               "judges_tests": tests, "backend_calls": backend.calls}
+               "marginal_cases": b.get("marginal_cases", []), "judges_tests": tests, "backend_calls": backend.calls}
     (out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
 
     print(f"[{backend.name}] Scenario A: {results['A_missing_input']['status']}")

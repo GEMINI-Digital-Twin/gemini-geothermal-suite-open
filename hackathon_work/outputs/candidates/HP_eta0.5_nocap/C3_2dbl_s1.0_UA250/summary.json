@@ -132,9 +132,9 @@
   ],
   "feasible": true,
   "case": "HP_eta0.5_nocap",
-  "run_utc": "2026-11-03T04:46:36.279972+00:00",
-  "git_commit": "78639999d3d10f6e62088d52a98925b54f7b2bf7",
-  "runtime_s": 1.336930751800537,
+  "run_utc": "2026-11-03T04:55:16.454762+00:00",
+  "git_commit": "e5fa0d226684881dda789ae23b4973598bfd1162",
+  "runtime_s": 3.7844154834747314,
   "ranking": {
     "status": "REJECTED",
     "reason": "same doublet count and depth as C1_2dbl_s1.8_UA1000 but ranks lower on external_gas_fuel_GWh: external gas 8.2517 vs 0.0063 GWh, emissions 9290 vs 8545 t, grid import 10.89 vs 10.70 GWh, drilled 10000 vs 10000 m",

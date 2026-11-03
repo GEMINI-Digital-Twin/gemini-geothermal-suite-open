@@ -132,9 +132,9 @@
   ],
   "feasible": true,
   "case": "base",
-  "run_utc": "2026-11-03T04:46:22.762316+00:00",
-  "git_commit": "78639999d3d10f6e62088d52a98925b54f7b2bf7",
-  "runtime_s": 0.9139025211334229,
+  "run_utc": "2026-11-03T04:55:00.956618+00:00",
+  "git_commit": "e5fa0d226684881dda789ae23b4973598bfd1162",
+  "runtime_s": 0.8203141689300537,
   "ranking": {
     "status": "ACCEPTED",
     "reason": "selected: feasible; external gas 0.0020 GWh, emissions 8908 t, grid import 12.01 GWh, 2 doublets, 10000 m drilled",

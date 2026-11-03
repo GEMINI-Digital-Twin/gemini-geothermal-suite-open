@@ -87,6 +87,12 @@ quantity is missing, ask the user rather than invent it.
    - depth is explored in 250 m steps from 2500 m (max 4000 m, ASSUMED); each deeper step
      is accepted only if emissions improve by ≥ 5% vs the previous accepted depth. The
      agent climbs until a step fails and logs the marginal abatement (t CO₂/yr per extra m).
+   - (user decision, 2026-11-03) A depth or doublet step whose improvement is within the
+     tie tolerance of the 5% threshold counts as NOT meeting it (conservative: drilling cost
+     and risk are not modelled): the saving must exceed 5%·base by more than the metric's tie
+     tolerance (`run_candidates.threshold_test`; for emissions max(10 t, 1%) → ≈ 6% in
+     practice). Such candidates are flagged `marginal` and reported as marginal sensitivity
+     cases (3500 m: −4.994%, 0.26 t/yr per m, wellhead 114 °C vs 107 °C at 3250 m).
 4. State ACCEPTED / REJECTED + reason for every candidate (`run_candidates.rank`).
 
 ## Heating architecture (implemented)

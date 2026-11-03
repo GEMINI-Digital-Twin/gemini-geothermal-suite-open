@@ -141,12 +141,13 @@
   ],
   "feasible": true,
   "case": "base",
-  "run_utc": "2026-11-03T04:46:23.914038+00:00",
-  "git_commit": "78639999d3d10f6e62088d52a98925b54f7b2bf7",
-  "runtime_s": 0.9095675945281982,
+  "run_utc": "2026-11-03T04:55:02.029697+00:00",
+  "git_commit": "e5fa0d226684881dda789ae23b4973598bfd1162",
+  "runtime_s": 0.8317041397094727,
   "ranking": {
     "status": "REJECTED",
-    "reason": "parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000; extra doublet: external gas +0.0%, emissions -1.0% (needs >= 5% on either)",
+    "reason": "parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000; extra doublet: external gas +0.0%, emissions -1.0% (needs >= 5% on either, beyond the tie tolerance)",
+    "marginal": false,
     "rank": 2
   }
 }
