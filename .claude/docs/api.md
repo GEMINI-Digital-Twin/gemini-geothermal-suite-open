@@ -914,6 +914,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.5.8 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). A trial takes about 14% less CPU; every table and number is the same as 0.5.7. |
 | 0.5.7 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). A study runs about a third faster; every number and the output of the examples are the same as 0.5.6. |
 | 0.5.6 | 2026-11-03 | **Fix, no API change** (the frozen file unchanged). `effectiveness_counterflow` and `logarithmic_mean` keep their digits near equal rates and near equal values, so the split of the heat no longer depends on the last bit of a calculation; the numbers of days with equal capacity rates in a counterflow exchanger change on purpose (LCTS of the sample plants by at most 0.15%; no rank or feasibility changes). |
 | 0.5.5 | 2026-11-02 | **First published package, no API change** (the frozen file unchanged). `pydantic>=2.10.0` is required, `doc` of `describe` has no indentation on every Python, and each new version on `dev` goes to a GitHub Release and `ghcr.io`. |

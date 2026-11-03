@@ -17,6 +17,7 @@ from gemini.engine.chunks import (
     assemble,
     first_present,
     merge,
+    merged_column,
 )
 from gemini.errors import ValidationError
 from gemini.errors.lookup import UnknownKey
@@ -140,6 +141,7 @@ class Results:
         self._skips = []
         self._frame = None
         self._series = None
+        self._floats = None
         self.declared = dict(declared or {})
         self.quantities = {}
         self.end_state = None
@@ -170,6 +172,7 @@ class Results:
             self._failures.append(dict(error, time=times[row].isoformat()))
         self._frame = None
         self._series = None
+        self._floats = None
 
     def _register(self, chunk):
         """Store a chunk: its new columns, in the order a row-by-row build meets them."""
@@ -207,6 +210,23 @@ class Results:
     def durations(self):
         """Return the duration [s] of every committed tick, as a float array."""
         return np.asarray(self._dt, dtype=float)
+
+    def _float_column(self, name):
+        """Return column ``path.field`` as a read-only float array, ``None`` when the run has none.
+
+        It equals ``np.asarray(to_frame()[name], dtype=float)`` without building a table per read:
+        the evaluation of a trial reads several hundred columns.
+        """
+        if self._floats is None:
+            self._cached_frame()
+            self._floats = {join_path(*key): [key, None] for key in self._order}
+        entry = self._floats.get(name)
+        if entry is None:
+            return None
+        if entry[1] is None:
+            entry[1] = np.array(merged_column(self._chunks[0], *entry[0]), dtype=float)
+            entry[1].flags.writeable = False
+        return entry[1]
 
     def _cached_frame(self):
         """Return the shared table, built once after each append; callers must not change it."""
