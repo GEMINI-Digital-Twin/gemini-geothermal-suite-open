@@ -12,6 +12,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.5.12] - 2026-11-03
+
+The last planned release: from this version gemini is frozen and takes bug fixes only, each as a
+new 0.5.x patch. Every public name, default and number is the same as 0.5.11.
+
+### Changed
+- `docs/rules.md` states the freeze.
+
 ## [0.5.11] - 2026-11-03
 
 Every public name, default and number is the same as 0.5.10.
