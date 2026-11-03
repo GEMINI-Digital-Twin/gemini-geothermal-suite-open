@@ -248,3 +248,59 @@ def test_a_class_is_described_by_a_new_instance():
     assert "values" in gm.modules.Valve().describe()
     with pytest.raises(TypeError):
         gm.modules.Valve.describe()
+
+
+def test_a_list_parameter_is_described_as_a_list_of_its_quantity():
+    """A well path section is a list in one unit, never a number; a number stays a number."""
+    entries = gm.modules.ProductionWell().describe()["parameters"]
+    length = entries["section_length"]
+    assert (length["type"], length["unit"], length["quantity"]) == ("array", "m", "length")
+    assert length["minimum"] == 0
+    assert entries["section_inclination"]["type"] == "array"
+    assert entries["soil_temperature"]["type"] == "number"
+    assert entries["correction_factors"]["type"] == "array"
+
+
+def test_the_schema_of_a_list_parameter_accepts_its_quantity_form():
+    """``{"value": [...], "unit": "m"}`` is the form a list with a unit is given in."""
+    length = gm.modules.ProductionWell().parameter_schema()["properties"]["section_length"]
+    quantity = length["anyOf"][1]
+    assert quantity["required"] == ["value", "unit"]
+    assert quantity["properties"]["value"] == {"type": "array", "items": {"type": "number"}}
+    assert quantity["properties"]["unit"]["enum"] == ["ft", "in", "km", "m", "mm"]
+    assert length["anyOf"][0]["type"] == "array"
+
+
+LIST_FORM = "{'value': [<number>, ...], 'unit': <unit>}"
+
+
+@pytest.mark.parametrize(
+    "value, code",
+    [
+        ([400.0, 150.0], "invalid_value"),
+        ({"value": 400, "unit": "m"}, "invalid_value"),
+        ({"value": [400, 150]}, "invalid_value"),
+        ({"value": [400, 150], "unit": "m3/h"}, "invalid_unit"),
+    ],
+)
+def test_a_wrong_list_value_names_the_list_form(value, code):
+    """The message of a list asks for a list in one unit, and shows what was given."""
+    well = gm.modules.ProductionWell()
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        well.set_params("", {"section_length": value})
+    message = str(caught.value)
+    assert caught.value.code == code
+    assert LIST_FORM in message and "{'value': <number>" not in message
+    assert repr(value) in message and "length" in message
+    (problem,) = well.validate_params({"section_length": value}, on_error="record")
+    assert problem["code"] == code and LIST_FORM in problem["message"]
+
+
+def test_a_list_with_a_negative_length_names_its_bound():
+    """A value outside the bounds of each item keeps its code and its reason."""
+    well = gm.modules.ProductionWell()
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        well.set_params("", {"section_length": {"value": [400, -1], "unit": "m"}})
+    assert caught.value.code == "out_of_bounds" and "greater than or equal to 0" in str(
+        caught.value
+    )

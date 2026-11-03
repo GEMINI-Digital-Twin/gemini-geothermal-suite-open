@@ -213,7 +213,9 @@ measured, state, inlets, outlets, outputs, children, connections, values}`:
   first paragraph of the docstring and `doc` all of it.
 - `parameters`, `controls`, `boundaries`, `measured` and `state` map a name to `{type, unit,
   quantity, default, minimum, maximum, enum, description, section}`. A missing item is `null`;
-  `default` is `null` for `UNSET`. `minimum` and `maximum` are the closest limit, so a strict bound
+  `default` is `null` for `UNSET`. `type` is the JSON type of the value: `array` for a list (the
+  sections of a well path, `section_length`), given as `{"value": [400, 150], "unit": "m"}` with one
+  unit for the list; `unit`, `quantity`, `minimum` and `maximum` then hold for each item. `minimum` and `maximum` are the closest limit, so a strict bound
   (`gt`, `lt`) shows as the bound itself. `enum` comes from a `Literal`. Only the module's own
   declarations are listed; children appear under `children`.
 - `measured` lists every output of the module itself: replay (`engine/bindings.py`) takes a measured
@@ -232,13 +234,17 @@ measured, state, inlets, outlets, outputs, children, connections, values}`:
 parameters appear under their dotted path. Each property has the standard keywords (`type` or
 `anyOf`, `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `enum`, `default`,
 `description`) plus `unit` and `quantity`. A number with a unit is `anyOf` number and string,
-because inputs accept `{"value": 150, "unit": "m3/h"}`.
+because inputs accept `{"value": 150, "unit": "m3/h"}`; a list with a unit is `anyOf` array and
+the object `{"value": [numbers], "unit"}`.
 
 `validate_params(params, on_error="raise")` checks every entry and raises one `ValidationError` that
 carries every problem; with `on_error="record"` it returns them, each
 `{path, code, message, suggestions}`. `path` is the parameter name; the codes are `unknown_name` (with `suggestions`),
 `invalid_unit`, `out_of_bounds` and `invalid_value`. It runs `declaration.validate` once per entry
-and tells the failures apart by the exception and its cause.
+and tells the failures apart by the exception and its cause. The message of a list with a unit
+(a bare list, a single number, no unit or a wrong one) shows the value as given and asks for
+`{'value': [<number>, ...], 'unit': <unit>}` with the units of its quantity; in a plant file a wrong
+or missing unit of a list is one `unit` issue at `<path>.unit`, not one per item.
 
 ## Listing declarations
 

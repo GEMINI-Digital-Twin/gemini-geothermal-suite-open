@@ -62,6 +62,7 @@ from gemini.modules.declarations import (
     Parameter,
     Port,
     State,
+    holds_list,
 )
 from gemini.modules.display import describe, display
 from gemini.modules.results import ModuleResult
@@ -262,7 +263,13 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
             self._parameters.get(name) or self._controls.get(name) or self._boundaries.get(name)
         )
         if declaration is not None and active_call(self) is None:
-            bare.refuse(f"{self.path}.{name}", value, declaration.unit, declaration.quantity)
+            bare.refuse(
+                f"{self.path}.{name}",
+                value,
+                declaration.unit,
+                declaration.quantity,
+                many=holds_list(declaration),
+            )
         self._assign_si(name, value)
 
     def _assign_si(self, name, value):

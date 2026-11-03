@@ -18,6 +18,7 @@ from gemini._utils.strings import close_matches, did_you_mean, join_names, join_
 from gemini._utils.time import EARLIEST, to_utc
 from gemini.errors import ValidationError
 from gemini.modules.bindings import Binding, DatedParams, ModuleBindings
+from gemini.modules.declarations import holds_list
 from gemini.streams.flows import STREAM_FIELDS
 from gemini.units import bare
 
@@ -309,7 +310,7 @@ def refuse_bare(declaration, value, path):
     A public input with a dimension is a ``Quantity`` or its dict: a number alone does not say
     its unit. The message names the path, the quantity and its accepted units.
     """
-    bare.refuse(path, value, declaration.unit, declaration.quantity)
+    bare.refuse(path, value, declaration.unit, declaration.quantity, many=holds_list(declaration))
 
 
 def quantity_form(declaration, value):

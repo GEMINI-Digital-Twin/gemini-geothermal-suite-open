@@ -18,6 +18,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   no `time` at all) or a header without a `name` no longer stops the read before the sections, and
   an economics without a `name` still has its values judged. A series is not aligned while the
   time is wrong and adds no issue of its own. A file of another `kind` is still refused alone.
+- A list parameter with a unit (the sections of a well path: `section_length`,
+  `section_diameter`, ...): `describe()` gives its `type` as `array`, not `number`;
+  `parameter_schema()` accepts `{"value": [...], "unit": "m"}`, the form it is given in; the error
+  of a bare list, a single number, a list without a unit or with a wrong unit, from `set_params`,
+  `validate_params` or attribute assignment, shows the value as given and asks for
+  `{'value': [<number>, ...], 'unit': <unit>}` instead of a number. In a plant file the unit of a
+  list is one issue at `<path>.unit`, not one per item. Codes and paths of other values are
+  unchanged.
 
 ## [0.6.1] - 2026-11-03
 

@@ -6,6 +6,9 @@ from gemini import units
 from gemini._utils.strings import join_names
 from gemini.errors import ValidationError
 
+LIST_FORM = "a Quantity or {'value': [<number>, ...], 'unit': <unit>}, one unit for the list"
+"""How a list with a dimension is written: the numbers in one list and one unit for all."""
+
 
 def is_bare(value):
     """Return whether ``value`` is a number, an array or a list of numbers without a unit."""
@@ -14,12 +17,13 @@ def is_bare(value):
     return isinstance(value, (int, float, list, tuple, np.ndarray, np.generic))
 
 
-def refuse(path, value, unit, quantity=None):
+def refuse(path, value, unit, quantity=None, *, many=False):
     """Raise ``invalid_value`` for a bare number given where the SI ``unit`` is the dimension.
 
     A value with a dimension is a ``Quantity`` or its ``{"value", "unit"}`` dict: a number alone
     does not say its unit. Nothing is raised for a value that is no bare number, or for a
-    dimensionless ``unit`` (``None`` or ``"-"``), which stays a plain number.
+    dimensionless ``unit`` (``None`` or ``"-"``), which stays a plain number. ``many`` is true for
+    a declaration that holds a list, whose form is ``{"value": [...], "unit": ...}``.
     """
     if unit in (None, "-") or not is_bare(value):
         return
@@ -27,8 +31,10 @@ def refuse(path, value, unit, quantity=None):
     if quantity is not None:
         accepted = f"; accepted units: {join_names(units.names(quantity))}"
     named = f"{quantity.replace('_', ' ')} in {unit!r}" if quantity else f"unit {unit!r}"
+    form = LIST_FORM if many else units.QUANTITY_FORM
+    named = f"list of {named}" if many else named
     raise ValidationError(
-        f"{path} = {value!r}; expected {units.QUANTITY_FORM}, because it is a {named}{accepted}",
+        f"{path} = {value!r}; expected {form}, because it is a {named}{accepted}",
         path=path,
         code="invalid_value",
     )
