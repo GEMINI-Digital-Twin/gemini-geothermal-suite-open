@@ -38,6 +38,14 @@ RETRIES = 5
 """Times a child equal to a candidate judged before is mutated again before it is kept as it is."""
 INVALID = LARGEST_VIOLATION + 1.0
 """The violation of a structure whose plant is not valid: worse than any trial that ran."""
+LOCAL_SHARE = 0.25
+"""The share of a generation's children that are local steps from the best candidates."""
+STEP = 0.25
+"""The first local step, a share of the range of a value; it halves while the best stays."""
+SMALLEST_STEP = 0.01
+"""The smallest local step: below it the step starts again from ``STEP``."""
+ENUMERATED = 256
+"""The most structures judged one by one before the search; above, each is judged when drawn."""
 STOP_KEYS = ("generations", "seconds")
 """The keys of ``stop``: generations without a new design on the front, and a time limit."""
 _PLANTS = {}
@@ -393,8 +401,11 @@ class _Archive:
         On the plant's own doublet count the structures judged before the search are known.
         """
         key = (count, tuple(structure.values()))
-        if key not in self.valid and count == self.space.plant.size.get("doublets"):
+        own = count == self.space.plant.size.get("doublets")
+        if key not in self.valid and own and self.space.enumerated:
             self.valid[key] = structure in self.space.valid
+        if key not in self.valid and own:
+            self.valid[key] = _judged_structure(design, self.space, structure)
         if key not in self.valid:
             self.valid[key] = not superstructure.is_valid(design, structure, Plant)[1]
         return self.valid[key]
@@ -862,15 +873,32 @@ def _checked(plant, evaluations, seed, population, polish):
     return space
 
 
+def _count(plant):
+    """Return the number of structures of ``plant``, valid or not."""
+    return int(np.prod([2] * len(plant._optional) + [len(g) for g in plant._choices.values()]))
+
+
+def _judged_structure(plant, space, structure):
+    """Judge one structure: add it to the valid or the refused ones of ``space``; return valid."""
+    issues = superstructure.is_valid(plant, structure, Plant)[1]
+    if issues:
+        reasons = [f"{item.path}: {item.message}" for item in issues[:3]]
+        space.rejected.append({"structure": structure, "reasons": reasons})
+    else:
+        space.valid.append(structure)
+    return not issues
+
+
 def _judge_structures(plant, space):
-    """Set the valid structures of ``space`` and the refused ones with their reasons, or raise."""
+    """Set the valid structures of ``space`` and the refused ones with their reasons, or raise.
+
+    Above ``ENUMERATED`` structures none is judged here: the search judges each when it draws it.
+    """
+    space.enumerated = _count(plant) <= ENUMERATED
+    if not space.enumerated:
+        return
     for structure in superstructure.every(plant):
-        issues = superstructure.is_valid(plant, structure, Plant)[1]
-        if issues:
-            reasons = [f"{item.path}: {item.message}" for item in issues[:3]]
-            space.rejected.append({"structure": structure, "reasons": reasons})
-        else:
-            space.valid.append(structure)
+        _judged_structure(plant, space, structure)
     if not space.valid:
         shown = "; ".join(
             f"{evolution.label(item['structure'])}: {item['reasons'][0]}"
@@ -888,13 +916,32 @@ def _judge_structures(plant, space):
 def _first(archive, rng, population):
     """Return the first generation: the plant's own values in the valid structures, then random."""
     space = archive.space
-    chosen = space.valid
+    chosen = space.valid if space.enumerated else _drawn_structures(archive, rng, population)
     if len(chosen) > population:
         picked = rng.choice(len(chosen), size=population // 2, replace=False)
         chosen = [chosen[index] for index in sorted(picked)]
     own = [space.start(item) for item in chosen]
     drawn = genetic.random_genomes(space.genes, population - len(own), rng)
     return np.vstack([*own, drawn]) if own else drawn
+
+
+def _drawn_structures(archive, rng, population):
+    """Return up to half of ``population`` valid structures drawn at random, for a large space.
+
+    At most four draws per wanted structure are judged; with none valid, the first generation is
+    random and the search judges what it draws.
+    """
+    space, wanted, found = archive.space, population // 2, []
+    genomes = genetic.random_genomes(space.genes[: space.structural], 4 * wanted, rng)
+    for genome in genomes:
+        structure = space.structure(genome)
+        if structure in found:
+            continue
+        if archive._validity(space.plant, structure, space.plant.size.get("doublets")):
+            found.append(structure)
+        if len(found) == wanted:
+            break
+    return found
 
 
 def _rates(space):
@@ -909,16 +956,53 @@ def _rates(space):
     )
 
 
-def _children(archive, members, keys, population, rng):
+def _local(archive, members, keys, count, step, rng):
+    """Return ``count`` local children: each of the best candidates with one value moved.
+
+    The best are the first of the ranking, each key once. A child moves one value of a module
+    that stays (drawn at random) up or down by ``step`` of its range, or draws another option.
+    The draws are, per child: the gene, then the direction.
+    """
+    space = archive.space
+    front, crowding = genetic.rank(*archive.scores(keys))
+    order, seen, best = genetic.order(front, crowding), set(), []
+    for index in order:
+        if keys[index] not in seen and front[index] == front[order[0]]:
+            seen.add(keys[index])
+            best.append(index)
+    children = []
+    for number in range(count):
+        child = np.array(members[best[number % len(best)]], dtype=float)
+        structure = space.structure(child)
+        off = superstructure.off(space.plant, structure)
+        active = space.active(child, off)[2][space.structural + int(space.counted) :]
+        if not active:
+            children.append(child)
+            continue
+        index = active[int(rng.integers(len(active)))]
+        gene, up = space.genes[index], rng.random() < 0.5
+        if gene.kind == genetic.CATEGORICAL:
+            child[index] = (child[index] + (1 if up else -1)) % (gene.high + 1)
+        else:
+            moved = child[index] + (1 if up else -1) * step * (gene.high - gene.low)
+            moved = round(moved) if gene.kind == genetic.INTEGER else moved
+            child[index] = min(max(moved, gene.low), gene.high)
+        children.append(child)
+    return np.array(children)
+
+
+def _children(archive, members, keys, population, rng, step):
     """Return the children of a generation: tournament, crossover and mutation, new ones first.
 
-    A child whose key is that of a candidate judged before, or of a child before it, is mutated
-    again, at most ``RETRIES`` times; the draws are in a fixed order.
+    ``LOCAL_SHARE`` of them are local steps from the best candidates (``_local``). A child whose
+    key is that of a candidate judged before, or of a child before it, is mutated again, at most
+    ``RETRIES`` times; the draws are in a fixed order.
     """
     genes, rates = archive.space.genes, _rates(archive.space)
+    local = int(population * LOCAL_SHARE)
     front, crowding = genetic.rank(*archive.scores(keys))
-    first = genetic.tournament(front, crowding, population, rng)
-    second = genetic.tournament(front, crowding, population, rng)
+    first = genetic.tournament(front, crowding, population - local, rng)
+    second = genetic.tournament(front, crowding, population - local, rng)
     children = genetic.offspring(
         members[first],
         members[second],
@@ -929,6 +1013,8 @@ def _children(archive, members, keys, population, rng):
         eta_mutation=ETA_MUTATION,
         mutation=rates,
     )
+    if local:
+        children = np.vstack([children, _local(archive, members, keys, local, step, rng)])
     seen = set(archive.outcomes)
     for _ in range(RETRIES):
         repeated = []
@@ -964,7 +1050,7 @@ def _search(archive, rng, population, evaluations, limits):
     started = time.monotonic()
     keys, members, _ = archive.judge(_first(archive, rng, population), evaluations)
     history, stalled, still = [_generation(archive, 0, keys)], 0, 0
-    front = set(archive.front())
+    front, step, best = set(archive.front()), STEP, _best_value(archive)
     while True:
         if archive.evaluations >= evaluations:
             return history, "budget"
@@ -974,7 +1060,7 @@ def _search(archive, rng, population, evaluations, limits):
             return history, "converged"
         if limits["seconds"] is not None and time.monotonic() - started >= limits["seconds"]:
             return history, "seconds"
-        children = _children(archive, members, keys, population, rng)
+        children = _children(archive, members, keys, population, rng, step)
         child_keys, children, ran = archive.judge(children, evaluations - archive.evaluations)
         stalled = 0 if ran else stalled + 1
         pooled, pooled_keys = np.vstack([members, children]), keys + child_keys
@@ -983,8 +1069,21 @@ def _search(archive, rng, population, evaluations, limits):
         members, keys = pooled[kept], [pooled_keys[index] for index in kept]
         now = set(archive.front())
         still = 0 if now != front else still + 1
-        front = now
+        front, improved = now, _best_value(archive)
+        step = step if improved < best else step / 2
+        step, best = (STEP if step < SMALLEST_STEP else step), min(best, improved)
         history.append(_generation(archive, len(history), keys))
+
+
+def _best_value(archive):
+    """Return the best first objective (minimised) of the feasible candidates so far, or inf."""
+    sign = archive.signs[0]
+    values = [
+        sign * outcome[0][archive.names[0]].value
+        for outcome in archive.outcomes.values()
+        if outcome is not None and outcome[1] is None
+    ]
+    return min(values) if values else np.inf
 
 
 def _kept(keys, ranks, crowding, population):

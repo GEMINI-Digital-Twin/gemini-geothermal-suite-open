@@ -385,6 +385,7 @@ class Synthetic:
         u = {
             flat.partition(".")[0]: (values[flat] - low) / (high - low)
             for flat, (low, high) in self.ranges.items()
+            if flat in values
         }
         objectives, violation = self.evaluated(structure, u)
         metrics = {name: measure(value, "-") for name, value in zip(self.objectives, objectives)}
