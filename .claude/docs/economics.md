@@ -327,36 +327,59 @@ candidates per variable, so a smaller budget than one population raises `Validat
 integer and the option variables are searched as integers.
 
 `gm.study.evolve(plant, case, objectives, evaluations, seed, *, population, polish, plan=None,
-on_progress=None)` (`gemini/study/evolve.py`, the operators in `gemini/study/_utils/genetic.py`)
-searches the structure and the values together. The genome is one gene per optional module (on or
-off), per choice (its group), the doublet count when `size.doublets` has a range, and one per
-variable of `minimize` (tied over the doublet counts by name, role and range); a gene of a module
-that is off is ignored and is not part of the key a candidate is remembered by. `objectives` is a
-metric or a list (`["lcts", "co2"]`, a leading `-` maximises): one is a genetic algorithm, two or
-more NSGA-II, with fronts of non-domination and the crowding distance. Ranking is constraint
-domination, the rule of `minimize`: a feasible candidate beats every infeasible one, infeasible ones
-are ordered by their violation. Parents are drawn by binary tournament; continuous and integer genes
-cross by simulated binary crossover (probability 0.9, index 15) and mutate by polynomial mutation
-(index 20, probability one over the number of genes), choices cross uniformly and mutate by a random
-reset; each generation keeps the best `population` of parents and children. The first generation is
-the plant's own values (a sized plant's, clipped to the ranges) in each valid structure, in the order
-of `plant.structures()` while they fit, then random candidates from the seed. A candidate whose structure gives no valid plant is refused before any
-simulation and counted in `invalid`; a candidate seen before is not run again. The new candidates of
-a generation run in the worker processes of `gm.runtime.settings(processes=n)`, each alone, so the
-result does not depend on `n`. Each candidate's values are set on the superstructure (on its doublet
-count) and then the structure is taken, so the values of a class plant stay genes. `evaluations` is
-the total number of simulations of the genetic search; it ends there, or after ten generations in a
-row with no new candidate (the space is seen). `polish` (0 for none) searches the first `polish`
-designs again with `minimize` on the first objective, from the design, in the ranges its plant keeps,
-with `population` evaluations per doublet count (the budget `minimize` reads), so `population` must
-be at least five per variable; the best plant of each is run once more for every objective and joins
-the designs, and these simulations add to `evaluations` in the result. It returns an `Evolution`
-`{front, best, history, evaluations, invalid}`: `front` the designs no other beats on every objective
-(the best one alone for one objective, the least violating one when none is feasible), ordered by
-the first objective; `best` the best on the first objective; `history` per generation the
-simulations so far, the best feasible value of each objective so far and the size of the feasible
-first front. A `Design` is `{structure, plant, metrics, feasible, reason, violation, parameters}`;
-`to_dict()` of both is plain JSON in display units, a design's plant as its plant file.
+on_progress=None, stop=None)` (`gemini/study/evolve.py`; the operators in
+`gemini/study/_utils/genetic.py`, the hypervolume and the summary text in
+`gemini/study/_utils/evolution.py`) searches the structure and the values together.
+
+- **Genome.** One gene per optional module (on or off), per choice (its group), the doublet count
+  when `size.doublets` has a range, and one per variable of `minimize` (tied over the doublet counts
+  by name, role and range). Leaves of modules at different places of the structure (an optional
+  module, a group of a choice, the fixed modules) are not tied, so alternatives keep their own sizes.
+  A gene of a module that is off takes the plant's own value: two candidates that differ only there
+  are one, and the key a candidate is remembered by holds only the genes that matter.
+- **Ranking.** `objectives` is a metric or a list (`["lcts", "co2"]`, a leading `-` maximises): one
+  is a genetic algorithm, two or more NSGA-II (fronts of non-domination, crowding distance).
+  Constraint domination: a feasible candidate beats every infeasible one, infeasible ones are
+  ordered by their violation. Feasibility is that of `minimize`, with one difference: a design with
+  no unit at all for a service of the case (a structure without cooling) is infeasible, since the
+  structure is what the search changes (violation 1).
+- **Generations.** The first generation is the plant's own values (a sized plant's, clipped) in
+  each valid structure when they fit in `population` (else in half of it, drawn at random), then
+  random candidates. Parents are drawn by binary tournament; continuous and integer genes cross by
+  simulated binary crossover (probability 0.9, index 15) and mutate by polynomial mutation (index
+  20), choices cross uniformly and mutate by a random reset; structure genes mutate with probability
+  one over their number, the others one over theirs. A quarter of the children are local steps: one
+  value of one of the best candidates moved up or down by a step (a quarter of its range, halved
+  while the best does not improve, back to a quarter below 1 %). A child equal to a candidate seen
+  before is mutated again (five times at most). Each generation keeps the best `population` of
+  parents and children, each candidate once while there are enough.
+- **Structures.** Up to 256 structures, every one is judged before the search (`with_structure` and
+  `check`, the plan compiled): the refused ones are `rejected` with their reasons, and none valid
+  raises `invalid_design` naming the first reasons. Above, each structure is judged the first time it
+  is drawn. A refused candidate is never simulated and counts in `invalid`.
+- **Runs.** The new candidates of a generation run in the worker processes of
+  `gm.runtime.settings(processes=n)`; those of one structure are one batch on one plant (built once
+  per process), each giving what it gives alone, so the result does not depend on `n`. A candidate
+  whose plant cannot be built or whose run raises is infeasible with the error as its reason.
+- **End.** After `evaluations` simulations, after ten generations in a row with no new candidate,
+  or as `stop` says: `{"generations": n}` after `n` generations with no new design on the feasible
+  front, `{"seconds": s}` after `s` seconds (machine-dependent). `polish` (0 for none) searches the
+  first `polish` designs again with `minimize` on the first objective with `population` evaluations
+  per doublet count; these simulations add to the result's `evaluations`, and `on_progress`'s total
+  counts them.
+- **Result.** An `Evolution` `{front, best, history, evaluations, invalid, structures, rejected,
+  objectives, budget}`: `front` the feasible designs no other beats (every design simulated counts;
+  one per structure and metrics), `best` the best on the first objective (the least violating one
+  when none is feasible), `structures` the best design of each valid structure with its simulation
+  and feasible counts, `rejected` each refused structure with its reasons, `history` per generation
+  (simulations, best feasible values, front size, hypervolume on the scale of the final front),
+  `budget` `{evaluations, search, polish, invalid, generations, stopped}`. `to_dict()` is plain JSON
+  in display units (a design's plant as its plant file), `to_frame()` the front as a table and
+  `explain()` a short text for a person or an agent.
+- **Validation.** `scripts/validate_evolve.py` measures the search against a brute-force truth (the
+  hackathon superstructure by a full grid, Latin hypercube, `minimize` and a coordinate search per
+  structure; three synthetic problems with exact optima, up to 1536 structures) and against random
+  search at the same budget.
 
 A trial is feasible when its `gm.evaluate.verdict` has no reason that a design variable can change:
 the reasons with a `violation` (a failed requirement, the supply temperatures of the services
