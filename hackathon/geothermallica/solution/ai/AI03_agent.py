@@ -73,7 +73,8 @@ def plan(brief):
     s, _, _ = pick([r["result"] for r in out if r["name"] == "return_sweep"])
     n, t = s["n_doublets"], s["best_return_c"]
     cost = [("economics", {"n_doublets": m, "t_return_c": t, **peaks}) for m in (n, n + 1) if m <= 3]   # what the next doublet costs
-    for k, a in (("checks", {"n_doublets": n, "t_return_c": t, **peaks}), *cost, ("heating_year", {"n_doublets": n, "t_return_c": t, **heat}),
+    alts = [("layout_compare", {"n_doublets": n, "t_return_c": t, **peaks}), ("storage_point", {"n_doublets": n, "t_return_c": t, **heat})]
+    for k, a in (("checks", {"n_doublets": n, "t_return_c": t, **peaks}), *cost, *alts, ("heating_year", {"n_doublets": n, "t_return_c": t, **heat}),
                  ("cooling_year", {"t_return_c": t, "n_doublets": n, **peaks}), ("injector_point", {"q_m3h": 300, **dep})):
         out.append({"name": k, "args": a, "result": call(k, a)})
     econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
@@ -111,7 +112,40 @@ def plan_message(brief, out):
     return (f"{site_msg}\n{scale}\nPlan choice: {n} doublets at a {t} C return, {rule}. Boiler energy there: "
             f"{row['boiler_GWh']} GWh of {row['served_GWh']} GWh served ({row['boiler_share_pct']} %), unmet {row['unmet_GWh']} GWh [C]"
             + ("; so boiler_needed_for_energy is true" if row["boiler_GWh"] > 0.01 else "") + "."
-            + (f"\nLCoH {lcoh} [C]." if lcoh else ""))
+            + (f"\nLCoH {lcoh} [C]." if lcoh else "")
+            + "\nRejected alternatives (say each in rejected_alternatives with its number and tag, copying these sentences):\n"
+            + "\n".join(f"- {x}" for x in rejected(out, n, t)))
+
+
+def rejected(out, n, t):
+    """One copy-ready sentence per alternative the plan priced and did not choose, every number from a tool result in out."""
+    res = lambda name, **a: next((r["result"] for r in out if r["name"] == name and "error" not in r["result"]
+                                  and all(r["args"].get(k) == v for k, v in a.items())), None)
+    lines = []
+    fewer = res("return_sweep", n_doublets=n - 1) if n > 1 else None
+    if fewer:
+        b = fewer["best_return_c"]; r = fewer["by_return_C"][str(b)]
+        lines.append(f"Fewer doublets: {n - 1} doublet{'s' if n > 2 else ''} at {'their' if n > 2 else 'its'} best {b} C return leave{'' if n > 2 else 's'} {r['unmet_GWh']} GWh unmet, "
+                     f"boiler share {r['boiler_share_pct']} % and peak margin {r['peak_margin_pct']} % [C].")
+    delta = res("economics_delta")
+    if n < 3 and delta:
+        lines.append(f"A {({2: 'second', 3: 'third'})[n + 1]} doublet adds {delta['delta_lcoh_EUR_MWh']} EUR/MWh to the LCoH and "
+                     f"{delta['delta_capex_MEUR']} MEUR of CAPEX when {n} already meet the heat [C].")
+    lay = res("layout_compare")
+    if lay:
+        a, b = lay["A"], lay["B"]
+        lines.append(f"The boiler-lift layout without heat pump costs {a['lcoh_EUR_MWh']} against {b['lcoh_EUR_MWh']} EUR/MWh, "
+                     f"burns {a['gas_GWh']} GWh gas and emits {a['co2_kt']} kt CO2 [C].")
+    st = res("storage_point")
+    if st:
+        lines.append(f"A storage tank instead of the {st['backup_boiler_MW']:g} MW backup boiler: a {st['outage_days']}-day winter outage of one doublet "
+                     f"needs {st['tank_for_outage_MWh']:.0f} MWh, {st['tanks_needed']} tanks, {st['tank_cost_MEUR']} MEUR against {st['backup_boiler_MEUR']} MEUR [C, L, A].")
+    sw = res("return_sweep", n_doublets=n)
+    low = [x for x in tools.SWEEP_C if x < t] if sw else []
+    if low:
+        r = sw["by_return_C"][str(low[-1])]
+        lines.append(f"A lower {low[-1]} C return needs {r['boiler_GWh']} GWh of boiler energy ({r['boiler_share_pct']} % of the heat) [C].")
+    return lines
 
 
 def loop(msgs, records, results, max_steps, offer_tools=True):
@@ -182,7 +216,9 @@ def prose(j, results=(), free=False, problems=()):
             f"a {j.get('backup_boiler_MW')} MW backup boiler covers security of supply. Constraints: {j.get('checks_passed')} pass. "
             f"Cooling: {c.get('free_pct')} % free, {c.get('absorption_pct')} % absorption, {c.get('electric_pct')} % electric."
             + open_ + "\n\n"
-            + "\n".join(f"- {r}" for r in j.get("reasoning", [])))
+            + "\n".join(f"- {r}" for r in j.get("reasoning", []))
+            + ("\n\nRejected alternatives:\n" + "\n".join(f"- {r}" for r in j.get("rejected_alternatives", []))
+               if j.get("rejected_alternatives") else ""))
 
 
 def declare(j, results):

@@ -36,12 +36,13 @@ def crf(r, n):
 
 
 @lru_cache
-def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doublet_MEUR=DOUBLET_MEUR, depth_m=year.DEPTH_M):
+def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doublet_MEUR=DOUBLET_MEUR, depth_m=year.DEPTH_M, heat_pump=True):
     """CAPEX MEUR by item, annual MEUR by cost type, LCoH and LCoC in EUR/MWh for n doublets at a t_return_c return [C].
 
     doublet_MEUR: research/03 (ThermoGIS curve) gives 9.3 MEUR, research/04 23.6 to 37.2 MEUR per doublet [TBC which]; pass it to see the spread.
-    depth_m changes the dispatch only; the doublet price stays doublet_MEUR at every depth [A, no sourced depth curve]."""
-    d = year.heating_year(int(n_doublets), float(t_return_c), peak_heat_MW=peak_heat_MW, depth_m=float(depth_m))
+    depth_m changes the dispatch only; the doublet price stays doublet_MEUR at every depth [A, no sourced depth curve].
+    heat_pump False prices layout A (boiler lift, no heat pump): the heat-pump item is then 0 and gas carries the lift."""
+    d = year.heating_year(int(n_doublets), float(t_return_c), peak_heat_MW=peak_heat_MW, depth_m=float(depth_m), heat_pump=bool(heat_pump))
     c, tot = year.cooling_year(d.surplus, peak_cold_MW=peak_cold_MW)
     gwh = lambda s: float(s.sum() * 24 / 1000)
     rejected = c.cold + c.electric / year.COP_ELECTRIC + c.absorption / year.COP_ABSORPTION   # tower duty, MW
@@ -62,6 +63,7 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
     heat_cost, cold_cost = annual(heat_items, el_heat, gas, co2_kt), annual(cold_items, el_cold, 0.0, 0.0)
     heat_GWh, cold_GWh = gwh(d.demand - d.unmet), tot["cold"]
     return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "depth_m": float(depth_m),
+            "layout": "B heat-pump lift" if heat_pump else "A boiler lift",
             "capex_MEUR": {**capex, "total": sum(capex.values())},
             "annual_cost_MEUR": {"heating": heat_cost, "cooling": cold_cost,
                                  "total": sum(heat_cost.values()) + sum(cold_cost.values())},

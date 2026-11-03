@@ -14,7 +14,7 @@ from geo.common import DEPTH_M, DT_BRINE_MAX_K, Q_MAX_M3H, Q_MIN_M3H, t_reservoi
 from geo.gemini_contrib.heatpump_lift import HeatPumpLift
 from geo.plant import doublet_at
 from geo.well import Producer, injector_at, reservoir_pressure
-from geo import cost, year
+from geo import cost, storage, year
 
 gwh = lambda s: float(s.sum() * 24 / 1000)
 # the GEMINI classes each tool runs (see geo/well.py), so a tool result names the twin's components [C]
@@ -180,6 +180,30 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, dept
     return {**r2({**{k: e[k] for k in keys}, **flat}), "tag": "[C]", "basis": e["basis"]}
 
 
+def layout_compare(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M):
+    """Price the two ways to reach 100 C for 1-3 doublets at a 30-70 C return, reservoir at depth_m (default 2500 m), demand scaled to the given peaks: B = exchanger then a brine-source heat pump (our design), A = exchanger then a gas boiler lifts the network water from wellhead T minus 3 K to 100 C (no heat pump); per layout LCoH EUR/MWh, boiler and gas GWh, CO2 kt, electricity GWh, geothermal share, heat-pump and total CAPEX MEUR; chosen = the lower LCoH, delta_lcoh_EUR_MWh = A minus B [C]."""
+    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70); _peaks(peak_heat_MW, peak_cold_MW); _need("depth_m", depth_m, 1500, 4000)
+    out = {}
+    for hp, key in ((True, "B"), (False, "A")):
+        e = cost.economics(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), heat_pump=hp)
+        d = year.heating_year(int(n_doublets), float(t_return_c), peak_heat_MW=peak_heat_MW, depth_m=float(depth_m), heat_pump=hp)
+        out[key] = r2({"layout": e["layout"], "lcoh_EUR_MWh": e["lcoh_EUR_MWh"], "boiler_GWh": gwh(d.boiler),
+                       "boiler_share_pct": 100 * gwh(d.boiler) / gwh(d.demand - d.unmet), "gas_GWh": e["gas_GWh"], "co2_kt": e["co2_kt"],
+                       "electricity_GWh": e["electricity_GWh"], "geothermal_share_pct": 100 * (gwh(d.geo) + gwh(d.hp) - gwh(d.el_hp)) / gwh(d.demand),
+                       "capex_heat_pump_MEUR": e["capex_MEUR"]["heat_pump"], "capex_total_MEUR": e["capex_MEUR"]["total"]})
+    delta = round(out["A"]["lcoh_EUR_MWh"] - out["B"]["lcoh_EUR_MWh"], 2)
+    return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "B": out["B"], "A": out["A"],
+            "chosen": out["B"]["layout"] if delta > 0 else out["A"]["layout"], "delta_lcoh_EUR_MWh": delta, "tag": "[C]"}
+
+
+def storage_point(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, outage_days=7):
+    """A steel heat-storage tank as the alternative to the 16 MW backup boiler for 1-3 doublets at a 30-70 C return, reservoir at depth_m (default 2500 m), heat demand scaled to peak_heat_MW: tank MWh for the peak with every doublet on, tank MWh, number of 175 MWh / 2.9 MW units and MEUR for one doublet out over outage_days (1-35, default 7 [A]) in winter at 3 000 EUR/MWh [L, DEA], the boiler's MEUR, and a verdict sentence; daily data make the peak tank a lower bound [C, L, A]."""
+    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70); _peaks(peak_heat_MW, None)
+    _need("depth_m", depth_m, 1500, 4000); _need("outage_days", outage_days, 1, 35)
+    s = storage.storage_case(int(n_doublets), float(t_return_c), peak_heat_MW, depth_m=float(depth_m), outage_days=int(outage_days))
+    return r2(s)
+
+
 SWEEP_C = (40, 50, 55, 60, 65, 70)
 
 
@@ -210,7 +234,7 @@ def gemini_traps():
             "tag": "[C]"}
 
 
-FUNCS = {f.__name__: f for f in (site_inputs, demand_summary, doublet_point, heating_year, cooling_year, injector_point, heat_pump_point, checks, economics, return_sweep, gemini_traps)}
+FUNCS = {f.__name__: f for f in (site_inputs, demand_summary, doublet_point, heating_year, cooling_year, injector_point, heat_pump_point, checks, economics, layout_compare, storage_point, return_sweep, gemini_traps)}
 NUM = lambda desc, lo, hi, kind="number": {"type": kind, "description": f"{desc}, {lo} to {hi}", "minimum": lo, "maximum": hi}
 ARGS = {"depth_m": NUM("reservoir depth in m (omit for the brief's 2500 m); give the brief's depth to every tool", 1500, 4000), "supply_heat_c": NUM("heating supply temperature in C", 60, 120),
         "supply_cold_c": NUM("cooling supply temperature in C", 6, 25), "q_m3h": NUM("flow per well in m3/h", 50, 300), "t_return_c": NUM("network return temperature in C", 30, 70),
@@ -220,13 +244,15 @@ ARGS = {"depth_m": NUM("reservoir depth in m (omit for the brief's 2500 m); give
         "t_brine_floor_c": NUM("coldest brine allowed out of the evaporator in C, the wellhead T minus 40 K (omit: brine in minus 40 K)", 0, 90),
         "brine_m3h": NUM("brine flow through the evaporator in m3/h", 50, 600), "water_m3h": NUM("district water flow through the condenser in m3/h", 50, 600),
         "peak_heat_MW": NUM("peak heating demand of the brief in MW (omit for the 30 MW demand file)", 1, 100),
-        "peak_cold_MW": NUM("peak cooling demand of the brief in MW (omit for the 10 MW demand file)", 0, 50)}
+        "peak_cold_MW": NUM("peak cooling demand of the brief in MW (omit for the 10 MW demand file)", 0, 50),
+        "outage_days": NUM("days one doublet is out in winter for the tank sizing (omit for 7)", 1, 35, "integer")}
 PEAKS = ["peak_heat_MW", "peak_cold_MW"]
-OPTIONAL = PEAKS + ["t_brine_floor_c", "depth_m"]
+OPTIONAL = PEAKS + ["t_brine_floor_c", "depth_m", "outage_days"]
 D = ["depth_m"]
 SIG = {"site_inputs": ["depth_m", "supply_heat_c", "supply_cold_c"], "demand_summary": PEAKS, "doublet_point": ["q_m3h", "t_return_c"] + D, "heating_year": ["n_doublets", "t_return_c", "peak_heat_MW"] + D,
        "cooling_year": ["t_return_c", "n_doublets"] + PEAKS + D, "injector_point": ["q_m3h"] + D,
        "heat_pump_point": ["t_brine_in_c", "t_water_in_c", "brine_m3h", "water_m3h", "t_brine_floor_c"], "checks": ["n_doublets", "t_return_c"] + PEAKS + D, "economics": ["n_doublets", "t_return_c"] + PEAKS + D,
+       "layout_compare": ["n_doublets", "t_return_c"] + PEAKS + D, "storage_point": ["n_doublets", "t_return_c", "peak_heat_MW"] + D + ["outage_days"],
        "return_sweep": ["n_doublets", "peak_heat_MW"] + D, "gemini_traps": []}
 TOOLS = [{"type": "function", "function": {"name": n, "description": " ".join(FUNCS[n].__doc__.split()),
           "parameters": {"type": "object", "properties": {a: ARGS[a] for a in args},
@@ -236,7 +262,7 @@ TOOLS = [{"type": "function", "function": {"name": n, "description": " ".join(FU
 def call(name, args):
     if name not in FUNCS:
         raise ValueError(f"unknown tool {name}; valid: {sorted(FUNCS)}")
-    conv = lambda k, v: v if v is None else int(v) if k == "n_doublets" else float(v)
+    conv = lambda k, v: v if v is None else int(v) if k in ("n_doublets", "outage_days") else float(v)
     return FUNCS[name](**{k: conv(k, v) for k, v in (args or {}).items()})
 
 
@@ -244,7 +270,8 @@ if __name__ == "__main__":
     for name, args in (("site_inputs", {"depth_m": 2500, "supply_heat_c": 100, "supply_cold_c": 20}), ("demand_summary", {}), ("doublet_point", {"q_m3h": 300, "t_return_c": 60}),
                        ("heating_year", {"n_doublets": 2, "t_return_c": 60}), ("cooling_year", {"t_return_c": 60}),
                        ("injector_point", {"q_m3h": 300}), ("heat_pump_point", {"t_brine_in_c": 63, "t_water_in_c": 82.58, "brine_m3h": 300, "water_m3h": 388, "t_brine_floor_c": 45.58}),
-                       ("checks", {"n_doublets": 2, "t_return_c": 60}), ("economics", {"n_doublets": 2, "t_return_c": 60}), ("return_sweep", {"n_doublets": 2}),
+                       ("checks", {"n_doublets": 2, "t_return_c": 60}), ("economics", {"n_doublets": 2, "t_return_c": 60}),
+                       ("layout_compare", {"n_doublets": 2, "t_return_c": 60}), ("storage_point", {"n_doublets": 2, "t_return_c": 60}), ("return_sweep", {"n_doublets": 2}),
                        ("gemini_traps", {})):
         print(f"\n{name}({args})\n" + json.dumps(call(name, args), indent=1))
     print(f"\n{len(TOOLS)} tools, about {len(json.dumps(TOOLS)) // 4} tokens of schema")

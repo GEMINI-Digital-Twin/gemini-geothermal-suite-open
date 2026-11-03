@@ -31,12 +31,13 @@ def scaled(series, peak_MW=None):
 
 
 @lru_cache
-def _table(t_return_c, depth_m):
-    return DoubletTable(t_return_c, depth_m=depth_m)
+def _table(t_return_c, depth_m, heat_pump):
+    return DoubletTable(t_return_c, depth_m=depth_m, heat_pump=heat_pump)
 
 
-def table(t_return_c, depth_m=DEPTH_M):
-    return _table(float(t_return_c), float(depth_m))   # one cache entry per (return, depth), however the caller spells it
+def table(t_return_c, depth_m=DEPTH_M, heat_pump=True):
+    """heat_pump False = layout A (boiler lift, no heat pump), for layout_compare only."""
+    return _table(float(t_return_c), float(depth_m), bool(heat_pump))   # one cache entry per (return, depth, layout), however the caller spells it
 
 
 @lru_cache
@@ -53,11 +54,11 @@ def injection_pump_MW(d):
     return np.interp(d.q_m3h, Q_INJ, [r["pump_kW"] for r in injector_rows(d.attrs.get("depth_m", DEPTH_M))]) / 1000 * d.doublets_on
 
 
-def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, depth_m=DEPTH_M):
+def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, depth_m=DEPTH_M, heat_pump=True):
     """Daily dispatch of n doublets: among 1..k available, equal split, least electricity (ESP + heat pump).
 
-    point(MW per doublet) -> operating point; defaults to the DoubletTable's at_output at depth_m."""
-    point = point or table(t_return_c, depth_m).at_output
+    point(MW per doublet) -> operating point; defaults to the DoubletTable's at_output at depth_m (layout B, or A if not heat_pump)."""
+    point = point or table(t_return_c, depth_m, heat_pump).at_output
     heat_d = scaled(heat, peak_heat_MW)
     outages = {i: STAGGERED[i] for i in range(n)} if outages is None else outages
     avail = pd.DataFrame(1, index=heat_d.index, columns=range(n))
@@ -86,7 +87,7 @@ def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, dep
                          el_hp=el_hp, esp=esp, boiler=boiler_lift + boiler_peak, boiler_lift=boiler_lift,
                          boiler_peak=boiler_peak, unmet=max(0.0, demand - delivered - boiler_peak), surplus=abs_drive))
     d = pd.DataFrame(rows).set_index("date")
-    d.attrs["depth_m"] = depth_m
+    d.attrs["depth_m"], d.attrs["heat_pump"] = depth_m, heat_pump
     for i in range(n):
         d[f"avail_{i}"] = avail[i].values
     return d

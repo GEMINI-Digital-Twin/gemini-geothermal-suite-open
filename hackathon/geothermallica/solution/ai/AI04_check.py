@@ -1,4 +1,7 @@
-"""Check a final JSON answer against the tool results the model saw: wording, tags, numbers, consistency with the sweep."""
+"""Check a final JSON answer against the tool results the model saw: wording, tags, numbers, consistency with the sweep.
+
+Rules: (a) no 'best' without a sweep, (b) tags, (c) numbers traceable to a tool, (d) consistency with the sweep and the
+tools, (e) brief values reached a tool, (f) reasoning shape, (g) unsupported site said, (h) rejected_alternatives."""
 import json
 import re
 import sys
@@ -88,12 +91,15 @@ def check(run_json, transcript, tool_results, brief=""):
         problems.append(f"(f) the brief's peak heat {ph:g} MW appears in no reasoning item")
     pool = [float(x) for r in tool_results for x in NUM.findall(json.dumps(r["result"]))]
     in_brief = [float(x) for x in NUM.findall(brief)]
-    for r in reasoning:
+    alts = run_json.get("rejected_alternatives")
+    alts_s = [str(x) for x in alts] if isinstance(alts, list) else []
+    for r in reasoning + alts_s:
         for x in NUM.findall(TAG.sub("", r)):
             if (float(x) < 13 and "." not in x) or any(close(x, b) for b in in_brief):
                 continue
             if not any(close(x, p) for p in pool):
                 problems.append(f"(c) {x} not in any tool result of this run: {r}")
+    problems += check_alternatives(alts, called)
     sweeps = {r["result"]["n_doublets"]: r["result"] for r in tool_results if r["name"] == "return_sweep"}
     n, t, boiler = run_json.get("n_doublets"), run_json.get("t_return_c"), run_json.get("boiler_needed_for_energy")
     met = any(meets_rule(sm["by_return_C"][str(sm["best_return_c"])]) for sm in sweeps.values())
@@ -159,6 +165,27 @@ def check(run_json, transcript, tool_results, brief=""):
         if not re.search(r"not supported|cannot be trusted", " ".join(reasoning), re.I):
             problems.append("(g) site_inputs says the setpoints are not supported, but the reasoning does not say "
                             "'not supported' or 'cannot be trusted'")
+    return problems
+
+
+def check_alternatives(alts, called):
+    """(h) rejected_alternatives: 3 to 6 strings of 4 to 40 words, each with a number and a [tag]; the layout and the
+    tank named when layout_compare / storage_point ran."""
+    if not isinstance(alts, list) or not all(isinstance(x, str) for x in alts):
+        return [f"(h) rejected_alternatives must be a list of strings, got {type(alts).__name__}"]
+    problems = [] if 3 <= len(alts) <= 6 else [f"(h) {len(alts)} rejected_alternatives, need 3 to 6"]
+    for a in alts:
+        if not 4 <= len(a.split()) <= 40:
+            problems.append(f"(h) {len(a.split())} words, need 4 to 40: {a}")
+        if not TAG.search(a):
+            problems.append(f"(h) no [tag]: {a}")
+        if not NUM.search(TAG.sub("", a)):
+            problems.append(f"(h) no number in: {a}")
+    text = " ".join(alts).lower()
+    if "layout_compare" in called and not re.search(r"layout|boiler[- ]lift", text):
+        problems.append("(h) layout_compare ran but no rejected alternative names the boiler-lift layout")
+    if "storage_point" in called and not re.search(r"tank|storage", text):
+        problems.append("(h) storage_point ran but no rejected alternative names the storage tank")
     return problems
 
 
