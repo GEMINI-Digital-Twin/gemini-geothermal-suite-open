@@ -44,7 +44,9 @@ class DPDT(StaticModel):
         """Calculate output based on input u and state x.
 
         The outputs are pressure drop due to friction and gravity, also the final
-        pressure and temperature.
+        pressure and temperature. ``u["flowrate"]`` is signed: positive = upward
+        (production), negative = downward (injection); ``u["direction"]`` only sets
+        the walk order (wellhead to bottom for "down", bottom to wellhead for "up").
         """
         # preparing input
         Ngrid = len(self.parameters["length"])  # Number of grid cells (-)
@@ -62,7 +64,9 @@ class DPDT(StaticModel):
         direction = str(u["direction"]).strip().lower()  # down for injection and up for production
         pressure = u["pressure"]  # Pa
         temperature = u["temperature"]  # K
-        flowRate = u["flowrate"]  # m3/s
+        flowRate = u[
+            "flowrate"
+        ]  # m3/s, signed: positive = upward (production), negative = downward (injection)
         T_ambient = u["temperature_ambient"]  # K
 
         section_pressure = []

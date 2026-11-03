@@ -1,0 +1,120 @@
+                                                                                                    GEMINI / AGENTIC GEOTHERMAL DESIGN HACKATHON
+
+
+
+
+Required Inputs for Hackathon
+Use agentic AI and the GEMINI geothermal digital twin to select, size and validate a deep-geothermal system serving an annual
+heating and cooling load. The design must satisfy explicit thermal, hydraulic and operational constraints and explain every major
+engineering decision.
+
+
+1 Objective and scope
+Participants must build an agentic AI orchestration workflow that uses GEMINI for applicable subsurface/well-engineering evaluations
+and complementary component models for heating and cooling. The agent must interpret the provided demand profiles, generate
+system configurations, run engineering checks, detect violations, and iteratively improve a proposed design.
+
+GEMINI repository (development branch):
+
+https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/tree/development
+Scope clarification: the autonomous system-level design agent is to be built by participants; do not assume that GEMINI already contains an
+end-to-end heating-and-cooling optimizer.
+
+
+2 Supplied annual demand profiles
+Input dataset                           File / format                                                       Key figures
+
+                                        gemini_heating_demand_daily_2027.csv • date,                         2027 daily; max 30.0 MWth; 111.67
+Heating demand
+                                        heating_demand_MWth                                                  GWhth/year
+
+                                        gemini_cooling_demand_daily_2027.csv • date,                         2027 daily; max 10.0 MWcool; 23.74
+Cooling demand
+                                        cooling_demand_MWcool                                                GWhcool/year
+
+
+Each file contains 365 daily-average power values for 1 January to 31 December 2027. Heating peaks on 28 January; cooling peaks on
+19 July. Profiles are synthetic and include seasonal variation and short demand excursions. Convert a day’s power (MW) to daily
+energy (MWh) by multiplying by 24 hours.
+
+
+
+
+Figure 1. Daily synthetic heating and cooling demand throughout 2027. Source data are the two accompanying CSV files.
+
+
+
+
+                                                                                                      Challenge requirements | 28 October 2026 | Page 1
+                                                                                                      GEMINI / AGENTIC GEOTHERMAL DESIGN HACKATHON
+
+
+
+ 3 Fixed technical inputs
+ 3.1 Geothermal reservoir
+
+   Parameter                                               Value                                           Unit / interpretation
+
+    Reservoir midpoint depth                               2,500                                           m TVD
+
+    Reservoir gross thickness                              100                                             m
+
+    Geothermal gradient                                    30                                              °C/km
+
+    Reference surface temperature                          12                                              °C
+
+    Reservoir pressure                                     250                                             bar(g)
+
+    Permeability                                           200                                             mD
+
+
+ For selecting different geothermal well depth, you can use hydrostatic pressure for reservoir pressure and estimate reservoir temperature based on
+ the provided geothermal gradient.
+
+
+ 3.2 Geothermal brine and associated gas
+
+ Parameter                                           Specified value                                    Unit / note
+
+ Brine density                                        1,030                                             kg/m³; reference constant
+
+ Dynamic viscosity                                    0.40                                              mPa·s; reference constant
+
+ Gas–liquid ratio                                     0.8                                               Nm³ gas per m³ produced liquid
+
+ Methane fraction in produced gas                     80                                                mol% CH₄
+
+ Carbon dioxide fraction in produced gas              20                                                mol% CO₂
+
+ Fluid composition                                    Fixed                                             baseline; variable PVT optional
+
+
+ Define normal cubic metres (Nm³) at 0 °C and 1.01325 bar(a). GLR refers to potentially liberated gas at standard conditions.
+
+
+ 3 Design and operating constraints
+Constraint                                             Required setting                                   Status / interpretation
+
+Number of geothermal doublets                           Choose 1–3                                        design variable
+
+Maximum production flow                                 300 m³/h per doublet                              hard challenge cap
+
+Minimum stable flow while active                        50 m³/h per doublet                               hard challenge cap
+
+Maximum geothermal brine cooling                        40 °C                                             hard challenge cap; producer to injector
+
+Pump hydraulic efficiency                               70%                                               simplified
+
+Production / injection volume balance                   Required                                          same reservoir; equal liquid volumes
+
+Annual operation of geothermal doublet                  330 daily steps                                   daily power and energy balance
+
+Supply temperature to the demand (heating)              100 °C                                            fixed
+
+Supply temperature to the demand (Cooling)              20 °C                                             fixed
+
+
+
+
+                                                                                                        Challenge requirements | 28 October 2026 | Page 2
+
