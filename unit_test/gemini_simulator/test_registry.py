@@ -23,3 +23,12 @@ def test_unknown_type_raises_key_error():
     """Creating an unknown component type should raise a KeyError."""
     with pytest.raises(KeyError):
         create_component("not_a_real_component")
+
+
+def test_heat_pump_and_absorption_chiller_are_registered():
+    """Heat pump and absorption chiller models can be used from project JSON files."""
+    from gemini_model.absorption_chiller.absorption_chiller import AbsorptionChiller
+    from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
+
+    assert isinstance(create_component("heat_pump"), HeatpumpBasic)
+    assert isinstance(create_component("absorption_chiller"), AbsorptionChiller)
