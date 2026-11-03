@@ -16,6 +16,9 @@ class ChemicalGrid(Module):
     ``economics.opex.variable.chemical`` of the case.
     """
 
+    bypass = {}
+    """Removable: a supply that goes when what it fed goes."""
+
     def __init__(self):
         """Declare the outlet."""
         super().__init__()

@@ -11,7 +11,7 @@ run records of `hackathon.py` in `runs/`.
 | [costs.py](costs.py) | `gm.check`, capex per unit, opex, LCTS and CO2, a limit on the electricity bought as a requirement of the case, and how a missing assumption is reported | `gm.check`, `gm.evaluate.capex`, `opex`, `lcts`, `co2`, `requirements`, `missing_assumption` |
 | [uncertainty.py](uncertainty.py) | `gm.check`, then the spread of LCTS and CO2 over the values the case declares uncertain | `gm.check`, `gm.study.sample` |
 | [plant.py](plant.py) | A plant built from its class: `missing_parameters`, values set as quantities, `gm.plants.validate(plant)`, sized, `gm.check` on the case, run, failed steps grouped | `missing_parameters`, `set_params`, `gm.plants.validate`, `gm.study.size`, `gm.check`, `gm.evaluate.failures` |
-| [evolve.py](evolve.py) | One plant file that states the six hackathon candidates at once (`hackathon_superstructure/`: the heat pump optional, each cooling unit a choice on or off), its valid structures, sized, then searched on LCTS and CO2 by a genetic algorithm with a small budget; prints the front and the best design; takes about 20 seconds | `optional`, `choices`, `plant.structures`, `gm.study.size`, `gm.study.evolve` |
+| [evolve.py](evolve.py) | One plant file that states the hackathon candidates at once (`hackathon_superstructure/`: the heat pump optional, the peak boiler with its gas chain on or off, cooling on or off with its branch, each cooling unit a choice on or off), its valid structures, sized, then searched on LCTS and CO2 by a genetic algorithm with a small budget; prints the front and the best design; takes about 40 seconds | `optional`, `choices`, `bypass`, `plant.structures`, `gm.study.size`, `gm.study.evolve` |
 
 ```bash
 python examples/quickstart.py

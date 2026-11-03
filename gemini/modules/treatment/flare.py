@@ -21,6 +21,9 @@ class Flare(Equipment, Module):
     The chemical power burned is ``fuel``; it leaves as heat through ``loss_out``.
     """
 
+    bypass = {}
+    """Removable: off, it goes with its connections, together with the gas that fed it."""
+
     equipment_kind = "flare"
 
     def __init__(self):

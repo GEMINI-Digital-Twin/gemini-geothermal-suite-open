@@ -17,6 +17,11 @@ class GasMakeup(Equipment, Module):
     ``excess_out``, usually a ``Flare``.
     """
 
+    bypass = {"gas_in": "excess_out"}
+    """Off, with no burner to feed: the co-produced gas goes straight to what took the surplus (the
+    flare), and the grid inlet goes.
+    """
+
     equipment_kind = "gas_makeup"
 
     offer_inlets = ("gas_in", "grid_in")

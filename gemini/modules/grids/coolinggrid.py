@@ -64,6 +64,9 @@ class CoolingGrid(Module):
     with a relative humidity in (0, 1].
     """
 
+    bypass = {}
+    """Removable: a demand the plant may decline to serve, with its branch."""
+
     plant_role = "cooling_supply"
 
     def __init__(self):

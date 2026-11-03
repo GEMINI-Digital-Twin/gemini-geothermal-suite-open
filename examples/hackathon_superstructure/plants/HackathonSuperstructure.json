@@ -2,7 +2,7 @@
   "format": 1,
   "kind": "plant",
   "name": "HackathonSuperstructure",
-  "about": "The six candidate plants of hackathon_2026 as one superstructure: the plant of HeatingCoolingPlant on 2 doublets, with the heat pump optional and each cooling unit (absorption, adsorption, compression, each with its dry cooler) a choice on or off, in series on the drive water and the chilled water.",
+  "about": "The candidate plants of hackathon_2026 as one superstructure: the plant of HeatingCoolingPlant on 2 doublets, with the heat pump optional, the peak boiler with its gas makeup and gas grid a choice on or off (off, the co-produced gas goes to the flare), cooling a choice on or off (off, the cooling consumer and the drive splitter and mixer go: a heating-only plant), and each cooling unit (absorption, adsorption, compression, each with its dry cooler) a choice on or off, in series on the drive water and the chilled water. The cooling consumer sits directly on the chillers, so cooling on with every unit off leaves it unconnected: that structure is refused.",
   "modules": {
     "d0": {
       "type": "Doublet"
@@ -73,14 +73,8 @@
     "heating_consumer": {
       "type": "HeatingGrid"
     },
-    "cooling_return_pipe": {
-      "type": "Pipe"
-    },
     "compression_chiller": {
       "type": "HeatPump"
-    },
-    "cooling_supply_pipe": {
-      "type": "Pipe"
     },
     "cooling_consumer": {
       "type": "CoolingGrid"
@@ -212,7 +206,7 @@
       "target": "heating_consumer.supply_in"
     },
     {
-      "source": "cooling_return_pipe.fluid_out",
+      "source": "cooling_consumer.return_out",
       "target": "absorption_chiller.chilled_in"
     },
     {
@@ -225,10 +219,6 @@
     },
     {
       "source": "compression_chiller.source_out",
-      "target": "cooling_supply_pipe.fluid_in"
-    },
-    {
-      "source": "cooling_supply_pipe.fluid_out",
       "target": "cooling_consumer.supply_in"
     },
     {
@@ -264,24 +254,12 @@
       "target": "heating_return_pipe.fluid_in"
     },
     {
-      "source": "cooling_consumer.return_out",
-      "target": "cooling_return_pipe.fluid_in"
-    },
-    {
       "source": "atmosphere.air_out",
       "target": "heating_return_pipe.air_in"
     },
     {
       "source": "atmosphere.air_out",
       "target": "heating_supply_pipe.air_in"
-    },
-    {
-      "source": "atmosphere.air_out",
-      "target": "cooling_return_pipe.air_in"
-    },
-    {
-      "source": "atmosphere.air_out",
-      "target": "cooling_supply_pipe.air_in"
     },
     {
       "source": "peak_boiler.flue_out",
@@ -364,44 +342,10 @@
       "target": "atmosphere.heat_in"
     },
     {
-      "source": "cooling_return_pipe.loss_out",
-      "target": "atmosphere.heat_in"
-    },
-    {
-      "source": "cooling_supply_pipe.loss_out",
-      "target": "atmosphere.heat_in"
-    },
-    {
       "source": "peak_boiler.loss_out",
       "target": "atmosphere.heat_in"
     }
   ],
-  "optional": [
-    "heat_pump"
-  ],
-  "choices": {
-    "absorption": {
-      "on": [
-        "absorption_chiller",
-        "absorption_cooler"
-      ],
-      "off": []
-    },
-    "adsorption": {
-      "on": [
-        "adsorption_chiller",
-        "adsorption_cooler"
-      ],
-      "off": []
-    },
-    "compression": {
-      "on": [
-        "compression_chiller",
-        "compression_cooler"
-      ],
-      "off": []
-    }
-  },
   "params": {
     "heat_pump": {
       "capacity": {
@@ -995,50 +939,6 @@
         "unit": "W/m2/K"
       }
     },
-    "cooling_return_pipe": {
-      "length": {
-        "value": 100.0,
-        "unit": "m"
-      },
-      "inner_diameter": {
-        "value": 0.5,
-        "unit": "m"
-      },
-      "roughness": {
-        "value": 4.5e-05,
-        "unit": "m"
-      },
-      "elevation_change": {
-        "value": 0.0,
-        "unit": "m"
-      },
-      "heat_transfer_coefficient": {
-        "value": 0.0,
-        "unit": "W/m2/K"
-      }
-    },
-    "cooling_supply_pipe": {
-      "length": {
-        "value": 100.0,
-        "unit": "m"
-      },
-      "inner_diameter": {
-        "value": 0.5,
-        "unit": "m"
-      },
-      "roughness": {
-        "value": 4.5e-05,
-        "unit": "m"
-      },
-      "elevation_change": {
-        "value": 0.0,
-        "unit": "m"
-      },
-      "heat_transfer_coefficient": {
-        "value": 0.0,
-        "unit": "W/m2/K"
-      }
-    },
     "flare": {
       "combustion_efficiency": {
         "value": 0.98
@@ -1209,6 +1109,56 @@
       "viscosity": null,
       "specific_heat": null,
       "thermal_conductivity": null
+    }
+  },
+  "optional": [
+    "heat_pump"
+  ],
+  "choices": {
+    "boiler": {
+      "on": [
+        "peak_boiler",
+        "gas_makeup",
+        "gas_grid"
+      ],
+      "off": []
+    },
+    "cooling": {
+      "on": [
+        "cooling_consumer",
+        "drive_splitter",
+        "drive_mixer"
+      ],
+      "off": []
+    },
+    "absorption": {
+      "on": [
+        "absorption_chiller",
+        "absorption_cooler"
+      ],
+      "off": []
+    },
+    "adsorption": {
+      "on": [
+        "adsorption_chiller",
+        "adsorption_cooler"
+      ],
+      "off": []
+    },
+    "compression": {
+      "on": [
+        "compression_chiller",
+        "compression_cooler"
+      ],
+      "off": []
+    }
+  },
+  "bypass": {
+    "drive_splitter": {
+      "fluid_in": "branch1_out"
+    },
+    "drive_mixer": {
+      "branch1_in": "fluid_out"
     }
   }
 }

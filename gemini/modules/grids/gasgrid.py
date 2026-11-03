@@ -20,6 +20,9 @@ class GasGrid(Module):
     a burner on ``gas_out``, or a ``GasMakeup`` for the shortfall of the co-produced gas.
     """
 
+    bypass = {}
+    """Removable: a supply that goes when what it fed goes."""
+
     def __init__(self):
         """Declare the grid gas composition and the outlet."""
         super().__init__()

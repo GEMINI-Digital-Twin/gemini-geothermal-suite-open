@@ -32,6 +32,7 @@ ALLOWED = (
     "boundary",
     "optional",
     "choices",
+    "bypass",
 )
 TYPES = {
     "type": str,
@@ -47,6 +48,7 @@ TYPES = {
     "boundary": dict,
     "optional": list,
     "choices": dict,
+    "bypass": dict,
 }
 MARKERS = {"value", "unit", "range", "options", "history", "uncertainty"}
 CONTROL = "control"
@@ -306,7 +308,7 @@ def parse(data, issues):
             structure = _structure(data, header.name, flat_params, sections)
     else:
         flat = _structure(data, header.name, flat_params, sections)
-    stated = {key: data[key] for key in ("optional", "choices") if key in data}
+    stated = {key: data[key] for key in ("optional", "choices", "bypass") if key in data}
     return Parsed(header, flat, leaves, sizes, structure, stated)
 
 
@@ -414,13 +416,15 @@ def _size_tree(plant, flat):
 
 
 def _superstructure(plant):
-    """Return the ``optional`` and ``choices`` of the plant file, none when the plant has none."""
+    """Return the ``optional``, ``choices`` and ``bypass`` of the plant file, none when empty."""
     found = {"optional": list(plant._optional)} if plant._optional else {}
     if plant._choices:
         found["choices"] = {
             name: {group: list(members) for group, members in groups.items()}
             for name, groups in plant._choices.items()
         }
+    if plant._bypass:
+        found["bypass"] = {name: dict(pairs) for name, pairs in plant._bypass.items()}
     return found
 
 

@@ -13,6 +13,9 @@ class WasteGrid(Module):
     cost per kg is ``economics.opex.variable.waste_disposal`` of the case.
     """
 
+    bypass = {}
+    """Removable: a sink that goes when what fed it goes."""
+
     def __init__(self):
         """Declare the port of the discarded flows."""
         super().__init__()

@@ -108,6 +108,47 @@ Shared conventions, stated once here and not repeated per module:
 | Plants | `BoilerChpPlant` | `return_in` -> `supply_out` | no | nodal doublet, exchanger, boiler, CHP |
 | Plants | `DistrictEnergyPlant` | `hot_in`, `cold_in`, `air_in` -> `hot_out`, `cold_out` | child | heating network, cooling network, ATES |
 
+## Bypass
+
+How a structure of a superstructure turns a module off ([plants.md](plants.md#superstructure)):
+the inlets of its bypass joined to their outlets, or, with `{}`, the module removed with all its
+connections. The source of a pair is the class's `bypass` (declared) or its `<x>_in`/`<x>_out`
+names (name pairs); `plant.set_bypass(name, pairs)` overrides both for one module of one plant. A
+module marked no cannot be optional without such a declaration. Whatever is left unconnected must
+go too, or the structure is invalid. `tests/unit/modules/test_bypass.py` pins this table.
+
+| Module | Optional? | Bypass pairs | Source | Why |
+| --- | --- | --- | --- | --- |
+| `ProductionReservoir`, `InjectionReservoir` | no | | | the resource itself; a doublet count is a size |
+| `ProductionWell`, `InjectionWell` | no | | | a well is drilled or not: the count of doublets, never a bypass |
+| `AquiferStorage` | no | | | a store in the ground, like a reservoir |
+| `ThermalDecline` | yes | `fluid_in` -> `fluid_out` | name pairs | a model of the reservoir; off means no decline |
+| `BoreholeField`, `DownholeHeatExchanger` | yes | `fluid_in` -> `fluid_out` | name pairs | off, the loop does not pass the ground |
+| `ESP`, `InjectionPump`, `CirculationPump`, `CentrifugalPump`, `LineShaftPump`, `GasCompressor` | yes | `fluid_in` -> `fluid_out` | name pairs | no pump: the stream goes on without the head; the grid's power to it goes |
+| `Filter`, `Blowdown`, `Desander`, `InhibitorDosing` | yes | `fluid_in` -> `fluid_out` | name pairs | no treatment; the waste or chemical port goes, so its grid must go too |
+| `Degasser` | yes | `fluid_in` -> `liquid_out` | declared | nothing is degassed: the whole stream goes on as the liquid; what the gas fed loses its feed |
+| `Flare` | yes, removed | `{}` | declared | goes with the gas that fed it |
+| `HeatExchanger` | yes | `hot_in` -> `hot_out`, `cold_in` -> `cold_out` | name pairs | both sides pass without exchange |
+| `Cooler` | yes | `fluid_in` -> `fluid_out`, `air_in` -> `air_out` | name pairs | no rejection; the air loop to the atmosphere goes |
+| `Boiler`, `ElectricBoiler`, `CHP` | yes | `fluid_in` -> `fluid_out` | name pairs | no top-up; the fuel or power port goes, so its supply must go too |
+| `HeatPump` | yes | `source_in` -> `source_out`, `sink_in` -> `sink_out` | name pairs | both circuits pass without lift |
+| `AbsorptionUnit`, `AdsorptionChiller` | yes | `generator_in`, `chilled_in`, `cooling_in` -> the `_out` of each | name pairs | drive, chilled and cooling water pass; a dry cooler on `cooling_*` must go too |
+| `ORC`, `FlashTurbine` | yes | `fluid_in` -> `fluid_out` | name pairs | no power unit: the brine passes |
+| `Separator` | yes | `fluid_in` -> `liquid_out` | declared | nothing flashes: the stream goes on as the liquid; the steam branch must go too |
+| `ThermalStorage` | yes | `charge_in` -> `charge_out`, `discharge_in` -> `discharge_out` | name pairs | no store: each side passes |
+| `IceStorage` | yes | `fluid_in` -> `fluid_out` | name pairs | no store |
+| `Pipe`, `Valve`, `PressurizationTank` | yes | `fluid_in` -> `fluid_out` | name pairs | the stream passes without loss |
+| `GasMakeup` | yes | `gas_in` -> `excess_out` | declared | no burner to feed: the co-produced gas goes to the flare; the grid inlet goes |
+| `Mixer`, `Splitter` | no | | | which branch is kept is the plant's decision: declare it with `set_bypass` |
+| `GasGrid`, `ChemicalGrid` | yes, removed | `{}` | declared | a supply that goes when what it fed goes |
+| `WasteGrid` | yes, removed | `{}` | declared | a sink that goes when what fed it goes |
+| `ElectricityGrid` | yes, removed | `{}` | declared | goes when no consumer or generator is left on it |
+| `HeatingGrid`, `CoolingGrid` | yes, removed | `{}` | declared | a demand the plant may decline to serve, with its branch |
+| `Atmosphere` | yes | `air_in` -> `air_out` | name pairs | the environment; the pair exists by its names but turning it off has no physical meaning |
+| `Formation` | no | | | the environment of the wells |
+| `PIDController` | no | | | no stream port; a control strategy is not a structure |
+| plants (`Doublet`, `MultiWellPlant`, the substations, ...) | no, unless their port names pair | | name pairs | a plant class declares no bypass; a doublet count is `size.doublets`; `DistrictEnergyPlant` pairs `hot_in`/`hot_out` and `cold_in`/`cold_out` by name |
+
 ## Cost kinds and the Equipment mixin
 
 A module that is equipment subclasses the mixin `Equipment` (`gemini/modules/_utils/equipment.py`), sets

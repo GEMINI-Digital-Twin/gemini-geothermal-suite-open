@@ -149,6 +149,10 @@
    "input_value": [
     "path"
    ],
+   "set_bypass": [
+    "name",
+    "pairs"
+   ],
    "set_choice": [
     "name",
     "groups"
@@ -892,7 +896,8 @@
     "population",
     "polish",
     "plan",
-    "on_progress"
+    "on_progress",
+    "stop"
    ],
    "kinds": [],
    "minimize": [
@@ -1007,7 +1012,7 @@
   "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
   "economics.schema.json": "6fdcabd9151525720e1c26b88290061d0758873f05a7c4dfc5401bdff87a84c9",
   "module_description.schema.json": "ab505f2142d76ff6792ebcea84d05fe3a3896f43b56ae910ce9213cf28dc6e45",
-  "plant.schema.json": "4d3fd1f33341b97e6b6e6ad222b0596740ef4a3e2b5138a44cb64e68a6048cfb",
+  "plant.schema.json": "3d9a366d93d3eac0a870e1f18a2321e5aef9878dd0cdcbca93ef5433cb9024c8",
   "problem.schema.json": "98fbbd71c3cdb8b5c55b3cca2d2829999ab8665e4eb7dd1062fcc77d970383b4",
   "profile.schema.json": "a6a417ba35af581a0b082bbf9fc560785303c51dde6bb2466770f499f7440805",
   "results_summary.schema.json": "733213574165c3f2dc0176924aeb6eb350c38a75864b9dd1d146353fa442edf8",

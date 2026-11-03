@@ -11,6 +11,18 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `gm.plants.union(plants, *, name)`: one superstructure plant whose structures give back each
   of several concrete plants (modules matched by name, the others optional or a choice, in series);
   `plant.union` holds `{"structures", "notes"}`. Plants it cannot merge raise `invalid_design`.
+- `plant.set_bypass(name, {inlet: outlet})` and the plant file key `bypass`: how one module is
+  bypassed when a structure turns it off, over its class's `bypass` and the `<x>_in`/`<x>_out`
+  pairs; `{}` removes the module with all its connections, and a structure that then leaves a
+  port unconnected is refused. A mixer or a splitter can now be optional, so a whole branch
+  (cooling with its splitter, mixer and consumer) can go.
+- Module classes declare their bypass where it is physical: `Degasser` and `Separator`
+  `{fluid_in: liquid_out}`, `GasMakeup` `{gas_in: excess_out}`, and `{}` (removable) for `Flare`
+  and every grid (`GasGrid`, `ElectricityGrid`, `HeatingGrid`, `CoolingGrid`, `ChemicalGrid`,
+  `WasteGrid`). Such a module could not be optional before; no number changes.
+- `examples/hackathon_superstructure`: the peak boiler with its gas makeup and gas grid is a
+  choice on or off, and cooling off removes the cooling branch; the cooling consumer sits on the
+  chillers directly. 32 valid structures.
 
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
