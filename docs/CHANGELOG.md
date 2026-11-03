@@ -8,6 +8,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ## [Unreleased]
 
 ### Added
+- `gm.study.evolve(..., stop=None)`: `{"generations": n}` ends the search when the feasible front
+  has not changed for `n` generations, `{"seconds": s}` after a time limit; `study.json` takes
+  `stop` for `evolve`.
+- `Evolution` gains `structures` (the best design of each valid structure, with its simulation and
+  feasible counts), `rejected` (each refused structure with its reasons), `objectives`, `budget`
+  (what was spent and why the search stopped) and a hypervolume per generation in `history`;
+  `Evolution.to_frame()` gives the front as a table and `Evolution.explain()` a short text.
+- `scripts/validate_evolve.py`: the acceptance harness of `evolve` against a brute-force truth and
+  random search.
 - `gm.plants.union(plants, *, name)`: one superstructure plant whose structures give back each
   of several concrete plants (modules matched by name, the others optional or a choice, in series);
   `plant.union` holds `{"structures", "notes"}`. Plants it cannot merge raise `invalid_design`.
@@ -25,9 +34,28 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   chillers directly. 32 valid structures.
 
 ### Changed
+- `gm.study.evolve` searches better and faster (measured by `scripts/validate_evolve.py`): sizes of
+  alternatives are not tied, genes of modules that are off are ignored, no candidate is simulated
+  twice and none is kept twice in a generation, the first generation holds every valid structure
+  with the plant's values, a quarter of the children are local steps around the best, structure
+  genes mutate at their own rate, more than 256 structures are judged when drawn, and the
+  candidates of one structure run as one batch on one plant. The same seed still gives the same
+  result whatever the number of processes; the result differs from 0.6.1's.
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
+
+### Fixed
+- `gm.study.evolve` called a design with no unit for a service (a structure without cooling)
+  feasible; it is infeasible now. A candidate whose run raises is infeasible with the error as its
+  reason instead of stopping the search. `Evolution.to_dict()` wrote verdict reasons that are not
+  plain JSON.
+- `gm.study.minimize` told `on_progress` a total below the trials it runs when the plant has two
+  variables or more (a population is five per variable times the variables); the trials and the
+  numbers are unchanged.
+- `study.json` of `evolve`: an objective given twice and `evaluations` below `population` are
+  refused when the file is read, and `Study.check` reports a superstructure with no valid structure.
+
 
 ## [0.6.1] - 2026-11-03
 
