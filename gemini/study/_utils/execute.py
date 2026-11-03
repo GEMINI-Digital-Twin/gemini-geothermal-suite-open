@@ -4,6 +4,7 @@ from gemini.engine.simulate import simulate
 from gemini.evaluate import report as reported
 from gemini.study._utils.uncertain import declared
 from gemini.study._utils.variables import searchable
+from gemini.study.evolve import evolve
 from gemini.study.minimize import minimize, trials_of
 from gemini.study.sample import sample
 from gemini.study.sensitivity import sensitivity
@@ -30,6 +31,20 @@ def _searched(study, plant, case):
     return best, found, None
 
 
+def _evolved(study, plant, case):
+    """Return ``(design, found, note)`` of ``evolve``: the best design of the genetic search."""
+    found = evolve(
+        plant,
+        case,
+        list(study.objectives),
+        study.evaluations,
+        study.seed,
+        population=study.population,
+        polish=study.polish,
+    )
+    return found["best"]["plant"], found, None
+
+
 def _drawn(study, plant, case):
     """Return ``(design, found, note)`` of ``sample``: the spread of the metrics."""
     return plant, sample(plant, case, study.names, study.samples, study.seed), None
@@ -41,6 +56,7 @@ def _moved(study, plant, case):
 
 
 METHODS = {"run": _plain, "minimize": _searched, "sample": _drawn, "sensitivity": _moved}
+METHODS["evolve"] = _evolved
 """The function of each method of ``study.json``."""
 
 
@@ -73,6 +89,7 @@ def _ends(study, plant, case):
 
 TRIALS = {"run": lambda study, plant, case: 0, "minimize": _searches, "sample": _draws}
 TRIALS["sensitivity"] = _ends
+TRIALS["evolve"] = lambda study, plant, case: study.evaluations
 
 
 def trials(study, plant, case):

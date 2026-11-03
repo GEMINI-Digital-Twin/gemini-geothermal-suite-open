@@ -20,20 +20,31 @@ from gemini.study.result import Run, StudyResult
 from gemini.units import inputs
 
 HEADER = ("format", "kind", "name")
-METHODS = ("run", "minimize", "sample", "sensitivity")
+METHODS = ("run", "minimize", "sample", "sensitivity", "evolve")
 """The methods of a study, a closed list."""
 PREPARE = ("size",)
 """The actions that can run before the method."""
 KEYS = (*HEADER, "cases", "plants", "prepare", "method", "objective", "metrics")
-KEYS += ("evaluations", "samples", "seed")
+KEYS += ("evaluations", "samples", "seed", "objectives", "population", "polish")
+SETTING_KEYS = ("objective", "metrics", "evaluations", "samples", "seed")
+SETTING_KEYS += ("objectives", "population", "polish")
+"""The settings of the methods, each ``None`` when the file does not give it."""
 REQUIRED = {
     "run": (),
     "minimize": ("objective", "evaluations", "seed"),
     "sample": ("metrics", "samples", "seed"),
     "sensitivity": ("metrics",),
+    "evolve": ("objectives", "evaluations", "population", "seed", "polish"),
 }
 """The keys each method needs, which have no default."""
-OWN = {"evaluations": ("minimize",), "samples": ("sample",), "seed": ("minimize", "sample")}
+OWN = {
+    "evaluations": ("minimize", "evolve"),
+    "samples": ("sample",),
+    "seed": ("minimize", "sample", "evolve"),
+    "objectives": ("evolve",),
+    "population": ("evolve",),
+    "polish": ("evolve",),
+}
 """The keys that only some methods read; another method refuses them rather than ignore them."""
 
 
@@ -57,9 +68,9 @@ def _paths(data, key, issues):
 def _whole(data, key, issues):
     """Return the integer at ``key`` (at least 1 but for ``seed``) or ``None`` with an issue."""
     found = data.get(key)
-    low = None if key == "seed" else 1
-    if isinstance(found, bool) or not isinstance(found, int) or (low and found < low):
-        want = "a whole number" if low is None else "a whole number of at least 1"
+    low = {"seed": None, "polish": 0, "population": 2}.get(key, 1)
+    if isinstance(found, bool) or not isinstance(found, int) or (low is not None and found < low):
+        want = "a whole number" if low is None else f"a whole number of at least {low}"
         _issue(issues, key, "incompatible", f"{key} = {found!r}; expected {want}")
         return None
     return found
@@ -72,6 +83,17 @@ def _metrics(data, issues):
         _issue(issues, "metrics", "incompatible", f"metrics = {found!r}; expected a list of names")
         return None
     return tuple(_known(name, f"metrics[{n}]", issues) for n, name in enumerate(found))
+
+
+def _objectives(data, issues):
+    """Return the tuple of the ``objectives`` of ``data``: one metric or a list of them."""
+    found = data["objectives"]
+    listed = [found] if isinstance(found, str) else found
+    if not isinstance(listed, list) or not listed or not all(isinstance(i, str) for i in listed):
+        message = f"objectives = {found!r}; expected a metric or a list of metrics"
+        _issue(issues, "objectives", "incompatible", message)
+        return None
+    return tuple(_known(name, f"objectives[{n}]", issues) for n, name in enumerate(listed))
 
 
 def _known(name, path, issues):
@@ -89,8 +111,10 @@ class Study:
     ``study.json`` (``kind: study``) records which ``cases`` and ``plants`` (paths, relative to the
     file), an optional ``prepare`` (``["size"]``, an action before the method, whose criterion
     ``backup`` is the plant's), the ``method`` (``run``, ``minimize``, ``sample`` or
-    ``sensitivity``), the ``objective`` and ``metrics`` and the settings the method needs:
-    ``evaluations`` and ``seed`` for ``minimize``, ``samples`` and ``seed`` for ``sample``. A
+    ``sensitivity`` or ``evolve``), the ``objective`` and ``metrics`` and the settings the method
+    needs: ``evaluations`` and ``seed`` for ``minimize``, ``samples`` and ``seed`` for ``sample``,
+    ``objectives`` (a metric or a list), ``evaluations``, ``population``, ``seed`` and ``polish``
+    for ``evolve``. A
     setting has no default: one that the method needs and the file lacks is a ``missing`` issue,
     and one that the method does not read is refused. ``run`` calls the functions of ``gm.study``
     for every plant on every case; there is no second implementation.
@@ -100,7 +124,8 @@ class Study:
 
     Attributes
     ----------
-    name, cases, plants, prepare, method, objective, metrics, evaluations, samples, seed
+    name, cases, plants, prepare, method, objective, metrics, evaluations, samples, seed,
+    objectives, population, polish
         As in the file; absent settings are ``None``.
     """
 
@@ -110,7 +135,7 @@ class Study:
         self.cases, self.plants = found["cases"], found["plants"]
         self.prepare = found["prepare"]
         self.method = found["method"]
-        for key in ("objective", "metrics", "evaluations", "samples", "seed"):
+        for key in SETTING_KEYS:
             setattr(self, key, found[key])
         self.files = {} if files is None else dict(files)
         self.folder = None if folder is None else Path(folder)
@@ -182,22 +207,32 @@ class Study:
             return None
         return method
 
-    @classmethod
-    def _settings(cls, data, method, issues):
-        """Return the objective, metrics and settings, each ``None`` when absent."""
-        found = dict.fromkeys(("objective", "metrics", "evaluations", "samples", "seed"))
+    @staticmethod
+    def _refused(data, method, issues):
+        """Add an issue for each setting the method does not read and each it lacks."""
         for key, only in OWN.items():
             if key in data and method is not None and method not in only:
                 message = f"{key} is not read by the method {method!r}; expected it only for {only}"
                 _issue(issues, key, "incompatible", message)
+        if method == "evolve" and "objective" in data:
+            message = "objective is not read by the method 'evolve'; expected objectives"
+            _issue(issues, "objective", "incompatible", message)
         for key in REQUIRED.get(method, ()):
             if key not in data:
                 _issue(issues, key, "missing", f"{key} is missing; the method {method} needs it")
+
+    @classmethod
+    def _settings(cls, data, method, issues):
+        """Return the objective, metrics and settings, each ``None`` when absent."""
+        found = dict.fromkeys(SETTING_KEYS)
+        cls._refused(data, method, issues)
         if "objective" in data:
             found["objective"] = _known(data["objective"], "objective", issues)
         if "metrics" in data:
             found["metrics"] = _metrics(data, issues)
-        for key in ("evaluations", "samples", "seed"):
+        if "objectives" in data:
+            found["objectives"] = _objectives(data, issues)
+        for key in ("evaluations", "samples", "seed", "population", "polish"):
             if key in data:
                 found[key] = _whole(data, key, issues)
         return found
@@ -209,10 +244,10 @@ class Study:
         if self.prepare:
             data["prepare"] = list(self.prepare)
         data["method"] = self.method
-        for key in ("objective", "metrics", "evaluations", "samples", "seed"):
+        for key in SETTING_KEYS:
             if getattr(self, key) is not None:
                 value = getattr(self, key)
-                data[key] = list(value) if key == "metrics" else value
+                data[key] = list(value) if key in ("metrics", "objectives") else value
         return data
 
     def to_json(self, path):
@@ -238,6 +273,9 @@ class Study:
             "evaluations": whole,
             "samples": whole,
             "seed": {"type": "integer"},
+            "objectives": {"anyOf": [{"type": "string"}, names]},
+            "population": {"type": "integer", "minimum": 2},
+            "polish": {"type": "integer", "minimum": 0},
         }
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -293,7 +331,7 @@ class Study:
     @property
     def names(self):
         """The metrics the study reads, the objective first, without the sign of a maximum."""
-        found = [self.objective] if self.objective else []
+        found = [self.objective] if self.objective else list(self.objectives or ())
         names = [name.removeprefix("-") for name in (*found, *(self.metrics or ()))]
         return list(dict.fromkeys(names))
 
@@ -415,7 +453,7 @@ class Study:
 
     def _ranking(self):
         """Return ``{metric: "min" or "max"}`` for ``compare``: the objective, then the metrics."""
-        found = [self.objective] if self.objective else []
+        found = [self.objective] if self.objective else list(self.objectives or ())
         senses = {}
         for name in (*found, *(self.metrics or ())):
             senses.setdefault(name.removeprefix("-"), "max" if name.startswith("-") else "min")
@@ -423,9 +461,10 @@ class Study:
 
     def _winner(self, runs, ranked):
         """Return the feasible run ranked first by the objective, or ``None``."""
-        if not self.objective:
+        objective = self.objective or (self.objectives or (None,))[0]
+        if not objective:
             return None
-        key = self.objective.removeprefix("-")
+        key = objective.removeprefix("-")
         feasible = [(entry["ranks"][key], entry["index"]) for entry in ranked if entry["feasible"]]
         return runs[min(feasible)[1]] if feasible else None
 

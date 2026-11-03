@@ -27,7 +27,7 @@ goes in an `_utils/` folder, code of one category in a private file of its folde
 ([dependencies](.claude/docs/conventions.md#dependencies)); the rules for folders and the table of what each
 folder takes, gives and may call are in [structure](.claude/docs/structure.md).
 
-Learn the package from [examples/README.md](examples/README.md): five flat scripts, `quickstart.py`
+Learn the package from [examples/README.md](examples/README.md): six flat scripts, `quickstart.py`
 first, then `hackathon.py`. gemini holds no data file: plants are Python classes, and JSON is only the
 plant dict agents use (`gm.Plant.from_dict`, `plant.to_dict`, `gm.plants.schema`). Data lives in
 `examples/<name>/` (a sample project: its case, plants and data, so a folder a user can copy) and in
@@ -112,7 +112,7 @@ gemini/
 └── analysis/         # one module at fixed conditions: nodal, fits (and the pump curve), corrosion forecast
 docs/                 # for people: guide.md, rules.md, CHANGELOG.md, the Sphinx sources
 docs/schemas/         # generated JSON Schemas and samples of the exchanged documents
-examples/             # five flat scripts (quickstart, hackathon, costs, uncertainty, plant) and one folder per sample project (case, plants, data): hackathon_2026/, shallow_district/
+examples/             # six flat scripts (quickstart, hackathon, costs, uncertainty, plant, evolve) and one folder per sample project (case, plants, data): hackathon_2026/, hackathon_superstructure/, shallow_district/
 scripts/              # test_changed.py, write_schemas.py, legacy/ (old-project reader for the tests)
 docker/               # sandbox.Dockerfile, the image of a module sandbox (make sandbox-image)
 tests/                # unit mirror, integration, e2e (expected/ holds example outputs), fixtures (with the data the tests read: plants/, doublet_heat/, legacy_project/)

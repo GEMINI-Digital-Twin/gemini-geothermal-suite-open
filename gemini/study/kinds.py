@@ -3,7 +3,7 @@
 from gemini.evaluate._utils.display import OBJECTIVES
 from gemini.evaluate.summary import KPI_NAMES
 from gemini.study._utils.trial import ECONOMICS
-from gemini.study.study import METHODS, OWN, PREPARE, REQUIRED, Study
+from gemini.study.study import METHODS, OWN, PREPARE, REQUIRED, SETTING_KEYS, Study
 
 KINDS = {
     "run": (
@@ -17,6 +17,14 @@ KINDS = {
         "Searches the ranges and choices that the plant file leaves open for the design with "
         "the lowest value of one figure, such as the cost of heat. A design that fails a "
         "requirement always ranks after every design that meets them.",
+    ),
+    "evolve": (
+        "Find the best structure",
+        "Searches which optional equipment to include, which alternative to pick and the values "
+        "the plant file leaves open, with a genetic algorithm. With several figures, such as the "
+        "cost of heat and the emissions, it gives the designs where no figure can improve without "
+        "another getting worse. A design that fails a requirement always ranks after every "
+        "design that meets them.",
     ),
     "sample": (
         "Test the uncertainty",
@@ -54,6 +62,19 @@ SETTINGS = {
         "Number of draws",
         "How many random draws are run; more draws give steadier figures and take longer.",
     ),
+    "objectives": (
+        "Figures to minimise",
+        "One figure, or several that the search weighs against each other.",
+    ),
+    "population": (
+        "Designs per generation",
+        "How many designs each generation of the search holds; more search wider.",
+    ),
+    "polish": (
+        "Designs to refine",
+        "How many of the best designs are refined afterwards by a search of their values; 0 for "
+        "none.",
+    ),
     "seed": (
         "Random seed",
         "A whole number that fixes the random choices: the same seed gives the same study.",
@@ -71,15 +92,16 @@ def _setting(key):
         found["enum"] = list(OBJECTIVES)
     if key == "metrics":
         found["items"] = {**found["items"], "enum": [*KPI_NAMES, *ECONOMICS]}
+    if key == "objectives":
+        found["anyOf"] = [{"type": "string", "enum": list(OBJECTIVES)}, {**found["anyOf"][1]}]
+        found["anyOf"][1]["items"] = {"type": "string", "enum": list(OBJECTIVES)}
     return found
 
 
 def _settings(method):
     """Return the JSON Schema of the keys a method reads beyond ``cases`` and ``plants``."""
     keys = [
-        key
-        for key in ("objective", "metrics", "evaluations", "samples", "seed")
-        if key in REQUIRED.get(method, ()) or method in OWN.get(key, ())
+        key for key in SETTING_KEYS if key in REQUIRED.get(method, ()) or method in OWN.get(key, ())
     ]
     return {
         "type": "object",
@@ -96,12 +118,14 @@ def kinds():
     -------
     list of dict
         ``{kind, use, title, description, settings}`` in a fixed order: the methods of
-        ``gm.Study`` (``run``, ``minimize``, ``sample``, ``sensitivity``, ``use`` ``"method"``,
-        the value of the ``method`` key of ``study.json``) and ``size`` (``use`` ``"prepare"``,
-        an entry of its ``prepare`` list). ``title`` and ``description`` are plain words for a
-        user. ``settings`` is the JSON Schema (draft 2020-12) of the keys the kind reads besides
-        ``cases`` and ``plants``: ``objective``, ``evaluations`` and ``seed`` for ``minimize``,
-        ``metrics``, ``samples`` and ``seed`` for ``sample``, ``metrics`` for ``sensitivity``,
+        ``gm.Study`` (``run``, ``minimize``, ``sample``, ``sensitivity``, ``evolve``, ``use``
+        ``"method"``, the value of the ``method`` key of ``study.json``) and ``size`` (``use``
+        ``"prepare"``, an entry of its ``prepare`` list). ``title`` and ``description`` are plain
+        words for a user. ``settings`` is the JSON Schema (draft 2020-12) of the keys the kind
+        reads besides ``cases`` and ``plants``: ``objective``, ``evaluations`` and ``seed`` for
+        ``minimize``, ``metrics``, ``samples`` and ``seed`` for ``sample``, ``metrics`` for
+        ``sensitivity``, ``objectives``, ``evaluations``, ``population``, ``seed`` and ``polish``
+        for ``evolve``,
         none for the others. ``required`` lists those the kind cannot do without; ``objective``
         lists the metrics worth minimising (``gm.evaluate.metrics()``) and ``metrics`` those that a
         study reads. Plain JSON, a new list on each call.

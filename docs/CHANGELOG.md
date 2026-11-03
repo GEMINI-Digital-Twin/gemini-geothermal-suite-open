@@ -12,6 +12,30 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.1] - 2026-11-03
+
+Structure optimisation, approved by the owner. Additive: nothing of 0.6.0 changes, and
+`examples/hackathon.py` prints the same output.
+
+### Added
+- A plant may state a superstructure: `plant.set_optional(name)` (the module may be off, then
+  bypassed: each stream inlet `<x>_in` joined to its outlet `<x>_out`, or the `bypass` pairs its
+  class declares; power ports dropped) and `plant.set_choice(name, {group: [modules]})` (exactly
+  one group on; `"none": []` allowed). `plant.optional`, `plant.choices`, `plant.structures()`
+  (every valid structure) and `plant.with_structure(structure)` (the ordinary plant of one). The
+  plant file keys `optional` and `choices`; `plant.check()` reports a superstructure with no valid
+  structure.
+- `gm.study.evolve(plant, case, objectives, evaluations, seed, *, population, polish, plan=None,
+  on_progress=None)`: a genetic search of the structure, the doublet count and the ranges and
+  options of a plant; with two objectives or more it is NSGA-II and gives the Pareto front. It
+  returns `gm.study.Evolution` `{front, best, history, evaluations, invalid}` of
+  `gm.study.Design`s. Invalid structures are refused before any simulation, a candidate seen before
+  is not run again, generations run in worker processes, and the same seed gives the same result.
+  `polish` refines the best designs with `minimize`. No new dependency.
+- `study.json` method `evolve` with `objectives`, `evaluations`, `population`, `seed` and `polish`;
+  `gm.study.kinds()` lists it.
+- `examples/evolve.py`: the hackathon superstructure searched on cost and emissions.
+
 ## [0.6.0] - 2026-11-03
 
 A breaking release, approved by the owner: the ports of a module are one class, `Port`, with

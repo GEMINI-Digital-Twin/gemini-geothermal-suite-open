@@ -144,6 +144,15 @@ def schema():
             "params": {"$ref": "#/$defs/tree"},
             "fluids": SECTION,
             "boundary": SECTION,
+            "optional": {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
+            "choices": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "object",
+                    "minProperties": 2,
+                    "additionalProperties": {"type": "array", "items": {"type": "string"}},
+                },
+            },
         },
         "$defs": {"module": _module(), "leaf": _leaf(), "tree": _tree()},
     }

@@ -8,7 +8,7 @@ from gemini._utils.strings import close_matches, did_you_mean, join_path
 from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import Issue, problem, raise_issues
 from gemini.modules._utils import design
-from gemini.plants._utils import form, leaves, outputs, plant_inputs
+from gemini.plants._utils import form, leaves, outputs, plant_inputs, superstructure
 from gemini.plants._utils.factory import built, make_module
 from gemini.plants._utils.plan import is_group, unconnected_port
 from gemini.plants._utils.serialization import (
@@ -384,6 +384,7 @@ def read(cls, data, ports=False):
     found = []
     if plant is not None:
         leaves.apply(plant, parsed, found)
+        superstructure.from_file(plant, parsed.superstructure, found)
         if parsed.structure is not None:
             _agree(cls, plant, parsed.structure, found)
     marked = [item.path for item in found]

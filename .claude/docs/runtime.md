@@ -18,7 +18,8 @@ hands work to threads passes `state()` along or runs it in `contextvars.copy_con
 `state()` returns a JSON-safe copy of the settings; `settings(**state())` applies a complete one.
 `processes` is the number of worker processes the trials of a study run in (a whole number of at
 least 1, 1 meaning a serial run). `gm.study.sample`, `sensitivity` and `minimize` run their
-independent trials in that many processes (`minimize`: one search per doublet count) and return
+independent trials in that many processes (`minimize`: one search per doublet count; `evolve`: the
+new candidates of a generation) and return
 the numbers and the order of a serial run. A worker applies the settings of its parent with one
 process, so it starts no pool of its own; a script that sets `processes` above 1 needs the usual
 `if __name__ == "__main__":` guard, because workers start from a `forkserver`.

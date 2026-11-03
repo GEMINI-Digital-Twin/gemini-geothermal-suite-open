@@ -25,7 +25,8 @@
         "run",
         "minimize",
         "sample",
-        "sensitivity"
+        "sensitivity",
+        "evolve"
       ]
     },
     "metrics": {
@@ -41,12 +42,34 @@
     "objective": {
       "type": "string"
     },
+    "objectives": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      ]
+    },
     "plants": {
       "items": {
         "type": "string"
       },
       "minItems": 1,
       "type": "array"
+    },
+    "polish": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "population": {
+      "minimum": 2,
+      "type": "integer"
     },
     "prepare": {
       "items": {

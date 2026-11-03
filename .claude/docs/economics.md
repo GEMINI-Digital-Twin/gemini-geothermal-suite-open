@@ -326,6 +326,38 @@ each doublet count**; with four variables 20 gave 80 trials. The search is
 candidates per variable, so a smaller budget than one population raises `ValidationError`; the
 integer and the option variables are searched as integers.
 
+`gm.study.evolve(plant, case, objectives, evaluations, seed, *, population, polish, plan=None,
+on_progress=None)` (`gemini/study/evolve.py`, the operators in `gemini/study/_utils/genetic.py`)
+searches the structure and the values together. The genome is one gene per optional module (on or
+off), per choice (its group), the doublet count when `size.doublets` has a range, and one per
+variable of `minimize` (tied over the doublet counts by name, role and range); a gene of a module
+that is off is ignored and is not part of the key a candidate is remembered by. `objectives` is a
+metric or a list (`["lcts", "co2"]`, a leading `-` maximises): one is a genetic algorithm, two or
+more NSGA-II, with fronts of non-domination and the crowding distance. Ranking is constraint
+domination, the rule of `minimize`: a feasible candidate beats every infeasible one, infeasible ones
+are ordered by their violation. Parents are drawn by binary tournament; continuous and integer genes
+cross by simulated binary crossover (probability 0.9, index 15) and mutate by polynomial mutation
+(index 20, probability one over the number of genes), choices cross uniformly and mutate by a random
+reset; each generation keeps the best `population` of parents and children. The first generation is
+the plant's own values (a sized plant's, clipped to the ranges) in each valid structure, in the order
+of `plant.structures()` while they fit, then random candidates from the seed. A candidate whose structure gives no valid plant is refused before any
+simulation and counted in `invalid`; a candidate seen before is not run again. The new candidates of
+a generation run in the worker processes of `gm.runtime.settings(processes=n)`, each alone, so the
+result does not depend on `n`. Each candidate's values are set on the superstructure (on its doublet
+count) and then the structure is taken, so the values of a class plant stay genes. `evaluations` is
+the total number of simulations of the genetic search; it ends there, or after ten generations in a
+row with no new candidate (the space is seen). `polish` (0 for none) searches the first `polish`
+designs again with `minimize` on the first objective, from the design, in the ranges its plant keeps,
+with `population` evaluations per doublet count (the budget `minimize` reads), so `population` must
+be at least five per variable; the best plant of each is run once more for every objective and joins
+the designs, and these simulations add to `evaluations` in the result. It returns an `Evolution`
+`{front, best, history, evaluations, invalid}`: `front` the designs no other beats on every objective
+(the best one alone for one objective, the least violating one when none is feasible), ordered by
+the first objective; `best` the best on the first objective; `history` per generation the
+simulations so far, the best feasible value of each objective so far and the size of the feasible
+first front. A `Design` is `{structure, plant, metrics, feasible, reason, violation, parameters}`;
+`to_dict()` of both is plain JSON in display units, a design's plant as its plant file.
+
 A trial is feasible when its `gm.evaluate.verdict` has no reason that a design variable can change:
 the reasons with a `violation` (a failed requirement, the supply temperatures of the services
 included, an operating limit, a failed step, a balance out of its tolerance), and every limit of
@@ -361,8 +393,10 @@ in the display unit of the metric, or the unit of `units`, and a `unit` column.
 
 `gm.Study` (`gemini/study/study.py`) is the same functions from a `study.json` (`kind: study`, see
 [inputs.md](inputs.md#studyjson-kind-study-gmstudy-optional-what-to-run-how)): `cases`, `plants`,
-`prepare`, `method` (`run`, `minimize`, `sample`, `sensitivity`), `objective`, `metrics`,
-`evaluations`, `samples`, `seed`, with no default for a setting the method needs. `Study.run()`
+`prepare`, `method` (`run`, `minimize`, `sample`, `sensitivity`, `evolve`), `objective`, `metrics`,
+`evaluations`, `samples`, `seed`, and for `evolve` `objectives`, `population` and `polish` (it
+refuses `objective`), with no default for a setting the method needs. An `evolve` run's design is
+the `best` of the search. `Study.run()`
 prepares (`size`), calls `minimize`, `sample` or `sensitivity`, simulates and reports each plant on
 each case and returns a `StudyResult`: `runs` (`plant_name`, `case_name`, `verdict`, `metrics`,
 `plant`, `report`, `found`, `note`), `comparison` (a `gm.evaluate.compare` of the reports of each

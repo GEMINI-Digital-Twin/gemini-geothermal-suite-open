@@ -149,8 +149,16 @@
    "input_value": [
     "path"
    ],
+   "set_choice": [
+    "name",
+    "groups"
+   ],
    "set_inputs": [
     "values"
+   ],
+   "set_optional": [
+    "name",
+    "optional"
    ],
    "set_options": [
     "path",
@@ -164,6 +172,7 @@
    "source_of": [
     "target"
    ],
+   "structures": [],
    "summary": [],
    "target_of": [
     "source"
@@ -173,6 +182,9 @@
    ],
    "to_json": [
     "path",
+    "structure"
+   ],
+   "with_structure": [
     "structure"
    ]
   },
@@ -850,6 +862,8 @@
   },
   "study": {
    "CalibrationResult": "class",
+   "Design": "class",
+   "Evolution": "class",
    "Run": "class",
    "Sample": "class",
    "Search": "class",
@@ -864,6 +878,17 @@
     "end",
     "backend",
     "apply"
+   ],
+   "evolve": [
+    "plant",
+    "case",
+    "objectives",
+    "evaluations",
+    "seed",
+    "population",
+    "polish",
+    "plan",
+    "on_progress"
    ],
    "kinds": [],
    "minimize": [
@@ -978,11 +1003,11 @@
   "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
   "economics.schema.json": "6fdcabd9151525720e1c26b88290061d0758873f05a7c4dfc5401bdff87a84c9",
   "module_description.schema.json": "ab505f2142d76ff6792ebcea84d05fe3a3896f43b56ae910ce9213cf28dc6e45",
-  "plant.schema.json": "4c0f2416861812feb5c7eb063a466318019a693243c1bda4c2c38376497fb0c6",
+  "plant.schema.json": "4d3fd1f33341b97e6b6e6ad222b0596740ef4a3e2b5138a44cb64e68a6048cfb",
   "problem.schema.json": "98fbbd71c3cdb8b5c55b3cca2d2829999ab8665e4eb7dd1062fcc77d970383b4",
   "profile.schema.json": "a6a417ba35af581a0b082bbf9fc560785303c51dde6bb2466770f499f7440805",
   "results_summary.schema.json": "733213574165c3f2dc0176924aeb6eb350c38a75864b9dd1d146353fa442edf8",
-  "study.schema.json": "06ca9f42d43433e150fd94d4d7bfd6aa3681e78a04ad1786bd81fec422be08b2",
+  "study.schema.json": "1b45c34dec9deecb4ace157cccb2389237273250c519126c4fb493b1bc3d41c0",
   "value.schema.json": "99da0d9dff87ea775bbd0ebeec60c185376587064f605f9647d7537020d40cc6"
  },
  "streams": [
@@ -1033,5 +1058,5 @@
   "study",
   "units"
  ],
- "version": "0.6.0"
+ "version": "0.6.1"
 }

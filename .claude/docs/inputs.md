@@ -178,9 +178,9 @@ reproducible from files (P5) and an agent can write JSON instead of code. It is 
 | --- | --- |
 | `cases`, `plants` (paths) | which conditions and designs; every plant runs on every case |
 | `prepare`: `["size"]` | an action before the method; its criteria (`backup`) come from the plant |
-| `method`: `run` \| `minimize` \| `sample` \| `sensitivity` (later `replay`, `calibrate` with `measurements`) | how (test 5); the algorithm and its fixed hyper-parameters are the method (7.28) |
+| `method`: `run` \| `minimize` \| `sample` \| `sensitivity` \| `evolve` (later `replay`, `calibrate` with `measurements`) | how (test 5); the algorithm and its fixed hyper-parameters are the method (7.28) |
 | `objective`, `metrics`, `compare` keys | what the analyst wants to know |
-| `evaluations`, `samples`, `seed` | budget and reproducibility; required where the method needs them, no defaults (the old `evaluations = 100` and `SEED = 0` go) |
+| `evaluations`, `samples`, `seed`; for `evolve` `objectives`, `population`, `polish` | budget and reproducibility; required where the method needs them, no defaults (the old `evaluations = 100` and `SEED = 0` go) |
 | `plan` (a path) | a run input that replaces the scheduled one (7.24) |
 | `measurements`, bindings | outline only (7.15, section 8) |
 
@@ -881,8 +881,8 @@ leaf, to move a case value use `uncertainty`, this will be refused in a later ve
 | requirement | a third-party rule on a result or a plant property; it judges, it never sets a value |
 | margin | the amount a plant adds to (or, for cold, takes from) a supply temperature of the demand to get a setpoint (7.14) |
 | study | which plants on which cases, with which method, objective, budget and seed (`gm.Study`); optional |
-| method | `run`, `minimize`, `sample`, `sensitivity` (later `replay`, `calibrate`) |
-| objective | the one metric `minimize` lowers |
+| method | `run`, `minimize`, `sample`, `sensitivity`, `evolve` (later `replay`, `calibrate`) |
+| objective | the one metric `minimize` lowers; `evolve` takes `objectives`, one or several |
 | metric | a reported number (`lcts`, `co2`, `capex`...) |
 | verdict | the single feasibility answer of one run: `feasible` plus reasons, each of kind `requirement`, `failed_step`, `numerical` or `bound` |
 | issue | one problem found by a check: `path`, `kind` (`missing`, `unknown_key`, `unit`, `out_of_bounds`, `not_allowed`, `incompatible`, `coverage`), `message`, and for values the quantity and accepted units |

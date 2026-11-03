@@ -30,6 +30,8 @@ ALLOWED = (
     "params",
     "fluids",
     "boundary",
+    "optional",
+    "choices",
 )
 TYPES = {
     "type": str,
@@ -43,6 +45,8 @@ TYPES = {
     "params": dict,
     "fluids": dict,
     "boundary": dict,
+    "optional": list,
+    "choices": dict,
 }
 MARKERS = {"value", "unit", "range", "options", "history", "uncertainty"}
 CONTROL = "control"
@@ -64,6 +68,7 @@ class Parsed:
     leaves: dict = field(default_factory=dict)
     sizes: dict = field(default_factory=dict)
     structure: dict | None = None
+    superstructure: dict = field(default_factory=dict)
 
 
 def issue(issues, path, kind, message, **details):
@@ -301,7 +306,8 @@ def parse(data, issues):
             structure = _structure(data, header.name, flat_params, sections)
     else:
         flat = _structure(data, header.name, flat_params, sections)
-    return Parsed(header, flat, leaves, sizes, structure)
+    stated = {key: data[key] for key in ("optional", "choices") if key in data}
+    return Parsed(header, flat, leaves, sizes, structure, stated)
 
 
 def _leaf_node(value, extra, written_unit):
@@ -407,6 +413,17 @@ def _size_tree(plant, flat):
     }
 
 
+def _superstructure(plant):
+    """Return the ``optional`` and ``choices`` of the plant file, none when the plant has none."""
+    found = {"optional": list(plant._optional)} if plant._optional else {}
+    if plant._choices:
+        found["choices"] = {
+            name: {group: list(members) for group, members in groups.items()}
+            for name, groups in plant._choices.items()
+        }
+    return found
+
+
 def render(plant, flat):
     """Return the plant file of the flat dict ``flat`` that ``plant`` writes."""
     file = plant._file
@@ -426,4 +443,4 @@ def render(plant, flat):
     for key in ("fluids", "boundary"):
         if flat.get(key):
             doc[key] = flat[key]
-    return doc
+    return doc | _superstructure(plant)

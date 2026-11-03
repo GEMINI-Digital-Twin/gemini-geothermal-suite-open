@@ -1,6 +1,6 @@
 """Run every example as a user would and compare what it prints.
 
-Each of the five files in ``examples/`` runs as a subprocess from an empty temporary folder,
+Each of the six files in ``examples/`` runs as a subprocess from an empty temporary folder,
 without ``PYTHONPATH``, which proves it is standalone: its paths come from ``__file__``. Its
 output is compared with ``tests/e2e/expected/`` line by line: the text exactly, the
 numbers within ``RELATIVE``, ``ABSOLUTE`` or one unit of the last printed digit (1.5 units, so that

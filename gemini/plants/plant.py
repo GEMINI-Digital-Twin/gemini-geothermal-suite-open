@@ -25,6 +25,7 @@ from gemini.plants._utils import (
     outputs,
     plant_inputs,
     reader,
+    superstructure,
     writer,
 )
 from gemini.plants._utils.call import Call
@@ -70,6 +71,8 @@ class Plant(PortResolver, Module):
         super().__init__()
         self._size = {}
         self._search = {}
+        self._optional = []
+        self._choices = {}
         self._file = {}
         self._inputs = {}
         self._connections = []
@@ -431,6 +434,61 @@ class Plant(PortResolver, Module):
         leaves.set_options(self, path, options)
         return self
 
+    def set_optional(self, name, optional=True):
+        """State that the module ``name`` may be off in a structure; ``False`` makes it fixed.
+
+        A module that is off is bypassed: each stream inlet ``<x>_in`` is joined to its outlet
+        ``<x>_out`` (or the pairs of the ``bypass`` its class declares), its power and other ports
+        go, and it costs nothing. A module with no such pair raises ``invalid_design``; one in a
+        choice raises too. Returns the plant.
+        """
+        superstructure.set_optional(self, name, optional)
+        return self
+
+    def set_choice(self, name, groups):
+        """State the choice ``name``: exactly one of ``groups`` ``{group: [modules]}`` is on.
+
+        A group may be empty (``"none": []``); the groups are apart and no module of them is
+        optional. The modules of the groups that are off are bypassed as ``set_optional`` says.
+        ``groups=None`` removes the choice. Returns the plant.
+        """
+        superstructure.set_choice(self, name, groups)
+        return self
+
+    @property
+    def optional(self):
+        """Return the modules that may be off, in the order they were stated."""
+        return list(self._optional)
+
+    @property
+    def choices(self):
+        """Return ``{choice: {group: [modules]}}`` of every choice, in the order stated."""
+        return {
+            name: {k: list(v) for k, v in groups.items()} for name, groups in self._choices.items()
+        }
+
+    def structures(self):
+        """Return every valid structure: ``{optional module: bool, choice: group}`` dicts.
+
+        A structure is valid when the plant of ``with_structure`` reads and its ``check`` has no
+        error other than a missing value. A plant without optional modules or choices has one
+        structure, ``{}``. The order is fixed: the optional modules on before off, the groups in
+        the order stated.
+        """
+        return superstructure.valid(self, Plant)
+
+    def with_structure(self, structure):
+        """Return the ordinary plant of ``structure``, with no optional module and no choice.
+
+        ``structure`` gives a value for every optional module (``True`` on, ``False`` off) and
+        every choice (the name of a group); a missing or unknown key raises. The modules that are
+        off are taken out and bypassed, with their values, ranges and options. With none off the
+        plant keeps its class; else it is a plant of modules and connections in which every value
+        of a module is stated, and the values of the class itself (and its ``size``) go, their
+        effect kept in the modules. A plant that cannot be read raises its ``ValidationError``.
+        """
+        return superstructure.concrete(self, structure, Plant)
+
     def check(self, *, results=None):
         """Return the issues of the plant, an empty list when it is ready; it never raises.
 
@@ -442,6 +500,8 @@ class Plant(PortResolver, Module):
         (``generic_conflict``), every required port left unconnected (``unconnected_port``).
         With the ``results`` of a run, each port whose temperature or pressure left the range it
         declares is a warning (kind ``warning``, code ``out_of_range``), which never refuses.
+        A plant with optional modules or choices has its ports judged in each structure: it
+        reports ``invalid_design`` at ``optional`` when no structure is valid (``structures``).
         """
         _, found = reader.read(Plant, self.to_dict(), ports=True)
         missing = [
@@ -450,6 +510,8 @@ class Plant(PortResolver, Module):
         ]
         listed = [item for item in found if not reader.tolerated(item)] + missing
         known = {item.path for item in listed}
+        if self._optional or self._choices:
+            return listed + superstructure.none_valid(self, Plant)
         ports = [item for item in connections.issues(self) if item.path not in known]
         ranges = [] if results is None else connections.out_of_range(self, results)
         return listed + ports + ranges

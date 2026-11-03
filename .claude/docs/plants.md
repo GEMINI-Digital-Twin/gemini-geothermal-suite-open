@@ -244,6 +244,43 @@ the sizes, `set_range` and `set_options` change them with the checks of a file. 
 - The constructor defaults of the class plants (`doublets=1`, `consumers=2`, `service='heating'`,
   `producers=2`, `injectors=1`, inputs.md 7.12) stay: hundreds of calls use them.
 
+## Superstructure
+
+A plant may state which of its modules are open to a search of structures
+(`gemini/plants/_utils/superstructure.py`), next to its ranges and options:
+
+- `plant.set_optional("peak_boiler")`: the module may be off. Off is a **bypass**: each stream
+  inlet `<x>_in` is joined to its stream outlet `<x>_out` (`fluid_in` to `fluid_out`, `hot_in` to
+  `hot_out`, `source_in` to `source_out`, ...), so what fed the module feeds what it fed; its power
+  ports and its other ports go with it, and it costs nothing. A module class may declare
+  `bypass = {inlet: outlet}` instead of the name pairs. A module with no pair and no `bypass`
+  (`Doublet`, `Mixer`, `Splitter`, `Degasser`) cannot be optional: which outlet an inlet joins is
+  ambiguous, and `set_optional` raises `invalid_design`. `set_optional(name, False)` removes it.
+- `plant.set_choice("cooling", {"absorption": ["chiller", "chiller_cooler"], "none": []})`: exactly
+  one group is on, the modules of the others are bypassed. The groups are apart, a group may be
+  empty, a module of a choice is not optional, and `groups=None` removes the choice.
+- `plant.structures()` lists every valid structure, `{"peak_boiler": True, "cooling": "none"}`, in a
+  fixed order (optional modules on before off, groups in the order stated); `plant.with_structure(s)`
+  gives the ordinary plant of one, without optional modules and choices. A structure is valid when
+  that plant reads and its `check()` has no error other than a missing value. A missing or unknown
+  key of `s` raises; there is no default structure.
+- The plant file holds them as `"optional": [...]` and `"choices": {name: {group: [...]}}`;
+  `from_dict` reports a bad declaration as an issue at its path, and `plant.check()` of a
+  superstructure judges the ports in each structure and reports `invalid_design` when none is valid.
+
+The plant of a structure keeps the values, ranges and options of the modules that stay. Alternatives
+sit in series on one circuit (the chillers one after the other on the chilled water), so that the
+bypass of those that are off leaves a working circuit. A connection through a chain of modules that
+are off joins its two ends, a `state` connection stays one, and a loop inside the modules that are
+off goes; a join that would lead a module back to itself (the air of a dry cooler that is off,
+from the atmosphere back to it) goes too, so a consumer whose only unit is off is left unconnected
+and that structure is invalid. A plant of a class with a module off cannot keep its class, whose structure is fixed: it
+becomes a plant of modules and connections in which every value of a module is stated, and the
+values of the class itself (`depth`) and its `size` go, their effect kept in the modules. With no
+module off a plant keeps its class. `gm.study.evolve` sets such values before it takes the structure,
+so they stay genes of its search. Doublets in parallel are never bypassed: a doublet count is the
+`size.doublets` range of a class plant.
+
 ## Loops
 
 A connection that closes a cycle is a tear stream. `Plant.forward` iterates the cycle until the tear
