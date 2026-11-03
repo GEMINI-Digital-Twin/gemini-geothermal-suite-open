@@ -1,0 +1,26 @@
+# LLM routes for the agent. API keys are read from hackathon/.env, never from here.
+#
+# Both routes use the OpenAI-compatible /chat/completions endpoint with tool calling.
+# Check the exact model ids in Google AI Studio and with `ollama list` before running.
+
+routes:
+  local:
+    base_url: http://localhost:11434/v1
+    model: qwen2.5:7b            # whatever you pulled with `ollama pull`
+    api_key_env: null            # Ollama needs no key
+    price_in_per_mtok_usd: 0.0
+    price_out_per_mtok_usd: 0.0
+  api:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    model: gemini-3-flash        # placeholder: copy the exact id from AI Studio
+    api_key_env: GEMINI_API_KEY  # line in hackathon/.env: GEMINI_API_KEY=...
+    price_in_per_mtok_usd: 0.50  # used only for the cost estimate in the token log
+    price_out_per_mtok_usd: 3.00
+
+# hybrid: API for planning, for the step after a hard violation, and for the final
+#         comparison; local for routine tool steps.
+# api_only / local_only: one route for everything (use one fixed mode for recorded runs).
+routing: hybrid
+max_iterations: 20
+budget_usd_per_run: 0.50         # the loop stops if the estimated cost passes this
+temperature: 0.2
