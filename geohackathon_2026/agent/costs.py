@@ -19,6 +19,7 @@ DISCOUNT_RATE = 0.07
 ABSORPTION_CHILLER_EUR_PER_KW = 400.0  # including cooling tower
 ELECTRIC_CHILLER_EUR_PER_KW = 200.0
 BACKUP_BOILER_EUR_PER_KW = 100.0
+HEAT_PUMP_EUR_PER_KW = 700.0  # high-temperature industrial heat pump, thermal output
 GAS_EUR_PER_MWH = 40.0  # bought natural gas for the backup boiler
 CO2_EUR_PER_TONNE = 80.0
 GAS_TREATMENT_EUR_PER_DOUBLET = 0.5e6  # separator, gas handling, produced-gas boiler
@@ -33,10 +34,12 @@ DEFAULT_PRICES = {
     "co2_eur_per_tonne": CO2_EUR_PER_TONNE,
     "electricity_eur_per_mwh": ELECTRICITY_EUR_PER_MWH,
     "absorption_chiller_eur_per_kw": ABSORPTION_CHILLER_EUR_PER_KW,
+    "heat_pump_eur_per_kw": HEAT_PUMP_EUR_PER_KW,
 }
 
 # Selection rule: geothermal must carry the load before cost decides
-MAX_BOUGHT_ENERGY_SHARE = 0.10  # bought-gas heat plus electric cooling, share of energy delivered
+MAX_BOUGHT_ENERGY_SHARE = 0.10  # bought gas and electricity for heat pumps and chillers, share of energy delivered
+ELECTRIC_CHILLER_COP = 5.0  # same assumption as cases/yearly_energy.py
 
 
 def well_cost_eur(depth_m):
@@ -68,7 +71,8 @@ def design_costs(doublets, depth_m, year, prices=None):
         + ELECTRIC_CHILLER_EUR_PER_KW * year["electric_cooling_peak_mw"] * 1000
     )
     backup = BACKUP_BOILER_EUR_PER_KW * year["backup_peak_mw"] * 1000
-    capital = wells + surface + chillers + backup
+    heat_pump = prices["heat_pump_eur_per_kw"] * year.get("heat_pump_peak_mw", 0.0) * 1000
+    capital = wells + surface + chillers + backup + heat_pump
 
     geothermal_mwh = (year["geothermal_heat_gwh"] + year["drive_gwh"]) * 1000
     fixed_opex = OPEX_EUR_PER_KW_YEAR * DESIGN_POWER_PER_DOUBLET_KW * doublets
@@ -78,11 +82,19 @@ def design_costs(doublets, depth_m, year, prices=None):
     carbon = prices["co2_eur_per_tonne"] * year["co2_kt"] * 1000
     annual = capital * recovery + fixed_opex + variable_opex + electricity + gas + carbon
 
+    heat_pump_gwh = year.get("heat_pump_gwh", 0.0)
     delivered_mwh = (
-        year["geothermal_heat_gwh"] + year["gas_gwh"] + year["backup_gwh"]
+        year["geothermal_heat_gwh"] + heat_pump_gwh + year["gas_gwh"] + year["backup_gwh"]
         + year["absorption_gwh"] + year["electric_cooling_gwh"]
     ) * 1000
-    bought_share = (year["backup_gwh"] + year["electric_cooling_gwh"]) * 1000 / delivered_mwh
+    # Energy bought to make heat or cooling: backup gas heat, and electricity for heat pumps
+    # and electric chillers. Produced gas comes from the wells; pump electricity runs them.
+    bought_gwh = (
+        year["backup_gwh"]
+        + year.get("heat_pump_electricity_gwh", 0.0)
+        + year["electric_cooling_gwh"] / ELECTRIC_CHILLER_COP
+    )
+    bought_share = bought_gwh * 1000 / delivered_mwh
     return {
         "bought_energy_share_pct": round(bought_share * 100, 1),
         "meets_geothermal_first": bought_share <= MAX_BOUGHT_ENERGY_SHARE,
@@ -100,7 +112,7 @@ def design_costs(doublets, depth_m, year, prices=None):
         },
         "basis": (
             "Wells, surface, maintenance and electricity price from ThermoGIS; 15 years. "
-            "Assumed: 7% discount rate, chiller and boiler prices, gas 40 EUR/MWh, CO2 80 EUR/t, "
+            "Assumed: 7% discount rate, chiller, boiler and heat pump (700 EUR/kW) prices, gas 40 EUR/MWh, CO2 80 EUR/t, "
             "gas treatment 0.5 MEUR per doublet. Well cost ignores pipe diameter."
         ),
     }

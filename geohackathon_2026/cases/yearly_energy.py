@@ -5,6 +5,15 @@ heating exchanger and the chiller's hot-water exchanger, in parallel. An
 electric chiller covers any cooling the absorption chiller does not, so its
 capacity is a result of each run, as for the backup boiler.
 
+Two layout choices can be changed:
+- heating_top_up "boiler": produced gas and a backup gas boiler lift the water
+  to 100 C. "heat_pump": a heat pump also takes heat from the brine leaving the
+  heat exchanger, down to the 40 C cooling limit, and lifts part of the
+  district water to 100 C. Every heat pump day is checked with GEMINI's
+  HeatpumpBasic model.
+- cooling "absorption": absorption chiller driven by brine, electric chiller
+  for the rest. "electric": electric chillers only.
+
 Run from the project folder:
     PYTHONPATH=../src python cases/yearly_energy.py
 """
@@ -13,9 +22,12 @@ import csv
 from dataclasses import dataclass
 
 import numpy as np
-from absorption_chiller import AbsorptionChiller
+from gemini_model.absorption_chiller.absorption_chiller import AbsorptionChiller
+from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
 from yearly_heating import (
     BACKUP_BOILER_EFFICIENCY,
+    CP,
+    RHO,
     BACKUP_CALORIC_J_PER_KG,
     BACKUP_EMISSION_KG_PER_GJ,
     C_VOL,
@@ -29,6 +41,7 @@ from yearly_heating import (
     GAS_EMISSION_KG_PER_GJ,
     GAS_NM3_PER_M3,
     GRADIENT_C_PER_M,
+    INDEX_M3H_PER_BAR,
     HEATING_FILE,
     ASSUMED_COOLING_COP,
     MAX_COOLING_C,
@@ -58,6 +71,18 @@ ELECTRIC_CHILLER_COP = 5.0
 ELECTRICITY_CO2_KG_PER_KWH = 0.3  # value in GEMINI's example
 ABSORPTION_FRACTIONS = np.linspace(0.0, 1.0, 11)
 DEFAULT_RETURN_C = 50.0
+HEAT_PUMP_CARNOT_FRACTION = 0.5  # GEMINI HeatpumpBasic default eta_carnot
+HEAT_PUMP_MATCH_TOLERANCE = 0.01
+HEAT_PUMP_MATCH_FLOOR_MW = 0.01  # below this, the optimizer's rounding dominates the relative error
+HEATING_TOP_UPS = ("boiler", "heat_pump")
+REFERENCE_PERMEABILITY_MD = 200.0  # challenge value; the productivity index scales with it
+COOLING_OPTIONS = ("absorption", "electric")
+
+
+def heat_pump_cop(t_source_c, t_sink_c=SUPPLY_C):
+    """Return the Carnot-fraction COP used by GEMINI's HeatpumpBasic in carnot mode."""
+    t_sink_k = t_sink_c + 273.15
+    return HEAT_PUMP_CARNOT_FRACTION * t_sink_k / (t_sink_c - t_source_c)
 
 
 @dataclass(frozen=True)
@@ -69,6 +94,17 @@ class EnergyDesign:
     staggered: bool = True
     cop_cap: float = 0.67
     return_c: float = DEFAULT_RETURN_C
+    heating_top_up: str = "boiler"
+    cooling: str = "absorption"
+    # Subsurface and grid inputs, changed only for uncertainty studies
+    gradient_c_per_m: float = GRADIENT_C_PER_M
+    permeability_md: float = REFERENCE_PERMEABILITY_MD
+    grid_co2_kg_per_kwh: float = ELECTRICITY_CO2_KG_PER_KWH
+
+    @property
+    def layout(self):
+        """Return the layout label, for example 'boiler+absorption'."""
+        return f"{self.heating_top_up}+{self.cooling}"
 
     @property
     def name(self):
@@ -76,10 +112,13 @@ class EnergyDesign:
         outage = "staggered" if self.staggered else "together"
         return (
             f"{self.doublets}x{self.depth_m:.0f}m_COP{self.cop_cap:.2f}_R{self.return_c:.0f}_{outage}"
+            + ("" if self.layout == "boiler+absorption" else f"_{self.layout}")
         )
 
 
-def evaluate_day(heating_w, cooling_w, active, flow, curves, conditions, chiller_cop, fraction):
+def evaluate_day(
+    heating_w, cooling_w, active, flow, curves, conditions, chiller_cop, fraction, heat_pump=False
+):
     """Return the operation for one choice, or None if it cannot be done."""
     t_in, t_primary_min, t_chiller_out, return_c = conditions
     total_flow = active * flow
@@ -106,14 +145,27 @@ def evaluate_day(heating_w, cooling_w, active, flow, curves, conditions, chiller
 
     gas_kg_s = total_flow / 3600.0 * GAS_NM3_PER_M3 * GAS_DENSITY
     gas_available_w = gas_kg_s * GAS_CALORIC_J_PER_KG * GAS_BOILER_EFFICIENCY
-    gas_w = min(gas_available_w, heating_w - heat_w)
-    backup_w = max(0.0, heating_w - heat_w - gas_w)
+
+    hp_w = hp_electric_w = 0.0
+    hp_source_c = t_heating_out
+    hp_need_w = heating_w - heat_w - gas_available_w
+    if heat_pump and active and heating_flow > 1e-9 and hp_need_w > 1e-6:
+        brine_capacity = heating_flow / 3600.0 * C_VOL
+        evaporator_max_w = brine_capacity * max(0.0, t_heating_out - t_primary_min)
+        cop = heat_pump_cop(t_heating_out)
+        if evaporator_max_w > 0 and cop > 1.0:
+            hp_w = min(hp_need_w, evaporator_max_w * cop / (cop - 1.0))
+            hp_electric_w = hp_w / cop
+            t_heating_out -= (hp_w - hp_electric_w) / brine_capacity
+
+    gas_w = min(gas_available_w, heating_w - heat_w - hp_w)
+    backup_w = max(0.0, heating_w - heat_w - hp_w - gas_w)
 
     electric_cooling_w = cooling_w - absorption_w
     electric_w = electric_cooling_w / ELECTRIC_CHILLER_COP
     parasitic_w = AbsorptionChiller.DEFAULTS["parasitic_fraction"] * absorption_w
     pump_w = active * (curves[flow][0] + curves[flow][1]) * 1e6 if active else 0.0
-    electricity_w = electric_w + parasitic_w + pump_w
+    electricity_w = electric_w + parasitic_w + pump_w + hp_electric_w
     score = backup_w / BACKUP_BOILER_EFFICIENCY + PRIMARY_ENERGY_FACTOR * electricity_w
 
     brine_out = None
@@ -137,10 +189,14 @@ def evaluate_day(heating_w, cooling_w, active, flow, curves, conditions, chiller
         "pump_w": pump_w,
         "brine_out": brine_out,
         "secondary": secondary,
+        "hp_w": hp_w,
+        "hp_electric_w": hp_electric_w,
+        "hp_source_c": hp_source_c,
+        "heating_flow": heating_flow,
     }
 
 
-def best_day(heating_w, cooling_w, available, curves, conditions, chiller_cop):
+def best_day(heating_w, cooling_w, available, curves, conditions, chiller_cop, heat_pump=False):
     """Return the lowest-score operation for one day."""
     best = None
     fractions = ABSORPTION_FRACTIONS if cooling_w > 0 and chiller_cop > 0 else [0.0]
@@ -156,6 +212,7 @@ def best_day(heating_w, cooling_w, available, curves, conditions, chiller_cop):
                     conditions,
                     chiller_cop,
                     fraction,
+                    heat_pump,
                 )
                 if option and (best is None or option["score"] < best["score"] - 1e-6):
                     best = option
@@ -168,7 +225,7 @@ def run_design(design, dates, heating_mw, cooling_mw, first, second, outages=Non
     ``outages`` optionally replaces the planned outage schedule with a boolean
     array of shape (doublets, 365), for unplanned outage scenarios.
     """
-    t_wellhead = SURFACE_C + GRADIENT_C_PER_M * design.depth_m - WELL_LOSS_C
+    t_wellhead = SURFACE_C + design.gradient_c_per_m * design.depth_m - WELL_LOSS_C
     t_in = t_wellhead - SEPARATOR_DROP_C - FILTER_A_DROP_C
     t_primary_min = t_wellhead - MAX_COOLING_C + FILTER_B_DROP_C
 
@@ -179,12 +236,14 @@ def run_design(design, dates, heating_mw, cooling_mw, first, second, outages=Non
     t_chiller_out = max(
         t_primary_min, chiller.parameters["hot_water_outlet_c"] + CHILLER_HEX_APPROACH_C
     )
-    if t_chiller_out >= t_in:
+    if t_chiller_out >= t_in or design.cooling == "electric":
         chiller_cop = 0.0
+    heat_pump = design.heating_top_up == "heat_pump"
     conditions = (t_in, t_primary_min, t_chiller_out, design.return_c)
 
     well_design = Design(design.doublets, design.depth_m, design.return_c, design.staggered)
-    curves = {float(flow): pump_power_mw(well_design, float(flow)) for flow in FLOW_GRID}
+    index = INDEX_M3H_PER_BAR * design.permeability_md / REFERENCE_PERMEABILITY_MD
+    curves = {float(flow): pump_power_mw(well_design, float(flow), index) for flow in FLOW_GRID}
     if outages is None:
         outages = build_outages(well_design, first, second)
     run_days = np.zeros(design.doublets, dtype=int)
@@ -196,17 +255,18 @@ def run_design(design, dates, heating_mw, cooling_mw, first, second, outages=Non
             if not outages[index, day] and run_days[index] < MAX_RUN_DAYS
         ]
         result = best_day(
-            heat_mw * 1e6, cool_mw * 1e6, len(candidates), curves, conditions, chiller_cop
+            heat_mw * 1e6, cool_mw * 1e6, len(candidates), curves, conditions, chiller_cop, heat_pump
         )
         for index in candidates[: result["active"]]:
             run_days[index] += 1
 
         secondary = result["secondary"]
         t_after_hex = design.return_c + result["heat_w"] / (secondary * C_VOL)
+        t_after_hp = t_after_hex + result["hp_w"] / (secondary * C_VOL)
         t_after_gas, gas_co2 = boiler_outlet(
             result["gas_w"],
             secondary,
-            t_after_hex,
+            t_after_hp,
             GAS_CALORIC_J_PER_KG,
             GAS_BOILER_EFFICIENCY,
             GAS_EMISSION_KG_PER_GJ,
@@ -219,8 +279,17 @@ def run_design(design, dates, heating_mw, cooling_mw, first, second, outages=Non
             BACKUP_BOILER_EFFICIENCY,
             BACKUP_EMISSION_KG_PER_GJ,
         )
-        electricity_w = result["electric_w"] + result["parasitic_w"] + result["pump_w"]
-        electricity_co2_t = electricity_w / 1e3 * 24 * ELECTRICITY_CO2_KG_PER_KWH / 1000.0
+        electricity_w = (
+            result["electric_w"] + result["parasitic_w"] + result["pump_w"] + result["hp_electric_w"]
+        )
+        hp_gemini_electric_w = (
+            gemini_heat_pump_electricity(result, t_after_hex, t_primary_min) if result["hp_w"] > 0 else 0.0
+        )
+        electricity_co2_t = electricity_w / 1e3 * 24 * design.grid_co2_kg_per_kwh / 1000.0
+        # Produced gas leaves the separator whether or not it is used. Gas the boiler does
+        # not burn is flared, so it emits the same CO2 (kg/s) as burning it.
+        unused_fuel_w = (result["gas_available_w"] - result["gas_w"]) / GAS_BOILER_EFFICIENCY
+        flared_co2 = GAS_EMISSION_KG_PER_GJ * unused_fuel_w / 1e9
         rows.append(
             {
                 "date": dates[day],
@@ -231,6 +300,9 @@ def run_design(design, dates, heating_mw, cooling_mw, first, second, outages=Non
                 "geothermal_heat_mw": result["heat_w"] / 1e6,
                 "chiller_drive_mw": result["drive_w"] / 1e6,
                 "produced_gas_heat_mw": result["gas_w"] / 1e6,
+                "heat_pump_heat_mw": result["hp_w"] / 1e6,
+                "heat_pump_electricity_mw": result["hp_electric_w"] / 1e6,
+                "heat_pump_electricity_gemini_mw": hp_gemini_electric_w / 1e6,
                 "backup_heat_mw": result["backup_w"] / 1e6,
                 "absorption_cooling_mw": result["absorption_w"] / 1e6,
                 "electric_cooling_mw": result["electric_cooling_w"] / 1e6,
@@ -240,10 +312,41 @@ def run_design(design, dates, heating_mw, cooling_mw, first, second, outages=Non
                     None if result["brine_out"] is None else result["brine_out"] - FILTER_B_DROP_C
                 ),
                 "gas_unused_mw": (result["gas_available_w"] - result["gas_w"]) / 1e6,
-                "co2_t": (gas_co2 + backup_co2) * 86.4 + electricity_co2_t,
+                "co2_t": (gas_co2 + flared_co2 + backup_co2) * 86.4 + electricity_co2_t,
             }
         )
     return rows, summarize(rows, run_days, t_wellhead, chiller_cop, curves)
+
+
+def gemini_heat_pump_electricity(result, t_water_in, t_brine_min):
+    """Run GEMINI's HeatpumpBasic for one day's heat pump duty and return its electricity (W).
+
+    The heat pump heats a branch of district water from t_water_in to the 100 C
+    supply, using the brine leaving the heat exchanger as its source.
+    """
+    pump = HeatpumpBasic()
+    pump.update_parameters(
+        {
+            "mode": "carnot",
+            "eta_carnot": HEAT_PUMP_CARNOT_FRACTION,
+            "Cp_h": CP,
+            "Cp_s": CP,
+            "rho_h": RHO,
+            "rho_s": RHO,
+            "Th_out_target": SUPPLY_C,
+            "Ts_in_minimum": t_brine_min,
+        }
+    )
+    hot_flow = result["hp_w"] / (C_VOL * (SUPPLY_C - t_water_in))
+    pump.calculate_output(
+        {
+            "Th_in": t_water_in,
+            "Ts_in": result["hp_source_c"],
+            "hot_flow_rate": hot_flow,
+            "source_flow_rate": result["heating_flow"] / 3600.0,
+        }
+    )
+    return pump.get_output()["electrical_consumption"]
 
 
 def summarize(rows, run_days, t_wellhead, chiller_cop, curves):
@@ -255,6 +358,7 @@ def summarize(rows, run_days, t_wellhead, chiller_cop, curves):
     heat_gap = max(
         abs(
             row["geothermal_heat_mw"]
+            + row["heat_pump_heat_mw"]
             + row["produced_gas_heat_mw"]
             + row["backup_heat_mw"]
             - row["heating_mw"]
@@ -265,8 +369,24 @@ def summarize(rows, run_days, t_wellhead, chiller_cop, curves):
         abs(row["absorption_cooling_mw"] + row["electric_cooling_mw"] - row["cooling_mw"])
         for row in rows
     )
+    hp_rows = [row for row in rows if row["heat_pump_heat_mw"] > 0]
+    hp_mismatch = max(
+        (
+            abs(row["heat_pump_electricity_gemini_mw"] - row["heat_pump_electricity_mw"])
+            / max(row["heat_pump_electricity_mw"], HEAT_PUMP_MATCH_FLOOR_MW)
+            for row in hp_rows
+        ),
+        default=0.0,
+    )
     return {
         "chiller_cop": chiller_cop,
+        "heat_pump_gwh": total("heat_pump_heat_mw"),
+        "heat_pump_peak_mw": max(row["heat_pump_heat_mw"] for row in rows),
+        "heat_pump_electricity_gwh": total("heat_pump_electricity_mw"),
+        "heat_pump_gemini_mismatch_pct": round(hp_mismatch * 100, 2),
+        "heat_pump_mean_cop": (
+            total("heat_pump_heat_mw") / total("heat_pump_electricity_mw") if hp_rows else None
+        ),
         "geothermal_heat_gwh": total("geothermal_heat_mw"),
         "drive_gwh": total("chiller_drive_mw"),
         "gas_gwh": total("produced_gas_heat_mw"),
@@ -294,6 +414,7 @@ def summarize(rows, run_days, t_wellhead, chiller_cop, curves):
             "supply_100": all(abs(row["t_supply_c"] - SUPPLY_C) < 1e-6 for row in rows),
             "heat_balance": heat_gap < 1e-6,
             "cooling_balance": cool_gap < 1e-6,
+            "heat_pump_matches_gemini": hp_mismatch <= HEAT_PUMP_MATCH_TOLERANCE,
         },
     }
 

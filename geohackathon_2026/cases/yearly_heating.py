@@ -93,19 +93,19 @@ def read_demand(path):
     return [row[0] for row in rows], np.array([float(row[1]) for row in rows])
 
 
-def pump_power_mw(design, flow_m3h):
+def pump_power_mw(design, flow_m3h, index_m3h_per_bar=INDEX_M3H_PER_BAR):
     """Return production and injection pump power and pump intake pressure."""
     flow_m3s = flow_m3h / 3600.0
     reservoir_bar = RHO * G * design.depth_m / 1e5
     segment = {"angle": 90.0, "depth": design.depth_m, "diameter": PIPE_ID_M}
     top, bottom = _split_trajectory_at_depth([segment], ESP_DEPTH_M)
 
-    bottomhole = reservoir_bar - flow_m3h / INDEX_M3H_PER_BAR
+    bottomhole = reservoir_bar - flow_m3h / index_m3h_per_bar
     intake = walk(build_well(bottom, ROUGHNESS_M), bottomhole, flow_m3s, "up")
     discharge = walk(build_well(top, ROUGHNESS_M), WELLHEAD_PRESSURE_BAR, flow_m3s, "down")
     esp = flow_m3s * (discharge - intake) * 1e5 / PUMP_EFFICIENCY / 1e6
 
-    required = reservoir_bar + flow_m3h / INDEX_M3H_PER_BAR
+    required = reservoir_bar + flow_m3h / index_m3h_per_bar
     column = walk(build_well([segment], ROUGHNESS_M), 0.0, -flow_m3s, "down")
     boost = max(0.0, required - column - INJECTOR_INLET_BAR)
     injector = flow_m3s * boost * 1e5 / PUMP_EFFICIENCY / 1e6

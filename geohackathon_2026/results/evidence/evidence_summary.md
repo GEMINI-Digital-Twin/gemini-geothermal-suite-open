@@ -1,4 +1,57 @@
-# Agent evidence, 2 November 2026
+# Agent evidence
+
+## Agent with layouts, uncertainty and GEMINI year (3 November)
+
+Workflow: get_requirements, compare_designs (doublets x depths x 4 layouts, 36 designs), simulate_doublet until GEMINI passes, verify_design (return temperature, unplanned failure, uncertainty against the runner-up, every operating day in GEMINI plant files). The reviewer then checks the answer.
+
+| # | Question | What the agent did | Result | Tokens in / out, LLM calls | Log |
+|---|---|---|---|---|---|
+| 1 | "Design the heating and cooling system for the district. Compare designs and recommend one." | 2 x 3,000 m, boiler + electric chillers, 79.3 EUR/MWh, 6.2 kt CO2. Fixed GEMINI flow 326.6 m3/h and brine cooling 42.9 C (final 297.2 m3/h, 39.0 C). Uncertainty P10-P90 77.1-87.2 EUR/MWh, rule met in 97.5% of samples; 365 GEMINI days, none failing | Accepted after one review | 49,115 / 1,314, 8 | `session_20261103_102657.jsonl` |
+| 2 | "Could shallower wells of about 2000 m with a heat pump be better than deep wells?" | Compared all layouts; best heat pump design 2 x 2,500 m at 92.2 EUR/MWh and 8.28 kt against 79.3 EUR/MWh and 6.2 kt for deep wells; recommended deep wells | Accepted after one review | 49,056 / 1,313, 8 | `session_20261103_102302.jsonl` |
+| 3 | "What is the best pizza place in Padova?" | Declined in one sentence, no tools | Correct | 3,183 / 10, 1 | `session_20261103_100400.jsonl` |
+| 4 | "Design it." | Same as 1 | Accepted after one review | 47,956 / 1,205, 8 | `session_20261103_100408.jsonl` |
+| 5 | "Use 5 doublets at 2000 m with 400 m3/h each." | Stated that 5 doublets and 400 m3/h break the limits, designed within them | Accepted after one review | 55,406 / 1,388, 9 | `session_20261103_100742.jsonl` |
+| 6 | "The district now has a 50 MW heating peak. Design for that." | Passed heating_peak_mw=50 to every tool; 3 x 3,000 m, boiler + electric, 75.6 EUR/MWh, 9.7 kt CO2 | Accepted after one review | 51,620 / 1,224, 9 | `session_20261103_101216.jsonl` |
+| 7 | "What heating return temperature should we use?" | Ran the design at 40 C return. The tool showed 40 and 50 C cost the same; the agent chose 40 C, while the tool's best_return_c is 50 C | Accepted, but inconsistent with the tool's recommendation | 79,836 / 1,558, 12 | `session_20261103_101707.jsonl` |
+
+Token use: a full design answer now costs about 48,000-55,000 tokens in 8-9 calls, against 70,380 tokens for an incomplete answer in the first agent version. Two changes cut tokens: verify_design runs four checks in one call, and compare_designs rows are sent to the LLM as one short line each (4,891 instead of 9,544 characters), while the reviewer keeps the full rows.
+
+Fixes made while testing:
+
+| Failure | Log | Fix |
+|---|---|---|
+| Used the chosen design as its own uncertainty alternative | `session_20261103_094337.jsonl` | assess_uncertainty rejects an identical alternative; compare_designs returns the runner-up as data |
+| Jumped to uncertainty and GEMINI year before checking the doublet | `session_20261103_094858.jsonl` | Four checks bundled in verify_design; numbered workflow a-d |
+| 84,846 tokens for one answer | `session_20261103_094337.jsonl` | verify_design and short comparison lines (49,115 tokens after) |
+| Ignored the heat pump question and gave the standard answer | `session_20261103_100003.jsonl` | trade_off lists the best design of each layout; prompt asks to answer the specific option first |
+
+## Earlier agent (2 November)
+
+## Final agent (late 2 November)
+
+Same six questions, run with the final tools, workflow and reviewer.
+
+| # | Question | What the agent did | Result | Tokens in / out, LLM calls | Log |
+|---|---|---|---|---|---|
+| 1 | "What is the best pizza place in Padova?" | Declined in one sentence, no tools | Correct | 2,009 / 20, 1 | `session_20261102_234350.jsonl` |
+| 2 | "Design it." | Full workflow; 2 x 3,000 m, 79.4 EUR/MWh, 6.82 kt CO2; fixed GEMINI flow 326.6 m3/h and brine cooling 42.9 C using next_step hints (final 297.2 m3/h, 39.0 C); 50 C return; 15.45 MW backup for a 7-day failure | Accepted first time | 34,391 / 644, 8 | `session_20261102_234356.jsonl` |
+| 3 | "What heating return temperature should we use?" | Ran the design and the return comparison; answered 50 C, the highest return with the lowest cost under the 40 C brine cooling limit | Correct, but ran the whole design for a narrow question | 34,431 / 639, 8 | `session_20261102_234442.jsonl` |
+| 4 | "Use 5 doublets at 2000 m with 400 m3/h each." | Tools allow 1-3 doublets; reviewer made it state that 400 m3/h breaks the 300 m3/h limit; compare_designs added 3,500 m to bracket the best depth | Accepted after one review | 41,735 / 1,030, 9 | `session_20261102_234532.jsonl` |
+| 5 | "The district now has a 50 MW heating peak. Design for that." | Passed heating_peak_mw=50 to every tool; 3 x 3,000 m, 75.8 EUR/MWh, 10.23 kt CO2; 20.91 MW backup for a failure | Accepted first time | 37,051 / 630, 9 | `session_20261102_234721.jsonl` |
+| 6 | "Design the heating and cooling system for the district. Compare designs and recommend one." | Same as 2 | Accepted first time | 34,495 / 648, 8 | `session_20261102_234817.jsonl` |
+
+Fixes made while testing the final agent:
+
+| Failure | Log | Fix |
+|---|---|---|
+| Reported GEMINI flow 326.6 m3/h as within 50-300 and repeated the failing run | `session_20261102_232357.jsonl` | simulate_doublet returns passed and next_step with the exact input to change |
+| Copied the answer-format instruction into its answer | `session_20261102_232357.jsonl` | Plain headings, answer only after the numbered workflow |
+| Did not tell the user that 400 m3/h breaks the limit | `session_20261102_233043.jsonl` | Reviewer checks requested values against the limits |
+| Claimed to have evaluated 3,500 m without running it; reviewer caught it | `session_20261102_233353.jsonl` | compare_designs adds the next depth when the best design is at the edge |
+| 50 MW answer used cost and CO2 from a 30 MW run | `session_20261102_233900.jsonl` | Return comparison accepts the demand scenario; reviewer gives the expected numbers |
+| Said the chosen design was cheaper than the cheaper ineligible one | `session_20261102_234234.jsonl` | compare_designs returns a computed trade_off sentence |
+
+## Earlier agent
 
 Model: qwen3:8b through Ollama, temperature 0, thinking off. Full logs are in `logs/`.
 

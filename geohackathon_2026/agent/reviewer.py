@@ -8,7 +8,11 @@ cheaper design meeting the rule was overlooked.
 
 import re
 
-RECOMMENDATION = re.compile(r"RECOMMENDATION:\s*doublets\s*=\s*(\d+)\s*,?\s*depth_m\s*=\s*([\d.]+)", re.I)
+RECOMMENDATION = re.compile(
+    r"RECOMMENDATION:\s*doublets\s*=\s*(\d+)\s*,?\s*depth_m\s*=\s*([\d.]+)"
+    r"(?:\s*,?\s*layout\s*=\s*([a-z_]+\+[a-z_]+))?",
+    re.I,
+)
 NUMBER = re.compile(r"(?<![\w.])-?\d[\d,]*\.?\d*")
 RELATIVE_TOLERANCE = 0.01
 CHEAPER_MARGIN = 0.03
@@ -44,19 +48,24 @@ def ungrounded_numbers(answer, tool_results, question):
     return missing
 
 
+def chosen_design(match):
+    """Return (doublets, depth_m, layout) from a RECOMMENDATION match."""
+    return (int(match.group(1)), float(match.group(2)), (match.group(3) or "").lower())
+
+
 def review(answer, question, year_runs, cost_runs, tool_results):
     """Return a list of problems with the final answer; empty means accepted.
 
-    ``year_runs`` and ``cost_runs`` map (doublets, depth_m) to tool results.
+    ``year_runs`` and ``cost_runs`` map (doublets, depth_m, layout) to tool results.
     """
     problems = []
     match = RECOMMENDATION.search(answer)
-    if not match:
+    if not match or not match.group(3):
         return [
-            "End the answer with a line 'RECOMMENDATION: doublets=<n>, depth_m=<m>' "
+            "End the answer with a line 'RECOMMENDATION: doublets=<n>, depth_m=<m>, layout=<layout>' "
             "for the design you recommend."
         ]
-    chosen = (int(match.group(1)), float(match.group(2)))
+    chosen = chosen_design(match)
 
     year = year_runs.get(chosen)
     if year is None:
@@ -72,22 +81,24 @@ def review(answer, question, year_runs, cost_runs, tool_results):
             "geothermal-first rule. Recommend a design with meets_geothermal_first true."
         )
 
-    depths = {depth for _, depth in year_runs}
-    counts = {count for count, _ in year_runs}
+    depths = {design[1] for design in year_runs}
+    counts = {design[0] for design in year_runs}
     if len(depths) < 2:
         problems.append("Only one depth was simulated. Depth sets the brine temperature; compare at least two.")
     if len(counts) < 2:
         problems.append("Only one doublet count was simulated. Compare at least two.")
-    costed_depths = sorted({depth for count, depth in cost_runs if count == chosen[0]})
+    costed_depths = sorted(
+        {design[1] for design in cost_runs if design[0] == chosen[0] and design[2] == chosen[2]}
+    )
     if chosen in cost_runs and len(costed_depths) >= 1:
         if chosen[1] == costed_depths[-1] and chosen[1] < MAX_DEPTH_M:
             problems.append(
-                f"{chosen[1]:.0f} m is the deepest depth costed for {chosen[0]} doublets. "
+                f"{chosen[1]:.0f} m is the deepest depth costed for {chosen[0]} doublets with {chosen[2]}. "
                 "Cost a deeper option too, to show this depth is the best."
             )
         if chosen[1] == costed_depths[0] and chosen[1] > MIN_DEPTH_M:
             problems.append(
-                f"{chosen[1]:.0f} m is the shallowest depth costed for {chosen[0]} doublets. "
+                f"{chosen[1]:.0f} m is the shallowest depth costed for {chosen[0]} doublets with {chosen[2]}. "
                 "Cost a shallower option too, to show this depth is the best."
             )
 
@@ -101,13 +112,14 @@ def review(answer, question, year_runs, cost_runs, tool_results):
         own = passing[chosen]["levelised_cost_eur_per_mwh"]
         for design, cost in passing.items():
             other = cost["levelised_cost_eur_per_mwh"]
-            if design != chosen and other < own * (1 - CHEAPER_MARGIN) and str(design[1]) not in answer:
+            explained = f"{design[1]:.0f}" in answer and design[2] in answer
+            if design != chosen and other < own * (1 - CHEAPER_MARGIN) and not explained:
                 problems.append(
                     f"Design {design} costs {other} EUR/MWh, below the recommended {own} EUR/MWh, "
                     "and the answer does not explain why it was rejected."
                 )
 
-    simulated_inputs = [list(design) for design in year_runs]
+    simulated_inputs = [list(design[:2]) for design in year_runs]
     ungrounded = ungrounded_numbers(answer, [tool_results, simulated_inputs], question)
     if ungrounded:
         problems.append(

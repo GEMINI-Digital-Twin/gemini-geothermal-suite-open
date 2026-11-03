@@ -51,10 +51,10 @@ def test_reviewer_requires_recommendation_line():
 
 def test_reviewer_accepts_grounded_answer():
     """A tested, costed, grounded answer with enough options should pass."""
-    year_runs = {(2, 3000.0): YEAR, (2, 3200.0): YEAR, (2, 3500.0): YEAR, (3, 3200.0): YEAR}
+    year_runs = {(2, 3000.0, "boiler+electric"): YEAR, (2, 3200.0, "boiler+electric"): YEAR, (2, 3500.0, "boiler+electric"): YEAR, (3, 3200.0, "boiler+electric"): YEAR}
     cost = {"levelised_cost_eur_per_mwh": 60.0, "meets_geothermal_first": True}
     cost_runs = {design: cost for design in year_runs}
-    answer = "Backup is 0.9 MW and CO2 is 6.6 kt.\nRECOMMENDATION: doublets=2, depth_m=3200"
+    answer = "Backup is 0.9 MW and CO2 is 6.6 kt.\nRECOMMENDATION: doublets=2, depth_m=3200, layout=boiler+electric"
     assert review(answer, "q", year_runs, cost_runs, [YEAR, cost]) == []
 
 
@@ -65,34 +65,50 @@ def test_reviewer_flags_invented_number():
 
 def test_reviewer_flags_cheaper_unexplained_design():
     """A clearly cheaper passing design that the answer ignores should be flagged."""
-    year_runs = {(2, 3200.0): YEAR, (3, 2800.0): YEAR}
+    year_runs = {(2, 3200.0, "boiler+electric"): YEAR, (3, 2800.0, "boiler+electric"): YEAR}
     cost_runs = {
-        (2, 3200.0): {"levelised_cost_eur_per_mwh": 70.0, "meets_geothermal_first": True},
-        (3, 2800.0): {"levelised_cost_eur_per_mwh": 60.0, "meets_geothermal_first": True},
+        (2, 3200.0, "boiler+electric"): {"levelised_cost_eur_per_mwh": 70.0, "meets_geothermal_first": True},
+        (3, 2800.0, "boiler+electric"): {"levelised_cost_eur_per_mwh": 60.0, "meets_geothermal_first": True},
     }
-    answer = "RECOMMENDATION: doublets=2, depth_m=3200"
+    answer = "RECOMMENDATION: doublets=2, depth_m=3200, layout=boiler+electric"
     problems = review(answer, "q", year_runs, cost_runs, [YEAR, cost_runs])
     assert any("costs 60.0" in problem for problem in problems)
 
 
 def test_reviewer_rejects_design_failing_geothermal_first():
     """A design that buys too much energy should be rejected even if cheapest."""
-    year_runs = {(1, 3000.0): YEAR, (2, 3000.0): YEAR}
+    year_runs = {(1, 3000.0, "boiler+electric"): YEAR, (2, 3000.0, "boiler+electric"): YEAR}
     cost_runs = {
-        (1, 3000.0): {"levelised_cost_eur_per_mwh": 64.2, "meets_geothermal_first": False,
+        (1, 3000.0, "boiler+electric"): {"levelised_cost_eur_per_mwh": 64.2, "meets_geothermal_first": False,
                       "bought_energy_share_pct": 34.6},
-        (2, 3000.0): {"levelised_cost_eur_per_mwh": 79.4, "meets_geothermal_first": True},
+        (2, 3000.0, "boiler+electric"): {"levelised_cost_eur_per_mwh": 79.4, "meets_geothermal_first": True},
     }
-    answer = "RECOMMENDATION: doublets=1, depth_m=3000"
+    answer = "RECOMMENDATION: doublets=1, depth_m=3000, layout=boiler+electric"
     problems = review(answer, "q", year_runs, cost_runs, [YEAR, cost_runs])
     assert any("geothermal-first" in problem for problem in problems)
 
 
 def test_reviewer_asks_for_depth_on_both_sides():
     """A recommended depth at the edge of what was costed should be questioned."""
-    year_runs = {(2, 2800.0): YEAR, (2, 3000.0): YEAR, (3, 3000.0): YEAR}
+    year_runs = {(2, 2800.0, "boiler+electric"): YEAR, (2, 3000.0, "boiler+electric"): YEAR, (3, 3000.0, "boiler+electric"): YEAR}
     cost = {"levelised_cost_eur_per_mwh": 79.4, "meets_geothermal_first": True}
     cost_runs = {design: cost for design in year_runs}
-    answer = "RECOMMENDATION: doublets=2, depth_m=3000"
+    answer = "RECOMMENDATION: doublets=2, depth_m=3000, layout=boiler+electric"
     problems = review(answer, "q", year_runs, cost_runs, [YEAR, cost])
     assert any("deeper option" in problem for problem in problems)
+
+
+def test_requested_values_above_limits_are_found():
+    from run_agent import requested_limit_breaks
+
+    found = requested_limit_breaks("Use 5 doublets at 2000 m with 400 m3/h each.")
+    assert found == [("5", "1-3 doublets"), ("400", "50-300 m3/h per doublet")]
+    assert requested_limit_breaks("Use 2 doublets with 250 m3/h.") == []
+
+
+def test_mentions_matches_whole_numbers_only():
+    from run_agent import mentions
+
+    assert mentions("a backup boiler of 15.45 MW", "15.45")
+    assert not mentions("a backup boiler of 15.45 MW", "5")
+    assert mentions("5 doublets break the limit", "5")
