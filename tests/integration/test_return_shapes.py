@@ -151,6 +151,7 @@ def _economics_entries():
         "co2": lambda: gm.evaluate.co2(costed, priced, run),
         "npv": lambda: gm.evaluate.npv(costed, priced, run),
         "payback": lambda: gm.evaluate.payback(costed, priced, run),
+        "missing": lambda: [item.problem() for item in gm.evaluate.missing(costed, priced, run)],
         "economics.record": lambda: gm.evaluate.lcoh(
             heating_plant(costed=False), priced, run, on_error="record"
         ),

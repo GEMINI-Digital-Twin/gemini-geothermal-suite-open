@@ -377,3 +377,14 @@ def test_a_trial_that_raises_something_other_than_a_gemini_error_ends_the_search
     monkeypatch.setattr(trial, "metric", deep_breaks)
     with pytest.raises(ValueError, match="a bug in a module"):
         minimized(searching(DEPTH), evaluations=10)
+
+
+def test_the_result_is_a_search_with_its_history_as_plain_json(found):
+    """``to_dict`` holds the best, without its plant, and every trial of the history."""
+    assert isinstance(found, gm.study.Search) and isinstance(found, dict)
+    plain = json.loads(json.dumps(found.to_dict(), allow_nan=False))
+    assert plain.keys() == {"best", "feasible", "evaluations", "history"}
+    assert plain["best"]["plant"] is None and plain["feasible"] == found["feasible"]
+    assert len(plain["history"]) == plain["evaluations"] == found["evaluations"]
+    assert plain["history"][0]["parameters"]["depth"].keys() == {"value", "unit"}
+    assert all("violation" in entry for entry in plain["history"])

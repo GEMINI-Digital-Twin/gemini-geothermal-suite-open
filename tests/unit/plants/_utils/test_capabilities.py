@@ -1,8 +1,11 @@
 """``gm.plants.capabilities``: what each plant class contains, plans and lets a study search."""
 
+import json
+
 import pytest
 
 import gemini as gm
+from tests.fixtures.paths import EXAMPLES
 
 
 @pytest.fixture(scope="module")
@@ -55,8 +58,11 @@ def test_the_ranges_follow_the_class(found):
 
 
 def test_every_numeric_leaf_of_a_plant_file_may_state_a_range(found):
-    """``params.<path>`` for each number of the plant, and ``set_range`` takes each one."""
-    plant = gm.plants.get("HeatingPlant")
+    """``params.<path>`` for each number of the plant, and ``set_range`` takes each one.
+
+    The leaves are those of the largest size, ``d2`` included, so the plant is built at it.
+    """
+    plant = gm.plants.HeatingPlant(doublets=3)
     ranges = found["HeatingPlant"]["ranges"]
     assert ranges[:2] == ["size.doublets", "params.depth"]
     assert {"params.d0.depth", "params.d0.gradient"} <= set(ranges)
@@ -64,3 +70,30 @@ def test_every_numeric_leaf_of_a_plant_file_may_state_a_range(found):
     for path in ranges[::20]:
         plant.set_range(path.removeprefix("params."), None, None)
     assert not any("dispatch" in path or "outages" in path for path in ranges)
+
+
+def _stated_ranges(node, path):
+    """Yield the path of every leaf of a plant file that states a ``range``."""
+    if isinstance(node, dict):
+        if "range" in node:
+            yield path
+        for key, value in node.items():
+            if key != "range":
+                yield from _stated_ranges(value, f"{path}.{key}")
+
+
+def test_every_range_of_the_example_plant_files_is_listed(found):
+    """A range at any size of a stored plant, ``d1`` and ``d2`` included, is a listed leaf.
+
+    A plant file of no class (its structure written out) has no entry to look in.
+    """
+    files = sorted(EXAMPLES.glob("*/plants*/*.json"))
+    assert files
+    for file in files:
+        data = json.loads(file.read_text())
+        if "type" not in data:
+            continue
+        stated = list(_stated_ranges(data.get("params", {}), "params"))
+        stated += list(_stated_ranges(data.get("size", {}), "size"))
+        missing = [path for path in stated if path not in found[data["type"]]["ranges"]]
+        assert missing == [], file.name

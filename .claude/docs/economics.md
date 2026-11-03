@@ -110,7 +110,8 @@ for grid electricity drawn. A price is asked for only when its energy is non-zer
 
 gemini gives no value to any of these: each is a field of `case.economics` (see
 [data.md](data.md#the-case)) that the user states, and a call that needs an absent one raises
-`missing_assumption`. The sample case `examples/hackathon_2026/case.json` states them, in
+`missing_assumption`. `gm.evaluate.missing(plant, case, results)` lists every one that the costs
+of a run need and the case lacks, at once, as issues. The sample case `examples/hackathon_2026/case.json` states them, in
 price year 2015 and with the currency label EUR. Where a value is cited, the source is:
 
 | Field | Value in the sample | Source |

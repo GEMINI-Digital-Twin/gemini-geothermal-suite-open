@@ -6,6 +6,7 @@ import numpy as np
 from scipy.optimize import differential_evolution
 
 from gemini import units
+from gemini._utils.jsonable import to_plain
 from gemini.engine.check import check
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
@@ -14,7 +15,7 @@ from gemini.study._utils.best import Best
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.progress import counting
 from gemini.study._utils.shared import Shared
-from gemini.study._utils.shown import difference_names
+from gemini.study._utils.shown import difference_names, shown
 from gemini.study._utils.target import quantity_of, unit_of
 from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, run_trials
 from gemini.study._utils.variables import DOUBLETS, counts, variables
@@ -45,6 +46,32 @@ def _ranked(sign, number, reason, violation):
         scaled = sign * number
         return scaled / (1 + abs(scaled))
     return 2 + violation / (1 + violation)
+
+
+class Search(dict):
+    """The result of ``minimize``: ``{best, feasible, history, evaluations}``, with ``to_dict``.
+
+    It is the dict ``minimize`` has always returned; ``to_dict`` gives its plain JSON form, the one
+    ``StudyResult.to_dict`` writes as ``found``, so that a caller can store or show the progress of
+    a search without reading its parts.
+    """
+
+    def to_dict(self):
+        """Return the result as plain JSON in display units, without the best plant.
+
+        ``best`` and each entry of ``history`` are ``{"value", "unit", ...}`` with its
+        ``parameters`` and ``violation``; ``best["plant"]`` is ``None`` (write the plant itself
+        with ``found["best"]["plant"].to_json``).
+        """
+        best = self["best"].to_dict() | {"plant": None}
+        return {
+            "best": best,
+            "feasible": self["feasible"],
+            "evaluations": self["evaluations"],
+            "history": [
+                to_plain(shown(item, item.parts.get("differences", ()))) for item in self["history"]
+            ],
+        }
 
 
 def _entry(parameters, metrics, name, reason, violation, lifts):
@@ -359,7 +386,8 @@ def minimize(plant, case, objective, evaluations, seed, *, plan=None, on_progres
         ``parts["violation"]`` (0 when feasible) and a ``reason`` for an infeasible trial: the
         first reason of its verdict (its dict), a text for a failed run.
         ``evaluations`` is the number of simulations. With no trial that ran, ``best`` has no
-        value and no plant, and gives a ``reason``. ``to_plain`` gives the JSON form.
+        value and no plant, and gives a ``reason``. It is a ``Search``, a dict whose ``to_dict()``
+        gives the JSON form with the history.
 
     Raises
     ------
@@ -387,4 +415,4 @@ def minimize(plant, case, objective, evaluations, seed, *, plan=None, on_progres
         if count is not None:
             count.reach(total)
     best, feasible = _best(history, sign, plant)
-    return {"best": best, "feasible": feasible, "history": history, "evaluations": len(history)}
+    return Search(best=best, feasible=feasible, history=history, evaluations=len(history))

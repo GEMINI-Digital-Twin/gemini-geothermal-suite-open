@@ -12,6 +12,24 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.5.9] - 2026-11-03
+
+Additions and one fix; every name, signature, default and number of 0.5.8 is unchanged
+(`tests/fixtures/public_api_0_5_0.json` is the frozen surface).
+
+### Added
+- `gm.evaluate.missing(plant, case, results)`: every value of the economics the costs and the
+  CO2 of a run need and the case lacks, at once, as `Issue`s of kind `missing` (the shape of
+  `gm.case.missing`). Each cost still raises its first missing value.
+- `gm.study.Search`: what `gm.study.minimize` returns, the same dict, now with `to_dict()` that
+  gives the best and the whole history as plain JSON, so the progress of a search can be stored
+  or shown.
+
+### Fixed
+- `gm.plants.capabilities()[class]["ranges"]` lists the leaves of every doublet the class may have
+  (`params.d1.*`, `params.d2.*`), read at its largest size; it listed only `d0`. The shape is the
+  same, and every range of the example plant files is now in the list.
+
 ## [0.5.8] - 2026-11-03
 
 Every public name, default and number is the same as 0.5.7.
