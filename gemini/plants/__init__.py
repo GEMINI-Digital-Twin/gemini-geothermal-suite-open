@@ -4,6 +4,7 @@ from ._utils.capabilities import capabilities
 from ._utils.catalogue import get, names
 from ._utils.connections import Match, Suggestion
 from ._utils.schema import schema
+from ._utils.union import union
 from .atesplant import ATESPlant
 from .boilerchpplant import BoilerChpPlant
 from .coolingsubstation import CoolingSubstation
@@ -32,6 +33,7 @@ __all__ = [
     "roles",
     "names",
     "get",
+    "union",
     "HeatingSubstation",
     "CoolingSubstation",
     "ATESPlant",
