@@ -56,7 +56,7 @@ class Design(dict):
         return {
             "structure": dict(self["structure"]),
             "feasible": self["feasible"],
-            "reason": self["reason"],
+            "reason": to_plain(shown(self["reason"])),
             "violation": self["violation"],
             "metrics": {name: shown(value).to_dict() for name, value in self["metrics"].items()},
             "parameters": to_plain(shown(self["parameters"])),
