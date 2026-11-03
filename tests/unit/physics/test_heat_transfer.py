@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from gemini.errors import PhysicsError
@@ -36,6 +37,41 @@ def test_lmtd_and_ntu():
         heat_transfer.lmtd(10, -1)
     with pytest.raises(PhysicsError, match="c_min = 0"):
         heat_transfer.ntu(1000, 0)
+
+
+@pytest.mark.parametrize("transfer_units", [0.01, 1.0, 2.2097824, 30.0])
+def test_counterflow_effectiveness_is_smooth_at_equal_rates(transfer_units):
+    """Capacity ratios a few bits below one give the balanced value, not whatever rounding left."""
+    balanced = heat_transfer.effectiveness_counterflow(transfer_units, 1.0)
+    assert balanced == pytest.approx(transfer_units / (1 + transfer_units))
+    ratio = 1.0
+    for _ in range(64):
+        ratio = math.nextafter(ratio, 0.0)
+        value = heat_transfer.effectiveness_counterflow(transfer_units, ratio)
+        assert value == pytest.approx(balanced, rel=1e-13)
+    array = heat_transfer.effectiveness_counterflow(transfer_units, np.array([ratio, 1.0]))
+    assert array == pytest.approx([balanced, balanced], rel=1e-13)
+
+
+def test_counterflow_effectiveness_is_the_printed_relation_away_from_equal_rates():
+    """The stable form is the relation of Incropera to the last few bits."""
+    for transfer_units in (0.1, 2.0, 20.0):
+        for ratio in (0.0, 0.3, 0.9, 0.999):
+            term = math.exp(-transfer_units * (1 - ratio))
+            printed = (1 - term) / (1 - ratio * term)
+            value = heat_transfer.effectiveness_counterflow(transfer_units, ratio)
+            assert value == pytest.approx(printed, rel=1e-13)
+
+
+def test_logarithmic_mean_is_smooth_where_the_values_meet():
+    """Values a few bits apart give their mean, with no NaN where their ratio rounds to one."""
+    first = 7.756768
+    other = first
+    for _ in range(64):
+        other = math.nextafter(other, 0.0)
+        assert heat_transfer.logarithmic_mean(first, other) == pytest.approx(first, rel=1e-13)
+        assert heat_transfer.lmtd(first, other) == pytest.approx(first, rel=1e-13)
+    assert heat_transfer.logarithmic_mean(math.e, 1.0) == pytest.approx(math.e - 1)
 
 
 def test_effectiveness_limits():

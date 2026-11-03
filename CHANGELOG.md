@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-11-03
+
+Every public name and default is the same as 0.5.5 (`tests/fixtures/public_api_0_5_0.json` is the
+frozen surface). Numbers change on purpose where the two streams of a counterflow heat exchanger
+have equal capacity rates: LCTS of the sample plants falls by at most 0.15%. No plant of the sample
+changes rank or feasibility, and a search may end on another design.
+
+### Fixed
+- The split of the heat between the heat exchanger, the heat pump and the peak boiler no longer
+  depends on the last bit of a calculation (known issue of 0.5.5). The cause was not the heat pump:
+  `heat_transfer.effectiveness_counterflow` lost all its digits when the capacity ratio was within
+  some bits of one, as on winter days when both streams of the exchanger carry the same flow, and
+  gave for example 2/3 instead of 0.6885. It now tends smoothly to `NTU/(1+NTU)`. The numbers of
+  those days change: a boiler heat of the sample plants by up to 3.3%, because they were wrong.
+- `heat_transfer.logarithmic_mean`, and with it `lmtd` and the Lorenz mean temperature, lost its
+  digits the same way for two values a few bits apart.
+
+### Changed
+- CI and the release workflow run NumPy with AVX-512 again.
+
 ## [0.5.5] - 2026-11-02
 
 The first version published as a package. Every public name, default and number is the same as

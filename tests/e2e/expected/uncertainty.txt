@@ -1,4 +1,4 @@
 Check: ready
 Draws: 20
-lcts  mean    51.78  p5    41.23  p95    68.28 EUR/MWh
-co2   mean    16.54  p5    12.76  p95    18.91 kt
+lcts  mean    51.75  p5    41.20  p95    68.26 EUR/MWh
+co2   mean    16.53  p5    12.74  p95    18.90 kt
