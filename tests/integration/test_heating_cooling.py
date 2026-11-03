@@ -45,12 +45,15 @@ def _without(data, modules, joined):
         and item["target"].partition(".")[0] not in modules
     ]
     links = [{"source": source, "target": target} for source, target in joined]
-    inputs = {
-        path: value
-        for path, value in data["inputs"].items()
-        if path.partition(".")[0] not in modules
+    params = {name: value for name, value in data["params"].items() if name in (*kept, "control")}
+    fluids = {path: value for path, value in data.get("fluids", {}).items() if path not in modules}
+    edited = data | {
+        "modules": kept,
+        "connections": connections + links,
+        "params": params,
+        "fluids": fluids,
     }
-    return data | {"modules": kept, "connections": connections + links, "inputs": inputs}
+    return {name: value for name, value in edited.items() if name != "type"}
 
 
 def _sources(data, target):

@@ -15,7 +15,6 @@ PACKAGES = (
     "ops",
     "runtime",
     "engine",
-    "run",
     "types",
     "units",
     "errors",
@@ -52,7 +51,7 @@ except ImportError:
 else:
     raise SystemExit("the compiler was importable")
 
-from gemini import modules, plants, run
+from gemini import modules
 from gemini.engine import engine as engine_module
 from gemini.modules.declarations import Control, Output
 from gemini.modules.bindings import Binding, ModuleBindings
