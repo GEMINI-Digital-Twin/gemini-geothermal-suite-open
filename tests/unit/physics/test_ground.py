@@ -115,13 +115,19 @@ def test_ramey_fluid_temperature_solves_the_energy_balance():
         ground.ramey_fluid_temperature(**(args | {"relaxation_length": 0}), length=10)
 
 
-COLD_FRACTION_RATIOS = [(0.0,), (0.5,), (1.0,), (1.0000001,), (1.01,), (3.0,), (100.0,), (1e8,)]
+COLD_FRACTION_RATIOS = [(0.0,), (0.5,), (1.0,), (1.01,), (3.0,), (100.0,), (1e8,)]
+JUST_PAST_BREAKTHROUGH = 1.0000001
+"""The angle goes as sqrt(ratio - 1) here, so a bit of the ratio is 1e-9 of the angle: the last bit
+of ``sin``, which differs between NumPy's kernels and ``math``, moves it beyond the backend RTOL."""
 
 
 def test_doublet_cold_fraction_on_arrays_matches_floats_on_every_branch():
     """Before breakthrough, on the decline and past the last streamline agree on arrays."""
     assert_function_matches(ground.doublet_cold_fraction, COLD_FRACTION_RATIOS)
     assert_function_matches(ground.doublet_cold_fraction, [(1e300,), (math.inf,), (2.0,)])
+    on_arrays = ground.doublet_cold_fraction(np.array([JUST_PAST_BREAKTHROUGH]))
+    expected = ground.doublet_cold_fraction(JUST_PAST_BREAKTHROUGH)
+    np.testing.assert_allclose(on_arrays, [expected], rtol=1e-7, atol=0)
 
 
 def test_doublet_cold_fraction_on_a_dense_grid():
