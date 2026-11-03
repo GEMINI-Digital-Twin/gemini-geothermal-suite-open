@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.7] - 2026-11-03
+
+Every public name, default and number is the same as 0.5.6.
 
 ### Changed
 - A study runs faster: `examples/hackathon.py` takes 2:11 instead of 3:29 on the same machine, and
