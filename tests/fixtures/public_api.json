@@ -841,7 +841,11 @@
     "category"
    ],
    "roles": [],
-   "schema": []
+   "schema": [],
+   "union": [
+    "plants",
+    "name"
+   ]
   },
   "runtime": {
    "settings": [

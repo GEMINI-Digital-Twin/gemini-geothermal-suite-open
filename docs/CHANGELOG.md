@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+- `gm.plants.union(plants, *, name)`: one superstructure plant whose structures give back each
+  of several concrete plants (modules matched by name, the others optional or a choice, in series);
+  `plant.union` holds `{"structures", "notes"}`. Plants it cannot merge raise `invalid_design`.
+
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.

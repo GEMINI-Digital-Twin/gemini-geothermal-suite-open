@@ -281,6 +281,44 @@ module off a plant keeps its class. `gm.study.evolve` sets such values before it
 so they stay genes of its search. Doublets in parallel are never bypassed: a doublet count is the
 `size.doublets` range of a class plant.
 
+### Union of plants
+
+`gm.plants.union(plants, *, name)` (`gemini/plants/_utils/union.py`) builds the superstructure of
+several concrete plants, so that a search of structures holds each of them:
+
+- **Modules** match by name: the same name and type are one module, and one name with two types
+  raises `invalid_design` naming both. A module of every plant is fixed. Every other one must be
+  optional, so it needs a bypass pair (`<x>_in`/`<x>_out` or a class `bypass`); one without
+  (`Splitter`, `Mixer`, a grid) raises `invalid_design` naming each, as merging those plants needs a
+  stated bypass (`set_bypass`). A plant of a class is first read as modules and connections with
+  every value of its modules stated, as `with_structure` does.
+- **Wiring.** A chain of a plant starts at an outlet of a fixed module (or a plant inlet), passes
+  through the bypass pairs of modules that are not fixed and ends at the next other inlet. The
+  chains of all plants between the same two ends are merged into one series in an order each
+  plant keeps, so that the bypass of the modules that are off gives back each plant's
+  connections; the other connections are taken as stated. A chain from a module back to it (the
+  air of a cooler, from the atmosphere back to it) is kept side by side, the bypass dropping it.
+- **Choices.** Where the plants put disjoint groups of modules between the same two fixed modules
+  (`y` in one plant, `z` in another, nothing in a third), the groups are a choice
+  `{"y_or_z": {"y": [...], "z": [...], "none": []}}`, each group named after its first module; a
+  module present in exactly the plants of a group joins it. The other modules are optional.
+- **Values.** A value stated differently keeps the first plant's value; its options are joined and
+  its range widened to the lowest minimum and highest maximum (in the first plant's unit). The same
+  goes for `fluids`, `boundary` and `outputs` by key; `constraints` are joined.
+- **Result.** A new `gm.Plant` with the attribute `union`: `{"structures": {plant name:
+  structure}, "notes": [{"path", "kept", "values"}]}`, `values` by plant name. Before returning,
+  each structure is checked: `with_structure` gives the plant's modules and connections (as sets of
+  `"path.port"`, the type `state` included). Plants that no such series reproduces (two orders of
+  the same modules, another connection between fixed modules, a module port at two places) raise
+  `invalid_design` naming the plants and the connection.
+
+Of the six plants of `examples/hackathon_2026`, `HeatingCoolingPlant`, `HeatingFullCoolingPlant`
+and `HeatingAbsorptionCoolingPlant` merge into exactly the wiring and modules of the hand-built
+`examples/hackathon_superstructure` (heat pump, adsorption and compression chillers and their coolers
+optional). The six together raise: `HeatingPlant` and `HeatingHeatPumpCoolingPlant` lack the drive
+splitter, mixer and cooling consumer, and `HackathonPlant` names its modules otherwise, so those
+splitters, mixers and grids would have to be optional without a bypass pair.
+
 ## Loops
 
 A connection that closes a cycle is a tear stream. `Plant.forward` iterates the cycle until the tear

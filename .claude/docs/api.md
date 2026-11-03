@@ -221,6 +221,7 @@ are in `gm.plants`, not in `gm.modules`; `gm.modules` never imports `gm.plants`.
 | `gm.plants.schema()` | JSON Schema of the plant file (`kind: plant`, `format: 1`: `type`, `size`, `params` as a tree of leaf objects, `modules`, `connections`), generated from the code | real |
 | `gm.plants.names(category=None)` | plant names; `category` is `heating`, `cooling` or `both`, what a plant serves | real |
 | `gm.plants.get(name)` | a new plant without values | real |
+| `gm.plants.union(plants, *, name)` | a new superstructure `gm.Plant` named `name` whose structures give back each of `plants` (two or more concrete plants of distinct names): the modules of every plant fixed, the others optional or a choice, alternatives in series. Its attribute `union` is `{"structures": {plant name: structure}, "notes": [{path, kept, values}]}`: `with_structure(union["structures"][n])` has the modules and connections of plant `n`, and each note a value the plants state differently (the first plant's kept, ranges widened, `values` by plant name). Plants it cannot merge raise `invalid_design` naming the plants and the connection, see [plants.md](plants.md#union-of-plants) | real |
 | `gm.plants.capabilities()` | `{plant class: {roles, schedulable, ranges}}`, built from the code; `ranges` lists every leaf of the plant file that may state a `range` for a study: `size.doublets` when the class has it, then `params.<path>` of each numeric parameter, control and boundary (`params.depth`, `params.d0.nominal_flow`) | real |
 | `gm.plants.<Plant class>` | the plant classes, see [plants.md](plants.md#registered-plants). The five template plants take `doublets=n`, `size={"doublets": n}` in a plant dict, and a plant-level `depth` | real |
 
@@ -683,6 +684,7 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.plants.names` | `(category=None)` | function |
 | `gm.plants.roles` | `()` | function |
 | `gm.plants.get` | `(name)` | function |
+| `gm.plants.union` | `(plants, *, name)` | function |
 | `gm.plants.<Plant class>` | | catalogue |
 
 ### gm.case
