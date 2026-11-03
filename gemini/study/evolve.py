@@ -40,6 +40,9 @@ INVALID = LARGEST_VIOLATION + 1.0
 """The violation of a structure whose plant is not valid: worse than any trial that ran."""
 STOP_KEYS = ("generations", "seconds")
 """The keys of ``stop``: generations without a new design on the front, and a time limit."""
+_PLANTS = {}
+"""The plants of the structures built in this process during one ``evolve``, by design id,
+structure and the values of the plant itself: a structure is read once, not once per batch."""
 
 
 class Design(dict):
@@ -293,6 +296,17 @@ def _chosen(variable, number):
     return int(round(number)) if variable.integer else float(number)
 
 
+def _structured(design, own, structure):
+    """Return the plant of a structure with the values ``own`` of the plant itself, built once.
+
+    The plant is shared: a caller copies it before it changes it (``Shared`` does).
+    """
+    key = (id(design), tuple(structure.items()), tuple(sorted(own.items())))
+    if key not in _PLANTS:
+        _PLANTS[key] = _built(design, own, structure)
+    return _PLANTS[key]
+
+
 def _built(design, values, structure):
     """Return the plant of a structure with ``values`` set: the values first, then the bypass."""
     valued = deepcopy(design)
@@ -336,7 +350,7 @@ def _batch(design, own, structure, valued, shared):
     """Return the outcomes of the values ``valued`` on the plant of one structure."""
     case, plan, names = shared
     try:
-        plant = _built(design, own, structure)
+        plant = _structured(design, own, structure)
         return run_trials(Shared(plant), case, plan, valued, names, True)
     except Exception as error:
         if len(valued) == 1:
@@ -344,7 +358,7 @@ def _batch(design, own, structure, valued, shared):
     found = []
     for values in valued:
         try:
-            plant = _built(design, own, structure)
+            plant = _structured(design, own, structure)
             found.append(run_trials(Shared(plant), case, plan, [values], names, True)[0])
         except Exception as error:
             found.append(_failed(error))
@@ -372,8 +386,13 @@ class _Archive:
         self.evaluations = self.invalid = 0
 
     def _validity(self, design, structure, count):
-        """Return whether a structure gives a valid plant, judged once per count."""
+        """Return whether a structure gives a valid plant, judged once per count.
+
+        On the plant's own doublet count the structures judged before the search are known.
+        """
         key = (count, tuple(structure.values()))
+        if key not in self.valid and count == self.space.plant.size.get("doublets"):
+            self.valid[key] = structure in self.space.valid
         if key not in self.valid:
             self.valid[key] = not superstructure.is_valid(design, structure, Plant)[1]
         return self.valid[key]
@@ -441,18 +460,30 @@ class _Archive:
         return [judged[index] for index in evolution.non_dominated(objectives)]
 
     def design(self, key):
-        """Return the ``Design`` of a judged key."""
+        """Return the ``Design`` of a judged key, without its plant (``with_plant`` adds it)."""
         design, values, structure, genome = self.entries[key]
-        return _design(self.space, self.case, design, values, structure, genome, self.outcomes[key])
+        found = _design(
+            self.space, self.case, design, values, structure, genome, self.outcomes[key]
+        )
+        found.source = (design, values, structure)
+        return found
+
+
+def _with_plant(design):
+    """Return ``design`` with its plant built, once; a design of polish has its plant already."""
+    source = getattr(design, "source", None)
+    if design["plant"] is None and source is not None:
+        try:
+            design["plant"] = _built(*source)
+        except Exception:
+            design["plant"] = None
+        design.source = None
+    return design
 
 
 def _design(space, case, design, values, structure, genome, outcome):
     """Return the ``Design`` of a candidate: its plant, its metrics and its parameters."""
     metrics, reason, violation = outcome
-    try:
-        plant = _built(design, values, structure)
-    except Exception:
-        plant = None
     parameters = dict(structure)
     if space.counted:
         parameters[DOUBLETS] = units.Quantity(space.count(genome), "-")
@@ -466,7 +497,7 @@ def _design(space, case, design, values, structure, genome, outcome):
         parameters[variable.name] = chosen
     return Design(
         structure=dict(structure),
-        plant=plant,
+        plant=None,
         metrics=metrics,
         feasible=reason is None,
         reason=reason,
@@ -548,7 +579,7 @@ def _polished(archive, designs, polish, population, seed, plan):
     found, simulations = [], 0
     name, sign = archive.names[0], archive.signs[0]
     for design in designs[:polish]:
-        plant = design["plant"]
+        plant = _with_plant(design)["plant"]
         if plant is None or (not variables(plant) and counts(plant) == [None]):
             continue
         objective = name if sign > 0 else f"-{name}"
@@ -747,6 +778,7 @@ def evolve(
     raise_issues(check(plant, case))
     names, signs = _objectives(objectives)
     limits = checked_stop(stop)
+    _PLANTS.clear()
     space = _checked(plant, evaluations, seed, population, polish)
     archive = _Archive(space, case, plan, names, signs)
     total = _limits(plant, evaluations, population, polish)
@@ -765,6 +797,10 @@ def evolve(
         if count is not None:
             count.reach(total)
     front, best = _final(archive, designs + polished)
+    summaries = _structures(archive, designs + polished)
+    for design in [*front, best, *(item["best"] for item in summaries if item["best"])]:
+        _with_plant(design)
+    _PLANTS.clear()
     _hypervolumes(archive, history, front)
     return Evolution(
         front=front,
@@ -772,7 +808,7 @@ def evolve(
         history=history,
         evaluations=archive.evaluations + extra,
         invalid=archive.invalid,
-        structures=_structures(archive, designs + polished),
+        structures=summaries,
         rejected=space.rejected,
         objectives=[name if sign > 0 else f"-{name}" for name, sign in zip(names, signs)],
         budget={
