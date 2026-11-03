@@ -1,0 +1,46 @@
+{
+  "assumptions": {
+    "boiler_efficiency": 0.9,
+    "gas_emission_factor_kg_per_GJ": 56.6,
+    "gas_lhv_MJ_per_Nm3": 35.8,
+    "chiller_cop": 5.0,
+    "electricity_emission_factor_kg_per_kWh": 0.3
+  },
+  "heating_demand_GWh": 111.66767999999986,
+  "cooling_demand_GWh": 23.742528000000014,
+  "gas_fuel_GWh": 124.07519999999984,
+  "gas_Mm3": 12.47683575418993,
+  "grid_import_GWh": 4.748505600000003,
+  "emissions_gas_t": 25281.56275199997,
+  "emissions_electricity_t": 1424.551680000001,
+  "emissions_t": 26706.11443199997,
+  "candidates_vs_reference": {
+    "C1_2dbl_s1.8_UA1000": {
+      "emissions_t": 9010.93040513628,
+      "emissions_reduction": 0.6625892385775466,
+      "external_gas_GWh": 0.004317457823044109,
+      "external_gas_reduction": 0.9999652028945103,
+      "grid_import_GWh": 12.391754303195121,
+      "grid_import_change": 1.6096113908331735,
+      "verdict": "ACCEPTED"
+    },
+    "C2_3dbl_s1.8_UA1000": {
+      "emissions_t": 9025.406784337198,
+      "emissions_reduction": 0.6620471762255793,
+      "external_gas_GWh": 0.004317457823043949,
+      "external_gas_reduction": 0.9999652028945103,
+      "grid_import_GWh": 11.374336668866512,
+      "grid_import_change": 1.3953507960202267,
+      "verdict": "REJECTED"
+    },
+    "C3_2dbl_s1.0_UA250": {
+      "emissions_t": 10294.798398667015,
+      "emissions_reduction": 0.614515304168265,
+      "external_gas_GWh": 13.452187987683285,
+      "external_gas_reduction": 0.8915803642655156,
+      "grid_import_GWh": 11.73230829182097,
+      "grid_import_change": 1.4707369602388092,
+      "verdict": "REJECTED"
+    }
+  }
+}

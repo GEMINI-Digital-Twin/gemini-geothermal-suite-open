@@ -25,6 +25,6 @@
 | Verdict | ACCEPTED | REJECTED | REJECTED |
 
 Ranking verdicts:
-- **C1_2dbl_s1.8_UA1000**: ACCEPTED - selected: feasible; external gas 0.0039 GWh, emissions 8655 t, grid import 11.10 GWh, 2 doublets
-- **C2_3dbl_s1.8_UA1000**: REJECTED - extra doublet not justified vs C1_2dbl_s1.8_UA1000: external gas +0.0%, emissions -0.2% (extra doublet needs >= 5% on either)
-- **C3_2dbl_s1.0_UA250**: REJECTED - same doublet count as C1_2dbl_s1.8_UA1000 but ranks lower: external gas 14.1894 vs 0.0039 GWh, emissions 10047 vs 8655 t, grid import 10.35 vs 11.10 GWh
+- **C1_2dbl_s1.8_UA1000**: ACCEPTED - selected: feasible; external gas 0.0039 GWh, emissions 8655 t, grid import 11.10 GWh, 2 doublets, 10000 m drilled
+- **C2_3dbl_s1.8_UA1000**: REJECTED - parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000; extra doublet: external gas +0.0%, emissions -0.2% (needs >= 5% on either)
+- **C3_2dbl_s1.0_UA250**: REJECTED - same doublet count and depth as C1_2dbl_s1.8_UA1000 but ranks lower on external_gas_fuel_GWh: external gas 14.1894 vs 0.0039 GWh, emissions 10047 vs 8655 t, grid import 10.35 vs 11.10 GWh, drilled 10000 vs 10000 m

@@ -58,6 +58,8 @@ CANDIDATES_PATH = ROOT / "projects" / "candidates_2027.json"
 BRINE_CHAIN = ("producer_well", "separator", "filter_a", "heat_exchanger", "filter_b", "injector_well")
 ABSORBER = "absorber_generator"
 HP_COP_REL_TOLERANCE = 0.01  # HeatpumpBasic cross-check agreement
+GRAVITY = 9.81
+HP_MIN_SOURCE_DT_K = 1e-3  # heat pump runs only if the brine is at least this far above its minimum
 
 
 def brine_chain_project(project: dict) -> dict:
@@ -122,6 +124,7 @@ class Plant:
         components = project["components"]
         components["producer_well"]["parameters"]["esp"].update(settings["esp_options"][candidate["esp"]])
         components["heat_exchanger"]["parameters"]["heat_transfer_coefficient"] = candidate["hex_ua_W_K"]
+        self.apply_depth(components, candidate.get("depth_m", self.challenge["reservoir"]["midpoint_depth_m_TVD"]))
         self.chain = brine_chain_project(project)
         self.producer_params = self.chain["components"]["producer_well"]["parameters"]
         self.hex_params = self.chain["components"]["heat_exchanger"]["parameters"]
@@ -145,6 +148,24 @@ class Plant:
         self.flow_grid = self._flow_grid()
 
     # --- brine side -------------------------------------------------------
+    def apply_depth(self, components: dict, depth_m: float):
+        """Reservoir midpoint at ``depth_m`` TVD (vertical wells to that depth).
+
+        T from the official gradient (via self.challenge); P hydrostatic from the
+        official 250 bar at 2500 m: P = 250 + rho*g*(z - 2500) (DERIVED).
+        """
+        reservoir = self.challenge["reservoir"]
+        ref_depth, ref_pressure = reservoir["midpoint_depth_m_TVD"], reservoir["pressure_bar_g"]
+        self.depth_m = depth_m
+        self.reservoir_pressure_bar = ref_pressure + self.rho * GRAVITY * (depth_m - ref_depth) / 1e5
+        reservoir["midpoint_depth_m_TVD"] = depth_m
+        reservoir["pressure_bar_g"] = self.reservoir_pressure_bar
+        self.reservoir_temperature_c = reservoir["surface_temperature_C"] + reservoir["gradient_C_per_km"] * depth_m / 1000
+        for name in ("producer_well", "injector_well"):
+            params = components[name]["parameters"]
+            params["reservoir_pressure_bar"] = self.reservoir_pressure_bar
+            params["trajectory_table"][-1].update(MD=depth_m, TVD=depth_m)
+
     def controls(self, q_m3h: float) -> dict:
         if q_m3h not in self.controls_cache:
             self.controls_cache[q_m3h] = solve_producer_controls(self.chain, q_m3h, self.t_nominal)
@@ -153,16 +174,22 @@ class Plant:
     def _flow_grid(self) -> list[float]:
         """Dispatchable flows: 50 m3/h .. min(300, ESP maximum) on the dispatch step."""
         step = self.settings["dispatch"]["flow_step_m3h"]
-        q_min, q_max = self.limits["flow_min_when_on_m3_per_h_per_doublet"], self.limits["flow_max_m3_per_h_per_doublet"]
+        q_min, q_limit = self.limits["flow_min_when_on_m3_per_h_per_doublet"], self.limits["flow_max_m3_per_h_per_doublet"]
+        q_max = self.candidate.get("flow_cap_m3h", q_limit)
+        if not q_min <= q_max <= q_limit:
+            raise ValueError(f"flow cap {q_max} m3/h outside the challenge range {q_min}-{q_limit} m3/h")
+        self.flow_cap_m3h = q_max
         top = self.controls(q_max)
         q_top = q_max if top["reached"] else float(int(top["max_flow_m3h"]))
         self.max_flow_m3h = q_top
         grid = [float(q) for q in range(int(q_min), int(q_top) + 1, step)]
         if grid[-1] != q_top:
             grid.append(q_top)
-        unreachable = [q for q in grid if not self.controls(q)["reached"]]
-        if unreachable:
-            raise ValueError(f"flows {unreachable} not reachable with ESP {self.candidate['esp']}")
+        # Flows the ESP/choke cannot hold (e.g. 50 m3/h in deep wells) are not dispatchable.
+        self.unreachable_flows_m3h = [q for q in grid if not self.controls(q)["reached"]]
+        grid = [q for q in grid if q not in self.unreachable_flows_m3h]
+        if not grid:
+            raise ValueError(f"no flow in {q_min}-{q_max} m3/h reachable with ESP {self.candidate['esp']}")
         return grid
 
     def wellhead_temperature(self, q_m3h: float) -> float:
@@ -197,6 +224,10 @@ class Plant:
             "production_m3h": out("producer_well", "flow_rate"),
             "injection_m3h": out("filter_b", "flow_rate_m3h"),
             "T_wellhead_C": out("producer_well", "temperature_out"),
+            "wellhead_pressure_bar": out("producer_well", "pressure_out"),
+            "esp_intake_bar": out("producer_well", "esp_intake_pressure"),
+            "esp_discharge_bar": out("producer_well", "esp_discharge_pressure"),
+            "injector_wellhead_bar": out("injector_well", "wellhead_pressure"),
             "T_absorber_in_C": out("filter_a", "temperature_out"),
             "T_hex_in_C": out(ABSORBER, "temperature_out"),
             "hex": out("heat_exchanger"),
@@ -252,6 +283,8 @@ class Plant:
         point = self.heat_pump_point(max_fraction, t_sink_in, sink_m3s, t_src_in, src_m3s)
         if point["Ts_out"] >= t_src_min:
             return max_fraction, point
+        if self.heat_pump_point(1e-9, t_sink_in, sink_m3s, t_src_in, src_m3s)["Ts_out"] < t_src_min:
+            return 0.0, self.heat_pump_point(0.0, t_sink_in, sink_m3s, t_src_in, src_m3s)  # no usable source heat
         fraction = brentq(
             lambda f: self.heat_pump_point(f, t_sink_in, sink_m3s, t_src_in, src_m3s)["Ts_out"] - t_src_min,
             1e-9, max_fraction, xtol=1e-9,
@@ -282,7 +315,17 @@ class Plant:
         """Heat pump, CHP top-up and boiler for one doublet (setpoint energy balance)."""
         m_s = self.rho_s * secondary_m3s
         t_hex_s_out, t_brine = hex_out["secondary_temperature_out"], hex_out["primary_temperature_out"]
+        hex_w, hex_bypass = hex_out["heat_duty"], False
         t_src_min = t_wh - self.limits["maximum_brine_delta_T_C"] + self.drop_after_hex
+        # Hot brine (deep wells): a primary-side bypass limits the HEX duty so the district water
+        # does not exceed 100 C and the brine is not cooled below the 40 K cap.
+        m_cp_b = self.rho * q_m3h / 3600 * self.cp
+        t_hex_p_in = t_brine + hex_w / m_cp_b
+        hex_w_max = min(m_s * self.cp_s * (self.t_supply - self.t_return), m_cp_b * (t_hex_p_in - t_src_min))
+        if hex_w > hex_w_max:
+            hex_w, hex_bypass = hex_w_max, True
+            t_hex_s_out = self.t_return + hex_w / (m_s * self.cp_s)
+            t_brine = t_hex_p_in - hex_w / m_cp_b
         lift_w = max(0.0, m_s * self.cp_s * (self.t_supply - t_hex_s_out))
         fuel_w = gas_nm3_s * self.produced_gas_lhv_j_nm3
         chp_full = self.chp(gas_nm3_s, secondary_m3s, t_hex_s_out)
@@ -290,7 +333,7 @@ class Plant:
         # Heat pump covers only the lift that CHP heat cannot (so produced gas is not flared).
         hp = {"Q_W": 0.0, "W_W": 0.0, "COP": None, "sink_fraction": 0.0, "inputs": None, "capped": False}
         hp_target_w = max(0.0, lift_w - chp_full["power_th"])
-        if hp_target_w > 0 and t_brine > t_src_min:
+        if hp_target_w > 0 and t_brine > t_src_min + HP_MIN_SOURCE_DT_K:
             inputs = (t_hex_s_out, secondary_m3s, t_brine, q_m3h / 3600)
             fraction, y = self.heat_pump(*inputs, t_src_min, max_fraction=hp_target_w / lift_w)
             cap = self.hp.get("cop_cap")
@@ -306,7 +349,7 @@ class Plant:
         boiler_produced_fuel = min(produced_left_w, remaining_w / self.boiler_eff)
         external_fuel = (remaining_w - boiler_produced_fuel * self.boiler_eff) / self.boiler_eff
         return {
-            "hex_W": hex_out["heat_duty"], "hp": hp, "T_after_hex_C": t_hex_s_out,
+            "hex_W": hex_w, "hex_bypass": hex_bypass, "hp": hp, "T_after_hex_C": t_hex_s_out,
             "T_after_hp_C": t_hex_s_out + hp["Q_W"] / (m_s * self.cp_s),
             "chp_heat_W": chp_heat, "chp_el_W": chp_share * chp_full["power_el"], "chp_fuel_W": chp_share * fuel_w,
             "boiler_produced_fuel_W": boiler_produced_fuel, "boiler_external_fuel_W": external_fuel,
@@ -353,6 +396,8 @@ class Plant:
     def simulate_day(self, day: date, heating_w: float, cooling_w: float, in_maintenance: set[int]) -> dict:
         n_installed = self.candidate["n_doublets"]
         available = [i for i in range(n_installed) if i not in in_maintenance]
+        if not available:
+            return self.backup_day(day, heating_w, cooling_w, in_maintenance)
         n_active, q, geo_ok = self.dispatch(available, heating_w, cooling_w)
         active = available[:n_active]
 
@@ -419,7 +464,44 @@ class Plant:
             "emission_produced_gas_t": produced_fuel * gj_day * self.produced_gas_ef / 1000,
             "emission_external_gas_t": external_fuel * gj_day * self.settings["external_gas"]["emission_factor_kg_per_GJ"] / 1000,
             "emission_electricity_t": grid_import * 24 / 1000 * self.el_factor / 1000,
-            "hex_gemini_vs_model_W": chain["hex"]["heat_duty"] - plan["hex"]["heat_duty"],
+            "hex_gemini_vs_model_W": chain["hex"]["heat_duty"] - plan["hex"]["heat_duty"], "hex_bypass": s["hex_bypass"],
+            "constraints_pass": report["feasible"],
+            "constraint_failures": ";".join(f"{r['check']}@{r['scope']}" for r in report["results"] if r["status"] != PASS),
+        }
+
+    def backup_day(self, day: date, heating_w: float, cooling_w: float, in_maintenance: set[int]) -> dict:
+        """No doublet available: external-gas boiler and electric chiller carry the whole day."""
+        n_installed = self.candidate["n_doublets"]
+        external_fuel = heating_w / self.boiler_eff
+        el_chiller = cooling_w / self.settings["electric_chiller_cop"]
+        case = {"n_doublets": n_installed, "heating_supply_C": self.t_supply, "cooling_supply_C": self.settings["cooling_supply_return_C"][0],
+                "doublets": [{"name": f"doublet_{i + 1}", "active": False, "production_m3h": 0.0, "injection_m3h": 0.0,
+                              "T_production_C": None, "T_injection_C": None, "pumps": []} for i in range(n_installed)]}
+        report = check_constraints(case, self.limits)
+        gj_day = 86400 / 1e9
+        zero = 0.0
+        return {
+            "date": day.isoformat(),
+            "heating_demand_MW": heating_w / 1e6, "cooling_demand_MW": cooling_w / 1e6,
+            "maintenance": ";".join(f"doublet_{i + 1}" for i in sorted(in_maintenance)),
+            "n_active": 0, "active_doublets": "", "flow_per_doublet_m3h": zero, "geothermal_meets_need": False,
+            "esp_freq_hz": None, "wellhead_pressure_bar": None,
+            "T_wellhead_C": None, "T_absorber_in_C": None, "T_hex_in_C": None, "T_injection_C": None, "brine_dT_K": None,
+            "heat_hex_MW": zero, "heat_hp_MW": zero, "heat_chp_MW": zero, "heat_boiler_produced_gas_MW": zero,
+            "heat_boiler_external_gas_MW": heating_w / 1e6, "heat_delivered_MW": heating_w / 1e6, "heat_unmet_MW": zero,
+            "T_after_hex_C": None, "T_after_hp_C": None, "T_supply_C": self.t_supply,
+            "hp_COP": None, "hp_COP_capped": False, "hp_sink_fraction": zero, "hp_COP_heatpumpbasic": None,
+            "cool_absorption_MW": zero, "cool_electric_MW": cooling_w / 1e6, "cool_delivered_MW": cooling_w / 1e6, "cool_unmet_MW": zero,
+            "absorber_drive_MW": zero, "absorber_brine_drop_K": zero,
+            "el_esp_MW": zero, "el_injector_MW": zero, "el_hp_MW": zero, "el_chiller_MW": el_chiller / 1e6,
+            "el_load_MW": el_chiller / 1e6, "el_chp_MW": zero, "el_grid_import_MW": el_chiller / 1e6, "el_grid_export_MW": zero,
+            "produced_gas_Nm3_day": zero, "produced_gas_fuel_MW": zero, "produced_gas_chp_MW": zero,
+            "produced_gas_boiler_MW": zero, "produced_gas_flared_MW": zero, "external_gas_fuel_MW": external_fuel / 1e6,
+            "external_gas_Nm3_day": external_fuel * 86400 / (self.settings["external_gas"]["lhv_MJ_per_Nm3"] * 1e6),
+            "emission_produced_gas_t": zero,
+            "emission_external_gas_t": external_fuel * gj_day * self.settings["external_gas"]["emission_factor_kg_per_GJ"] / 1000,
+            "emission_electricity_t": el_chiller * 24 / 1000 * self.el_factor / 1000,
+            "hex_gemini_vs_model_W": zero, "hex_bypass": False,
             "constraints_pass": report["feasible"],
             "constraint_failures": ";".join(f"{r['check']}@{r['scope']}" for r in report["results"] if r["status"] != PASS),
         }
@@ -433,6 +515,8 @@ class Plant:
         schedule = maintenance_schedule(need, self.candidate["n_doublets"], window, d_cfg["maintenance_days_per_doublet"])
         off = {d: {i for i, span in enumerate(schedule) if d in span} for d in days}
         rows = [self.simulate_day(d, heating_mw[d] * 1e6, cooling_mw[d] * 1e6, off[d]) for d in days]
+        if any(r.keys() != rows[0].keys() for r in rows):
+            raise RuntimeError("daily rows have inconsistent columns (backup_day vs simulate_day)")
         return {"schedule": schedule, "rows": rows, "annual_checks": self.annual_checks(rows, schedule, days)}
 
     def annual_checks(self, rows: list[dict], schedule: list[list[date]], days: list[date]) -> list[dict]:

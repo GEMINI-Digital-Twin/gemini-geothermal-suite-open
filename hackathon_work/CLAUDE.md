@@ -69,14 +69,22 @@ quantity is missing, ask the user rather than invent it.
 | External gas | 56.6 kg CO₂/GJ, 35.8 MJ/Nm³ | ASSUMED (pipeline natural gas) |
 | Produced gas CO₂ | emitted whether burned or flared | ASSUMED |
 | Dispatch | 5 m³/h grid; maintenance windows in May–Sep at lowest H + C/0.7 | ASSUMED |
+| Other well depths | T = 12 + 30·z/1000; P = 250 + ρ·g·(z − 2500) (hydrostatic from the official point); vertical wells, drilled m = 2·n·z | DERIVED |
+| Conventional reference | gas boiler η 0.90 (56.6 kg/GJ) + electric chiller COP 5.0, grid 0.3 kg/kWh → 26 706 t CO₂/yr | ASSUMED (user decision) |
 | Example carry-overs | ESP 10 stages / 650 m (HC27000 curve), separator & filter resistances, splits 0.8/0.2, boiler/CHP η 0.8 | ASSUMED (GEMINI doublet_plant.json values) |
 
 ## Ranking rule (user decision, 2026-11-02)
 1. Hard constraints: pass/fail (daily checker + annual 330-day / never-all-off checks).
 2. Among feasible candidates minimize, in order: external gas → emissions → net grid
-   electricity import → number of doublets.
-3. An extra doublet is accepted only if it improves external gas or emissions by ≥ 5%
-   versus the best candidate with fewer doublets (relative improvement from a zero base = 0%).
+   electricity import → number of doublets → total drilled metres (final tie-break).
+   Tie tolerance (approved 2026-11-03): values within max(1%, 0.01 GWh / 10 t) count as
+   equal so the next metric decides (otherwise ~0.0003 GWh of external-gas noise decides).
+3. Parsimony (candidates walked in order of doublets, then depth):
+   - an extra doublet is accepted only if it improves external gas or emissions by ≥ 5%
+     versus the incumbent (relative improvement from a zero base = 0%);
+   - depth is explored in 250 m steps from 2500 m (max 4000 m, ASSUMED); each deeper step
+     is accepted only if emissions improve by ≥ 5% vs the previous accepted depth. The
+     agent climbs until a step fails and logs the marginal abatement (t CO₂/yr per extra m).
 4. State ACCEPTED / REJECTED + reason for every candidate (`run_candidates.rank`).
 
 ## Heating architecture (implemented)
@@ -106,6 +114,12 @@ Cascade per active doublet:
   The HC27000 curve gives zero head above 280 m³/h at any frequency, and at 70 Hz the
   challenge doublet reaches only ~176 m³/h → 300 m³/h needs a different (bigger) pump curve.
 - Surface Δp is linear in Q (filter_a dominates: ~3 bar at 300 m³/h).
+- Deep wells: the HEX gets a primary-side bypass (duty capped so district water ≤ 100 °C and
+  brine ≥ T_wellhead − 40 K). With the ESP fixed at 650 m, ESP intake pressure at 300 m³/h falls
+  with depth (16.5 bar at 2500 m → 7.6 bar at 3250 m → 4.7 bar at 3500 m, cavitation flag);
+  a deeper pump setting would be needed in a real design. Wellhead T > 100 °C from 3000 m
+  exceeds PVTConstantSTP's stated range (constant properties extrapolated). Free gas at the
+  ESP intake (GLR 0.8) is not modelled. 0.15 m tubing at 300 m³/h = 4.7 m/s at every depth.
 - `HeatpumpBasic` is NOT robust: its Nelder-Mead solve diverges at low lift / small sink flow
   (COP ~0, Th_out of hundreds of °C), its `Ts_in_minimum` fallback returns nonsense
   (e.g. 830 °C at COP 1.00), and `get_output()` returns its internal dict (copy it).
@@ -124,6 +138,14 @@ Cascade per active doublet:
 - `run_candidates.py`: runs `projects/candidates_2027.json` (base + sensitivities) →
   `outputs/candidates/<case>/` (per candidate daily.csv, summary.json, daily_supply.png;
   comparison.csv/.md, ranking.json). `_previous_run_v1/` = first run (before the 2026-11-02 changes).
+- `reference_case.py`: conventional boiler + electric chiller reference → `outputs/reference/summary.json`.
+- `design_agent.py`: task 6 agent (`--backend rules|claude_cli`, `--budget`); scenario A (heating
+  return removed → stops and asks) + scenario B (design loop) → `outputs/agent/decision_log.jsonl`,
+  `agent_trace.md`, `designs/` (validated GEMINI brine-chain JSON per candidate), `cache/` (gitignored).
+  Design space: n 1–3, flow cap 50–300, ESP s1.0/s1.8, UA 250/500/1000 kW/K, depth 2500–4000 m
+  in 250 m steps; budget 14; `--clear-cache` for honest timings (~0.9 s per annual evaluation).
+  claude_cli backend: bundled VS Code `claude.exe` if not on PATH (or $CLAUDE_CLI); `-p --output-format
+  json --tools "" --no-session-persistence`, neutral cwd; outputs in `outputs/agent/claude_cli/`.
 
 ## Prioritized tasks
 1. [done] `projects/doublet_challenge.json` + run script with logged inputs/outputs.
@@ -135,7 +157,7 @@ Cascade per active doublet:
    UA 1000) ACCEPTED; C2 rejected (extra doublet −0.2% emissions); C3 rejected (13.5 GWh external gas).
    Open caveats: backups unlimited (unmet = 0 by construction); peaks are daily averages
    (no hourly peaks); no capex/opex yet.
-6. 1–3 doublet candidates (N independent chains); design agent loop that logs rejected
-   candidates and reasons (must show: rejecting 350 m³/h, 87 °C < 100 °C reasoning,
-   asking for a missing quantity, choosing a valid alternative after a failure).
+6. [done] Design agent (rules backend, depth ladder): 9 annual evaluations, all four judges'
+   tests PASS; final pick n2_q300_s1.8_ua1000_z3250 (2 doublets at 3250 m, 110 °C reservoir):
+   5 376 t CO₂/yr, 79.9% below the conventional reference; 3500 m step rejected (−2.8% < 5%).
 7. Report artifacts: comparison tables, plots, ≤5-page report or ≤10 slides, ≤5 min pitch.

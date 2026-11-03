@@ -1,0 +1,598 @@
+{
+  "backend": "claude_cli",
+  "total_runtime_s": 61.634208200033754,
+  "status": "selected",
+  "timing": {
+    "evaluations": 5,
+    "computed": 0,
+    "cached": 5,
+    "wall_s_per_computed_evaluation_mean": null,
+    "wall_s_per_computed_evaluation_max": null,
+    "scenario_runtime_s": 61.61364490003325,
+    "backend_calls": 6,
+    "backend_wall_s": 60.818698399933055
+  },
+  "pick": {
+    "n_doublets": 2,
+    "flow_cap_m3h": 300,
+    "esp": "s1.8",
+    "hex_ua_W_K": 1000000.0,
+    "depth_m": 3250
+  },
+  "pick_summary": {
+    "external_gas_fuel_GWh": 0.004941023474088839,
+    "emissions_t": 5376.445753280504,
+    "grid_import_GWh": 2.5781082142271114,
+    "drilled_m": 13000,
+    "reservoir_temperature_C": 109.5
+  },
+  "evaluated": [
+    {
+      "candidate": {
+        "n_doublets": 2,
+        "flow_cap_m3h": 300,
+        "esp": "s1.8",
+        "hex_ua_W_K": 1000000.0,
+        "depth_m": 2500
+      },
+      "feasible": true,
+      "verdict": {
+        "status": "REJECTED",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500; deeper 2500 -> 2750 m: emissions +18.5% (needs >= 5%), marginal abatement 1.669 t CO2/yr per extra metre drilled",
+        "rank": 4
+      }
+    },
+    {
+      "candidate": {
+        "n_doublets": 2,
+        "flow_cap_m3h": 300,
+        "esp": "s1.8",
+        "hex_ua_W_K": 1000000.0,
+        "depth_m": 2750
+      },
+      "feasible": true,
+      "verdict": {
+        "status": "REJECTED",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750; deeper 2750 -> 3000 m: emissions +16.0% (needs >= 5%), marginal abatement 1.178 t CO2/yr per extra metre drilled",
+        "rank": 3
+      }
+    },
+    {
+      "candidate": {
+        "n_doublets": 2,
+        "flow_cap_m3h": 300,
+        "esp": "s1.8",
+        "hex_ua_W_K": 1000000.0,
+        "depth_m": 3000
+      },
+      "feasible": true,
+      "verdict": {
+        "status": "REJECTED",
+        "reason": "superseded by n2_q300_s1.8_ua1000_z3250: ranks better than n2_q300_s1.8_ua1000_z3000; deeper 3000 -> 3250 m: emissions +12.8% (needs >= 5%), marginal abatement 0.788 t CO2/yr per extra metre drilled",
+        "rank": 2
+      }
+    },
+    {
+      "candidate": {
+        "n_doublets": 2,
+        "flow_cap_m3h": 300,
+        "esp": "s1.8",
+        "hex_ua_W_K": 1000000.0,
+        "depth_m": 3250
+      },
+      "feasible": true,
+      "verdict": {
+        "status": "ACCEPTED",
+        "reason": "selected: feasible; external gas 0.0049 GWh, emissions 5376 t, grid import 2.58 GWh, 2 doublets, 13000 m drilled",
+        "rank": 1
+      }
+    },
+    {
+      "candidate": {
+        "n_doublets": 2,
+        "flow_cap_m3h": 300,
+        "esp": "s1.8",
+        "hex_ua_W_K": 1000000.0,
+        "depth_m": 3500
+      },
+      "feasible": true,
+      "verdict": {
+        "status": "REJECTED",
+        "reason": "parsimony rule not met: ranks not better than n2_q300_s1.8_ua1000_z3250; deeper 3250 -> 3500 m: emissions +2.8% (needs >= 5%), marginal abatement 0.150 t CO2/yr per extra metre drilled",
+        "rank": 5
+      }
+    }
+  ],
+  "judges_tests": [
+    {
+      "test": "(i) missing physical quantity -> stop and ask",
+      "pass": true,
+      "evidence": "step 4: I cannot size the plant without: heating return temperature. 'heating return temperature' is needed because it sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift. It is not in the organizers' inputs and I will not invent it. Please provide a value (previously approved: 60 C)."
+    },
+    {
+      "test": "(ii) >= 350 m3/h per doublet -> rejected with reason, revised",
+      "pass": false,
+      "evidence": "not triggered"
+    },
+    {
+      "test": "(iii) 87 C reservoir vs 100 C supply -> shortfall stated, deeper well vs surface upgrade decided",
+      "pass": true,
+      "evidence": "step 8 (assessment); candidates evaluated at reservoir temperatures [87.0, 94.5, 102.0, 109.5, 117.0] C; step 39 (decision)"
+    },
+    {
+      "test": "(iv) recovery after a failed / ranked-out candidate",
+      "pass": false,
+      "evidence": "not triggered"
+    }
+  ],
+  "backend_calls": [
+    {
+      "purpose": "propose",
+      "wall_s": 7.8422216000035405,
+      "returncode": 0,
+      "prompt_chars": 2839,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 10557,
+        "cache_read_input_tokens": 649,
+        "output_tokens": 556,
+        "output_tokens_details": {
+          "thinking_tokens": 175
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 10557,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 556,
+            "cache_read_input_tokens": 649,
+            "cache_creation_input_tokens": 10557,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 10557
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0.0959802,
+      "duration_ms": 6173,
+      "model_usage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 2549,
+          "outputTokens": 23,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0002664,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 556,
+          "cacheReadInputTokens": 649,
+          "cacheCreationInputTokens": 10557,
+          "webSearchRequests": 0,
+          "costUSD": 0.0957138,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 175,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 10557,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "is_error": false,
+      "reply": "{\"done\": false, \"candidate\": {\"n_doublets\": 2, \"flow_cap_m3h\": 300, \"esp\": \"s1.8\", \"hex_ua_W_K\": 1000000.0, \"depth_m\": 2500}, \"rationale\": \"No incumbent yet, so this run sets the baseline at the official 2500 m depth, which is the reference for the 5% deeper-well rule. Thermal capacity check: one doublet at 300 m\u00b3/h and 40 K delivers about 14.1 MW (300/3600 \u00d7 1030 \u00d7 4100 \u00d7 40). Two doublets give about 28 MW against the 30 MW heating peak plus the absorption drive, so two is the plausible minimum. ESP s1.8 is the only pump that reaches 300 m\u00b3/h (s1.0 tops out near 176 m\u00b3/h). UA 1000 kW/K gives the most HEX preheat and the least heat-pump lift. The 87 \u00b0C reservoir is 13 K short of the 100 \u00b0C supply. Next runs should test 1 doublet, for parsimony, and 3000 m depth (about 102 \u00b0C), since that is the depth step most likely to change the ranking.\"}"
+    },
+    {
+      "purpose": "propose",
+      "wall_s": 8.567557099973783,
+      "returncode": 0,
+      "prompt_chars": 3564,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 9490,
+        "cache_read_input_tokens": 2120,
+        "output_tokens": 659,
+        "output_tokens_details": {
+          "thinking_tokens": 241
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 9490,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 659,
+            "cache_read_input_tokens": 2120,
+            "cache_creation_input_tokens": 9490,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 9490
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0.0898373,
+      "duration_ms": 7284,
+      "model_usage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 2953,
+          "outputTokens": 20,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.00030530000000000005,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 659,
+          "cacheReadInputTokens": 2120,
+          "cacheCreationInputTokens": 9490,
+          "webSearchRequests": 0,
+          "costUSD": 0.089532,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 241,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 9490,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "is_error": false,
+      "reply": "{\"done\": false, \"candidate\": {\"n_doublets\": 2, \"flow_cap_m3h\": 300, \"esp\": \"s1.8\", \"hex_ua_W_K\": 1000000.0, \"depth_m\": 2750}, \"rationale\": \"External gas is already essentially zero (0.0043 GWh), so emissions decide the ranking. Most of those emissions come from grid electricity for the heat pump, because the 87 \u00b0C reservoir is 13 K short of the 100 \u00b0C supply. Going deeper raises reservoir temperature by 7.5 K per 250 m step (2750 m gives 94.5 \u00b0C). That cuts heat-pump lift and grid import, which makes depth the lever most likely to change the pick. The depth-acceptance rule compares each depth with the previous accepted one, so I step one rung at a time: 2750 m, keeping the incumbent's n=2, 300 m3/h cap, s1.8 and UA 1000 kW/K so depth is the only change. Adding a third doublet or a bigger HEX is less promising: with gas already at zero, those changes are unlikely to reach the 5% emissions gain needed to be kept. Open flag: 300 m3/h gives 4.7 m/s tubing velocity, which applies at every depth.\"}"
+    },
+    {
+      "purpose": "propose",
+      "wall_s": 6.3443450999911875,
+      "returncode": 0,
+      "prompt_chars": 4349,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 9919,
+        "cache_read_input_tokens": 2120,
+        "output_tokens": 363,
+        "output_tokens_details": {
+          "thinking_tokens": 47
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 9919,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 363,
+            "cache_read_input_tokens": 2120,
+            "cache_creation_input_tokens": 9919,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 9919
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0.0873923,
+      "duration_ms": 4519,
+      "model_usage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 3383,
+          "outputTokens": 20,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.00034830000000000006,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 363,
+          "cacheReadInputTokens": 2120,
+          "cacheCreationInputTokens": 9919,
+          "webSearchRequests": 0,
+          "costUSD": 0.08704400000000001,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 47,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 9919,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "is_error": false,
+      "reply": "{\"done\": false, \"candidate\": {\"n_doublets\": 2, \"flow_cap_m3h\": 300, \"esp\": \"s1.8\", \"hex_ua_W_K\": 1000000.0, \"depth_m\": 3000}, \"rationale\": \"Going from 2500 to 2750 m cut emissions by 18.5% (9011 -> 7342 t) and grid import by 34%, far above the 5% depth threshold, and T_res is still 94.5 C, below 100 C. 3000 m (T_res 102 C, above the 2933 m depth where T_res reaches 100 C) should shrink the heat-pump lift sharply again, so it is the candidate most likely to change the pick. I keep the incumbent's n, flow, ESP and UA so the depth effect is isolated. External gas is already ~0 (a tie), so emissions decide; fewer-doublet or lower-UA variants come after the depth trend is settled. Budget 12 is ample.\"}"
+    },
+    {
+      "purpose": "propose",
+      "wall_s": 11.291641899966635,
+      "returncode": 0,
+      "prompt_chars": 5259,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 10407,
+        "cache_read_input_tokens": 2120,
+        "output_tokens": 846,
+        "output_tokens_details": {
+          "thinking_tokens": 295
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 10407,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 846,
+            "cache_read_input_tokens": 2120,
+            "cache_creation_input_tokens": 10407,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 10407
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0.101005,
+      "duration_ms": 10036,
+      "model_usage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 3870,
+          "outputTokens": 20,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.00039700000000000005,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 846,
+          "cacheReadInputTokens": 2120,
+          "cacheCreationInputTokens": 10407,
+          "webSearchRequests": 0,
+          "costUSD": 0.100608,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 295,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 10407,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "is_error": false,
+      "reply": "{\"done\": false, \"candidate\": {\"n_doublets\": 2, \"flow_cap_m3h\": 300, \"esp\": \"s1.8\", \"hex_ua_W_K\": 1000000.0, \"depth_m\": 3250}, \"rationale\": \"Going deeper has improved emissions by 18.5% (2500 to 2750 m) and then 16.0% (2750 to 3000 m), both well above the 5% threshold. External gas is already about zero (ties within 0.01 GWh), so emissions now decide the ranking. At 3000 m the remaining 5.12 GWh of grid import (about 1 540 t CO2) comes mostly from the heat pump making up the lift to 100 C. At 3250 m the reservoir is 109.5 C, above the 107.4 C needed for direct HEX supply (the threshold depth is 3180 m). That should remove most of the heat-pump electricity and leave mainly pump power. The likely emissions saving is about 1 000 t (roughly 15-20%), so this is the candidate most likely to change the pick. The produced-gas CO2 floor of about 4 600 t is emitted whatever the depth, so the steps after this one should give diminishing returns. Doublet count, ESP and UA stay at the incumbent's values: a third doublet previously gave only about -0.2% emissions, and the s1.0 ESP cannot deliver 300 m3/h. Caveats: the wellhead temperature will rise further above the PVTConstantSTP range (100 C max), so brine properties are extrapolated. The 4.7 m/s tubing-velocity flag also remains; a lower flow cap should be considered later if it becomes binding.\"}"
+    },
+    {
+      "purpose": "propose",
+      "wall_s": 11.958796799997799,
+      "returncode": 0,
+      "prompt_chars": 6169,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 10895,
+        "cache_read_input_tokens": 2120,
+        "output_tokens": 791,
+        "output_tokens_details": {
+          "thinking_tokens": 374
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 10895,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 791,
+            "cache_read_input_tokens": 2120,
+            "cache_creation_input_tokens": 10895,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 10895
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0.1038577,
+      "duration_ms": 10643,
+      "model_usage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 4357,
+          "outputTokens": 20,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.00044570000000000005,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 791,
+          "cacheReadInputTokens": 2120,
+          "cacheCreationInputTokens": 10895,
+          "webSearchRequests": 0,
+          "costUSD": 0.103412,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 374,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 10895,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "is_error": false,
+      "reply": "{\"done\": false, \"candidate\": {\"n_doublets\": 2, \"flow_cap_m3h\": 300, \"esp\": \"s1.8\", \"hex_ua_W_K\": 1000000.0, \"depth_m\": 3500}, \"rationale\": \"The depth ladder is still paying off: each 250 m step has cut emissions by more than the 5% threshold (18.5%, 16.0%, then 12.8% for 3000->3250 m). The gains are shrinking, because 3250 m (109.5 C) already passes the ~3180 m depth where the HEX alone can supply 100 C. The remaining improvement mostly comes from cutting heat-pump and electric-chiller electricity (2.58 GWh grid import, about 774 t at 0.3 kg/kWh, which is about 14% of 5376 t). Produced-gas CO2 is emitted whatever the design. So 3500 m (117 C) could still clear the 5% bar, mainly through more heat for the absorption chiller and less heat-pump duty, and it is the candidate most likely to change the pick. One doublet would raise external gas against the 30 MW peak, and changing UA or ESP is unlikely to beat depth. If 3500 m falls short of 5%, stop and keep 3250 m.\"}"
+    },
+    {
+      "purpose": "propose",
+      "wall_s": 14.81413590000011,
+      "returncode": 0,
+      "prompt_chars": 7329,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 11982,
+        "cache_read_input_tokens": 2120,
+        "output_tokens": 1253,
+        "output_tokens_details": {
+          "thinking_tokens": 672
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 11982,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 1253,
+            "cache_read_input_tokens": 2120,
+            "cache_creation_input_tokens": 11982,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 11982
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0.1218556,
+      "duration_ms": 13479,
+      "model_usage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 4966,
+          "outputTokens": 22,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0005076000000000001,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 1253,
+          "cacheReadInputTokens": 2120,
+          "cacheCreationInputTokens": 11982,
+          "webSearchRequests": 0,
+          "costUSD": 0.121348,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 672,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 11982,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "is_error": false,
+      "reply": "```json\n{\"done\": true, \"candidate\": {\"n_doublets\": 2, \"flow_cap_m3h\": 300, \"esp\": \"s1.8\", \"hex_ua_W_K\": 1000000.0, \"depth_m\": 3250}, \"rationale\": \"Stop and keep the incumbent n2_q300_s1.8_ua1000_z3250. The depth ladder is finished: 3250 m was the last step to clear the 5% rule, and 3500 m gained only 2.8% while adding cavitation and drive-limit flags. No other move is likely to beat the incumbent under the parsimony rules. (1) Adding a third doublet at 3250 m is unlikely to cut emissions by 5% or more. External gas is already about 0.005 GWh, which counts as zero. Most of the 5376 t is produced-gas CO2, which grows with total brine volume, and the remaining grid import (2.58 GWh, about 774 t) leaves little to save. At 2500 m the extra doublet gained only 0.2%. (2) One doublet cannot cover the 30 MW peak: about 14 MW at 300 m3/h and 40 K, so it would need large amounts of external gas. (3) Changing UA (250 or 500 kW/K) or the ESP size is not a ranking metric; at best it ties and loses on nothing, so it cannot change the pick. (4) Lowering the flow cap only limits the dispatch, which already picks the daily flow on a 5 m3/h grid, so emissions would stay the same or rise. The remaining 9 evaluations would not change the ranking. A caveat for the report: the tubing velocity of 4.7 m/s at 300 m3/h and the PVT extrapolation above 100 C both apply to the selected design.\"}\n```"
+    }
+  ]
+}

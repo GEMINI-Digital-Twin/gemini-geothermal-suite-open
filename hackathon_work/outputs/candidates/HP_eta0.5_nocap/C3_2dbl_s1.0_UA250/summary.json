@@ -16,6 +16,11 @@
     "no_stages": 10
   },
   "esp_max_flow_m3h": 176.0,
+  "flow_cap_m3h": 300,
+  "depth_m": 2500,
+  "reservoir_temperature_C": 87.0,
+  "reservoir_pressure_bar": 250.0,
+  "drilled_m": 10000,
   "maintenance_windows": [
     "2027-05-05..2027-06-08",
     "2027-08-25..2027-09-28"
@@ -64,6 +69,7 @@
   "flow_max_m3h": 176.0000002329582,
   "doublet_days_active": 660,
   "days_geothermal_meets_need": 123,
+  "days_hex_bypass": 0,
   "hp_seasonal_COP": 6.487167762716915,
   "hp_days": 365,
   "hp_days_capped": 0,
@@ -107,12 +113,12 @@
   ],
   "feasible": true,
   "case": "HP_eta0.5_nocap",
-  "run_utc": "2026-11-02T23:45:09.872470+00:00",
-  "git_commit": "d86e8bbcd128f1217eefa19d34c6b117039df74d",
-  "runtime_s": 1.2333757877349854,
+  "run_utc": "2026-11-03T00:21:33.598977+00:00",
+  "git_commit": "713e9e3e495b3210a7bd0d1b89b1800699160084",
+  "runtime_s": 1.4159436225891113,
   "ranking": {
     "status": "REJECTED",
-    "reason": "same doublet count as C1_2dbl_s1.8_UA1000 but ranks lower: external gas 14.1894 vs 0.0039 GWh, emissions 10047 vs 8655 t, grid import 10.35 vs 11.10 GWh",
+    "reason": "same doublet count and depth as C1_2dbl_s1.8_UA1000 but ranks lower on external_gas_fuel_GWh: external gas 14.1894 vs 0.0039 GWh, emissions 10047 vs 8655 t, grid import 10.35 vs 11.10 GWh, drilled 10000 vs 10000 m",
     "rank": 3
   }
 }

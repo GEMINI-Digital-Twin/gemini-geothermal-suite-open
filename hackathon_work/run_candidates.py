@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import copy
 import csv
+import functools
 import json
 import subprocess
 import time
@@ -65,6 +66,11 @@ def annual_summary(candidate: dict, plant: Plant, result: dict) -> dict:
         "heat_pump": plant.hp,
         "esp": plant.settings["esp_options"][candidate["esp"]],
         "esp_max_flow_m3h": plant.max_flow_m3h,
+        "flow_cap_m3h": plant.flow_cap_m3h,
+        "depth_m": plant.depth_m,
+        "reservoir_temperature_C": plant.reservoir_temperature_c,
+        "reservoir_pressure_bar": plant.reservoir_pressure_bar,
+        "drilled_m": 2 * candidate["n_doublets"] * plant.depth_m,  # producer + injector per doublet, vertical
         "maintenance_windows": [f"{s[0]}..{s[-1]}" for s in result["schedule"]],
         "heating_demand_GWh": heat_demand,
         "heat_hex_GWh": gwh("heat_hex_MW"),
@@ -110,6 +116,7 @@ def annual_summary(candidate: dict, plant: Plant, result: dict) -> dict:
         "flow_max_m3h": max(r["flow_per_doublet_m3h"] for r in on),
         "doublet_days_active": sum(r["n_active"] for r in rows),
         "days_geothermal_meets_need": sum(r["geothermal_meets_need"] for r in rows),
+        "days_hex_bypass": sum(r["hex_bypass"] for r in rows),
         "hp_seasonal_COP": gwh("heat_hp_MW") / gwh("el_hp_MW") if gwh("el_hp_MW") else None,
         "hp_days": sum(1 for r in rows if r["hp_COP"] is not None),
         "hp_days_capped": sum(1 for r in rows if r["hp_COP_capped"]),
@@ -122,16 +129,53 @@ def annual_summary(candidate: dict, plant: Plant, result: dict) -> dict:
     }
 
 
-def rank(summaries: list[dict], min_improvement: float) -> dict:
+# Lexicographic ranking metrics with tie tolerances (absolute, relative): differences
+# within max(abs, rel * value) are numerical noise (e.g. the 0.05 K dispatch
+# tolerance leaves ~0.004 GWh of external gas), so the next metric decides.
+RANK_TIE_TOLERANCE = [
+    ("external_gas_fuel_GWh", 0.01, 0.01),
+    ("emissions_t", 10.0, 0.01),
+    ("grid_import_GWh", 0.01, 0.01),
+    ("n_doublets", 0.0, 0.0),
+    ("drilled_m", 0.0, 0.0),
+]
+
+
+def _rank_value(s: dict, metric: str) -> float:
+    return s["candidate"]["n_doublets"] if metric == "n_doublets" else s[metric]
+
+
+def deciding_metric(a: dict, b: dict) -> str | None:
+    """First ranking metric on which ``a`` and ``b`` differ beyond its tie tolerance."""
+    for metric, abs_tol, rel_tol in RANK_TIE_TOLERANCE:
+        va, vb = _rank_value(a, metric), _rank_value(b, metric)
+        if abs(va - vb) > max(abs_tol, rel_tol * max(abs(va), abs(vb))):
+            return metric
+    return None
+
+
+def compare_ranked(a: dict, b: dict) -> int:
+    """-1 if ``a`` ranks better than ``b``, 1 if worse, 0 if tied on every metric."""
+    metric = deciding_metric(a, b)
+    if metric is None:
+        return 0
+    return -1 if _rank_value(a, metric) < _rank_value(b, metric) else 1
+
+
+def rank(summaries: list[dict], min_improvement: float, depth_min_improvement: float | None = None) -> dict:
     """CLAUDE.md ranking rule. Returns {name: {"status", "reason", "rank"}}.
 
     Hard constraints pass/fail; then minimize external gas -> emissions -> net
-    grid electricity -> number of doublets. A candidate with more doublets
-    replaces the incumbent only if it ranks better AND improves external gas or
-    emissions by >= ``min_improvement``.
+    grid electricity -> number of doublets -> total drilled metres, where values
+    within RANK_TIE_TOLERANCE count as equal. Parsimony: candidates are walked
+    in order of (doublets, depth); a candidate with more doublets replaces the
+    incumbent only if it ranks better AND improves external gas or emissions by
+    >= ``min_improvement``; a deeper one only if it ranks better AND improves
+    emissions by >= ``depth_min_improvement`` versus the accepted depth.
     """
+    depth_min_improvement = min_improvement if depth_min_improvement is None else depth_min_improvement
     def key(s):
-        return (s["external_gas_fuel_GWh"], s["emissions_t"], s["grid_import_GWh"], s["candidate"]["n_doublets"])
+        return functools.cmp_to_key(compare_ranked)(s)
 
     def name(s):
         return s["candidate"]["name"]
@@ -145,38 +189,55 @@ def rank(summaries: list[dict], min_improvement: float) -> dict:
         if not s["feasible"]:
             verdicts[name(s)] = {"status": "REJECTED", "reason": f"fails hard constraints: {', '.join(s['failing_checks']) or 'annual checks'}"}
 
-    best_per_n = {}
+    def level(s):
+        return (s["candidate"]["n_doublets"], s.get("depth_m", 2500))
+
+    best_per_level = {}
     for s in sorted(feasible, key=key):
-        n = s["candidate"]["n_doublets"]
-        if n not in best_per_n:
-            best_per_n[n] = s
+        if level(s) not in best_per_level:
+            best_per_level[level(s)] = s
             continue
-        b = best_per_n[n]
+        b = best_per_level[level(s)]
+        decided = deciding_metric(s, b)
+        tied = [m for m, _, _ in RANK_TIE_TOLERANCE[: [m for m, _, _ in RANK_TIE_TOLERANCE].index(decided)]] if decided else []
         verdicts[name(s)] = {"status": "REJECTED", "reason": (
-            f"same doublet count as {name(b)} but ranks lower: external gas {s['external_gas_fuel_GWh']:.4f} vs "
+            f"same doublet count and depth as {name(b)} but ranks lower on {decided or 'no metric (full tie)'}"
+            + (f" (tied within tolerance on {', '.join(tied)})" if tied else "") + f": external gas {s['external_gas_fuel_GWh']:.4f} vs "
             f"{b['external_gas_fuel_GWh']:.4f} GWh, emissions {s['emissions_t']:.0f} vs {b['emissions_t']:.0f} t, "
-            f"grid import {s['grid_import_GWh']:.2f} vs {b['grid_import_GWh']:.2f} GWh")}
+            f"grid import {s['grid_import_GWh']:.2f} vs {b['grid_import_GWh']:.2f} GWh, "
+            f"drilled {s['drilled_m']:.0f} vs {b['drilled_m']:.0f} m")}
 
     incumbent = None
-    for n in sorted(best_per_n):
-        s = best_per_n[n]
+    for lvl in sorted(best_per_level):
+        s = best_per_level[lvl]
         if incumbent is None:
             incumbent = s
             continue
         gas_gain = improvement(incumbent["external_gas_fuel_GWh"], s["external_gas_fuel_GWh"])
         em_gain = improvement(incumbent["emissions_t"], s["emissions_t"])
-        detail = (f"vs {name(incumbent)}: external gas {gas_gain * 100:+.1f}%, emissions {em_gain * 100:+.1f}% "
-                  f"(extra doublet needs >= {min_improvement * 100:.0f}% on either)")
-        if key(s) < key(incumbent) and max(gas_gain, em_gain) >= min_improvement:
-            verdicts[name(incumbent)] = {"status": "REJECTED", "reason": f"superseded by {name(s)}; {detail}"}
+        better = compare_ranked(s, incumbent) < 0
+        tests, details = [better], [f"ranks {'better' if better else 'not better'} than {name(incumbent)}"]
+        if level(s)[0] > level(incumbent)[0]:
+            tests.append(max(gas_gain, em_gain) >= min_improvement)
+            details.append(f"extra doublet: external gas {gas_gain * 100:+.1f}%, emissions {em_gain * 100:+.1f}% "
+                           f"(needs >= {min_improvement * 100:.0f}% on either)")
+        if level(s)[1] > level(incumbent)[1]:
+            extra_m = s["drilled_m"] - incumbent["drilled_m"]
+            abatement = (incumbent["emissions_t"] - s["emissions_t"]) / extra_m if extra_m else float("nan")
+            tests.append(em_gain >= depth_min_improvement)
+            details.append(f"deeper {level(incumbent)[1]:g} -> {level(s)[1]:g} m: emissions {em_gain * 100:+.1f}% "
+                           f"(needs >= {depth_min_improvement * 100:.0f}%), marginal abatement {abatement:.3f} t CO2/yr per extra metre drilled")
+        detail = "; ".join(details)
+        if all(tests):
+            verdicts[name(incumbent)] = {"status": "REJECTED", "reason": f"superseded by {name(s)}: {detail}"}
             incumbent = s
         else:
-            verdicts[name(s)] = {"status": "REJECTED", "reason": f"extra doublet not justified {detail}"}
+            verdicts[name(s)] = {"status": "REJECTED", "reason": f"parsimony rule not met: {detail}"}
     if incumbent is not None:
         verdicts[name(incumbent)] = {"status": "ACCEPTED", "reason": (
             f"selected: feasible; external gas {incumbent['external_gas_fuel_GWh']:.4f} GWh, emissions "
             f"{incumbent['emissions_t']:.0f} t, grid import {incumbent['grid_import_GWh']:.2f} GWh, "
-            f"{incumbent['candidate']['n_doublets']} doublets")}
+            f"{incumbent['candidate']['n_doublets']} doublets, {incumbent['drilled_m']:.0f} m drilled")}
 
     # Final rank follows the verdict: selected first, then the rest by the lexicographic key.
     order = sorted(summaries, key=lambda s: (verdicts[name(s)]["status"] != "ACCEPTED", not s["feasible"], key(s)))
@@ -271,7 +332,8 @@ def run_case(case_name: str, settings: dict, heating: dict, cooling: dict, commi
         print(f"[{case_name}] {candidate['name']}: {summary['runtime_s']:.0f} s; "
               f"HeatpumpBasic agrees on {summary['hp_days_heatpumpbasic_agrees']}/{summary['hp_days_heatpumpbasic_checked']} uncapped HP days")
 
-    verdicts = rank([s for s, _ in summaries], settings["ranking"]["extra_doublet_min_improvement"])
+    verdicts = rank([s for s, _ in summaries], settings["ranking"]["extra_doublet_min_improvement"],
+                    settings["ranking"]["depth_step_min_improvement"])
     for summary, cand_folder in summaries:
         summary["ranking"] = verdicts[summary["candidate"]["name"]]
         (cand_folder / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")

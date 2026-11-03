@@ -12,6 +12,8 @@
     "chp": "Produced gas goes to the GEMINI CHP model first (efficiency 0.8 from doublet_challenge.json, fixed 1/3 electric, 2/3 heat); its heat feeds the 100 C top-up stage, so the heat pump only covers the lift CHP heat cannot. Remaining produced gas -> boiler; flared only if its heat cannot be used.",
     "electricity_export_credit": "ASSUMED none: CHP electricity offsets plant load; any export earns no emission credit.",
     "ranking.extra_doublet_min_improvement": "User decision: an extra doublet is accepted only if it improves external gas or emissions by >= 5%.",
+    "ranking.depth_step_m / depth_step_min_improvement": "User decision: depth explored in 250 m steps from 2500 m; a deeper step is accepted only if emissions improve by >= 5% vs the previous accepted depth.",
+    "ranking.max_depth_m": "ASSUMED 4000 m upper bound on extrapolating the official 2500 m reservoir data (gradient T, hydrostatic P).",
     "electric_chiller_cop": "ASSUMED 5.0 (user decision 3).",
     "cooling_supply_return_C": "20 C OFFICIAL supply / 26 C ASSUMED return; the energy balance uses the MW demand directly.",
     "external_gas.emission_factor_kg_per_GJ": "ASSUMED 56.6 kg CO2/GJ pipeline natural gas (GEMINI example value).",
@@ -30,7 +32,7 @@
   "absorption_chiller": {"cop_th": 0.7, "min_drive_inlet_C": 75.0, "min_drive_outlet_C": 70.0},
   "electric_chiller_cop": 5.0,
   "electricity_export_credit": false,
-  "ranking": {"extra_doublet_min_improvement": 0.05},
+  "ranking": {"extra_doublet_min_improvement": 0.05, "depth_step_m": 250, "depth_step_min_improvement": 0.05, "max_depth_m": 4000},
   "sensitivities": [
     {"name": "HP_eta0.5_nocap", "heat_pump": {"eta_lorenz": 0.5, "cop_cap": null}}
   ],

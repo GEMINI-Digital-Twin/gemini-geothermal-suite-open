@@ -16,6 +16,11 @@
     "no_stages": 24
   },
   "esp_max_flow_m3h": 300,
+  "flow_cap_m3h": 300,
+  "depth_m": 2500,
+  "reservoir_temperature_C": 87.0,
+  "reservoir_pressure_bar": 250.0,
+  "drilled_m": 15000,
   "maintenance_windows": [
     "2027-05-05..2027-06-08",
     "2027-07-21..2027-08-24",
@@ -65,6 +70,7 @@
   "flow_max_m3h": 299.999999999758,
   "doublet_days_active": 653,
   "days_geothermal_meets_need": 347,
+  "days_hex_bypass": 0,
   "hp_seasonal_COP": 5.550131696993868,
   "hp_days": 344,
   "hp_days_capped": 0,
@@ -116,12 +122,12 @@
   ],
   "feasible": true,
   "case": "HP_eta0.5_nocap",
-  "run_utc": "2026-11-02T23:45:08.407908+00:00",
-  "git_commit": "d86e8bbcd128f1217eefa19d34c6b117039df74d",
-  "runtime_s": 1.3444726467132568,
+  "run_utc": "2026-11-03T00:21:31.932554+00:00",
+  "git_commit": "713e9e3e495b3210a7bd0d1b89b1800699160084",
+  "runtime_s": 1.5330557823181152,
   "ranking": {
     "status": "REJECTED",
-    "reason": "extra doublet not justified vs C1_2dbl_s1.8_UA1000: external gas +0.0%, emissions -0.2% (extra doublet needs >= 5% on either)",
+    "reason": "parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000; extra doublet: external gas +0.0%, emissions -0.2% (needs >= 5% on either)",
     "rank": 2
   }
 }
