@@ -577,7 +577,9 @@ unit, the right reading for the absolute quantities a state holds.
 
 **7.44 Text and map leaves** (rule: P6). A label is a leaf with a text value (`currency`,
 `gwp.standard`: `{"value": "EUR"}`), a composition (`site.fluid.dissolved_gas`,
-`utilities.gas.composition`) a map of dimensionless leaves per species that adds up to 1, and
+`utilities.gas.composition`) a map of dimensionless leaves per species that adds up to 1 (each a
+number, `{"value": 0.2}`, or a value with a unit of a fraction, `{"value": 20, "unit": "mol%"}` or
+`{"value": 0.2, "unit": "-"}`, written back as given), and
 `opex.fixed` a map of leaves per equipment kind; each is stored as a dict in SI. Bounds that were
 strict (`> 0`) are inclusive (`>= 0`) because the shared reader checks `min` and `max`. A price
 series in a stand-alone `Economics` needs `time=`; the case passes its own.

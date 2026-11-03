@@ -7,6 +7,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+- The unit `mol%` (`gm.units.Unit.MOL_PERCENT`, 0.01), a unit of every dimensionless quantity like
+  `ppm`. The mole fractions of a composition take a unit of a fraction: `site.fluid.dissolved_gas`
+  and `utilities.gas.composition` of a case accept `{"value": 20, "unit": "mol%"}` and
+  `{"value": 0.2, "unit": "-"}` (the case schema lists the units, the unit is optional), and the
+  `gas_composition` and `grid_composition` of `gm.Fluid` a `Quantity` or its dict per species. A
+  value without a unit keeps meaning a fraction, as before.
+
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.

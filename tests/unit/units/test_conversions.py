@@ -265,3 +265,11 @@ def test_a_millisecond_is_a_time_unit():
     assert units.Quantity(90_000, "ms").to("min").value == pytest.approx(1.5)
     assert units.Quantity(1, "d").to("ms").value == pytest.approx(86_400_000)
     assert "ms" in {unit.value for unit in units.Unit}
+
+
+def test_a_mole_percent_is_a_dimensionless_unit_of_a_hundredth():
+    """``mol%`` converts any ``-`` quantity, so 20 mol% is 0.2 without converting by hand."""
+    assert units.Unit.MOL_PERCENT == "mol%"
+    assert units.convert(20, "mol%", "-") == pytest.approx(0.2)
+    assert units.Quantity(20, units.Unit.MOL_PERCENT).si == pytest.approx(0.2)
+    assert "mol%" in units.names("fraction") and units.fits("mol%", "fraction")

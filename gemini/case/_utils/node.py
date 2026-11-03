@@ -34,7 +34,8 @@ class Field:
     the leaf may be a CSV column, ``bounds`` is the valid range in SI, ``required`` that the leaf
     must be present, ``text`` that its value is a free label, ``integer`` that it is a whole
     number, and ``keys`` that the field is a map ``{key: leaf}`` whose values add up to ``total``
-    when that is set.
+    when that is set. ``unit_of`` names the quantity of a unit that a dimensionless value may
+    state (``fraction``: ``-``, ``mol%``, ``ppm``); without a unit the number is the value itself.
     """
 
     quantity: str | None = None
@@ -45,6 +46,7 @@ class Field:
     integer: bool = False
     keys: tuple | None = None
     total: float | None = None
+    unit_of: str | None = None
 
 
 @dataclass(frozen=True)
@@ -419,11 +421,14 @@ def _leaf_from(field, data, path, ctx):
         return None
     if field.text:
         return _text_from(data, path, ctx.issues)
+    quantity = field.quantity
+    if field.unit_of is not None and isinstance(data, dict) and "unit" in data:
+        quantity = field.unit_of
     return inputs.from_leaf(
         data,
         path,
         ctx.issues,
-        quantity=field.quantity,
+        quantity=quantity,
         bounds=field.bounds,
         source=ctx.source,
     )
