@@ -12,6 +12,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.5.11] - 2026-11-03
+
+Every public name, default and number is the same as 0.5.10.
+
+### Changed
+- A schedule, the requirements of a verdict and `gm.check` read the roles of a plant once per call
+  instead of once per question: a study takes about 4% less CPU, `examples/hackathon.py` 89 s
+  instead of 92 s, with the same output.
+
 ## [0.5.10] - 2026-11-03
 
 An addition; every name, signature, default and number of 0.5.9 is unchanged.

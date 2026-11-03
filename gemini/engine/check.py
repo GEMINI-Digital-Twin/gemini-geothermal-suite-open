@@ -9,7 +9,7 @@ from gemini.errors import ValidationError
 from gemini.errors.base import Issue, raise_issues
 from gemini.modules.module import Module
 from gemini.plants._utils import form
-from gemini.plants.roles import units_of
+from gemini.plants.roles import remembered, units_of
 
 SUPPLY_ROLES = ("heating_supply", "cooling_supply")
 """The roles a requirement may name that a plant need not have: the case judges any plant (P2).
@@ -87,13 +87,14 @@ def _known_states(plant, case):
 
 def issues_of(applied, case):
     """Return the issues of ``check`` for a plant that already carries the values of ``case``."""
-    return [
-        *_parameters(applied),
-        *_kinds(applied, case),
-        *_roles(applied, case),
-        *_states(applied, case),
-        *_prices(applied, case),
-    ]
+    with remembered():
+        return [
+            *_parameters(applied),
+            *_kinds(applied, case),
+            *_roles(applied, case),
+            *_states(applied, case),
+            *_prices(applied, case),
+        ]
 
 
 def checked(applied, case):

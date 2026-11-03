@@ -14,6 +14,8 @@ names a role and a quantity of it.
 """
 
 from collections import namedtuple
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 from gemini import units
 from gemini._utils.strings import close_matches, did_you_mean, join_names, join_path
@@ -234,9 +236,42 @@ def supply_service(plant, path, module):
     return found.pop() if found else None
 
 
+_KNOWN = ContextVar("known_roles", default=None)
+"""The roles of the plants already read inside ``remembered``: ``{id(plant): (plant, roles)}``."""
+
+
+@contextmanager
+def remembered():
+    """Read the roles of a plant once inside the block, for a call that reads them many times.
+
+    The roles of a unit follow from its class and the wiring, which a call such as a schedule or a
+    verdict does not change; the block ends with the call, so a plant changed later is read again.
+    """
+    token = _KNOWN.set({})
+    try:
+        yield
+    finally:
+        _KNOWN.reset(token)
+
+
+def _all_roles(plant):
+    """Return ``{role: [path, ...]}`` of every module of ``plant``, in the order of the tree."""
+    found = {}
+    for path, module in plant.named_modules():
+        for role in dict.fromkeys(roles_of(plant, path, module)):
+            found.setdefault(role, []).append(path)
+    return found
+
+
 def units_of(plant, role):
     """Return the paths of the modules of ``role`` in ``plant``; the root is the path ``""``."""
-    return [path for path, module in plant.named_modules() if role in roles_of(plant, path, module)]
+    known = _KNOWN.get()
+    if known is None:
+        return list(_all_roles(plant).get(role, ()))
+    entry = known.get(id(plant))
+    if entry is None or entry[0] is not plant:
+        entry = known[id(plant)] = (plant, _all_roles(plant))
+    return list(entry[1].get(role, ()))
 
 
 def delivery_ports(module, role):
