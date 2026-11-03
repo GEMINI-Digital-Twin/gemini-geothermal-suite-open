@@ -12,6 +12,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.5.14] - 2026-11-03
+
+Every public name, default and number is the same as 0.5.13; a speed exception to the freeze,
+approved by the owner.
+
+### Changed
+- `gm.Study.run` runs its plants (and cases) in worker processes at once when
+  `gm.runtime.settings(processes=n)` gives more than one, instead of one after the other; the
+  result is the same, in the same order. `examples/hackathon.py` (six plants, 8 processes) takes
+  62 s instead of 89 s with the same output. A study of one plant is unchanged.
+
 ## [0.5.13] - 2026-11-03
 
 The last feature release: from this version gemini is frozen and takes bug fixes only, each as a

@@ -4,6 +4,7 @@ import json
 import posixpath
 from pathlib import Path
 
+from gemini import runtime
 from gemini._utils.files import to_json
 from gemini.case import Case
 from gemini.engine.check import check
@@ -12,6 +13,7 @@ from gemini.errors.base import Issue, raise_issues
 from gemini.evaluate import compare
 from gemini.plants import Plant
 from gemini.study._utils.execute import executed, trials
+from gemini.study._utils.parallel import mapped
 from gemini.study._utils.progress import counting
 from gemini.study._utils.trial import checked_metric
 from gemini.study.result import Run, StudyResult
@@ -363,14 +365,24 @@ class Study:
         named = {case.name: case for case in cases.values()}
         pairs = [(name, plant, case) for case in named.values() for name, plant in given.items()]
         planned = [] if on_progress is None else [trials(self, p, c) for _, p, c in pairs]
-        runs, reached = [], 0
         with counting(on_progress, sum(planned)) as count:
-            for (name, plant, case), expected in zip(pairs, planned or [0] * len(pairs)):
-                runs.append(self._record(name, plant, case))
-                reached += expected
+            if len(pairs) > 1 and runtime.get_processes() > 1:
+                runs = mapped(_recorded, self, pairs)
                 if count is not None:
-                    count.reach(reached)
+                    count.reach(sum(planned))
+            else:
+                runs = self._in_turn(pairs, planned, count)
         return self._result(runs, named)
+
+    def _in_turn(self, pairs, planned, count):
+        """Return the runs of ``pairs`` one after the other, counting the trials of each."""
+        runs, reached = [], 0
+        for (name, plant, case), expected in zip(pairs, planned or [0] * len(pairs)):
+            runs.append(self._record(name, plant, case))
+            reached += expected
+            if count is not None:
+                count.reach(reached)
+        return runs
 
     def _record(self, name, plant, case):
         """Return the ``Run`` of ``plant`` named ``name`` on ``case``."""
@@ -416,3 +428,8 @@ class Study:
         key = self.objective.removeprefix("-")
         feasible = [(entry["ranks"][key], entry["index"]) for entry in ranked if entry["feasible"]]
         return runs[min(feasible)[1]] if feasible else None
+
+
+def _recorded(study, pair):
+    """Return the ``Run`` of one ``(name, plant, case)`` of ``study``, in a worker process."""
+    return study._record(*pair)

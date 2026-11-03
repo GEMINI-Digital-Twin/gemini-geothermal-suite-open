@@ -192,3 +192,13 @@ def test_the_schema_names_the_keys_the_reader_accepts():
     assert set(schema["properties"]) == {*study.KEYS, "about"}
     assert schema["properties"]["method"]["enum"] == list(study.METHODS)
     assert schema["additionalProperties"] is False
+
+
+def test_the_plants_of_a_study_run_in_worker_processes_as_in_turn(folder):
+    """With ``processes`` > 1 the plants run at once and the result is the one of one process."""
+    study = gm.Study.from_dict(run_settings(), folder=folder)
+    plants = {"one": shallow_plant(), "two": resized(shallow_plant(), 2)}
+    alone = study.run(plants=plants).to_dict()
+    with gm.runtime.settings(processes=2):
+        together = study.run(plants=plants).to_dict()
+    assert json.dumps(together, sort_keys=True) == json.dumps(alone, sort_keys=True)
