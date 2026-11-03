@@ -302,7 +302,12 @@ def trials_of(plant, evaluations):
     """Return the number of trials ``minimize`` runs on ``plant``: the sum over its doublet counts.
 
     A count with variables runs whole populations, as many as the budget allows; one without
-    runs the design once. A search that ends before its budget runs fewer.
+    runs the design once. A search that ends before its budget runs fewer. A population of
+    ``differential_evolution`` is its ``popsize`` times the number of variables.
+
+    NOTE(refactor): before 0.6.2 this left out the number of variables, so with two variables or
+    more ``on_progress`` was told a ``total`` below the trials that ran; the trials and every
+    number of the search are unchanged.
     """
     total = 0
     for count in counts(plant):
@@ -311,7 +316,7 @@ def trials_of(plant, evaluations):
             total += 1
             continue
         population, allowed = _generations(evaluations, len(found))
-        total += population * (allowed + 1)
+        total += population * len(found) * (allowed + 1)
     return total
 
 

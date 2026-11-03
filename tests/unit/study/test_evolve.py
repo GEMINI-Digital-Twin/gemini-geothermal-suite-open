@@ -329,3 +329,117 @@ def test_the_first_generation_is_each_valid_structure_with_the_values_of_the_pla
     assert sorted(sorted(names) for names, _ in ran) == [[], ["x"], ["x", "y"], ["y"]]
     assert all(plant.a.rangeability == 30.0 for _, plant in ran)
     assert all(plant.x.flow == 3.0 for names, plant in ran if "x" in names)
+
+
+def test_a_candidate_that_raises_is_infeasible_with_its_error(evolving, case, monkeypatch):
+    """An error in a run of one structure makes its candidates infeasible; the search goes on."""
+
+    def broken(plant, case, results, name):
+        if "y" in names_of(plant):
+            raise ZeroDivisionError("division by zero in a model")
+        return known_cost(plant, case, results, name)
+
+    monkeypatch.setattr(trial, "metric", broken)
+    found = evolved(case, evaluations=16)
+    failed = [item for item in found["structures"] if item["structure"]["trim"] == "valve"]
+    assert all(item["feasible"] == 0 for item in failed if item["evaluations"])
+    assert any(
+        "ZeroDivisionError" in str(item["best"]["reason"]) for item in failed if item["best"]
+    )
+    assert found["best"]["feasible"] and found["best"]["structure"]["trim"] == "none"
+
+
+def test_genes_of_modules_that_are_off_do_not_make_new_candidates(evolving, case):
+    """With the pump off its flow does not matter: it is no parameter of such a design."""
+    found = evolved(case, evaluations=40, population=8)
+    off = [item for item in found["structures"] if item["best"] and not item["structure"]["x"]]
+    assert off and all("x.flow" not in item["best"]["parameters"] for item in off)
+    simulated = sum(item["evaluations"] for item in found["structures"])
+    assert simulated == found["budget"]["search"]
+
+
+def test_every_valid_structure_starts_with_the_plant_own_values(evolving, case):
+    """The first generation holds each valid structure once, with the plant's values."""
+    found = evolved(case, evaluations=4, population=4)
+    assert found["history"][0]["evaluations"] == 4
+    assert all(item["evaluations"] == 1 for item in found["structures"])
+
+
+def test_refused_structures_are_listed_with_their_reason(evolving, case):
+    """The boiler off leaves the gas grid unconnected: each such structure says so."""
+    found = evolved(case)
+    assert found["rejected"] and all(not item["structure"]["boiler"] for item in found["rejected"])
+    assert all("gas" in item["reasons"][0] for item in found["rejected"])
+    assert len(found["structures"]) + len(found["rejected"]) == 8
+
+
+@pytest.mark.parametrize(
+    "stop",
+    [{}, {"rounds": 3}, {"generations": 0}, {"generations": 1.5}, {"seconds": 0}, {"seconds": "1"}],
+)
+def test_stop_is_checked(evolving, case, stop):
+    """``stop`` holds ``generations`` (a whole number) and/or ``seconds`` (positive), only."""
+    with raises(ValidationError, "invalid_value"):
+        evolved(case, stop=stop)
+
+
+def test_stop_ends_when_the_front_is_still(evolving, case):
+    """With a large budget the search ends once the front has not changed for two generations."""
+    found = evolved(case, evaluations=400, population=4, stop={"generations": 2})
+    assert found["budget"]["stopped"] in ("converged", "stalled")
+    assert found["budget"]["evaluations"] < 400
+
+
+def test_the_budget_says_why_the_search_ended(evolving, case):
+    """A small budget is spent: ``stopped`` is ``budget``, and the counts add up."""
+    found = evolved(case, evaluations=8, population=4)
+    budget = found["budget"]
+    assert budget["stopped"] == "budget" and budget["search"] == 8 and budget["polish"] == 0
+    assert budget["generations"] == len(found["history"])
+
+
+def test_the_front_table_and_the_explanation(evolving, case):
+    """``to_frame`` has a column per structure key and metric; ``explain`` names every part."""
+    found = evolved(case, objectives=["lcts", "co2"], evaluations=16, population=4)
+    table = found.to_frame()
+    assert {"x", "boiler", "trim", "feasible", "reason"} <= set(table.columns)
+    assert len(table) == len(found["front"])
+    text = found.explain()
+    assert "Front:" in text and "By structure" in text and "refused" in text
+
+
+def test_the_history_has_a_hypervolume_that_never_falls(evolving, case):
+    """The front only grows, so its hypervolume, on the scale of the final front, never falls."""
+    found = evolved(case, objectives=["lcts", "co2"], evaluations=24, population=4)
+    volumes = [entry["hypervolume"] for entry in found["history"]]
+    assert all(later >= earlier - 1e-12 for earlier, later in zip(volumes, volumes[1:]))
+
+
+def test_progress_counts_polish_too(evolving, case):
+    """``total`` includes what polish may run, and ``done`` reaches it."""
+    calls = []
+    evolved(case, evaluations=12, population=10, polish=1, on_progress=lambda *a: calls.append(a))
+    total = 12 + 1 * (minimize_module.trials_of(superplant(), 10) + 1)
+    assert calls[-1] == (total, total) and all(done <= total for done, _ in calls)
+
+
+def test_a_study_refuses_a_budget_below_the_population_and_a_metric_twice():
+    """Both are found when the file is read, before any simulation."""
+    data = {
+        "format": 1,
+        "kind": "study",
+        "name": "s",
+        "cases": ["case.json"],
+        "plants": ["plant.json"],
+        "method": "evolve",
+        "objectives": ["lcts", "lcts"],
+        "evaluations": 4,
+        "population": 8,
+        "seed": 0,
+        "polish": 0,
+        "stop": {"generations": 0},
+    }
+    with pytest.raises(ValidationError) as error:
+        gm.Study.from_dict(data)
+    paths = {item.path for item in error.value.issues}
+    assert {"objectives", "evaluations", "stop"} <= paths

@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.study._utils import progress
+from gemini.units import Quantity
 from tests.unit.study.conftest import shallow_case, shallow_plant
 from tests.unit.study.test_minimize import DEPTH, searching
 from tests.unit.study.test_study import run_settings, settings
@@ -56,6 +57,14 @@ def test_the_trials_of_every_doublet_count_are_told_in_one_count(runs):
     listener = Listener()
     minimized(DEPTH | {"size.doublets": (1, 2)}, 5, on_progress=listener)
     assert listener.calls == [(number, 10) for number in range(1, 11)]
+
+
+def test_the_total_is_the_trials_a_search_of_two_variables_runs(runs):
+    """A population is five per variable times the variables: twenty trials for two of them."""
+    listener = Listener()
+    flow = {"d0.nominal_flow": (Quantity(50, "m3/h"), Quantity(300, "m3/h"))}
+    minimized(DEPTH | flow, 10, on_progress=listener)
+    assert listener.calls[-1] == (len(runs), len(runs)) and len(listener.calls) == len(runs) == 20
 
 
 def test_sensitivity_counts_both_ends_of_each_value(runs):

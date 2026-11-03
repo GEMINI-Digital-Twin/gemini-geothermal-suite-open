@@ -23,7 +23,7 @@ from gemini.study._utils.shown import shown
 from gemini.study._utils.target import unit_of
 from gemini.study._utils.trial import LARGEST_VIOLATION, checked_metric, run_trials
 from gemini.study._utils.variables import DOUBLETS, _owner, _split, counts, variables
-from gemini.study.minimize import NOT_A_NUMBER, POPULATION_PER_VARIABLE, minimize
+from gemini.study.minimize import NOT_A_NUMBER, POPULATION_PER_VARIABLE, minimize, trials_of
 from gemini.units.shapes import measure
 
 CROSSOVER = 0.9
@@ -637,7 +637,7 @@ def _limits(plant, evaluations, population, polish):
     """Return the progress total of a search: the budget and the most ``polish`` can run."""
     if not polish:
         return evaluations
-    return evaluations + polish * (population * len(counts(plant)) + 1)
+    return evaluations + polish * (trials_of(plant, population) + 1)
 
 
 def evolve(
@@ -711,8 +711,9 @@ def evolve(
         The run input held fixed over the trials, as for ``minimize``.
     on_progress : callable, optional
         ``on_progress(done, total)`` after each finished trial, ``total`` being ``evaluations``
-        and the most ``polish`` can run (``polish`` times ``population`` per doublet count, plus
-        one); ``done`` reaches it at the end. Raising ``gm.errors.Cancelled`` stops the search.
+        and the most ``polish`` can run (``polish`` times the trials of ``minimize`` on the whole
+        plant with ``population``, plus one each); ``done`` reaches it at the end. Raising
+        ``gm.errors.Cancelled`` stops the search.
     stop : dict, optional
         When to end before the budget: ``{"generations": n}`` after ``n`` generations in a row with
         no new design on the feasible front, ``{"seconds": s}`` once the search has run ``s``
