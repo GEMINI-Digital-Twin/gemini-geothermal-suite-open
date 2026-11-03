@@ -11,8 +11,10 @@ checks -> constraint check -> rank (CLAUDE.md rule incl. parsimony) -> revise,
 within a budget of annual evaluations.
 
 Two scenarios are run:
-  A. inputs with the heating return temperature removed: the agent must stop
-     and ask instead of inventing the value (deterministic input check, no backend call);
+  A. inputs with one or more REQUIRED_INPUTS removed (--remove, default
+     heating_return_T): the agent must stop and ask instead of inventing the
+     value (deterministic input check, no backend call; --interactive asks in
+     the terminal and continues with the answers);
   B. complete inputs: the design loop.
 
 Backends share one interface (``propose`` / ``revise``): given the state and
@@ -58,15 +60,122 @@ HEX_APPROACH_ESTIMATE_K = 5.0  # ASSUMED, only for the direct-supply depth estim
 ESP_INTAKE_MARGIN_BAR = 5.0    # ASSUMED margin of ESP intake pressure above the brine vapour pressure
 ESP_FREQ_MARGIN_HZ = 2.0
 
-# Inputs the interactive mode may ask the user for: plausible range (ASSUMED) and the
-# GEMINI boundary input that receives the answer.
-ASKABLE_INPUTS = {
-    "heating return temperature": {
-        "unit": "C", "min": 40.0, "max": 80.0, "component": "heat_exchanger", "key": "secondary_temperature_in",
-        "range_reason": "a district heating return for a 100 C supply is typically 40-80 C: below 40 C is atypical for a 100 C "
-                        "network, above 80 C leaves less than 20 K for the district water and the HEX/heat-pump lift",
-    },
-}
+# Inputs the design needs that are not in the organizers' data. The agent checks every one at
+# startup and never invents a value: a missing one is asked for (--interactive) or the run stops
+# with the full list. "targets" are the places the value lives: ("project"|"settings", path),
+# where a dict in the path selects the matching list element; the first target is checked.
+# Ranges are ASSUMED plausibility bounds for validating an answer, not design values.
+def _bnd(component, key):
+    return ("boundary_inputs", {"component": component, "key": key}, "value")
+
+
+REQUIRED_INPUTS = [
+    {"name": "heating_return_T", "label": "heating return temperature", "unit": "C", "min": 40.0, "max": 80.0, "provenance": "ASSUMED",
+     "why": "sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift",
+     "range_reason": "a district heating return for a 100 C supply is typically 40-80 C: below 40 C is atypical for a 100 C "
+                     "network, above 80 C leaves less than 20 K for the district water and the HEX/heat-pump lift",
+     "targets": [("project", _bnd("heat_exchanger", "secondary_temperature_in")), ("project", _bnd("chp", "temperature_in"))]},
+    {"name": "cooling_return_T", "label": "cooling return temperature", "unit": "C", "min": 21.0, "max": 35.0, "provenance": "ASSUMED",
+     "why": "sets the chilled-water temperature glide (20 C OFFICIAL supply) and so the chiller duty",
+     "range_reason": "it must be above the 20 C supply; district cooling returns are typically 24-30 C",
+     "targets": [("settings", ("cooling_supply_return_C", 1))]},
+    {"name": "brine_cp", "label": "brine specific heat", "unit": "J/(kg K)", "min": 3500.0, "max": 4300.0, "provenance": "ASSUMED",
+     "why": "enters every heat balance (HEX, absorption drive, heat pump source, boiler, CHP)",
+     "range_reason": "saline brines are slightly below pure water (4180-4217 J/(kg K)); below ~3500 would need a salinity not in the inputs",
+     "targets": [("project", ("_brine_pvt_override", "CPL"))]
+                + [("project", ("components", c, "parameters", "specific_heat")) for c in ("heat_exchanger", "boiler", "chp")]},
+    {"name": "absorption_COP", "label": "absorption chiller COP (thermal)", "unit": "-", "min": 0.5, "max": 1.4, "provenance": "ASSUMED",
+     "why": "sets the brine drive heat per MW of cooling at the hot end",
+     "range_reason": "single-effect LiBr chillers reach 0.5-0.8, double-effect up to ~1.4",
+     "targets": [("settings", ("absorption_chiller", "cop_th"))]},
+    {"name": "absorption_drive_inlet_T", "label": "absorption chiller minimum drive inlet temperature", "unit": "C", "min": 65.0, "max": 100.0,
+     "provenance": "ASSUMED", "why": "decides on which days the brine is hot enough to drive the absorption chiller",
+     "range_reason": "single-effect hot-water-fired chillers need ~65-95 C; above 100 C the brine (<= ~105 C wellhead) could never drive it",
+     "targets": [("settings", ("absorption_chiller", "min_drive_inlet_C"))]},
+    {"name": "absorption_drive_outlet_T", "label": "absorption chiller minimum drive outlet temperature", "unit": "C", "min": 55.0, "max": 95.0,
+     "provenance": "ASSUMED", "why": "limits how much drive heat the brine can give the chiller (drive-water glide)",
+     "range_reason": "typical single-effect glides are 5-15 K below the drive inlet (e.g. 80/70 C)",
+     "targets": [("settings", ("absorption_chiller", "min_drive_outlet_C"))]},
+    {"name": "electric_chiller_COP", "label": "electric chiller COP", "unit": "-", "min": 2.5, "max": 8.0, "provenance": "ASSUMED",
+     "why": "sets the electricity (and emissions) of the cooling the absorption chiller does not cover",
+     "range_reason": "water-cooled electric chillers at a 20 C supply are typically COP 3-7",
+     "targets": [("settings", ("electric_chiller_cop",))]},
+    {"name": "hp_eta_lorenz", "label": "heat pump Lorenz efficiency", "unit": "-", "min": 0.3, "max": 0.7, "provenance": "ASSUMED",
+     "why": "sets the heat pump COP for the lift to 100 C, and so its electricity",
+     "range_reason": "industrial heat pumps reach 0.4-0.6 of the Lorenz COP",
+     "targets": [("settings", ("heat_pump", "eta_lorenz"))]},
+    {"name": "hp_cop_cap", "label": "heat pump COP cap", "unit": "-", "min": 3.0, "max": 10.0, "provenance": "ASSUMED",
+     "why": "caps the heat pump COP at small lifts, where the Lorenz COP is unrealistically high",
+     "range_reason": "real high-temperature heat pumps rarely exceed COP 6-8",
+     "targets": [("settings", ("heat_pump", "cop_cap"))]},
+    {"name": "produced_gas_EF", "label": "produced gas emission factor", "unit": "kg CO2/GJ", "min": 50.0, "max": 100.0, "provenance": "DERIVED",
+     "why": "sets the CO2 of the produced gas burned in CHP/boiler or flared (combustion + CO2 pass-through)",
+     "range_reason": "methane combustion alone is ~55 kg/GJ; the produced gas carries extra CO2, so higher values are plausible",
+     "targets": [("project", ("components", c, "parameters", "gas_emission_factor")) for c in ("boiler", "chp")]},
+    {"name": "external_gas_EF", "label": "external (pipeline) gas emission factor", "unit": "kg CO2/GJ", "min": 50.0, "max": 60.0,
+     "provenance": "ASSUMED", "why": "sets the CO2 of the boiler top-up gas (external gas)",
+     "range_reason": "pipeline natural gas is 55-57 kg CO2/GJ",
+     "targets": [("settings", ("external_gas", "emission_factor_kg_per_GJ"))]},
+    {"name": "electricity_EF", "label": "grid electricity emission factor", "unit": "kg CO2/kWh", "min": 0.0, "max": 1.0, "provenance": "ASSUMED",
+     "why": "sets the CO2 of the ESP, heat pump and chiller electricity",
+     "range_reason": "grid factors range from ~0 (renewable) to ~1 (coal)",
+     "targets": [("project", ("components", "producer_well", "parameters", "esp", "electricity_emission_factor"))]},
+]
+REQUIRED_BY_NAME = {r["name"]: r for r in REQUIRED_INPUTS}
+
+
+def unit_text(unit: str) -> str:
+    """' C', ' kg CO2/GJ', or '' for a dimensionless input."""
+    return "" if unit == "-" else f" {unit}"
+
+
+def _walk(root, path, create=False):
+    """Follow ``path`` in nested dicts/lists; a dict step selects the matching list element."""
+    for step in path:
+        if isinstance(step, dict):
+            match = next((x for x in root if all(x.get(k) == v for k, v in step.items())), None)
+            if match is None:
+                if not create:
+                    raise KeyError(step)
+                match = dict(step)
+                root.append(match)
+            root = match
+        else:
+            root = root[step]
+    return root
+
+
+def get_input(roots: dict, spec: dict):
+    where, path = spec["targets"][0]
+    try:
+        return _walk(roots[where], path)
+    except (KeyError, IndexError, TypeError):
+        raise KeyError(spec["name"]) from None
+
+
+def remove_input(roots: dict, spec: dict):
+    """Delete every place the value lives (demo of a missing input)."""
+    for where, path in spec["targets"]:
+        try:
+            parent = _walk(roots[where], path[:-1])
+        except (KeyError, IndexError, TypeError):
+            continue
+        last = path[-1]
+        if len(path) > 1 and isinstance(path[-2], dict) and last == "value":  # a boundary input: drop the whole entry
+            _walk(roots[where], path[:-2]).remove(parent)
+        elif isinstance(parent, list) and last < len(parent):
+            parent.pop(last)
+        elif isinstance(parent, dict):
+            parent.pop(last, None)
+
+
+def set_input(roots: dict, spec: dict, value: float):
+    for where, path in spec["targets"]:
+        parent = _walk(roots[where], path[:-1], create=True)
+        if isinstance(parent, list) and path[-1] >= len(parent):
+            parent.append(value)
+        else:
+            parent[path[-1]] = value
 
 
 def design_space(settings: dict) -> dict:
@@ -340,7 +449,6 @@ class DesignAgent:
             except (KeyError, IndexError, TypeError):
                 return None
 
-        s = self.settings
         items = [
             ("heating demand profile (365 days)", lambda: len(self.heating) == 365 or None, "OFFICIAL CSV", "sets daily heat to deliver"),
             ("cooling demand profile (365 days)", lambda: len(self.cooling) == 365 or None, "OFFICIAL CSV", "sets daily cooling to deliver"),
@@ -353,20 +461,17 @@ class DesignAgent:
             ("hard constraints (flow, brine dT, pump eta, 330 days, supply temperatures)",
              lambda: [self.limits[k] for k in ("flow_max_m3_per_h_per_doublet", "maximum_brine_delta_T_C", "pump_efficiency", "geothermal_operating_days", "heating_supply_temperature_C", "cooling_supply_temperature_C")],
              "OFFICIAL", "feasibility checks"),
-            ("heating return temperature", lambda: boundary(project, "heat_exchanger", "secondary_temperature_in")["value"],
-             "ASSUMED, user-approved (60 C)", "sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift"),
-            ("cooling supply / return temperature", lambda: s["cooling_supply_return_C"], "OFFICIAL 20 C / ASSUMED 26 C", "chiller duty"),
-            ("brine specific heat", lambda: project["_brine_pvt_override"]["CPL"], "ASSUMED, user-approved (4100)", "all heat balances"),
+            ("cooling supply temperature", lambda: self.settings["cooling_supply_return_C"][0], "OFFICIAL (20 C)", "chilled-water supply"),
             ("well inner diameter / roughness", lambda: [project["components"]["producer_well"]["parameters"]["trajectory_table"][-1]["ID"],
                                                          project["components"]["producer_well"]["parameters"]["roughness_m"]],
              "ASSUMED, user-approved", "friction, pump power"),
-            ("heat pump / chiller performance", lambda: [s["heat_pump"]["eta_lorenz"], s["absorption_chiller"]["cop_th"], s["electric_chiller_cop"]],
-             "ASSUMED, user-approved", "electricity, cooling supply"),
-            ("emission factors", lambda: [project["components"]["boiler"]["parameters"]["gas_emission_factor"], s["external_gas"]["emission_factor_kg_per_GJ"],
-                                          project["components"]["producer_well"]["parameters"]["esp"]["electricity_emission_factor"]],
-             "DERIVED / ASSUMED", "emissions ranking"),
         ]
         checked = [{"input": name, "present": get(fn) is not None, "value": get(fn), "source": src, "needed_for": why} for name, fn, src, why in items]
+        roots = {"project": project, "settings": self.settings}
+        for r in REQUIRED_INPUTS:
+            value = get(lambda: get_input(roots, r))
+            checked.append({"input": r["name"], "label": r["label"], "present": value is not None, "value": value, "unit": r["unit"],
+                            "source": r["provenance"], "needed_for": r["why"], "range": [r["min"], r["max"]]})
         missing = [c for c in checked if not c["present"]]
         self.log.event(scenario, "required_inputs", "Check required inputs",
                        data={"checked": checked, "missing": [m["input"] for m in missing]},
@@ -382,16 +487,18 @@ class DesignAgent:
 
     # 2b. human in the loop (--interactive): ask for missing inputs instead of halting
     def ask_user(self, scenario, missing, project) -> bool:
-        """Ask in the terminal for each missing askable input, validate it, write the completed
-        project file and use it for every evaluation. Returns False if nothing was answered."""
-        answered = False
+        """Ask in the terminal for each missing required input, validate it, write the completed
+        project / settings files and use them for every evaluation. Returns False if nothing was answered."""
+        answered = set()
+        roots = {"project": project, "settings": self.settings}
         for m in missing:
-            spec = ASKABLE_INPUTS.get(m["input"])
+            spec = REQUIRED_BY_NAME.get(m["input"])
             if spec is None:
                 continue
-            question = (f"I cannot size the plant without the {m['input']}. It is needed because it {m['needed_for']}. "
+            question = (f"I cannot size the plant without the {spec['label']} ({spec['name']}, {spec['provenance']}). "
+                        f"It is needed because it {spec['why']}. "
                         f"It is not in the organizers' inputs and I will not invent it. "
-                        f"Please type a value in {spec['unit']} (plausible range {spec['min']:g}-{spec['max']:g} {spec['unit']}), or 'q' to stop.")
+                        f"Please type a value{' in ' + spec['unit'] if spec['unit'] != '-' else ''} (plausible range {spec['min']:g}-{spec['max']:g}{unit_text(spec['unit'])}), or 'q' to stop.")
             attempt = 0
             while True:
                 attempt += 1
@@ -399,7 +506,7 @@ class DesignAgent:
                                data={"input": m["input"], "attempt": attempt, "range": [spec["min"], spec["max"]], "unit": spec["unit"]})
                 print(f"\nAGENT ASKED: {question}", flush=True)
                 try:
-                    raw = input(f"USER ANSWER ({m['input']}, {spec['unit']}) > ").strip()
+                    raw = input(f"USER ANSWER ({m['input']}, {spec['unit']}) > ").strip().lstrip("﻿")  # BOM from a PowerShell pipe
                 except EOFError:
                     raw = "q"
                 value, reason = self.validate_answer(raw, spec)
@@ -407,30 +514,39 @@ class DesignAgent:
                     self.log.event(scenario, "answer", "USER ANSWERED", rationale=f"'{raw}': the user stopped the run; the agent halts without the value.",
                                    data={"input": m["input"], "raw": raw, "valid": False, "stopped": True})
                     print("AGENT: stopping without the value, as asked.", flush=True)
-                    return answered
-                self.log.event(scenario, "answer", "USER ANSWERED", rationale=f"'{raw}': " + (f"accepted, {value:g} {spec['unit']}." if value is not None else f"rejected - {reason}"),
+                    return False
+                self.log.event(scenario, "answer", "USER ANSWERED", rationale=f"'{raw}': " + (f"accepted, {value:g}{unit_text(spec['unit'])}." if value is not None else f"rejected - {reason}"),
                                data={"input": m["input"], "raw": raw, "valid": value is not None, "value": value, "reason": reason})
                 if value is not None:
-                    print(f"AGENT: thank you - using {m['input']} = {value:g} {spec['unit']} and continuing the design loop.", flush=True)
+                    print(f"AGENT: thank you - using {spec['name']} = {value:g}{unit_text(spec['unit'])}.", flush=True)
                     break
                 print(f"AGENT: I cannot use '{raw}': {reason}. Let me ask again.", flush=True)
-            entry = next(b for b in load_json(PROJECT_PATH)["boundary_inputs"] if b["component"] == spec["component"] and b["key"] == spec["key"])
-            project["boundary_inputs"].append({**entry, "value": value, "_source": f"USER ANSWER (interactive, {datetime.now(timezone.utc).isoformat()})"})
-            answered = True
-        if answered:
+            set_input(roots, spec, value)
+            stamp = f"USER ANSWER (interactive, {datetime.now(timezone.utc).isoformat()})"
+            for where in {w for w, _ in spec["targets"]}:
+                roots[where].setdefault("_user_answers", {})[spec["name"]] = {"value": value, "unit": spec["unit"], "source": stamp}
+                answered.add(where)
+        if "project" in answered:
             self.project_path = self.out_dir / "project_with_user_answers.json"
             self.project_path.write_text(json.dumps(project, indent=2), encoding="utf-8")
-        return answered
+        if "settings" in answered:  # self.settings is used directly (and is part of the cache key); saved for the record
+            (self.out_dir / "settings_with_user_answers.json").write_text(json.dumps(self.settings, indent=2), encoding="utf-8")
+        if answered:
+            print("AGENT: all missing inputs answered - continuing the design loop.", flush=True)
+        return bool(answered)
 
     @staticmethod
     def validate_answer(raw: str, spec: dict):
         """(value, None) for a number inside the plausible range, else (None, reason)."""
-        match = re.fullmatch(r"\s*([-+]?\d+(?:[.,]\d+)?)\s*(?:°?\s*c)?\s*", raw, re.IGNORECASE)
-        if not match:
-            return None, f"it is not a number (expected e.g. 60 for 60 {spec['unit']})"
+        match = re.fullmatch(r"\s*([-+]?\d+(?:[.,]\d+)?)\s*(.*?)\s*", raw)
+        unit = re.sub(r"[\s°]", "", spec["unit"]).lower()
+        if not match or match.group(2) and re.sub(r"[\s°]", "", match.group(2)).lower() not in (unit, "-"):
+            example = f"{(spec['min'] + spec['max']) / 2:.3g}"
+            return None, f"it is not a number{' in ' + spec['unit'] if spec['unit'] != '-' else ''} (expected e.g. {example}{unit_text(spec['unit'])})"
         value = float(match.group(1).replace(",", "."))
         if not spec["min"] <= value <= spec["max"]:
-            return None, f"{value:g} {spec['unit']} is outside the plausible {spec['min']:g}-{spec['max']:g} {spec['unit']} range ({spec['range_reason']})"
+            return None, (f"{value:g}{unit_text(spec['unit'])} is outside the plausible {spec['min']:g}-{spec['max']:g}{unit_text(spec['unit'])} range "
+                          f"({spec['range_reason']})")
         return value, None
 
     # 3. temperature assessment (judges' test iii)
@@ -561,19 +677,31 @@ class DesignAgent:
         self.eval_times.append({"candidate": candidate_id(candidate), "wall_s": wall, "cached": cached})
         return {"summary": summary, "json_check": json_check, "well_checks": checks, "cached": cached, "wall_s": wall}
 
-    def run(self, scenario: str, project: dict | None = None) -> dict:
+    def run(self, scenario: str, project: dict | None = None, settings: dict | None = None, removed: list[str] | None = None) -> dict:
         run_start = time.perf_counter()
         project = project if project is not None else load_json(PROJECT_PATH)
+        if settings is not None:
+            self.settings = settings
         challenge = load_json(CHALLENGE_PATH)
-        self.log.event(scenario, "start", f"Scenario {scenario}: start", data={"backend": self.backend.name, "budget": self.budget, "design_space": self.space})
+        self.log.event(scenario, "start", f"Scenario {scenario}: start", data={"backend": self.backend.name, "budget": self.budget, "design_space": self.space,
+                                                                            **({"removed_inputs": removed} if removed else {})})
         inputs = self.interpret_inputs(scenario, project, challenge)
         missing = self.check_required_inputs(scenario, project, challenge)
-        if missing and self.interactive and self.ask_user(scenario, missing, project):
+        if missing and self.interactive:
+            if self.ask_user(scenario, missing, project):
+                inputs = self.interpret_inputs(scenario, project, challenge)  # with the answered values (e.g. brine cp)
             missing = self.check_required_inputs(scenario, project, challenge)
         if missing:
-            question = (f"I cannot size the plant without: {', '.join(m['input'] for m in missing)}. "
-                        + " ".join(f"'{m['input']}' is needed because it {m['needed_for']}." for m in missing)
-                        + " It is not in the organizers' inputs and I will not invent it. Please provide a value (previously approved: 60 C).")
+            def describe(m):
+                if "range" not in m:
+                    return f"'{m['input']}' ({m['source']}) is needed for {m['needed_for']}."
+                return (f"'{m['input']}' ({m['label']}{',' + unit_text(m['unit']) if m['unit'] != '-' else ''}, {m['source']}) is needed because it "
+                        f"{m['needed_for']}; plausible range {m['range'][0]:g}-{m['range'][1]:g}{unit_text(m['unit'])}.")
+            question = (f"I cannot size the plant without {len(missing)} input(s): {', '.join(m['input'] for m in missing)}. "
+                        + " ".join(describe(m) for m in missing)
+                        + f" {'They are' if len(missing) > 1 else 'It is'} not in the organizers' inputs and I will not invent "
+                        f"{'them' if len(missing) > 1 else 'it'}. Please provide {'values' if len(missing) > 1 else 'a value'} "
+                        "(or rerun with --interactive to answer in the terminal).")
             self.log.event(scenario, "halt", "Stop and ask for the missing input", data={"status": "needs_input", "missing": [m["input"] for m in missing]},
                            rationale=question)
             return {"status": "needs_input", "question": question, "runtime_s": time.perf_counter() - run_start}
@@ -749,9 +877,17 @@ class DesignAgent:
 def judges_tests(entries: list[dict], design_scenario: str = "B_design") -> list[dict]:
     a = [e for e in entries if e["scenario"] == "A_missing_input"]
     b = [e for e in entries if e["scenario"] == design_scenario]
+    start = next((e for e in a if e["phase"] == "start"), None)
+    removed = (start["data"] if start else {}).get("removed_inputs", ["heating_return_T"])
     halt = next((e for e in a if e["phase"] == "halt"), None)
-    asked = next((e for e in a if e["phase"] == "ask"), None)
-    answer = next((e for e in a if e["phase"] == "answer" and e["data"].get("valid")), None)
+    # logs written before REQUIRED_INPUTS name inputs by their label
+    halted_for = {REQUIRED_BY_NAME.get(x, {}).get("name", x) for x in (halt["data"]["missing"] if halt else [])} \
+        | {r["name"] for r in REQUIRED_INPUTS if halt and r["label"] in halt["data"]["missing"]}
+    asked = [e for e in a if e["phase"] == "ask"]
+    answers = {e["data"]["input"]: e for e in a if e["phase"] == "answer" and e["data"].get("valid")}
+    def answered(r):
+        return any(q["data"]["input"] in (r, REQUIRED_BY_NAME[r]["label"]) for q in asked) and (r in answers or REQUIRED_BY_NAME[r]["label"] in answers)
+    answered_all = all(answered(r) for r in removed)
     # every >= 350 m3/h rejection with its revision; the one closest to 350 m3/h (the judges' example) first
     flow_rejections = []
     for e in b:
@@ -769,11 +905,13 @@ def judges_tests(entries: list[dict], design_scenario: str = "B_design") -> list
     recovered = next((e for e in evals if failed and e["step"] > failed["step"] and e["data"]["feasible"]), None)
     return [
         {"test": "(i) missing physical quantity -> stop and ask",
-         "pass": (halt is not None and "heating return temperature" in halt["data"]["missing"])
-                 or (asked is not None and asked["data"]["input"] == "heating return temperature" and answer is not None),
-         "evidence": f"step {halt['step']}: {halt['rationale']}" if halt else
-                     f"step {asked['step']} AGENT ASKED: {asked['rationale']} -> step {answer['step']} USER ANSWERED {answer['rationale']}" if asked and answer
-                     else "no halt / question"},
+         "pass": (halt is not None or answered_all) and all(r in halted_for or answered(r) for r in removed),
+         "evidence": (f"removed: {', '.join(removed)}; " if start and "removed_inputs" in start["data"] else "")
+                     + (f"step {halt['step']}: {halt['rationale']}" if halt else
+                        "; also ".join(f"step {q['step']} AGENT ASKED: {q['rationale']} -> step {answers[q['data']['input']]['step']} USER ANSWERED "
+                                       f"{answers[q['data']['input']]['rationale']}"
+                                       for q in asked if q["data"]["input"] in answers and q is next(x for x in reversed(asked) if x["data"]["input"] == q["data"]["input"]))
+                        if answered_all else "no halt / question")},
         {"test": "(ii) >= 350 m3/h per doublet -> rejected with reason, revised", "pass": bool(flow_rejections),
          "evidence": "; also ".join(f"step {e['step']}: {e['rationale']} -> step {r['step']}: {r['title']}" for _, e, r in flow_rejections)
                      or "not triggered"},
@@ -817,6 +955,15 @@ def evaluation_table(entries, scenario="B_design") -> list[str]:
     return rows
 
 
+def required_input_row(c: dict) -> str:
+    present = "yes" if c["present"] else "**MISSING**"
+    if "range" not in c:  # official / fixed items
+        return f"| {c['input']} | {present} | - | - | {c['source']} | {c['needed_for']} |"
+    value = f"{c['value']:g}{unit_text(c['unit'])}" if c["present"] else "-"
+    return (f"| {c['input']} ({c['label']}) | {present} | {value} | {c['range'][0]:g}-{c['range'][1]:g}{unit_text(c['unit'])} | "
+            f"{c['source']} | {c['needed_for']} |")
+
+
 def write_trace(path, entries, backend, results, note=None, design_scenario="B_design"):
     lines = [f"# Design agent trace ({backend} backend{', interactive' if design_scenario != 'B_design' else ''})", "",
              f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC from `decision_log.jsonl` ({len(entries)} logged steps). "
@@ -853,7 +1000,9 @@ def write_trace(path, entries, backend, results, note=None, design_scenario="B_d
                 u = c.get("usage") or {}
                 lines.append(f"| {i} | {c['purpose']} | {c['wall_s']:.1f} | {u.get('input_tokens', '-')} | {u.get('cache_read_input_tokens', '-')} | "
                              f"{u.get('output_tokens', '-')} | {c.get('total_cost_usd') if c.get('total_cost_usd') is not None else '-'} |")
-    scenario_titles = {"A_missing_input": "Scenario A: heating return temperature removed from the inputs"
+    start_a = next((e for e in entries if e["scenario"] == "A_missing_input" and e["phase"] == "start"), None)
+    removed = ", ".join((start_a["data"] if start_a else {}).get("removed_inputs", ["heating return temperature"]))
+    scenario_titles = {"A_missing_input": f"Scenario A: {removed} removed from the inputs"
                                           + (" (interactive: the agent asks, the user answers, the design loop continues)" if design_scenario != "B_design" else ""),
                        "B_design": "Scenario B: complete inputs, design loop"}
     for scenario, title in scenario_titles.items():
@@ -869,8 +1018,8 @@ def write_trace(path, entries, backend, results, note=None, design_scenario="B_d
             if rationale:
                 lines.append(f"> {rationale}")
             if e["phase"] == "required_inputs":
-                lines += ["", "| Input | Present | Source | Needed for |", "|---|---|---|---|"]
-                lines += [f"| {c['input']} | {'yes' if c['present'] else '**MISSING**'} | {c['source']} | {c['needed_for']} |" for c in e["data"]["checked"]]
+                lines += ["", "| Input | Present | Value | Plausible range | Provenance | Needed for |", "|---|---|---|---|---|---|"]
+                lines += [required_input_row(c) for c in e["data"]["checked"]]
             if e["phase"] == "well_check":
                 lines += ["", "| Flow (m3/h) | ESP Hz | Wellhead (bar / C) | p_sat (bar) | ESP intake / discharge (bar) | ESP power (MW) | BHP (bar) | Tubing v (m/s) |",
                           "|---|---|---|---|---|---|---|---|"]
@@ -901,10 +1050,20 @@ def main():
     parser.add_argument("--budget", type=int, default=14, help="maximum annual evaluations in scenario B")
     parser.add_argument("--clear-cache", action="store_true", help="recompute every annual evaluation (honest timings)")
     parser.add_argument("--interactive", action="store_true",
-                        help="human-in-the-loop demo: scenario A (heating return temperature removed); the agent asks in the terminal, "
-                             "validates the answer and continues the design loop with it (outputs in <out>/interactive/)")
+                        help="human-in-the-loop demo: scenario A (inputs from --remove missing); the agent asks in the terminal, "
+                             "validates each answer and continues the design loop with them (outputs in <out>/interactive/)")
+    parser.add_argument("--remove", action="append", metavar="NAME[,NAME...]",
+                        help=f"required input(s) removed in scenario A (judges' test i), default heating_return_T; 'all' removes every one. "
+                             f"Names: {', '.join(REQUIRED_BY_NAME)}")
     parser.add_argument("--retrace", metavar="NOTE", help="only rebuild agent_trace.md from the saved decision_log.jsonl, with this note")
     args = parser.parse_args()
+    removed = [n.strip() for arg in (args.remove or ["heating_return_T"]) for n in arg.split(",") if n.strip()]
+    if "all" in removed:
+        removed = list(REQUIRED_BY_NAME)
+    unknown = [n for n in removed if n not in REQUIRED_BY_NAME]
+    if unknown:
+        parser.error(f"unknown input(s) for --remove: {', '.join(unknown)}; choose from {', '.join(REQUIRED_BY_NAME)}")
+    removed = list(dict.fromkeys(removed))
 
     out_dir = AGENT_OUT if args.backend == "rules" else AGENT_OUT / args.backend
     if args.interactive:
@@ -919,11 +1078,12 @@ def main():
     log = DecisionLog(out_dir / "decision_log.jsonl", backend.name)
     results = {}
 
-    project_missing = load_json(PROJECT_PATH)
-    project_missing["boundary_inputs"] = [b for b in project_missing["boundary_inputs"]
-                                          if not (b["component"] == "heat_exchanger" and b["key"] == "secondary_temperature_in")]
+    roots_missing = {"project": load_json(PROJECT_PATH), "settings": load_json(CANDIDATES_PATH)}
+    for name in removed:
+        remove_input(roots_missing, REQUIRED_BY_NAME[name])
     design_scenario = "A_missing_input" if args.interactive else "B_design"
-    results["A_missing_input"] = DesignAgent(backend, log, out_dir, args.budget, interactive=args.interactive).run("A_missing_input", project_missing)
+    results["A_missing_input"] = DesignAgent(backend, log, out_dir, args.budget, interactive=args.interactive).run(
+        "A_missing_input", roots_missing["project"], roots_missing["settings"], removed)
     if not args.interactive:
         results["B_design"] = DesignAgent(backend, log, out_dir, args.budget).run("B_design")
     total = time.perf_counter() - start

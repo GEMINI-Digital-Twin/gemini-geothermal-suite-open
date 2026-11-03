@@ -1,14 +1,14 @@
 {
   "backend": "rules",
-  "total_runtime_s": 10.980336700100452,
+  "total_runtime_s": 11.582866000011563,
   "status": "selected",
   "timing": {
     "evaluations": 9,
     "computed": 9,
     "cached": 0,
-    "wall_s_per_computed_evaluation_mean": 1.0612656666586797,
-    "wall_s_per_computed_evaluation_max": 1.8897407000185922,
-    "scenario_runtime_s": 9.590762199950404,
+    "wall_s_per_computed_evaluation_mean": 1.1233831444470626,
+    "wall_s_per_computed_evaluation_max": 1.8597928000381216,
+    "scenario_runtime_s": 10.155410600011237,
     "backend_calls": 0,
     "backend_wall_s": 0
   },
@@ -184,7 +184,7 @@
     {
       "test": "(i) missing physical quantity -> stop and ask",
       "pass": true,
-      "evidence": "step 4: I cannot size the plant without: heating return temperature. 'heating return temperature' is needed because it sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift. It is not in the organizers' inputs and I will not invent it. Please provide a value (previously approved: 60 C)."
+      "evidence": "removed: heating_return_T; step 4: I cannot size the plant without 1 input(s): heating_return_T. 'heating_return_T' (heating return temperature, C, ASSUMED) is needed because it sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift; plausible range 40-80 C. It is not in the organizers' inputs and I will not invent it. Please provide a value (or rerun with --interactive to answer in the terminal)."
     },
     {
       "test": "(ii) >= 350 m3/h per doublet -> rejected with reason, revised",

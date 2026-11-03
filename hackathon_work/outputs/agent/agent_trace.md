@@ -1,12 +1,12 @@
 # Design agent trace (rules backend)
 
-Generated 2026-11-03 06:21 UTC from `decision_log.jsonl` (63 logged steps). Rerun: `$env:PYTHONPATH="src"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend rules`.
+Generated 2026-11-03 21:48 UTC from `decision_log.jsonl` (63 logged steps). Rerun: `$env:PYTHONPATH="src"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend rules`.
 
 ## Judges' agent-reasoning tests
 
 | Test | Result | Evidence |
 |---|---|---|
-| (i) missing physical quantity -> stop and ask | PASS | step 4: I cannot size the plant without: heating return temperature. 'heating return temperature' is needed because it sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift. It is not in the organizers' inputs and I will not invent it. Please provide a value (previously approved: 60 C). |
+| (i) missing physical quantity -> stop and ask | PASS | removed: heating_return_T; step 4: I cannot size the plant without 1 input(s): heating_return_T. 'heating_return_T' (heating return temperature, C, ASSUMED) is needed because it sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift; plausible range 40-80 C. It is not in the organizers' inputs and I will not invent it. Please provide a value (or rerun with --interactive to answer in the terminal). |
 | (ii) >= 350 m3/h per doublet -> rejected with reason, revised | PASS | step 17: 350.00 m3/h exceeds the 300 m3/h hard cap -> step 18: Revised to n2_q300_s1.8_ua1000_z2500; also step 10: 650.00 m3/h exceeds the 300 m3/h hard cap -> step 11: Revised to n1_q300_s1.8_ua1000_z2500 |
 | (iii) 87 C reservoir vs 100 C supply -> shortfall stated, deeper well vs surface upgrade decided | PASS | step 8 (assessment); candidates evaluated at reservoir temperatures [87.0, 94.5, 102.0, 109.5, 117.0] C; step 63 (decision) |
 | (iv) recovery after a failed / ranked-out candidate | PASS | step 14: Annual model + constraint check: n1_q300_s1.8_ua1000_z2500 infeasible (never_all_off) -> step 21: Annual model + constraint check: n2_q300_s1.8_ua1000_z2500 feasible; ranked-out recoveries at steps [28, 33, 57] |
@@ -17,10 +17,10 @@ Generated 2026-11-03 06:21 UTC from `decision_log.jsonl` (63 logged steps). Reru
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | n1_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | no (never_all_off) | 28.597 | 12968 | 11.91 | 5000 | 0.8 | REJECTED (rank 9) |
 | 2 | n2_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | yes | 0.002 | 8908 | 12.01 | 10000 | 0.8 | REJECTED (rank 5) |
-| 3 | n2_q300_s1.8_ua500_z2500 | 87 | 660 / 30.3 | yes | 0.008 | 9036 | 12.50 | 10000 | 1.0 | REJECTED (rank 7) |
-| 4 | n2_q300_s1.0_ua1000_z2500 | 87 | 530 / 30.7 | yes | 8.090 | 9429 | 11.49 | 10000 | 1.9 | REJECTED (rank 8) |
+| 3 | n2_q300_s1.8_ua500_z2500 | 87 | 660 / 30.3 | yes | 0.008 | 9036 | 12.50 | 10000 | 1.9 | REJECTED (rank 7) |
+| 4 | n2_q300_s1.0_ua1000_z2500 | 87 | 530 / 30.7 | yes | 8.090 | 9429 | 11.49 | 10000 | 1.5 | REJECTED (rank 8) |
 | 5 | n2_q300_s1.8_ua1000_z2750 | 94 | 670 / 30.1 | yes | 0.006 | 7267 | 7.83 | 11000 | 0.9 | REJECTED (rank 4) |
-| 6 | n2_q300_s1.8_ua1000_z3000 | 102 | 690 / 31.0 | yes | 0.004 | 6038 | 4.66 | 12000 | 0.8 | REJECTED (rank 3) |
+| 6 | n2_q300_s1.8_ua1000_z3000 | 102 | 690 / 31.0 | yes | 0.004 | 6038 | 4.66 | 12000 | 0.9 | REJECTED (rank 3) |
 | 7 | n2_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 13000 | 1.4 | ACCEPTED (rank 1) |
 | 8 | n2_q300_s1.8_ua1000_z3500 | 117 | 710 / 30.7 | yes | 0.016 | 4891 | 0.80 | 14000 | 0.6 | REJECTED (rank 6) |
 | 9 | n3_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 19500 | 1.4 | REJECTED (rank 2) |
@@ -40,10 +40,10 @@ Rejected only because the step improvement is within the tie tolerance of the 5%
 ## Runtime
 
 - Annual evaluations: 9 (9 computed, 0 from cache); computed wall time mean 1.1 s, max 1.9 s
-- Scenario B runtime: 9.6 s; scenario A runtime: 0.0 s
+- Scenario B runtime: 10.2 s; scenario A runtime: 0.0 s
 - Backend calls: 0 (0.0 s)
 
-## Scenario A: heating return temperature removed from the inputs
+## Scenario A: heating_return_T removed from the inputs
 
 **1. [start] Scenario A_missing_input: start**
 
@@ -51,24 +51,32 @@ Rejected only because the step improvement is within the tie tolerance of the 5%
 > 365-day heating (111.67 GWh, peak 30.0 MW on 2027-01-28) and cooling (23.74 GWh, peak 10.0 MW) must be served every day.
 
 **3. [required_inputs] Check required inputs**
-> 1 required input(s) missing: heating return temperature.
+> 1 required input(s) missing: heating_return_T.
 
-| Input | Present | Source | Needed for |
-|---|---|---|---|
-| heating demand profile (365 days) | yes | OFFICIAL CSV | sets daily heat to deliver |
-| cooling demand profile (365 days) | yes | OFFICIAL CSV | sets daily cooling to deliver |
-| reservoir depth / gradient / surface T / pressure / permeability | yes | OFFICIAL | source temperature and well inflow |
-| brine density / viscosity / GLR / gas composition | yes | OFFICIAL | hydraulics, produced gas |
-| hard constraints (flow, brine dT, pump eta, 330 days, supply temperatures) | yes | OFFICIAL | feasibility checks |
-| heating return temperature | **MISSING** | ASSUMED, user-approved (60 C) | sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift |
-| cooling supply / return temperature | yes | OFFICIAL 20 C / ASSUMED 26 C | chiller duty |
-| brine specific heat | yes | ASSUMED, user-approved (4100) | all heat balances |
-| well inner diameter / roughness | yes | ASSUMED, user-approved | friction, pump power |
-| heat pump / chiller performance | yes | ASSUMED, user-approved | electricity, cooling supply |
-| emission factors | yes | DERIVED / ASSUMED | emissions ranking |
+| Input | Present | Value | Plausible range | Provenance | Needed for |
+|---|---|---|---|---|---|
+| heating demand profile (365 days) | yes | - | - | OFFICIAL CSV | sets daily heat to deliver |
+| cooling demand profile (365 days) | yes | - | - | OFFICIAL CSV | sets daily cooling to deliver |
+| reservoir depth / gradient / surface T / pressure / permeability | yes | - | - | OFFICIAL | source temperature and well inflow |
+| brine density / viscosity / GLR / gas composition | yes | - | - | OFFICIAL | hydraulics, produced gas |
+| hard constraints (flow, brine dT, pump eta, 330 days, supply temperatures) | yes | - | - | OFFICIAL | feasibility checks |
+| cooling supply temperature | yes | - | - | OFFICIAL (20 C) | chilled-water supply |
+| well inner diameter / roughness | yes | - | - | ASSUMED, user-approved | friction, pump power |
+| heating_return_T (heating return temperature) | **MISSING** | - | 40-80 C | ASSUMED | sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift |
+| cooling_return_T (cooling return temperature) | yes | 26 C | 21-35 C | ASSUMED | sets the chilled-water temperature glide (20 C OFFICIAL supply) and so the chiller duty |
+| brine_cp (brine specific heat) | yes | 4100 J/(kg K) | 3500-4300 J/(kg K) | ASSUMED | enters every heat balance (HEX, absorption drive, heat pump source, boiler, CHP) |
+| absorption_COP (absorption chiller COP (thermal)) | yes | 0.7 | 0.5-1.4 | ASSUMED | sets the brine drive heat per MW of cooling at the hot end |
+| absorption_drive_inlet_T (absorption chiller minimum drive inlet temperature) | yes | 75 C | 65-100 C | ASSUMED | decides on which days the brine is hot enough to drive the absorption chiller |
+| absorption_drive_outlet_T (absorption chiller minimum drive outlet temperature) | yes | 70 C | 55-95 C | ASSUMED | limits how much drive heat the brine can give the chiller (drive-water glide) |
+| electric_chiller_COP (electric chiller COP) | yes | 5 | 2.5-8 | ASSUMED | sets the electricity (and emissions) of the cooling the absorption chiller does not cover |
+| hp_eta_lorenz (heat pump Lorenz efficiency) | yes | 0.45 | 0.3-0.7 | ASSUMED | sets the heat pump COP for the lift to 100 C, and so its electricity |
+| hp_cop_cap (heat pump COP cap) | yes | 6 | 3-10 | ASSUMED | caps the heat pump COP at small lifts, where the Lorenz COP is unrealistically high |
+| produced_gas_EF (produced gas emission factor) | yes | 68.6 kg CO2/GJ | 50-100 kg CO2/GJ | DERIVED | sets the CO2 of the produced gas burned in CHP/boiler or flared (combustion + CO2 pass-through) |
+| external_gas_EF (external (pipeline) gas emission factor) | yes | 56.6 kg CO2/GJ | 50-60 kg CO2/GJ | ASSUMED | sets the CO2 of the boiler top-up gas (external gas) |
+| electricity_EF (grid electricity emission factor) | yes | 0.3 kg CO2/kWh | 0-1 kg CO2/kWh | ASSUMED | sets the CO2 of the ESP, heat pump and chiller electricity |
 
 **4. [halt] Stop and ask for the missing input**
-> I cannot size the plant without: heating return temperature. 'heating return temperature' is needed because it sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift. It is not in the organizers' inputs and I will not invent it. Please provide a value (previously approved: 60 C).
+> I cannot size the plant without 1 input(s): heating_return_T. 'heating_return_T' (heating return temperature, C, ASSUMED) is needed because it sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift; plausible range 40-80 C. It is not in the organizers' inputs and I will not invent it. Please provide a value (or rerun with --interactive to answer in the terminal).
 
 
 ## Scenario B: complete inputs, design loop
@@ -81,19 +89,27 @@ Rejected only because the step improvement is within the tie tolerance of the 5%
 **7. [required_inputs] Check required inputs**
 > All required inputs present.
 
-| Input | Present | Source | Needed for |
-|---|---|---|---|
-| heating demand profile (365 days) | yes | OFFICIAL CSV | sets daily heat to deliver |
-| cooling demand profile (365 days) | yes | OFFICIAL CSV | sets daily cooling to deliver |
-| reservoir depth / gradient / surface T / pressure / permeability | yes | OFFICIAL | source temperature and well inflow |
-| brine density / viscosity / GLR / gas composition | yes | OFFICIAL | hydraulics, produced gas |
-| hard constraints (flow, brine dT, pump eta, 330 days, supply temperatures) | yes | OFFICIAL | feasibility checks |
-| heating return temperature | yes | ASSUMED, user-approved (60 C) | sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift |
-| cooling supply / return temperature | yes | OFFICIAL 20 C / ASSUMED 26 C | chiller duty |
-| brine specific heat | yes | ASSUMED, user-approved (4100) | all heat balances |
-| well inner diameter / roughness | yes | ASSUMED, user-approved | friction, pump power |
-| heat pump / chiller performance | yes | ASSUMED, user-approved | electricity, cooling supply |
-| emission factors | yes | DERIVED / ASSUMED | emissions ranking |
+| Input | Present | Value | Plausible range | Provenance | Needed for |
+|---|---|---|---|---|---|
+| heating demand profile (365 days) | yes | - | - | OFFICIAL CSV | sets daily heat to deliver |
+| cooling demand profile (365 days) | yes | - | - | OFFICIAL CSV | sets daily cooling to deliver |
+| reservoir depth / gradient / surface T / pressure / permeability | yes | - | - | OFFICIAL | source temperature and well inflow |
+| brine density / viscosity / GLR / gas composition | yes | - | - | OFFICIAL | hydraulics, produced gas |
+| hard constraints (flow, brine dT, pump eta, 330 days, supply temperatures) | yes | - | - | OFFICIAL | feasibility checks |
+| cooling supply temperature | yes | - | - | OFFICIAL (20 C) | chilled-water supply |
+| well inner diameter / roughness | yes | - | - | ASSUMED, user-approved | friction, pump power |
+| heating_return_T (heating return temperature) | yes | 60 C | 40-80 C | ASSUMED | sets district water flow = Q / (cp * (100 - T_return)) and the HEX/heat-pump lift |
+| cooling_return_T (cooling return temperature) | yes | 26 C | 21-35 C | ASSUMED | sets the chilled-water temperature glide (20 C OFFICIAL supply) and so the chiller duty |
+| brine_cp (brine specific heat) | yes | 4100 J/(kg K) | 3500-4300 J/(kg K) | ASSUMED | enters every heat balance (HEX, absorption drive, heat pump source, boiler, CHP) |
+| absorption_COP (absorption chiller COP (thermal)) | yes | 0.7 | 0.5-1.4 | ASSUMED | sets the brine drive heat per MW of cooling at the hot end |
+| absorption_drive_inlet_T (absorption chiller minimum drive inlet temperature) | yes | 75 C | 65-100 C | ASSUMED | decides on which days the brine is hot enough to drive the absorption chiller |
+| absorption_drive_outlet_T (absorption chiller minimum drive outlet temperature) | yes | 70 C | 55-95 C | ASSUMED | limits how much drive heat the brine can give the chiller (drive-water glide) |
+| electric_chiller_COP (electric chiller COP) | yes | 5 | 2.5-8 | ASSUMED | sets the electricity (and emissions) of the cooling the absorption chiller does not cover |
+| hp_eta_lorenz (heat pump Lorenz efficiency) | yes | 0.45 | 0.3-0.7 | ASSUMED | sets the heat pump COP for the lift to 100 C, and so its electricity |
+| hp_cop_cap (heat pump COP cap) | yes | 6 | 3-10 | ASSUMED | caps the heat pump COP at small lifts, where the Lorenz COP is unrealistically high |
+| produced_gas_EF (produced gas emission factor) | yes | 68.6 kg CO2/GJ | 50-100 kg CO2/GJ | DERIVED | sets the CO2 of the produced gas burned in CHP/boiler or flared (combustion + CO2 pass-through) |
+| external_gas_EF (external (pipeline) gas emission factor) | yes | 56.6 kg CO2/GJ | 50-60 kg CO2/GJ | ASSUMED | sets the CO2 of the boiler top-up gas (external gas) |
+| electricity_EF (grid electricity emission factor) | yes | 0.3 kg CO2/kWh | 0-1 kg CO2/kWh | ASSUMED | sets the CO2 of the ESP, heat pump and chiller electricity |
 
 **8. [temperature_assessment] Source temperature vs 100 C supply**
 > Reservoir at 2500 m is 87.0 C, 13.0 K below the fixed 100 C supply before any losses, so a HEX alone cannot supply 100 C. Options: (a) deeper well - T_res = 100 C needs 2933 m, and direct HEX supply (T_res >= 107.4 C incl. 5 K approach, 0.4 K surface drops, ~2 K wellbore loss) needs ~3180 m; (b) surface upgrade - heat pump on the brine leaving the HEX plus CHP on the produced gas. Decision: start with (b) at the official 2500 m (no extrapolated reservoir data, least drilling), then climb a 250 m depth ladder (max 4000 m) and keep each step only if emissions fall >= 5%; the ranking decides with numbers.
@@ -174,7 +190,7 @@ Rejected only because the step improvement is within the tie tolerance of the 5%
 | 300 | 53.4 | 4.61 / 85.5 | 0.59 | 30.3 / 74.5 | 0.526 | 225.2 | 3.3 |
 
 **26. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua500_z2500**
-> FEASIBLE: external gas 0.008 GWh, emissions 9036 t, grid import 12.50 GWh, drilled 10000 m (1.0 s)
+> FEASIBLE: external gas 0.008 GWh, emissions 9036 t, grid import 12.50 GWh, drilled 10000 m (1.9 s)
 
 **27. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z2500
@@ -200,7 +216,7 @@ Rejected only because the step improvement is within the tie tolerance of the 5%
 | 195 | 69.7 | 3.34 / 84.7 | 0.57 | 30.7 / 58.0 | 0.211 | 233.9 | 2.2 |
 
 **31. [evaluate] Annual model + constraint check: n2_q300_s1.0_ua1000_z2500**
-> FEASIBLE: external gas 8.090 GWh, emissions 9429 t, grid import 11.49 GWh, drilled 10000 m (1.9 s)
+> FEASIBLE: external gas 8.090 GWh, emissions 9429 t, grid import 11.49 GWh, drilled 10000 m (1.5 s)
 
 **32. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z2500
@@ -258,7 +274,7 @@ Rejected only because the step improvement is within the tie tolerance of the 5%
 | 300 | 54.8 | 4.61 / 99.9 | 1.01 | 31.0 / 77.7 | 0.555 | 275.7 | 3.3 |
 
 **42. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z3000**
-> FEASIBLE: external gas 0.004 GWh, emissions 6038 t, grid import 4.66 GWh, drilled 12000 m (0.8 s)
+> FEASIBLE: external gas 0.004 GWh, emissions 6038 t, grid import 4.66 GWh, drilled 12000 m (0.9 s)
 
 **43. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3000 (was n2_q300_s1.8_ua1000_z2750)
