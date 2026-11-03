@@ -918,6 +918,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.5.13 | 2026-11-03 | **Addition, the last feature release** (the frozen file unchanged). A series takes the optional key `time_zone` (an IANA name): a CSV time without an offset is local in it; without it such a time is refused as before. Bug fixes only from here. |
 | 0.5.12 | 2026-11-03 | **Freeze, no API change** (the frozen file unchanged). The last planned release: bug fixes only from here, as 0.5.x patches. |
 | 0.5.11 | 2026-11-03 | **Faster, no API change** (the frozen file unchanged). The roles of a plant are read once per schedule, verdict and check; every number is the same as 0.5.10. |
 | 0.5.10 | 2026-11-03 | **Addition, no break** (the frozen file unchanged). The time unit `ms`, a member of `gm.units.Unit`, converted like `s`. |

@@ -204,6 +204,64 @@ def test_the_offset_of_a_timestamp_is_kept_as_utc():
     assert found.series.time[0] == pd.Timestamp("2030-01-01T00:00:00Z")
 
 
+DAILY = b"time,heating_demand_MWth\n2027-01-01,24.313\n2027-01-02,22.984\n2027-01-03,23.5\n"
+"""The shape of the daily demand of the hackathon: dates without an offset."""
+
+
+def test_a_time_zone_reads_dates_without_an_offset_as_local_times():
+    """``time_zone`` makes a date or a time without an offset local in the named zone."""
+    spec = {"file": "d.csv", "column": "heating_demand_MWth", "time_zone": "Europe/Oslo"}
+    found, issues = leaf(spec, source=inputs.Source(files={"d.csv": DAILY}))
+    assert issues == []
+    assert found.series.time[0] == pd.Timestamp("2026-12-31T23:00:00Z")
+    assert list(found.series.values) == [24.313, 22.984, 23.5]
+    assert found.series.to_json()["time_zone"] == "Europe/Oslo"
+    utc, _ = leaf(spec | {"time_zone": "UTC"}, source=inputs.Source(files={"d.csv": DAILY}))
+    assert utc.series.time[0] == pd.Timestamp("2027-01-01T00:00:00Z")
+    hours = b"time,v\n2030-07-01T00:00,1\n2030-07-01T01:00:00+00:00,2\n"
+    mixed, _ = leaf(
+        {"file": "d.csv", "column": "v", "time_zone": "Europe/Oslo"},
+        source=inputs.Source(files={"d.csv": hours}),
+    )
+    assert list(mixed.series.time) == [
+        pd.Timestamp("2030-06-30T22:00:00Z"),
+        pd.Timestamp("2030-07-01T01:00:00Z"),
+    ]
+
+
+def test_without_a_time_zone_a_time_without_an_offset_is_refused():
+    """No default zone: the file as today is refused."""
+    spec = {"file": "d.csv", "column": "heating_demand_MWth"}
+    found, issues = leaf(spec, source=inputs.Source(files={"d.csv": DAILY}))
+    assert found is None and "has no offset" in issues[0].message
+    assert (
+        "time_zone"
+        not in leaf(
+            {"file": "d.csv", "column": "v"},
+            source=inputs.Source(files={"d.csv": b"time,v\n2030-01-01T00:00:00Z,1\n"}),
+        )[0].series.to_json()
+    )
+
+
+@pytest.mark.parametrize(
+    "time", ["2027-03-28T02:30", "2027-10-31T02:30"], ids=["nonexistent", "ambiguous"]
+)
+def test_a_local_time_the_clock_does_not_show_once_is_refused(time):
+    """A time skipped or repeated at a change of the clock in the zone is an issue."""
+    csv = f"time,v\n{time},1\n".encode()
+    spec = {"file": "d.csv", "column": "v", "time_zone": "Europe/Oslo"}
+    found, issues = leaf(spec, source=inputs.Source(files={"d.csv": csv}))
+    assert found is None and "ambiguous or does not exist in Europe/Oslo" in issues[0].message
+
+
+@pytest.mark.parametrize("zone", ["Mars/Olympus", "", 5])
+def test_an_unknown_time_zone_is_refused(zone):
+    """A name that is no IANA zone is an issue at ``time_zone``."""
+    spec = {"file": "d.csv", "column": "heating_demand_MWth", "time_zone": zone}
+    found, issues = leaf(spec, source=inputs.Source(files={"d.csv": DAILY}))
+    assert found is None and issues[0].path == "x.time_zone"
+
+
 def series(step_hours, count, value=lambda i: float(i)):
     """Return a dimensionless series of ``count`` steps."""
     time = pd.date_range("2030-01-01", periods=count, freq=f"{step_hours}h", tz="UTC")

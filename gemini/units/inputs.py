@@ -15,6 +15,7 @@ import posixpath
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import numpy as np
 import pandas as pd
@@ -33,7 +34,7 @@ UNCERTAINTY_KINDS = ("uniform", "triangular", "normal")
 """The distributions a leaf may declare."""
 
 LEAF_KEYS = ("value", "unit", "range", "options", "uncertainty")
-SERIES_KEYS = ("file", "column", "unit", "range")
+SERIES_KEYS = ("file", "column", "unit", "range", "time_zone")
 
 
 @dataclass(frozen=True)
@@ -127,6 +128,7 @@ class Series:
     time: pd.DatetimeIndex
     values: np.ndarray
     quantity: str | None = None
+    time_zone: str | None = None
 
     @property
     def si(self):
@@ -147,7 +149,8 @@ class Series:
     def to_json(self):
         """Return ``{"file", "column", "unit"}``; the numbers stay in the CSV."""
         form = {"file": self.file, "column": self.column}
-        return form if self.unit is None else form | {"unit": self.unit}
+        form |= {} if self.unit is None else {"unit": self.unit}
+        return form if self.time_zone is None else form | {"time_zone": self.time_zone}
 
 
 @dataclass(frozen=True, eq=False)
@@ -602,8 +605,14 @@ def from_series(spec, path, source, issues, *, quantity=None, unit=None):
 
     The CSV is found through ``source`` (disk or mapping, one path). Its first column is named
     ``time``, holds ISO 8601 timestamps with an offset or ``Z``, strictly increasing; every other
-    column named in the leaf must exist and be numeric.
+    column named in the leaf must exist and be numeric. With ``time_zone``, an IANA name such as
+    ``"Europe/Oslo"``, a timestamp without an offset (``2027-01-01`` or ``2027-01-01T00:00``) is
+    a local time in that zone; one that is ambiguous or does not exist at a change of the clock is
+    refused. Without it, a timestamp needs its offset: there is no default zone.
     """
+    zone = _time_zone(spec, path, issues)
+    if zone is False:
+        return None
     file, column = spec.get("file"), spec.get("column")
     for key, found in (("file", file), ("column", column)):
         if not isinstance(found, str) or not found:
@@ -615,10 +624,29 @@ def from_series(spec, path, source, issues, *, quantity=None, unit=None):
         _issue(issues, f"{path}.file", "missing", f"{path}.file: file {file!r} not found")
         return None
     rows = list(csv.reader(io.StringIO(content.decode("utf-8-sig"))))
-    return _series_of_rows(rows, file, column, path, unit, quantity, issues)
+    return _series_of_rows(rows, file, column, path, unit, quantity, issues, zone)
 
 
-def _series_of_rows(rows, file, column, path, unit, quantity, issues):
+def _time_zone(spec, path, issues):
+    """Return the IANA name of ``time_zone``, ``None`` when absent, ``False`` with an issue."""
+    zone = spec.get("time_zone")
+    if zone is None:
+        return None
+    try:
+        ZoneInfo(zone)
+    except (ZoneInfoNotFoundError, TypeError, ValueError):
+        _issue(
+            issues,
+            f"{path}.time_zone",
+            "incompatible",
+            f"{path}.time_zone = {zone!r}; expected an IANA time zone such as 'Europe/Oslo' or "
+            "'UTC'",
+        )
+        return False
+    return zone
+
+
+def _series_of_rows(rows, file, column, path, unit, quantity, issues, zone=None):
     """Return the ``Series`` of the CSV ``rows``, or ``None`` with issues."""
     head = rows[0] if rows else []
     if not head or head[0] != "time":
@@ -642,7 +670,7 @@ def _series_of_rows(rows, file, column, path, unit, quantity, issues):
     place = head.index(column)
     body = [row for row in rows[1:] if row]
     before = len(issues)
-    stamps = [_stamp(row[0], file, number, path, issues) for number, row in enumerate(body)]
+    stamps = [_stamp(row[0], file, number, path, issues, zone) for number, row in enumerate(body)]
     values = [
         _cell(row, place, file, number, column, path, issues) for number, row in enumerate(body)
     ]
@@ -652,11 +680,14 @@ def _series_of_rows(rows, file, column, path, unit, quantity, issues):
     if len(issues) > before:
         return None
     index = pd.DatetimeIndex(pd.to_datetime(stamps, utc=True))
-    return Series(file, column, unit, index, np.asarray(values, dtype=float), quantity)
+    return Series(file, column, unit, index, np.asarray(values, dtype=float), quantity, zone)
 
 
-def _stamp(text, file, number, path, issues):
-    """Return the aware datetime of one cell of ``time``, or ``None`` with an issue."""
+def _stamp(text, file, number, path, issues, zone=None):
+    """Return the aware datetime of one cell of ``time``, or ``None`` with an issue.
+
+    A time without an offset is local in ``zone``; without a zone it is refused.
+    """
     try:
         stamp = datetime.fromisoformat(text.strip())
     except ValueError:
@@ -667,16 +698,33 @@ def _stamp(text, file, number, path, issues):
             f"{path}.file: {file} row {number + 1} time = {text!r}; expected ISO 8601 with offset",
         )
         return None
+    if stamp.tzinfo is None and zone is not None:
+        return _localized(stamp, zone, text, file, number, path, issues)
     if stamp.tzinfo is None:
         _issue(
             issues,
             f"{path}.file",
             "incompatible",
             f"{path}.file: {file} row {number + 1} time = {text!r} has no offset; "
-            "expected ISO 8601 with an offset or Z",
+            "expected ISO 8601 with an offset or Z, or a time_zone for the file",
         )
         return None
     return stamp
+
+
+def _localized(stamp, zone, text, file, number, path, issues):
+    """Return the local ``stamp`` in ``zone`` as an aware datetime, or ``None`` with an issue."""
+    try:
+        return pd.Timestamp(stamp).tz_localize(zone, ambiguous="raise", nonexistent="raise")
+    except (ValueError, OverflowError) as error:
+        _issue(
+            issues,
+            f"{path}.file",
+            "incompatible",
+            f"{path}.file: {file} row {number + 1} time = {text!r} is ambiguous or does not "
+            f"exist in {zone} ({type(error).__name__}); expected a local time the clock shows once",
+        )
+        return None
 
 
 def _cell(row, place, file, number, column, path, issues):

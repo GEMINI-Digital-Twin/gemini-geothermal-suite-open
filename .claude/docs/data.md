@@ -119,7 +119,11 @@ never raise. `case.to_json(path)` writes the file and its files back, so that `C
 `gm.units.Quantity` in Python (a `Quantity` in the data given to `from_dict` is turned into that
 object). A dimensionless value is `{"value": 0.7}`; a bare number or text such as `"150 m3/h"` is an
 issue. A time series is `{"file": "data/demand.csv", "column": "heat_mw", "unit": "MW"}` in place of
-`value`; the first column of every CSV is `time`, ISO 8601 with an offset or `Z`. A series that does
+`value`; the first column of every CSV is `time`, ISO 8601 with an offset or `Z`. The optional key
+`time_zone`, an IANA name (`"Europe/Oslo"`, `"UTC"`), makes a time without an offset (`2027-01-01`,
+`2027-01-01T00:00`) a local time in that zone; one the clock skips or repeats at a change of the
+clock, or an unknown zone, is an issue. Without `time_zone` such a time is refused: there is no
+default zone. A series that does
 not cover `time` is a `coverage` issue naming file, column, covered and requested window; a coarser
 `time.step` averages the samples, a finer one is an issue.
 

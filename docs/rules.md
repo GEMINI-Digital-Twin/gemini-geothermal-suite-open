@@ -11,7 +11,7 @@ the rule names it. Reasons and worked detail are in the docs for agents under `.
 
 ## Freeze
 
-From 0.5.12 gemini is frozen: only bug fixes go in, each released as a new 0.5.x patch. No new
+From 0.5.13 gemini is frozen: only bug fixes go in, each released as a new 0.5.x patch. No new
 name, feature or speed work without the owner's decision.
 
 ## The public API
