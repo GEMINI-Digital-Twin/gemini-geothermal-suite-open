@@ -4,6 +4,8 @@ GEMINI is a composable geothermal digital-twin package. Preserve captured numeri
 
 ## Start here
 
+Read [docs/rules.md](docs/rules.md) first: it holds every rule of the project. This page is orientation.
+
 Test with the development profile (`make test`); see
 [Testing: Test profiles](.claude/docs/testing.md#test-profiles).
 
@@ -25,23 +27,12 @@ goes in an `_utils/` folder, code of one category in a private file of its folde
 ([dependencies](.claude/docs/conventions.md#dependencies)); the rules for folders and the table of what each
 folder takes, gives and may call are in [structure](.claude/docs/structure.md).
 
-**Read/write naming.** Every reader is `from_<format>` and every writer `to_<format>`: `from_csv`,
-`from_json`, `from_dict`, `from_values`, `from_bytes`, ... and `to_csv`, `to_json`, `to_dict`,
-`to_bytes`, .... A reader is a classmethod on the class it returns (`gm.Case.from_json(path)`); a
-writer is a method of the object (`case.to_json(path)`). Only a reader that returns no gemini
-class (a demand frame) is a plain function in its folder (`gm.case.from_csv`). No `read_*`,
-`write_*`, `load_*`, `save_*`, `parse_*` or `dump_*` names; `tests/unit/test_code_quality.py` rejects
-those prefixes ([conventions](.claude/docs/conventions.md#public-names-and-readwrite-naming)).
-
 Learn the package from [examples/README.md](examples/README.md): five flat scripts, `quickstart.py`
 first, then `hackathon.py`. gemini holds no data file: plants are Python classes, and JSON is only the
 plant dict agents use (`gm.Plant.from_dict`, `plant.to_dict`, `gm.plants.schema`). Data lives in
 `examples/<name>/` (a sample project: its case, plants and data, so a folder a user can copy) and in
 `tests/fixtures/` (what the tests read); none of it is installed, and the package holds none
 ([data](.claude/docs/data.md#where-data-lives)).
-
-Before adding or moving an input, apply the placement test of [inputs](.claude/docs/inputs.md#2-the-placement-test):
-one owner, one file, and the reason is written there.
 
 One `gm.Case` carries what a plant is asked to do, for every call: the sections `time`,
 `site`, `demand`, `utilities`, `economics` and `requirements`, strict and typed, read from a
@@ -67,52 +58,9 @@ results = gm.simulate(plant, case)
 print(gm.evaluate.report(plant, case, results)["heat_delivered"].to("MWh").value)
 ```
 
-**Standing rules.** They apply to every change, in code, tests and docs.
-
-- *One unit format.* A value with a unit is a `gm.units.Quantity` with a unit of the
-  `gm.units.Unit` enum, or its dict `{"value": 150, "unit": "m3/h"}`; a string such as
-  `"150 m3/h"` is never accepted, and nothing in the package parses unit text. A dimensionless value
-  is a number. A bare number with a dimension raises `invalid_value` at every public door
-  (`set_params`, `Plant.set_inputs`, `gm.Stream`, `Stream.with_`, attribute assignment outside a call, `gm.Fluid`, `gm.call`); `gemini` itself uses the
-  private SI path (`_set_si_params`, `Stream._si`, `Fluid._si`, `Stream._with_si`,
-  `Module._assign_si`) ([units](.claude/docs/conventions.md#units)).
-- *No defaults.* Nothing a user must decide has a default value in gemini: not a price, a
-  temperature, a limit, a factor or an efficiency. Such a field is required, or absent (`None`),
-  and a call that needs an absent value raises `missing_value` (`missing_assumption` below
-  `economics`) naming its path. `gm.case` has no default at all, and a module or plant declaration keeps a default only if it is
-  in `DECLARED_DEFAULTS` (a sourced constant or the zero of an accumulator);
-  `tests/unit/test_code_quality.py` checks this
-  ([no defaults](.claude/docs/conventions.md#no-defaults)).
-- *The input is a case, never a problem.* The word `problem` is only the return shape of an error;
-  `tests/unit/test_code_quality.py` rejects it as a name in `gemini/`.
-- *Backward compatible from 0.5.0.* Nothing that exists in 0.5.0 may break: no public name
-  (`gm.*`, `gm.<folder>.*`) is renamed or removed, no signature loses or reorders a parameter or
-  changes a default or a kind, no output field or behaviour changes, no key of the case, economics,
-  plant or study JSON schemas disappears or becomes required, and the module-author contract
-  (`forward`, `update`, `State`) stays. Additions that break nothing are allowed, and the owner
-  decides them. What the competition runs (`examples/hackathon.py`, `examples/hackathon_2026`) stays
-  exactly the same. `tests/unit/test_api_compatibility.py` compares with the stored
-  `tests/fixtures/public_api_0_5_0.json`, a file written once and never regenerated (its hash is
-  pinned in the test), and `tests/e2e/test_competition_surface.py` pins the competition
-  ([freeze rule](.claude/docs/conventions.md#public-api-freeze)).
-- *Update the code, never wrap it.* When a refactor changes a name or a shape, every caller is
-  changed in the same task, and no wrapper, alias or shim is written
-  ([one implementation](.claude/docs/conventions.md#one-implementation-per-concept)).
-- `.claude/` holds no separate rules file: this page is the coding rules for Claude.
-
 Everything in the plant's energy and mass flow is a module, everything that crosses between modules
 goes through a port, and a plant total is read from the ports of the modules at the plant's edge
 ([energy flow](.claude/docs/modules.md#energy-flow)). Check a run with `gm.evaluate.plant_balance(plant, case, results)`.
-
-Every port of a module is connected or named as a plant port; there are no automatic plant ports
-([plants](.claude/docs/plants.md#the-builder)). What a design holds beside its parameters, such as a
-setpoint, is set with `plant.set_inputs` and stored in the plant file as a leaf of `params`. A plant may derive its children's values by
-overriding `_set_si_params`
-([modules](.claude/docs/modules.md#a-plant-that-sets-its-childrens-values)).
-
-Every public return uses one of three shapes, value, problem (the shape of an error) or check, built by
-`gemini/units/shapes.py` ([return shapes](.claude/docs/api.md#return-shapes)). Every public call
-raises by default; `on_error="record"` reports instead ([errors](.claude/docs/errors.md)).
 
 Read every file in `.claude/docs/` before changing the repository:
 
@@ -142,22 +90,6 @@ Read every file in `.claude/docs/` before changing the repository:
 - [Types](.claude/docs/types.md): streams, fluids, declarations, profiles and balances.
 - [Utilities](.claude/docs/utils.md): the `gemini._utils` helpers and how to add one.
 
-When a commit changes behaviour, structure or conventions, update the relevant document in the
-same commit. The public API is backward compatible from 0.5.0 ([freeze rule](.claude/docs/conventions.md#public-api-freeze)).
-
-## Branching
-
-- `main` is the stable line (competition delivery, releases). Change it only on the user's
-  request.
-- `dev` is the development line: commit there and push `origin dev`.
-- `feature/<name>`, `fix/<name>` and `docs/<name>` hold one task each, with a short lowercase name
-  joined by hyphens (`feature/study-speed`, `fix/budget-tests`). Branch from `dev`, merge back into
-  `dev`, then delete the branch locally and on `origin`.
-- Temporary worker branches and worktrees of a coordinator session stay local, are never pushed,
-  and are removed at the end of the task.
-- Never name a branch `dev/...`: git cannot hold both `dev` and `dev/<name>`.
-- Open a pull request only when asked.
-
 ## Layout
 
 ```text
@@ -178,6 +110,7 @@ gemini/
 ├── study/            # size, minimize, sample, sensitivity, calibrate, Study; _utils/ (trial, variables, execute, target)
 ├── evaluate/         # one file per job: costs, emissions, balances, verdict, summary, report; each public function is gm.evaluate.<name>; _utils/
 └── analysis/         # one module at fixed conditions: nodal, fits (and the pump curve), corrosion forecast
+docs/                 # for people: guide.md, rules.md, CHANGELOG.md, the Sphinx sources
 docs/schemas/         # generated JSON Schemas and samples of the exchanged documents
 examples/             # five flat scripts (quickstart, hackathon, costs, uncertainty, plant) and one folder per sample project (case, plants, data): hackathon_2026/, shallow_district/
 scripts/              # test_changed.py, write_schemas.py, legacy/ (old-project reader for the tests)
@@ -185,15 +118,4 @@ docker/               # sandbox.Dockerfile, the image of a module sandbox (make 
 tests/                # unit mirror, integration, e2e (expected/ holds example outputs), fixtures (with the data the tests read: plants/, doublet_heat/, legacy_project/)
 ```
 
-Modules declare parameters and ports in `__init__`; `forward(self, inputs, inlets, state)` is pure:
-it receives the controls and boundaries in `inputs`, one immutable `Ports` mapping
-(`gemini.streams.Ports`) in `inlets` and the state, reads only parameters on `self` (never a
-control, boundary, state or output), writes nothing and returns `(outputs, outlets)`. A per-step
-value is never `None`: an output that is empty when off is NaN, shown as `None` in results. A
-stateful module also has a pure `update(self, inputs, inlets, outlets, state, dt)` returning the next
-state. The combinations of a plant are returned by `Plant.forward`, written once. Pre-hooks receive
-`(module, inputs, inlets, state)` and forward hooks receive `(module, inputs, inlets, state,
-outputs, outlets)`. Plants ([plants.md](.claude/docs/plants.md)) own persistence, bindings, and
-dated design. `gemini.engine` holds the run objects and reads files only for a `Results`. No engine
-loop sleeps or schedules itself. Keep the public API small and examples outside the package.
 Details are in [conventions.md](.claude/docs/conventions.md) and [modules.md](.claude/docs/modules.md).
