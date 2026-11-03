@@ -18,16 +18,15 @@ class ModuleTree:
     def named_modules(self, prefix=""):
         """Walk self and descendants once using dotted paths."""
         seen = set()
-
-        def walk(module, path):
+        waiting = [(prefix, self)]
+        while waiting:
+            path, module = waiting.pop()
             if id(module) in seen:
-                return
+                continue
             seen.add(id(module))
             yield path, module
-            for name, child in module.named_children():
-                yield from walk(child, join_path(path, name))
-
-        yield from walk(self, prefix)
+            below = [(join_path(path, name), child) for name, child in module.named_children()]
+            waiting.extend(reversed(below))
 
     def modules(self):
         """Walk self and all unique descendants."""

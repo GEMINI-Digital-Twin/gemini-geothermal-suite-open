@@ -83,8 +83,8 @@ def bounds(plant, case, results):
     for path, names in results.names().items():
         outputs = plant.get_submodule(path).outputs(recurse=False)
         for field in names:
-            column = frame[join_path(path, field)]
             limits = _limits(outputs, field)
+            column = frame[join_path(path, field)] if limits else None
             if limits and pd.api.types.is_numeric_dtype(column) and column.dtype != bool:
                 judged += 1
                 violations += _outside(column, limits)

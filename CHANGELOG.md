@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] - 2026-11-03
+
+Every public name, default and number is the same as 0.5.6.
+
+### Changed
+- A study runs faster: `examples/hackathon.py` takes 2:11 instead of 3:29 on the same machine, and
+  prints the same output. The frame of a run is built without a `Series` per column, a balance and
+  the bounds check read only the columns they need, and `named_modules` walks without nested
+  generators. No number, name or signature changes.
+
 ## [0.5.6] - 2026-11-03
 
 Every public name and default is the same as 0.5.5 (`tests/fixtures/public_api_0_5_0.json` is the
