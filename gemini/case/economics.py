@@ -241,14 +241,19 @@ class Economics(Node):
 
     @classmethod
     def read(cls, data, path, ctx, header=()):
-        """Return the economics of ``data`` (an object or a file path) or ``None`` with issues."""
+        """Return the economics of ``data`` (an object or a file path) or ``None`` with issues.
+
+        A wrong ``name`` or ``format`` does not stop the read: the values are still judged.
+        """
         data, source = inputs.from_section(data, path, ctx.source, ctx.issues)
         if data is None:
             return None
         head = inputs.from_header(data, "economics", path, ctx.issues)
-        if head is None:
+        if head is None and not (isinstance(data, dict) and data.get("kind") == "economics"):
             return None
         found = super().read(data, path, ctx.at(source), HEADER)
+        if head is None:
+            return None
         if found is not None:
             found._set(name=head.name)
         return found

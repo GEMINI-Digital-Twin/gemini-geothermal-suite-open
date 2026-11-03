@@ -110,7 +110,11 @@ Nothing has a default: an absent value is `None` and the call that needs it rais
 `Case.from_json(path)` reads the file, its CSV files and the economics file it names;
 `Case.from_dict(data, files={name: bytes}, folder=None)` reads a dict and takes the files from the
 mapping, then from the folder. Both raise one `ValidationError` carrying every issue
-(`error.issues`). `case.check()` and `economics.check()` return the same issues for an object and
+(`error.issues`, each `{path, kind, message}`; `error.problems` the same as problem dicts), so one
+call validates a whole case dict: a wrong header `name` or `format`, a wrong or missing `time` and an
+economics without a `name` do not stop the read, every section is still judged (a series is then
+not aligned and adds no issue of its own); only a file of another `kind`, or of none, is refused
+alone. `case.check()` and `economics.check()` return the same issues for an object and
 never raise. `case.to_json(path)` writes the file and its files back, so that `Case.from_json(path)
 == case`. A key of an older shape (`environment`, `constraints`, `assumptions`, `time_column`,
 `equals`, a demand `file`/`column`) is refused with code `old_format`, naming the new form.

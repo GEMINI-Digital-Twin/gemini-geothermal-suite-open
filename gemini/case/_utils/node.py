@@ -55,6 +55,8 @@ class Context:
     source: inputs.Source
     index: pd.DatetimeIndex | None = None
     step: pd.Timedelta | None = None
+    untimed: bool = False
+    """The ``time`` of the case is wrong: a series is not aligned and adds no issue of its own."""
 
     def at(self, source):
         """Return the context for a file whose references start from ``source``."""
@@ -451,6 +453,8 @@ def _value_of(field, leaf, path, ctx):
 
 def _aligned(field, leaf, path, ctx):
     """Return the series of ``leaf`` on the steps of ``time``, or ``None`` with issues."""
+    if ctx.index is None and ctx.untimed:
+        return None
     if ctx.index is None:
         issue(
             ctx.issues,

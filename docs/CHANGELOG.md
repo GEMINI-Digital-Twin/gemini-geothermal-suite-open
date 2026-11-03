@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+### Fixed
+- `gm.Case.from_dict` and `from_json` list every issue of a case in one `ValidationError`
+  (`error.issues`, each with `path`, `kind` and `message`): a wrong `time` (a step without a unit,
+  no `time` at all) or a header without a `name` no longer stops the read before the sections, and
+  an economics without a `name` still has its values judged. A series is not aligned while the
+  time is wrong and adds no issue of its own. A file of another `kind` is still refused alone.
+
 ## [0.6.1] - 2026-11-03
 
 Structure optimisation, approved by the owner. Additive: nothing of 0.6.0 changes, and
