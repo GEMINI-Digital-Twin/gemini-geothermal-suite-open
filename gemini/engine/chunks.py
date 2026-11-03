@@ -276,8 +276,8 @@ def assemble(chunk, order, times):
     columns = {}
     for position, (path, name) in enumerate(order):
         values = _combined(_pieces([chunk], [len(chunk)], path, name))
-        series = pd.Series(values, index=index, copy=False)
-        columns[position] = series.infer_objects() if values.dtype == object else series
+        typed = values.dtype != object
+        columns[position] = values if typed else pd.Series(values, index=index).infer_objects()
     frame = pd.DataFrame(columns, index=index)
     names = ["module_path", "field"]
     if order:

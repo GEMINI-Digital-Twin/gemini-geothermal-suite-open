@@ -117,15 +117,9 @@ def _call_columns(result):
     }
 
 
-def _run_columns(results):
-    """Return the columns of a finished run."""
-    frame = results.to_frame()
-    return {name: frame[name] for name in frame.columns}
-
-
 def _reader(run):
     """Return ``read(path, field)``: a column as an array, or zero when the run has none."""
-    columns = _call_columns(run) if isinstance(run, ModuleResult) else _run_columns(run)
+    columns = _call_columns(run) if isinstance(run, ModuleResult) else run.to_frame()
 
     def read(path, field):
         name = join_path(path, field)
