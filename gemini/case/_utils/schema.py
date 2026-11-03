@@ -81,7 +81,8 @@ def leaf(field):
         "unit": properties.get("unit"),
     }
     series = {key: item for key, item in series.items() if item is not None}
-    return {"anyOf": [form, closed(series | {"range": RANGE}, list(series))]} | marks(field)
+    optional = {"range": RANGE, "time_zone": {"type": "string"}}
+    return {"anyOf": [form, closed(series | optional, list(series))]} | marks(field)
 
 
 def closed(properties, required=()):

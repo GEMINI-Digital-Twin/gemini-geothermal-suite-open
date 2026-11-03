@@ -12,10 +12,22 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.5.13] - 2026-11-03
+
+The last feature release: from this version gemini is frozen and takes bug fixes only, each as a
+new 0.5.x patch. Every existing name, default and number is the same as 0.5.12.
+
+### Added
+- A series may state the zone of its CSV times: `{"file", "column", "unit", "time_zone"}` with an
+  IANA name (`"Europe/Oslo"`, `"UTC"`). A time without an offset, such as the dates of a daily
+  demand (`2027-01-01`), is then a local time in that zone; one the clock skips or repeats at a
+  change of the clock, or an unknown zone, is an issue. Without `time_zone` nothing changes: a
+  time without an offset is refused, and there is no default zone.
+
 ## [0.5.12] - 2026-11-03
 
-The last planned release: from this version gemini is frozen and takes bug fixes only, each as a
-new 0.5.x patch. Every public name, default and number is the same as 0.5.11.
+Every public name, default and number is the same as 0.5.11. (0.5.13 added `time_zone` after it
+and is the last feature release.)
 
 ### Changed
 - `docs/rules.md` states the freeze.

@@ -428,6 +428,9 @@
                       },
                       "type": "object"
                     },
+                    "time_zone": {
+                      "type": "string"
+                    },
                     "unit": {
                       "enum": [
                         "GW",
@@ -898,6 +901,9 @@
                         }
                       },
                       "type": "object"
+                    },
+                    "time_zone": {
+                      "type": "string"
                     },
                     "unit": {
                       "enum": [
@@ -2763,6 +2769,9 @@
                           },
                           "type": "object"
                         },
+                        "time_zone": {
+                          "type": "string"
+                        },
                         "unit": {
                           "enum": [
                             "EUR/kg",
@@ -2986,6 +2995,9 @@
                           },
                           "type": "object"
                         },
+                        "time_zone": {
+                          "type": "string"
+                        },
                         "unit": {
                           "enum": [
                             "EUR/J",
@@ -3101,6 +3113,9 @@
                             }
                           },
                           "type": "object"
+                        },
+                        "time_zone": {
+                          "type": "string"
                         },
                         "unit": {
                           "enum": [
@@ -4493,6 +4508,9 @@
                               },
                               "type": "object"
                             },
+                            "time_zone": {
+                              "type": "string"
+                            },
                             "unit": {
                               "enum": [
                                 "EUR/kg",
@@ -4602,6 +4620,9 @@
                                 }
                               },
                               "type": "object"
+                            },
+                            "time_zone": {
+                              "type": "string"
                             },
                             "unit": {
                               "enum": [
@@ -4778,6 +4799,9 @@
                           },
                           "type": "object"
                         },
+                        "time_zone": {
+                          "type": "string"
+                        },
                         "unit": {
                           "enum": [
                             "EUR/J",
@@ -4893,6 +4917,9 @@
                             }
                           },
                           "type": "object"
+                        },
+                        "time_zone": {
+                          "type": "string"
                         },
                         "unit": {
                           "enum": [
@@ -5409,6 +5436,9 @@
                         }
                       },
                       "type": "object"
+                    },
+                    "time_zone": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -5504,6 +5534,9 @@
                         }
                       },
                       "type": "object"
+                    },
+                    "time_zone": {
+                      "type": "string"
                     },
                     "unit": {
                       "enum": [
@@ -6707,6 +6740,9 @@
                         }
                       },
                       "type": "object"
+                    },
+                    "time_zone": {
+                      "type": "string"
                     },
                     "unit": {
                       "enum": [
