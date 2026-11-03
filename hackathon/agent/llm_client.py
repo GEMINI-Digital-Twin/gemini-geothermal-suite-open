@@ -66,9 +66,11 @@ class TokenLog:
 class ChatModel:
     """OpenAI-compatible chat endpoint (Ollama or Gemini)."""
 
-    def __init__(self, route_name, route, log, temperature=0.2, timeout=300):
+    def __init__(self, route_name, route, log, temperature=0.2, timeout=None, retries=1):
         self.name, self.route, self.log = route_name, route, log
-        self.temperature, self.timeout = temperature, timeout
+        self.temperature = temperature
+        self.timeout = timeout or route.get("timeout_s", 300)  # per-route, from llm_config.yaml
+        self.retries = retries
 
     def chat(self, messages, tools=None, step=None):
         key_env = self.route.get("api_key_env")
@@ -84,8 +86,15 @@ class ChatModel:
             body["tools"] = tools
             body["tool_choice"] = "auto"
         t0 = time.time()
-        r = requests.post(self.route["base_url"].rstrip("/") + "/chat/completions",
-                          headers=headers, json=body, timeout=self.timeout)
+        url = self.route["base_url"].rstrip("/") + "/chat/completions"
+        for attempt in range(self.retries + 1):
+            try:
+                r = requests.post(url, headers=headers, json=body, timeout=self.timeout)
+                break
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                if attempt == self.retries:
+                    raise RuntimeError(f"{self.name} did not answer after {attempt + 1} attempts "
+                                       f"({self.timeout} s timeout each): {exc}") from exc
         if r.status_code >= 400:
             raise RuntimeError(f"{self.name} returned {r.status_code}: {r.text[:500]}")
         data = r.json()

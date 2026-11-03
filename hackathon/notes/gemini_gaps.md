@@ -11,21 +11,23 @@ Status is proposed by Claude; the owner decides.
 | 3 | PVT validity capped at 100 C | `temperature_max = 100 + 273.15` | Flag (constants are used anyway) | Raised to 200 C in our brine class |
 | 4 | No gas in the wellbore (gas mass fraction 0) | `PVTConstantSTP GMF = 0` | Flag | Gas handled only at the separator |
 | 5 | Well heat loss uses fixed U = 10 W/m2K and one ambient temperature | `pressure_drop.py: Uvalue = 10` | Work around (ambient per segment); flag U | `wellhead_temperature_c` |
-| 6 | Productivity index must be supplied | `productivity_index_m3h_per_bar` input | Work around | `subsurface.productivity_index_m3h_bar` (Darcy radial) |
+| 6 | Simulator needs PI as an input; GEMINI's `bottomhole_skin_dp` has the Darcy+skin formula but no drainage radius value and is not used by the template | `productivity_index_m3h_per_bar` input; `reservoir_pressuredrop.py` | Work around | `subsurface.productivity_index_m3h_bar` calls GEMINI's `bottomhole_skin_dp` with r_e = spacing (DoubletCalc Eq. 7) |
 | 7 | Heat pump model exists but is not registered in the simulator | `gemini_model/heatpump` missing from `registry.py` | Use directly; registering is a possible contribution | `surface.py` |
 | 8 | No chiller, storage or annual (daily) dispatch | nothing in `gemini_model` | Add | `surface.py`, `dispatch.py` |
-| 9 | Boiler/CHP heating value is pure methane (50 MJ/kg) | template `caloric_value` | Work around | `subsurface.gas_properties`: 29.5 MJ/kg for 80/20 CH4/CO2 |
+| 9 | Boiler/CHP heating value is pure methane (50 MJ/kg) | template `caloric_value` | Work around | `subsurface.gas_properties`: 29.6 MJ/kg for 80/20 CH4/CO2 |
 | 10 | Example ESP curve is a ~200 m3/h pump: saturates at ~240 m3/h, negative head at 300 m3/h | ESP scan, any stages/frequency | Flag + work around | Design mode: generic pump, dP·Q/0.70 (brief's efficiency) |
-| 11 | **Injector friction has the wrong sign**: DPDT always adds friction walking down; for injection the walk follows the flow | `pressure_drop.py: pressure + dp_fric + dp_grav`; `nodal_solver._well_bottomhole_pressure_injection` passes +Q | **Fix candidate** (one line: pass −Q); bug report + test to GEMINI | `subsurface._injector_wellhead_pressure_corrected_bar`. At 300 m3/h: 15.9 bar as-is vs 26.4 bar corrected (hand calc 26.5) |
+| 11 | **Injector friction has the wrong sign**: DPDT always adds friction walking down; for injection the walk follows the flow | `pressure_drop.py: pressure + dp_fric + dp_grav`; `nodal_solver._well_bottomhole_pressure_injection` passes +Q | **Fix candidate** (one line: pass −Q); bug report + test to GEMINI | `subsurface._injector_wellhead_pressure_corrected_bar`. At 300 m3/h (7 in, skin 5): 24.7 bar as-is vs 49.7 bar corrected (hand calc 49.7) |
 | 12 | Default flow bracket (0.01–700 m3/h) lets the nodal solve land on a spurious root (~602 m3/h, ESP intake 0 bar) | ESP scan | Work around | `gemini_project.configure_doublet_project` sets 1–350 m3/h |
+| 13 | Template filter resistances grow with flow and drive pressure negative above ~200 m3/h (3.0 bar wellhead) | GEMINI Separator + Filter models with template parameters: -0.61 bar at 300 m3/h | Work around | Fixed surface loss = template design-point loss 1.55 bar |
+| 14 | No economics in GEMINI | nothing in `gemini_model` | Add | `economics.py` with TNO ThermoGIS cost model |
 
-## Validation at 2,500 m (design mode D vs GEMINI project mode A vs hand estimate C)
+## Validation at 2,500 m, spacing 1,600 m (design mode D vs GEMINI project mode A vs hand estimate C)
 
 | Q m3/h | Producer pump D / A (ESP curve) / C, MW | Injector WHP D / A (as-is) / C, bar |
 |---|---|---|
-| 100 | 0.084 / 0.082 / 0.084 | 5.93 / 4.71 / 5.93 |
-| 150 | 0.154 / 0.133 / 0.154 | 10.62 / 7.94 / 10.62 |
-| 200 | 0.245 / 0.249 / 0.245 | 15.60 / 10.89 / 15.60 |
-| 300 | 0.495 / n.a. (ESP limit) / 0.495 | 26.40 / 15.94 / 26.40 |
+| 100 | 0.066 / 0.058 / 0.066 | 12.12 / 9.18 / 12.12 |
+| 150 | 0.139 / 0.115 / 0.139 | 20.50 / 14.06 / 20.50 |
+| 200 | 0.243 / 0.246 / 0.243 | 29.55 / 18.26 / 29.55 |
+| 300 | 0.561 / n.a. (ESP limit) / 0.561 | 49.67 / 24.66 (as-is) / 49.67 |
 
-Leg B (reference hand calculation from the owner's references) is still to add.
+PI: GEMINI `bottomhole_skin_dp` 10.34 m3/h/bar = hand Thiem/DoubletCalc 10.34.

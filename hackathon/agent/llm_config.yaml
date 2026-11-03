@@ -6,21 +6,23 @@
 routes:
   local:
     base_url: http://localhost:11434/v1
-    model: qwen2.5:7b            # whatever you pulled with `ollama pull`
+    model: qwen3.5:4b            # owner pulled qwen3.5:4b and qwen3.5:9b; switch with --local-model
     api_key_env: null            # Ollama needs no key
     price_in_per_mtok_usd: 0.0
     price_out_per_mtok_usd: 0.0
+    timeout_s: 1800              # method choice: CPU steps reached >5 min at ~15k prompt tokens (run 1b)
   api:
     base_url: https://generativelanguage.googleapis.com/v1beta/openai
     model: gemini-3-flash        # placeholder: copy the exact id from AI Studio
     api_key_env: GEMINI_API_KEY  # line in hackathon/.env: GEMINI_API_KEY=...
-    price_in_per_mtok_usd: 0.50  # used only for the cost estimate in the token log
+    price_in_per_mtok_usd: 0.50  # BenchLM Gemini API pricing (Jul 2026), Gemini 3 Flash; cost estimate only
     price_out_per_mtok_usd: 3.00
+    timeout_s: 300               # method choice
 
 # hybrid: API for planning, for the step after a hard violation, and for the final
 #         comparison; local for routine tool steps.
 # api_only / local_only: one route for everything (use one fixed mode for recorded runs).
 routing: hybrid
-max_iterations: 20
-budget_usd_per_run: 0.50         # the loop stops if the estimated cost passes this
-temperature: 0.2
+max_iterations: 30               # method choice: step cap per run
+budget_usd_per_run: 0.50         # owner budget guard (EUR 10 total); loop stops above this
+temperature: 0.2                 # method choice: low randomness for reproducible runs

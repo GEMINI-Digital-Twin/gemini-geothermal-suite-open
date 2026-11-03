@@ -1,11 +1,14 @@
 # Fixed inputs for the GEMINI agentic geothermal design hackathon.
 #
-#   fact_sheet:   copied from the organisers' "Required Inputs" document. Do not change.
-#   assumptions:  our engineering choices. Each has a value, a basis and a status:
-#                   confirmed  = decided by the owner (see notes/decisions.md)
-#                   default    = proposed, not yet decided
-#                 `uncertainty` gives the range used in the uncertainty analysis.
-#   design_variables: the only things the agent may choose.
+# Data Source:
+#   fact_sheet:   Challenge requirement, as it is.
+#   assumptions:  Design choices. Every value has a `source` (see notes/decisions.md for
+#                 the full reference list with pages and quotes) and a `status`:
+#                   confirmed = decided by the owner
+#                 `uncertainty` gives the range sampled in the robustness (P10/P50/P90) check.
+#   economics:    TNO ThermoGIS NL defaults used as they are (no inflation or other
+#                 adjustment), plus the sourced items ThermoGIS does not cover.
+# The agent may vary only what is listed under design_variables.
 
 fact_sheet:
   reservoir:
@@ -45,106 +48,143 @@ organiser_clarifications:
   - "Return temperatures are our choice, as long as no constraint is violated."
 
 assumptions:
-  # A1
+  # ---------------------------------------------------------------- brine and gas
   brine_cp_j_kgk:
     value: 4217
-    basis: "GEMINI PVTConstantSTP default; water at ~100 C is 4,216 J/kgK. NaCl content unknown, so the water value is used."
+    source: "GEMINI PVTConstantSTP CPL = 4.2174e3 J/kgK (water); NaCl content unknown (owner, A1)"
     status: confirmed
-  # A2 is a fact-sheet reading, recorded here for traceability
-  brine_cooling_reading:
-    value: "temperature_drop_producer_to_injector"
-    basis: "Fact sheet status column: 'hard challenge cap; producer to injector'. Organiser: 'how much you can cool down the brine'."
+  ch4_lhv_mj_per_kg:
+    value: 50.0
+    source: "GEMINI doublet_plant.json boiler/chp caloric_value = 50000000 J/kg"
     status: confirmed
-  # A3
-  reservoir_pressure_vs_depth:
-    value: "anchored_hydrostatic"
-    basis: "250 bar at 2,500 m is hard data; other depths: 250 bar + rho*g*(z - 2500), per the organisers' hydrostatic instruction."
+  ch4_density_kg_nm3:
+    value: 0.7168
+    source: "Engineering ToolBox, Methane - Thermophysical Properties: density, gas at STP 0 C 1 atm = 0.7168 kg/m3"
     status: confirmed
-  # A4
-  injector_reservoir_pressure:
-    value: "same_as_producer"
-    basis: "Fact sheet: same reservoir; equal liquid volumes."
-    status: confirmed
-  # A5 (base value; the agent chooses within design_variables.heating_return_c and must report sensitivity)
-  heating_return_c:
-    value: 60
-    basis: "Base case only. Return temperature is the participant's choice (organiser). Agent chooses 45-70 C and reports the final design's sensitivity across that range."
-    status: confirmed
-  # A6 (documented, not used in calculations: chiller option 1, fixed COP)
-  cooling_return_c:
-    value: 26
-    basis: "20 C supply with a 6 K loop. Documentation only; chillers use fixed COP (owner decision: option 1, thermodynamic trend later if time allows)."
-    status: confirmed
-  # A7
-  wellhead_pressure_bar:
-    value: 10
-    basis: "Keeps brine pressurised to the separator. Total pump power is insensitive (~0.71 MW at 300 m3/h for 3-15 bar)."
+  co2_density_kg_nm3:
+    value: 1.976
+    source: "GEMINI PVTConstantSTP RHOG = 1.976 kg/m3 (CO2 gas density)"
     status: confirmed
   gas_liberation_fraction:
     value: 1.0
-    basis: "Fact sheet defines GLR as potentially liberated gas; full liberation is an upper bound."
+    source: "Fact sheet: GLR is potentially liberated gas at standard conditions (owner, A7: fixed)"
     status: confirmed
-    uncertainty: [0.5, 1.0]
-  # A8
-  doublet_well_spacing_m:
-    value: 1500
-    basis: "Typical doublet spacing at reservoir level; sets PI (r_e = spacing/2) and thermal breakthrough time."
+  # ---------------------------------------------------------------- reservoir and wells
+  reservoir_pressure_vs_depth:
+    value: "anchored_hydrostatic"
+    source: "Fact sheet 250 bar at 2,500 m; organisers: hydrostatic for other depths (owner, A3)"
+    status: confirmed
+  injector_reservoir_pressure:
+    value: "same_as_producer"
+    source: "Fact sheet: same reservoir; equal liquid volumes (owner, A4)"
+    status: confirmed
+  wellhead_pressure_bar:
+    value: 3.0
+    source: "GEMINI doublet_plant.json boundary input producer_well.wellhead_pressure = 3.0 bar"
+    status: confirmed
+  surface_pressure_loss_bar:
+    value: 1.55
+    source: "Derived from GEMINI doublet_plant.json run: wellhead 3.00 bar -> filter_b outlet 1.45 bar at the template design flow (129 m3/h). Template filters are not valid at our flows (gap 13), so the design-point loss is used as a fixed value"
+    status: confirmed
+  well_inner_diameter_m:
+    value: 0.1778
+    source: "TNO (2012) BIA Geothermal umbrella report, TNO 2012 R10719, p. 29: DoubletCalc input 'Well inner diameter: 7 Inch' (owner, A9: fixed)"
+    status: confirmed
+  pipe_roughness_m:
+    value: 5.0e-5
+    source: "Neutrium, Absolute roughness of pipe material: carbon steel (new) 0.02-0.05 mm; upper value"
+    status: confirmed
+  skin_producer:
+    value: 1
+    source: "TNO (2012) R10719, p. 29: DoubletCalc input 'Skin producer 1'"
+    status: confirmed
+    uncertainty: [0, 5]       # DoubletCalc 1.4 manual (TNO 2014 R11396) p. 18 default 0; TNO 2012 p. 29 injector 5
+  skin_injector:
+    value: 5
+    source: "TNO (2012) R10719, p. 29: DoubletCalc input 'Skin injector 5'"
+    status: confirmed
+    uncertainty: [0, 5]
+  drainage_radius:
+    value: "well_spacing"
+    source: "DoubletCalc 1.4 manual (TNO 2014 R11396), section 5.4, Eq. 7, p. 27: ln(L/rw) with L = distance between production and injection well at aquifer level"
+    status: confirmed
+  well_spacing_m:
+    value: 1600
+    source: "Base value only (agent chooses spacing). DoubletCalc 1.4 manual p. 21 example: 1600 m"
     status: confirmed
   doublet_lifetime_years:
     value: 30
-    basis: "Technical lifetime of a doublet ~30 years (Masterplan Aardwarmte in Nederland)."
+    source: "Masterplan Aardwarmte in Nederland: technical lifetime of a doublet ~30 years (owner, A8)"
     status: confirmed
   rock_grain_cp_j_kgk:
     value: 730
-    basis: "Quartz-dominated sandstone (owner)."
+    source: "Quartz-dominated sandstone (owner, A8)"
     status: confirmed
   rock_grain_density_kg_m3:
     value: 2650
-    basis: "Quartz grain density (owner)."
+    source: "Quartz grain density (owner, A8)"
     status: confirmed
   porosity:
     value: 0.15
-    basis: "Pragmatic case; Groningen/Slochteren core and field studies 14.6-18.9% (owner)."
+    source: "Pragmatic case; Groningen/Slochteren core and field studies 14.6-18.9% (owner, A8)"
     status: confirmed
     uncertainty: [0.146, 0.189]
-  # A9 (well designs: diameter now, max flow and CAPEX factor from economics references)
-  well_designs:
-    value:
-      slim:     {inner_diameter_m: 0.1778, max_flow_m3h: null, capex_factor: null}
-      standard: {inner_diameter_m: 0.2159, max_flow_m3h: 300,  capex_factor: 1.0}
-      large:    {inner_diameter_m: 0.2445, max_flow_m3h: 300,  capex_factor: null}
-    basis: "Slim 7 in, standard 8.5 in, large 9 5/8 in. Friction from GEMINI DPDT; null values come from the economics references."
+  # ---------------------------------------------------------------- network
+  heating_return_c:
+    value: 60
+    source: "Base case only; return temperature is the participant's choice (organisers). Agent chooses within design_variables and reports sensitivity (owner, A5)"
     status: confirmed
-  default_well_design:
-    value: standard
-    basis: "Used when the agent does not choose."
-    status: confirmed
-  # A10
-  skin:
-    value: 0
-    basis: "Base case: undamaged well."
-    status: confirmed
-    uncertainty: null               # range to be set with the uncertainty analysis
-  # A11
-  ch4_lhv_mj_per_nm3:
-    value: 35.8
-    basis: "Methane LHV at 0 C, 1.01325 bar."
-    status: confirmed
-  # A12
+  # ---------------------------------------------------------------- boiler
   boiler_efficiency:
-    value: 0.90
-    basis: "Non-condensing gas boiler on LHV; little condensation with a 45-70 C return."
+    value: 0.8
+    source: "GEMINI doublet_plant.json boiler.parameters.efficiency_factor = 0.8"
     status: confirmed
-  # A13 removed: ambient air is not used with fixed-COP chillers (owner decision, option 1)
 
-design_variables:              # what the agent is allowed to choose
-  well_depth_m: [2000, 4000]
-  n_doublets: [1, 3]
-  flow_m3h_per_doublet: [50, 300]
-  heating_return_c: [45, 70]
-  well_design: [slim, standard, large]
-  heat_pump_capacity_mwth: [0, 30]
-  chiller_type: [absorption_single_effect, adsorption, electric]
-  chiller_capacity_mwcool: [0, 12]
-  backup_boiler_capacity_mwth: [0, 30]
-  outage_schedule: [simultaneous, staggered]
+economics:
+  # TNO pythermogis documentation, 'UTC Properties ThermoGIS NL' (all four scenarios identical),
+  # used as they are. Well cost formula from pythermogis 'Cost Model' page:
+  # CAPEX_wells = 2 * wscale * (wc0 + wc1*MD + wc2*MD^2). wc0 is listed as '0.25'; read as 0.25 M EUR.
+  thermogis:
+    wc0_eur: 250000
+    wc1_eur_per_m: 700.0
+    wc2_eur_per_m2: 0.2
+    wscale: 1.3
+    capex_base_eur: 3000000
+    capex_contingency: 0.15
+    capex_hp_eur_per_kw: 200.0
+    capex_other_var_eur_per_kw: 300.0
+    opex_power_eur_per_kw_yr: 100.0
+    opex_heat_var_eur_per_kwh: 0.0019        # 0.19 EUR cts/kWh
+    opex_hp_eur_per_kw_yr: 10.0
+    electricity_price_eur_per_kwh: 0.08      # 8.0 cts/kWh
+    debt_share: 0.80
+    interest: 0.05
+    equity_irr: 0.145
+    econ_lifetime_years: 30
+  derived:
+    discount_rate: 0.069                     # pre-tax WACC: 0.8*5% + 0.2*14.5% (ThermoGIS financing); tax and inflation ignored
+  other_sources:
+    absorption_chiller_eur_per_kw: 580       # US DOE (2017) Absorption Chillers for CHP Systems, p.4 Table 3: 440-ton hot-water unit $2,300/ton; /3.517 kW/ton; /1.130 USD per EUR (Bank of Finland, ECB 2025 average); no inflation adjustment
+    absorption_om_eur_per_mwh: 0.66          # DOE (2017) p.4 Table 3: 0.2 cents/ton-hr (440-ton unit); converted as above
+    electric_chiller_eur_per_kw: 200.0       # = ThermoGIS heat pump CAPEX (owner: comparable vapour-compression machinery; low sensitivity)
+    electric_chiller_om_eur_per_kw_yr: 10.0  # = ThermoGIS heat pump OPEX
+    chp_eur_per_kw_el: 1250                  # DEA/Energinet (2012) Technology Data for Energy Plants, summary table p.19: spark ignition engine natural gas 1.25 M EUR/MW (price year 2011)
+    chp_om_eur_per_mwh_el: 9.2               # same summary table p.19 (sheet 06 p.54 gives 7.4-11 EUR/MWh)
+    boiler_eur_per_kw: 100                   # DEA/Energinet (2012) summary table '44 District Heating Boiler - Gas Fired', pp.19/22/25: 0.10 M EUR/MW
+    boiler_om_eur_per_kw_yr: 3.7             # same table: O&M 3,700 (EUR/MW/yr; column heading ambiguous in the extract, owner to verify)
+    natural_gas_eur_per_mwh: 42.46           # ACER CHEST 'Current gas prices in 2025' (Slide 15): TTF min 26.56, max 58.36 EUR/MWh; midpoint
+    natural_gas_uncertainty: [26.56, 58.36]
+    chp_electricity_value: "electricity_price"  # self-consumed: valued at ThermoGIS Eprice
+
+design_variables:              # what the agent is allowed to choose, with the source of each bound
+  well_depth_m: [1500, 4000]                 # PBL (2021) Conceptadvies SDE++ 2022 Geothermie, section 2.2.3 p.12
+  n_doublets: [1, 3]                         # fact sheet
+  flow_m3h_per_doublet: [50, 300]            # fact sheet
+  well_spacing_m: [1000, 2000]               # Willems (2017) TU Delft PhD: ~1-1.5 km; DoubletCalc 1.4 manual p.37: 1500-2000 m
+  heating_return_c: [45, 70]                 # owner (A5)
+  heat_pump_capacity_mwth: [0, 30]           # 0 to heating peak (fact sheet demand)
+  chiller_type: [absorption_rated, absorption_dh, electric]
+  chiller_capacity_mwcool: [0, 10]           # 0 to cooling peak
+  electric_chiller_capacity_mwcool: [0, 10]  # 0 to cooling peak
+  backup_boiler_capacity_mwth: [0, 30]       # 0 to heating peak
+  outage_schedule: [simultaneous, staggered] # organisers: separate maintenance periods allowed

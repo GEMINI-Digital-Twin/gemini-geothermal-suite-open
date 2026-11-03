@@ -2,24 +2,21 @@
 
 Layer A (resource assessment) and layer B (doublet) of the architecture.
 
-What comes from GEMINI (``src/gemini_model`` and ``src/gemini_simulator``):
-  * ``DPDT``   well pressure and temperature march (gravity, Darcy-Weisbach
-               friction, heat loss to formation)
-  * ``IPR``    linear reservoir inflow, used through GEMINI's injector solver
-  * ``solve_injector_wellhead_pressure_bar``  injector nodal solve
+From GEMINI (``src/gemini_model``, ``src/gemini_simulator``):
+  * ``bottomhole_skin_dp``  reservoir pressure drop, Darcy radial flow + skin
+                            (reservoir/reservoir_pressuredrop.py)
+  * ``DPDT``                well pressure and temperature march
+  * ``solve_injector_wellhead_pressure_bar``  injector solve (reported as-is)
 
-What we add, and why (these are GEMINI gaps, see notes/gemini_gaps.md):
-  * Reservoir temperature and pressure from depth (gap: not in GEMINI).
-  * Productivity index from k, h, mu with Darcy radial flow (gap 6: PI is an
-    input in GEMINI).
-  * Wellhead temperature by marching GEMINI's DPDT *upward* from the
-    reservoir, segment by segment, with the formation temperature of each
-    segment as ambient (gap 1: wellhead T is a boundary input in GEMINI, and
-    ambient is one constant).
-  * Brine properties instead of GEMINI's pure-water constants (gap 2).
-  * Pump power at a target flow from dP*Q/eta with the brief's 70%
-    efficiency. GEMINI's example ESP curve gives negative head above
-    ~270 m3/h at 65 Hz, so it cannot represent a 300 m3/h design (gap 10).
+Added here because GEMINI lacks it (see notes/gemini_gaps.md):
+  * T and P vs depth (fact sheet gradient; anchored hydrostatic pressure)
+  * drainage radius r_e = well spacing L (DoubletCalc 1.4 manual, Eq. 7, p. 27)
+  * wellhead temperature by marching DPDT upward (gap 1)
+  * brine properties in GEMINI's well models (gap 2)
+  * injector friction sign correction (gap 11)
+  * pump power dP*Q/eta with the brief's 70% (gap 10)
+  * thermal breakthrough time (Gringarten & Sauty 1975, as given by
+    Wallmeier, Vardon & Daniilidis 2025, Eq. 9)
 """
 
 import math
@@ -37,6 +34,7 @@ if _SRC not in sys.path:
 import gemini_simulator.registry as gemini_registry  # noqa: E402
 import gemini_simulator.well_flow as gemini_well_flow  # noqa: E402
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP  # noqa: E402
+from gemini_model.reservoir.reservoir_pressuredrop import bottomhole_skin_dp  # noqa: E402
 from gemini_model.well.pressure_drop import DPDT  # noqa: E402
 
 G = 9.81
@@ -45,7 +43,7 @@ K0 = 273.15
 
 # ---------------------------------------------------------------- brine PVT
 def _brine_pvt_class(cfg):
-    """PVTConstantSTP subclass carrying the hackathon brine constants."""
+    """PVTConstantSTP subclass with the fact-sheet brine constants."""
 
     class BrinePVT(PVTConstantSTP):
         def __init__(self):
@@ -59,11 +57,7 @@ def _brine_pvt_class(cfg):
 
 @contextmanager
 def brine_properties(cfg):
-    """Make every GEMINI well model built inside this block use brine, not water.
-
-    GEMINI creates ``PVTConstantSTP()`` internally (well_flow._build_dpdt and the
-    registry's post-init hook), so we swap the class those modules look up.
-    """
+    """Make GEMINI well models built inside this block use brine, not water."""
     brine = _brine_pvt_class(cfg)
     old_wf = gemini_well_flow.PVTConstantSTP
     old_hook = gemini_registry._POST_INIT_HOOKS.get("well")
@@ -84,90 +78,80 @@ def reservoir_temperature_c(cfg, depth_m):
 
 
 def reservoir_pressure_bar(cfg, depth_m):
-    """Fact-sheet pressure at the reference depth, hydrostatic gradient elsewhere."""
+    """Fact-sheet 250 bar at 2,500 m, hydrostatic gradient elsewhere (A3)."""
     return cfg.ref_pressure_bar + cfg.rho * G * (depth_m - cfg.ref_depth_m) / 1e5
 
 
-def productivity_index_m3h_bar(cfg):
-    """Darcy radial steady-state PI: 2*pi*k*h / (mu * (ln(re/rw) + S)).
+def productivity_index_m3h_bar(cfg, spacing_m=None, skin=None):
+    """PI from GEMINI's bottomhole_skin_dp with r_e = well spacing L.
 
-    Steady state (constant-pressure outer boundary) suits a doublet, where the
-    injector supports pressure. r_e = half the well spacing. Same value is used
-    as the injectivity index.
+    Steady-state radial Darcy flow with skin (pengtools; skin term as in
+    Whitson): dP = Q mu [ln(L/r_w) + S] / (2 pi k h). L as drainage radius
+    follows DoubletCalc 1.4 (TNO 2014), Eq. 7. Evaluated at a unit flow.
     """
-    re = cfg.well_spacing_m / 2
-    rw = cfg.well_id_m / 2
-    pi_si = 2 * math.pi * cfg.permeability_m2 * cfg.thickness_m / (
-        cfg.mu * (math.log(re / rw) + cfg.skin)
-    )  # m3/s per Pa
-    return pi_si * 3600 * 1e5
+    spacing_m = spacing_m or cfg.well_spacing_m
+    skin = cfg.skin_producer if skin is None else skin
+    m = bottomhole_skin_dp()
+    m.update_parameters({
+        "reservoir_pressure": 0.0, "reservoir_radius": spacing_m,
+        "reservoir_permeability": cfg.permeability_m2, "reservoir_thickness": cfg.thickness_m,
+        "reservoir_top": 0.0,
+    })
+    m.calculate_output({"flow": 1.0, "viscosity": cfg.mu, "density": cfg.rho,
+                        "well_radius": cfg.well_id_m / 2, "skin_factor": skin}, None)
+    o = m.get_output()
+    dp_pa_per_m3s = o["bottomhole_dp"] + o["skin_dp"]
+    return 1.0 / dp_pa_per_m3s * 3600 * 1e5  # m3/h per bar
 
 
 def _vertical_dpdt(cfg, length_m, n_seg=1):
     w = DPDT()
-    w.update_parameters(
-        {
-            "diameter": np.full(n_seg, cfg.well_id_m),
-            "length": np.full(n_seg, length_m / n_seg),
-            "angle": np.deg2rad(np.full(n_seg, 90.0)),
-            "roughness": np.full(n_seg, 1e-4),
-            "friction_correlation": "darcy_weisbach",
-            "friction_correlation_2p": "BeggsBrill",
-            "correction_factors": [1, 0],
-        }
-    )
+    w.update_parameters({
+        "diameter": np.full(n_seg, cfg.well_id_m),
+        "length": np.full(n_seg, length_m / n_seg),
+        "angle": np.deg2rad(np.full(n_seg, 90.0)),
+        "roughness": np.full(n_seg, cfg.roughness_m),
+        "friction_correlation": "darcy_weisbach",
+        "friction_correlation_2p": "BeggsBrill",
+        "correction_factors": [1, 0],
+    })
     w.PVT = _brine_pvt_class(cfg)()
     return w
 
 
 def wellhead_temperature_c(cfg, depth_m, flow_m3h, n_seg=25):
-    """Brine temperature at the wellhead, marching GEMINI's DPDT upward.
+    """Brine temperature at the wellhead: GEMINI DPDT marched upward (gap 1).
 
-    Each segment uses the undisturbed formation temperature at its midpoint
-    as ambient. GEMINI's DPDT has a fixed U = 10 W/m2K; that is a steady,
-    conservative heat loss (Ramey-type transient loss falls over years).
+    Each segment uses the formation temperature at its midpoint as ambient.
+    GEMINI's DPDT heat-loss coefficient (U = 10 W/m2K) is used unchanged.
     """
     t = reservoir_temperature_c(cfg, depth_m)
     seg = depth_m / n_seg
     for i in range(n_seg):
         z_mid = depth_m - (i + 0.5) * seg
         w = _vertical_dpdt(cfg, seg)
-        w.calculate_output(
-            {
-                "pressure": 400e5,  # high dummy pressure: properties are constant,
-                "temperature": t + K0,  # so pressure does not affect the heat balance
-                "temperature_ambient": reservoir_temperature_c(cfg, z_mid) + K0,
-                "flowrate": flow_m3h / 3600,
-                "direction": "up",
-            },
-            None,
-        )
+        w.calculate_output({
+            "pressure": 400e5,  # dummy: constant properties, pressure does not affect heat balance
+            "temperature": t + K0,
+            "temperature_ambient": reservoir_temperature_c(cfg, z_mid) + K0,
+            "flowrate": flow_m3h / 3600,
+            "direction": "up",
+        }, None)
         t = w.get_output()["temperature_output"] - K0
     return t
 
 
 # ------------------------------------------------------------------- doublet
-def producer_hydraulics(cfg, depth_m, flow_m3h):
-    """Pump duty to produce ``flow_m3h`` to the wellhead pressure.
-
-    Bottomhole flowing pressure from the IPR, required bottomhole pressure
-    from GEMINI's DPDT walked down from the wellhead (GEMINI's own nodal
-    convention); the pump closes the gap.
-    """
+def producer_hydraulics(cfg, depth_m, flow_m3h, spacing_m=None):
+    """Pump duty to produce ``flow_m3h`` to the wellhead pressure."""
     p_res = reservoir_pressure_bar(cfg, depth_m)
-    pi = productivity_index_m3h_bar(cfg)
+    pi = productivity_index_m3h_bar(cfg, spacing_m, cfg.skin_producer)
     p_bh_reservoir = p_res - flow_m3h / pi
     w = _vertical_dpdt(cfg, depth_m)
-    w.calculate_output(
-        {
-            "pressure": cfg.wellhead_pressure_bar * 1e5,
-            "temperature": reservoir_temperature_c(cfg, depth_m) + K0,
-            "temperature_ambient": reservoir_temperature_c(cfg, depth_m) + K0,
-            "flowrate": flow_m3h / 3600,
-            "direction": "down",
-        },
-        None,
-    )
+    t_res = reservoir_temperature_c(cfg, depth_m) + K0
+    w.calculate_output({"pressure": cfg.wellhead_pressure_bar * 1e5, "temperature": t_res,
+                        "temperature_ambient": t_res, "flowrate": flow_m3h / 3600,
+                        "direction": "down"}, None)
     p_bh_required = w.get_output()["pressure_output"] / 1e5
     dp_pump = max(0.0, p_bh_required - p_bh_reservoir)
     return {
@@ -181,58 +165,48 @@ def producer_hydraulics(cfg, depth_m, flow_m3h):
     }
 
 
-def _injector_wellhead_pressure_corrected_bar(cfg, depth_m, flow_m3h, injection_temp_c):
-    """Injector wellhead pressure with friction acting against the downward flow.
+def _injector_wellhead_pressure_corrected_bar(cfg, depth_m, flow_m3h, injection_temp_c,
+                                              spacing_m=None):
+    """Injector WHP with friction against the downward flow (gap 11 correction).
 
-    GEMINI's DPDT always adds friction when walking 'down'. That is right for
-    a producer (walking against the flow) but wrong for an injector, where
-    the walk follows the flow (gap 11: GEMINI understates the injector
-    wellhead pressure by 2x friction). DarcyWeisbach uses |u|*u, so passing a
-    negative flow rate gives friction the correct sign.
+    DarcyWeisbach uses |u|*u, so a negative flow gives friction the right sign.
     """
-    p_bh = reservoir_pressure_bar(cfg, depth_m) + flow_m3h / productivity_index_m3h_bar(cfg)
+    ii = productivity_index_m3h_bar(cfg, spacing_m, cfg.skin_injector)
+    p_bh = reservoir_pressure_bar(cfg, depth_m) + flow_m3h / ii
     w = _vertical_dpdt(cfg, depth_m)
     p0 = 100.0
-    w.calculate_output(
-        {
-            "pressure": p0 * 1e5,
-            "temperature": injection_temp_c + K0,
-            "temperature_ambient": injection_temp_c + K0,
-            "flowrate": -flow_m3h / 3600,
-            "direction": "down",
-        },
-        None,
-    )
+    w.calculate_output({"pressure": p0 * 1e5, "temperature": injection_temp_c + K0,
+                        "temperature_ambient": injection_temp_c + K0,
+                        "flowrate": -flow_m3h / 3600, "direction": "down"}, None)
     dp_down = w.get_output()["pressure_output"] / 1e5 - p0  # gravity - friction
     return p_bh - dp_down
 
 
-def injector_hydraulics(cfg, depth_m, flow_m3h, injection_temp_c, surface_pressure_bar=None,
+def injector_hydraulics(cfg, depth_m, flow_m3h, injection_temp_c, spacing_m=None,
                         use_gemini_as_is=False):
     """Injector wellhead pressure and injection pump duty.
 
-    Uses the friction-corrected injector by default and reports GEMINI's
-    as-is value alongside it.
+    Surface pressure entering the injection pump = wellhead pressure minus
+    the GEMINI template's surface loss (1.55 bar).
     """
-    if surface_pressure_bar is None:
-        surface_pressure_bar = max(1.0, cfg.wellhead_pressure_bar - 2.0)  # after surface losses
+    surface_p = cfg.wellhead_pressure_bar - cfg.surface_loss_bar
+    ii = productivity_index_m3h_bar(cfg, spacing_m, cfg.skin_injector)
     inj_cfg = {
         "reservoir_pressure_bar": reservoir_pressure_bar(cfg, depth_m),
-        "productivity_index_m3h_per_bar": productivity_index_m3h_bar(cfg),
-        "trajectory_table": [
-            {"MD": 0, "TVD": 0, "ID": cfg.well_id_m},
-            {"MD": depth_m, "TVD": depth_m, "ID": cfg.well_id_m},
-        ],
-        "roughness_m": 1e-4,
+        "productivity_index_m3h_per_bar": ii,
+        "trajectory_table": [{"MD": 0, "TVD": 0, "ID": cfg.well_id_m},
+                             {"MD": depth_m, "TVD": depth_m, "ID": cfg.well_id_m}],
+        "roughness_m": cfg.roughness_m,
     }
     with brine_properties(cfg):
         p_wh_gemini = gemini_well_flow.solve_injector_wellhead_pressure_bar(
-            inj_cfg, flow_m3h, injection_temp_c, pressure_bracket_bar=(1e-3, 500.0)
-        )
-    p_wh_corr = _injector_wellhead_pressure_corrected_bar(cfg, depth_m, flow_m3h, injection_temp_c)
+            inj_cfg, flow_m3h, injection_temp_c, pressure_bracket_bar=(1e-3, 500.0))
+    p_wh_corr = _injector_wellhead_pressure_corrected_bar(cfg, depth_m, flow_m3h,
+                                                          injection_temp_c, spacing_m)
     p_wh = p_wh_gemini if use_gemini_as_is else p_wh_corr
-    dp = max(0.0, p_wh - surface_pressure_bar)
+    dp = max(0.0, p_wh - surface_p)
     return {
+        "injectivity_index_m3h_bar": ii,
         "injector_wellhead_pressure_gemini_as_is_bar": p_wh_gemini,
         "injector_wellhead_pressure_corrected_bar": p_wh_corr,
         "injector_wellhead_pressure_bar": p_wh,
@@ -241,22 +215,29 @@ def injector_hydraulics(cfg, depth_m, flow_m3h, injection_temp_c, surface_pressu
     }
 
 
-def doublet_performance(cfg, depth_m, flow_m3h, injection_temp_c=None):
-    """One doublet at one operating point: temperatures, pumps, heat on offer.
+def gas_properties(cfg):
+    """Associated-gas mixture (gap 9): density and heating value.
 
-    ``injection_temp_c`` defaults to the coldest the brief allows
-    (wellhead T minus the 40 K cap).
+    GEMINI's 50 MJ/kg is methane; with 20 mol% CO2 the mixture is leaner.
     """
+    rho_mix = cfg.x_ch4 * cfg.ch4_density + cfg.x_co2 * cfg.co2_density
+    lhv_nm3 = cfg.x_ch4 * cfg.ch4_lhv_mj_nm3
+    return {"density_kg_nm3": rho_mix, "lhv_mj_per_nm3": lhv_nm3,
+            "lhv_mj_per_kg": lhv_nm3 / rho_mix}
+
+
+def doublet_performance(cfg, depth_m, flow_m3h, spacing_m=None, injection_temp_c=None):
+    """One doublet at one operating point: temperatures, pumps, heat and gas."""
+    spacing_m = spacing_m or cfg.well_spacing_m
     t_wh = wellhead_temperature_c(cfg, depth_m, flow_m3h)
     if injection_temp_c is None:
         injection_temp_c = t_wh - cfg.dt_brine_max
-    prod = producer_hydraulics(cfg, depth_m, flow_m3h)
-    inj = injector_hydraulics(cfg, depth_m, flow_m3h, injection_temp_c)
+    prod = producer_hydraulics(cfg, depth_m, flow_m3h, spacing_m)
+    inj = injector_hydraulics(cfg, depth_m, flow_m3h, injection_temp_c, spacing_m)
     m_dot = cfg.rho * flow_m3h / 3600
     gas_nm3h = cfg.glr * cfg.gas_liberation_fraction * flow_m3h
     out = {
-        "depth_m": depth_m,
-        "flow_m3h": flow_m3h,
+        "depth_m": depth_m, "flow_m3h": flow_m3h, "spacing_m": spacing_m,
         "reservoir_temperature_c": reservoir_temperature_c(cfg, depth_m),
         "wellhead_temperature_c": t_wh,
         "injection_temperature_c": injection_temp_c,
@@ -265,19 +246,19 @@ def doublet_performance(cfg, depth_m, flow_m3h, injection_temp_c=None):
         "geothermal_heat_mw": m_dot * cfg.cp * (t_wh - injection_temp_c) / 1e6,
         "gas_nm3h": gas_nm3h,
         "gas_ch4_fuel_mw": gas_nm3h * cfg.x_ch4 * cfg.ch4_lhv_mj_nm3 / 3600,
-        **prod,
-        **inj,
+        **prod, **inj,
     }
     out["total_pump_power_mw"] = out["pump_power_mw"] + out["injection_pump_power_mw"]
     return out
 
 
 def thermal_breakthrough_years(cfg, spacing_m, flow_m3h):
-    """Doublet thermal breakthrough time (Gringarten-type analytical estimate).
+    """Doublet thermal breakthrough time (Gringarten & Sauty 1975).
 
-    t_b = pi * h * L^2 * (rho c)_reservoir / (3 * Q * (rho c)_brine).
-    Homogeneous confined layer, no heat from cap/base rock (conservative).
-    (rho c)_reservoir = (1 - phi) rho_grain c_grain + phi rho_brine c_brine.
+    t_b = pi * h * L^2 * (rho c)_res / (3 * Q * (rho c)_brine); confined
+    homogeneous layer, no heat from confining layers (conservative), as stated
+    by Wallmeier, Vardon & Daniilidis (2025), Eq. 9, p. 4-5.
+    (rho c)_res = (1 - phi) rho_grain c_grain + phi rho_brine c_brine.
     """
     if flow_m3h <= 0:
         return float("inf")
@@ -285,16 +266,3 @@ def thermal_breakthrough_years(cfg, spacing_m, flow_m3h):
     rc_w = cfg.rho * cfg.cp
     t_s = math.pi * cfg.thickness_m * spacing_m ** 2 * rc_res / (3 * (flow_m3h / 3600) * rc_w)
     return t_s / (365.25 * 86400)
-
-
-def gas_properties(cfg):
-    """Associated-gas mixture: density and heating value per kg (gap 9).
-
-    GEMINI's boiler/CHP default caloric_value is 50 MJ/kg (pure methane).
-    With 20 mol% CO2 the mixture is much leaner.
-    """
-    rho_ch4, rho_co2 = 0.7175, 1.9768  # kg/Nm3 at 0 C, 1.01325 bar
-    rho_mix = cfg.x_ch4 * rho_ch4 + cfg.x_co2 * rho_co2
-    lhv_mj_kg = cfg.x_ch4 * cfg.ch4_lhv_mj_nm3 / rho_mix
-    return {"density_kg_nm3": rho_mix, "lhv_mj_per_kg": lhv_mj_kg,
-            "lhv_mj_per_nm3": cfg.x_ch4 * cfg.ch4_lhv_mj_nm3}

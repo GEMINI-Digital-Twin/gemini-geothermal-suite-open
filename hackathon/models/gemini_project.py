@@ -34,7 +34,7 @@ def _trajectory(cfg, depth_m):
 
 def configure_doublet_project(cfg, depth_m, esp_freq_hz, esp_stages=20,
                               secondary_return_c=None, secondary_flow_m3h=None,
-                              hx_ua_w_per_k=1.5e6, wellhead_temperature_c=None,
+                              hx_ua_w_per_k=None, wellhead_temperature_c=None,
                               flow_for_wellhead_t_m3h=300.0):
     """Return a GEMINI project dict for one doublet with hackathon inputs.
 
@@ -49,7 +49,8 @@ def configure_doublet_project(cfg, depth_m, esp_freq_hz, esp_stages=20,
         secondary_return_c = cfg.t_heat_return
     if wellhead_temperature_c is None:
         wellhead_temperature_c = sub.wellhead_temperature_c(cfg, depth_m, flow_for_wellhead_t_m3h)
-    pi = sub.productivity_index_m3h_bar(cfg)
+    pi = sub.productivity_index_m3h_bar(cfg, cfg.well_spacing_m, cfg.skin_producer)
+    ii = sub.productivity_index_m3h_bar(cfg, cfg.well_spacing_m, cfg.skin_injector)
     p_res = sub.reservoir_pressure_bar(cfg, depth_m)
     gas = sub.gas_properties(cfg)
     c = p["components"]
@@ -61,7 +62,7 @@ def configure_doublet_project(cfg, depth_m, esp_freq_hz, esp_stages=20,
         "ambient_temperature_c": sub.reservoir_temperature_c(cfg, depth_m / 2),
         "trajectory_table": _trajectory(cfg, depth_m),
         "esp_freq_hz": esp_freq_hz,
-        "roughness_m": 1e-4,
+        "roughness_m": cfg.roughness_m,
         # GEMINI's default bracket (0.01, 700) m3/h lets brentq land on a spurious
         # root where the ESP polynomial turns back up and the intake pressure is 0.
         "flow_bracket_m3h": (1.0, 350.0),
@@ -71,9 +72,9 @@ def configure_doublet_project(cfg, depth_m, esp_freq_hz, esp_stages=20,
     inj = c["injector_well"]["parameters"]
     inj.update({
         "reservoir_pressure_bar": p_res,
-        "productivity_index_m3h_per_bar": pi,
+        "productivity_index_m3h_per_bar": ii,
         "trajectory_table": _trajectory(cfg, depth_m),
-        "roughness_m": 1e-4,
+        "roughness_m": cfg.roughness_m,
     })
     inj["injector_pump"]["efficiency_factor"] = cfg.pump_eff
 
@@ -82,7 +83,8 @@ def configure_doublet_project(cfg, depth_m, esp_freq_hz, esp_stages=20,
     c["separator"]["parameters"]["gas_density"] = gas["density_kg_nm3"]
     for unit in ("boiler", "chp"):
         c[unit]["parameters"]["caloric_value"] = gas["lhv_mj_per_kg"] * 1e6
-    c["heat_exchanger"]["parameters"]["heat_transfer_coefficient"] = hx_ua_w_per_k
+    if hx_ua_w_per_k is not None:  # default: GEMINI template value
+        c["heat_exchanger"]["parameters"]["heat_transfer_coefficient"] = hx_ua_w_per_k
 
     for b in p["boundary_inputs"]:
         if b["component"] == "producer_well" and b["key"] == "wellhead_pressure":
