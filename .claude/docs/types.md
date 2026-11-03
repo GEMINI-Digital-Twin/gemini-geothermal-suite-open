@@ -97,8 +97,10 @@ Earlier catalogue work added `Speed` (`m/s`), `Mass` (`kg`, `t`), `SpecificEntha
 `kJ/kg`), `HeatCapacity` (`J/K`, `kWh/K`), `VolumetricHeatCapacity` (`J/m3/K`, `MJ/m3/K`),
 `ThermalDiffusivity` (`m2/s`), `LinearPower` (`W/m`) and `FlowCoefficient` (`m3/s/Pa^0.5`,
 catalogue Kv as `m3/h/bar^0.5`; `ge=0` so a closed valve reports zero, `Valve.flow_coefficient`
-keeps `gt=0`). The dimensionless unit `ppm` (1e-6) converts any `-` quantity, for example
-`InhibitorDosing.dose = {"value": 10, "unit": "ppm"}`. `Duration` accepts `ms`, `s`, `min`, `h` and `d` (for example
+keeps `gt=0`). The dimensionless units `ppm` (1e-6) and `mol%` (0.01, `Unit.MOL_PERCENT`) convert
+any `-` quantity, for example `InhibitorDosing.dose = {"value": 10, "unit": "ppm"}`; a mole
+fraction of a composition is given as `{"value": 20, "unit": "mol%"}` (the case maps and the
+`gas_composition` and `grid_composition` of `gm.Fluid`, where a number stays a fraction). `Duration` accepts `ms`, `s`, `min`, `h` and `d` (for example
 `integral_time={"value": 15, "unit": "min"}`), and `ProductivityIndex` accepts `m3/h/bar`.
 
 Add a quantity only when a real field needs a new dimension. Keep local descriptions and

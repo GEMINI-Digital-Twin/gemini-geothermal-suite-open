@@ -110,7 +110,11 @@ Nothing has a default: an absent value is `None` and the call that needs it rais
 `Case.from_json(path)` reads the file, its CSV files and the economics file it names;
 `Case.from_dict(data, files={name: bytes}, folder=None)` reads a dict and takes the files from the
 mapping, then from the folder. Both raise one `ValidationError` carrying every issue
-(`error.issues`). `case.check()` and `economics.check()` return the same issues for an object and
+(`error.issues`, each `{path, kind, message}`; `error.problems` the same as problem dicts), so one
+call validates a whole case dict: a wrong header `name` or `format`, a wrong or missing `time` and an
+economics without a `name` do not stop the read, every section is still judged (a series is then
+not aligned and adds no issue of its own); only a file of another `kind`, or of none, is refused
+alone. `case.check()` and `economics.check()` return the same issues for an object and
 never raise. `case.to_json(path)` writes the file and its files back, so that `Case.from_json(path)
 == case`. A key of an older shape (`environment`, `constraints`, `assumptions`, `time_column`,
 `equals`, a demand `file`/`column`) is refused with code `old_format`, naming the new form.
@@ -118,7 +122,9 @@ never raise. `case.to_json(path)` writes the file and its files back, so that `C
 **The unit format.** A value with a unit is `{"value": 150, "unit": "m3/h"}` in the file and a
 `gm.units.Quantity` in Python (a `Quantity` in the data given to `from_dict` is turned into that
 object). A dimensionless value is `{"value": 0.7}`; a bare number or text such as `"150 m3/h"` is an
-issue. A time series is `{"file": "data/demand.csv", "column": "heat_mw", "unit": "MW"}` in place of
+issue. The mole fractions of a composition (`site.fluid.dissolved_gas`, `utilities.gas.composition`)
+may also state a unit of a fraction, `{"value": 20, "unit": "mol%"}` or `{"value": 0.2, "unit": "-"}`;
+without a unit the number is the fraction. A time series is `{"file": "data/demand.csv", "column": "heat_mw", "unit": "MW"}` in place of
 `value`; the first column of every CSV is `time`, ISO 8601 with an offset or `Z`. The optional key
 `time_zone`, an IANA name (`"Europe/Oslo"`, `"UTC"`), makes a time without an offset (`2027-01-01`,
 `2027-01-01T00:00`) a local time in that zone; one the clock skips or repeats at a change of the

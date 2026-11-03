@@ -43,7 +43,8 @@ class Fluid(Node):
     """The brine the reservoir delivers.
 
     ``density`` [kg/m3], ``viscosity`` [Pa s], ``gas_liquid_ratio`` [-], ``dissolved_gas`` (a dict
-    of the mole fraction of each species of ``GAS_SPECIES``, adding up to 1) and
+    of the mole fraction of each species of ``GAS_SPECIES``, adding up to 1; a number, or a value
+    with a unit of a fraction such as ``{"value": 20, "unit": "mol%"}``) and
     ``sand_concentration`` [kg/m3].
     """
 
@@ -52,7 +53,7 @@ class Fluid(Node):
         "density": Field("density"),
         "viscosity": Field("viscosity"),
         "gas_liquid_ratio": Field("gas_liquid_ratio"),
-        "dissolved_gas": Field(keys=GAS_SPECIES, bounds=FRACTION, total=1.0),
+        "dissolved_gas": Field(keys=GAS_SPECIES, bounds=FRACTION, total=1.0, unit_of="fraction"),
         "sand_concentration": Field("mass_concentration", bounds=POSITIVE),
     }
 

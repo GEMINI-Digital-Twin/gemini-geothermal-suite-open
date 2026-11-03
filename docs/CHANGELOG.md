@@ -32,6 +32,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `examples/hackathon_superstructure`: the peak boiler with its gas makeup and gas grid is a
   choice on or off, and cooling off removes the cooling branch; the cooling consumer sits on the
   chillers directly. 32 valid structures.
+- The unit `mol%` (`gm.units.Unit.MOL_PERCENT`, 0.01), a unit of every dimensionless quantity like
+  `ppm`. The mole fractions of a composition take a unit of a fraction: `site.fluid.dissolved_gas`
+  and `utilities.gas.composition` of a case accept `{"value": 20, "unit": "mol%"}` and
+  `{"value": 0.2, "unit": "-"}` (the case schema lists the units, the unit is optional), and the
+  `gas_composition` and `grid_composition` of `gm.Fluid` a `Quantity` or its dict per species. A
+  value without a unit keeps meaning a fraction, as before.
 
 ### Changed
 - `gm.study.evolve` searches better and faster (measured by `scripts/validate_evolve.py`): sizes of
@@ -56,6 +62,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `study.json` of `evolve`: an objective given twice and `evaluations` below `population` are
   refused when the file is read, and `Study.check` reports a superstructure with no valid structure.
 
+- `gm.Case.from_dict` and `from_json` list every issue of a case in one `ValidationError`
+  (`error.issues`, each with `path`, `kind` and `message`): a wrong `time` (a step without a unit,
+  no `time` at all) or a header without a `name` no longer stops the read before the sections, and
+  an economics without a `name` still has its values judged. A series is not aligned while the
+  time is wrong and adds no issue of its own. A file of another `kind` is still refused alone.
+- A list parameter with a unit (the sections of a well path: `section_length`,
+  `section_diameter`, ...): `describe()` gives its `type` as `array`, not `number`;
+  `parameter_schema()` accepts `{"value": [...], "unit": "m"}`, the form it is given in; the error
+  of a bare list, a single number, a list without a unit or with a wrong unit, from `set_params`,
+  `validate_params` or attribute assignment, shows the value as given and asks for
+  `{'value': [<number>, ...], 'unit': <unit>}` instead of a number. In a plant file the unit of a
+  list is one issue at `<path>.unit`, not one per item. Codes and paths of other values are
+  unchanged.
 
 ## [0.6.1] - 2026-11-03
 

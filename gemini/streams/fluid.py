@@ -62,9 +62,11 @@ class Fluid(BaseModel):
 
     Free gas is given as ``gas_liquid_ratio`` (normal m3 of free gas per m3 of produced liquid, at
     0 degC and 1.01325 bar a) with ``gas_composition`` (mole fractions summing to one, the species
-    of ``gas.SPECIES``), which give ``gas_mass_fraction``, or as ``gas_mass_fraction`` directly,
-    never both. ``co2_mass_fraction`` is another thing: the CO2 dissolved in the liquid, which
-    corrosion reads. The CO2 of the free gas is part of ``gas_composition``.
+    of ``gas.SPECIES``; each a number or a quantity of a fraction such as
+    ``{"value": 20, "unit": "mol%"}``), which give ``gas_mass_fraction``, or as
+    ``gas_mass_fraction`` directly, never both. ``co2_mass_fraction`` is another thing: the CO2
+    dissolved in the liquid, which corrosion reads. The CO2 of the free gas is part of
+    ``gas_composition``.
 
     ``gas`` is a gas fluid with a ``gas_composition``, such as the gas outlet of a ``Degasser``. Its
     density at a stream's pressure and temperature is ``density_at``, ideal-gas unless ``density``
@@ -331,8 +333,20 @@ _QUANTITIES = _declared_quantities()
 """The SI unit and the quantity of each ``Fluid`` field that declares one, from its type."""
 
 
+COMPOSITIONS = ("gas_composition", "grid_composition")
+"""The fields that map a species to its mole fraction: a number or a quantity of a fraction."""
+
+
 def _in_si(name, value):
-    """Return the field ``name`` in SI: a quantity converts, anything else passes unchanged."""
+    """Return the field ``name`` in SI: a quantity converts, anything else passes unchanged.
+
+    The mole fractions of a composition take a quantity of a fraction each (``mol%``, ``-``).
+    """
+    if name in COMPOSITIONS and isinstance(value, Mapping):
+        return {
+            species: units.value_in_si(share, "-", f"Fluid.{name}.{species}", "fraction")
+            for species, share in value.items()
+        }
     unit, quantity = _QUANTITIES.get(name, (None, None))
     return units.value_in_si(value, unit, f"Fluid.{name}", quantity)
 

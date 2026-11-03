@@ -297,7 +297,7 @@ needs raises `missing_value` naming its path, `missing_assumption` below `econom
 | --- | --- | --- |
 | `gm.Case.from_json(path)`, `case.to_json(path)` | reads a `case.json`, its CSV files and its economics file, or writes them | real |
 | `gm.Case.from_dict(data, files=None, folder=None)`, `case.to_dict()`, `case.files()`, `gm.Case.schema()` | plain data; the CSV and JSON files the case names come from `files`, a mapping `{name: bytes}` with names relative to the case (no folder is needed in memory), else from `folder`, for a caller that edits a dict read from a `case.json` and has its files on disk; the CSV and JSON files of a case; JSON Schema | real |
-| `case.check()`, `economics.check()` | the issues of an object; never raises. `from_json` and `from_dict` raise a `ValidationError` carrying the same issues | real |
+| `case.check()`, `economics.check()` | the issues of an object; never raises. `from_json` and `from_dict` raise a `ValidationError` carrying the same issues, every issue of the dict at once (`error.issues`: `path`, `kind`, `message`): a wrong header or `time` does not stop the read of the sections | real |
 | `case.with_value(path, number)`, `case.field(path)`, `case.leaf(path)`, `case.uncertainty` | a copy with an SI value, the quantity and bounds of a value, the leaf as read, the index of uncertainties | real |
 | `gm.case.Time` (`start`, `end`, `step`) | `end` is excluded; `.index` is the UTC `DatetimeIndex` of the steps | real |
 | `gm.case.Site` with `Ground`, `Reservoir`, `Fluid`, `Air` | `temperature_at(depth)`, `pressure_at(depth)` | real |

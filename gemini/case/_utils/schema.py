@@ -48,12 +48,15 @@ def marks(field):
 
     ``x-quantity`` is the quantity of the unit and ``x-units`` the units it accepts, both from
     ``gm.units``; ``x-limits`` are the bounds of the value in SI, with their unit; ``x-fraction``
-    marks a dimensionless share between 0 and 1, which a form may show as a percentage.
+    marks a dimensionless share between 0 and 1, which a form may show as a percentage. A
+    dimensionless value that may state a unit (``unit_of``) lists the units in ``x-units``.
     """
     found = {}
     if field.quantity is not None:
         found["x-quantity"] = field.quantity
         found["x-units"] = units.names(field.quantity)
+    if field.unit_of is not None:
+        found["x-units"] = units.names(field.unit_of)
     if field.bounds is not None:
         found["x-limits"] = limits(field.bounds, field.quantity)
     if field.quantity is None and field.bounds == FRACTION:
@@ -64,7 +67,7 @@ def marks(field):
 def leaf(field):
     """Return the schema of the leaf of one ``Field``."""
     if field.keys is not None:
-        item = leaf(Field(field.quantity, bounds=field.bounds))
+        item = leaf(Field(field.quantity, bounds=field.bounds, unit_of=field.unit_of))
         return closed({key: item for key in field.keys}) | marks(field)
     value = {"type": "string"} if field.text else NUMBER
     properties = {"value": value, "range": RANGE, "uncertainty": UNCERTAINTY}
@@ -72,6 +75,8 @@ def leaf(field):
     if field.quantity is not None:
         properties["unit"] = {"enum": units.names(field.quantity)}
         required.append("unit")
+    if field.unit_of is not None:
+        properties["unit"] = {"enum": units.names(field.unit_of)}
     form = closed(properties, required)
     if not field.series:
         return form | marks(field)

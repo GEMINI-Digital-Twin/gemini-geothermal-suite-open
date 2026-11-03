@@ -182,3 +182,17 @@ def test_properties_of_equal_fluids_are_the_same_values_found_by_identity():
         density=gm.units.Quantity(1100.0, "kg/m3"), viscosity=gm.units.Quantity(1e-3, "Pa.s")
     )
     assert dense.properties(1e5, 300.0).rho_l == 1100.0
+
+
+def test_a_gas_composition_takes_quantities_of_a_fraction():
+    """80 mol% and a ``-`` fraction are the mole fractions a bare number gives."""
+    given = Fluid(
+        kind="gas",
+        gas_composition={
+            "CH4": {"value": 80, "unit": "mol%"},
+            "CO2": gm.units.Quantity(0.2, gm.units.Unit.DIMENSIONLESS),
+        },
+    )
+    assert given == Fluid(kind="gas", gas_composition={"CH4": 0.8, "CO2": 0.2})
+    with raises(gm.errors.ValidationError, "invalid_unit"):
+        Fluid(kind="gas", gas_composition={"CH4": {"value": 1, "unit": "m"}})

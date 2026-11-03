@@ -350,6 +350,7 @@ _UNITS = {
     "-": ("-", 1, 0),
     "ppm": ("-", 1e-6, 0),
     "Nm3/m3": ("-", 1, 0),
+    "mol%": ("-", 0.01, 0),
 }
 
 _QUANTITY_UNITS = {}
@@ -366,6 +367,7 @@ _NAMED = {
     "bar(g)": "BAR_G",
     "mPa*s": "MPA_TIMES_S",
     "1/yr": "PER_YR",
+    "mol%": "MOL_PERCENT",
 }
 _SPELLED = (
     ("%", "PERCENT"),

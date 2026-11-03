@@ -12,7 +12,7 @@ from gemini._utils.jsonable import to_plain
 from gemini._utils.strings import close_matches, did_you_mean, first_paragraph
 from gemini.errors import ValidationError
 from gemini.errors.base import Issue, reported
-from gemini.modules.declarations import UNSET
+from gemini.modules.declarations import UNSET, holds_list
 from gemini.units import bare
 from gemini.units.shapes import problem
 
@@ -57,6 +57,11 @@ def _default(declaration):
     return to_plain(declaration.default_value())
 
 
+def _type(declaration):
+    """Return the JSON type of a declared value: ``array`` for a list, else its own type."""
+    return "array" if holds_list(declaration) else declaration.value_type()
+
+
 def _entry(declaration):
     """Describe one declaration; a missing item is ``None``.
 
@@ -64,7 +69,7 @@ def _entry(declaration):
     as the bound itself: the value may not reach it.
     """
     return {
-        "type": declaration.value_type(),
+        "type": _type(declaration),
         "unit": declaration.unit,
         "quantity": declaration.quantity,
         "default": _default(declaration),
@@ -87,7 +92,7 @@ def missing_entry(path, declaration):
     """Return what an agent needs to fill a parameter: path, quantity, units, bounds, meaning."""
     return {
         "path": path,
-        "type": declaration.value_type(),
+        "type": _type(declaration),
         "quantity": declaration.quantity,
         "unit": declaration.unit,
         "units": _accepted_units(declaration),
@@ -283,29 +288,30 @@ def _item_schema(declaration):
 
 
 def _quantity_schema(declaration):
-    """Return the schema of ``{"value", "unit"}`` with the units of the declaration's quantity."""
+    """Return the schema of ``{"value", "unit"}`` with the units of the declaration's quantity.
+
+    The value of a list is a list of numbers in the one unit.
+    """
     allowed = units.names(declaration.quantity) if declaration.quantity else [declaration.unit]
+    value = {"type": "number"}
+    if holds_list(declaration):
+        value = {"type": "array", "items": value}
     return {
         "type": "object",
         "required": ["value", "unit"],
         "additionalProperties": False,
-        "properties": {"value": {"type": "number"}, "unit": {"enum": allowed}},
+        "properties": {"value": value, "unit": {"enum": allowed}},
     }
 
 
 def _value_variants(declaration):
     """Return the ``anyOf`` variants of a value: a number with a unit may also be a quantity."""
     variants = [_item_schema(declaration)]
-    if declaration.unit and declaration.value_type() in _NUMBER_TYPES and not _is_list(declaration):
+    if declaration.unit and declaration.value_type() in _NUMBER_TYPES:
         variants.append(_quantity_schema(declaration))
     if declaration.accepts_none():
         variants.append({"type": "null"})
     return variants
-
-
-def _is_list(declaration):
-    schema = declaration.schema
-    return any(item.get("type") == "array" for item in schema.get("anyOf", [schema]))
 
 
 def _property(declaration):
@@ -359,7 +365,9 @@ def check_value(name, declaration, value):
 def _check_public(name, declaration, value):
     """Return the problem of a public ``value``: a bare number with a unit, or what it holds."""
     try:
-        bare.refuse(name, value, declaration.unit, declaration.quantity)
+        bare.refuse(
+            name, value, declaration.unit, declaration.quantity, many=holds_list(declaration)
+        )
     except ValidationError as error:
         return problem(name, error.code, error)
     return check_value(name, declaration, value)

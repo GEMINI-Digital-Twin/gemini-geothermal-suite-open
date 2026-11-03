@@ -122,20 +122,27 @@ class Case(Frozen):
 
     @classmethod
     def _read(cls, data, source, issues):
-        """Return the case of ``data`` or ``None`` with issues appended."""
-        head = inputs.from_header(data, "case", cls.where, issues)
-        if head is None:
-            return None
+        """Return the case of ``data`` or ``None`` with issues appended.
+
+        A wrong header or ``time`` does not stop the read: every section is still judged, so one
+        read lists every issue. Only a file of another ``kind`` (or of none) is not read further.
+        """
         before = len(issues)
+        head = inputs.from_header(data, "case", cls.where, issues)
+        if head is None and not (isinstance(data, dict) and data.get("kind") == "case"):
+            return None
         refuse_replaced(OLD, data, "", issues)
         inputs.check_keys({k: v for k, v in data.items() if k not in OLD}, KEYS, "", issues)
         time = Time.read(data["time"], "time", issues) if "time" in data else None
         if "time" not in data:
             issue(issues, "time", "missing", "time is missing")
         if time is None:
-            return None
-        ctx = Context(issues, source, time.index, _step(time))
-        found = {"name": head.name, "about": head.about, "time": time}
+            ctx = Context(issues, source, untimed=True)
+        else:
+            ctx = Context(issues, source, time.index, _step(time))
+        found = {"time": time}
+        if head is not None:
+            found |= {"name": head.name, "about": head.about}
         found.update(_sections(data, ctx))
         found.update(_economics(data, ctx))
         found["requirements"] = (

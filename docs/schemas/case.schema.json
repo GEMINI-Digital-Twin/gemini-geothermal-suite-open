@@ -5683,6 +5683,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -5695,7 +5703,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "CO2": {
                   "additionalProperties": false,
@@ -5737,6 +5751,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -5749,7 +5771,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "H2S": {
                   "additionalProperties": false,
@@ -5791,6 +5819,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -5803,7 +5839,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "N2": {
                   "additionalProperties": false,
@@ -5845,6 +5887,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -5857,7 +5907,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 }
               },
               "required": [],
@@ -5866,7 +5922,13 @@
               "x-limits": {
                 "max": 1.0,
                 "min": 0.0
-              }
+              },
+              "x-units": [
+                "-",
+                "Nm3/m3",
+                "mol%",
+                "ppm"
+              ]
             },
             "gas_liquid_ratio": {
               "additionalProperties": false,
@@ -5912,6 +5974,7 @@
                   "enum": [
                     "-",
                     "Nm3/m3",
+                    "mol%",
                     "ppm"
                   ]
                 },
@@ -5928,6 +5991,7 @@
               "x-units": [
                 "-",
                 "Nm3/m3",
+                "mol%",
                 "ppm"
               ]
             },
@@ -6960,6 +7024,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -6972,7 +7044,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "C3H8": {
                   "additionalProperties": false,
@@ -7014,6 +7092,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -7026,7 +7112,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "CH4": {
                   "additionalProperties": false,
@@ -7068,6 +7160,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -7080,7 +7180,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "CO2": {
                   "additionalProperties": false,
@@ -7122,6 +7228,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -7134,7 +7248,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "N2": {
                   "additionalProperties": false,
@@ -7176,6 +7296,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -7188,7 +7316,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 },
                 "O2": {
                   "additionalProperties": false,
@@ -7230,6 +7364,14 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "type": "number"
                     }
@@ -7242,7 +7384,13 @@
                   "x-limits": {
                     "max": 1.0,
                     "min": 0.0
-                  }
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
                 }
               },
               "required": [],
@@ -7251,7 +7399,13 @@
               "x-limits": {
                 "max": 1.0,
                 "min": 0.0
-              }
+              },
+              "x-units": [
+                "-",
+                "Nm3/m3",
+                "mol%",
+                "ppm"
+              ]
             },
             "heating_value": {
               "additionalProperties": false,
@@ -7362,6 +7516,7 @@
     "gas_liquid_ratio": [
       "-",
       "Nm3/m3",
+      "mol%",
       "ppm"
     ],
     "length": [

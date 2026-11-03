@@ -35,6 +35,22 @@ def test_a_quantity_needs_a_unit_of_its_dimension_and_a_list_its_unit_too():
     assert list(found(d0={"esp": bad})) == ["params.d0.esp.correction_factors.value[1].value"]
 
 
+def test_a_list_leaf_names_its_unit_once_and_the_list_form():
+    """A list with a wrong or no unit is one ``unit`` issue at its unit, not one per item."""
+    leaf = {"value": [400.0, 150.0], "unit": "m3/h"}
+    assert found(d0={"well": {"section_length": leaf}}) == {
+        "params.d0.well.section_length.unit": "unit"
+    }
+    leaf = {"value": [400.0, 150.0]}
+    assert found(d0={"well": {"section_length": leaf}}) == {
+        "params.d0.well.section_length.unit": "unit"
+    }
+    (item,) = issues(plant_file(d0={"well": {"section_length": [400.0, 150.0]}}))
+    assert item.path == "params.d0.well.section_length" and item.kind == "unit"
+    assert "{'value': [<number>, ...], 'unit': <unit>}" in item.message
+    assert "{'value': <number>" not in item.message
+
+
 def test_a_leaf_with_an_uncertainty_or_an_unknown_key_is_refused():
     """A plant leaf has no uncertainty."""
     got = found(

@@ -23,13 +23,14 @@ class Electricity(Node):
 class Gas(Node):
     """The gas grid.
 
-    ``composition`` (mole fractions of the species, adding up to 1) and the ``heating_value``
+    ``composition`` (mole fractions of the species, adding up to 1; a number, or a value with a
+    unit of a fraction such as ``{"value": 20, "unit": "mol%"}``) and the ``heating_value``
     [J/kg].
     """
 
     where = "utilities.gas"
     fields = {
-        "composition": Field(keys=GRID_GAS_SPECIES, bounds=FRACTION, total=1.0),
+        "composition": Field(keys=GRID_GAS_SPECIES, bounds=FRACTION, total=1.0, unit_of="fraction"),
         "heating_value": Field("specific_enthalpy", bounds=POSITIVE),
     }
 

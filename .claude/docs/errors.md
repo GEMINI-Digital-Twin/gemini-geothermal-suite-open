@@ -22,8 +22,8 @@ is raised and the problems go to the call's fixed place:
 `gm.call` has no "never raises" rule. The "never raises" behaviour agents need belongs to
 geomind's tool layer, which catches `GeminiError` and calls `to_dict()`.
 
-A raised error that comes from several problems (`gm.Plant.from_dict`, `validate`) carries all of
-them in `error.problems`, a list of problem dicts: the same list `on_error="record"` returns, so a
+A raised error that comes from several problems (`gm.Plant.from_dict`, `gm.Case.from_dict`,
+`validate`) carries all of them in `error.problems`, a list of problem dicts: the same list `on_error="record"` returns, so a
 caller sees every problem in one try. A single error has itself as the one item. A problem is
 `{path, code, message, suggestions}`, built by `gemini.errors.base.problem`, which
 `gemini.units.shapes` exports with the other return shapes; `code` is the stable key for machines.

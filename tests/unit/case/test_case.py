@@ -135,6 +135,44 @@ def test_every_issue_is_reported_in_one_error(data, files):
     assert len(caught.value.issues) == 3
 
 
+def test_a_wrong_header_and_time_do_not_hide_the_issues_of_the_sections(data, files):
+    """One read lists every issue: header, time, unknown key, unit, missing value and type.
+
+    A step without a unit once stopped the read, so the sections were not judged at all.
+    """
+    del data["name"]
+    data["time"]["step"] = {"value": 1}
+    data["site"]["ground"]["colour"] = "red"
+    data["site"]["reservoir"]["thickness"]["unit"] = "m3/h"
+    data["demand"]["heating"]["supply_temperature"] = {"unit": "degC"}
+    data["utilities"]["electricity"]["co2_intensity"]["value"] = "lots"
+    data["requirements"][0]["min"] = "one"
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        gm.Case.from_dict(data, files=files)
+    found = [(issue.path, issue.kind) for issue in caught.value.issues]
+    assert found == [
+        ("case.name", "missing"),
+        ("time.step.unit", "unit"),
+        ("site.ground.colour", "unknown_key"),
+        ("site.reservoir.thickness.unit", "unit"),
+        ("demand.heating.supply_temperature.value", "missing"),
+        ("utilities.electricity.co2_intensity.value", "incompatible"),
+        ("requirements[0].min", "incompatible"),
+    ]
+    assert all(issue.message for issue in caught.value.issues)
+    assert caught.value.problems == [issue.problem() for issue in caught.value.issues]
+
+
+def test_a_missing_time_still_reads_the_sections_without_a_series_issue(data, files):
+    """Without a time a series cannot be aligned; only the time is named for it."""
+    del data["time"]
+    data["site"]["ground"]["gradient"]["unit"] = "m"
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        gm.Case.from_dict(data, files=files)
+    found = [(issue.path, issue.kind) for issue in caught.value.issues]
+    assert found == [("time", "missing"), ("site.ground.gradient.unit", "unit")]
+
+
 def test_a_series_that_does_not_cover_the_period_is_a_coverage_issue(data):
     """The issue names the file, the column, the window covered and the window asked."""
     files = {"data/demand.csv": csv_text(days=4).encode()}
@@ -255,3 +293,13 @@ def test_a_missing_series_file_is_a_missing_issue(data):
     with raises(gm.errors.ValidationError, "missing_value") as caught:
         gm.Case.from_dict(copy.deepcopy(data), files={})
     assert "data/demand.csv" in str(caught.value)
+
+
+def test_an_economics_without_a_name_still_reports_its_values(data, files):
+    """The header of an inline economics does not hide the issues of its values."""
+    del data["economics"]["name"]
+    data["economics"]["capex"]["drilling"]["unit"] = "EUR/kg"
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        gm.Case.from_dict(data, files=files)
+    found = [(issue.path, issue.kind) for issue in caught.value.issues]
+    assert found == [("economics.name", "missing"), ("economics.capex.drilling.unit", "unit")]

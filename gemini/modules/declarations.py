@@ -25,6 +25,7 @@ from gemini.streams import kinds as streams
 from gemini.streams.energy import Energy
 from gemini.streams.flows import Stream
 from gemini.streams.fluid import Fluid
+from gemini.units import bare
 from gemini.units.quantities import Power
 
 
@@ -121,6 +122,12 @@ def _quick_check(schema, limits):
 
 
 _BOUND_FAILURES = {"greater_than", "greater_than_equal", "less_than", "less_than_equal"}
+
+
+def holds_list(declaration):
+    """Return whether ``declaration`` holds a list of values, such as the sections of a well."""
+    schema = declaration.schema
+    return any(item.get("type") == "array" for item in schema.get("anyOf", [schema]))
 
 
 def _failure_code(cause):
@@ -261,17 +268,36 @@ class Declaration:
         accepted = self._quick(value)
         if accepted is not _MISS:
             return accepted
+        given = value
         value = ops.scope.plain(value)
         try:
             value = units.value_in_si(value, self.unit, self.path, self.quantity)
             return self._adapter.validate_python(value)
         except (TypeError, ValueError, PydanticError, PhysicsError) as exc:
+            if self.unit not in (None, "-") and holds_list(self):
+                raise ValidationError(
+                    self._list_failure(given, exc), code=_failure_code(exc)
+                ) from exc
             raise ValidationError(
                 f"{self.path}: invalid {self.section} value {value!r}"
                 + (f"; expected {self.unit}" if self.unit else "")
                 + f" ({exc})",
                 code=_failure_code(exc),
             ) from exc
+
+    def _list_failure(self, given, cause):
+        """Return the message of a list with a unit that failed: the form of a list, as given.
+
+        The cause is named unless it is an error of gemini about the form or the unit, which the
+        message states itself.
+        """
+        named = self.quantity.replace("_", " ") if self.quantity else f"unit {self.unit!r}"
+        accepted = units.names(self.quantity) if self.quantity else [self.unit]
+        reason = "" if isinstance(cause, ValidationError) else f" ({cause})"
+        return (
+            f"{self.path}: invalid {self.section} value {given!r}; expected {bare.LIST_FORM}, "
+            f"because it is a list of {named} in one of {join_names(accepted)}{reason}"
+        )
 
 
 class Parameter(Declaration):

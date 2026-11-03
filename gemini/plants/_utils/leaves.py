@@ -7,6 +7,7 @@ from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import ValidationError
 from gemini.errors.base import raise_issues
 from gemini.modules._utils import description
+from gemini.modules.declarations import holds_list
 from gemini.plants._utils import plant_inputs
 from gemini.plants._utils.form import MARKERS, file_path, flat_name, is_leaf, issue
 from gemini.units import bare, inputs
@@ -95,19 +96,33 @@ def _extra_keys(node, path, issues):
 
 
 def _array_items(node, declaration, path, issues):
+    """Append the issues of a list leaf: its one unit once, then each item.
+
+    A list of one quantity takes one unit for all its items; a wrong or missing unit is one
+    issue at ``<path>.unit``, and the items are then judged as numbers only.
+    """
     items = node.get("value")
     if not isinstance(items, (list, tuple)):
         issue(issues, f"{path}.value", "incompatible", f"{path}.value = {items!r}; expected a list")
         return
     bounds = _bounds(declaration)
     unit = node.get("unit")
+    unit_read = True
+    quantity = _quantity(declaration, node)
+    if quantity is not None and holds_list(declaration):
+        before = len(issues)
+        probe = {"value": 0} | ({"unit": unit} if "unit" in node else {})
+        inputs.from_leaf(probe, path, issues, quantity=quantity)
+        unit_read = len(issues) == before
+        if not unit_read:
+            unit, bounds = None, None
     for index, item in enumerate(items):
         probe = {"value": item} | ({"unit": unit} if unit else {})
         inputs.from_leaf(
             probe,
             f"{path}.value[{index}]",
             issues,
-            quantity=_quantity(declaration, probe),
+            quantity=_quantity(declaration, probe) if unit_read else None,
             bounds=bounds,
         )
 
@@ -175,7 +190,7 @@ def leaf_at(plant, path, node, issues, table=None):
             issues,
             here,
             "unit" if quantity else "missing",
-            f"{here} = {node!r}; expected an object like {units_form(quantity)}",
+            f"{here} = {node!r}; expected an object like {units_form(quantity, found)}",
         )
         return None
     leaf = _read(node, found, here, issues)
@@ -221,8 +236,13 @@ def apply(plant, parsed, issues):
     plant._file = {"name": parsed.header.name, "about": parsed.header.about}
 
 
-def units_form(quantity):
-    """Return the shape of a leaf, with its unit when the value has a dimension."""
+def units_form(quantity, declaration=None):
+    """Return the shape of a leaf, with its unit when the value has a dimension.
+
+    A list with a dimension (of ``declaration``) has one unit for its numbers.
+    """
+    if quantity and declaration is not None and holds_list(declaration):
+        return bare.LIST_FORM
     return units.QUANTITY_FORM if quantity else "{'value': ...}"
 
 

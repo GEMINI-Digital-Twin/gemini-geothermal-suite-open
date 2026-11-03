@@ -54,3 +54,12 @@ def test_a_price_series_of_the_grid_is_a_series(data):
 def _demand():
     """Return the demand file of the shared case."""
     return {"data/demand.csv": csv_text().encode()}
+
+
+def test_the_grid_gas_composition_takes_a_mole_percent(data, files):
+    """A composition given in mol% is read as fractions."""
+    data["utilities"]["gas"] = {
+        "composition": {"CH4": {"value": 90, "unit": "mol%"}, "N2": {"value": 0.1}},
+    }
+    gas = gm.Case.from_dict(data, files=files).utilities.gas
+    assert gas.composition == pytest.approx({"CH4": 0.9, "N2": 0.1})
