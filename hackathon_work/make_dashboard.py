@@ -60,6 +60,7 @@ def read_daily(path: Path) -> dict:
     cols = {k: [num(r[k]) for r in rows] for k in DAILY_COLS}
     cols["date"] = [r["date"] for r in rows]
     cols["maintenance"] = [r["maintenance"] for r in rows]
+    cols["active_doublets"] = [r["active_doublets"] for r in rows]
     return cols
 
 
@@ -350,7 +351,9 @@ function renderCooling(d) {
 function renderBrine(d) {
   const s = d.summary, x = d.daily, w = windows(d);
   document.getElementById("p4-sub").textContent =
-    `Flow when on ${fmt(s.flow_min_when_on_m3h)}–${fmt(s.flow_max_m3h)} m³/h per doublet (limits 50 / 300) · max ΔT ${fmt(s.max_brine_dT_K, 2)} K (cap 40 K) · shaded: maintenance windows (35 d each)`;
+    `Flow when on ${fmt(s.flow_min_when_on_m3h)}–${fmt(s.flow_max_m3h)} m³/h per doublet (limits 50 / 300; 0 = off) · max ΔT ${fmt(s.max_brine_dT_K, 2)} K (cap 40 K) · shaded: maintenance windows (35 d each)`;
+  const nd = s.candidate.n_doublets, dblColors = [C.s1, C.s2, C.s3], dblDash = ["solid", [7, 5], [2, 4]];
+  const on = (i, k) => x.active_doublets[i].split(";").includes(`doublet_${k}`);
   const shade = w.map((p, k) => [{ name: `D${k + 1} maintenance`, xAxis: p[0] }, { xAxis: p[1] }]);
   const mArea = (label) => ({ silent: true, itemStyle: { color: "rgba(137,135,129,0.16)" },
     label: { show: label, color: C.ink2, fontSize: 12, position: "insideTop" }, data: shade });
@@ -362,16 +365,18 @@ function renderBrine(d) {
     tooltip: { ...TIP, trigger: "axis", axisPointer: { type: "line", lineStyle: { color: C.muted } },
       formatter: p => { const i = p[0].dataIndex; return `<b>${x.date[i]}</b><br>active doublets: <b>${x.n_active[i]}</b>` +
         (x.maintenance[i] ? ` (maintenance: ${x.maintenance[i].replace(/doublet_/g, "D")})` : "") +
-        `<br>flow per doublet: <b>${fmt(x.flow_per_doublet_m3h[i], 0)}</b> m³/h<br>brine ΔT: <b>${fmt(x.brine_dT_K[i], 2)}</b> K`; } },
+        Array.from({ length: nd }, (_, k) => `<br>D${k + 1}: <b>${on(i, k + 1) ? fmt(x.flow_per_doublet_m3h[i], 0) + "</b> m³/h" : "off</b>"}`).join("") +
+        `<br>brine ΔT: <b>${fmt(x.brine_dT_K[i], 2)}</b> K`; } },
     grid: [{ left: 60, right: 18, top: 70, height: "36%" }, { left: 60, right: 18, top: "64%", bottom: 32 }],
     xAxis: [timeAxis({ gridIndex: 0, axisLabel: { show: false } }), timeAxis({ gridIndex: 1 })],
-    yAxis: [valueAxis("m³/h per doublet", { gridIndex: 0, min: 0, max: 350 }), valueAxis("ΔT (K)", { gridIndex: 1, min: 0, max: 45 })],
-    legend: { ...LEGEND, data: ["Flow per doublet", "Brine ΔT"] },
+    yAxis: [valueAxis("m³/h per doublet", { gridIndex: 0, min: 0, max: 360 }), valueAxis("ΔT (K)", { gridIndex: 1, min: 0, max: 45 })],
+    legend: { ...LEGEND, data: [...Array.from({ length: nd }, (_, k) => `D${k + 1}`), "Brine ΔT"] },
     series: [
-      { name: "Flow per doublet", type: "line", step: "middle", symbol: "none", color: C.s1, lineStyle: { width: 2 }, xAxisIndex: 0, yAxisIndex: 0,
-        data: series(d, i => x.flow_per_doublet_m3h[i]), markArea: mArea(true),
-        markLine: { silent: true, symbol: "none", data: [limit(50, "min 50 m³/h"), limit(300, "max 300 m³/h")] } },
-      { name: "Brine ΔT", type: "line", symbol: "none", color: C.s2, lineStyle: { width: 2 }, xAxisIndex: 1, yAxisIndex: 1,
+      ...Array.from({ length: nd }, (_, k) => ({ name: `D${k + 1}`, type: "line", step: "middle", symbol: "none", color: dblColors[k],
+        lineStyle: { width: k ? 2 : 2.5, type: dblDash[k] }, xAxisIndex: 0, yAxisIndex: 0, z: 3 + k,
+        data: series(d, i => on(i, k + 1) ? x.flow_per_doublet_m3h[i] : 0),
+        ...(k ? {} : { markArea: mArea(true), markLine: { silent: true, symbol: "none", data: [limit(50, "min 50 m³/h"), limit(300, "max 300 m³/h")] } }) })),
+      { name: "Brine ΔT", type: "line", symbol: "none", color: C.ink2, lineStyle: { width: 2 }, xAxisIndex: 1, yAxisIndex: 1,
         data: series(d, i => x.brine_dT_K[i]), markArea: mArea(false),
         markLine: { silent: true, symbol: "none", data: [limit(40, "cap 40 K")] } },
     ],
@@ -494,15 +499,15 @@ function renderSchematic(d) {
   const marker = c => `<marker id="ah-${c.slice(1)}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`;
   const T = v => `${fmt(v, 1)} °C`;
   const q = p.flow_per_doublet_m3h * p.n_active;
-  const svg = `<svg viewBox="0 0 980 480" class="schem" role="img" aria-label="System schematic" preserveAspectRatio="xMidYMid meet">
+  const svg = `<svg viewBox="0 0 1020 480" class="schem" role="img" aria-label="System schematic" preserveAspectRatio="xMidYMid meet">
   <defs>${marker(brine)}${marker(water)}${marker(chill)}${marker(C.muted)}</defs>
   ${box(10, 40, 140, 120, `${n} producer well${n > 1 ? "s" : ""}`, [`${fmt(s.depth_m)} m, ${fmt(s.reservoir_temperature_C, 1)} °C`, `ESP at ${fmt(s.esp_setting_depth_m)} m`, `${p.n_active} on × ${fmt(p.flow_per_doublet_m3h)} m³/h`], brine)}
   ${box(210, 40, 100, 120, "Separator", ["+ filters", "gas → CHP", "GLR 0.8"])}
   ${box(370, 40, 130, 120, "Absorption", ["chiller (hot end)", `${fmt(p.cool_cool_absorption_MW, 1)} MW cool`, `drive ${fmt(p.cool_absorber_drive_MW, 1)} MWth`], chill)}
   ${box(560, 40, 100, 330, "HEX", [`UA ${fmt(s.candidate.hex_ua_W_K / 1000)} kW/K`, `${fmt(p.heat_hex_MW, 1)} MW`])}
   ${box(720, 40, 100, 330, "Heat pump", [`${fmt(p.heat_hp_MW, 1)} MWth`, `COP ${p.hp_COP == null ? "–" : fmt(p.hp_COP, 2)}`])}
-  ${box(880, 40, 92, 120, "Injectors", [`${n} well${n > 1 ? "s" : ""}`, T(p.T_injection_C)], brine)}
-  ${box(880, 250, 92, 120, "CHP + boiler", [`CHP ${fmt(p.heat_chp_MW, 2)} MW`, `boiler ${fmt(p.heat_boiler_MW, 2)} MW`])}
+  ${box(880, 40, 132, 120, "Injectors", [`${n} well${n > 1 ? "s" : ""}`, T(p.T_injection_C)], brine)}
+  ${box(880, 250, 132, 120, "CHP + boiler", [`CHP ${fmt(p.heat_chp_MW, 2)} MW`, `boiler ${fmt(p.heat_boiler_MW, 2)} MW`])}
   ${box(370, 250, 130, 120, "District return", [T(p.T_return_C), `${fmt(p.district_flow_m3h)} m³/h`], water)}
   ${arrow(150, 120, 208, 120, brine, T(p.T_wellhead_C), -10)}
   ${arrow(310, 120, 368, 120, brine, T(p.T_absorber_in_C), -10)}
@@ -512,8 +517,8 @@ function renderSchematic(d) {
   ${arrow(500, 330, 558, 330, water, T(p.T_return_C), -10)}
   ${arrow(660, 330, 718, 330, water, T(p.T_after_hex_C), -10)}
   ${arrow(820, 330, 878, 330, water, T(p.T_after_hp_C), -10)}
-  ${arrow(926, 370, 926, 428, water, "", 0)}
-  <text x="972" y="456" text-anchor="end" font-size="15" font-weight="650" fill="${C.ink}">District heating ${T(p.T_supply_C)} · ${fmt(p.heat_delivered_MW, 1)} MW</text>
+  ${arrow(946, 370, 946, 428, water, "", 0)}
+  <text x="1012" y="456" text-anchor="end" font-size="15" font-weight="650" fill="${C.ink}">District heating ${T(p.T_supply_C)} · ${fmt(p.heat_delivered_MW, 1)} MW</text>
   ${arrow(435, 40, 435, 12, chill, "", 0)}
   <text x="445" y="22" font-size="13" font-weight="600" fill="${C.ink}">chilled water 20 °C to district cooling</text>
   <path d="M260 160 V 405 H 860 V 350 H 876" fill="none" stroke="${C.muted}" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ah-${C.muted.slice(1)})"/>
@@ -540,7 +545,7 @@ function renderTests() {
   document.getElementById("p9-sub").textContent = `${t.filter(x => x.pass).length} / ${t.length} pass · rules backend · excerpts from outputs/agent/agent_trace.md`;
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   document.getElementById("tests").innerHTML = t.map(x =>
-    `<li>${badge(x.pass ? "PASS" : "FAIL")}<span class="t">${esc(x.test)}</span><span class="e">${esc(x.evidence)}</span></li>`).join("");
+    `<li>${badge(x.pass ? "PASS" : "FAIL")}<span class="t">${esc(x.test)}</span><span class="e">${esc(x.evidence).split("; also ").join("<br>")}</span></li>`).join("");
   document.getElementById("p9-note").textContent = "The claude_cli backend reached the same pick; its run never proposed an invalid flow or a failing design, so tests (ii) and (iv) were not triggered there.";
 }
 

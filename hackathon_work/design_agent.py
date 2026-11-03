@@ -752,8 +752,14 @@ def judges_tests(entries: list[dict], design_scenario: str = "B_design") -> list
     halt = next((e for e in a if e["phase"] == "halt"), None)
     asked = next((e for e in a if e["phase"] == "ask"), None)
     answer = next((e for e in a if e["phase"] == "answer" and e["data"].get("valid")), None)
-    rejected = next((e for e in b if e["phase"] == "validate" and any(v.get("check") == "flow_range" and v.get("value", 0) >= 350 for v in e["data"]["violations"])), None)
-    revise_after = next((e for e in b if rejected and e["phase"] == "revise" and e["step"] == rejected["step"] + 1), None)
+    # every >= 350 m3/h rejection with its revision; the one closest to 350 m3/h (the judges' example) first
+    flow_rejections = []
+    for e in b:
+        values = [v.get("value", 0) for v in (e["data"] or {}).get("violations", []) if e["phase"] == "validate" and v.get("check") == "flow_range"]
+        revise = next((r for r in b if r["phase"] == "revise" and r["step"] == e["step"] + 1), None)
+        if values and max(values) >= 350 and revise is not None:
+            flow_rejections.append((max(values), e, revise))
+    flow_rejections.sort(key=lambda t: t[0])
     temp = next((e for e in b if e["phase"] == "temperature_assessment"), None)
     depths = sorted({e["data"]["metrics"]["reservoir_temperature_C"] for e in b if e["phase"] == "evaluate"})
     final = next((e for e in b if e["phase"] == "final"), None)
@@ -768,8 +774,9 @@ def judges_tests(entries: list[dict], design_scenario: str = "B_design") -> list
          "evidence": f"step {halt['step']}: {halt['rationale']}" if halt else
                      f"step {asked['step']} AGENT ASKED: {asked['rationale']} -> step {answer['step']} USER ANSWERED {answer['rationale']}" if asked and answer
                      else "no halt / question"},
-        {"test": "(ii) >= 350 m3/h per doublet -> rejected with reason, revised", "pass": rejected is not None and revise_after is not None,
-         "evidence": (f"step {rejected['step']}: {rejected['rationale']} -> step {revise_after['step']}: {revise_after['title']}") if rejected and revise_after else "not triggered"},
+        {"test": "(ii) >= 350 m3/h per doublet -> rejected with reason, revised", "pass": bool(flow_rejections),
+         "evidence": "; also ".join(f"step {e['step']}: {e['rationale']} -> step {r['step']}: {r['title']}" for _, e, r in flow_rejections)
+                     or "not triggered"},
         {"test": "(iii) 87 C reservoir vs 100 C supply -> shortfall stated, deeper well vs surface upgrade decided",
          "pass": temp is not None and len(depths) > 1 and final is not None,
          "evidence": (f"step {temp['step']} (assessment); candidates evaluated at reservoir temperatures {depths} C; step {final['step']} (decision)") if temp and final else "missing"},
