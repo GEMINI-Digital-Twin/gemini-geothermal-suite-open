@@ -12,6 +12,50 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.3] - 2026-11-04
+
+The app team's requests 11, 12, 16, 17, 22 and 26 to 31, as far as they are gemini's. Additive:
+nothing of 0.6.2 is removed or renamed, every existing file reads and costs as before, and
+`examples/hackathon.py` prints the same output. Request 32 needs no change: `site.air.pressure`
+already gives the air pressure, and a case without it is a `missing_value` naming that key.
+
+### Added
+- Units: `degC/km`, `°C/km`, `C/km` (and per m) are a temperature gradient equal to K/km (a
+  difference, no offset); `W/m/K`, `W/m2/K`, `W/K`, `J/kg/K` and `J/m3/K` accept `degC` and `°C`
+  (not a bare `C`, a coulomb there). A lone degC stays an absolute temperature.
+- Units: a thermal conductance (W/K) takes `kW/K`, `MW/K` and `GW/K`.
+- `Plant.to_dict` / `Plant.to_json` take `units=` (a map from quantity to unit, `"display"` or
+  `"si"`) to write a plant file in the caller's units; the default output is unchanged, and a
+  file in any fitting unit reads back to the same plant.
+- `economics.capex.pipe` may be per W of capacity and per metre (`EUR/MW/m`, the basis of the
+  Danish Energy Agency for district heating pipes) besides per metre: it multiplies the new
+  optional `Pipe.nominal_capacity` (design mass flow × cp × design ΔT) by the length. A missing
+  one raises `missing_value` naming it, and `gm.check` reports it. New units `EUR/W/m`,
+  `EUR/kW/m`, `EUR/MW/m`, `currency/W/m` (quantity `money_per_power_length`).
+- `gm.study.metrics()`: the metrics a study reads (`objective`, `objectives`, `metrics`), each
+  with `title`, `unit`, `description`, `better` and `objective`; the same names
+  `gm.study.kinds()` offers.
+- `Case.schema()` gives every key a `description` (`about`, `initial_state`, the return
+  temperatures, `time`, `requirements`, every site, demand and utilities field); `Economics.schema()`
+  gains them for the header, `about` and the keys of a value.
+
+### Fixed
+- A doublet designed from its depth with one design value left out (`well_diameter`,
+  `roughness`, `nominal_flow`, `pump_efficiency`, `nominal_wellhead_pressure`, or the depth
+  itself) makes `gm.check`, `Plant.check` and a run name that value instead of every child it
+  derives, including the reservoir permeability and thickness the case gives. A plant of doublets
+  names its own `depth`. A doublet set child by child is unchanged.
+- `gm.call` with a control or boundary in `parameters` raised a bare `KeyError`; it now raises
+  `invalid_call` at `parameters.<name>`, pointing to `controls` (the error is still a
+  `KeyError`). `set_params` of a control says it is a control set with `set_inputs`.
+- `docs/cost-sources/sources.csv`: every `path` is a key of the case (`economics.capex.*`,
+  `economics.opex.variable.chemical`, `utilities.electricity.co2_intensity`, ...) instead of the
+  old `assumptions.finance.*` spelling; a test checks every path. No value changed.
+
+### Documentation
+- `time.end` is excluded from the period (schema description and guide); the behaviour is
+  unchanged.
+
 ## [0.6.2] - 2026-11-04
 
 Structure optimisation made a real tool, and the app team's requests 13 to 21. Additive: nothing
