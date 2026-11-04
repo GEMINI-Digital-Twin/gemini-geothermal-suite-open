@@ -43,7 +43,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `gm.study.evolve` searches better and faster (measured by `scripts/validate_evolve.py`): sizes of
   alternatives are not tied, genes of modules that are off are ignored, no candidate is simulated
   twice and none is kept twice in a generation, the first generation holds every valid structure
-  with the plant's values, a quarter of the children are local steps around the best, structure
+  with the plant's values, half of the children are local steps (a compass search with pattern
+  moves around the best candidate of the best structures and, with several objectives, along the
+  front), a child drawn with a refused structure takes the nearest valid one (it still counts in
+  `invalid`, which now counts such draws), structure
   genes mutate at their own rate, more than 256 structures are judged when drawn, and the
   candidates of one structure run as one batch on one plant. The same seed still gives the same
   result whatever the number of processes; the result differs from 0.6.1's.
