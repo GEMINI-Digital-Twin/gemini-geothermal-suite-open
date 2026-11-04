@@ -163,3 +163,23 @@ def test_a_fixed_opex_per_capacity_multiplies_the_power_size_of_the_module():
     assert pricing.fixed_opex_of(Exchanger(5e6), section) == pytest.approx(1.5e4)
     with raises(gm.errors.ValidationError, "no_value", match=r"hx .*per W"):
         pricing.fixed_opex_of(Exchanger(), section)
+
+
+def test_a_pipe_per_mw_and_metre_costs_its_factor_times_capacity_times_length():
+    """DEA prices a transmission line per MW carried and metre: 63.195 EUR/MW/m, 10 MW, 2 km."""
+
+    class Line(Equipment):
+        equipment_kind = "pipe"
+
+        def cost_size(self):
+            """Return the length [m]."""
+            return 2000.0
+
+        def cost_size_of(self, quantity):
+            """Return the nominal capacity [W] for a cost per W and metre."""
+            return 1e7 if quantity == "power" else None
+
+    per_length = economics(capex={"pipe": Quantity(500, "EUR/m")})
+    per_capacity = economics(capex={"pipe": Quantity(63.195, "EUR/MW/m")})
+    assert pricing.capex_of(Line(), per_length) == pytest.approx(1e6)
+    assert pricing.capex_of(Line(), per_capacity) == pytest.approx(63.195 * 10 * 2000)

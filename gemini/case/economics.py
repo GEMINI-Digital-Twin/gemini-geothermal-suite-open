@@ -25,6 +25,7 @@ EXAMPLE_UNITS = {
     "money_per_conductance": "EUR/(W/K)",
     "money_per_volume": "EUR/m3",
     "money_per_energy": "EUR/MWh",
+    "money_per_power_length": "EUR/MW/m",
 }
 """A unit of each cost basis, named in the descriptions of the schema; ``x-units`` lists all."""
 
@@ -126,7 +127,8 @@ class Capex(Node):
     its cost basis: per W of capacity, per metre, per W/K, per m3, or a fixed amount, as a
     ``{"value", "unit"}`` in ``currency``. Some kinds accept another basis
     (``gemini.case._utils.kinds.CAPEX_BASES``: a heat exchanger per W of nominal duty, a storage
-    per J stored, a production pump per unit), and the unit of the factor tells which.
+    per J stored, a production pump per unit, a pipe per W of nominal capacity and per metre as
+    DEA gives district heating pipes), and the unit of the factor tells which.
     ``drilling`` may instead be a table by depth, ``{"depth": {"value": [...], "unit": "m"},
     "cost_per_metre": {"value": [...], "unit": "EUR/m"}}``, which
     ``Economics.drilling_cost_per_metre`` interpolates.

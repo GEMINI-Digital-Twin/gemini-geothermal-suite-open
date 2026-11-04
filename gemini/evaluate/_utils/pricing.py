@@ -12,6 +12,9 @@ DRILLING = "drilling"
 PER_UNIT = "money"
 """The quantity of a cost per unit: one unit per module, whatever its size."""
 
+PER_POWER_LENGTH = "money_per_power_length"
+"""The quantity of a cost per W and metre: the power size times the length, ``cost_size()``."""
+
 BASES = {
     "power": "per W",
     "energy": "per J",
@@ -58,7 +61,8 @@ def size_of(module, quantity):
 
     The basis of the kind (``EQUIPMENT_KINDS``), or an absent factor, takes ``cost_size()``; a cost
     per unit counts one; another basis takes ``module.cost_size_of``, and a module without a size of
-    that quantity raises ``no_value``.
+    that quantity raises ``no_value``. A cost per W and metre takes the power size times
+    ``cost_size()``, the length of a kind priced per metre.
     """
     kind = module.equipment_kind
     if quantity is None or quantity == EQUIPMENT_KINDS[kind][0]:
@@ -75,6 +79,8 @@ def size_of(module, quantity):
             path=path,
             code="no_value",
         )
+    if quantity == PER_POWER_LENGTH:
+        return size * module.cost_size()
     return size
 
 
