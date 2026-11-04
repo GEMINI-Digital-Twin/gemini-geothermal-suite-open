@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from gemini import units
 from gemini._utils.strings import close_matches, join_path
 from gemini.errors.base import Issue
-from gemini.units import inputs
+from gemini.units import display, inputs
 
 FLAT_FORMAT = 2
 ALLOWED = (
@@ -319,8 +319,8 @@ def _leaf_node(value, extra, written_unit):
         node = dict(value) if _is_quantity(value) else {"value": value}
         written_unit = node.get("unit")
     elif extra is not None and extra.unit is not None:
-        node = {"unit": extra.unit}
-        written_unit = extra.unit
+        written_unit = display.written_unit(extra.unit, extra.quantity)
+        node = {"unit": written_unit}
     if extra is not None and extra.range is not None:
         node["range"] = _range_in(extra, written_unit)
     if extra is not None and extra.options is not None:
@@ -409,10 +409,12 @@ def _params_tree(plant, flat):
 
 
 def _size_tree(plant, flat):
-    return {
-        name: _leaf_node(value, plant._search.get(f"size.{name}"), None)
-        for name, value in flat.get("size", {}).items()
-    }
+    found = {}
+    for name, value in flat.get("size", {}).items():
+        extra = plant._search.get(f"size.{name}")
+        quantity = None if extra is None else extra.quantity
+        found[name] = _leaf_node(display.written(value, quantity), extra, None)
+    return found
 
 
 def _superstructure(plant):

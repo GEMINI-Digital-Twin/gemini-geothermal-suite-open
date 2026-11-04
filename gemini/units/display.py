@@ -3,10 +3,13 @@
 ``DISPLAY_UNITS`` is the one table of quantity -> display unit: energy in MWh, power in MW,
 temperature in degC. It names no metric and no equipment: a folder that knows its own metrics
 (``gm.evaluate``) maps them to a quantity of this table. ``shown`` converts every ``Quantity``
-of a result to the unit its SI unit has in a table.
+of a result to the unit its SI unit has in a table. ``written_in`` and ``written`` give a stored
+file (a plant file) in the units its caller chose.
 """
 
 from collections.abc import Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 from gemini._utils.strings import close_matches
 from gemini.errors import ValidationError
@@ -132,3 +135,47 @@ def shown(found, table, adjust=None):
     if isinstance(found, (list, tuple)):
         return [shown(item, table, adjust) for item in found]
     return found
+
+
+_WRITTEN = ContextVar("written_units", default=None)
+"""The units a stored file is being written in: ``None`` for the units stored."""
+
+
+@contextmanager
+def written_in(units):
+    """Write every quantity of a stored file in ``units`` while the block runs.
+
+    ``units`` is what a view takes: ``None`` keeps each value in the unit it is stored in (as
+    stated, else SI), a map from quantity to unit converts the quantities it names (and their
+    family), ``"display"`` the units of ``DISPLAY_UNITS`` and ``"si"`` every value to SI. A wrong
+    choice raises here, before anything is written.
+    """
+    chosen = None if units is None else "si" if units == "si" else output_units(units)
+    token = _WRITTEN.set(chosen)
+    try:
+        yield
+    finally:
+        _WRITTEN.reset(token)
+
+
+def written_unit(unit, quantity=None):
+    """Return the unit a value stored in ``unit`` is written in under ``written_in``."""
+    chosen = _WRITTEN.get()
+    if chosen is None or unit is None:
+        return unit
+    target = conversions.si_unit(str(unit)) if chosen == "si" else chosen.target(quantity, unit)
+    return unit if target is None else target
+
+
+def written(found, quantity=None):
+    """Return the ``{"value", "unit"}`` dict ``found`` in its unit under ``written_in``.
+
+    A difference (``quantity`` ending in ``_difference``) converts by scale only; anything that
+    is not such a dict, or whose unit is kept, is returned as it is.
+    """
+    if not isinstance(found, Mapping) or set(found) != {"value", "unit"}:
+        return found
+    target = written_unit(found["unit"], quantity)
+    if target == found["unit"] or found["value"] is None:
+        return found
+    return Quantity(found["value"], found["unit"]).to(target, quantity).to_dict()

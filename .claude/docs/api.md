@@ -615,9 +615,9 @@ classes are one row each, expanded by category: see [equipment.md](equipment.md)
 | `gm.Plant.structures` | `()` | method |
 | `gm.Plant.with_structure` | `(structure)` | method |
 | `gm.Plant.summary` | `()` | method |
-| `gm.Plant.to_dict` | `(structure=False)` | method |
+| `gm.Plant.to_dict` | `(structure=False, *, units=None)` | method |
 | `gm.Plant.from_dict` | `(data)` | method |
-| `gm.Plant.to_json` | `(path, structure=False)` | method |
+| `gm.Plant.to_json` | `(path, structure=False, *, units=None)` | method |
 | `gm.Plant.from_json` | `(path)` | method |
 | `gm.Module.describe` | `()` | method |
 | `gm.Module.parameter_schema` | `()` | method |
