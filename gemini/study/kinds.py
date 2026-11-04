@@ -1,8 +1,7 @@
 """The kinds of study in plain words, and the settings each one takes, for a form."""
 
 from gemini.evaluate._utils.display import OBJECTIVES
-from gemini.evaluate.summary import KPI_NAMES
-from gemini.study._utils.trial import ECONOMICS
+from gemini.study._utils.trial import METRICS
 from gemini.study.study import METHODS, OWN, PREPARE, REQUIRED, SETTING_KEYS, Study
 
 KINDS = {
@@ -96,7 +95,7 @@ def _setting(key):
     if key == "objective":
         found["enum"] = list(OBJECTIVES)
     if key == "metrics":
-        found["items"] = {**found["items"], "enum": [*KPI_NAMES, *ECONOMICS]}
+        found["items"] = {**found["items"], "enum": list(METRICS)}
     if key == "objectives":
         found["anyOf"] = [{"type": "string", "enum": list(OBJECTIVES)}, {**found["anyOf"][1]}]
         found["anyOf"][1]["items"] = {"type": "string", "enum": list(OBJECTIVES)}
@@ -133,7 +132,7 @@ def kinds():
         for ``evolve``,
         none for the others. ``required`` lists those the kind cannot do without; ``objective``
         lists the metrics worth minimising (``gm.evaluate.metrics()``) and ``metrics`` those that a
-        study reads. Plain JSON, a new list on each call.
+        study reads (``gm.study.metrics()``). Plain JSON, a new list on each call.
     """
     methods = [(method, "method") for method in METHODS]
     prepared = [(action, "prepare") for action in PREPARE]

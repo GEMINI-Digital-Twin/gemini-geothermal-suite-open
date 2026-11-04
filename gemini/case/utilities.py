@@ -13,10 +13,27 @@ class Electricity(Node):
     """
 
     where = "utilities.electricity"
+    description = "The electricity grid the plant buys from and sells to."
     fields = {
-        "co2_intensity": Field("mass_per_energy", series=True, bounds=POSITIVE),
-        "import_limit": Field("power", bounds=POSITIVE),
-        "export_limit": Field("power", bounds=POSITIVE),
+        "co2_intensity": Field(
+            "mass_per_energy",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "The CO2-equivalent emitted per energy of electricity bought, a constant or a "
+                "series."
+            ),
+        ),
+        "import_limit": Field(
+            "power",
+            bounds=POSITIVE,
+            description="The largest power the grid connection can import.",
+        ),
+        "export_limit": Field(
+            "power",
+            bounds=POSITIVE,
+            description="The largest power the grid connection can export.",
+        ),
     }
 
 
@@ -29,9 +46,20 @@ class Gas(Node):
     """
 
     where = "utilities.gas"
+    description = "The gas grid the plant buys from."
     fields = {
-        "composition": Field(keys=GRID_GAS_SPECIES, bounds=FRACTION, total=1.0, unit_of="fraction"),
-        "heating_value": Field("specific_enthalpy", bounds=POSITIVE),
+        "composition": Field(
+            keys=GRID_GAS_SPECIES,
+            bounds=FRACTION,
+            total=1.0,
+            unit_of="fraction",
+            description="The mole fraction of each species of the grid gas, adding up to 1.",
+        ),
+        "heating_value": Field(
+            "specific_enthalpy",
+            bounds=POSITIVE,
+            description="The heating value of the grid gas per mass.",
+        ),
     }
 
 
@@ -39,4 +67,5 @@ class Utilities(Node):
     """The electricity and the gas grid; every part is optional."""
 
     where = "utilities"
+    description = "The electricity and the gas grid; every part optional."
     sections = {"electricity": Electricity, "gas": Gas}

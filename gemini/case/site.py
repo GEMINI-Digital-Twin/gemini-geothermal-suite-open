@@ -16,9 +16,19 @@ class Ground(Node):
     """The undisturbed ground: ``surface_temperature`` [K] and the geothermal ``gradient`` [K/m]."""
 
     where = "site.ground"
+    description = "The undisturbed ground."
     fields = {
-        "surface_temperature": Field("temperature", bounds=POSITIVE),
-        "gradient": Field("temperature_gradient"),
+        "surface_temperature": Field(
+            "temperature",
+            bounds=POSITIVE,
+            description="The undisturbed ground temperature at the surface.",
+        ),
+        "gradient": Field(
+            "temperature_gradient",
+            description=(
+                "The geothermal gradient: the rise of the undisturbed rock temperature with depth."
+            ),
+        ),
     }
 
 
@@ -30,12 +40,33 @@ class Reservoir(Node):
     """
 
     where = "site.reservoir"
+    description = "The reservoir the wells produce from and inject into."
     fields = {
-        "reference_depth": Field("length"),
-        "thickness": Field("length", bounds=POSITIVE),
-        "permeability": Field("permeability", bounds=POSITIVE),
-        "pressure": Field("pressure", bounds=POSITIVE),
-        "temperature": Field("temperature", bounds=POSITIVE),
+        "reference_depth": Field(
+            "length",
+            description=(
+                "The depth at which the pressure and the temperature of the reservoir are given."
+            ),
+        ),
+        "thickness": Field(
+            "length", bounds=POSITIVE, description="The thickness of the reservoir layer."
+        ),
+        "permeability": Field(
+            "permeability", bounds=POSITIVE, description="The permeability of the reservoir rock."
+        ),
+        "pressure": Field(
+            "pressure",
+            bounds=POSITIVE,
+            description="The reservoir pressure at the reference depth.",
+        ),
+        "temperature": Field(
+            "temperature",
+            bounds=POSITIVE,
+            description=(
+                "The measured reservoir temperature at the reference depth; without it the ground "
+                "gives it."
+            ),
+        ),
     }
 
 
@@ -49,12 +80,28 @@ class Fluid(Node):
     """
 
     where = "site.fluid"
+    description = "The brine the reservoir delivers."
     fields = {
-        "density": Field("density"),
-        "viscosity": Field("viscosity"),
-        "gas_liquid_ratio": Field("gas_liquid_ratio"),
-        "dissolved_gas": Field(keys=GAS_SPECIES, bounds=FRACTION, total=1.0, unit_of="fraction"),
-        "sand_concentration": Field("mass_concentration", bounds=POSITIVE),
+        "density": Field("density", description="The density of the brine."),
+        "viscosity": Field("viscosity", description="The dynamic viscosity of the brine."),
+        "gas_liquid_ratio": Field(
+            "gas_liquid_ratio",
+            description="The free gas produced with the brine: normal m3 of gas per m3 of liquid.",
+        ),
+        "dissolved_gas": Field(
+            keys=GAS_SPECIES,
+            bounds=FRACTION,
+            total=1.0,
+            unit_of="fraction",
+            description=(
+                "The mole fraction of each species of the gas in the brine, adding up to 1."
+            ),
+        ),
+        "sand_concentration": Field(
+            "mass_concentration",
+            bounds=POSITIVE,
+            description="The mass of sand per volume of produced brine.",
+        ),
     }
 
 
@@ -66,10 +113,23 @@ class Air(Node):
     """
 
     where = "site.air"
+    description = "The outside air."
     fields = {
-        "temperature": Field("temperature", series=True, bounds=POSITIVE),
-        "relative_humidity": Field(series=True, bounds=FRACTION),
-        "pressure": Field("pressure", bounds=POSITIVE),
+        "temperature": Field(
+            "temperature",
+            series=True,
+            bounds=POSITIVE,
+            description="The outside air temperature, a constant or a series.",
+        ),
+        "relative_humidity": Field(
+            series=True,
+            bounds=FRACTION,
+            description=(
+                "The relative humidity of the outside air, between 0 and 1, a constant or a "
+                "series."
+            ),
+        ),
+        "pressure": Field("pressure", bounds=POSITIVE, description="The outside air pressure."),
     }
 
 
@@ -80,6 +140,10 @@ class Site(Node):
     """
 
     where = "site"
+    description = (
+        "The nature outside the plant boundary: ground, reservoir, brine and air; every part "
+        "optional."
+    )
     sections = {"ground": Ground, "reservoir": Reservoir, "fluid": Fluid, "air": Air}
 
     def temperature_at(self, depth):

@@ -163,12 +163,29 @@ class Case(Frozen):
         used["duration"] = units.names("duration")
         properties |= {
             "time": schema.time(),
-            "initial_state": {"type": "object", "additionalProperties": {"type": "object"}},
-            "economics": {"anyOf": [{"type": "string"}, Economics.schema()]},
-            "requirements": {"type": "array", "items": schema.requirement()},
+            "initial_state": {
+                "type": "object",
+                "additionalProperties": {"type": "object"},
+                "description": (
+                    "The state each stateful module starts the run from, such as the charge of a "
+                    "storage: {module path: {state name: {value, unit}}}. A module with states has "
+                    "no default state, so the case gives it."
+                ),
+            },
+            "economics": {
+                "anyOf": [{"type": "string"}, Economics.schema()],
+                "description": (
+                    "The prices and costs: an economics object, or the path of its file."
+                ),
+            },
+            "requirements": {
+                "type": "array",
+                "items": schema.requirement(),
+                "description": "The rules of third parties on the outcome, each checked on a run.",
+            },
         }
         found = schema.closed(
-            schema.header("case") | {"about": {"type": "object"}} | properties,
+            schema.header("case") | {"about": schema.ABOUT} | properties,
             ["format", "kind", "name", "time"],
         )
         return {"$schema": schema.DRAFT, "title": cls.__name__} | found | {"x-quantities": used}

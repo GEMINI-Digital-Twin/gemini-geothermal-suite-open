@@ -13,27 +13,69 @@ NUMBER = {"type": "number"}
 RANGE = {
     "type": "object",
     "additionalProperties": False,
-    "properties": {"min": NUMBER, "max": NUMBER},
+    "description": (
+        "Deprecated on a case or economics leaf (a check reports it as a warning): the interval "
+        "the value may take, in the unit of the leaf; either side optional."
+    ),
+    "properties": {
+        "min": NUMBER | {"description": "The lowest value, in the unit of the leaf."},
+        "max": NUMBER | {"description": "The highest value, in the unit of the leaf."},
+    },
 }
 UNCERTAINTY = {
     "type": "object",
     "additionalProperties": False,
     "required": ["kind"],
+    "description": (
+        "The spread of the value that a sample or a sensitivity study draws from, in the unit of "
+        "the leaf: min and max for uniform and triangular, std for normal."
+    ),
     "properties": {
-        "kind": {"enum": list(inputs.UNCERTAINTY_KINDS)},
-        "min": NUMBER,
-        "max": NUMBER,
-        "std": NUMBER,
+        "kind": {
+            "enum": list(inputs.UNCERTAINTY_KINDS),
+            "description": "The distribution: uniform, triangular (peak at value) or normal.",
+        },
+        "min": NUMBER | {"description": "The lowest value drawn (uniform, triangular)."},
+        "max": NUMBER | {"description": "The highest value drawn (uniform, triangular)."},
+        "std": NUMBER | {"description": "The standard deviation around the value (normal)."},
     },
 }
+WORDS = {
+    "value": "The value, in its unit.",
+    "unit": "The unit of the value and of its range and uncertainty.",
+    "file": "The CSV file of the series, relative to the case file; its first column is time.",
+    "column": "The column of the CSV file that holds the series.",
+    "time_zone": (
+        "The IANA time zone (such as Europe/Oslo) of the timestamps of the file that have no "
+        "offset; without it every timestamp needs its offset."
+    ),
+}
+"""The description of each key of a leaf, whatever the leaf."""
+ABOUT = {
+    "type": "object",
+    "description": "Free notes on this part, such as its source; gemini keeps them and reads none.",
+}
+"""The ``about`` key every section and file has."""
+
+
+def described(properties):
+    """Return the leaf ``properties`` with the description of each key from ``WORDS``."""
+    return {
+        key: (
+            item
+            if "description" in item or key not in WORDS
+            else item | {"description": WORDS[key]}
+        )
+        for key, item in properties.items()
+    }
 
 
 def header(kind):
     """Return the properties every file starts with; ``kind`` is the one value this file has."""
     return {
-        "format": {"const": inputs.FORMAT},
-        "kind": {"type": "string", "const": kind},
-        "name": {"type": "string"},
+        "format": {"const": inputs.FORMAT, "description": "The version of the file format."},
+        "kind": {"type": "string", "const": kind, "description": f"The kind of file: {kind}."},
+        "name": {"type": "string", "description": "The name of this file's content."},
     }
 
 
@@ -87,6 +129,7 @@ def leaf(field):
                     bounds=field.bounds,
                     unit_of=field.unit_of,
                     alternatives=field.of_key(key).alternatives,
+                    description=f"The entry of this map for {key}.",
                 )
             )
             for key in field.keys
@@ -101,7 +144,7 @@ def leaf(field):
         required.append("unit")
     if field.unit_of is not None:
         properties["unit"] = {"enum": units.names(field.unit_of)}
-    form = closed(properties, required)
+    form = closed(described(properties), required)
     if not field.series:
         return form | marks(field)
     series = {
@@ -111,7 +154,7 @@ def leaf(field):
     }
     series = {key: item for key, item in series.items() if item is not None}
     optional = {"range": RANGE, "time_zone": {"type": "string"}}
-    return {"anyOf": [form, closed(series | optional, list(series))]} | marks(field)
+    return {"anyOf": [form, closed(described(series | optional), list(series))]} | marks(field)
 
 
 def closed(properties, required=()):
@@ -141,7 +184,7 @@ def section(cls, kind=None):
     """
     properties = {name: leaf(field) for name, field in cls.fields.items()}
     properties |= {name: section(sub) for name, sub in cls.sections.items()}
-    properties["about"] = {"type": "object"}
+    properties["about"] = ABOUT
     required = [name for name, field in cls.fields.items() if field.required]
     described = {} if cls.description is None else {"description": cls.description}
     if kind is not None:
@@ -151,23 +194,60 @@ def section(cls, kind=None):
 
 
 def requirement():
-    """Return the schema of one requirement."""
+    """Return the schema of one requirement: a rule of a third party on a quantity of a role."""
     roles = list(TABLE)
     properties = {
-        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
-        "on": {"enum": roles},
-        "quantity": {"enum": sorted({q for quantities in TABLE.values() for q in quantities})},
-        "unit": {"type": "string"},
-        "over": {"enum": ["each", "sum", "mean", "max", "min", "duration"]},
-        "when": {"enum": ["always", "running"]},
-        "min": NUMBER,
-        "max": NUMBER,
+        "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "A unique snake_case name for the rule.",
+        },
+        "on": {"enum": roles, "description": "The role the rule applies to (gm.plants.roles())."},
+        "quantity": {
+            "enum": sorted({q for quantities in TABLE.values() for q in quantities}),
+            "description": "The quantity of the role the rule bounds.",
+        },
+        "unit": {
+            "type": "string",
+            "description": (
+                "The unit of min and max; present only when the bounds have a dimension."
+            ),
+        },
+        "over": {
+            "enum": ["each", "sum", "mean", "max", "min", "duration"],
+            "description": (
+                "How a per-step quantity is read: each step, one figure of the run (sum, mean, "
+                "max, min), or the total time of the steps where when holds (duration)."
+            ),
+        },
+        "when": {
+            "enum": ["always", "running"],
+            "description": "The steps that count: always, or running (the unit carries flow).",
+        },
+        "min": NUMBER | {"description": "The lowest value allowed, in unit."},
+        "max": NUMBER | {"description": "The highest value allowed, in unit."},
     }
     return closed(properties, ["name", "on", "quantity"])
 
 
 def time():
-    """Return the schema of the ``time`` section."""
-    step = leaf(Field("duration"))
-    properties = {"start": {"type": "string"}, "end": {"type": "string"}, "step": step}
-    return closed(properties, list(properties))
+    """Return the schema of the ``time`` section: ``end`` is excluded from the period."""
+    step = leaf(Field("duration")) | {"description": "The length of one step of the run."}
+    properties = {
+        "start": {
+            "type": "string",
+            "description": "The first instant of the period, ISO 8601; without an offset UTC.",
+        },
+        "end": {
+            "type": "string",
+            "description": (
+                "The end of the period, ISO 8601, excluded: the last step starts one step before "
+                "it, so 2027-01-01 to 2028-01-01 at one day is 365 steps and 2028-01-01 itself is "
+                "not run. Without an offset UTC."
+            ),
+        },
+        "step": step,
+    }
+    return closed(properties, list(properties)) | {
+        "description": "The period of the case and its step; every series lies on its steps."
+    }

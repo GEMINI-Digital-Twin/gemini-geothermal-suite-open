@@ -22,7 +22,9 @@ factors, emission factors) of a run, in a `case.json` with its CSV files. The pl
 the plant. `gm.check(plant, case)` lists what a run still lacks, and a `gm.Study` (`study.json`) records
 which plants, cases and method to run. Every value with a unit is a `{"value": 150, "unit": "m3/h"}` or a `gm.units.Quantity`, text
 such as `"150 m3/h"` is refused, and nothing a user must decide has a default: a value that is
-missing raises `missing_value` naming its path. For measured inputs, `gm.simulate(plant, plan=frame)`
+missing raises `missing_value` naming its path. The period `time` runs from `start` to `end` with
+`end` excluded: `2027-01-01` to `2028-01-01` at one day is 365 steps and `2028-01-01` itself is not
+run. `gm.Case.schema()` describes every key of `case.json`. For measured inputs, `gm.simulate(plant, plan=frame)`
 runs a DataFrame or `gm.Dataset` of the plant's inputs.
 
 `gm.simulate`, `gm.replay`, `gm.live` and `gm.resume` cover a run in one call; `gm.Engine` is the
@@ -114,6 +116,10 @@ results = gm.simulate(sized, case)
 checks = gm.evaluate.requirements(sized, case, results)
 print([check["name"] for check in checks if check["passed"] is False])
 ```
+
+The figures a study reads (`objective`, `objectives`, `metrics` of `study.json`) are those of
+`gm.study.metrics()`: each with its title, the unit it is recorded in, what it means and whether
+lower or higher is better.
 
 `examples/hackathon.py` runs that path on the sample case of `examples/hackathon_2026/`, and
 `examples/quickstart.py` on `examples/shallow_district/`, an hourly demand on one shallow

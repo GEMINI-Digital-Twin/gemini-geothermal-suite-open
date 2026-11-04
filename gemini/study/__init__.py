@@ -3,6 +3,7 @@
 from .calibrate import CalibrationResult, calibrate
 from .evolve import Design, Evolution, evolve
 from .kinds import kinds
+from .metrics import metrics
 from .minimize import Search, minimize
 from .result import Run, StudyResult
 from .sample import Sample, sample
@@ -13,6 +14,7 @@ from .study import Study
 __all__ = [
     "calibrate",
     "kinds",
+    "metrics",
     "evolve",
     "Evolution",
     "Design",

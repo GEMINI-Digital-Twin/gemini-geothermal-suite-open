@@ -52,7 +52,8 @@ def test_a_series_field_accepts_a_leaf_or_a_file_and_a_plain_one_only_a_leaf():
 
 def test_each_file_schema_names_the_one_kind_it_reads(case):
     """The header is a constant: a generated document has a kind the reader accepts."""
-    assert gm.Case.schema()["properties"]["kind"] == {"type": "string", "const": "case"}
+    kind = gm.Case.schema()["properties"]["kind"]
+    assert {key: kind[key] for key in ("type", "const")} == {"type": "string", "const": "case"}
     assert gm.case.Economics.schema()["properties"]["kind"]["const"] == "economics"
     assert gm.plants.schema()["properties"]["kind"]["const"] == "plant"
     assert gm.Study.schema()["properties"]["kind"]["const"] == "study"
@@ -115,5 +116,5 @@ def test_every_field_and_section_of_the_economics_schema_has_a_description():
 
 def test_a_field_without_a_description_has_none_in_the_schema():
     """The description is given or absent, never made up."""
-    assert "description" not in schema.leaf(gm.case.Reservoir.fields["thickness"])
+    assert "description" not in schema.leaf(Field("length"))
     assert schema.leaf(Field("power", description="A power"))["description"] == "A power"
