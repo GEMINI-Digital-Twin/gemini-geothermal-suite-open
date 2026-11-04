@@ -102,6 +102,8 @@ def prose(j, results=(), free=False, problems=()):
             if st.get("by"):
                 warn.append(f"Repair step by the {st['by']}: {st.get('move') or st['verdict']}, {st['verdict']}"
                             + (f" (checks {st['checks_after']})" if st.get("checks_after") else "") + f"; why: {st['why']}")
+    if isinstance(j, dict) and j.get("code_split"):
+        warn.append(f"The model joined its reasoning items into {j['code_split']} string(s); code split them on '; '.")
     head = "\n".join([first] + warn) + "\n\n"
     open_ = f"\n\nOpen checker problems: {'; '.join(problems)}" if problems else ""
     if "unparsed" in j:
@@ -120,8 +122,24 @@ def prose(j, results=(), free=False, problems=()):
                if j.get("rejected_alternatives") else ""))
 
 
+def split_joined(j):
+    """Small models sometimes join the reasoning items into one string with '; '. Code splits it back; the run file says so."""
+    if not isinstance(j, dict) or not isinstance(j.get("reasoning"), list):
+        return j
+    out = []
+    for r in j["reasoning"]:
+        if isinstance(r, str) and len(r.split()) > 30 and r.count("; ") >= 2:
+            out += [x.strip() for x in r.split("; ") if x.strip()]
+            j["code_split"] = j.get("code_split", 0) + 1
+        else:
+            out.append(r)
+    j["reasoning"] = out
+    return j
+
+
 def declare(j, results):
     """Code, not the model, adds the 'not supported' line when site_inputs rejects the setpoints (small models forget it)."""
+    j = split_joined(j)
     bad = [r["result"] for r in results if r["name"] == "site_inputs" and isinstance(r["result"], dict) and not r["result"].get("supported", True)]
     said = lambda x: "not supported" in x.lower() or "cannot be trusted" in x.lower()
     if bad and isinstance(j, dict) and "reasoning" in j and not any(said(x) for x in j["reasoning"]):
@@ -230,7 +248,7 @@ if __name__ == "__main__":
         ask(args[0], free)
     else:                                      # interactive: type a brief, Enter for the challenge brief, q to quit
         print(f"Agent on {MODEL}{' (free mode)' if free else ''}, tools on GEMINI {tools.gemini_version()}.\n"
-              "Brief with MW -> design agent, any other question -> notes (RAG). Enter = challenge brief, q = quit.")
+              "Brief with MW -> design agent, any other question -> GEMINI's docstrings (RAG). Enter = challenge brief, q = quit.")
         while True:
             try:
                 line = input("brief or question> ").strip()

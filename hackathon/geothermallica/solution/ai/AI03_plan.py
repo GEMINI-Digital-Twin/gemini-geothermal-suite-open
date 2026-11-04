@@ -131,7 +131,7 @@ def plan(brief, chat=log.chat, records=None, exchanges=None):
                  ("cooling_year", {"t_return_c": t, "n_doublets": n, **peaks}), ("injector_point", {"q_m3h": 300, **dep}),
                  ("gas_point", {"q_m3h": 300, **well}), ("lifetime_point", {"n_doublets": n, "t_return_c": t, **heat, **life})):
         out.append({"name": k, "args": a, "result": call(k, a)})
-    rep = {"n_doublets": n, "t_return_c": t, **{k: design[k] for k in ("depth_m", "esp_depth_m") if k in design}}
+    rep = {"n_doublets": n, "t_return_c": t, **heat}   # the brief's heat peak, depth and ESP depth
     out.append({"name": "gemini_replay", "args": rep, "result": call("gemini_replay", rep)})   # GEMINI's own solver on the design
     trace = iterations(sweeps, (n, t))
     by = {}

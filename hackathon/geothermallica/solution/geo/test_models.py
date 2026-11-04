@@ -116,6 +116,15 @@ class TestModels(unittest.TestCase):
         self.assertEqual(d["MW_abs_drive_ours"], 0.0)
         self.assertLess(d["MW_abs_drive_gemini"], 1e-6)
 
+    def test_gemini_replay_at_the_brief_peak(self):
+        """A 45 MW brief (brief D, 3 doublets at 56.5 C): the replayed coldest day carries 45 MW, not the 30 MW of the file,
+        GEMINI solves it (ESP head residual present) and the project file name carries the peak."""
+        days = gemini_project._days(3, 56.5, peak_heat_MW=45)
+        self.assertAlmostEqual(float(days.demand.iloc[0]), 45.0, delta=1e-6)
+        r = gemini_project.replay(3, 56.5, days=days.iloc[[0]], peak_heat_MW=45)
+        self.assertIn("esp_head_residual_bar", r["days"][0])
+        self.assertTrue(r["project_path"].endswith("gemini_project_3d_56.5C_45MW.json"))
+
     def test_gemini_replay_mildest_day(self):
         """GEMINI's solver on the mildest day with both doublets on (19 Sep, 57.5 C return): flow at the 160 m3/h floor, chiller-first
         part load, so the brine above 78 C drives the absorption chiller, the exchanger heats the water to 75 C and the heat pump

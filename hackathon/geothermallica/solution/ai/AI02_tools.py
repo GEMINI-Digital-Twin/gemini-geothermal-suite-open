@@ -429,11 +429,11 @@ def _within(days, key):
     return f"within {max(diffs):.1f} %" if diffs else "not compared"
 
 
-def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
+def gemini_replay(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
     """GEMINI's own simulator re-runs our design: the tool writes one doublet of the design as a native GEMINI project file
     (producer well with ESP, separator, filters, our absorption chiller, exchanger, our heat pump, boiler on the separator gas,
     injector, plus our gas bubble-point and thermal-breakthrough models) and runs GEMINI's solver on the coldest, the median and
-    the mildest day of 2027 at the day's dispatch per doublet. Per day: GEMINI's flow at our ESP frequency, the frequency GEMINI
+    the mildest day of 2027 at the day's dispatch per doublet, heat demand scaled to peak_heat_MW if given (else 30 MW). Per day: GEMINI's flow at our ESP frequency, the frequency GEMINI
     needs for our flow, and at that flow GEMINI's pressures, brine and supply temperatures, exchanger, heat-pump, boiler and
     chiller MW, heat-pump COP, bubble point, breakthrough years and interference next to ours (_ours, _gemini, _diff_pct);
     residual columns take out the known 1 000 vs 1 030 kg/m3 well-column offset. Also the project file path, gemini_version
@@ -441,7 +441,8 @@ def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
     _need("n_doublets", n_doublets, 1, 3)
     _need("t_return_c", t_return_c, 30, 70)
     _need("depth_m", depth_m, 1500, 4000)
-    r = gemini_project.replay(int(n_doublets), float(t_return_c), float(depth_m), _esp(esp_depth_m))
+    _peaks(peak_heat_MW, None)
+    r = gemini_project.replay(int(n_doublets), float(t_return_c), float(depth_m), _esp(esp_depth_m), peak_heat_MW=peak_heat_MW)
     days = [r2({k: v for k, v in d.items() if v is not None and v == v}) for d in r["days"]]   # v == v drops nan
     solved = [d for d in days if "esp_head_residual_bar" in d]
     if not solved:
@@ -467,8 +468,8 @@ def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
                "parameters; flow, exchanger duty, full-draw heat-pump duty, boiler heat and chiller drive are equal by construction "
                "(the project carries our duty, floors, water flow and gas; the chiller has the same formula and wellhead temperature "
                "on both sides)." + freq + sign + short + supply)
-    return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "depth_m": float(depth_m), "esp_depth_m": _esp(esp_depth_m),
-            "n_days": len(days), "days": days, "project_path": r["project_path"], "gemini_version": r["gemini_version"],
+    return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "peak_heat_MW": peak_heat_MW, "depth_m": float(depth_m),
+            "esp_depth_m": _esp(esp_depth_m), "n_days": len(days), "days": days, "project_path": r["project_path"], "gemini_version": r["gemini_version"],
             "verdict": verdict, "basis": r["basis"], "tag": "[C]"}
 
 
@@ -512,7 +513,7 @@ SIG = {"site_inputs": ["depth_m", "supply_heat_c", "supply_cold_c"], "demand_sum
        "layout_compare": ["n_doublets", "t_return_c"] + PEAKS + D,
        "storage_point": ["n_doublets", "t_return_c", "peak_heat_MW"] + D + ["outage_days"],
        "return_sweep": ["n_doublets", "peak_heat_MW"] + D + ["extra_return_c"], "optimise_point": PEAKS + D + ["priority", "max_doublets"],
-       "gemini_replay": ["n_doublets", "t_return_c"] + D,
+       "gemini_replay": ["n_doublets", "t_return_c", "peak_heat_MW"] + D,
        "gemini_traps": []}
 TOOLS = [{"type": "function", "function": {"name": n, "description": " ".join(FUNCS[n].__doc__.split()),
           "parameters": {"type": "object", "properties": {a: ARGS[a] for a in args},

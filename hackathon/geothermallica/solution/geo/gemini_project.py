@@ -18,7 +18,7 @@ from geo.cost import BOILER_EFF, EF_EL_KG_KWH, GCV_LHV
 from geo.gemini_compare import compare, ours, theirs
 from geo.plant import COP_MAX, CP, LORENZ_EFF, T_ABS_MIN_C
 from geo.well import CELL_M, ESP_DEPTH_M, PUMP_EFF, ROUGHNESS_M, TUBING_ID_M, Injector, reservoir_pressure
-from geo.year import AUX_KW_PER_KW_COLD, COP_ABSORPTION, heating_year, table
+from geo.year import AUX_KW_PER_KW_COLD, COP_ABSORPTION, heat, heating_year, table
 from gemini_simulator.project_loader import build_project
 
 P_WELLHEAD_BAR = 10.0        # producer wellhead pressure the ESP holds, bar; the floor used by geo.well.Producer
@@ -146,9 +146,10 @@ def _freq_for_flow(project, q_m3h, f_lo=30.0, f_hi=60.0):
     return f_hi
 
 
-def _days(n, t_return_c, depth_m, esp_depth_m, k=3):
-    """Up to k representative days with every doublet running: the coldest, the median demand and the mildest."""
-    d = heating_year(n, t_return_c, depth_m=depth_m, esp_depth_m=esp_depth_m)
+def _days(n, t_return_c, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, k=3, peak_heat_MW=None):
+    """Up to k representative days with every doublet running: the coldest, the median demand and the mildest.
+    Heat demand scaled to peak_heat_MW as in geo.year.heating_year (None: the 30 MW file as it is)."""
+    d = heating_year(n, t_return_c, peak_heat_MW=peak_heat_MW, depth_m=depth_m, esp_depth_m=esp_depth_m)
     d = d[(d.doublets_on == n) & (d.q_m3h > 0)].sort_values("demand")
     picks = [d.index[-1], d.index[len(d) // 2], d.index[0]][:k]
     return d.loc[picks]
@@ -166,15 +167,25 @@ def _version():
     return f"{shown} @ {sha or 'no git'}"
 
 
-def replay(n=2, t_return_c=60.0, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, days=None):
-    """Run GEMINI's own solver on the generated project for a few days against our numbers; dict of day rows, file path, basis."""
+def project_name(n, t_return_c, peak_heat_MW=None):
+    """File name of the generated project; the peak is in the name when it differs from the demand file's."""
+    peak = "" if peak_heat_MW is None or abs(peak_heat_MW - heat.max()) < 1e-9 else f"_{peak_heat_MW:g}MW"
+    return f"gemini_project_{n}d_{t_return_c:g}C{peak}.json"
+
+
+def replay(n=2, t_return_c=60.0, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, days=None, peak_heat_MW=None):
+    """Run GEMINI's own solver on the generated project for a few days against our numbers; dict of day rows, file path, basis.
+    The days come from the heat demand scaled to peak_heat_MW (None: the 30 MW file). Cold demand does not enter: the chiller
+    drive on a replayed day is the brine heat above 78 C that the heat dispatch leaves."""
     tab, inj = table(t_return_c, depth_m, True, esp_depth_m), Injector(depth_m=depth_m)
     w = tab.w
     rows, path = [], None
-    for day, d in (days if days is not None else _days(n, t_return_c, depth_m, esp_depth_m)).iterrows():
+    if days is None:
+        days = _days(n, t_return_c, depth_m, esp_depth_m, peak_heat_MW=peak_heat_MW)
+    for day, d in days.iterrows():
         o = ours(w, inj, tab.at_output(float(d.demand) / int(d.doublets_on)), t_return_c, n)   # the day's dispatch per doublet
         p = project_dict(w, t_return_c, o, n)
-        path = path or write_project(RUNS / f"gemini_project_{n}d_{t_return_c:g}C.json", p)
+        path = path or write_project(RUNS / project_name(n, t_return_c, peak_heat_MW), p)
         q_at_our_freq = _solve(p).get_output("producer_well", "flow_rate")
         f = _freq_for_flow(p, o["q_m3h"])
         t = theirs(_solve(p)) if f is not None else {}
@@ -201,7 +212,8 @@ def replay(n=2, t_return_c=60.0, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, days=
              "(GEMINI's well PVT is water at standard conditions), the pump similarity law (GEMINI reads the 60 Hz curve at the "
              "actual flow). The residual columns remove the water-column offset: GEMINI's well walks a 1 000 kg/m3 column, ours "
              "1 030 kg/m3 [C]")
-    return {"n_doublets": n, "t_return_c": t_return_c, "depth_m": depth_m, "esp_depth_m": esp_depth_m, "days": rows,
+    return {"n_doublets": n, "t_return_c": t_return_c, "depth_m": depth_m, "esp_depth_m": esp_depth_m,
+            "peak_heat_MW": peak_heat_MW, "days": rows,
             "n_days": len(rows),
             "project_path": path, "gemini_version": _version(), "basis": basis}
 
