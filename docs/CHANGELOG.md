@@ -7,6 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+- `gm.case.Economics.schema()` (and the `economics` of `gm.Case.schema()`) gives every field and
+  section a `description`: its meaning and the units it accepts. `opex.variable` says it accepts
+  two consumables only, `chemical` (every product drawn from a `ChemicalGrid`, a scale or a
+  corrosion inhibitor alike) and `waste_disposal`, each per kg.
+
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.

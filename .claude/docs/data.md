@@ -164,7 +164,10 @@ and the case holds it as `case.economics`, `None` for a pure physics case. Field
 `{"depth": {"value": [...], "unit": "m"}, "cost_per_metre": {"value": [...], "unit": "EUR/m"}}`;
 `economics.drilling_cost_per_metre(length)` interpolates it linearly and a length outside the table
 raises `out_of_bounds`. A price series needs the time of a case: `Economics.from_json(path,
-time=case.time)`.
+time=case.time)`. `Economics.schema()` gives each field and section a `description`: its meaning
+and the units it accepts. `opex.variable` accepts two names only, `chemical` (the price per kg of
+every product a `ChemicalGrid` supplies, a scale or a corrosion inhibitor alike) and
+`waste_disposal`.
 
 **Uncertainty.** Any leaf that is a number may carry `uncertainty` (`uniform`, `triangular`,
 `normal`) in the leaf's unit. `case.uncertainty` is the index `{dotted path: Uncertainty}` in SI

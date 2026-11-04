@@ -48,9 +48,10 @@ def marks(field):
 
     ``x-quantity`` is the quantity of the unit and ``x-units`` the units it accepts, both from
     ``gm.units``; ``x-limits`` are the bounds of the value in SI, with their unit; ``x-fraction``
-    marks a dimensionless share between 0 and 1, which a form may show as a percentage.
+    marks a dimensionless share between 0 and 1, which a form may show as a percentage. A field
+    with a ``description`` also gets the standard ``description`` key.
     """
-    found = {}
+    found = {} if field.description is None else {"description": field.description}
     if field.quantity is not None:
         found["x-quantity"] = field.quantity
         found["x-units"] = units.names(field.quantity)
@@ -106,16 +107,18 @@ def quantities(cls):
 def section(cls, kind=None):
     """Return the schema of a section class; a ``kind`` adds the keys every file starts with.
 
-    The file schema also lists, as ``x-quantities``, the units of every quantity it uses.
+    The file schema also lists, as ``x-quantities``, the units of every quantity it uses. A section
+    with a ``description`` gets the standard ``description`` key.
     """
     properties = {name: leaf(field) for name, field in cls.fields.items()}
     properties |= {name: section(sub) for name, sub in cls.sections.items()}
     properties["about"] = {"type": "object"}
     required = [name for name, field in cls.fields.items() if field.required]
+    described = {} if cls.description is None else {"description": cls.description}
     if kind is not None:
         found = closed(header(kind) | properties, ["format", "kind", "name"] + required)
-        return found | {"x-quantities": quantities(cls)}
-    return closed(properties, required)
+        return found | described | {"x-quantities": quantities(cls)}
+    return closed(properties, required) | described
 
 
 def requirement():

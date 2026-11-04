@@ -131,6 +131,11 @@ recommendation. The shallow district sample states invented placeholders for eve
 
 Convert at the boundary: EUR/MWh divided by 3.6e9 is EUR/J, kg/GJ divided by 1e9 is kg/J.
 
+`gm.case.Economics.schema()` gives each field and section a `description` (its meaning and the units
+it accepts), so a cost catalogue can be matched against it; the consumables of `opex.variable` are
+`chemical` (every product a `ChemicalGrid` supplies, inhibitors included) and `waste_disposal`, and
+no other name is read.
+
 ## Totals and KPIs
 
 `gm.evaluate.totals(plant, case, results)` returns `{name: value}` (each a `Value`, `{value, unit}` in JSON) of what crossed the

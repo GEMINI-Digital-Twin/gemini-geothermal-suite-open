@@ -4,6 +4,7 @@ import pytest
 
 import gemini as gm
 from gemini.case._utils import schema
+from gemini.case._utils.node import Field
 
 
 def keys_known(data, node):
@@ -84,3 +85,35 @@ def test_the_file_schemas_list_the_units_of_every_quantity_they_use():
     assert found["power"] == gm.units.names("power") and found["duration"]
     assert set(gm.case.Economics.schema()["x-quantities"]) <= set(found)
     assert {"money_per_energy", "temperature", "permeability"} <= set(found)
+
+
+def _described(node, path="economics"):
+    """Return the paths of the fields and sections of an economics schema without a description."""
+    if not isinstance(node, dict) or "properties" not in node:
+        return []
+    found = []
+    for key, item in node["properties"].items():
+        if key in ("about", "format", "kind", "name"):
+            continue
+        if not item.get("description"):
+            found.append(f"{path}.{key}")
+        leafy = "x-quantity" in item or "anyOf" in item or "value" in item.get("properties", {})
+        if not leafy:
+            found += _described(item, f"{path}.{key}")
+    return found
+
+
+def test_every_field_and_section_of_the_economics_schema_has_a_description():
+    """Its meaning and accepted units, for a form or a catalogue to match against."""
+    economics = gm.case.Economics.schema()
+    assert economics["description"]
+    assert _described(economics) == []
+    assert _described(gm.Case.schema()["properties"]["economics"]) == []
+    heat_pump = economics["properties"]["capex"]["properties"]["heat_pump"]["description"]
+    assert "per W of capacity" in heat_pump and "EUR/W" in heat_pump
+
+
+def test_a_field_without_a_description_has_none_in_the_schema():
+    """The description is given or absent, never made up."""
+    assert "description" not in schema.leaf(gm.case.Reservoir.fields["thickness"])
+    assert schema.leaf(Field("power", description="A power"))["description"] == "A power"

@@ -16,6 +16,22 @@ from gemini.units import inputs
 
 HEADER = ("format", "kind", "name")
 TABLE_KEYS = ("depth", "cost_per_metre")
+EXAMPLE_UNITS = {
+    "money": "EUR",
+    "money_per_power": "EUR/W",
+    "money_per_length": "EUR/m",
+    "money_per_conductance": "EUR/(W/K)",
+    "money_per_volume": "EUR/m3",
+}
+"""A unit of each cost basis, named in the descriptions of the schema; ``x-units`` lists all."""
+
+
+def _capex_text(kind, quantity, basis):
+    """Return the description of ``capex.<kind>``: its basis and a unit of it."""
+    text = f"Investment in the equipment kind {kind}: {basis} ({EXAMPLE_UNITS[quantity]})"
+    if kind == "drilling":
+        text += ", or a table of the cost per metre by measured depth"
+    return text
 
 
 class DepthTable(Frozen):
@@ -108,8 +124,13 @@ class Capex(Node):
     """
 
     where = "economics.capex"
+    description = (
+        "The capex factor of each equipment kind: the investment per unit of the size the kind "
+        "is priced by; a kind a plant uses and the economics lacks raises missing_assumption"
+    )
     fields = {
-        kind: Field(quantity, bounds=POSITIVE) for kind, (quantity, _) in EQUIPMENT_KINDS.items()
+        kind: Field(quantity, bounds=POSITIVE, description=_capex_text(kind, quantity, basis))
+        for kind, (quantity, basis) in EQUIPMENT_KINDS.items()
     }
 
     @classmethod
@@ -126,9 +147,30 @@ class Variable(Node):
     """Consumables priced by the market: ``chemical`` and ``waste_disposal`` [currency/kg]."""
 
     where = "economics.opex.variable"
+    description = (
+        "The consumables priced by the market, per kg; the names accepted are chemical and "
+        "waste_disposal and no other"
+    )
     fields = {
-        "chemical": Field("money_per_mass", series=True, bounds=POSITIVE),
-        "waste_disposal": Field("money_per_mass", series=True, bounds=POSITIVE),
+        "chemical": Field(
+            "money_per_mass",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "Price of the chemical products a plant draws from its ChemicalGrid, per kg of "
+                "product (EUR/kg, EUR/t): every dosed product, a scale or a corrosion inhibitor "
+                "of an InhibitorDosing alike; constant or a series"
+            ),
+        ),
+        "waste_disposal": Field(
+            "money_per_mass",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "Cost of disposing of the waste a plant sends to its WasteGrid (sand, scale, "
+                "blowdown), per kg (EUR/kg, EUR/t); constant or a series"
+            ),
+        ),
     }
 
 
@@ -140,7 +182,19 @@ class Opex(Node):
     """
 
     where = "economics.opex"
-    fields = {"fixed": Field("annual_rate", keys=tuple(EQUIPMENT_KINDS), bounds=POSITIVE)}
+    description = "The operating costs besides the energy bought: fixed per kind, and consumables"
+    fields = {
+        "fixed": Field(
+            "annual_rate",
+            keys=tuple(EQUIPMENT_KINDS),
+            bounds=POSITIVE,
+            description=(
+                "Fixed operation and maintenance of each equipment kind, a share of its capex "
+                "per year (%/yr, 1/yr); a kind a plant uses and the map lacks raises "
+                "missing_assumption"
+            ),
+        )
+    }
     sections = {"variable": Variable}
 
 
@@ -148,9 +202,26 @@ class Energy(Node):
     """The price of what is bought: ``electricity`` and ``gas`` [currency/J], constant or series."""
 
     where = "economics.energy"
+    description = "The price of the energy a plant buys"
     fields = {
-        "electricity": Field("money_per_energy", series=True, bounds=POSITIVE),
-        "gas": Field("money_per_energy", series=True, bounds=POSITIVE),
+        "electricity": Field(
+            "money_per_energy",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "Price of the electricity bought from the grid (EUR/MWh, EUR/kWh); constant or a "
+                "series"
+            ),
+        ),
+        "gas": Field(
+            "money_per_energy",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "Price of the gas bought from the grid, per energy of its lower heating value "
+                "(EUR/MWh, EUR/kWh); constant or a series. Co-produced gas costs nothing"
+            ),
+        ),
     }
 
 
@@ -158,16 +229,39 @@ class Carbon(Node):
     """The ``price`` of a mass of CO2-equivalent [currency/kg], constant or series."""
 
     where = "economics.carbon"
-    fields = {"price": Field("money_per_mass", series=True, bounds=POSITIVE)}
+    description = "The price of the CO2-equivalent a plant emits"
+    fields = {
+        "price": Field(
+            "money_per_mass",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "Price of a mass of CO2-equivalent emitted, added to the opex (EUR/t, EUR/kg); "
+                "constant or a series"
+            ),
+        )
+    }
 
 
 class Subsidy(Node):
     """A subsidy: the ``amount`` paid per year [currency/yr] for a ``duration`` [s]."""
 
     where = "economics.revenue.subsidy"
+    description = (
+        "A subsidy paid on top of the revenue from the first year; it earns nothing unless both "
+        "amount and duration are given"
+    )
     fields = {
-        "amount": Field("annual_money", bounds=POSITIVE),
-        "duration": Field("duration", bounds=POSITIVE),
+        "amount": Field(
+            "annual_money",
+            bounds=POSITIVE,
+            description="The subsidy paid per year (EUR/yr, MEUR/yr)",
+        ),
+        "duration": Field(
+            "duration",
+            bounds=POSITIVE,
+            description="How long the subsidy is paid (yr), within the analysis period",
+        ),
     }
 
 
@@ -175,9 +269,24 @@ class Revenue(Node):
     """What a unit of delivered ``heat`` and ``cold`` earns [currency/J], and the ``subsidy``."""
 
     where = "economics.revenue"
+    description = "What the energy a plant delivers earns, and a subsidy"
     fields = {
-        "heat": Field("money_per_energy", series=True, bounds=POSITIVE),
-        "cold": Field("money_per_energy", series=True, bounds=POSITIVE),
+        "heat": Field(
+            "money_per_energy",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "Price of the useful heat delivered (EUR/MWh, EUR/kWh); constant or a series"
+            ),
+        ),
+        "cold": Field(
+            "money_per_energy",
+            series=True,
+            bounds=POSITIVE,
+            description=(
+                "Price of the useful cold delivered (EUR/MWh, EUR/kWh); constant or a series"
+            ),
+        ),
     }
     sections = {"subsidy": Subsidy}
 
@@ -186,20 +295,39 @@ class Allocation(Node):
     """How a plant that delivers heat and cold shares its cost: ``heat_cost_share`` [-]."""
 
     where = "economics.accounting.allocation"
-    fields = {"heat_cost_share": Field(bounds=FRACTION)}
+    description = "How the cost of a plant that delivers heat and cold is split between them"
+    fields = {
+        "heat_cost_share": Field(
+            bounds=FRACTION,
+            description=(
+                "Share of the cost charged to the heat, between 0 and 1 (no unit); lcoc gets "
+                "the rest"
+            ),
+        )
+    }
 
 
 class Gwp(Node):
     """The global warming potentials: the ``standard`` that names the set, and ``CH4`` [-]."""
 
     where = "economics.accounting.gwp"
-    fields = {"standard": Field(text=True), "CH4": Field(bounds=POSITIVE)}
+    description = "The global warming potentials of the CO2-equivalent, and the set they come from"
+    fields = {
+        "standard": Field(
+            text=True, description="The name of the set of global warming potentials (text)"
+        ),
+        "CH4": Field(
+            bounds=POSITIVE,
+            description="Global warming potential of methane, kg CO2 per kg CH4 (no unit)",
+        ),
+    }
 
 
 class Accounting(Node):
     """The conventions of the report: the cost ``allocation`` and the ``gwp`` set."""
 
     where = "economics.accounting"
+    description = "The conventions a report cannot be built without"
     sections = {"allocation": Allocation, "gwp": Gwp}
 
 
@@ -224,11 +352,24 @@ class Economics(Node):
     """
 
     where = "economics"
+    description = (
+        "All money conditions of a case and the conventions of its report; nothing has a default"
+    )
     fields = {
-        "currency": Field(text=True),
-        "price_year": Field(integer=True),
-        "discount_rate": Field(bounds=POSITIVE),
-        "analysis_period": Field("duration", bounds=POSITIVE),
+        "currency": Field(
+            text=True,
+            description="A label of the currency of every amount (text); nothing converts it",
+        ),
+        "price_year": Field(
+            integer=True, description="The year the prices are in (a whole number, no unit)"
+        ),
+        "discount_rate": Field(
+            bounds=POSITIVE,
+            description="Real discount rate per year, as a fraction (0.05 is 5 %; no unit)",
+        ),
+        "analysis_period": Field(
+            "duration", bounds=POSITIVE, description="The years of the analysis (yr)"
+        ),
     }
     sections = {
         "capex": Capex,

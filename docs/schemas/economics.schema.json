@@ -1,24 +1,28 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
+  "description": "All money conditions of a case and the conventions of its report; nothing has a default",
   "properties": {
     "about": {
       "type": "object"
     },
     "accounting": {
       "additionalProperties": false,
+      "description": "The conventions a report cannot be built without",
       "properties": {
         "about": {
           "type": "object"
         },
         "allocation": {
           "additionalProperties": false,
+          "description": "How the cost of a plant that delivers heat and cold is split between them",
           "properties": {
             "about": {
               "type": "object"
             },
             "heat_cost_share": {
               "additionalProperties": false,
+              "description": "Share of the cost charged to the heat, between 0 and 1 (no unit); lcoc gets the rest",
               "properties": {
                 "range": {
                   "additionalProperties": false,
@@ -77,9 +81,11 @@
         },
         "gwp": {
           "additionalProperties": false,
+          "description": "The global warming potentials of the CO2-equivalent, and the set they come from",
           "properties": {
             "CH4": {
               "additionalProperties": false,
+              "description": "Global warming potential of methane, kg CO2 per kg CH4 (no unit)",
               "properties": {
                 "range": {
                   "additionalProperties": false,
@@ -135,6 +141,7 @@
             },
             "standard": {
               "additionalProperties": false,
+              "description": "The name of the set of global warming potentials (text)",
               "properties": {
                 "range": {
                   "additionalProperties": false,
@@ -192,6 +199,7 @@
     },
     "analysis_period": {
       "additionalProperties": false,
+      "description": "The years of the analysis (yr)",
       "properties": {
         "range": {
           "additionalProperties": false,
@@ -265,12 +273,14 @@
     },
     "capex": {
       "additionalProperties": false,
+      "description": "The capex factor of each equipment kind: the investment per unit of the size the kind is priced by; a kind a plant uses and the economics lacks raises missing_assumption",
       "properties": {
         "about": {
           "type": "object"
         },
         "absorption_chiller": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind absorption_chiller: per W of capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -336,6 +346,7 @@
         },
         "adsorption_chiller": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind adsorption_chiller: per W of capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -401,6 +412,7 @@
         },
         "boiler": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind boiler: per W of capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -466,6 +478,7 @@
         },
         "chp": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind chp: per W of electric capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -531,6 +544,7 @@
         },
         "circulation_pump": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind circulation_pump: per W of shaft power at the nominal flow (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -596,6 +610,7 @@
         },
         "compression_chiller": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind compression_chiller: per W of capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -661,6 +676,7 @@
         },
         "cooler": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind cooler: per W of capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -726,6 +742,7 @@
         },
         "degasser": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind degasser: fixed amount (EUR)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -795,6 +812,7 @@
         },
         "drilling": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind drilling: per metre of well (EUR/m), or a table of the cost per metre by measured depth",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -860,6 +878,7 @@
         },
         "electric_boiler": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind electric_boiler: per W of capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -925,6 +944,7 @@
         },
         "flare": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind flare: fixed amount (EUR)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -994,6 +1014,7 @@
         },
         "gas_makeup": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind gas_makeup: fixed amount (EUR)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1063,6 +1084,7 @@
         },
         "heat_exchanger": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind heat_exchanger: per W/K of conductance (EUR/(W/K))",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1128,6 +1150,7 @@
         },
         "heat_pump": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind heat_pump: per W of capacity (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1193,6 +1216,7 @@
         },
         "ice_storage": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind ice_storage: per m3 (EUR/m3)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1258,6 +1282,7 @@
         },
         "injection_pump": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind injection_pump: per W of shaft power at the nominal flow (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1323,6 +1348,7 @@
         },
         "pipe": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind pipe: per metre (EUR/m)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1388,6 +1414,7 @@
         },
         "production_pump": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind production_pump: per W of shaft power at the nominal flow (EUR/W)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1453,6 +1480,7 @@
         },
         "thermal_storage": {
           "additionalProperties": false,
+          "description": "Investment in the equipment kind thermal_storage: per m3 (EUR/m3)",
           "properties": {
             "range": {
               "additionalProperties": false,
@@ -1522,6 +1550,7 @@
     },
     "carbon": {
       "additionalProperties": false,
+      "description": "The price of the CO2-equivalent a plant emits",
       "properties": {
         "about": {
           "type": "object"
@@ -1627,6 +1656,7 @@
               "type": "object"
             }
           ],
+          "description": "Price of a mass of CO2-equivalent emitted, added to the opex (EUR/t, EUR/kg); constant or a series",
           "x-limits": {
             "min": 0.0,
             "unit": "currency/kg"
@@ -1645,6 +1675,7 @@
     },
     "currency": {
       "additionalProperties": false,
+      "description": "A label of the currency of every amount (text); nothing converts it",
       "properties": {
         "range": {
           "additionalProperties": false,
@@ -1694,6 +1725,7 @@
     },
     "discount_rate": {
       "additionalProperties": false,
+      "description": "Real discount rate per year, as a fraction (0.05 is 5 %; no unit)",
       "properties": {
         "range": {
           "additionalProperties": false,
@@ -1746,6 +1778,7 @@
     },
     "energy": {
       "additionalProperties": false,
+      "description": "The price of the energy a plant buys",
       "properties": {
         "about": {
           "type": "object"
@@ -1855,6 +1888,7 @@
               "type": "object"
             }
           ],
+          "description": "Price of the electricity bought from the grid (EUR/MWh, EUR/kWh); constant or a series",
           "x-limits": {
             "min": 0.0,
             "unit": "currency/J"
@@ -1974,6 +2008,7 @@
               "type": "object"
             }
           ],
+          "description": "Price of the gas bought from the grid, per energy of its lower heating value (EUR/MWh, EUR/kWh); constant or a series. Co-produced gas costs nothing",
           "x-limits": {
             "min": 0.0,
             "unit": "currency/J"
@@ -2004,12 +2039,14 @@
     },
     "opex": {
       "additionalProperties": false,
+      "description": "The operating costs besides the energy bought: fixed per kind, and consumables",
       "properties": {
         "about": {
           "type": "object"
         },
         "fixed": {
           "additionalProperties": false,
+          "description": "Fixed operation and maintenance of each equipment kind, a share of its capex per year (%/yr, 1/yr); a kind a plant uses and the map lacks raises missing_assumption",
           "properties": {
             "absorption_chiller": {
               "additionalProperties": false,
@@ -3261,6 +3298,7 @@
         },
         "variable": {
           "additionalProperties": false,
+          "description": "The consumables priced by the market, per kg; the names accepted are chemical and waste_disposal and no other",
           "properties": {
             "about": {
               "type": "object"
@@ -3366,6 +3404,7 @@
                   "type": "object"
                 }
               ],
+              "description": "Price of the chemical products a plant draws from its ChemicalGrid, per kg of product (EUR/kg, EUR/t): every dosed product, a scale or a corrosion inhibitor of an InhibitorDosing alike; constant or a series",
               "x-limits": {
                 "min": 0.0,
                 "unit": "currency/kg"
@@ -3479,6 +3518,7 @@
                   "type": "object"
                 }
               ],
+              "description": "Cost of disposing of the waste a plant sends to its WasteGrid (sand, scale, blowdown), per kg (EUR/kg, EUR/t); constant or a series",
               "x-limits": {
                 "min": 0.0,
                 "unit": "currency/kg"
@@ -3501,6 +3541,7 @@
     },
     "price_year": {
       "additionalProperties": false,
+      "description": "The year the prices are in (a whole number, no unit)",
       "properties": {
         "range": {
           "additionalProperties": false,
@@ -3550,6 +3591,7 @@
     },
     "revenue": {
       "additionalProperties": false,
+      "description": "What the energy a plant delivers earns, and a subsidy",
       "properties": {
         "about": {
           "type": "object"
@@ -3659,6 +3701,7 @@
               "type": "object"
             }
           ],
+          "description": "Price of the useful cold delivered (EUR/MWh, EUR/kWh); constant or a series",
           "x-limits": {
             "min": 0.0,
             "unit": "currency/J"
@@ -3778,6 +3821,7 @@
               "type": "object"
             }
           ],
+          "description": "Price of the useful heat delivered (EUR/MWh, EUR/kWh); constant or a series",
           "x-limits": {
             "min": 0.0,
             "unit": "currency/J"
@@ -3794,12 +3838,14 @@
         },
         "subsidy": {
           "additionalProperties": false,
+          "description": "A subsidy paid on top of the revenue from the first year; it earns nothing unless both amount and duration are given",
           "properties": {
             "about": {
               "type": "object"
             },
             "amount": {
               "additionalProperties": false,
+              "description": "The subsidy paid per year (EUR/yr, MEUR/yr)",
               "properties": {
                 "range": {
                   "additionalProperties": false,
@@ -3869,6 +3915,7 @@
             },
             "duration": {
               "additionalProperties": false,
+              "description": "How long the subsidy is paid (yr), within the analysis period",
               "properties": {
                 "range": {
                   "additionalProperties": false,

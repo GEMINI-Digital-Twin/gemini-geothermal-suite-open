@@ -34,7 +34,8 @@ class Field:
     the leaf may be a CSV column, ``bounds`` is the valid range in SI, ``required`` that the leaf
     must be present, ``text`` that its value is a free label, ``integer`` that it is a whole
     number, and ``keys`` that the field is a map ``{key: leaf}`` whose values add up to ``total``
-    when that is set.
+    when that is set. ``description`` is the meaning of the field and its accepted units, written
+    into the JSON Schema; ``None`` writes none.
     """
 
     quantity: str | None = None
@@ -45,6 +46,7 @@ class Field:
     integer: bool = False
     keys: tuple | None = None
     total: float | None = None
+    description: str | None = None
 
 
 @dataclass(frozen=True)
@@ -157,6 +159,8 @@ class Node(Frozen):
     where = ""
     fields = {}
     sections = {}
+    description = None
+    """The meaning of the section, written into the JSON Schema; ``None`` writes none."""
     old = {}
     """``{key: new form}`` of the keys of an older shape, refused with ``old_format``."""
 

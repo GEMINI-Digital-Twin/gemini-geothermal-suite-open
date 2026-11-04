@@ -135,7 +135,7 @@ path, so the world stays one object and signatures stay `(plant, case)`. It repl
 | `capex.<equipment kind>` | market prices of equipment kinds; the kind list is `gm.case.Capex` (the `equipment_kind` of the modules), so a case prices kinds, not modules |
 | `capex.drilling` | per metre, or a depth table (`{"depth": [...], "cost_per_metre": [...]}`) because published costs rise with depth |
 | `opex.fixed.<kind>` | percent of capex per year, market practice per kind |
-| `opex.variable`: chemicals, waste disposal | consumables priced by the market |
+| `opex.variable`: `chemical`, `waste_disposal` (no other name) | consumables priced by the market, per kg; `chemical` is every product drawn from a `ChemicalGrid` (a scale or a corrosion inhibitor alike) |
 | `energy.electricity`, `energy.gas` (constant or series) | money, so here, not in `utilities` (P1: the grid's physics and its tariff are two values with two owners) |
 | `carbon.price` | money per tonne CO2-equivalent |
 | `revenue.heat`, `revenue.cold`, `revenue.subsidy` (amount, duration) | money |
@@ -920,4 +920,4 @@ leaf, to move a case value use `uncertainty`, this will be refused in a later ve
 - Keys are snake_case; the name of a key in a file is the name of the declaration in code
   (`temperature_setpoint`, `supply_margin`), so a reader finds one from the other.
 
-**Forms.** `Case.schema()` states `kind` as a constant and marks each leaf with `x-quantity`, `x-units`, `x-limits` (SI) and `x-fraction`, and each file with `x-quantities`, from the one unit table; `gm.case.missing(case)` lists what a document still lacks.
+**Forms.** `Case.schema()` states `kind` as a constant and marks each leaf with `x-quantity`, `x-units`, `x-limits` (SI) and `x-fraction`, and each file with `x-quantities`, from the one unit table; every field and section of the economics has a `description` (`Field.description`, `Node.description`), its meaning and accepted units; `gm.case.missing(case)` lists what a document still lacks.

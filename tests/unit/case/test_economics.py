@@ -141,3 +141,12 @@ def test_a_later_cost_of_a_depth_table_is_checked_like_the_first(money):
     }
     with raises(gm.errors.ValidationError, "out_of_bounds", match="capex.drilling.cost_per_metre"):
         gm.case.Economics.from_dict(money)
+
+
+def test_the_schema_lists_the_consumables_the_variable_opex_accepts():
+    """``chemical`` (every dosed product, inhibitors included) and ``waste_disposal``, per kg."""
+    variable = gm.case.Economics.schema()["properties"]["opex"]["properties"]["variable"]
+    assert sorted(variable["properties"]) == ["about", "chemical", "waste_disposal"]
+    assert variable["additionalProperties"] is False
+    assert "inhibitor" in variable["properties"]["chemical"]["description"]
+    assert "chemical" in variable["description"] and "waste_disposal" in variable["description"]
