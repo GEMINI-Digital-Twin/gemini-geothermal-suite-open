@@ -65,6 +65,7 @@ NEW_PARAMS = {
         )
     }
     | {"drainage_radius": 1000.0, "roughness": 4.5e-05},
+    "heat_exchanger": {"nominal_duty": None},
     "injection_pump": {"nominal_flow": None, "nominal_head": None},
     "doublet.esp": {"minimum_intake_pressure": None, "maximum_gas_fraction": None},
 }

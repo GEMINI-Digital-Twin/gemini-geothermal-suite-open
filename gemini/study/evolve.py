@@ -1196,6 +1196,11 @@ def _children(archive, members, keys, population, rng):
         children = np.vstack([children, _local(archive, members, keys, local, rng)])
     children, repaired = archive.repaired(children, rng)
     archive.invalid += int(repaired.sum())
+    return _unseen(archive, children, genes, rates, rng)
+
+
+def _unseen(archive, children, genes, rates, rng):
+    """Mutate again each child whose key was judged before or drawn earlier, ``RETRIES`` times."""
     seen = set(archive.outcomes)
     for _ in range(RETRIES):
         repeated = []

@@ -7,6 +7,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+- Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
+  `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
+- Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
+
+## [0.6.2] - 2026-11-04
+
+Structure optimisation made a real tool, and the app team's requests 13 to 21. Additive: nothing
+of 0.6.1 is removed or renamed, every existing file reads and costs as before, and
+`examples/hackathon.py` prints the same output.
+
 ### Added
 - `gm.study.evolve(..., stop=None)`: `{"generations": n}` ends the search when the feasible front
   has not changed for `n` generations, `{"seconds": s}` after a time limit; `study.json` takes
@@ -77,13 +88,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   with the plant's values, half of the children are local steps (a compass search with pattern
   moves around the best candidate of the best structures and, with several objectives, along the
   front), a child drawn with a refused structure takes the nearest valid one (it still counts in
-  `invalid`, which now counts such draws), structure
-  genes mutate at their own rate, more than 256 structures are judged when drawn, and the
-  candidates of one structure run as one batch on one plant. The same seed still gives the same
-  result whatever the number of processes; the result differs from 0.6.1's.
-- Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,
-  `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
-- Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
+  `invalid`, which now counts such draws), structure genes mutate at their own rate, more than
+  256 structures are judged when drawn, and the candidates of one structure run as one batch on
+  one plant. The same seed still gives the same result whatever the number of processes; the
+  result differs from 0.6.1's.
 
 ### Fixed
 - `gm.study.evolve` called a design with no unit for a service (a structure without cooling)
@@ -95,7 +103,6 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   numbers are unchanged.
 - `study.json` of `evolve`: an objective given twice and `evaluations` below `population` are
   refused when the file is read, and `Study.check` reports a superstructure with no valid structure.
-
 - `gm.Case.from_dict` and `from_json` list every issue of a case in one `ValidationError`
   (`error.issues`, each with `path`, `kind` and `message`): a wrong `time` (a step without a unit,
   no `time` at all) or a header without a `name` no longer stops the read before the sections, and
