@@ -1,0 +1,59 @@
+    stosag batch    6 evals, mean f=8.711
+    stosag batch   12 evals, mean f=8.727
+Iteration 0: xBest = [3.50e+03 2.50e+00 1.00e+01 3.38e-01 1.00e+03 1.70e+02], jBest = 8.710635706742776, cBest = 0.0, lBest = 8.710635706742776, rho = [], mu = [], line_ii = 0, N_EVAL = 6
+    stosag batch   18 evals, mean f=8.765
+    stosag batch   24 evals, mean f=8.729
+    stosag batch   30 evals, mean f=8.716
+    stosag batch   36 evals, mean f=8.713
+    stosag batch   42 evals, mean f=8.711
+    stosag batch   48 evals, mean f=8.711
+    stosag batch   54 evals, mean f=8.711
+    stosag batch   60 evals, mean f=8.737
+    stosag batch   66 evals, mean f=436.413
+    stosag batch   72 evals, mean f=90.388
+    stosag batch   78 evals, mean f=8.556
+    stosag batch   84 evals, mean f=8.560
+Iteration 2: xBest = [3.36876203e+03 2.05895008e+00 1.00020274e+01 2.82256055e-01
+ 9.87233278e+02 1.72944917e+02], jBest = 8.555645353236706, cBest = 0.0, lBest = 8.555645353236706, rho = [], mu = [], line_ii = 2, N_EVAL = 26
+    stosag batch   90 evals, mean f=93.707
+    stosag batch   96 evals, mean f=8.876
+    stosag batch  102 evals, mean f=8.670
+    stosag batch  108 evals, mean f=8.601
+    stosag batch  114 evals, mean f=8.577
+    stosag batch  120 evals, mean f=8.566
+    stosag batch  126 evals, mean f=8.561
+    stosag batch  132 evals, mean f=8.545
+    stosag batch  138 evals, mean f=270.710
+    stosag batch  144 evals, mean f=92.765
+    stosag batch  150 evals, mean f=8.562
+    stosag batch  156 evals, mean f=8.537
+    stosag batch  162 evals, mean f=8.546
+Iteration 4: xBest = [3.33466130e+03 1.85583449e+00 9.97263929e+00 2.81006353e-01
+ 9.91117374e+02 1.71545425e+02], jBest = 8.537196051181075, cBest = 0.0, lBest = 8.537196051181075, rho = [], mu = [], line_ii = 3, N_EVAL = 47
+    stosag batch  168 evals, mean f=11.412
+    stosag batch  174 evals, mean f=10.852
+    stosag batch  180 evals, mean f=8.656
+    stosag batch  186 evals, mean f=8.577
+    stosag batch  192 evals, mean f=8.552
+    stosag batch  198 evals, mean f=8.542
+    stosag batch  204 evals, mean f=8.539
+    stosag batch  210 evals, mean f=8.500
+    stosag batch  216 evals, mean f=481.973
+    stosag batch  222 evals, mean f=407.175
+    stosag batch  228 evals, mean f=168.784
+    stosag batch  234 evals, mean f=8.747
+    stosag batch  240 evals, mean f=8.581
+    stosag batch  246 evals, mean f=8.552
+    stosag batch  252 evals, mean f=8.543
+    stosag batch  258 evals, mean f=8.582
+    stosag batch  264 evals, mean f=59.608
+    stosag batch  270 evals, mean f=18.063
+    stosag batch  276 evals, mean f=11.225
+    stosag batch  282 evals, mean f=8.722
+    stosag batch  288 evals, mean f=8.602
+    stosag batch  294 evals, mean f=8.554
+    stosag batch  300 evals, mean f=8.539
+    stosag batch  306 evals, mean f=8.572
+Stopping criteria met: No sufficient improvement in function value after 3 unsuccessful line searches.
+Warning: Maximum number of iterations 8 reached.
+done stosag_robust in 586 s -> D:\agent\Gemini-digital-twin\gemini_design_agent\outputs_opt\stosag_robust.json

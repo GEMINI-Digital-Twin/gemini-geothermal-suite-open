@@ -1,0 +1,85 @@
+{
+ "backend": "StoSAG",
+ "x_best": [
+  3334.6613026696914,
+  1.855834490698321,
+  9.972639287988043,
+  0.28100635255647555,
+  991.1173736558897,
+  171.54542532405853
+ ],
+ "expected_cost_meur": 8.537196051181075,
+ "worst_cost_meur": 8.880177532221351,
+ "feasible_fraction": 1.0,
+ "per_realisation": [
+  {
+   "ensemble": {
+    "permeability_md": 200.08612927533116,
+    "gradient": 30.090215403896156,
+    "skin_injection_extra": 0.15812137349684807
+   },
+   "cost": 8.42776470298436,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 222.04460934379335,
+    "gradient": 32.0103228683318,
+    "skin_injection_extra": -1.395702067062307
+   },
+   "cost": 8.326239633407305,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 181.7022061728452,
+    "gradient": 29.261690222173005,
+    "skin_injection_extra": -0.043877733694910326
+   },
+   "cost": 8.575863101524174,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 146.43918502426877,
+    "gradient": 29.06928765027009,
+    "skin_injection_extra": 1.042954791687432
+   },
+   "cost": 8.880177532221351,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 170.57628085870076,
+    "gradient": 30.734763075277797,
+    "skin_injection_extra": -2.0
+   },
+   "cost": 8.439968798891119,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 141.35028102664947,
+    "gradient": 30.53533051224009,
+    "skin_injection_extra": -0.6864236415603273
+   },
+   "cost": 8.57316253805815,
+   "unmet_gwh": 0.0,
+   "hard": []
+  }
+ ],
+ "iterate_costs": [
+  8.710635706742776,
+  8.555645353236706,
+  8.537196051181075
+ ],
+ "n_evaluations": 306,
+ "elapsed_s": 585.8327994346619,
+ "case": "stosag_robust",
+ "elapsed_total_s": 586.2611377239227
+}

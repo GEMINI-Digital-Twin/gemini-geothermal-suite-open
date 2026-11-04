@@ -1,0 +1,11 @@
+    eval   10: f=8.460 unmet=0.004 best feasible so far: 8.642 MEUR
+    eval   20: f=8.430 unmet=23.800 best feasible so far: 8.290 MEUR
+    eval   30: f=8.285 unmet=0.000 best feasible so far: 8.006 MEUR
+    eval   40: f=8.161 unmet=0.000 best feasible so far: 8.006 MEUR
+    eval   50: f=8.168 unmet=0.000 best feasible so far: 8.006 MEUR
+    eval   60: f=8.151 unmet=0.000 best feasible so far: 8.006 MEUR
+    eval   70: f=8.152 unmet=0.000 best feasible so far: 8.006 MEUR
+    eval   80: f=8.149 unmet=0.000 best feasible so far: 8.006 MEUR
+    eval   90: f=8.148 unmet=0.000 best feasible so far: 8.006 MEUR
+    eval  100: f=8.159 unmet=0.000 best feasible so far: 8.006 MEUR
+done cobyla_final in 170 s -> D:\agent\Gemini-digital-twin\gemini_design_agent\outputs_opt\cobyla_final.json

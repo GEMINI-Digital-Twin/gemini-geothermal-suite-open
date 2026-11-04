@@ -1,0 +1,75 @@
+{
+  "kpis": {
+    "heat_demand_gwh": 111.66767999999999,
+    "cool_demand_gwh": 23.742528,
+    "heat_delivered_gwh": 111.66767999999999,
+    "cool_delivered_gwh": 23.742528,
+    "heat_direct_gwh": 105.13124567419433,
+    "heat_hp_gwh": 6.5364343258056685,
+    "cool_abs_gwh": 23.742528,
+    "cool_el_gwh": 0.0,
+    "geothermal_heat_extracted_gwh": 143.26022726854055,
+    "electricity_gwh": 7.812472933352363,
+    "electricity_esp_gwh": 3.5960312117557858,
+    "electricity_injection_gwh": 0.9404485634704636,
+    "electricity_heat_pump_gwh": 1.3831860647927792,
+    "electricity_chillers_gwh": 1.8928070933333334,
+    "system_cop": 17.33256667321277,
+    "geothermal_share": 0.9423051404414624,
+    "unmet_heat_gwh": 0.0,
+    "unmet_cool_gwh": 0.0,
+    "peak_flow_per_doublet_m3_h": 221.3409423828125,
+    "mean_flow_per_doublet_m3_h": 136.30266581496147,
+    "days_at_max_flow": 0,
+    "days_at_min_flow": 0,
+    "peak_geothermal_extraction_mw": 29.636208122590823,
+    "peak_electricity_mw": 1.7578013292799666,
+    "max_brine_dt_c": 39.99997499566808,
+    "min_injection_t_c": 64.27256818562984,
+    "annual_produced_volume_mm3": 3.2432413330078127,
+    "annual_injected_volume_mm3": 3.2432413330078127,
+    "annual_gas_mnm3": 2.59459306640625,
+    "annual_co2_t": 1025.9020984570313,
+    "reservoir_temperature_c": 117.0,
+    "reservoir_pressure_bar": 351.008495,
+    "wellhead_temperature_at_300_c": 113.05962100803288,
+    "productivity_index_m3_h_bar": 12.220930671829569,
+    "injectivity_index_m3_h_bar": 10.025562974624293,
+    "esp_stages": 26,
+    "esp_power_at_300_mw": 0.486165762773998,
+    "esp_intake_pressure_at_300_bar": 69.55779858173436,
+    "bubble_point_bar": 29.090909090909097,
+    "injection_whp_at_300_bar": 33.29470865428448,
+    "corrosion_rate_unmitigated_mm_yr": 8.180283365386465,
+    "tubing_velocity_at_300_m_s": 2.257409336120936,
+    "erosional_velocity_m_s": 4.75489654287941,
+    "maintenance_windows": [
+      [
+        "2027-05-06",
+        "2027-06-09"
+      ],
+      [
+        "2027-08-03",
+        "2027-09-06"
+      ],
+      [
+        "2027-09-07",
+        "2027-10-11"
+      ]
+    ]
+  },
+  "cost": {
+    "capex_wells_meur": 49.824000000000005,
+    "capex_pumps_meur": 3.6,
+    "capex_surface_meur": 6.056344974710899,
+    "capex_heat_pump_meur": 1.875,
+    "capex_cooling_meur": 5.942857142857143,
+    "capex_total_meur": 67.29820211756805,
+    "annual_electricity_meur": 0.9374967520022836,
+    "annual_om_meur": 2.432455052939201,
+    "annualised_capex_meur": 5.264517493243654,
+    "total_annual_cost_meur": 8.634469298185138,
+    "levelised_cost_eur_per_mwh": 63.76527608749511
+  },
+  "violations": []
+}
