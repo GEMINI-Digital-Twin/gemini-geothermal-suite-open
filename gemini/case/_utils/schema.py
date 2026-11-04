@@ -1,5 +1,7 @@
 """The JSON Schema (draft 2020-12) of ``case.json`` and ``economics.json``, from the field lists."""
 
+import dataclasses
+
 from gemini import units
 from gemini.case._utils.node import Field
 from gemini.case.site import FRACTION
@@ -48,15 +50,20 @@ def marks(field):
 
     ``x-quantity`` is the quantity of the unit and ``x-units`` the units it accepts, both from
     ``gm.units``; ``x-limits`` are the bounds of the value in SI, with their unit; ``x-fraction``
-    marks a dimensionless share between 0 and 1, which a form may show as a percentage. A
-    dimensionless value that may state a unit (``unit_of``) lists the units in ``x-units``.
+    marks a dimensionless share between 0 and 1, which a form may show as a percentage. A field
+    with a ``description`` also gets the standard ``description`` key. A field that accepts other
+    quantities, its unit telling which, lists ``x-bases``: each quantity with its units, the main
+    one (``x-quantity``) first, and ``x-units`` is the units of them all. A dimensionless value
+    that may state a unit (``unit_of``) lists the units in ``x-units``.
     """
-    found = {}
+    found = {} if field.description is None else {"description": field.description}
     if field.quantity is not None:
         found["x-quantity"] = field.quantity
-        found["x-units"] = units.names(field.quantity)
+        found["x-units"] = accepted_units(field)
     if field.unit_of is not None:
         found["x-units"] = units.names(field.unit_of)
+    if field.alternatives:
+        found["x-bases"] = {name: units.names(name) for name in field.accepted()}
     if field.bounds is not None:
         found["x-limits"] = limits(field.bounds, field.quantity)
     if field.quantity is None and field.bounds == FRACTION:
@@ -64,16 +71,33 @@ def marks(field):
     return found
 
 
+def accepted_units(field):
+    """Return the units a leaf of ``field`` accepts: those of its quantity and its alternatives."""
+    names = field.accepted() if field.alternatives else (field.quantity,)
+    return [unit for name in names for unit in units.names(name)]
+
+
 def leaf(field):
     """Return the schema of the leaf of one ``Field``."""
     if field.keys is not None:
-        item = leaf(Field(field.quantity, bounds=field.bounds, unit_of=field.unit_of))
-        return closed({key: item for key in field.keys}) | marks(field)
+        items = {
+            key: leaf(
+                Field(
+                    field.quantity,
+                    bounds=field.bounds,
+                    unit_of=field.unit_of,
+                    alternatives=field.of_key(key).alternatives,
+                )
+            )
+            for key in field.keys
+        }
+        every = field.alternatives if field.alternative_keys is None else ()
+        return closed(items) | marks(dataclasses.replace(field, alternatives=every))
     value = {"type": "string"} if field.text else NUMBER
     properties = {"value": value, "range": RANGE, "uncertainty": UNCERTAINTY}
     required = ["value"]
     if field.quantity is not None:
-        properties["unit"] = {"enum": units.names(field.quantity)}
+        properties["unit"] = {"enum": accepted_units(field)}
         required.append("unit")
     if field.unit_of is not None:
         properties["unit"] = {"enum": units.names(field.unit_of)}
@@ -103,6 +127,7 @@ def closed(properties, required=()):
 def quantities(cls):
     """Return ``{quantity: units}`` of every leaf below a section class, from the one unit table."""
     found = {field.quantity for field in cls.fields.values() if field.quantity is not None}
+    found |= {name for field in cls.fields.values() for name in field.alternatives}
     for sub in cls.sections.values():
         found |= set(quantities(sub))
     return {quantity: units.names(quantity) for quantity in sorted(found)}
@@ -111,16 +136,18 @@ def quantities(cls):
 def section(cls, kind=None):
     """Return the schema of a section class; a ``kind`` adds the keys every file starts with.
 
-    The file schema also lists, as ``x-quantities``, the units of every quantity it uses.
+    The file schema also lists, as ``x-quantities``, the units of every quantity it uses. A section
+    with a ``description`` gets the standard ``description`` key.
     """
     properties = {name: leaf(field) for name, field in cls.fields.items()}
     properties |= {name: section(sub) for name, sub in cls.sections.items()}
     properties["about"] = {"type": "object"}
     required = [name for name, field in cls.fields.items() if field.required]
+    described = {} if cls.description is None else {"description": cls.description}
     if kind is not None:
         found = closed(header(kind) | properties, ["format", "kind", "name"] + required)
-        return found | {"x-quantities": quantities(cls)}
-    return closed(properties, required)
+        return found | described | {"x-quantities": quantities(cls)}
+    return closed(properties, required) | described
 
 
 def requirement():

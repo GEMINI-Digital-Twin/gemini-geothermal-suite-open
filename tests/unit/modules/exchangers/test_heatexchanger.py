@@ -284,3 +284,13 @@ def test_health_on_arrays_marks_undetermined_rows_not_assessed():
     assert health.message[1] == NOT_ASSESSED and np.isnan(health.metrics["apparent_ua"][1])
     assert health.score[0] == exchanger.health(result, {k: v[0] for k, v in measured.items()}).score
     assert exchanger.health(result, {k: v[1:] for k, v in measured.items()}) is None
+
+
+def test_the_nominal_duty_is_the_size_of_a_cost_per_power():
+    """``cost_size_of("power")`` is ``nominal_duty``; unset, it is missing and named."""
+    exchanger = si.set_params(with_values(HeatExchanger()), "", {"thermal_conductance": 2000.0})
+    assert exchanger.cost_size() == 2000.0 and exchanger.cost_size_of("energy") is None
+    with raises(gm.errors.ValidationError, "missing_value", match="nominal_duty"):
+        exchanger.cost_size_of("power")
+    exchanger = si.set_params(exchanger, "", {"nominal_duty": 5e6})
+    assert exchanger.cost_size_of("power") == 5e6

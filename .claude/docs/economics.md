@@ -46,13 +46,13 @@ for an assumption nobody gave. With `on_error="record"` nothing is raised and `v
 | Name | Returns |
 |---|---|
 | `gm.evaluate.capex(plant, case)` | the sum of the capex of the equipment, per module in `parts["modules"]`, with the `price_year` of the case |
-| `opex(plant, case, results)` | the fixed opex of each kind of equipment (`parts["fixed_by_kind"]`), plus the yearly bill of grid electricity and purchased gas at `economics.energy`, waste and chemicals at `economics.opex.variable` (a profile price is integrated step by step; co-produced gas costs nothing), plus the CO2 emitted at `economics.carbon.price` when the case gives it; `components` lists the parts. There is no variable opex |
+| `opex(plant, case, results)` | the fixed opex of each kind of equipment (`parts["fixed_by_kind"]`), plus the yearly bill of grid electricity and purchased gas at `economics.energy`, waste and chemicals at `economics.opex.variable` (a profile price is integrated step by step; co-produced gas costs nothing), plus the CO2 emitted at `economics.carbon.price` when the case gives it, plus, when the case gives `economics.opex.per_energy`, the variable opex of each producing kind on the energy its units produce (`components["per_energy"]`, `parts["per_energy_by_kind"]`); `components` lists the parts |
 | `lcoh(plant, case, results, on_error="raise")` | `(capex + opex A) / (useful heat A)` in currency/J |
 | `lcoc(...)` (as `lcoh`) | the same with the useful cold |
 | `annualised_cost(plant, case, results, on_error="raise")` | `capex / A + opex` in currency/yr, with `capex`, `opex`, `annuity_factor`, `discount_rate`, `analysis_period` |
 | `lcts(...)` (as `lcoh`) | levelised cost of thermal supply: `annualised_cost / (heat + cold)` in currency/J; it needs no `heat_cost_share` |
 | `co2(plant, case, results)` | kg of CO2-equivalent over the window, step by step: the leaf `co2_emission`, `methane_emission` times `economics.accounting.gwp.CH4`, grid electricity times `utilities.electricity.co2_intensity`; a factor is asked for only when its source is non-zero |
-| `npv(plant, case, results, on_error="raise")` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case and the discounted subsidy (`economics.revenue.subsidy`: its amount per year for its duration, within the lifetime) |
+| `npv(plant, case, results, on_error="raise")` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case and the discounted subsidy (`economics.revenue.subsidy`: its amount per year for its duration, within the lifetime; an amount per energy, `EUR/MWh` as SDE++ pays, is paid on the useful heat of a year up to its `cap`, `MWh/yr` or full-load hours `h/yr` times its `capacity`) |
 | `payback(plant, case, results)` | `capex / (revenue - opex)` in `yr`, undiscounted; a subsidy of the case adds its amount per year to the cash flow for its duration only |
 
 The discount rate and the analysis period are `economics.discount_rate` and `economics.analysis_period` of the case; no function takes
@@ -61,7 +61,49 @@ mixin `Equipment` (`gemini/modules/_utils/equipment.py`), sets `equipment_kind` 
 `gm.case.Capex` and defines `cost_size()`, the size its cost scales with. A module never reads the
 case: `gemini/evaluate/_utils/pricing.py` multiplies that size by the factor of the kind (for
 `drilling`, the cost per metre of the length drilled) and the fixed opex is the share
-`opex.fixed[kind]` times that capex. A composite adds only its own part. A factor or a share that
+`opex.fixed[kind]` times that capex.
+
+The unit of a capex factor tells its basis. Besides the basis of the table below, some kinds take
+another (`CAPEX_BASES` of `gemini/case/_utils/kinds.py`), so that a factor of a cost catalogue
+is used as it is published:
+
+| Kind | Other basis | Unit | Size |
+| --- | --- | --- | --- |
+| `heat_exchanger` | per W of nominal duty | `EUR/W` | `HeatExchanger.nominal_duty` |
+| `thermal_storage`, `ice_storage` | per energy stored | `EUR/MWh` | `ThermalStorage.energy_capacity` (no module is `ice_storage`) |
+| `production_pump` | per unit | `EUR` | one per `Doublet`, whatever its flow |
+
+A module gives the size of another basis with `cost_size_of(quantity)` (`"power"`, `"energy"`). A
+size it lacks raises `missing_value` naming the design value (`<path>.nominal_duty`), and
+`gm.check` reports it as `params.<path>.<name>`; a module with no size of that quantity has no
+value (`no_value`). A unit of no basis of the kind is refused when the economics is read
+(`invalid_unit`, listing the units of every basis), and `Economics.schema()` lists the bases of a
+kind in `x-bases`. A study or a sensitivity varies such a factor in the unit of its basis.
+
+A fixed opex is a share of the capex per year (`%/yr`), or, for a kind sized by a power
+(`POWER_KINDS`: the kinds priced per W, and `heat_exchanger` by its nominal duty), an amount per
+capacity and year (`EUR/MW/yr`, `EUR/kW/yr`, `EUR/W/yr`, as a catalogue publishes fixed O&M): that
+amount times the power size of the module, whatever basis its capex is on. A heat exchanger needs
+its `nominal_duty` for it (`missing_value`, and `gm.check` reports it); a kind with no power (a
+pipe, a well, a tank, a degasser) refuses that unit (`invalid_unit`).
+
+A variable opex per energy produced (`economics.opex.per_energy.<kind>`, `EUR/MWh`, the
+variable O&M of a catalogue) prices the energy each unit of a producing kind makes over the run,
+scaled to a year. The kinds and their product (`PRODUCTS` of `gemini/case/_utils/kinds.py`; each
+module names the port fields of its product with `Equipment.product()`):
+
+| Kind | Product | Read as |
+| --- | --- | --- |
+| `chp` | electricity | `power_out` of `CHP` |
+| `boiler`, `electric_boiler` | heat | `fluid_out` less `fluid_in` enthalpy flow |
+| `heat_pump` | heat | `sink_out` less `sink_in` enthalpy flow of `HeatPump` |
+| `compression_chiller` | cold | `source_in` less `source_out` enthalpy flow of `HeatPump` in cooling mode |
+| `absorption_chiller` | cold, or heat in heat pump mode | `chilled_in` less `chilled_out` (`cooling_out` less `cooling_in` as a heat pump) of `AbsorptionUnit` |
+| `adsorption_chiller` | cold | `chilled_in` less `chilled_out` of `AdsorptionChiller` |
+
+Without the map there is no such cost and `opex` is as before. With it, every producing kind the
+plant uses needs a price (`missing_assumption` naming `economics.opex.per_energy.<kind>`; a price
+of 0 says there is none). A composite adds only its own part. A factor or a share that
 the case lacks for a kind the plant uses raises `missing_assumption` naming
 `economics.capex.<kind>` or `economics.opex.fixed.<kind>`; nothing is
 estimated. A plant with no equipment has no value.
@@ -130,6 +172,11 @@ of electricity are placeholders for the test: the organisers gave no source, and
 recommendation. The shallow district sample states invented placeholders for every factor, as its README says; leave a factor out of a case file and the call that needs it raises `missing_assumption`.
 
 Convert at the boundary: EUR/MWh divided by 3.6e9 is EUR/J, kg/GJ divided by 1e9 is kg/J.
+
+`gm.case.Economics.schema()` gives each field and section a `description` (its meaning and the units
+it accepts), so a cost catalogue can be matched against it; the consumables of `opex.variable` are
+`chemical` (every product a `ChemicalGrid` supplies, inhibitors included) and `waste_disposal`, and
+no other name is read.
 
 ## Totals and KPIs
 

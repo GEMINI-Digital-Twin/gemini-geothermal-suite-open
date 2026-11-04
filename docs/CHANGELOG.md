@@ -38,6 +38,31 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `{"value": 0.2, "unit": "-"}` (the case schema lists the units, the unit is optional), and the
   `gas_composition` and `grid_composition` of `gm.Fluid` a `Quantity` or its dict per species. A
   value without a unit keeps meaning a fraction, as before.
+- `gm.case.Economics.schema()` (and the `economics` of `gm.Case.schema()`) gives every field and
+  section a `description`: its meaning and the units it accepts. `opex.variable` says it accepts
+  two consumables only, `chemical` (every product drawn from a `ChemicalGrid`, a scale or a
+  corrosion inhibitor alike) and `waste_disposal`, each per kg.
+- A capex factor's unit tells its basis: `economics.capex.heat_exchanger` per W of nominal duty
+  (`EUR/W`) besides per W/K, `thermal_storage` and `ice_storage` per energy stored (`EUR/MWh`)
+  besides per m3, `production_pump` per unit (`EUR`) besides per W. The new optional parameters
+  `HeatExchanger.nominal_duty` and `ThermalStorage.energy_capacity` give those sizes
+  (`Equipment.cost_size_of(quantity)`); a missing one raises `missing_value` naming it, and
+  `gm.check` reports it. A unit of no basis is `invalid_unit`. `Economics.schema()` lists the
+  bases in `x-bases`. Every existing file reads and costs as before.
+- `economics.opex.fixed.<kind>` takes an amount per capacity and year (`EUR/MW/yr`) besides a
+  share of the capex (`%/yr`), for the kinds sized by a power; it multiplies the power size of
+  each module (a heat exchanger's `nominal_duty`). New units `EUR/W/yr`, `EUR/kW/yr`,
+  `EUR/MW/yr` and `currency/W/yr` (quantity `annual_money_per_power`, shown in `EUR/MW/yr`).
+- `economics.revenue.subsidy.amount` may be per energy of the useful heat (`EUR/MWh`), as SDE++
+  pays, besides per year; the new optional `cap` limits the heat it is paid on, an energy per year
+  (`MWh/yr`) or full-load hours per year (`h/yr`) times the new `capacity` it is granted for (absent
+  with a cap in hours: `missing_assumption`). A cap on an amount per year is refused. `npv` and
+  `payback` count it. New units `h/yr`, `s/yr` (quantity `annual_duration`, shown in `h/yr`).
+- `economics.opex.per_energy.<kind>`: a variable O&M per energy produced (`EUR/MWh`) for the kinds
+  that produce an energy (`chp` its electricity, `boiler`, `electric_boiler`, `heat_pump` their
+  heat, the chillers their cold), on what each unit produced in the run, scaled to a year. `opex`
+  gains `components["per_energy"]` and `per_energy_by_kind` only when the case gives the map;
+  with it, a producing kind the plant uses needs a price. `Equipment.product()` names the ports.
 
 ### Changed
 - `gm.study.evolve` searches better and faster (measured by `scripts/validate_evolve.py`): sizes of

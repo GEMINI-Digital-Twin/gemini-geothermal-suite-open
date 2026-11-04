@@ -163,14 +163,22 @@ numbers in it; `equals` is `min` = `max`. `name` is required, snake_case and uni
 **Economics.** `gm.case.Economics` is its own class (`from_json`, `to_json`, `check`, `schema`)
 and the case holds it as `case.economics`, `None` for a pure physics case. Fields: `currency` and
 `price_year`, `discount_rate`, `analysis_period`, `capex.<kind>` (the 19 kinds of
-[economics.md](economics.md#costs)), `opex.fixed.<kind>`, `opex.variable.chemical` and
+[economics.md](economics.md#costs); the unit tells the basis: a heat exchanger per W/K or per W
+of nominal duty, a storage per m3 or per MWh stored, a production pump per W or per unit),
+`opex.fixed.<kind>` (a share of capex per year, or per capacity and year in `EUR/MW/yr` for a kind
+sized by a power), `opex.per_energy.<kind>` (variable O&M per energy produced, for the kinds that
+produce an energy), `opex.variable.chemical` and
 `waste_disposal`, `energy.electricity` and `gas`, `carbon.price`, `revenue.heat`, `cold` and
-`subsidy` (`amount` per year, `duration`), `accounting.allocation.heat_cost_share` and
+`subsidy` (`amount` per year, or per energy of the useful heat in `EUR/MWh`, `duration`, and for an
+amount per energy an optional `cap`, `MWh/yr` or full-load hours `h/yr` times `capacity`), `accounting.allocation.heat_cost_share` and
 `accounting.gwp` (`standard` text, `CH4`). `capex.drilling` is a quantity per metre or a depth table
 `{"depth": {"value": [...], "unit": "m"}, "cost_per_metre": {"value": [...], "unit": "EUR/m"}}`;
 `economics.drilling_cost_per_metre(length)` interpolates it linearly and a length outside the table
 raises `out_of_bounds`. A price series needs the time of a case: `Economics.from_json(path,
-time=case.time)`.
+time=case.time)`. `Economics.schema()` gives each field and section a `description`: its meaning
+and the units it accepts. `opex.variable` accepts two names only, `chemical` (the price per kg of
+every product a `ChemicalGrid` supplies, a scale or a corrosion inhibitor alike) and
+`waste_disposal`.
 
 **Uncertainty.** Any leaf that is a number may carry `uncertainty` (`uniform`, `triangular`,
 `normal`) in the leaf's unit. `case.uncertainty` is the index `{dotted path: Uncertainty}` in SI

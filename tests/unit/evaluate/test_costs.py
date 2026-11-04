@@ -103,6 +103,22 @@ def test_the_exchanger_and_the_absorption_chiller_cost_by_their_size():
     assert priced("AbsorptionUnit", chiller).value == pytest.approx(3e6)
 
 
+def test_the_unit_of_a_capex_factor_prices_the_exchanger_and_the_tank_by_another_size():
+    """A heat exchanger per W of nominal duty, a tank per MWh stored; without the size, missing."""
+    capex = ALL | {
+        "heat_exchanger": Quantity(0.14, "EUR/W"),
+        "thermal_storage": Quantity(3000, "EUR/MWh"),
+    }
+    exchanger = dict(
+        thermal_conductance={"value": 1e6, "unit": "W/K"}, nominal_duty={"value": 5, "unit": "MW"}
+    )
+    assert priced("HeatExchanger", exchanger, capex).value == pytest.approx(7e5)
+    tank = dict(volume={"value": 200, "unit": "m3"}, energy_capacity={"value": 10, "unit": "MWh"})
+    assert priced("ThermalStorage", tank, capex).value == pytest.approx(3e4)
+    with raises(gm.errors.ValidationError, "missing_value", match=r"unit\.energy_capacity"):
+        priced("ThermalStorage", dict(volume={"value": 200, "unit": "m3"}), capex)
+
+
 def test_a_circulation_pump_costs_by_its_shaft_power_at_the_nominal_flow():
     """Hydraulic power over the efficiency, at the flow and the rise of the design."""
     plant = gm.Plant("One")

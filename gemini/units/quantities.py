@@ -71,4 +71,6 @@ MoneyPerVolume = Annotated[float, quantity("money_per_volume", "currency/m3", ge
 MassPerEnergy = Annotated[float, quantity("mass_per_energy", "kg/J", ge=0)]
 AnnualEnergy = Annotated[float, quantity("annual_energy", "J/yr", ge=0)]
 AnnualRate = Annotated[float, quantity("annual_rate", "1/yr", ge=0)]
+AnnualDuration = Annotated[float, quantity("annual_duration", "s/yr", ge=0)]
+AnnualMoneyPerPower = Annotated[float, quantity("annual_money_per_power", "currency/W/yr", ge=0)]
 Count = Annotated[int, quantity("count", "-", gt=0)]

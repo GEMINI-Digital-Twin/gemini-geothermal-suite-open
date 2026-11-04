@@ -182,6 +182,10 @@ class AdsorptionChiller(Equipment, Module):
         """Return the size that the cost of the adsorption chiller scales with: capacity."""
         return self.capacity
 
+    def product(self):
+        """Return the cold the chilled water loses: its inlet less its outlet enthalpy flow."""
+        return ("chilled_in.enthalpy_flow", "chilled_out.enthalpy_flow")
+
     def _performance(self, inputs, inlets):
         """Return the duties [W], COP and outlet temperatures [K] of one operating point."""
         generator_in, chilled_in, cooling_in = (

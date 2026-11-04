@@ -80,3 +80,86 @@ def test_drilling_costs_the_cost_per_metre_of_its_length_times_the_length():
     )
     assert pricing.capex_of(Well(), section) == 2000.0 * 1500.0
     assert pricing.fixed_opex_of(Well(), section) == pytest.approx(0.01 * 2000.0 * 1500.0)
+
+
+class Exchanger(Equipment):
+    """A heat exchanger of 2000 W/K that knows its nominal duty when it is given."""
+
+    equipment_kind = "heat_exchanger"
+    path = "hx"
+
+    def __init__(self, duty=None):
+        """Keep the nominal duty [W], or ``None``."""
+        self.duty = duty
+
+    def cost_size(self):
+        """Return the conductance [W/K]."""
+        return 2000.0
+
+    def cost_size_of(self, quantity):
+        """Return the nominal duty for a cost per power."""
+        return self.duty if quantity == "power" else None
+
+
+def test_the_unit_of_a_capex_factor_chooses_the_size_it_multiplies():
+    """Per W/K the conductance, per W the nominal duty of the module."""
+    per_conductance = economics(capex={"heat_exchanger": Quantity(0.5, "EUR/(W/K)")})
+    per_duty = economics(capex={"heat_exchanger": Quantity(0.14, "EUR/W")})
+    assert pricing.capex_of(Exchanger(), per_conductance) == pytest.approx(1000.0)
+    assert pricing.capex_of(Exchanger(5e6), per_duty) == pytest.approx(7e5)
+
+
+def test_a_capex_per_unit_counts_one_unit_whatever_the_size():
+    """A production pump priced per unit needs no nominal flow."""
+
+    class Pump(Equipment):
+        equipment_kind = "production_pump"
+
+        def cost_size(self):
+            raise AssertionError("a price per unit reads no size")
+
+    section = economics(capex={"production_pump": Quantity(0.8, "MEUR")})
+    assert pricing.capex_of(Pump(), section) == pytest.approx(8e5)
+
+
+def test_a_size_a_basis_needs_and_the_module_lacks_raises_naming_it():
+    """A module with no size of that quantity has no value; one whose size is unset is missing."""
+    per_duty = economics(capex={"heat_exchanger": Quantity(0.14, "EUR/W")})
+    with raises(gm.errors.ValidationError, "no_value", match=r"hx .*per W"):
+        pricing.capex_of(Exchanger(), per_duty)
+
+    class Tank(Equipment):
+        equipment_kind = "thermal_storage"
+        path = "tank"
+
+        def cost_size(self):
+            return 10.0
+
+    per_energy = economics(capex={"thermal_storage": Quantity(3, "EUR/MWh")})
+    with raises(gm.errors.ValidationError, "no_value", match=r"tank"):
+        pricing.capex_of(Tank(), per_energy)
+
+
+def test_a_fixed_opex_per_capacity_multiplies_the_power_size_of_the_module():
+    """A boiler of 10 MW at 2000 EUR/MW/yr; a heat exchanger by its nominal duty."""
+
+    class Burner(Equipment):
+        equipment_kind = "boiler"
+
+        def cost_size(self):
+            """Return the capacity [W]."""
+            return 1e7
+
+    section = economics(
+        capex={"boiler": Quantity(0.06, "EUR/W"), "heat_exchanger": Quantity(100, "EUR/(W/K)")},
+        opex={
+            "fixed": {
+                "boiler": Quantity(2000, "EUR/MW/yr"),
+                "heat_exchanger": Quantity(3, "EUR/kW/yr"),
+            }
+        },
+    )
+    assert pricing.fixed_opex_of(Burner(), section) == pytest.approx(2e4)
+    assert pricing.fixed_opex_of(Exchanger(5e6), section) == pytest.approx(1.5e4)
+    with raises(gm.errors.ValidationError, "no_value", match=r"hx .*per W"):
+        pricing.fixed_opex_of(Exchanger(), section)

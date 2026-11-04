@@ -58,7 +58,8 @@ def opex(plant, case, results, on_error="raise", *, units="si"):
     fuel, the waste and the chemicals, and the CO2 emitted per year at ``opex.co2`` when the case
     gives it. The run is scaled to a year. A price along the demand is integrated over the run:
     the power of each step times its price. A share the case lacks for a kind the plant uses
-    raises ``missing_assumption`` naming ``economics.opex.fixed.<kind>``.
+    raises ``missing_assumption`` naming ``economics.opex.fixed.<kind>``. With
+    ``economics.opex.per_energy``, the energy each unit of a producing kind made is priced too.
 
     Parameters
     ----------
@@ -83,8 +84,9 @@ def opex(plant, case, results, on_error="raise", *, units="si"):
         gives the JSON). ``{value, unit, components, fixed_by_kind}`` with ``unit`` the currency
         per year, ``components`` ``{fixed, electricity, fuel, waste, chemical}`` and ``co2`` with a
         price for it, and ``fixed_by_kind`` the fixed opex of each kind of equipment, each a value
-        in that unit. With no equipment and ``on_error="record"``, ``value`` is ``None`` with a
-        ``reason``, and only the bills are given.
+        in that unit; with ``economics.opex.per_energy``, ``components`` has ``per_energy`` and
+        ``per_energy_by_kind`` gives it by kind. With no equipment and ``on_error="record"``,
+        ``value`` is ``None`` with a ``reason``, and only the bills are given.
     """
     return displayed(
         units,
@@ -239,7 +241,8 @@ def npv(plant, case, results, on_error="raise", *, units="si"):
     ``cold``, integrated over the run when a price follows the demand; the yearly cost is
     ``opex``. Both are constant over the analysis period, with no degradation, tax, replacement or
     residual value. A subsidy of the case (``economics.revenue.subsidy``) adds its amount per
-    year for its duration, within the analysis period, discounted like the rest.
+    year for its duration, within the analysis period, discounted like the rest; a subsidy per
+    energy pays its amount on the useful heat of a year, up to its ``cap``.
 
     Parameters
     ----------
@@ -272,13 +275,19 @@ def npv(plant, case, results, on_error="raise", *, units="si"):
     )
 
 
+def _heat(plant, results):
+    """Return a function that gives the useful heat of a year [J/yr] of a run when called."""
+    return lambda: Flows(plant, results).energy("heat")
+
+
 def _npv(plant, case, results, on_error):
     """Return the net present value; ``on_error`` applies to a plant without a cost."""
     rate, years = discounting(case)
-    cost, flow, unit, reason = net_cash_flow(apply_case(plant, case), case, results, on_error)
+    sited = apply_case(plant, case)
+    cost, flow, unit, reason = net_cash_flow(sited, case, results, on_error)
     if cost is None:
         return unavailable(unit, reason, on_error)
-    amount, paid = subsidy(case)
+    amount, paid = subsidy(case, _heat(sited, results))
     granted = amount * annuity(rate, min(paid, years)) if amount else 0.0
     return measure(
         flow * annuity(rate, years) + granted - cost,
@@ -294,8 +303,8 @@ def payback(plant, case, results, on_error="raise", *, units="si"):
     """Return the simple payback time [year]: ``capex / (revenue - opex)``, without discounting.
 
     A subsidy of the case (``economics.revenue.subsidy``) adds its amount per year to the cash flow
-    for its duration only: the payback is the time at which the sum of the cash flows equals the
-    capex.
+    for its duration only (a subsidy per energy, its amount on the useful heat of a year up to its
+    ``cap``): the payback is the time at which the sum of the cash flows equals the capex.
 
     Parameters
     ----------
@@ -329,11 +338,12 @@ def payback(plant, case, results, on_error="raise", *, units="si"):
 
 def _payback(plant, case, results, on_error):
     """Return the payback time; ``on_error`` applies to a value the plant cannot give."""
-    cost, flow, unit, reason = net_cash_flow(apply_case(plant, case), case, results, on_error)
+    sited = apply_case(plant, case)
+    cost, flow, unit, reason = net_cash_flow(sited, case, results, on_error)
     if cost is None:
         return unavailable("yr", reason, on_error)
     details = dict(capex=measure(cost, unit), net_cash_flow=measure(flow, "currency/yr"))
-    amount, paid = subsidy(case)
+    amount, paid = subsidy(case, _heat(sited, results))
     if flow <= 0 and not (amount and (flow + amount) * paid >= cost):
         reason = "the yearly revenue does not exceed the yearly cost"
         return unavailable("yr", reason, on_error, **details)

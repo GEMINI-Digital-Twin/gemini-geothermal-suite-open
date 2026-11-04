@@ -1176,7 +1176,9 @@ modules score alike.
   unit text. The currency is a label: every `EUR` unit has the SI unit `currency`, and nothing
   converts between currencies. The table has the money, annual and emission units the case uses
   (`EUR/MWh`, `EUR/W`, `EUR/(W/K)`, `EUR/m`, `EUR/m3`, `EUR/kg`, `EUR/t`, `%/yr`, `1/yr`, `yr`,
-  `J/yr`, `g/kWh`, `kg/J`).
+  `J/yr`, `g/kWh`, `kg/J`, `h/yr` and `s/yr` of the quantity `annual_duration` (full-load hours,
+  shown in `h/yr`), and `EUR/W/yr`, `EUR/kW/yr`, `EUR/MW/yr` of the quantity
+  `annual_money_per_power`, SI `currency/W/yr`, shown in `EUR/MW/yr`).
 
 ## Functions without `@ops.physics`
 

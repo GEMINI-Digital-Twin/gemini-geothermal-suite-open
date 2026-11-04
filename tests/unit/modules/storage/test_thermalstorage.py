@@ -371,3 +371,12 @@ def test_gm_call_takes_the_tank_fluid_from_the_inlet_stream():
     )
     expected = _tank().step({"temperature": 293.15}, 600, _inlets())[0]["temperature"]
     assert result["state"]["temperature"]["value"] == pytest.approx(expected, rel=1e-9)
+
+
+def test_the_energy_capacity_is_the_size_of_a_cost_per_energy():
+    """``cost_size_of("energy")`` is ``energy_capacity``; unset, it is missing and named."""
+    tank = _tank()
+    assert tank.cost_size() == 2.0 and tank.cost_size_of("power") is None
+    with raises(gm.errors.ValidationError, "missing_value", match="energy_capacity"):
+        tank.cost_size_of("energy")
+    assert _tank(energy_capacity=3.6e9).cost_size_of("energy") == 3.6e9

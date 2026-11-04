@@ -303,7 +303,7 @@ needs raises `missing_value` naming its path, `missing_assumption` below `econom
 | `gm.case.Site` with `Ground`, `Reservoir`, `Fluid`, `Air` | `temperature_at(depth)`, `pressure_at(depth)` | real |
 | `gm.case.Demand` with `Service`, `CoolingService` | `.frame` in W on the index of `time`; the services hold `power` and the conditions of the consumer | real |
 | `gm.case.Utilities` with `Electricity`, `Gas` | `co2_intensity`, `import_limit`, `export_limit`, `composition`, `heating_value` | real |
-| `gm.case.Economics.from_json(path, time=None)`, `from_dict(data, files=None, time=None)`, `to_json`, `check`, `schema`, `drilling_cost_per_metre(length)` | all money; usable alone, held as `case.economics`; `time` (the `Time` of a case) only for a price given as a series; its sections are `gm.case.Capex`, `Opex`, `Energy`, `Carbon`, `Revenue`, `Subsidy`, `Accounting`, `Gwp` and `DepthTable` | real |
+| `gm.case.Economics.from_json(path, time=None)`, `from_dict(data, files=None, time=None)`, `to_json`, `check`, `schema`, `drilling_cost_per_metre(length)` | all money; usable alone, held as `case.economics`; `time` (the `Time` of a case) only for a price given as a series; its sections are `gm.case.Capex`, `Opex`, `Energy`, `Carbon`, `Revenue`, `Subsidy`, `Accounting`, `Gwp` and `DepthTable`; `schema()` gives every field and section a `description` (its meaning and accepted units) | real |
 | `gm.case.Requirement` (`name`, `on`, `quantity`, `over`, `when`, `min`, `max`) | a rule on a quantity of a role; bounds in SI | real |
 | `gm.case.Range`, `gm.case.Uncertainty` | the shared objects of `gemini.units.inputs` | real |
 | `gm.plants.roles()` | `{role: {quantity: {"dimension", "over"}}}`, the closed table a `Requirement` names. `doublet` has `production_flow`, `brine_cooling`, `pump_efficiency`, `reinjection_ratio`, `count`, `intake_pressure`, ...; `heating_supply` and `cooling_supply` have `unmet` and `unmet_share`; the role `plant` has `electricity_bought`, `gas_bought`, `heat_surplus`, `co2` and `gas_burned` (the co-produced gas burned in the plant, kg/s) | real |
@@ -403,8 +403,9 @@ The cost functions return a value with the parts of the result as more keys. A v
 cannot give raises `ValidationError` (code `no_value`, or `missing_assumption` for an assumption
 nobody gave); with `on_error="record"` it is a `Value` whose `value` is `None` and whose `reason`
 says why. Prices, rates and cost factors are those of `case.economics`; gemini holds none.
-Equipment declares its `equipment_kind` and the `cost_size()` its cost scales with; `gm.evaluate` multiplies
-it by the cost factor of its kind, see [economics.md](economics.md#costs). A violated requirement is a check, never an
+Equipment declares its `equipment_kind` and the `cost_size()` its cost scales with (and
+`cost_size_of(quantity)` for another basis of its kind); `gm.evaluate` multiplies
+it by the cost factor of its kind, the unit of the factor telling its basis, see [economics.md](economics.md#costs). A violated requirement is a check, never an
 error.
 
 | Name | Status |
@@ -416,7 +417,7 @@ error.
 | `gm.evaluate.call_energy_balance(module, result)`, `call_mass_balance(module, result)`, `collect_flows(result_tree)`, `call_emissions(result_tree, fuel_factor, electricity_factor)` | real: the audits of one `gm.call` (a module or a plant, no case), the former `gm.modules.energy_balance`, `mass_balance`, `collect_flows` and `emissions`; they sit here because they judge, and a module never imports `evaluate` |
 | `gm.evaluate.verdict(plant, case, results)` | real: the one answer to feasibility, a `Verdict` (a `dict`, `to_dict()` for plain JSON) `{feasible, reasons}`. A reason is `{kind, name, message}` plus `path`, `value`, `limit`, `worst_step` when it has them (a `requirement` reason also has `role` and `quantity`). Kinds: `requirement` (a failed requirement or service supply temperature of the case, none checkable, a service not delivered; `name` that of the requirement, or `cold_delivered`-style), `failed_step` (failed or skipped rows), `numerical` (a mass, energy or plant balance beyond its constant, a loop that did not converge) and `bound` (an output outside the limits its module declares, or past an operating limit of `Module.operating_limits`, in the steps in which the module ran). The case is applied to the plant once; `report` and `compare` use it, nothing else decides feasibility |
 | `gm.evaluate.capex(plant, case, on_error="raise")` | real: the sum, each module in `parts["modules"]` |
-| `gm.evaluate.opex(plant, case, results, on_error="raise")` | real: the fixed opex of each kind in `parts["fixed_by_kind"]` and the bills of energy; no variable opex |
+| `gm.evaluate.opex(plant, case, results, on_error="raise")` | real: the fixed opex of each kind in `parts["fixed_by_kind"]` and the bills of energy; with `economics.opex.per_energy`, the variable opex per energy produced in `components["per_energy"]` and `parts["per_energy_by_kind"]` |
 | `gm.evaluate.lcoh(plant, case, results, on_error="raise")` | real: the discount rate and the analysis period are `economics.discount_rate` and `economics.analysis_period` of the case; there is no argument for either |
 | `gm.evaluate.lcoc(plant, case, results, on_error="raise")` | real |
 | `gm.evaluate.lcts(plant, case, results, on_error="raise")` | real |

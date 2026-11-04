@@ -4,6 +4,7 @@ from dataclasses import replace
 
 from gemini import units
 from gemini._utils.strings import join_path
+from gemini.case._utils.kinds import BASIS_SIZES, EQUIPMENT_KINDS
 from gemini.engine.apply import apply_case
 from gemini.errors import ValidationError
 from gemini.errors.base import Issue, raise_issues
@@ -33,6 +34,9 @@ def check(plant, case):
       (``missing``, ``economics.capex.<kind>``, ``economics.opex.fixed.<kind>``, code
       ``missing_assumption``); a case without economics is a pure physics case and has none of
       these issues;
+    - for a capex given on another basis than that of its kind (a heat exchanger per W), or a
+      fixed opex per W and year, the design value of each module of the kind that sizes it
+      (``missing``, path ``params.<path>.<name>``, code ``missing_value``);
     - every role a requirement names must exist in the plant (``incompatible``, path
       ``requirements[<n>].on``), except ``heating_supply`` and ``cooling_supply``: a plant without
       a supply is judged infeasible for that service by ``gm.evaluate.verdict``, so that one case
@@ -91,6 +95,7 @@ def issues_of(applied, case):
         return [
             *_parameters(applied),
             *_kinds(applied, case),
+            *_sizes(applied, case),
             *_roles(applied, case),
             *_states(applied, case),
             *_prices(applied, case),
@@ -163,6 +168,50 @@ def _kinds(plant, case):
         if fixed.get(kind) is None:
             found.append(_absent(f"opex.fixed.{kind}", kind))
     return found
+
+
+def _bases(economics, kind):
+    """Return the cost bases of ``kind`` that need a size other than ``cost_size()``.
+
+    The unit of ``economics.capex.<kind>`` tells its basis, and a fixed opex per W and year needs
+    the size in power; a basis per unit needs no size.
+    """
+    capex = None if economics.capex is None else economics.capex.leaf(kind)
+    fixed = None if economics.opex is None else economics.opex.leaf(f"fixed.{kind}")
+    found = {getattr(capex, "quantity", None)}
+    if getattr(fixed, "quantity", None) == "annual_money_per_power":
+        found.add("money_per_power")
+    found.discard(EQUIPMENT_KINDS[kind][0])
+    return sorted(BASIS_SIZES[quantity] for quantity in found if quantity in BASIS_SIZES)
+
+
+def _sizes(plant, case):
+    """Return the issues of a size that a cost on another basis needs and a module lacks."""
+    if case.economics is None:
+        return []
+    found = {}
+    for _, module in plant.named_modules():
+        kind = getattr(module, "equipment_kind", None) if module.is_initialized else None
+        for size in [] if kind is None else _bases(case.economics, kind):
+            found |= {item.path: item for item in _size_issues(module, size)}
+    return list(found.values())
+
+
+def _size_issues(module, size):
+    """Return the ``missing`` issues of the size ``size`` of ``module``, in the plant file paths."""
+    try:
+        module.cost_size_of(size)
+    except ValidationError as error:
+        return [
+            Issue(
+                join_path("params", form.file_path(item["path"])),
+                "missing",
+                item["message"],
+                code=item["code"],
+            )
+            for item in error.problems
+        ]
+    return []
 
 
 def _roles(plant, case):

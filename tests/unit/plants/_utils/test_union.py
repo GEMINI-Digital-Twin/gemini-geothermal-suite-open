@@ -9,6 +9,7 @@ from gemini.units import Quantity
 from tests.fixtures.errors import raises
 from tests.fixtures.sample_cases import HACKATHON_2026
 
+
 def loop(name, first=(), second=(), kinds=None, loss="air"):
     """Return a water loop: users -> ``second`` -> x (pump) -> ``first`` -> boiler -> users.
 

@@ -139,6 +139,10 @@ class CHP(Equipment, Module):
         """Return the size that the cost of the engine scales with: electric capacity."""
         return self.electric_capacity
 
+    def product(self):
+        """Return the electricity generated, the power port ``power_out``."""
+        return ("power_out", None)
+
     def _no_load_fuel_fraction(self):
         """Return the no-load fuel share; zero when the term is left out."""
         return 0 if self.no_load_fuel_fraction is None else self.no_load_fuel_fraction

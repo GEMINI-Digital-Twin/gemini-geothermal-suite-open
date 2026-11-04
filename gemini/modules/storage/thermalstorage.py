@@ -93,6 +93,15 @@ class ThermalStorage(Equipment, Module):
                 "Effectiveness of the discharging circuit heat exchange; one is a direct connection"
             ),
         )
+        self.energy_capacity = Parameter(
+            Energy | None,
+            default=None,
+            gt=0,
+            description=(
+                "Heat the tank holds between its design temperatures; the size of a cost given "
+                "per energy, and empty when the cost is per m3"
+            ),
+        )
 
         # Inlets
         self.charge_in = Port(
@@ -181,6 +190,14 @@ class ThermalStorage(Equipment, Module):
     def cost_size(self):
         """Return the size that the cost of the tank scales with: volume."""
         return self.volume
+
+    def cost_size_of(self, quantity):
+        """Return the ``energy_capacity`` [J] for a cost per energy, ``None`` for another one."""
+        if quantity != "energy":
+            return None
+        if self.energy_capacity is None:
+            raise self.missing_size("energy_capacity")
+        return self.energy_capacity
 
     def update(self, inputs, inlets, outlets, state, dt):
         """Return the tank temperature after exchanging heat over ``dt``."""

@@ -65,3 +65,16 @@ def test_a_spread_ignores_the_offset_of_a_unit():
         shallow_plant(), case, name, gm.units.Quantity(2, "degC"), difference=True
     )
     assert spread == pytest.approx(2.0)
+
+
+def test_a_number_of_the_case_has_the_unit_of_the_basis_it_was_given_in():
+    """A heat exchanger priced per W is varied per W, not per W/K."""
+    case = shallow_case()
+    data = case.economics.to_dict()
+    data["capex"]["heat_exchanger"] = {"value": 0.14, "unit": "EUR/W"}
+    case = gm.Case.from_dict(case.to_dict() | {"economics": data}, files=case.files())
+    name = "case.economics.capex.heat_exchanger"
+    plant = shallow_plant()
+    assert target.unit_of(plant, case, name) == "currency/W"
+    assert target.quantity_of(plant, case, name) == "money_per_power"
+    assert target.value_si(plant, case, name, {"value": 0.2, "unit": "EUR/W"}) == 0.2
