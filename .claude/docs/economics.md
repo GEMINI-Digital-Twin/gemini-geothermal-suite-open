@@ -78,7 +78,14 @@ size it lacks raises `missing_value` naming the design value (`<path>.nominal_du
 `gm.check` reports it as `params.<path>.<name>`; a module with no size of that quantity has no
 value (`no_value`). A unit of no basis of the kind is refused when the economics is read
 (`invalid_unit`, listing the units of every basis), and `Economics.schema()` lists the bases of a
-kind in `x-bases`. A study or a sensitivity varies such a factor in the unit of its basis. A composite adds only its own part. A factor or a share that
+kind in `x-bases`. A study or a sensitivity varies such a factor in the unit of its basis.
+
+A fixed opex is a share of the capex per year (`%/yr`), or, for a kind sized by a power
+(`POWER_KINDS`: the kinds priced per W, and `heat_exchanger` by its nominal duty), an amount per
+capacity and year (`EUR/MW/yr`, `EUR/kW/yr`, `EUR/W/yr`, as a catalogue publishes fixed O&M): that
+amount times the power size of the module, whatever basis its capex is on. A heat exchanger needs
+its `nominal_duty` for it (`missing_value`, and `gm.check` reports it); a kind with no power (a
+pipe, a well, a tank, a degasser) refuses that unit (`invalid_unit`). A composite adds only its own part. A factor or a share that
 the case lacks for a kind the plant uses raises `missing_assumption` naming
 `economics.capex.<kind>` or `economics.opex.fixed.<kind>`; nothing is
 estimated. A plant with no equipment has no value.

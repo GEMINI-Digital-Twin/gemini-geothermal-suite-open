@@ -19,6 +19,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   (`Equipment.cost_size_of(quantity)`); a missing one raises `missing_value` naming it, and
   `gm.check` reports it. A unit of no basis is `invalid_unit`. `Economics.schema()` lists the
   bases in `x-bases`. Every existing file reads and costs as before.
+- `economics.opex.fixed.<kind>` takes an amount per capacity and year (`EUR/MW/yr`) besides a
+  share of the capex (`%/yr`), for the kinds sized by a power; it multiplies the power size of
+  each module (a heat exchanger's `nominal_duty`). New units `EUR/W/yr`, `EUR/kW/yr`,
+  `EUR/MW/yr` and `currency/W/yr` (quantity `annual_money_per_power`, shown in `EUR/MW/yr`).
 
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,

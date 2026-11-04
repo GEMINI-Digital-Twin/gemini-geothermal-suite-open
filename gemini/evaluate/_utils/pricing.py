@@ -91,6 +91,19 @@ def capex_of(module, economics):
     return capex_factor(economics, module.equipment_kind) * size
 
 
+PER_CAPACITY = "annual_money_per_power"
+"""The quantity of a fixed opex given per W of capacity and per year."""
+
+
 def fixed_opex_of(module, economics):
-    """Return the fixed opex of a year [currency/yr]: the share of its kind times its capex."""
-    return fixed_share(economics, module.equipment_kind) * capex_of(module, economics)
+    """Return the fixed opex of a year [currency/yr] of an equipment module.
+
+    The share of its kind times its capex, or, for a fixed opex given per W and year, that amount
+    times the power size of the module (``size_of`` per power: its capacity, or the nominal duty
+    of a heat exchanger).
+    """
+    share = fixed_share(economics, module.equipment_kind)
+    leaf = economics.opex.leaf(f"fixed.{module.equipment_kind}")
+    if getattr(leaf, "quantity", None) == PER_CAPACITY:
+        return share * size_of(module, "money_per_power")
+    return share * capex_of(module, economics)

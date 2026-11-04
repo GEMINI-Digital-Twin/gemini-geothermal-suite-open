@@ -7,6 +7,7 @@ import pytest
 
 from gemini import units
 from gemini.errors import ValidationError
+from gemini.units.display import DISPLAY_UNITS
 from tests.fixtures.errors import raises
 
 
@@ -265,3 +266,17 @@ def test_a_millisecond_is_a_time_unit():
     assert units.Quantity(90_000, "ms").to("min").value == pytest.approx(1.5)
     assert units.Quantity(1, "d").to("ms").value == pytest.approx(86_400_000)
     assert "ms" in {unit.value for unit in units.Unit}
+
+
+def test_a_yearly_amount_per_capacity_converts_to_currency_per_w_and_year():
+    """EUR/MW/yr is a millionth of EUR/W/yr; a member of ``Unit`` each."""
+    assert units.to_si(2000, "EUR/MW/yr") == pytest.approx(2e-3)
+    assert units.to_si(3, "EUR/kW/yr") == pytest.approx(3e-3)
+    assert units.names("annual_money_per_power") == [
+        "EUR/MW/yr",
+        "EUR/W/yr",
+        "EUR/kW/yr",
+        "currency/W/yr",
+    ]
+    assert units.Unit.EUR_PER_MW_PER_YR == "EUR/MW/yr"
+    assert DISPLAY_UNITS["annual_money_per_power"] == "EUR/MW/yr"

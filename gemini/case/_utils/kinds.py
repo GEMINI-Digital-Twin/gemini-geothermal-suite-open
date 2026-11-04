@@ -47,6 +47,13 @@ BASIS_SIZES = {
 }
 """For a cost per a quantity, the quantity of the size it multiplies (``cost_size_of``)."""
 
+POWER_KINDS = tuple(
+    kind
+    for kind, (quantity, _) in EQUIPMENT_KINDS.items()
+    if "money_per_power" in (quantity, *CAPEX_BASES.get(kind, ()))
+)
+"""The kinds whose modules have a size in power, the capacity of a fixed opex per W and year."""
+
 GAS_SPECIES = ("CH4", "CO2", "N2", "H2S")
 """The species of ``site.fluid.dissolved_gas``."""
 

@@ -26,6 +26,7 @@ DISPLAY_UNITS = {
     "permeability": "mD",
     "temperature_gradient": "K/km",
     "money_per_mass": "EUR/t",
+    "annual_money_per_power": "EUR/MW/yr",
     "volume_flow": "m3/h",
     "temperature": "degC",
 }

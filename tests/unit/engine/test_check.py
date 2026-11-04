@@ -225,3 +225,14 @@ def test_a_cost_on_another_basis_needs_the_size_of_that_basis_on_the_module():
     assert found[0].kind == "missing" and found[0].problem()["code"] == "missing_value"
     plant.set_params("heat_exchanger", {"nominal_duty": Quantity(5, "MW")})
     assert gm.check(plant, priced) == []
+
+
+def test_a_fixed_opex_per_capacity_needs_the_power_size_of_the_module():
+    """A heat exchanger with a fixed opex per kW and year needs its ``nominal_duty``."""
+    plant, case = sample()
+
+    def per_capacity(data):
+        data["economics"]["opex"]["fixed"]["heat_exchanger"] = {"value": 3, "unit": "EUR/kW/yr"}
+
+    found = gm.check(plant, revised(case, per_capacity))
+    assert paths(found) == ["params.heat_exchanger.nominal_duty"]

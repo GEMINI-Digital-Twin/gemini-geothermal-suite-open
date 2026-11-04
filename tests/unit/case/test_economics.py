@@ -206,3 +206,36 @@ def test_the_schema_lists_the_bases_of_a_capex_factor_by_quantity():
     }
     assert "x-bases" not in capex["boiler"]
     assert "per W of nominal duty" in capex["heat_exchanger"]["description"]
+
+
+def test_a_fixed_opex_is_a_share_of_capex_or_an_amount_per_capacity_and_year(money):
+    """``%/yr`` of the capex, or ``EUR/MW/yr`` for a kind sized by a power."""
+    money["opex"]["fixed"] |= {
+        "boiler": {"value": 2000, "unit": "EUR/MW/yr"},
+        "heat_exchanger": {"value": 3, "unit": "EUR/kW/yr"},
+    }
+    found = gm.case.Economics.from_dict(money)
+    assert found.opex.fixed["boiler"] == pytest.approx(2e-3)
+    assert found.opex.fixed["heat_exchanger"] == pytest.approx(3e-3)
+    assert found.opex.leaf("fixed.boiler").quantity == "annual_money_per_power"
+    assert found.opex.leaf("fixed.heat_pump").quantity == "annual_rate"
+    assert found.to_dict() == money
+    changed = found.with_value("opex.fixed.boiler", 1e-3)
+    assert changed.opex.leaf("fixed.boiler").to_json() == {"value": 1e-3, "unit": "currency/W/yr"}
+
+
+def test_a_fixed_opex_per_capacity_is_refused_for_a_kind_without_a_power(money):
+    """A pipe has a length, a degasser no size: only a share of their capex."""
+    for kind in ("pipe", "degasser", "thermal_storage"):
+        data = copy.deepcopy(money)
+        data["opex"]["fixed"][kind] = {"value": 1, "unit": "EUR/W/yr"}
+        with raises(gm.errors.ValidationError, "invalid_unit"):
+            gm.case.Economics.from_dict(data)
+
+
+def test_the_schema_lists_the_fixed_opex_bases_per_kind():
+    """``x-bases`` on the kinds that take an amount per capacity, none on the others."""
+    fixed = gm.case.Economics.schema()["properties"]["opex"]["properties"]["fixed"]
+    assert list(fixed["properties"]["chp"]["x-bases"]) == ["annual_rate", "annual_money_per_power"]
+    assert "x-bases" not in fixed["properties"]["pipe"] and "x-bases" not in fixed
+    assert "EUR/MW/yr" in fixed["description"]

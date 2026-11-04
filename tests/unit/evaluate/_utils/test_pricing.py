@@ -138,3 +138,28 @@ def test_a_size_a_basis_needs_and_the_module_lacks_raises_naming_it():
     per_energy = economics(capex={"thermal_storage": Quantity(3, "EUR/MWh")})
     with raises(gm.errors.ValidationError, "no_value", match=r"tank"):
         pricing.capex_of(Tank(), per_energy)
+
+
+def test_a_fixed_opex_per_capacity_multiplies_the_power_size_of_the_module():
+    """A boiler of 10 MW at 2000 EUR/MW/yr; a heat exchanger by its nominal duty."""
+
+    class Burner(Equipment):
+        equipment_kind = "boiler"
+
+        def cost_size(self):
+            """Return the capacity [W]."""
+            return 1e7
+
+    section = economics(
+        capex={"boiler": Quantity(0.06, "EUR/W"), "heat_exchanger": Quantity(100, "EUR/(W/K)")},
+        opex={
+            "fixed": {
+                "boiler": Quantity(2000, "EUR/MW/yr"),
+                "heat_exchanger": Quantity(3, "EUR/kW/yr"),
+            }
+        },
+    )
+    assert pricing.fixed_opex_of(Burner(), section) == pytest.approx(2e4)
+    assert pricing.fixed_opex_of(Exchanger(5e6), section) == pytest.approx(1.5e4)
+    with raises(gm.errors.ValidationError, "no_value", match=r"hx .*per W"):
+        pricing.fixed_opex_of(Exchanger(), section)

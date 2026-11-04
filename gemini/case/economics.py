@@ -8,7 +8,7 @@ from gemini import units
 from gemini._utils.strings import join_path
 from gemini.case._utils import schema
 from gemini.case._utils.access import require
-from gemini.case._utils.kinds import CAPEX_BASES, EQUIPMENT_KINDS
+from gemini.case._utils.kinds import CAPEX_BASES, EQUIPMENT_KINDS, POWER_KINDS
 from gemini.case._utils.node import Field, Frozen, Node, issue, load, write
 from gemini.case.site import FRACTION, POSITIVE
 from gemini.errors import ValidationError
@@ -189,8 +189,9 @@ class Variable(Node):
 class Opex(Node):
     """Operating costs.
 
-    ``fixed`` is a dict of the yearly share [1/yr] of the capex of each kind; ``variable`` holds the
-    consumables.
+    ``fixed`` is a dict of the yearly share [1/yr] of the capex of each kind, or, for a kind of
+    ``POWER_KINDS`` given in ``currency/W/yr``, the yearly amount per W of its capacity; the unit
+    tells which. ``variable`` holds the consumables.
     """
 
     where = "economics.opex"
@@ -201,10 +202,13 @@ class Opex(Node):
             keys=tuple(EQUIPMENT_KINDS),
             bounds=POSITIVE,
             description=(
-                "Fixed operation and maintenance of each equipment kind, a share of its capex "
-                "per year (%/yr, 1/yr); a kind a plant uses and the map lacks raises "
-                "missing_assumption"
+                "Fixed operation and maintenance of each equipment kind: a share of its capex "
+                "per year (%/yr, 1/yr), or, for a kind sized by a power, an amount per capacity "
+                f"and year (EUR/MW/yr, EUR/W/yr: {', '.join(POWER_KINDS)}); the unit tells "
+                "which. A kind a plant uses and the map lacks raises missing_assumption"
             ),
+            alternatives=("annual_money_per_power",),
+            alternative_keys=POWER_KINDS,
         )
     }
     sections = {"variable": Variable}

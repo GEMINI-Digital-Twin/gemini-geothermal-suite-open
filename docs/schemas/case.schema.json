@@ -3294,7 +3294,7 @@
                 },
                 "fixed": {
                   "additionalProperties": false,
-                  "description": "Fixed operation and maintenance of each equipment kind, a share of its capex per year (%/yr, 1/yr); a kind a plant uses and the map lacks raises missing_assumption",
+                  "description": "Fixed operation and maintenance of each equipment kind: a share of its capex per year (%/yr, 1/yr), or, for a kind sized by a power, an amount per capacity and year (EUR/MW/yr, EUR/W/yr: production_pump, injection_pump, circulation_pump, heat_pump, boiler, electric_boiler, chp, absorption_chiller, adsorption_chiller, compression_chiller, heat_exchanger, cooler); the unit tells which. A kind a plant uses and the map lacks raises missing_assumption",
                   "properties": {
                     "absorption_chiller": {
                       "additionalProperties": false,
@@ -3339,7 +3339,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3351,6 +3355,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3358,7 +3374,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "adsorption_chiller": {
@@ -3404,7 +3424,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3416,6 +3440,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3423,7 +3459,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "boiler": {
@@ -3469,7 +3509,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3481,6 +3525,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3488,7 +3544,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "chp": {
@@ -3534,7 +3594,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3546,6 +3610,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3553,7 +3629,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "circulation_pump": {
@@ -3599,7 +3679,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3611,6 +3695,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3618,7 +3714,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "compression_chiller": {
@@ -3664,7 +3764,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3676,6 +3780,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3683,7 +3799,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "cooler": {
@@ -3729,7 +3849,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3741,6 +3865,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3748,7 +3884,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "degasser": {
@@ -3924,7 +4064,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -3936,6 +4080,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -3943,7 +4099,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "flare": {
@@ -4119,7 +4279,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -4131,6 +4295,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -4138,7 +4314,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "heat_pump": {
@@ -4184,7 +4364,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -4196,6 +4380,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -4203,7 +4399,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "ice_storage": {
@@ -4314,7 +4514,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -4326,6 +4530,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -4333,7 +4549,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "pipe": {
@@ -4444,7 +4664,11 @@
                         "unit": {
                           "enum": [
                             "%/yr",
-                            "1/yr"
+                            "1/yr",
+                            "EUR/MW/yr",
+                            "EUR/W/yr",
+                            "EUR/kW/yr",
+                            "currency/W/yr"
                           ]
                         },
                         "value": {
@@ -4456,6 +4680,18 @@
                         "unit"
                       ],
                       "type": "object",
+                      "x-bases": {
+                        "annual_money_per_power": [
+                          "EUR/MW/yr",
+                          "EUR/W/yr",
+                          "EUR/kW/yr",
+                          "currency/W/yr"
+                        ],
+                        "annual_rate": [
+                          "%/yr",
+                          "1/yr"
+                        ]
+                      },
                       "x-limits": {
                         "min": 0.0,
                         "unit": "1/yr"
@@ -4463,7 +4699,11 @@
                       "x-quantity": "annual_rate",
                       "x-units": [
                         "%/yr",
-                        "1/yr"
+                        "1/yr",
+                        "EUR/MW/yr",
+                        "EUR/W/yr",
+                        "EUR/kW/yr",
+                        "currency/W/yr"
                       ]
                     },
                     "thermal_storage": {
@@ -5257,6 +5497,12 @@
               "MEUR/yr",
               "currency/yr",
               "kEUR/yr"
+            ],
+            "annual_money_per_power": [
+              "EUR/MW/yr",
+              "EUR/W/yr",
+              "EUR/kW/yr",
+              "currency/W/yr"
             ],
             "annual_rate": [
               "%/yr",
@@ -7474,6 +7720,12 @@
       "MEUR/yr",
       "currency/yr",
       "kEUR/yr"
+    ],
+    "annual_money_per_power": [
+      "EUR/MW/yr",
+      "EUR/W/yr",
+      "EUR/kW/yr",
+      "currency/W/yr"
     ],
     "annual_rate": [
       "%/yr",
