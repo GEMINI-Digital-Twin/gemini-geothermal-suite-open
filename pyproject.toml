@@ -1,6 +1,6 @@
 [project]
 name = "gemini-geothermal-suite-open"
-version = "0.6.4"
+version = "0.6.5"
 description = "Open Source suite of the GEMINI Geothermal Digital Twin"
 authors = [
     { name = "Ryvo Octaviano", email = "ryvo.octaviano@tno.nl" },

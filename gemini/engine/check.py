@@ -66,7 +66,7 @@ def check(plant, case):
         What is missing or wrong, an empty list when the plant is ready for the case.
     """
     if case is None:
-        return _parameters(plant)
+        return _parameters(plant) + _rules(plant)
     own = case.check()
     if any(not item.is_warning for item in own):
         return own
@@ -95,6 +95,7 @@ def issues_of(applied, case):
     with remembered():
         return [
             *_parameters(applied),
+            *_rules(applied),
             *_kinds(applied, case),
             *_sizes(applied, case),
             *_roles(applied, case),
@@ -132,6 +133,47 @@ def _parameters(plant):
         replace(item, path=join_path("params", form.file_path(item.path)))
         for item in Module.check(plant)
     ]
+
+
+PLANT_RULES = {
+    "control.dispatch": "'least_cost'",
+    "control.outages": "'lowest_demand'",
+    "backup": "'peak' or 'none'",
+}
+"""The plant options a schedule or a sizing stops on when unset, with the values they take."""
+
+
+def _rules(plant):
+    """Return the ``missing`` issues of the plant options and split wells a run needs.
+
+    ``params.control.dispatch`` and ``params.control.outages`` (the schedule's rules),
+    ``params.backup`` (the sizing's policy) and the ``esp_depth`` of a well split at its pump
+    have no default and stop a schedule, a sizing or a run, so ``check`` names them (gemini
+    requests 33 and 36).
+    """
+    from gemini.modules.wells.productionwell import ProductionWell
+
+    issues = []
+    for name, expected in PLANT_RULES.items():
+        attribute = name.rsplit(".", 1)[-1]
+        if hasattr(plant, attribute) and getattr(plant, attribute) is None:
+            path = f"params.{name}"
+            issues.append(
+                Issue(path, "missing", f"{path} is missing; expected {expected}", code="missing_value")
+            )
+    for path, module in plant.named_modules():
+        split = getattr(module, "segment", None) in ("below_esp", "above_esp")
+        if isinstance(module, ProductionWell) and split and module.esp_depth is None:
+            where = join_path("params", form.file_path(join_path(path, "esp_depth")))
+            issues.append(
+                Issue(
+                    where,
+                    "missing",
+                    f"{where} is missing; a well split at its pump ({module.segment}) needs it",
+                    code="missing_value",
+                )
+            )
+    return issues
 
 
 def _missing(path, message):

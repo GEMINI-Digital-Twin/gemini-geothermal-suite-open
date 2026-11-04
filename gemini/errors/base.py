@@ -115,9 +115,18 @@ class Issue:
         return self.kind in ("deprecated", "warning")
 
     def problem(self):
-        """Return the problem ``{path, code, message, suggestions}`` of this issue."""
+        """Return the problem ``{path, code, message, suggestions}`` of this issue.
+
+        A unit issue adds ``quantity`` (the quantity names, ``" or "`` between them) and
+        ``accepted`` (the units the value takes), so a caller need not read them from the message
+        (gemini request 34).
+        """
         code = self.code or ISSUE_KINDS[self.kind]
-        return problem(self.path, code, self.message, self.suggestions)
+        shape = problem(self.path, code, self.message, self.suggestions)
+        if self.quantity is None and not self.accepted:
+            return shape
+        extra = {"quantity": self.quantity} if self.quantity is not None else {}
+        return shape | extra | ({"accepted": list(self.accepted)} if self.accepted else {})
 
 
 class GeminiError(Exception):

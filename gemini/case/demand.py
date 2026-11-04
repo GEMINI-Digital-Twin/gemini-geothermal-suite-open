@@ -87,7 +87,12 @@ class CoolingService(Service):
             description="The indoor air temperature of the building.",
         ),
         "indoor_relative_humidity": Field(
-            bounds=FRACTION, description="The relative humidity of the indoor air, between 0 and 1."
+            bounds=FRACTION,
+            unit_of="fraction",
+            description=(
+                "The relative humidity of the indoor air, between 0 and 1 (no unit, or a unit of "
+                "a fraction: -, %)."
+            ),
         ),
         "dew_point_margin": Field(
             "temperature_difference",

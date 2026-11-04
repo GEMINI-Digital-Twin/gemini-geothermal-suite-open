@@ -12,6 +12,23 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.5] - 2026-11-05
+
+### Added
+- `gm.check(plant, case)` names `params.control.dispatch`, `params.control.outages`,
+  `params.backup` and the `esp_depth` of a production well split at its pump when they are unset:
+  a schedule, a sizing or a run stops on each (geomind requests 33 and 36; QA-040).
+- A relative humidity (`site.air.relative_humidity`, `demand.cooling.indoor_relative_humidity`)
+  takes a unit of a fraction: `-` or `%` (80 % is 0.8), as a gas fraction takes `mol%`; the unit
+  `%` is a fraction (request 38; QA-043).
+- A unit problem (`invalid_unit`) carries `quantity` and `accepted` in its `problem()` and in
+  `ValidationError.problems` (request 34).
+
+### Fixed
+- A daily (or coarser) series read in a zone with daylight saving time (`time_zone:
+  Europe/Amsterdam`) is matched to the case's steps by its local calendar dates, so the days of 23
+  or 25 hours at the clock change are no longer refused (request 37; QA-039).
+
 ## [0.6.4] - 2026-11-04
 
 A bug fix, additive: everything that worked on 0.6.3 works the same, and `examples/hackathon.py`

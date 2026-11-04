@@ -793,6 +793,8 @@ def align(series, index, step, path, issues):
     covered window and the requested one. A target step coarser than the series averages its
     samples; a finer one, or one with a step holding no sample, is an ``incompatible`` issue.
     """
+    if series.time_zone and step >= DAY and step % DAY == pd.Timedelta(0):
+        return _by_local_day(series, index, step, path, issues)
     time = series.time
     own = pd.Series(time).diff().dropna().median() if len(time) > 1 else step
     start, end = index[0], index[-1] + step
@@ -816,6 +818,49 @@ def align(series, index, step, path, issues):
         )
         return None
     return _mean_over_steps(series, index, step, own, path, issues)
+
+
+DAY = pd.Timedelta(days=1)
+"""The step from which a series read in a local zone is matched by its calendar dates."""
+
+
+def _by_local_day(series, index, step, path, issues):
+    """Return the SI values of a daily (or coarser) local ``series`` by calendar date, or ``None``.
+
+    A series of dates read in a zone with daylight saving time has days of 23 or 25 hours, so its
+    samples are matched to the case's steps by their local calendar date, not by UTC instants
+    (gemini request 37, QA-039): each row is one calendar day in the series' zone.
+    """
+    zone = series.time_zone
+    days = series.time.tz_convert(zone).normalize().tz_localize(None).as_unit("ns")
+    starts = index.tz_convert(zone).normalize().tz_localize(None).as_unit("ns")
+    width = step // DAY
+    ends = starts + pd.Timedelta(days=width)
+    if days[0] > starts[0] or days[-1] + DAY < ends[-1]:
+        _issue(
+            issues,
+            path,
+            "coverage",
+            f"{path}: {series.file} column {series.column!r} covers the local dates "
+            f"{days[0].date()} to {(days[-1] + DAY).date()} in {zone}; requested "
+            f"{starts[0].date()} to {ends[-1].date()}",
+        )
+        return None
+    low = np.searchsorted(days.asi8, starts.asi8, side="left")
+    high = np.searchsorted(days.asi8, ends.asi8, side="left")
+    counts = high - low
+    if (counts == 0).any():
+        first = int(np.flatnonzero(counts == 0)[0])
+        _issue(
+            issues,
+            path,
+            "incompatible",
+            f"{path}: {series.file} column {series.column!r} has no sample on the local date "
+            f"{starts[first].date()} in {zone}",
+        )
+        return None
+    values = series.si
+    return np.add.reduceat(values[: high[-1]], low) / counts
 
 
 def _mean_over_steps(series, index, step, own, path, issues):

@@ -124,9 +124,10 @@ class Air(Node):
         "relative_humidity": Field(
             series=True,
             bounds=FRACTION,
+            unit_of="fraction",
             description=(
-                "The relative humidity of the outside air, between 0 and 1, a constant or a "
-                "series."
+                "The relative humidity of the outside air, between 0 and 1 (no unit, or a unit "
+                "of a fraction: -, %), a constant or a series."
             ),
         ),
         "pressure": Field("pressure", bounds=POSITIVE, description="The outside air pressure."),
