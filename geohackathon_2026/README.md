@@ -17,22 +17,44 @@ The agent runs on an open-weight model (qwen3:8b) through Ollama. The model plan
 
 The two demand files are the challenge inputs.
 
-## Run
+## Result
 
-Python 3.11 with numpy, scipy and pandas. Run from this folder:
+Recommended design: 2 doublets at 3,000 m, produced gas in a CHP, absorption chillers. 71.2 EUR/MWh, 5.97 kt CO2 a year, 0.3% of delivered energy bought; every operating day passes in GEMINI plant files. Details: `results/evidence/evidence_summary.md`, `results/sensitivity.md` and `results/figures/`.
+
+## Setup
+
+Needs Python 3.11 and, for the agent only, [Ollama](https://ollama.com). Tested on macOS.
 
 ```bash
-PYTHONPATH=../src:cases:agent python -m pytest agent cases -q
+git clone --branch geohackathon-2026 https://github.com/kimia1999/gemini-geothermal-suite-open.git
+cd gemini-geothermal-suite-open/geohackathon_2026
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-```bash
-PYTHONPATH=../src python cases/yearly_energy.py
-```
+On Windows, activate with `.venv\Scripts\activate` and set the path with `set PYTHONPATH=..\src;cases;agent` instead of the `PYTHONPATH=...` prefix below.
+
+For the agent, install Ollama, then:
 
 ```bash
 ollama pull qwen3:8b
-PYTHONPATH=../src:cases:agent python agent/run_agent.py "Design the heating and cooling system for the district."
 ```
+
+## Run
+
+All commands run from this folder.
+
+| What | Command | Time | Expected |
+|---|---|---|---|
+| Tests (ours) | `python -m pytest agent cases -q` | 1 min | 33 passed |
+| Tests (GEMINI models and simulator) | `cd .. && PYTHONPATH=src python -m pytest unit_test/gemini_model unit_test/gemini_simulator -q` | 10 s | 103 passed |
+| Agent | `PYTHONPATH=../src:cases:agent python agent/run_agent.py "Design the heating and cooling system for the district. Compare designs and recommend one."` | 3-5 min | `RECOMMENDATION: doublets=2, depth_m=3000, layout=chp+absorption`, then `REVIEWER: accepted.` |
+| Price sensitivity and failure study | `PYTHONPATH=../src:cases:agent python agent/sensitivity_study.py` | 2 min | writes `results/sensitivity.md` |
+| Figures | `PYTHONPATH=../src:cases:agent python cases/figures.py` | 10 s | writes `results/figures/*.svg` |
+| GEMINI baseline case | `PYTHONPATH=../src python cases/run_baseline.py` | 5 s | the challenge's reference case (one doublet at 2,500 m) and its checks. It fails the 100 C supply check on purpose: brine at 2,500 m is too cold, which is why the design goes deeper |
+
+The agent needs Ollama running (`ollama serve`, or the Ollama app). Each agent session is logged in `logs/` with every tool call and its token count. Tool results are cached in `agent/memory.json`; delete it to recompute everything (the first design question then takes a few minutes longer).
 
 ## Changes to GEMINI
 
