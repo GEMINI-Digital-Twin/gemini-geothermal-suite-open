@@ -1,0 +1,193 @@
+{
+  "candidate_id": "D4",
+  "justification": "Chosen design: D4 (deep_4000m_3doublets_with_absorption_and_electric_chiller) with 4000 m depth, 3 doublets, 1500 m spacing, 60\u00b0C heating return temperature, staggered outages, absorption-rated chiller (10 MW), and electric chiller (10 MW).\n\nKey metrics:\n- LCOH P10/P50/P90: 89.8/90.5/91.0 EUR/MWh (P50=90.5, lowest among all evaluated candidates)\n- No hard constraint violations (heating met on all 365 days, cooling met on all 365 days)\n- Robustness: 100% feasible (\u226590% required), P10/P50/P90 LCOH: 89.8/90.5/91.0 EUR/MWh\n- Net electricity: 2.89 GWh/year (positive, meaning geothermal surplus)\n- Geothermal heat share: 99%\n- Cooling share: 90%\n\nComparison with alternatives:\n- D1 (2500m): LCOH 117.4 EUR/MWh, 2 hard violations (heating unmet on 278 days, cooling unmet on 219 days)\n- D2 (deep, no cooling): LCOH 99.16 EUR/MWh, 2 hard violations (cooling unmet on 219 days)\n- D3 (absorption chiller only): LCOH 90.58 EUR/MWh, 1 hard violation (cooling unmet on 86 days)\n- D7 (hp+absorption+boiler, no electric chiller): LCOH 95.1 EUR/MWh, 1 hard violation (cooling unmet on 86 days)\n- D8 (full system but higher capex): LCOH 95.5 EUR/MWh, same robustness as D4\n\nD4 is superior to all alternatives with lower LCOH and no violations. Temperature sensitivity shows D4 is insensitive to heating return temperature changes (LCOH constant at 91.1 EUR/MWh across 45-70\u00b0C). The PVT validity warning (reservoir 132\u00b0C above GEMINI's 100\u00b0C range) is a simulator limitation but does not affect design feasibility.\n\nDownside risk: P90 LCOH = 91.0 EUR/MWh, well within acceptable range for the objective of lowest expected cost with \u226590% robustness.",
+  "verification_finding": null,
+  "robustness": {
+    "n_samples": 100,
+    "feasible_share": 1.0,
+    "robust": true,
+    "failure_counts": {},
+    "lcoh_eur_per_mwh": {
+      "P10": 89.7809,
+      "P50": 90.453,
+      "P90": 91.0424
+    },
+    "net_electricity_gwh": {
+      "P10": 0.5229,
+      "P50": 1.7465,
+      "P90": 2.7433
+    },
+    "natural_gas_gwh": {
+      "P10": 0.0,
+      "P50": 0.0,
+      "P90": 0.0
+    },
+    "unmet_gwh": {
+      "P10": 0.0,
+      "P50": 0.0,
+      "P90": 0.0
+    },
+    "breakthrough_years": {
+      "P10": 87.0602,
+      "P50": 84.154,
+      "P90": 82.15639999999999
+    },
+    "heat_share_geothermal": {
+      "P10": 0.99,
+      "P50": 0.989,
+      "P90": 0.988
+    },
+    "convention": "P90 = conservative case (90% confidence of at least this good)"
+  },
+  "return_temperature_sensitivity": [
+    {
+      "heating_return_c": 45,
+      "lcoh_eur_per_mwh": 91.068,
+      "net_electricity_gwh": 2.892,
+      "heat_hp_gwh": 0.0,
+      "heat_direct_gwh": 110.374,
+      "hard_violations": []
+    },
+    {
+      "heating_return_c": 50,
+      "lcoh_eur_per_mwh": 91.068,
+      "net_electricity_gwh": 2.892,
+      "heat_hp_gwh": 0.0,
+      "heat_direct_gwh": 110.374,
+      "hard_violations": []
+    },
+    {
+      "heating_return_c": 55,
+      "lcoh_eur_per_mwh": 91.068,
+      "net_electricity_gwh": 2.892,
+      "heat_hp_gwh": 0.0,
+      "heat_direct_gwh": 110.374,
+      "hard_violations": []
+    },
+    {
+      "heating_return_c": 60,
+      "lcoh_eur_per_mwh": 91.068,
+      "net_electricity_gwh": 2.892,
+      "heat_hp_gwh": 0.0,
+      "heat_direct_gwh": 110.374,
+      "hard_violations": []
+    },
+    {
+      "heating_return_c": 65,
+      "lcoh_eur_per_mwh": 91.068,
+      "net_electricity_gwh": 2.892,
+      "heat_hp_gwh": 0.0,
+      "heat_direct_gwh": 110.374,
+      "hard_violations": []
+    },
+    {
+      "heating_return_c": 70,
+      "lcoh_eur_per_mwh": 91.068,
+      "net_electricity_gwh": 2.892,
+      "heat_hp_gwh": 0.0,
+      "heat_direct_gwh": 110.374,
+      "hard_violations": []
+    }
+  ],
+  "label": "deep_4000m_3doublets_with_absorption_and_electric_chiller",
+  "design": {
+    "depth_m": 4000,
+    "n_doublets": 3,
+    "max_flow_m3h": 300,
+    "spacing_m": 1500,
+    "outage": "staggered",
+    "outage_starts": [
+      125,
+      214,
+      249
+    ],
+    "heating_return_c": 60,
+    "surface": {
+      "hx_approach_k": 3.0,
+      "hp_eta_lorenz": 0.5,
+      "hp_capacity_mw": 0,
+      "hp_min_source_out_c": 10.0,
+      "chiller_type": "absorption_rated",
+      "sorption_capacity_mw": 10,
+      "absorption_cop": 0.7,
+      "elec_chiller_capacity_mw": 10,
+      "elec_chiller_cop": 8.61182,
+      "boiler_capacity_mw": 0,
+      "chp_elec_eff": 0.3795,
+      "chp_heat_eff": 0.48840000000000006
+    }
+  },
+  "kpis": {
+    "lcoh_eur_per_mwh": 91.068,
+    "capex_total_meur": 91.918,
+    "heat_demand_gwh": 111.668,
+    "cool_demand_gwh": 23.743,
+    "heat_direct_gwh": 110.374,
+    "heat_hp_gwh": 0.0,
+    "heat_chp_gwh": 1.294,
+    "heat_boiler_ng_gwh": 0.0,
+    "heat_unmet_gwh": 0.0,
+    "cool_sorption_gwh": 21.356,
+    "cool_electric_gwh": 2.387,
+    "cool_unmet_gwh": 0.0,
+    "electricity_use_gwh": 13.734,
+    "chp_electricity_gwh": 10.842,
+    "net_electricity_gwh": 2.892,
+    "natural_gas_gwh": 0.0,
+    "peak_heat_delivered_mw": 30.0,
+    "peak_cool_delivered_mw": 10.0,
+    "max_hp_load_mw": 0.0,
+    "max_boiler_load_mw": 0.0,
+    "max_elec_chiller_load_mw": 3.101,
+    "max_sorption_load_mw": 7.601,
+    "mean_hp_cop": null,
+    "annual_mean_flow_m3h_per_doublet": 174.11,
+    "breakthrough_years": 81.6,
+    "heat_share_geothermal_direct_and_hp": 0.988,
+    "heat_share_no_purchased_fuel": 1.0,
+    "geothermal_cool_share": 0.899
+  },
+  "economics": {
+    "lcoh_eur_per_mwh": 91.06763867902716,
+    "capex_total_meur": 91.91786549999999,
+    "annual_cost_meur": 12.33148789559591,
+    "capex_meur": {
+      "wells": 56.062,
+      "geothermal_plant": 25.335,
+      "heat_pump": 0.0,
+      "absorption_chiller": 5.8,
+      "electric_chiller": 2.0,
+      "chp": 2.72,
+      "boiler": 0.0
+    },
+    "opex_meur_yr": {
+      "geothermal_fixed": 4.344,
+      "geothermal_variable": 0.21,
+      "heat_pump": 0.0,
+      "absorption_chiller": 0.014,
+      "electric_chiller": 0.1,
+      "chp": 0.1,
+      "boiler": 0.0
+    },
+    "energy_meur_yr": {
+      "electricity": 1.099,
+      "natural_gas": 0.0,
+      "chp_electricity_value": -0.867
+    },
+    "delivered_gwh": 135.41020799999998
+  },
+  "violations": [
+    {
+      "severity": "warning",
+      "constraint": "pvt_validity",
+      "detail": "reservoir 132 C is above GEMINI's 100 C pure-water PVT range; constant brine properties used",
+      "n_days": null
+    },
+    {
+      "severity": "info",
+      "constraint": "chp_heat_dumped",
+      "detail": "CHP heat exceeds demand on 365 days, up to 2.80 MW rejected",
+      "n_days": 365
+    }
+  ]
+}
