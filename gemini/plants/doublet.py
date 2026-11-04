@@ -24,6 +24,11 @@ from gemini.units.quantities import (
 )
 
 
+DESIGNED = ("well_diameter", "nominal_flow", "pump_efficiency", "nominal_wellhead_pressure")
+"""The design values that only a doublet designed from its ``depth`` reads: one of them stated
+without a depth makes the depth missing."""
+
+
 class Doublet(Equipment, Plant):
     """Production and injection limbs, with the children's values derived from a design.
 
@@ -55,6 +60,11 @@ class Doublet(Equipment, Plant):
     A group of values that is not complete derives nothing, and the old way, setting every child
     value directly, works as it did. A child value in the same call wins over the derived one and
     stays explicit. Setting ``fluid`` gives it to every child and derives again.
+
+    A doublet with a ``depth``, or with a value of ``DESIGNED``, is designed: ``check``,
+    ``gm.check`` and a run name the design value left out (``depth``, ``well_diameter``,
+    ``nominal_flow``, ...) instead of the children it would derive, so a child the case fills
+    through the design is never listed as missing. A child stated by hand needs no design value.
 
     A building block, not schedulable on its own: a run sets ``reservoir.production_rate`` and
     ``esp.frequency``; ``gm.schedule`` writes them for a doublet inside a plant with a demand.
@@ -227,6 +237,48 @@ class Doublet(Equipment, Plant):
     def _missing_design(self):
         """Return the geotherm of a ``depth`` that is still missing: a run cannot start without."""
         return self._lacking(self._params_at(None))
+
+    def _waiting_params(self):
+        """Return ``(design values missing, children waiting for them)`` of a doublet with a depth.
+
+        Each value of the flow paths or of the pump left out while a child that group derives has
+        no value either (a child stated by hand needs none) is missing, and ``check`` and a run
+        name it instead of the children it would derive.
+        """
+        missing, waiting = self._design_gaps()
+        return [name for name in missing if name not in self._missing_design()], waiting
+
+    def _design_gaps(self):
+        """Return ``(design values missing, children waiting for them)`` of a doublet with a depth.
+
+        A doublet without a ``depth`` and without any value of ``DESIGNED`` is set child by child
+        and has none. A group whose design is blocked (a value of it or of a group before it missing, or the
+        ``drainage_radius`` or a ``skin`` the flow paths need, which are missing parameters
+        themselves) has its children without a value waiting; its own values left out are missing.
+        """
+        values = {"drainage_radius": None, "roughness": None} | self._params_at(None)
+        stated = [name for name in DESIGNED if values[name] is not None]
+        if values["depth"] is None and not stated:
+            return [], []
+        skins = self._skins({})
+        groups = (
+            (doublet_design.COLUMN, doublet_design.COLUMN_VALUES, False),
+            (
+                doublet_design.FLOW_PATH,
+                doublet_design.FLOW_PATH_VALUES,
+                values["drainage_radius"] is None or None in skins.values(),
+            ),
+            (doublet_design.PUMP, doublet_design.PUMP_VALUES, False),
+        )
+        missing, waiting, blocked = [], [], False
+        for names, children, needs in groups:
+            absent = [name for name in names if values[name] is None]
+            unset = [name for name in children if not self.get(name).initialized]
+            blocked = blocked or bool(absent) or needs
+            if blocked and unset:
+                missing += absent
+                waiting += unset
+        return missing, waiting
 
     def _stated_pressure(self, params):
         """Return the reservoir pressure [Pa] stated by hand, in this call or earlier, or None."""

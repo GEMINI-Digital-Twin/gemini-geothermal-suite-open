@@ -17,6 +17,46 @@ RESERVOIRS = ("reservoir", "sink")
 
 WELLS = ("well", "riser", "injector")
 """The children of a doublet that are wells."""
+SECTIONS = ("section_length", "section_inclination", "section_diameter", "section_roughness")
+"""The section lists of a well that its vertical path gives."""
+
+COLUMN_VALUES = (
+    *(f"{well}.soil_temperature" for well in WELLS),
+    "formation.geothermal_gradient",
+    "formation.surface_temperature",
+    *(f"{name}.{field}" for name in RESERVOIRS for field in ("temperature", "pressure")),
+)
+"""The child values ``COLUMN`` derives."""
+
+FLOW_PATH_VALUES = (
+    *(f"{well}.{name}" for well in WELLS for name in SECTIONS),
+    *(
+        f"{name}.{field}"
+        for name in RESERVOIRS
+        for field in (
+            "permeability",
+            "aquifer_thickness",
+            "top_depth",
+            "drainage_radius",
+            "wellbore_radius",
+        )
+    ),
+    "reservoir.productivity_index",
+    "sink.injectivity_index",
+)
+"""The child values ``FLOW_PATH`` derives, with the column."""
+
+PUMP_VALUES = (
+    "esp.stage_count",
+    "esp.head_coefficients",
+    "esp.power_coefficients",
+    "esp.setting_depth",
+    "well.esp_depth",
+    "well.segment",
+    "riser.esp_depth",
+    "riser.segment",
+)
+"""The child values ``PUMP`` derives, with the column and the flow paths."""
 
 
 def _given(values, names):

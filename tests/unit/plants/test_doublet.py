@@ -375,3 +375,89 @@ def test_a_doublet_may_have_no_nominal_flow():
     """``None`` still means not sized."""
     _, doublet = designed()
     assert doublet.nominal_flow is None
+
+
+def _holder(values):
+    """Return a plant holding one doublet ``d0`` of ``values``, its ports wired to the plant's."""
+    plant = gm.Plant("Holder")
+    si.add(plant, "Doublet", name="d0", values=values)
+    plant.connect("return_in", "d0.return_in")
+    plant.connect("power_in", "d0.power_in")
+    plant.connect("d0.supply_out", "supply_out")
+    return plant
+
+
+@pytest.mark.parametrize("name", ["well_diameter", "roughness", "nominal_flow", "pump_efficiency"])
+def test_an_incomplete_design_names_its_value_not_the_children_it_derives(name):
+    """The case gives the reservoir; a design value left out is the one issue, as for the run.
+
+    The children that value derives (the reservoir permeability and thickness of the case, the
+    well sections, the pump) are not listed as missing: they are derived once it is given.
+    """
+    values = {key: value for key, value in (STORED | PUMP).items() if key != name}
+    plant = _holder(values)
+    case = design_case()
+    found = [item.path for item in gm.check(plant, case)]
+    assert found == [f"params.d0.{name}"]
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        gm.simulate(plant, case)
+    assert [item["path"] for item in caught.value.problems] == [f"params.d0.{name}"]
+    complete = _holder(STORED | PUMP)
+    assert gm.check(complete, case) == []
+
+
+def test_a_child_stated_by_hand_needs_no_design_value():
+    """A doublet whose children are stated one by one keeps the old way: no design value missing."""
+    values = {key: value for key, value in (STORED | PUMP).items() if key != "nominal_flow"}
+    plant = _holder(values)
+    case = design_case()
+    derived = apply_case(_holder(STORED | PUMP), case).d0
+    by_hand = {
+        name: derived.get(name).value
+        for name in ("esp.stage_count", "esp.head_coefficients", "esp.power_coefficients")
+    }
+    plant._set_si_params(
+        "d0",
+        by_hand
+        | {
+            "esp.setting_depth": derived.esp.setting_depth,
+            "well.esp_depth": derived.well.esp_depth,
+            "riser.esp_depth": derived.riser.esp_depth,
+            "well.segment": "below_esp",
+            "riser.segment": "above_esp",
+        },
+    )
+    assert gm.check(plant, case) == []
+
+
+def test_the_derived_names_are_those_the_design_gives():
+    """The children each group of the design names are exactly the ones it derives."""
+    from gemini.plants._utils import doublet_design as design
+
+    _, doublet = designed(**PUMP)
+    values = {name: doublet.get(name).value for name in (*design.COLUMN, *design.FLOW_PATH)}
+    values |= {name: doublet.get(name).value for name in design.PUMP} | {
+        "drainage_radius": doublet.drainage_radius
+    }
+    derived = design.design(values, 1030.0, 4e-4, {"reservoir": 0.0, "sink": 0.0})
+    named = (*design.COLUMN_VALUES, *design.FLOW_PATH_VALUES, *design.PUMP_VALUES)
+    assert sorted(derived) == sorted(named)
+
+
+def test_a_designed_doublet_without_a_depth_names_the_depth():
+    """A doublet stating its design but no depth misses the depth, not the reservoir it gives."""
+    values = {key: value for key, value in (STORED | PUMP).items() if key != "depth"}
+    assert [item.path for item in gm.check(_holder(values), design_case())] == ["params.d0.depth"]
+
+
+def test_a_plant_of_doublets_without_a_depth_names_its_own_depth():
+    """``depth`` of a plant of doublets is the one value to give, not each doublet's."""
+    plant = gm.plants.HeatingPlant(doublets=2)
+    for index in range(2):
+        si.set_params(plant, f"d{index}", {"well_diameter": {"value": 0.244, "unit": "m"}})
+    paths = [item.path for item in plant.check()]
+    assert paths[0] == "params.depth"
+    assert not {"params.d0.depth", "params.d0.reservoir.permeability"} & set(paths)
+    assert "params.d0.reservoir.permeability" in [
+        item.path for item in gm.plants.HeatingPlant(doublets=2).check()
+    ]

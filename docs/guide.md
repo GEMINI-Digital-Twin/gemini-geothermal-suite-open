@@ -102,7 +102,10 @@ tests/fixtures/         # what the tests read
 
 A plant can be designed from its depth. A `Doublet` derives its reservoir, wells and pump from a few
 design values; the ground, the reservoir and the brine belong to the case, so one design runs on
-several cases. `gm.schedule` plans each step from the demand of the case with no bindings to write,
+several cases. `gm.check(plant, case)` names a design value the doublet still lacks
+(`params.d0.well_diameter`, or `params.depth` of a plant of doublets), never the children it derives
+from it with the case (`d0.reservoir.permeability`): give that value, not the children.
+`gm.schedule` plans each step from the demand of the case with no bindings to write,
 `gm.evaluate.requirements` judges the run against the `requirements` of the case, and `gm.study`
 sizes a design and searches the ranges its plant file states:
 

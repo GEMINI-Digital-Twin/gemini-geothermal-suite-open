@@ -56,6 +56,20 @@ class DoubletsPlant(Plant):
         derived = {} if depth is None else {f"d{i}.depth": depth for i in self._indices()}
         return super()._set_si_params("", self._keep_derived(derived, params) | params, valid_from)
 
+    def _waiting_params(self):
+        """Return the ``depth`` when a doublet waits for one: it is given here, for every doublet.
+
+        A doublet that states its own depth needs none from the plant.
+        """
+        if self.depth is not None:
+            return [], []
+        waiting = [
+            f"d{index}.depth"
+            for index in self._indices()
+            if "depth" in getattr(self, f"d{index}")._waiting_params()[0]
+        ]
+        return (["depth"], waiting) if waiting else ([], [])
+
     def _indices(self):
         return range(self._size["doublets"])
 

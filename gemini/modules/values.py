@@ -36,6 +36,14 @@ class ModuleValues:
         """Return the names of what this module's design lacks; a class with such a rule says."""
         return []
 
+    def _waiting_params(self):
+        """Return ``(design values missing, children's parameters they would derive)``.
+
+        A deriving module (a ``Doublet``) names a design value left out instead of the children
+        it would give; a module without such a rule has none.
+        """
+        return [], []
+
     def _missing_designs(self):
         """Return the dotted paths of what the designs of this module tree lack."""
         return [
@@ -65,9 +73,23 @@ class ModuleValues:
         )
 
     def _missing_paths(self):
-        """Return the dotted paths of what the tree lacks: design values, then parameters."""
-        uninitialized = [name for name, value in self.named_parameters() if not value.initialized]
-        return list(dict.fromkeys(self._missing_designs() + uninitialized))
+        """Return the dotted paths of what the tree lacks: design values, then parameters.
+
+        A parameter that a missing design value derives (``_waiting_params``) is not listed: the
+        design value is, and gives it.
+        """
+        designs, waiting = [], set()
+        for path, module in self.named_modules():
+            missing, derived = module._waiting_params()
+            designs += [join_path(path, name) for name in missing]
+            waiting |= {join_path(path, name) for name in derived}
+        uninitialized = [
+            name
+            for name, value in self.named_parameters()
+            if not value.initialized and name not in waiting
+        ]
+        designs = [name for name in designs if name not in waiting]
+        return list(dict.fromkeys(self._missing_designs() + designs + uninitialized))
 
     def check(self):
         """Return the issues of the tree, an empty list when it can run; it never raises.
