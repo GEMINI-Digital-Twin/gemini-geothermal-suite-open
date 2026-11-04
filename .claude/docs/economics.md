@@ -70,7 +70,7 @@ is used as it is published:
 | Kind | Other basis | Unit | Size |
 | --- | --- | --- | --- |
 | `heat_exchanger` | per W of nominal duty | `EUR/W` | `HeatExchanger.nominal_duty` |
-| `thermal_storage`, `ice_storage` | per energy stored | `EUR/MWh` | `ThermalStorage.energy_capacity` (no module is `ice_storage`) |
+| `thermal_storage`, `ice_storage` | per energy stored | `EUR/MWh` | `ThermalStorage.energy_capacity`, `IceStorage.energy_capacity` |
 | `production_pump` | per unit | `EUR` | one per `Doublet`, whatever its flow |
 
 A module gives the size of another basis with `cost_size_of(quantity)` (`"power"`, `"energy"`). A
@@ -108,6 +108,13 @@ the case lacks for a kind the plant uses raises `missing_assumption` naming
 `economics.capex.<kind>` or `economics.opex.fixed.<kind>`; nothing is
 estimated. A plant with no equipment has no value.
 
+`ice_storage` is priced only when it is given (`PRICED_WHEN_GIVEN`, `is_priced` of
+`gemini/case/_utils/kinds.py`): without `capex.ice_storage` an `IceStorage` adds no capex and no
+fixed opex, is not equipment for `capex` and `opex`, and `gm.check` asks nothing for it, so a case
+written before the store had a kind costs as before. With it, the store needs
+`opex.fixed.ice_storage` and the size of the basis (`volume`, or `energy_capacity` for `EUR/MWh`),
+as every kind.
+
 The kinds, with the size the factor multiplies:
 
 | Kind | Modules | Size |
@@ -123,14 +130,13 @@ The kinds, with the size the factor multiplies:
 | `pipe`, `thermal_storage` | `Pipe`; `ThermalStorage` | length [m]; volume [m3] |
 | `degasser`, `flare`, `gas_makeup` | `Degasser`, `Flare`, `GasMakeup` | a fixed amount |
 | `injection_pump` | `InjectionPump` | shaft power at `nominal_flow` (and `nominal_head` without curves) [W] |
-| `ice_storage` | none | no module has a size for it |
+| `ice_storage` | `IceStorage`, only when `capex.ice_storage` is given | `volume` [m3] |
 
 Known limits. `InjectionPump` without `nominal_flow` raises `missing_value` when it is priced; `size` sets it.
-`IceStorage` (its size in m3
-needs the water density, which is not a parameter), `ESP` and `LineShaftPump` (an ESP is paid
+`ESP` and `LineShaftPump` (an ESP is paid
 inside the `Doublet`), `AquiferStorage`, `BoreholeField`, `DownholeHeatExchanger`, `ORC`,
 `FlashTurbine`, `Separator`, `GasCompressor`, `PressurizationTank`, `Filter`, `Desander`, `Blowdown`
-and `InhibitorDosing` have no kind either, so a plant that contains them is cheaper in the model
+and `InhibitorDosing` have no kind, so a plant that contains them is cheaper in the model
 than in life. Grids, environment modules, mixers, splitters, valves and controllers are not
 equipment.
 

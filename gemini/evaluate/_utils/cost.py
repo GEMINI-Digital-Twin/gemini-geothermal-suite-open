@@ -4,7 +4,7 @@ import numpy as np
 
 from gemini._utils.strings import join_path
 from gemini.case._utils.access import require
-from gemini.case._utils.kinds import PRODUCTS
+from gemini.case._utils.kinds import PRODUCTS, is_priced
 from gemini.evaluate._utils import pricing
 from gemini.evaluate._utils.co2_steps import emitted_steps
 from gemini.evaluate._utils.flows import Flows
@@ -56,10 +56,22 @@ def equipment(plant):
     }
 
 
+def priced(plant, economics):
+    """Return ``{path: module}`` of the equipment of ``plant`` that ``economics`` prices.
+
+    A kind of ``PRICED_WHEN_GIVEN`` (an ice store) without its capex factor is left out.
+    """
+    return {
+        path: module
+        for path, module in equipment(plant).items()
+        if is_priced(module.equipment_kind, economics)
+    }
+
+
 def investment(plant, case, on_error):
     """Return the investment as ``capex`` does, for a plant that already has its design values."""
     economics = require(case, ECONOMICS)
-    units = equipment(plant)
+    units = priced(plant, economics)
     if not units:
         return unavailable("currency", NO_COST, on_error)
     items = {
@@ -76,7 +88,7 @@ def fixed_opex(plant, case):
     """Return the fixed opex of a year [currency/yr] of each kind of equipment of ``plant``."""
     economics = require(case, ECONOMICS)
     amounts = {}
-    for module in equipment(plant).values():
+    for module in priced(plant, economics).values():
         kind = module.equipment_kind
         amounts[kind] = amounts.get(kind, 0.0) + pricing.fixed_opex_of(module, economics)
     return amounts
@@ -122,7 +134,7 @@ def per_energy_opex(plant, case, results):
     frame, seconds = results.to_frame(), results.durations
     scale = SECONDS_PER_YEAR / seconds.sum()
     amounts = {}
-    for path, module in equipment(plant).items():
+    for path, module in priced(plant, economics).items():
         kind = module.equipment_kind
         if kind not in PRODUCTS:
             continue
@@ -142,7 +154,7 @@ def yearly_cost(plant, case, results, on_error):
     flows = Flows(plant, results)
     bills = _bills(flows, case, results, plant)
     unit = "currency/yr"
-    if not equipment(plant):
+    if not priced(plant, require(case, ECONOMICS)):
         return unavailable(unit, NO_COST, on_error, components=_components(bills, unit))
     by_kind = fixed_opex(plant, case)
     components = {"fixed": sum(by_kind.values()), **bills}

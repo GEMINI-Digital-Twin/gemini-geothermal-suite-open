@@ -2,6 +2,7 @@
 
 from gemini import ops
 from gemini.errors import ValidationError
+from gemini.modules._utils.equipment import Equipment
 from gemini.modules._utils.flow import require_forward
 from gemini.modules.declarations import Output, Parameter, Port, State
 from gemini.modules.module import Module
@@ -17,10 +18,11 @@ from gemini.units.quantities import (
     SpecificHeat,
     Temperature,
     ThermalConductance,
+    Volume,
 )
 
 
-class IceStorage(Module):
+class IceStorage(Equipment, Module):
     """Lumped ice store for cooling: a glycol coil freezes or melts a fixed mass of water.
 
     The store holds ``water_mass`` M of water at one uniform temperature T, of which the
@@ -67,7 +69,13 @@ class IceStorage(Module):
     scan. The segment loop of ``heat_transfer.ice_advance`` runs its fixed ``MAX_SEGMENTS`` passes,
     a finished pass keeping its state. The coil follows ``heat_transfer.ambient_effectiveness`` and
     ``circuit_conductance``; the segments are ``heat_transfer.ice_step``.
+
+    The store is equipment of kind ``ice_storage``, priced only when the economics of a case
+    gives ``capex.ice_storage`` (``PRICED_WHEN_GIVEN``): per m3 of ``volume`` or per energy of
+    ``energy_capacity``, the unit of the factor tells which. Without that factor it adds no cost.
     """
+
+    equipment_kind = "ice_storage"
 
     def __init__(self):
         """Declare store design data, the glycol circuit, the phase state and its energies."""
@@ -98,6 +106,22 @@ class IceStorage(Module):
             SpecificHeat,
             default=heat_transfer.DEFAULT_ICE_HEAT_CAPACITY,
             description="Specific heat capacity of ice",
+        )
+
+        self.volume = Parameter(
+            Volume | None,
+            default=None,
+            gt=0,
+            description="Volume of the store; the size of a cost given per m3",
+        )
+        self.energy_capacity = Parameter(
+            Energy | None,
+            default=None,
+            gt=0,
+            description=(
+                "Cold the store holds between its design states; the size of a cost given per "
+                "energy, and empty when the cost is per m3"
+            ),
         )
 
         # Inlets
@@ -159,6 +183,20 @@ class IceStorage(Module):
 
         outlets = dict(fluid_out=outlet)
         return outputs, outlets
+
+    def cost_size(self):
+        """Return the size that the cost of the store scales with: ``volume`` [m3]."""
+        if self.volume is None:
+            raise self.missing_size("volume")
+        return self.volume
+
+    def cost_size_of(self, quantity):
+        """Return the ``energy_capacity`` [J] for a cost per energy, ``None`` for another one."""
+        if quantity != "energy":
+            return None
+        if self.energy_capacity is None:
+            raise self.missing_size("energy_capacity")
+        return self.energy_capacity
 
     def update(self, inputs, inlets, outlets, state, dt):
         """Return the ice fraction and the temperature after the step."""

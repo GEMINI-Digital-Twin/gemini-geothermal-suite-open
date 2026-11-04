@@ -462,8 +462,7 @@ Known limits of `gm.study`:
   simulations of the plant (0.15 s on the hackathon year); `gm.runtime.settings(processes=n)` runs the
   doublet counts of `minimize` in parallel.
 
-Known limits of the cost model: a module without an equipment kind (`IceStorage`,
-`ESP`, `LineShaftPump`, `AquiferStorage`, `ORC`, `Separator`, `GasCompressor`, ...) adds no capex,
+Known limits of the cost model: a module without an equipment kind (`ESP`, `LineShaftPump`, `AquiferStorage`, `ORC`, `Separator`, `GasCompressor`, ...) adds no capex,
 see [equipment.md](equipment.md#cost-kinds-and-the-equipment-mixin).
 
 ## The geomind contract

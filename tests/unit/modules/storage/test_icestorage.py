@@ -241,3 +241,21 @@ def test_ice_storage_update_matches_per_row(dt):
 
     rows = [(x, t, g.m_dot, g.T, g.p) for x, t, g in STORE_STATES]
     assert_function_matches(advance, rows)
+
+
+def test_the_store_is_ice_storage_sized_by_its_volume_or_its_energy_capacity():
+    """``cost_size()`` is ``volume``, ``cost_size_of("energy")`` ``energy_capacity``; or missing."""
+    store = _store()
+    assert store.equipment_kind == "ice_storage" and store.cost_size_of("power") is None
+    with raises(gm.errors.ValidationError, "missing_value", match="volume"):
+        store.cost_size()
+    with raises(gm.errors.ValidationError, "missing_value", match="energy_capacity"):
+        store.cost_size_of("energy")
+    store.set_params(
+        "",
+        {
+            "volume": gm.units.Quantity(1.2, "m3"),
+            "energy_capacity": gm.units.Quantity(3.6e9, "J"),
+        },
+    )
+    assert store.cost_size() == 1.2 and store.cost_size_of("energy") == 3.6e9

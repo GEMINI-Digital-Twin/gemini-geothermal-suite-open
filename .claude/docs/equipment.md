@@ -129,9 +129,10 @@ modules are equipment, with the size the factor multiplies ([economics.md](econo
 | `heat_exchanger`, `cooler`, `pipe`, `thermal_storage` | `HeatExchanger`, `Cooler`, `Pipe`, `ThermalStorage` |
 | `degasser`, `flare`, `gas_makeup` | `Degasser`, `Flare`, `GasMakeup` |
 | `injection_pump` | `InjectionPump` |
+| `ice_storage` | `IceStorage`, priced only when `economics.capex.ice_storage` is given |
 
 `InjectionPump` is the kind `injection_pump`, sized by its shaft power at `nominal_flow`. No module
-has a kind and so no capex: `IceStorage`, `ESP` and `LineShaftPump` (an
+has a kind and so no capex: `ESP` and `LineShaftPump` (an
 ESP is paid inside the `Doublet`), `AquiferStorage`, `BoreholeField`, `DownholeHeatExchanger`,
 `ORC`, `FlashTurbine`, `Separator`, `GasCompressor`, `PressurizationTank`, `Filter`, `Desander`,
 `Blowdown`, `InhibitorDosing`. The grids, `Atmosphere`, `Formation`, `Splitter`, `Mixer`, `Valve`
@@ -1456,6 +1457,13 @@ tracking.
   (default 333.55 kJ/kg; IAPWS R10-06 gives 333.44 at the triple point),
   `freezing_temperature` (default 273.15 K), `water_specific_heat` (default 4219.9 J/kg/K,
   IAPWS-95 at 0.01 degC), `ice_specific_heat` (default 2096.8 J/kg/K, IAPWS R10-06): constants with their sources.
+  Optional, no default: `volume` (`Volume`, > 0) and `energy_capacity` (`Energy`, > 0), the sizes
+  of a cost per m3 and per energy stored.
+- **Cost**: kind `ice_storage`, priced only when the economics gives `capex.ice_storage`
+  (`PRICED_WHEN_GIVEN`): per m3 of `volume` (`cost_size()`) or per MWh of `energy_capacity`
+  (`cost_size_of("energy")`), with its `opex.fixed.ice_storage`; a missing size is
+  `missing_value` and `gm.check` reports it. Without that capex the store adds no cost and
+  `gm.check` asks nothing for it, as before it had a kind.
 - **States**: `ice_fraction` and `temperature` (no default: `case.initial_state` gives them): at the freezing
   temperature while partly frozen, above it only with no ice, below it only fully frozen;
   anything else raises `ValidationError`.

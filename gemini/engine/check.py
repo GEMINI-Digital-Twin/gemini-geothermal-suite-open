@@ -4,7 +4,7 @@ from dataclasses import replace
 
 from gemini import units
 from gemini._utils.strings import join_path
-from gemini.case._utils.kinds import BASIS_SIZES, EQUIPMENT_KINDS
+from gemini.case._utils.kinds import BASIS_SIZES, EQUIPMENT_KINDS, is_priced
 from gemini.engine.apply import apply_case
 from gemini.errors import ValidationError
 from gemini.errors.base import Issue, raise_issues
@@ -33,7 +33,8 @@ def check(plant, case):
     - for every equipment kind the plant contains, a capex and a fixed opex in the economics
       (``missing``, ``economics.capex.<kind>``, ``economics.opex.fixed.<kind>``, code
       ``missing_assumption``); a case without economics is a pure physics case and has none of
-      these issues;
+      these issues, and a kind priced only when given (``PRICED_WHEN_GIVEN``: an ice store)
+      without its capex has none either;
     - for a capex given on another basis than that of its kind (a heat exchanger per W), or a
       fixed opex per W and year, the design value of each module of the kind that sizes it
       (``missing``, path ``params.<path>.<name>``, code ``missing_value``);
@@ -148,7 +149,8 @@ def _kinds(plant, case):
     """Return the issues of a capex or a fixed opex that the economics lacks for a kind.
 
     A module with a parameter still unset is skipped: its kind may depend on that parameter, and
-    ``_parameters`` already reports the missing value once.
+    ``_parameters`` already reports the missing value once. A kind the economics does not price
+    (``is_priced``) needs nothing.
     """
     economics = case.economics
     if economics is None:
@@ -157,7 +159,8 @@ def _kinds(plant, case):
         {
             module.equipment_kind
             for _, module in plant.named_modules()
-            if module.is_initialized and getattr(module, "equipment_kind", None) is not None
+            if module.is_initialized
+            and is_priced(getattr(module, "equipment_kind", None), economics)
         }
     )
     fixed = (economics.opex.fixed if economics.opex is not None else None) or {}
@@ -192,7 +195,9 @@ def _sizes(plant, case):
     found = {}
     for _, module in plant.named_modules():
         kind = getattr(module, "equipment_kind", None) if module.is_initialized else None
-        for size in [] if kind is None else _bases(case.economics, kind):
+        if not is_priced(kind, case.economics):
+            continue
+        for size in _bases(case.economics, kind):
             found |= {item.path: item for item in _size_issues(module, size)}
     return list(found.values())
 

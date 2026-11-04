@@ -236,3 +236,31 @@ def test_a_fixed_opex_per_capacity_needs_the_power_size_of_the_module():
 
     found = gm.check(plant, revised(case, per_capacity))
     assert paths(found) == ["params.heat_exchanger.nominal_duty"]
+
+
+def ice_plant():
+    """Return a plant of one ice store of 50 t, a stateful module of kind ``ice_storage``."""
+    plant = gm.Plant()
+    plant.add("IceStorage", name="ice")
+    values = {"water_mass": Quantity(50, "t"), "thermal_conductance": Quantity(20000, "W/K")}
+    return plant.set_params("ice", values)
+
+
+def priced(issues):
+    """Return the paths of ``issues`` on a cost or on the size of one, the state aside."""
+    return [path for path in paths(issues) if path.startswith(("economics.", "params."))]
+
+
+def test_an_ice_store_without_ice_storage_in_the_economics_asks_no_price():
+    """Without ``capex.ice_storage`` an ice store is not priced, so nothing is missing for it."""
+    assert priced(gm.check(ice_plant(), shallow_case())) == []
+
+
+def test_an_ice_store_priced_by_the_economics_needs_its_fixed_opex_and_its_size():
+    """Given ``capex.ice_storage`` per MWh: its fixed opex and its ``energy_capacity``."""
+
+    def per_energy(data):
+        data["economics"]["capex"]["ice_storage"] = {"value": 20, "unit": "EUR/MWh"}
+
+    found = priced(gm.check(ice_plant(), revised(shallow_case(), per_energy)))
+    assert sorted(found) == ["economics.opex.fixed.ice_storage", "params.ice.energy_capacity"]

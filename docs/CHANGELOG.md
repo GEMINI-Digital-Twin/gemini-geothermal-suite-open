@@ -8,6 +8,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ## [Unreleased]
 
 ### Added
+- `IceStorage` is equipment of kind `ice_storage`, priced only when the economics gives
+  `capex.ice_storage`: per m3 of the new optional `IceStorage.volume` or per energy stored
+  (`EUR/MWh`) of the new optional `IceStorage.energy_capacity`, with its
+  `opex.fixed.ice_storage`; a missing size is `missing_value` and `gm.check` reports it. Without
+  `capex.ice_storage` the store adds no cost and `gm.check` asks nothing for it, so every
+  existing case costs as before (`PRICED_WHEN_GIVEN`).
 - `gm.case.Economics.schema()` (and the `economics` of `gm.Case.schema()`) gives every field and
   section a `description`: its meaning and the units it accepts. `opex.variable` says it accepts
   two consumables only, `chemical` (every product drawn from a `ChemicalGrid`, a scale or a
