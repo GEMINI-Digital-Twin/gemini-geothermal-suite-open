@@ -175,14 +175,15 @@
       "constraints_pass": true
     }
   ],
+  "gas_dissolution": null,
   "installed_backup_MW": {
     "boiler_th": 13.672109214778915,
     "electric_chiller_cool": 6.277705625180794
   },
   "case": "base",
-  "run_utc": "2026-11-03T22:40:45.966684+00:00",
-  "git_commit": "98e275632b54fae3dfe23d344985a16fe8acae2b",
-  "runtime_s": 0.845996618270874,
+  "run_utc": "2026-11-04T00:10:29.014157+00:00",
+  "git_commit": "4e87022ad16221b4ae4c69c8c73d2312f898a658",
+  "runtime_s": 0.8813538551330566,
   "ranking": {
     "status": "ACCEPTED",
     "reason": "selected: feasible; external gas 0.0020 GWh, emissions 8908 t, grid import 12.01 GWh, 2 doublets, 10000 m drilled",

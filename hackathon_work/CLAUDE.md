@@ -72,7 +72,7 @@ quantity is missing, ask the user rather than invent it.
 | Heat pump | Lorenz η 0.45, COP cap 6.0, sink out 100 °C (sensitivity: η 0.5, no cap) | ASSUMED |
 | Absorption chiller | hot end of the brine (after filter_a, before HEX), COP_th 0.7, drive inlet ≥ 75 °C, drive outlet ≥ 70 °C | ASSUMED (single-effect LiBr; 70 °C outlet added by Claude) |
 | Produced gas | GEMINI CHP first (η 0.8, 1/3 el, 2/3 heat) into the 100 °C top-up; heat pump covers only the lift CHP cannot; then boiler; flared only if heat unusable | ASSUMED dispatch |
-| Gas handling (agent design variable) | a) `chp`: all produced gas to CHP; b) `co2_reinject`: CO₂ (20 mol%, OFFICIAL) separated and reinjected with the brine, CH₄ to CHP, EF 68.6 × 0.8 = 54.9 kg CO₂/GJ (DERIVED), 0.1 kWh/kg CO₂ separation + compression (ASSUMED); c) `reinject_all`: no combustion, 0.1 kWh/kg gas compression (ASSUMED) | reinjected gas ASSUMED to redissolve at injection pressure (not modelled) |
+| Gas handling (agent design variable) | a) `chp`: all produced gas to CHP; b) `co2_reinject`: CO₂ (20 mol%, OFFICIAL) separated and reinjected with the brine, CH₄ to CHP, EF 68.6 × 0.8 = 54.9 kg CO₂/GJ (DERIVED), 0.1 kWh/kg CO₂ separation + compression (ASSUMED); c) `reinject_all`: no combustion, 0.1 kWh/kg gas compression (ASSUMED) | dissolution checked (`gas_solubility.py`, DERIVED): IAPWS G7-04 Henry + Poynting, Weisenberger–Schumpe salting-out (salinity from 1030 kg/m³, conservative reading at reservoir T ≈ 2.1–2.3 mol/kg NaCl), Peng–Robinson gas phase; hard check `gas_dissolution`: margin ≥ 1 at reservoir P/T and dip-tube depth < well depth; wellhead margin reported |
 | N-1 resilience | unplanned outage of one doublet on the peak heating (28 Jan) and peak cooling (19 Jul) days; installed backup = max(planned peak, N-1) | ASSUMED case |
 | CHP electricity | offsets ESP / injector / HP / chiller; no export credit | ASSUMED |
 | External gas | 56.6 kg CO₂/GJ, 35.8 MJ/Nm³ | ASSUMED (pipeline natural gas) |
@@ -88,8 +88,12 @@ quantity is missing, ask the user rather than invent it.
    design with backup and a staggered design are compared on equal terms.
 2. Among feasible candidates minimize, in order: external gas → emissions → net grid
    electricity import → number of doublets → total drilled metres (final tie-break).
-   Tie tolerance (approved 2026-11-03): values within max(1%, 0.01 GWh / 10 t) count as
-   equal so the next metric decides (otherwise ~0.0003 GWh of external-gas noise decides).
+   Tie tolerance (approved 2026-11-03): values within max(1%, abs) count as equal so the next
+   metric decides; abs = 0.1 GWh external gas, 10 t emissions, 0.01 GWh grid.
+   External gas 0.1 GWh (user decision, 2026-11-03, DERIVED): < 0.1% of the reference's
+   124.1 GWh gas; differences below this are below model resolution (daily averages, 0.05 K
+   dispatch tolerance, ASSUMED brine properties). With 0.01 GWh the depth flipped on
+   0.01–0.08 GWh/yr differences (≈ 2–15 t CO₂) in 8 of 10 sensitivity cases.
 3. Parsimony (candidates walked in order of doublets, then depth):
    - an extra doublet is accepted only if it improves external gas or emissions by ≥ 5%
      versus the incumbent (relative improvement from a zero base = 0%);
@@ -193,13 +197,22 @@ Cascade per active doublet:
    UA 1000) ACCEPTED; C2 rejected (extra doublet −0.2% emissions); C3 rejected (13.5 GWh external gas).
    Open caveats: backups unlimited (unmet = 0 by construction); peaks are daily averages
    (no hourly peaks); no capex/opex yet.
-6. [done] Design agent (rules backend, depth ladder, gas handling): 13 annual evaluations, all four
-   judges' tests PASS; final pick n2_q300_s1.8_ua1000_z3250_co2ri (2 doublets at 3250 m, 110 °C
-   reservoir, CO₂ reinjected, CH₄ to CHP): 4 252 t CO₂/yr, 84.1% below the conventional reference
-   (CHP on all gas at the same design: 5 148 t). reinject_all at 3250 m: 2 569 t but 0.179 GWh
-   external gas → ranked out (external gas ranks first). 3500 m (co2ri): −6.3% emissions but
-   0.016 vs 0.004 GWh external gas (beyond the 0.01 GWh tie tolerance) → not taken.
-   1 doublet (2500 m: 28.6 GWh external gas; 3250 m: 35.8 GWh) is feasible with backup and ranked
-   out; installed backup for 1 doublet incl. N-1 = 30 MWth boiler + 10 MWcool chiller. N-1 at the
-   pick: 15.1 MWth boiler (28 Jan), 0.6 MWth boiler + 1.0 MWcool chiller (19 Jul).
+6. [done] Design agent (rules backend, depth ladder, gas handling): 14 annual evaluations, all four
+   judges' tests PASS; final pick n2_q300_s1.8_ua1000_z3500_co2ri (2 doublets at 3500 m, 117 °C
+   reservoir, CO₂ reinjected, CH₄ to CHP): 3 983 t CO₂/yr, 85.1% below the conventional reference,
+   external gas 0.016 GWh (CHP on all gas at the same design: 4 891 t). Re-run 2026-11-03 with the
+   0.1 GWh external-gas tie tolerance: 3500 m co2ri (−6.3% vs 3250 m) is now taken; 3750 m (−0.8%)
+   is not. reinject_all at 3500 m: 1 952 t but 0.271 GWh external gas → ranked out. 3 doublets:
+   3 979 t (−0.1%) → ranked out. 1 doublet (2500 m: 28.6 GWh external gas; 3500 m: 36.5 GWh) is
+   feasible with backup and ranked out. N-1 at the pick: 15.1 MWth boiler (28 Jan), 2.1 MWth boiler
+   and no electric chiller (19 Jul). LIMITATION: wellhead 114 °C at 300 m³/h exceeds the
+   PVTConstantSTP range (100 °C), so constant brine properties are extrapolated.
+   Gas dissolution (gas_solubility.py): CO₂ (co2ri) margin 7.3 at the injector wellhead
+   (5.1 bar(g), 75 °C) and 148 at the reservoir; reinject_all margin 0.11 at the wellhead (bubble
+   point 61.5 bar(g): dip tube to ≥ 558 m) and 4.8 at the reservoir; its ASSUMED 0.1 kWh/kg
+   compression is below the DERIVED minimum 0.197 kWh/kg.
+   Sensitivity (10 cases, fresh agent runs): pick changes in 5 (gradient 27 → 3750 m, 33 → 3000 m;
+   heating return 50 → 3250 m (3500 m step only −1.6%); brine cp 4000 → 3250 m (−5.96%, within
+   the tie tolerance of the 5% threshold); absorption COP 0.6 → 3 doublets (external gas 0.158 vs
+   0.005 GWh)). All cases pass the hard constraints.
 7. Report artifacts: comparison tables, plots, ≤5-page report or ≤10 slides, ≤5 min pitch.

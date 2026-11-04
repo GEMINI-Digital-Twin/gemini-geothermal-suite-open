@@ -184,14 +184,15 @@
       "constraints_pass": true
     }
   ],
+  "gas_dissolution": null,
   "installed_backup_MW": {
     "boiler_th": 0.015686986417388776,
     "electric_chiller_cool": 2.5554112503615887
   },
   "case": "base",
-  "run_utc": "2026-11-03T22:40:47.029505+00:00",
-  "git_commit": "98e275632b54fae3dfe23d344985a16fe8acae2b",
-  "runtime_s": 0.8205759525299072,
+  "run_utc": "2026-11-04T00:10:30.150749+00:00",
+  "git_commit": "4e87022ad16221b4ae4c69c8c73d2312f898a658",
+  "runtime_s": 0.9011785984039307,
   "ranking": {
     "status": "REJECTED",
     "reason": "parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000 (decided by grid_import_GWh: 11.14 vs 12.01); extra doublet: external gas +0.0%, emissions -1.0% (needs >= 5% on either, beyond the tie tolerance)",

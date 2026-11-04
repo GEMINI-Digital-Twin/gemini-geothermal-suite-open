@@ -1,11 +1,11 @@
 {
   "candidate": {
-    "name": "n2_q300_s1.8_ua1000_z3250_co2ri",
+    "name": "n2_q300_s1.8_ua1000_z3500_co2ri",
     "n_doublets": 2,
     "flow_cap_m3h": 300,
     "esp": "s1.8",
     "hex_ua_W_K": 1000000.0,
-    "depth_m": 3250,
+    "depth_m": 3500,
     "gas_handling": "co2_reinject"
   },
   "heat_pump": {
@@ -19,73 +19,73 @@
     "no_stages": 24
   },
   "esp_max_flow_m3h": 300,
-  "esp_setting_depth_m": 700,
-  "esp_intake_at_max_flow_bar": 30.881522156318212,
+  "esp_setting_depth_m": 710,
+  "esp_intake_at_max_flow_bar": 30.720404917697607,
   "tubing_velocity_at_max_flow_m_s": 3.348797354961397,
   "flow_cap_m3h": 300,
-  "depth_m": 3250,
-  "reservoir_temperature_C": 109.5,
-  "reservoir_pressure_bar": 325.78225,
-  "drilled_m": 13000,
+  "depth_m": 3500,
+  "reservoir_temperature_C": 117.0,
+  "reservoir_pressure_bar": 351.043,
+  "drilled_m": 14000,
   "maintenance_windows": [
     "2027-05-05..2027-06-08",
     "2027-08-25..2027-09-28"
   ],
   "heating_demand_GWh": 111.66767999999986,
-  "heat_hex_GWh": 90.32205952466923,
-  "heat_hp_GWh": 11.416318182077662,
-  "heat_chp_GWh": 9.926245688356243,
+  "heat_hex_GWh": 100.55021154985056,
+  "heat_hp_GWh": 2.0354507063587777,
+  "heat_chp_GWh": 9.06943733380349,
   "heat_boiler_produced_gas_GWh": 0.0,
-  "heat_boiler_external_gas_GWh": 0.003056604896825486,
-  "heat_unmet_GWh": 7.163733243942255e-15,
-  "geothermal_heat_share": 0.9110816818863525,
+  "heat_boiler_external_gas_GWh": 0.012580409987131193,
+  "heat_unmet_GWh": 6.3255429267883265e-15,
+  "geothermal_heat_share": 0.9186692358631383,
   "cooling_demand_GWh": 23.742528000000014,
   "cool_absorption_GWh": 23.742528000000014,
   "cool_electric_GWh": 0.0,
   "cool_unmet_GWh": 0.0,
-  "el_load_GWh": 6.811987179877423,
-  "el_esp_GWh": 4.111116647344034,
-  "el_injector_GWh": 0.660350403899206,
-  "el_hp_GWh": 1.948650948214271,
+  "el_load_GWh": 5.282453870583558,
+  "el_esp_GWh": 4.274244759070499,
+  "el_injector_GWh": 0.5760802682508422,
+  "el_hp_GWh": 0.3392417843931295,
   "el_chiller_GWh": 0.0,
-  "el_chp_GWh": 4.963122844178121,
-  "el_gas_handling_GWh": 0.09186918041991776,
+  "el_chp_GWh": 4.534718666901744,
+  "el_gas_handling_GWh": 0.09288705886908526,
   "gas_handling": "co2_reinject",
   "produced_gas_emission_factor_kg_per_GJ": 54.879999999999995,
-  "grid_import_GWh": 1.9125885182778557,
-  "grid_export_GWh": 0.06372418257856226,
-  "produced_gas_fuel_GWh": 18.61171066566799,
-  "produced_gas_chp_GWh": 18.611710665667985,
+  "grid_import_GWh": 0.8743811349150898,
+  "grid_export_GWh": 0.1266459312332776,
+  "produced_gas_fuel_GWh": 18.81792192282879,
+  "produced_gas_chp_GWh": 17.005195000881546,
   "produced_gas_boiler_GWh": 0.0,
-  "produced_gas_flared_GWh": 9.996219453646856e-16,
-  "external_gas_fuel_GWh": 0.0038207561210318497,
-  "external_gas_Mm3": 0.0003842101127294598,
-  "emissions_t": 4251.633525545265,
-  "emissions_produced_gas_t": 3677.07845279469,
-  "emissions_external_gas_t": 0.778517267221451,
-  "emissions_electricity_t": 573.7765554833563,
+  "produced_gas_flared_GWh": 1.8127269219472328,
+  "external_gas_fuel_GWh": 0.01572551248391401,
+  "external_gas_Mm3": 0.0015813364508963795,
+  "emissions_t": 3983.3377693476887,
+  "emissions_produced_gas_t": 3717.819198449433,
+  "emissions_external_gas_t": 3.2042304237223203,
+  "emissions_electricity_t": 262.3143404745271,
   "capacity_MW": {
-    "heat_pump_th": 3.1689089741995984,
+    "heat_pump_th": 1.2315009370785106,
     "absorption_chiller_cool": 10.0,
     "electric_chiller_cool": 0.0,
-    "chp_th": 2.0366542933455962,
-    "chp_el": 1.018327146672798,
-    "boiler_th": 0.030313101700389058,
-    "boiler_external_gas_th": 0.030313101700389058,
-    "external_gas_fuel": 0.03789137712548633
+    "chp_th": 2.0366542933367553,
+    "chp_el": 1.0183271466683774,
+    "boiler_th": 0.2323123732819222,
+    "boiler_external_gas_th": 0.2323123732819222,
+    "external_gas_fuel": 0.29039046660240275
   },
-  "max_brine_dT_K": 39.9999999999995,
-  "flow_min_when_on_m3h": 154.9999981714968,
-  "flow_max_m3h": 300.0000000018063,
-  "doublet_days_active": 544,
+  "max_brine_dT_K": 40.0,
+  "flow_min_when_on_m3h": 155.0000018704572,
+  "flow_max_m3h": 300.0000000005039,
+  "doublet_days_active": 548,
   "days_without_geothermal": 0,
   "days_all_doublets_in_maintenance": 0,
-  "days_geothermal_meets_need": 365,
-  "days_hex_bypass": 0,
-  "hp_seasonal_COP": 5.858575232542026,
-  "hp_days": 365,
-  "hp_days_capped": 191,
-  "hp_days_heatpumpbasic_checked": 174,
+  "days_geothermal_meets_need": 363,
+  "days_hex_bypass": 213,
+  "hp_seasonal_COP": 6.000000000000002,
+  "hp_days": 145,
+  "hp_days_capped": 145,
+  "hp_days_heatpumpbasic_checked": 0,
   "hp_days_heatpumpbasic_agrees": 0,
   "days_failing_daily_checks": 0,
   "failing_checks": [],
@@ -102,9 +102,9 @@
       "check": "330_day_rule",
       "scope": "doublet_2",
       "status": "PASS",
-      "value": 214,
+      "value": 218,
       "limit": "<= 330 operating days, 35 maintenance days",
-      "reason": "maintenance 2027-08-25..2027-09-28 (35 days), operated 214 days"
+      "reason": "maintenance 2027-08-25..2027-09-28 (35 days), operated 218 days"
     },
     {
       "check": "demand_met_365",
@@ -123,12 +123,20 @@
       "reason": "0 day(s) failing a daily check"
     },
     {
+      "check": "gas_dissolution",
+      "scope": "injector_well",
+      "status": "PASS",
+      "value": 147.54482118044143,
+      "limit": ">= 1 at reservoir conditions; dip-tube depth < well depth",
+      "reason": "CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg)"
+    },
+    {
       "check": "esp_intake_pressure",
       "scope": "producer_well",
       "status": "PASS",
-      "value": 30.881522156318212,
+      "value": 30.720404917697607,
       "limit": ">= 30 bar at 300 m3/h",
-      "reason": "ESP set at 700 m (deepest allowed 3150 m): intake 30.88 bar"
+      "reason": "ESP set at 710 m (deepest allowed 3400 m): intake 30.72 bar"
     },
     {
       "check": "tubing_velocity",
@@ -149,11 +157,11 @@
       "cooling_demand_MW": 0.0,
       "n_active_normal": 2,
       "n_active_n_minus_1": 1,
-      "boiler_MWth": 15.116156186574772,
-      "boiler_external_gas_MWth": 15.116156186574772,
-      "external_gas_fuel_MW": 18.895195233218466,
+      "boiler_MWth": 15.116156186637385,
+      "boiler_external_gas_MWth": 15.116156186637385,
+      "external_gas_fuel_MW": 18.89519523329673,
       "electric_chiller_MWcool": 0.0,
-      "boiler_MWth_normal": 0.0,
+      "boiler_MWth_normal": 0.2323123732819222,
       "electric_chiller_MWcool_normal": 0.0,
       "heat_unmet_MW": 0.0,
       "cool_unmet_MW": 0.0,
@@ -167,24 +175,82 @@
       "cooling_demand_MW": 10.0,
       "n_active_normal": 2,
       "n_active_n_minus_1": 1,
-      "boiler_MWth": 0.5984466254339073,
-      "boiler_external_gas_MWth": 0.5984466254339073,
-      "external_gas_fuel_MW": 0.748058281792384,
-      "electric_chiller_MWcool": 0.9882324565555416,
-      "boiler_MWth_normal": 2.328306436538696e-16,
+      "boiler_MWth": 2.0748704723777767,
+      "boiler_external_gas_MWth": 2.0748704723777767,
+      "external_gas_fuel_MW": 2.593588090472221,
+      "electric_chiller_MWcool": 0.0,
+      "boiler_MWth_normal": 0.0,
       "electric_chiller_MWcool_normal": 0.0,
       "heat_unmet_MW": 0.0,
       "cool_unmet_MW": 0.0,
       "constraints_pass": true
     }
   ],
+  "gas_dissolution": {
+    "mode": "co2_reinject",
+    "method": "IAPWS G7-04 Henry + Poynting, Weisenberger-Schumpe salting-out, Peng-Robinson gas phase",
+    "gas_Nm3_per_m3_brine": {
+      "CO2": 0.15999999999999998
+    },
+    "salinity": {
+      "surface": {
+        "NaCl_mol_per_kg": 0.7963201351801056,
+        "dissolved_mol_per_kg_water": {
+          "CO2": 0.007253021214447841
+        }
+      },
+      "reservoir": {
+        "NaCl_mol_per_kg": 2.2935390016671735,
+        "dissolved_mol_per_kg_water": {
+          "CO2": 0.007859451919349537
+        }
+      }
+    },
+    "points": {
+      "wellhead@surface": {
+        "p_bar_g": 5.100824528672322,
+        "t_c": 74.66646451369249,
+        "bubble_point_bar_g": -0.04021554029234553,
+        "margin": 9.462823138333675
+      },
+      "reservoir@surface": {
+        "p_bar_g": 351.043,
+        "t_c": 117.0,
+        "bubble_point_bar_g": 1.5726669949833971,
+        "margin": 176.7135553238578
+      },
+      "wellhead@reservoir": {
+        "p_bar_g": 5.100824528672322,
+        "t_c": 74.66646451369249,
+        "bubble_point_bar_g": 0.13857799479513888,
+        "margin": 7.273122988191682
+      },
+      "reservoir@reservoir": {
+        "p_bar_g": 351.043,
+        "t_c": 117.0,
+        "bubble_point_bar_g": 1.724613683810855,
+        "margin": 147.54482118044143
+      }
+    },
+    "dip_tube_depth_m": 0.0,
+    "compression_kWh_per_kg_derived": 0.04219750573275952,
+    "compression_kWh_per_kg_assumed": 0.1,
+    "check": {
+      "check": "gas_dissolution",
+      "scope": "injector_well",
+      "status": "PASS",
+      "value": 147.54482118044143,
+      "limit": ">= 1 at reservoir conditions; dip-tube depth < well depth",
+      "reason": "CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg)"
+    }
+  },
   "installed_backup_MW": {
-    "boiler_th": 15.116156186574772,
-    "electric_chiller_cool": 0.9882324565555416
+    "boiler_th": 15.116156186637385,
+    "electric_chiller_cool": 0.0
   },
   "ranking": {
     "status": "ACCEPTED",
-    "reason": "selected: feasible; external gas 0.0038 GWh, emissions 4252 t, grid import 1.91 GWh, 2 doublets, 13000 m drilled",
+    "reason": "selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled",
     "rank": 1
   }
 }

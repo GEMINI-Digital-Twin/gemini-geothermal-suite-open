@@ -175,14 +175,15 @@
       "constraints_pass": true
     }
   ],
+  "gas_dissolution": null,
   "installed_backup_MW": {
     "boiler_th": 19.41038560724221,
     "electric_chiller_cool": 7.7089507085141245
   },
   "case": "HP_eta0.5_nocap",
-  "run_utc": "2026-11-03T22:41:00.506587+00:00",
-  "git_commit": "98e275632b54fae3dfe23d344985a16fe8acae2b",
-  "runtime_s": 3.413261651992798,
+  "run_utc": "2026-11-04T00:10:45.272131+00:00",
+  "git_commit": "4e87022ad16221b4ae4c69c8c73d2312f898a658",
+  "runtime_s": 3.9265170097351074,
   "ranking": {
     "status": "REJECTED",
     "reason": "same doublet count and depth as C1_2dbl_s1.8_UA1000 but ranks lower on external_gas_fuel_GWh: external gas 8.2517 vs 0.0063 GWh, emissions 9290 vs 8545 t, grid import 10.89 vs 10.70 GWh, drilled 10000 vs 10000 m",

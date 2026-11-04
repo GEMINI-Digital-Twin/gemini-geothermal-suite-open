@@ -37,6 +37,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from constraints import PASS, check_constraints, load_limits
+from gas_solubility import dissolution_check
 from doublet_model import (
     CHALLENGE_PATH,
     PROJECT_PATH,
@@ -151,6 +152,7 @@ class Plant:
         self.esp_placement = self.place_esp()
         self.flow_grid = self._flow_grid()
         self.engineering = self.engineering_checks()
+        self.gas_dissolution = None
 
     def gas_handling(self, gas: dict) -> tuple[str, float]:
         """Produced-gas option (design variable) -> (mode, handling electricity in kWh per Nm3 of produced gas).
@@ -515,6 +517,7 @@ class Plant:
             "n_active": n, "active_doublets": ";".join(f"doublet_{i + 1}" for i in active),
             "flow_per_doublet_m3h": chain["production_m3h"], "geothermal_meets_need": geo_ok,
             "esp_freq_hz": chain["controls"]["esp_freq_hz"], "wellhead_pressure_bar": chain["controls"]["wellhead_pressure_bar"],
+            "injector_wellhead_bar": chain["injector_wellhead_bar"],
             "T_wellhead_C": chain["T_wellhead_C"], "T_absorber_in_C": chain["T_absorber_in_C"], "T_hex_in_C": chain["T_hex_in_C"],
             "T_injection_C": s["T_injection_C"], "brine_dT_K": chain["T_wellhead_C"] - s["T_injection_C"],
             "heat_hex_MW": n * s["hex_W"] / 1e6, "heat_hp_MW": n * s["hp"]["Q_W"] / 1e6, "heat_chp_MW": n * s["chp_heat_W"] / 1e6,
@@ -559,7 +562,7 @@ class Plant:
             "heating_demand_MW": heating_w / 1e6, "cooling_demand_MW": cooling_w / 1e6,
             "maintenance": ";".join(f"doublet_{i + 1}" for i in sorted(in_maintenance)),
             "n_active": 0, "active_doublets": "", "flow_per_doublet_m3h": zero, "geothermal_meets_need": False,
-            "esp_freq_hz": None, "wellhead_pressure_bar": None,
+            "esp_freq_hz": None, "wellhead_pressure_bar": None, "injector_wellhead_bar": None,
             "T_wellhead_C": None, "T_absorber_in_C": None, "T_hex_in_C": None, "T_injection_C": None, "brine_dT_K": None,
             "heat_hex_MW": zero, "heat_hp_MW": zero, "heat_chp_MW": zero, "heat_boiler_produced_gas_MW": zero,
             "heat_boiler_external_gas_MW": heating_w / 1e6, "heat_delivered_MW": heating_w / 1e6, "heat_unmet_MW": zero,
@@ -591,8 +594,24 @@ class Plant:
         rows = [self.simulate_day(d, heating_mw[d] * 1e6, cooling_mw[d] * 1e6, off[d]) for d in days]
         if any(r.keys() != rows[0].keys() for r in rows):
             raise RuntimeError("daily rows have inconsistent columns (backup_day vs simulate_day)")
+        self.gas_dissolution = self.gas_dissolution_check(rows)
         return {"schedule": schedule, "rows": rows, "annual_checks": self.annual_checks(rows, schedule, days),
-                "n_minus_1": self.n_minus_1(rows, heating_mw, cooling_mw, off)}
+                "n_minus_1": self.n_minus_1(rows, heating_mw, cooling_mw, off), "gas_dissolution": self.gas_dissolution}
+
+    def gas_dissolution_check(self, rows: list[dict]) -> dict | None:
+        """Reinjected gas must dissolve in the injected brine (gas_solubility, DERIVED). Worst case on the
+        injection path: lowest injector wellhead pressure of the year with the hottest injection temperature."""
+        if self.gas_mode == "chp":
+            return None
+        on = [r for r in rows if r["n_active"]]
+        cfg = self.settings["gas_handling"]
+        kwh = (cfg["separation_compression_kWh_per_kg_CO2"] if self.gas_mode == "co2_reinject"
+               else cfg["reinjection_compression_kWh_per_kg_gas"])
+        return dissolution_check(
+            self.gas_mode, self.challenge["fluid"]["gas_methane_mol_percent"] / 100, self.glr, self.rho,
+            wellhead={"p_bar_g": min(r["injector_wellhead_bar"] for r in on), "t_c": max(r["T_injection_C"] for r in on)},
+            reservoir={"p_bar_g": self.reservoir_pressure_bar, "t_c": self.reservoir_temperature_c},
+            reservoir_depth_m=self.depth_m, compression_kwh_per_kg=kwh)
 
     def n_minus_1(self, rows: list[dict], heating_mw: dict, cooling_mw: dict, off: dict) -> list[dict]:
         """UNPLANNED outage of one more doublet on the peak heating and peak cooling days (ASSUMED
@@ -640,4 +659,6 @@ class Plant:
         bad_days = [r["date"] for r in rows if not r["constraints_pass"]]
         results.append({"check": "daily_constraints", "scope": "plant", "status": PASS if not bad_days else "FAIL", "value": len(bad_days),
                         "limit": "0 days", "reason": f"{len(bad_days)} day(s) failing a daily check" + (f" (first {bad_days[0]})" if bad_days else "")})
+        if self.gas_dissolution:
+            results.append(self.gas_dissolution["check"])
         return results + self.engineering

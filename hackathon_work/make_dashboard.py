@@ -39,7 +39,7 @@ DAILY_COLS = [
 PANELS = [("p1", "kpis", 330), ("p2", "heating", 520), ("p3", "cooling", 460), ("p4", "brine", 600),
           ("p5", "agent_path", 560), ("p6", "emissions", 460), ("p7", "schematic", 560),
           ("p8", "constraints", 640), ("p9", "judges_tests", 600),
-          ("p10", "sensitivity_tornado", 560), ("p11", "resilience_gas", 470)]
+          ("p10", "sensitivity_tornado", 560), ("p11", "resilience_gas", 530)]
 EXPORT_WIDTH_PX, EXPORT_INCH, DPI = 960, 6.5, 300
 
 
@@ -624,11 +624,13 @@ function renderResilience() {
   if (g && g.options && g.options.length) {
     const label = { chp: "a) CHP on all gas", co2_reinject: "b) CO₂ reinjected, CH₄ to CHP", reinject_all: "c) all gas reinjected" };
     html += `<h3>Gas handling at ${g.options[0].candidate.replace(/_(co2ri|allri)$/, "")}</h3>` +
-      `<table><thead><tr><th>Option</th><th>External gas</th><th>Emissions</th><th>Grid import</th><th>Result</th></tr></thead><tbody>` +
+      `<table><thead><tr><th>Option</th><th>External gas</th><th>Emissions</th><th>Grid import</th><th>Dissolution margin<br>wellhead / reservoir</th><th>Result</th></tr></thead><tbody>` +
       g.options.map(o => `<tr><td>${label[o.gas_handling] || o.gas_handling}</td><td class="num">${fmt(o.external_gas_GWh, 3)} GWh</td>` +
         `<td class="num">${fmt(o.emissions_t)} t</td><td class="num">${fmt(o.grid_import_GWh, 2)} GWh</td>` +
+        `<td class="num">${o.dissolution ? `${fmt(o.dissolution.wellhead_margin, 2)} / ${fmt(o.dissolution.reservoir_margin, 1)}` +
+          (o.dissolution.wellhead_margin < 1 ? m(`dip tube ≥ ${fmt(o.dissolution.dip_tube_depth_m)} m`) : "") : "burned"}</td>` +
         `<td>${o.gas_handling === g.chosen ? "<b>chosen</b>" : "ranked out"}</td></tr>`).join("") +
-      `</tbody></table><p class="sub">Ranking: external gas first (ties within 0.01 GWh / 1 %), then emissions.` +
+      `</tbody></table><p class="sub">Ranking: external gas first (ties within 0.1 GWh / 1 %), then emissions. Dissolution margin = gas the brine can hold / gas reinjected (≥ 1 dissolves; DERIVED, gas_solubility.py).` +
       (g.chosen === "co2_reinject" ? " Option (c) has the lowest emissions but needs more external gas on the coldest days, so it ranks below (b)." : "") + `</p>`;
   }
   document.getElementById("resilience").innerHTML = html;

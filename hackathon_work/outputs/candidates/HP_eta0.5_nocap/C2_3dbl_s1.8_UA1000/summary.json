@@ -184,14 +184,15 @@
       "constraints_pass": true
     }
   ],
+  "gas_dissolution": null,
   "installed_backup_MW": {
     "boiler_th": 0.029708533826425906,
     "electric_chiller_cool": 2.5554112503615887
   },
   "case": "HP_eta0.5_nocap",
-  "run_utc": "2026-11-03T22:40:56.663540+00:00",
-  "git_commit": "98e275632b54fae3dfe23d344985a16fe8acae2b",
-  "runtime_s": 3.3133745193481445,
+  "run_utc": "2026-11-04T00:10:40.848987+00:00",
+  "git_commit": "4e87022ad16221b4ae4c69c8c73d2312f898a658",
+  "runtime_s": 3.8957254886627197,
   "ranking": {
     "status": "REJECTED",
     "reason": "parsimony rule not met: ranks not better than C1_2dbl_s1.8_UA1000 (decided by emissions_t: 8637 vs 8545); extra doublet: external gas +0.0%, emissions -1.1% (needs >= 5% on either, beyond the tie tolerance)",

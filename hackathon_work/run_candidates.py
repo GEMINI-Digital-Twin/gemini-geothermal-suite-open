@@ -137,6 +137,7 @@ def annual_summary(candidate: dict, plant: Plant, result: dict) -> dict:
         "annual_checks": result["annual_checks"],
         "feasible": not fail_days and all(c["status"] == PASS for c in result["annual_checks"]),
         "n_minus_1": result["n_minus_1"],
+        "gas_dissolution": result.get("gas_dissolution"),
         # installed backup covers both the planned-operation peak and the N-1 (unplanned outage) peak days
         "installed_backup_MW": {
             "boiler_th": max([peak("heat_boiler_produced_gas_MW", "heat_boiler_external_gas_MW")] + [c["boiler_MWth"] for c in result["n_minus_1"]]),
@@ -146,10 +147,11 @@ def annual_summary(candidate: dict, plant: Plant, result: dict) -> dict:
 
 
 # Lexicographic ranking metrics with tie tolerances (absolute, relative): differences
-# within max(abs, rel * value) are numerical noise (e.g. the 0.05 K dispatch
-# tolerance leaves ~0.004 GWh of external gas), so the next metric decides.
+# within max(abs, rel * value) are below model resolution, so the next metric decides.
+# External gas 0.1 GWh is DERIVED: < 0.1% of the reference's 124.1 GWh gas (user
+# decision, 2026-11-03; 0.01 GWh made depth flip on 0.01-0.08 GWh differences).
 RANK_TIE_TOLERANCE = [
-    ("external_gas_fuel_GWh", 0.01, 0.01),
+    ("external_gas_fuel_GWh", 0.1, 0.01),
     ("emissions_t", 10.0, 0.01),
     ("grid_import_GWh", 0.01, 0.01),
     ("n_doublets", 0.0, 0.0),

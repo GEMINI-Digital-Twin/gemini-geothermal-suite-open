@@ -440,6 +440,17 @@ class ClaudeCliBackend:
 BACKENDS = {"rules": RulesBackend, "claude_cli": ClaudeCliBackend}
 
 
+def dissolution_row(d: dict | None) -> dict | None:
+    """Compact gas_solubility result for logs and tables (conservative salinity)."""
+    if not d:
+        return None
+    wh, res = d["points"]["wellhead@reservoir"], d["points"]["reservoir@reservoir"]
+    return {"status": d["check"]["status"], "wellhead_margin": wh["margin"], "reservoir_margin": res["margin"],
+            "wellhead_bar_g": wh["p_bar_g"], "wellhead_T_C": wh["t_c"], "bubble_point_wellhead_bar_g": wh["bubble_point_bar_g"],
+            "dip_tube_depth_m": d["dip_tube_depth_m"], "compression_kWh_per_kg_derived": d["compression_kWh_per_kg_derived"],
+            "compression_kWh_per_kg_assumed": d["compression_kWh_per_kg_assumed"], "reason": d["check"]["reason"]}
+
+
 # --- agent -------------------------------------------------------------------------
 class DesignAgent:
     def __init__(self, backend, log: DecisionLog, out_dir: Path, budget: int = 16, interactive: bool = False):
@@ -748,7 +759,7 @@ class DesignAgent:
         incumbent = None
         repeats = 0
         ranking_rule = ("hard constraints pass/fail; then minimize external gas -> emissions -> net grid import -> doublets -> drilled metres "
-                        "(values within 1% / 0.01 GWh / 10 t are ties); an extra doublet is kept only if external gas or emissions improve >= 5%; "
+                        "(values within 1% / 0.1 GWh external gas / 10 t / 0.01 GWh grid are ties); an extra doublet is kept only if external gas or emissions improve >= 5%; "
                         "a deeper well (250 m ladder from 2500 m) is kept only if emissions improve >= 5% vs the previous accepted depth; "
                         "an improvement within the tie tolerance of the 5% threshold counts as NOT meeting it (drilling cost and risk not modelled)")
         while self.evaluations < self.budget:
@@ -914,7 +925,8 @@ class DesignAgent:
                  "external_gas_GWh": h["summary"]["external_gas_fuel_GWh"], "emissions_t": h["summary"]["emissions_t"],
                  "emissions_produced_gas_t": h["summary"]["emissions_produced_gas_t"], "grid_import_GWh": h["summary"]["grid_import_GWh"],
                  "el_gas_handling_GWh": h["summary"]["el_gas_handling_GWh"], "heat_chp_GWh": h["summary"]["heat_chp_GWh"],
-                 "verdict": h["verdict"]["status"], "rank": h["verdict"]["rank"], "reason": h["verdict"]["reason"]} for h in compared]
+                 "verdict": h["verdict"]["status"], "rank": h["verdict"]["rank"], "reason": h["verdict"]["reason"],
+                 "dissolution": dissolution_row(h["summary"].get("gas_dissolution"))} for h in compared]
         chosen = incumbent["candidate"].get("gas_handling", "chp")
         if rows:
             best = min((r for r in rows if r["feasible"]), key=lambda r: r["rank"])  # the ranking rule's choice at this design
@@ -928,7 +940,8 @@ class DesignAgent:
                     + (f"; {lowest['gas_handling']} has the lowest emissions but needs more external gas "
                        f"({lowest['external_gas_GWh']:.3f} vs {best['external_gas_GWh']:.3f} GWh{why}), and external gas ranks first."
                        if lowest is not best and lowest["external_gas_GWh"] > best["external_gas_GWh"] else ".")
-                    + f" Final pick uses {chosen}.")
+                    + f" Final pick uses {chosen}."
+                    + "".join(f" Dissolution check ({r['gas_handling']}): {r['dissolution']['reason']}." for r in rows if r["dissolution"]))
         else:
             text = f"{chosen} (no alternative evaluated)."
         self.log.event(scenario, "gas_decision", f"Gas handling: {chosen}", data={"chosen": chosen, "options": rows}, rationale=text)
@@ -1134,10 +1147,17 @@ def write_trace(path, entries, backend, results, note=None, design_scenario="B_d
             if fd.get("gas_handling", {}).get("options"):
                 lines += ["## Gas handling (design variable)", "", fd["gas_handling"]["text"], "",
                           "| Candidate | Gas handling | External gas (GWh) | Emissions (t) | of which produced gas (t) | Grid import (GWh) | "
-                          "Gas-handling el. (GWh) | CHP heat (GWh) | Verdict (rank) |", "|---|---|---|---|---|---|---|---|---|"]
+                          "Gas-handling el. (GWh) | CHP heat (GWh) | Dissolution margin wellhead / reservoir | Verdict (rank) |",
+                          "|---|---|---|---|---|---|---|---|---|---|"]
                 lines += [f"| {r['candidate']} | {r['gas_handling']} | {r['external_gas_GWh']:.3f} | {r['emissions_t']:.0f} | {r['emissions_produced_gas_t']:.0f} | "
-                          f"{r['grid_import_GWh']:.2f} | {r['el_gas_handling_GWh']:.3f} | {r['heat_chp_GWh']:.1f} | {r['verdict']} ({r['rank']}) |"
-                          for r in fd["gas_handling"]["options"]]
+                          f"{r['grid_import_GWh']:.2f} | {r['el_gas_handling_GWh']:.3f} | {r['heat_chp_GWh']:.1f} | "
+                          + (f"{r['dissolution']['wellhead_margin']:.2f} / {r['dissolution']['reservoir_margin']:.1f} ({r['dissolution']['status']})"
+                             if r.get("dissolution") else "n/a (burned)")
+                          + f" | {r['verdict']} ({r['rank']}) |" for r in fd["gas_handling"]["options"]]
+                lines += ["", "Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point at the available pressure; "
+                          "IAPWS G7-04 Henry constants, Weisenberger-Schumpe salting-out, Peng-Robinson; `gas_solubility.py`). Wellhead: "
+                          "lowest injector wellhead pressure of the year at the hottest injection temperature; reservoir: reservoir P and T; "
+                          "conservative salinity (1030 kg/m3 read at reservoir temperature).", ""]
                 lines.append("")
         lines += ["## Runtime", "",
                   f"- Annual evaluations: {t['evaluations']} ({t['computed']} computed, {t['cached']} from cache); "
