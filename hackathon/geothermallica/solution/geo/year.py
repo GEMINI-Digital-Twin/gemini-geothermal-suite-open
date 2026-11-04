@@ -12,7 +12,7 @@ import pandas as pd
 
 from geo import gas, lifetime
 from geo.common import DATA, DEPTH_M, DT_BRINE_MAX_K, PROJECT, Q_MAX_M3H, Q_MIN_M3H, RHO, T_SUPPLY_COLD_C, T_SUPPLY_HEAT_C
-from geo.plant import CP, Q_FLOOR_M3H, DoubletTable
+from geo.plant import APPROACH_K, CP, Q_FLOOR_M3H, DoubletTable
 from geo.well import ESP_DEPTH_M, PUMP_EFF, injector_at
 
 # backup gas boiler, MW: covers the winter peak with one doublet out (N-1); a backup boiler is Dutch practice,
@@ -92,7 +92,7 @@ def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, dep
             if best is None or (short, el) < (best[2], best[1]):
                 best = (j, el, short, pt)
         if best is None:
-            j, pt, geo, hp, el_hp, esp, boiler_lift, abs_drive = 0, None, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            j, pt, geo, hp, el_hp, esp, boiler_lift, abs_drive = 0, {}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         else:
             j, _, _, pt = best
             geo, hp, el_hp = j * pt["MW_hx"], j * pt["MW_hp"], j * pt["MW_el_hp"]
@@ -100,9 +100,10 @@ def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, dep
             abs_drive = j * pt.get("MW_abs_drive", 0.0)        # brine heat above 78 C left over for the absorption chillers, MW
         delivered = geo + hp + boiler_lift
         boiler_peak = min(BACKUP_BOILER_MW, max(0.0, demand - delivered))
-        rows.append(dict(date=day, demand=demand, doublets_on=j, q_m3h=pt.get("q_m3h", 0.0) if pt else 0.0, geo=geo, hp=hp,
+        rows.append(dict(date=day, demand=demand, doublets_on=j, q_m3h=pt.get("q_m3h", 0.0), geo=geo, hp=hp,
                          el_hp=el_hp, esp=esp, boiler=boiler_lift + boiler_peak, boiler_lift=boiler_lift,
-                         boiler_peak=boiler_peak, unmet=max(0.0, demand - delivered - boiler_peak), surplus=abs_drive))
+                         boiler_peak=boiler_peak, unmet=max(0.0, demand - delivered - boiler_peak), surplus=abs_drive,
+                         T_wh_C=pt.get("T_wh_C", np.nan), t_hx_C=pt.get("t_hx_C", np.nan), part_load=pt.get("part_load", "off")))
     d = pd.DataFrame(rows).set_index("date")
     d.attrs["depth_m"], d.attrs["heat_pump"] = depth_m, heat_pump
     for i in range(n):
@@ -145,7 +146,8 @@ def cooling_year(drive_avail, agg="max", peak_cold_MW=None):
 
 
 def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M):
-    """Every constraint of the brief for n doublets at return temperature t_return_c: 16 dicts of name, value, limit, status."""
+    """Every constraint of the brief for n doublets at return temperature t_return_c: 16 dicts of name, value, limit, status;
+    four rows are declared (their status says so), the rest computed."""
     d = heating_year(n, t_return_c, peak_heat_MW=peak_heat_MW, depth_m=depth_m, esp_depth_m=esp_depth_m)
     c, _ = cooling_year(d.surplus, peak_cold_MW=peak_cold_MW)
     tab = table(t_return_c, depth_m, esp_depth_m=esp_depth_m)
@@ -159,6 +161,7 @@ def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M,
     worst = min(injector_rows(depth_m), key=lambda r: r["sodm_margin_bar"])
     f_max = np.nanmax(tab.cols["freq_hz"])
     bal = (d.geo + d.hp + d.boiler - d.demand).abs().max()
+    approach_ok = bool((on.t_hx_C <= on.T_wh_C - APPROACH_K + 1e-6).all())   # the exchanger can reach its water outlet every day
     full = d[[f"avail_{i}" for i in range(n)]].all(axis=1)                 # days with every doublet available
     used = np.r_[q.min(), tab.q[(tab.q >= q.min()) & (tab.q <= q.max())], q.max()]   # table flows inside the year's flow range
     p_in = float(np.interp(used, tab.q, tab.cols["p_esp_intake_bar"]).min())         # pump intake pressure falls with flow
@@ -174,22 +177,26 @@ def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M,
          ok(q.min() >= Q_MIN_M3H and q.max() <= Q_MAX_M3H)),
         ("flow above pump floor [C]", f"min {q.min():.0f} m3/h", f">= {Q_FLOOR_M3H:.0f}", ok(q.min() >= Q_FLOOR_M3H - 1e-6)),
         ("brine cooling [D]", f"max {dt:.1f} K", f"<= {DT_BRINE_MAX_K:.0f} K", ok(dt <= DT_BRINE_MAX_K + 1e-6)),
-        ("pump efficiency [D]", f"{PUMP_EFF:.2f} (ESP and injection pump)", "0.70", ok(PUMP_EFF == 0.70)),
-        ("production = injection volume [D]", "q_inj = q_prod every day (by construction)", "equal", "pass [A]"),
+        ("pump efficiency [D]", f"{PUMP_EFF:.2f} set as an input for the ESP and the injection pump (declared, not computed)", "0.70",
+         ok(PUMP_EFF == 0.70) + " [declared]"),
+        ("production = injection volume [D]", "q_inj = q_prod every day: the dispatch moves one flow through both wells (declared)",
+         "equal", "pass [declared]"),
         ("operating days per doublet [D]", " / ".join(str(x) for x in days) + " d available", "330", ok(all(x <= 330 for x in days))),
         ("heat supply 100 C [D]",
-         f"boiler lift needed {gwh(d.boiler_lift):.2f} GWh on {int((d.boiler_lift > 0.01).sum())} days (heat pump does the lift)",
-         f"{T_SUPPLY_HEAT_C:.0f} C", ok(d.boiler_lift.max() < 1e-6) + " [A, Lorenz HP]"),
-        ("cold supply 20 C [D]", f"electric chiller sized {c.electric.max():.2f} MW for the peak day; stack meets demand by construction",
-         f"{T_SUPPLY_COLD_C:.0f} C", "pass [A, return 26 C]"),
+         f"water leaves the exchanger at most {on.t_hx_C.max():.1f} C, always <= brine {on.T_wh_C.min():.1f} C - {APPROACH_K:.0f} K "
+         f"approach ({'yes' if approach_ok else 'NO'}); the heat pump lifts to {T_SUPPLY_HEAT_C:.0f} C on {int((on.hp > 1e-6).sum())} "
+         f"of {len(on)} running days, boiler lift {gwh(d.boiler_lift):.2f} GWh on {int((d.boiler_lift > 0.01).sum())} days",
+         f"{T_SUPPLY_HEAT_C:.0f} C every day", ok(approach_ok and d.boiler_lift.max() < 1e-6) + " [A, Lorenz HP]"),
+        ("cold supply 20 C [D]", f"electric chiller sized {c.electric.max():.2f} MW for the peak day; the free, absorption, electric "
+         "stack meets every day's cold by construction (declared)", f"{T_SUPPLY_COLD_C:.0f} C", "pass [declared, return 26 C]"),
         ("SodM injection pressure [L]",
          f"worst p_bh {worst['p_bh_req_bar']:.1f} bar at {worst['q_m3h']:.0f} m3/h, margin {worst['sodm_margin_bar']:.1f} bar",
          f"<= {worst['sodm_limit_bar']:.1f} bar", ok(worst["sodm_margin_bar"] >= 0)),
         ("ESP envelope [C]", f"{q.min():.0f}-{q.max():.0f} m3/h, f max {f_max:.1f} Hz",
          f"{tab.w.q_min:.0f}-{tab.w.q_max:.0f} m3/h, 60 Hz",
          ok(q.min() >= tab.w.q_min and q.max() <= tab.w.q_max and f_max <= 60)),
-        ("accounting check [C]", f"max abs(geo + hp + boiler - demand) {bal:.1e} MW (dispatch serves demand by construction)",
-         "0 every day", ok(bal < 1e-6)),
+        ("accounting check [C]", f"max abs(geo + hp + boiler - demand) {bal:.1e} MW (the dispatch serves demand by construction; "
+         "a bookkeeping check, declared)", "0 every day", ok(bal < 1e-6) + " [declared]"),
         ("capacity covers the peak [D]",
          f"with every doublet available: backup boiler fired for capacity {gwh(d.boiler_peak[full]):.3f} GWh on "
          f"{int((d.boiler_peak[full] > 0.01).sum())} days, unmet {gwh(d.unmet[full]):.3f} GWh (outage days excluded)",

@@ -17,7 +17,7 @@ from geo.common import DEPTH_M, MU_PA_S, PERM_MD, RHO, T_SUPPLY_HEAT_C, THICKNES
 from geo.cost import BOILER_EFF, EF_EL_KG_KWH, GCV_LHV
 from geo.gemini_compare import compare, ours, theirs
 from geo.gemini_contrib import absorption_chiller, heatpump_lift, henry_gas, thermal_breakthrough
-from geo.plant import CP, LORENZ_EFF, T_ABS_MIN_C
+from geo.plant import COP_MAX, CP, LORENZ_EFF, T_ABS_MIN_C
 from geo.well import CELL_M, ESP_DEPTH_M, PUMP_EFF, ROUGHNESS_M, TUBING_ID_M, Injector, reservoir_pressure
 from geo.year import AUX_KW_PER_KW_COLD, COP_ABSORPTION, heating_year, table
 from gemini_simulator.project_loader import build_project
@@ -59,7 +59,7 @@ def _our_models(n, day):
                "specific_heat": CP * 1e3, "auxiliary_power_fraction": AUX_KW_PER_KW_COLD}
     # the exchanger uses one density for both sides and hands the water over as m3/s at RHO, so the heat pump does too
     pump = {"Ts_in_minimum": day["T_hp_floor_C"], "Th_out_target": T_SUPPLY_HEAT_C, "eta_lorenz": LORENZ_EFF,
-            "rho_s": RHO, "rho_h": RHO, "Cp_s": CP * 1e3, "Cp_h": CP * 1e3}
+            "rho_s": RHO, "rho_h": RHO, "Cp_s": CP * 1e3, "Cp_h": CP * 1e3, "cop_max": COP_MAX}
     henry = {"GLR": gas.GLR, "methane_fraction": gas.Y_CH4, "co2_fraction": gas.Y_CO2, "nacl_concentration": gas.SALT_G_L,
              "salting_out_coefficient": gas.K_SALT_CH4, "salting_out_convention": "ln", "henry_method": "fits",
              "henry_fits": gas.FITS}   # the defaults of geo.gas.p_bubble_bar
@@ -166,9 +166,13 @@ def _days(n, t_return_c, depth_m, esp_depth_m, k=3):
 def _version():
     """Path and git commit of the GEMINI simulator package the replay imports."""
     import gemini_simulator
-    root = str(Path(gemini_simulator.__file__).parents[2])
-    sha = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-    return f"{root} @ {sha or 'no git'}"
+    root = Path(gemini_simulator.__file__).parents[2]
+    sha = subprocess.run(["git", "-C", str(root), "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
+    try:
+        shown = "~/" + str(root.relative_to(Path.home()))   # no user name in tool results
+    except ValueError:
+        shown = str(root)
+    return f"{shown} @ {sha or 'no git'}"
 
 
 def replay(n=2, t_return_c=60.0, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, days=None):

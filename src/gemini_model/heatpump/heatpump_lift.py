@@ -49,10 +49,31 @@ class HeatPumpLift(HeatpumpBasic):
                 "rho_h": 1000.0,
                 "rho_s": 1030.0,
                 "Th_out_target": 100.0,
+                "cop_max": 8.0,  # Arpagaus et al. 2018, Energy 152: COP 6-8 at small lifts
             }
         )
 
     def _calculate(self, Th_out, Th_in, Ts_in, mh, ms):
+        """Return _lorenz's (COP, T out, T brine out, heat, power), COP capped at cop_max."""
+        return self._capped(
+            self._lorenz(Th_out, Th_in, Ts_in, mh, ms), Th_out, Th_in, Ts_in, mh, ms
+        )
+
+    def _capped(self, result, Th_out, Th_in, Ts_in, mh, ms):
+        """Cap the COP at cop_max; the floor binds if the brine cannot give its share."""
+        p, cmax = self.parameters, self.parameters["cop_max"]
+        if not result[0] > cmax:
+            return result
+        floor = p["Ts_in_minimum"] + 273.15
+        q_h = p["Cp_h"] * mh * (Th_out - Th_in)
+        # at the cap the brine gives (cop_max - 1) / cop_max of the duty
+        ts = Ts_in - q_h * (cmax - 1) / cmax / (p["Cp_s"] * ms)
+        if ts < floor - 1e-9:
+            q_h = p["Cp_s"] * ms * (Ts_in - floor) * cmax / (cmax - 1)
+            Th_out, ts = Th_in + q_h / (p["Cp_h"] * mh), floor
+        return cmax, Th_out, ts, q_h, q_h / cmax
+
+    def _lorenz(self, Th_out, Th_in, Ts_in, mh, ms):
         """Return the HeatpumpBasic solution, except in the floor branch, re-solved by brentq."""
         Ts_floor = self.parameters["Ts_in_minimum"] + 273.15
         # brine at or below the floor: nothing to take, so no heat, no power, water passes through

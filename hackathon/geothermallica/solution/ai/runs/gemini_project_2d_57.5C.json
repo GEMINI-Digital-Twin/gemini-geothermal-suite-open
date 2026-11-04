@@ -322,7 +322,7 @@
    "parameters": {
     "flow_resistance": 0.0,
     "flow_configuration": "counter",
-    "heat_transfer_coefficient": 627156.2560104155,
+    "heat_transfer_coefficient": 187971.3366875671,
     "fluid_density": 1030.0,
     "specific_heat": 4000.0
    }
@@ -330,13 +330,14 @@
   "heat_pump": {
    "type": "heatpump_lift",
    "parameters": {
-    "Ts_in_minimum": 84.38154712244324,
+    "Ts_in_minimum": 61.96862953312393,
     "Th_out_target": 100.0,
     "eta_lorenz": 0.5,
     "rho_s": 1030.0,
     "rho_h": 1030.0,
     "Cp_s": 4000.0,
-    "Cp_h": 4000.0
+    "Cp_h": 4000.0,
+    "cop_max": 8.0
    }
   },
   "filter_b": {
@@ -621,7 +622,7 @@
     ],
     "roughness_m": 4.5e-05,
     "ambient_temperature_c": 49.5,
-    "productivity_index_m3h_per_bar": 8.697855474901502,
+    "productivity_index_m3h_per_bar": 8.519104199988655,
     "injector_pump": {
      "efficiency_factor": 0.7,
      "electricity_emission_factor": 0.3
@@ -731,7 +732,7 @@
   {
    "component": "absorption_chiller",
    "key": "temperature_floor",
-   "value": 75.13592233009709
+   "value": 78.0
   },
   {
    "component": "heat_exchanger",
@@ -741,7 +742,7 @@
   {
    "component": "heat_exchanger",
    "key": "secondary_flow_rate",
-   "value": 0.037170596393897366
+   "value": 0.01809537407195888
   },
   {
    "component": "gas",

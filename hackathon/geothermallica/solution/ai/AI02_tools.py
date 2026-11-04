@@ -26,9 +26,17 @@ INJECTOR_GEMINI = ["IPR (injection_reservoir)", "DPDT (signed flow, injector sig
 def gemini_version():
     """Path and git commit of the GEMINI package the tools import."""
     import gemini_model
-    root = str(Path(gemini_model.__file__).parents[2])
-    sha = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-    return f"{root} @ {sha or 'no git'}"
+    root = Path(gemini_model.__file__).parents[2]
+    sha = subprocess.run(["git", "-C", str(root), "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
+    return f"{_short(root)} @ {sha or 'no git'}"
+
+
+def _short(path):
+    """A path written from the home directory as ~/..., so no user name leaks into tool results."""
+    try:
+        return "~/" + str(path.relative_to(Path.home()))
+    except ValueError:
+        return str(path)
 
 
 def gemini(names):
@@ -202,7 +210,8 @@ def heat_pump_point(t_brine_in_c, t_water_in_c, brine_m3h, water_m3h, t_brine_fl
 def checks(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
     """The brief's constraints, 16 rows (incl. capacity covers the peak, free gas at the ESP intake, thermal breakthrough and doublet
     interference) for 1-3 doublets at a 30-70 C return, reservoir at depth_m (default 2500 m), demand scaled to the given peaks:
-    each row is name: value (limit) -> pass or FAIL [C]."""
+    each row is name: value (limit) -> pass or FAIL; four rows are declared (inputs or true by construction), the summary says
+    how many are computed [C]."""
     _need("n_doublets", n_doublets, 1, 3)
     _need("t_return_c", t_return_c, 30, 70)
     _peaks(peak_heat_MW, peak_cold_MW)
@@ -210,7 +219,10 @@ def checks(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m
     rows = year.checks(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m))
     out = {f"{i + 1:02d} {r['name']}": f"{r['value']} (limit {r['limit']}) -> {r['status']}" for i, r in enumerate(rows)}
     n_pass = sum(r["status"].startswith("pass") for r in rows)
-    return {**out, "n_pass": n_pass, "n_fail": len(rows) - n_pass, "n_rows": len(rows), "tag": "[C]"}
+    n_declared = sum("declared" in r["status"] for r in rows)   # rows true by construction or set as inputs, not computed
+    summary = f"{n_pass}/{len(rows)} pass ({len(rows) - n_declared} computed + {n_declared} declared rows)"
+    return {**out, "n_pass": n_pass, "n_fail": len(rows) - n_pass, "n_rows": len(rows), "n_declared": n_declared,
+            "summary": summary, "tag": "[C]"}
 
 
 def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
@@ -430,13 +442,14 @@ def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
     supply = (f" On {len(cold)} day(s) GEMINI's series chain (exchanger, then heat pump) reaches only "
               f"{min(d['T_supply_C_gemini'] for d in cold):.1f} C where our dispatch counts the heat at 100 C (heat pump cut "
               "back or off, or a boiler lift outside this chain); COP and duty differ on those days." if cold else "")
-    verdict = (f"Independent checks on {len(solved)} days: GEMINI's own nodal solve gives the ESP head within {head:.1f} bar and the "
-               f"injection wellhead pressure within {inj:.1f} bar of ours after the water-column offset; GEMINI's Lorenz solve gives "
-               f"the heat-pump COP {_within(solved, 'cop_heat_pump')}, the gas model the bubble point "
-               f"{_within(solved, 'p_bubble_bar')}, the breakthrough model the breakthrough time "
-               f"{_within(solved, 't_breakthrough_yr')}; flow, exchanger duty, full-draw heat-pump duty, boiler heat and chiller "
-               "drive are equal by construction (the project carries our duty, floors, water flow and gas; the chiller has the same "
-               "formula and wellhead temperature on both sides)." + freq + sign + short + supply)
+    verdict = (f"GEMINI's solver re-ran {len(solved)} days: ESP head within {head:.1f} bar, injection wellhead within {inj:.1f} bar, "
+               f"heat-pump COP {_within(solved, 'cop_heat_pump')}, bubble point {_within(solved, 'p_bubble_bar')}, breakthrough "
+               f"{_within(solved, 't_breakthrough_yr')}. "
+               "The injection figure is after the water-column offset. Those come from GEMINI's nodal solve, its Lorenz "
+               "heat-pump solve and its gas and breakthrough models with our "
+               "parameters; flow, exchanger duty, full-draw heat-pump duty, boiler heat and chiller drive are equal by construction "
+               "(the project carries our duty, floors, water flow and gas; the chiller has the same formula and wellhead temperature "
+               "on both sides)." + freq + sign + short + supply)
     return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "depth_m": float(depth_m), "esp_depth_m": _esp(esp_depth_m),
             "n_days": len(days), "days": days, "project_path": r["project_path"], "gemini_version": r["gemini_version"],
             "verdict": verdict, "basis": r["basis"], "tag": "[C]"}

@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from geo import cost, gas, gemini_project, lifetime, optimise, rule
-from geo.plant import DoubletTable
+from geo.plant import APPROACH_K, T_ABS_MIN_C, DoubletTable
 from geo.well import Producer
 from geo.year import COP_ABSORPTION
 
@@ -117,20 +117,52 @@ class TestModels(unittest.TestCase):
         self.assertLess(d["MW_abs_drive_gemini"], 1e-6)
 
     def test_gemini_replay_mildest_day(self):
-        """GEMINI's solver on the mildest day with both doublets on (8 May, 5.36 MW, 57.5 C return): flow at the 160 m3/h floor,
-        the exchanger cut back to 2.68 MW per doublet, so the brine above 78 C drives the absorption chiller. GEMINI's chiller drive
-        equals ours within 0.1 % and is above zero (printed 1.1685 MW), its cold is COP_ABSORPTION x drive. With the heat pump off
-        the exchanger alone heats the network water to 3 K below the 78 C chiller outlet: the dispatch counts this day's heat
-        in MW without the 100 C supply temperature. The last assert records this known dispatch limitation (the exchanger alone
-        cannot reach 100 C); printed 75.0 C today."""
+        """GEMINI's solver on the mildest day with both doublets on (19 Sep, 57.5 C return): flow at the 160 m3/h floor, chiller-first
+        part load, so the brine above 78 C drives the absorption chiller, the exchanger heats the water to 75 C and the heat pump
+        lifts it to 100 C. GEMINI's chiller drive equals ours within 0.1 % and is above zero (printed 1.1685 MW), its cold is
+        COP_ABSORPTION x drive, its heat pump within 2 % of ours (printed 1.6871 MW both, COP 9.05) and its supply within 0.5 C of
+        100 C (printed 100.0 C)."""
         days = gemini_project._days(2, 57.5, 2500.0, 1100.0).iloc[[-1]]
         d = gemini_project.replay(2, 57.5, days=days)["days"][0]
         self.assertGreater(d["MW_abs_drive_gemini"], 0.0)
         self.assertLess(abs(d["MW_abs_drive_diff_pct"]), 0.1)
         self.assertAlmostEqual(d["MW_abs_cold_gemini"], COP_ABSORPTION * d["MW_abs_drive_gemini"], delta=1e-9)
-        self.assertEqual(d["MW_heat_pump_gemini"], 0.0)
-        print(f"  mildest day: GEMINI supply {d['T_supply_C_gemini']:.1f} C")
-        self.assertLess(d["T_supply_C_gemini"], 100.0)
+        self.assertGreater(d["MW_heat_pump_ours"], 0.0)
+        self.assertLess(abs(d["MW_heat_pump_diff_pct"]), 0.5)
+        self.assertAlmostEqual(d["T_supply_C_gemini"], 100.0, delta=0.5)
+
+    def test_part_load_chiller_first(self):
+        """Part load at 56.5 C return, 2 500 m, 2.68 MW per doublet (flow at the 160 m3/h floor, mcp 0.183 MW/K, wellhead 84.4 C):
+        chiller-first, the chiller takes mcp x (84.4 - 78) = 1.169 MW, exchanger plus heat pump deliver the 2.68 MW (printed
+        1.140 + 1.540), electricity 0.165 MW at COP 9.3, the evaporator leaves the brine above the 40 K floor."""
+        t = DoubletTable(56.5, depth_m=2500.0)
+        pt = t.at_output(2.68)
+        floor = {k: float(v[0]) for k, v in t.cols.items()}
+        self.assertEqual(pt["part_load"], "chiller-first")
+        self.assertAlmostEqual(pt["MW_hx"] + pt["MW_hp"], 2.68, places=9)
+        self.assertGreater(pt["MW_el_hp"], 0.0)
+        self.assertAlmostEqual(pt["MW_abs_drive"], floor["mcp_MW_per_K"] * (floor["T_wh_C"] - T_ABS_MIN_C), places=9)
+        self.assertAlmostEqual(pt["t_hx_C"], T_ABS_MIN_C - APPROACH_K, places=9)
+        self.assertGreaterEqual(pt["MW_brine_left"], 0.0)   # evaporator outlet above the 40 K brine floor
+        self.assertEqual(pt["MW_boiler_lift"], 0.0)
+
+    def test_part_load_exchanger_first_near_floor(self):
+        """Near the floor output (8.0 MW of 8.07 at 56.5 C) chiller-first would cool the brine below the return plus approach, so the
+        floor point's split is held: exchanger and heat pump scale together, the COP rises with the smaller lift (so the
+        electricity falls below the scaled value), no chiller drive, water out below the brine."""
+        t = DoubletTable(56.5, depth_m=2500.0)
+        floor = {k: float(v[0]) for k, v in t.cols.items()}
+        pt = t.at_output(8.0)
+        f = 8.0 / floor["MW_out"]
+        self.assertEqual(pt["part_load"], "exchanger-first")
+        for k in ("MW_hx", "MW_hp"):
+            self.assertAlmostEqual(pt[k], f * floor[k], places=9, msg=k)
+        self.assertGreater(pt["cop"], floor["cop"])
+        self.assertLess(pt["MW_el_hp"], f * floor["MW_el_hp"])
+        self.assertAlmostEqual(pt["MW_el_hp"], pt["MW_hp"] / pt["cop"], places=9)
+        self.assertEqual(pt["MW_abs_drive"], 0.0)
+        self.assertLessEqual(pt["t_hx_C"], floor["T_wh_C"] - APPROACH_K + 1e-9)
+        self.assertEqual(t.at_output(9.0)["part_load"], "full")
 
 
 if __name__ == "__main__":

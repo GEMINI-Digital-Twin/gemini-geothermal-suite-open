@@ -32,10 +32,29 @@ class HeatPumpLift(HeatpumpBasic):
                 "rho_h": 1000.0,
                 "rho_s": 1030.0,   # brine density from the challenge brief
                 "Th_out_target": 100.0,   # district-heating supply, C, from the challenge brief
+                "cop_max": 8.0,   # highest COP allowed; high-temperature heat pumps reach 6-8 at small lifts, Arpagaus et al. 2018, Energy 152
             }
         )
 
     def _calculate(self, Th_out, Th_in, Ts_in, mh, ms):
+        """HeatpumpBasic's (COP, T out, T brine out, heat, power) from _lorenz, with the COP capped at cop_max."""
+        return self._capped(self._lorenz(Th_out, Th_in, Ts_in, mh, ms), Th_out, Th_in, Ts_in, mh, ms)
+
+    def _capped(self, result, Th_out, Th_in, Ts_in, mh, ms):
+        """Cap the COP at cop_max: the water goes to the target with the brine giving (cop_max - 1) / cop_max of the duty; if that
+        would take the brine below the floor, the floor binds and the water stops short of the target."""
+        p, cmax = self.parameters, self.parameters["cop_max"]
+        if not result[0] > cmax:
+            return result
+        floor = p["Ts_in_minimum"] + 273.15
+        q_h = p["Cp_h"] * mh * (Th_out - Th_in)
+        ts = Ts_in - q_h * (cmax - 1) / cmax / (p["Cp_s"] * ms)
+        if ts < floor - 1e-9:
+            q_h = p["Cp_s"] * ms * (Ts_in - floor) * cmax / (cmax - 1)
+            Th_out, ts = Th_in + q_h / (p["Cp_h"] * mh), floor
+        return cmax, Th_out, ts, q_h, q_h / cmax
+
+    def _lorenz(self, Th_out, Th_in, Ts_in, mh, ms):
         """HeatpumpBasic's (COP, T out, T brine out, heat, power); in the floor branch, where its Nelder-Mead finds a COP ~1 root, brentq."""
         Ts_floor = self.parameters["Ts_in_minimum"] + 273.15
         # brine at or below the floor: nothing to take, so no heat, no power, water passes through

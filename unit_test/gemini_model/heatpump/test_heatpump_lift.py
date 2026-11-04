@@ -75,6 +75,25 @@ class TestHeatPumpLift(unittest.TestCase):
             self.assertAlmostEqual(y[key], ref[key], delta=1e-9 * abs(ref[key]), msg=key)
         self.assertEqual(y["source_pressure_out"], 9.5)
 
+    def test_cop_cap(self):
+        """A 5 K lift on 80 C brine: Lorenz COP above 8 uncapped, 8 capped, duty held, balance."""
+        u = {
+            "T_brine_in_C": 80.0,
+            "brine_flow_m3h": 300.0,
+            "T_brine_floor_C": 45.0,
+            "T_water_in_C": 95.0,
+            "water_flow_m3h": 360.0,
+        }
+        hp = HeatPumpLift()
+        hp.parameters["cop_max"] = 1e9
+        hp.calculate_output(u)
+        self.assertGreater(hp.get_output()["COP"], 8.0)
+        y = _run(u)
+        self.assertEqual(y["COP"], 8.0)
+        self.assertAlmostEqual(y["Q_th_MW"], 2.0, delta=1e-9)
+        self.assertAlmostEqual(y["P_el_MW"], 0.25, delta=1e-9)
+        self.assertAlmostEqual(y["Q_brine_MW"] + y["P_el_MW"], y["Q_th_MW"], delta=1e-9)
+
     def test_at_target_balance(self):
         """_at_target on CASE: water at 100 C, brine out 46.78 C, COP 5.004, balance closes."""
         hp = HeatPumpLift()

@@ -1,4 +1,4 @@
-"""Check a final JSON answer against the tool results the model saw; each problem is prefixed by its rule (a) to (j).
+"""Check a final JSON answer against the tool results the model saw; each problem is prefixed by its rule (a) to (k).
 (a) 'best' needs a sweep (b) tags (c) numbers from tools (d) consistency (e) brief values used (f) shape (g) site (h) alternatives
 (i) trace (j) the chosen design is on the Pareto front and the trade-off quotes its numbers
 """
@@ -190,7 +190,26 @@ def check(run_json, transcript, tool_results, brief=""):
         problems += check_iterations(iters, run_json, reasoning, tool_results)
     if opt:
         problems += check_choice(run_json, opt, brief_stated_priority(brief))
+    replay = next((r["result"] for r in reversed(tool_results) if r["name"] == "gemini_replay"), None)
+    if replay:
+        problems += check_verification(run_json, replay)
     return problems
+
+
+def check_verification(run_json, replay):
+    """(k) gemini_verification copies the replay verdict's first sentence (its numbers) and keeps a 'reaches only' sentence."""
+    verdict = replay.get("verdict") or f"error: {replay.get('error')}"
+    v = run_json.get("gemini_verification")
+    if not isinstance(v, str) or len(v.split()) < 4:
+        return ["(k) gemini_verification missing: copy the first sentence of gemini_replay's verdict"]
+    p = []
+    said = NUM.findall(TAG.sub("", v))
+    for x in NUM.findall(verdict.split(". ")[0]):
+        if not any(close(x, float(y)) for y in said):
+            p.append(f"(k) gemini_verification lacks the verdict's {x}: {v}")
+    if "reaches only" in verdict and "reaches only" not in v:
+        p.append(f"(k) gemini_verification drops the verdict's supply-shortfall sentence ('reaches only'): {v}")
+    return p
 
 
 PASS_REASONS = ("meets the rule", "needs boiler energy", "a lower return meets the rule")   # rows that meet the rule but were not chosen

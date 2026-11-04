@@ -12,7 +12,7 @@ BRIEFS = [
     ("B 12/3", "Small district: 12 MW peak heating, 3 MW peak cooling, supply 100 C, cooling supply 20 C, reservoir 2500 m. "
                "How many doublets, what return, boiler needed?", (1, 56.25, True)),
     ("C 20/6", "Town: 20 MW peak heating, 6 MW peak cooling, supply 100 C and 20 C, reservoir 2500 m. Doublets, return, boiler?",
-     (2, 56.25, False)),
+     (2, 56.5, False)),
     ("D 45/10", "Large district: 45 MW peak heating, 10 MW peak cooling, supply 100 C and 20 C, reservoir at 2500 m. "
                 "How many doublets, which return, is a boiler needed?", (3, 56.5, False)),
     ("E 30/10 at 3000 m", "District 30 MW peak heating, 10 MW peak cooling, supply 100 C and 20 C, reservoir 3000 m. "
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         tot += (f"\n| {mode} | {len(rs)} | {sum(r[13] for r in rs)} | {sum(r[14] for r in rs)} | {sum(r[10] for r in rs) / len(rs):.0f} | "
                 f"{sum(r[12] for r in rs) / len(rs):.1f} | 0 EUR |")
     out = (f"# Multi-brief evaluation, {agent.MODEL}, {time.strftime('%Y-%m-%d %H:%M')}\n\n"
-           "Expected: A 2/56.5/no boiler, B 1/56.25/boiler (outage), C 2/56.25/no, D 3/56.5/no, E 3/59.5/no (3000 m: 2 doublets are 3 % short at the peak), "
+           "Expected: A 2/56.5/no boiler, B 1/56.25/boiler (outage), C 2/56.5/no, D 3/56.5/no, E 3/59.5/no (3000 m: 2 doublets are 3 % short at the peak), "
            f"F 2/56.5/no with the ESP repaired from 800 to 1100 m. All [C].\n\n{table}\n\n{tot}\n")
     slug = re.sub(r"[^a-z0-9]+", "_", agent.MODEL.lower()).strip("_")
     (log.RUNS / ("eval_table.md" if len(MODES) == 2 and agent.MODEL == "qwen3:4b-instruct-2507-q4_K_M" else f"eval_table_{slug}.md")).write_text(out)

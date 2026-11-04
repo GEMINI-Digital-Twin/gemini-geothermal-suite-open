@@ -53,9 +53,10 @@ def ours(w, inj, pt, t_return_c, n):
             "cop_heat_pump": pt["cop"] if hp_on else math.nan, "MW_abs_drive": pt["MW_abs_drive"], "MW_abs_cold": COP_ABSORPTION * pt["MW_abs_drive"],
             "p_bubble_bar": g["p_bubble_bar"], "MW_methane_LHV": g["CH4_MW_LHV"],
             "t_breakthrough_yr": lifetime.t_bt_yr(q), "interference_bar": max(lifetime.interference_bar(n, q)),
-            # day values of the project: the chiller may only take what the exchanger does not need; the heat pump may cool
-            # the brine to what our dispatch implies (a floor above its inlet when the heat pump is off)
-            "T_chiller_floor_C": t_return_c + APPROACH_K + pt["MW_hx"] / mcp, "T_hp_floor_C": t_out if hp_on else t_wh,
+            # day values of the project: the chiller may cool the brine only to where our dispatch hands it to the exchanger
+            # (the wellhead temperature when the chiller is off); the heat pump may cool the brine to what our dispatch
+            # implies (a floor above its inlet when the heat pump is off)
+            "T_chiller_floor_C": t_hx_in, "T_hp_floor_C": t_out if hp_on else t_wh,
             "secondary_m3s": m_net / RHO, "ii_m3h_bar": i["II"],
             "ua_w_per_k": _ua(t_hx_in, t_return_c, mcp * 1e6, m_net * CP * 1e3, pt["MW_hx"] * 1e6)}
 

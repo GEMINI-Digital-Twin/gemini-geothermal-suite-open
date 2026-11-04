@@ -65,6 +65,14 @@ SITE_WORDS = {"depth_m": ("reservoir depth", "m"), "supply_heat_c": ("heat suppl
               "supply_cold_c": ("cold supply temperature", "C")}
 
 
+def _checks_summary(results, j):
+    """The checks tool's own summary (x/y pass, computed + declared rows) for the design answered, else the answer's x/y."""
+    for r in reversed(list(results)):
+        if r["name"] == "checks" and r["result"].get("summary") and r["args"].get("n_doublets") == j.get("n_doublets"):
+            return r["result"]["summary"]
+    return f"{j.get('checks_passed')} pass"
+
+
 def prose(j, results=(), free=False, problems=()):
     first = "Free mode: the model chose the doublet count and return temperature and wrote the explanation below." if free else PROSE_HEAD
     warn = []
@@ -97,8 +105,9 @@ def prose(j, results=(), free=False, problems=()):
     return head + (f"Build {j.get('n_doublets')} doublets with a {j.get('t_return_c')} C network return. "
             + ("The heat demand is not met with up to 3 doublets. " if j.get("demand_met") is False else "") +
             f"{'A boiler is needed for energy' if j.get('boiler_needed_for_energy') else 'No boiler is needed for energy'}; "
-            f"a {j.get('backup_boiler_MW')} MW backup boiler covers security of supply. Constraints: {j.get('checks_passed')} pass. "
+            f"a {j.get('backup_boiler_MW')} MW backup boiler covers security of supply. Constraints: {_checks_summary(results, j)}. "
             f"Cooling: {c.get('free_pct')} % free, {c.get('absorption_pct')} % absorption, {c.get('electric_pct')} % electric."
+            + (f" GEMINI's own solver: {j['gemini_verification']}" if j.get("gemini_verification") else "")
             + open_ + "\n\n"
             + "\n".join(f"- {r}" for r in j.get("reasoning", []))
             + (f"\n\nChosen from the Pareto front: {j['chosen_design']}. {j.get('trade_off', '')}" if j.get("chosen_design") else "")
@@ -123,10 +132,17 @@ def brief_result(r):
         return {**r["result"], "steps": [st for st in r["result"]["steps"] if st.get("move")]}
     if r["name"] == "optimise_point" and "error" not in r["result"]:
         return {k: v for k, v in r["result"].items() if k not in ("basis", "best_lcoh", "best_co2")}
+    if r["name"] == "gemini_replay" and "error" not in r["result"]:
+        # the verdict and the per-day residuals; the full rows stay in the run file and go to the checker
+        res = r["result"]
+        day_keys = ("date", "demand_MW", "freq_hz_ours", "freq_hz_gemini_same_flow", "esp_head_residual_bar",
+                    "p_injection_wellhead_residual_bar", "T_supply_C_gemini")
+        return {**{k: res[k] for k in ("verdict", "n_days", "gemini_version", "project_path") if k in res},
+                "days": [{k: d[k] for k in day_keys if k in d} for d in res["days"]]}
     if r["name"] == "checks" and "error" not in r["result"]:
         res = r["result"]
         keep = {k: v for k, v in res.items() if not k[:2].isdigit() or "FAIL" in str(v)}
-        return {**keep, "note": "rows that pass are omitted here; copy only n_pass/n_rows into checks_passed"}
+        return {**keep, "note": "rows that pass are omitted here; copy n_pass/n_rows into checks_passed (see summary)"}
     return r["result"]
 
 

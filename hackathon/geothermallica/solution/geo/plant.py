@@ -15,6 +15,9 @@ APPROACH_K = 3.0  # heat-exchanger approach (smallest brine-to-water temperature
 # Annex 58 Task 1 report HPT-AN58-2 (2023), range 35-59 %,
 # https://heatpumpingtechnologies.org/content/uploads/sites/70/2023/09/annex-58-task-1-technologies-task-report.pdf
 LORENZ_EFF = 0.50
+# cap on the heat-pump COP: high-temperature heat pumps reach COP 6-8 at small lifts; source: Arpagaus et al. 2018, Energy 152,
+# 985-1010, https://doi.org/10.1016/j.energy.2018.03.166; the cap itself is assumed
+COP_MAX = 8.0
 Q_FLOOR_M3H = 160.0   # lowest flow inside the pump's operating range, m3/h (rounded up from the stretched example curve)
 T_ABS_MIN_C = 78.0    # coldest brine a single-effect absorption chiller can use, C; assumed (such chillers want about 80 C)
 Q_CAP_M3H = 300.0     # maximum flow per doublet, m3/h; from the challenge brief
@@ -28,7 +31,13 @@ def _abs_drive(t_wh, mcp, t_return_c, hx):
 def _tlm(a, b):
     """Log-mean of two temperatures given in C, returned in K."""
     a, b = a + 273.15, b + 273.15
-    return (a - b) / np.log(a / b)
+    return a if abs(a - b) < 1e-9 else (a - b) / np.log(a / b)
+
+
+def _t_hx(pt, t_return_c):
+    """Network water temperature leaving the exchanger, C: its share of the heat on the way from the return to the supply."""
+    out = pt["MW_hx"] + pt["MW_hp"] + pt["MW_boiler_lift"]
+    return t_return_c + pt["MW_hx"] / out * (T_SUPPLY_HEAT_C - t_return_c) if out > 0 else t_return_c
 
 
 def doublet_at(w: Producer, q_m3h: float, t_return_c: float, heat_pump: bool = True) -> dict:
@@ -45,7 +54,8 @@ def doublet_at(w: Producer, q_m3h: float, t_return_c: float, heat_pump: bool = T
     if q_evap > 0:
         # network water runs exchanger -> heat pump, so the exchanger outlet (the heat-pump inlet) depends on the COP: iterate
         for _ in range(8):
-            cop = LORENZ_EFF * _tlm(T_SUPPLY_HEAT_C, t_net_hx) / (_tlm(T_SUPPLY_HEAT_C, t_net_hx) - _tlm(t_brine_hx, t_floor))
+            cop = min(COP_MAX, LORENZ_EFF * _tlm(T_SUPPLY_HEAT_C, t_net_hx)
+                      / (_tlm(T_SUPPLY_HEAT_C, t_net_hx) - _tlm(t_brine_hx, t_floor)))
             q_hp, p_hp = q_evap * cop / (cop - 1), q_evap / (cop - 1)
             m_net = (q_hx + q_hp) * 1000 / (CP * (T_SUPPLY_HEAT_C - t_return_c))
             t_net_hx = min(t_wh - APPROACH_K, t_return_c + q_hx * 1000 / (m_net * CP))
@@ -59,6 +69,55 @@ def doublet_at(w: Producer, q_m3h: float, t_return_c: float, heat_pump: bool = T
             "MW_boiler_lift": q_boiler, "MW_out": q_hx + q_hp + q_boiler, "kW_esp": r["esp_electric_kW"], "cop": cop,
             "MW_abs_drive": q_abs, "mcp_MW_per_K": mcp,
             "p_esp_intake_bar": r["p_esp_intake_bar"]}
+
+
+def _lift_cop(t_hx, t_evap_in, t_evap_out):
+    """Lorenz COP, capped at COP_MAX, of the heat pump lifting the water from t_hx to the supply, brine glide t_evap_in to t_evap_out (C)."""
+    t_sink = _tlm(T_SUPPLY_HEAT_C, t_hx)
+    return min(COP_MAX, LORENZ_EFF * t_sink / (t_sink - _tlm(t_evap_in, t_evap_out)))
+
+
+def _chiller_first(floor, mw_out, t_return_c):
+    """Part load with the absorption chiller taking the brine from the wellhead down to T_ABS_MIN_C first, the exchanger heating
+    the water to APPROACH_K below that, the heat pump lifting the rest to the supply; None when the approach or the 40 K cap breaks."""
+    t_wh, mcp = floor["T_wh_C"], floor["mcp_MW_per_K"]
+    if t_wh - APPROACH_K <= T_ABS_MIN_C:
+        return None
+    t_hx = T_ABS_MIN_C - APPROACH_K                                  # water leaving the exchanger, C
+    m_net = mw_out * 1e3 / (CP * (T_SUPPLY_HEAT_C - t_return_c))      # network water, kg/s
+    hx = m_net * CP * (t_hx - t_return_c) / 1e3
+    hp = m_net * CP * (T_SUPPLY_HEAT_C - t_hx) / 1e3
+    t_evap_in = T_ABS_MIN_C - hx / mcp                                # brine leaving the exchanger, C
+    if t_evap_in < t_return_c + APPROACH_K:
+        return None
+    t_evap_out = t_evap_in - hp / mcp
+    for _ in range(4):
+        cop = _lift_cop(t_hx, t_evap_in, t_evap_out)
+        t_evap_out = t_evap_in - hp * (cop - 1) / cop / mcp          # the evaporator takes the heat the compressor does not add
+    if t_evap_out < t_wh - DT_BRINE_MAX_K:
+        return None
+    pt = {**floor, "MW_hx": hx, "MW_hp": hp, "MW_el_hp": hp / cop, "MW_boiler_lift": 0.0, "MW_out": mw_out, "cop": cop,
+          "MW_abs_drive": mcp * (t_wh - T_ABS_MIN_C), "part_load": "chiller-first"}
+    pt["MW_brine_left"] = mcp * (t_evap_out - (t_wh - DT_BRINE_MAX_K))   # brine heat above the 40 K floor not used
+    return pt
+
+
+def _hold_split(floor, mw_out, t_return_c):
+    """Part load holding the floor point's split of exchanger, heat pump and boiler lift (scaled together); the heat pump's COP
+    is recomputed at the smaller lift (the brine leaves the exchanger warmer than at the floor point)."""
+    f = mw_out / floor["MW_out"]
+    hx, hp, mcp = f * floor["MW_hx"], f * floor["MW_hp"], floor["mcp_MW_per_K"]
+    pt = {**floor, "MW_hx": hx, "MW_hp": hp, "MW_el_hp": f * floor["MW_el_hp"], "MW_boiler_lift": f * floor["MW_boiler_lift"],
+          "MW_out": mw_out, "MW_abs_drive": 0.0, "part_load": "exchanger-first"}
+    if hp > 0:
+        t_hx, t_evap_in = _t_hx(pt, t_return_c), floor["T_wh_C"] - hx / mcp
+        t_evap_out = t_evap_in - hp / mcp
+        for _ in range(4):
+            cop = _lift_cop(t_hx, t_evap_in, t_evap_out)
+            t_evap_out = t_evap_in - hp * (cop - 1) / cop / mcp
+        pt["cop"], pt["MW_el_hp"] = cop, hp / cop
+    pt["MW_brine_left"] = (floor["MW_hx"] + floor["MW_hp"] - floor["MW_el_hp"]) - (hx + hp - pt["MW_el_hp"])
+    return pt
 
 
 class DoubletTable:
@@ -75,32 +134,20 @@ class DoubletTable:
         self.out_min, self.out_max = self.cols["MW_out"][0], self.cols["MW_out"][-1]
 
     def at_output(self, mw_out: float) -> dict:
-        """Operating-point dict for mw_out MW per doublet: below the floor output the flow stays at the floor and the lift modulates."""
+        """Operating-point dict for mw_out MW per doublet. Below the floor output the flow stays at the floor and every MWh is still
+        lifted to the supply temperature: chiller first where the brine allows it, else the floor point's split held; with a boiler
+        lift the boiler's share of the output is constant. Above it, the full-draw sweep is interpolated."""
         c = self.cols
         floor = {k: float(v[0]) for k, v in c.items()}
-        brine_cap_floor = floor["MW_hx"] + floor["MW_hp"] - floor["MW_el_hp"]   # brine heat at the floor flow, cooled by 40 K
         t_ret = self.t_return_c
-        if not self.heat_pump and mw_out <= floor["MW_out"]:
-            # boiler lift below the floor output: the boiler's share of the output is constant
-            share = floor["MW_boiler_lift"] / floor["MW_out"]
-            hx = (1 - share) * mw_out
-            pt = {**floor, "MW_hx": hx, "MW_hp": 0.0, "MW_el_hp": 0.0, "MW_boiler_lift": share * mw_out, "MW_out": mw_out}
-            pt["MW_brine_left"] = floor["MW_hx"] - hx
-            pt["MW_abs_drive"] = _abs_drive(floor["T_wh_C"], floor["mcp_MW_per_K"], t_ret, hx)
-            return pt
-        if mw_out <= floor["MW_hx"]:
-            pt = {**floor, "MW_hx": mw_out, "MW_hp": 0.0, "MW_el_hp": 0.0, "MW_boiler_lift": 0.0, "MW_out": mw_out}
-            pt["MW_brine_left"] = brine_cap_floor - mw_out
-            pt["MW_abs_drive"] = _abs_drive(floor["T_wh_C"], floor["mcp_MW_per_K"], t_ret, mw_out)
-            return pt
-        if mw_out <= floor["MW_out"]:
-            hp = max(0.0, mw_out - floor["MW_hx"] - floor["MW_boiler_lift"])   # never negative
-            frac = hp / floor["MW_hp"] if floor["MW_hp"] > 0 else 0.0
-            boiler = floor["MW_boiler_lift"] if hp > 0 else mw_out - floor["MW_hx"]   # the rest, >= 0 since mw_out > MW_hx
-            pt = {**floor, "MW_hp": hp, "MW_el_hp": frac * floor["MW_el_hp"], "MW_boiler_lift": boiler, "MW_out": mw_out}
-            pt["MW_brine_left"] = (1 - frac) * (floor["MW_hp"] - floor["MW_el_hp"])
-            return pt
-        mw = float(min(mw_out, self.out_max))
-        pt = {k: float(np.interp(mw, c["MW_out"], v)) for k, v in c.items()}
-        pt["MW_brine_left"] = 0.0
+        if mw_out <= floor["MW_out"] and not self.heat_pump:
+            pt = _hold_split(floor, mw_out, t_ret)
+            pt["MW_abs_drive"] = _abs_drive(floor["T_wh_C"], floor["mcp_MW_per_K"], t_ret, pt["MW_hx"])
+        elif mw_out <= floor["MW_out"]:
+            pt = _chiller_first(floor, mw_out, t_ret) or _hold_split(floor, mw_out, t_ret)
+        else:
+            mw = float(min(mw_out, self.out_max))
+            pt = {k: float(np.interp(mw, c["MW_out"], v)) for k, v in c.items()}
+            pt["MW_brine_left"], pt["part_load"] = 0.0, "full"
+        pt["t_hx_C"] = _t_hx(pt, t_ret)
         return pt

@@ -197,6 +197,8 @@ def plan(brief):
                  ("cooling_year", {"t_return_c": t, "n_doublets": n, **peaks}), ("injector_point", {"q_m3h": 300, **dep}),
                  ("gas_point", {"q_m3h": 300, **well}), ("lifetime_point", {"n_doublets": n, "t_return_c": t, **heat, **life})):
         out.append({"name": k, "args": a, "result": call(k, a)})
+    rep = {"n_doublets": n, "t_return_c": t, **{k: design[k] for k in ("depth_m", "esp_depth_m") if k in design}}
+    out.append({"name": "gemini_replay", "args": rep, "result": call("gemini_replay", rep)})   # GEMINI's own solver on the design
     trace = iterations(sweeps, (n, t))
     by = {}
     for st in trace:
@@ -248,11 +250,12 @@ def plan_message(brief, out):
             f"{row['boiler_GWh']} GWh of {row['served_GWh']} GWh served ({row['boiler_share_pct']} %), unmet {row['unmet_GWh']} GWh [C]"
             + ("; so boiler_needed_for_energy is true" if row["boiler_GWh"] > 0.01 else "") + "."
             + (f"\nLCoH {lcoh} [C]." if lcoh else "")
-            + "\nFormat: reasoning is a JSON list of 3 to 12 separate strings, one sentence per string, each with its own tag; "
+            + "\nFormat: reasoning is a JSON list of 3 to 15 separate strings, one sentence per string, each with its own tag; "
               "never join sentences with ';' into one string."
             + "\n" + iteration_lines(it, out)
             + pareto_lines(out)
             + gas_lifetime(out)
+            + verification_line(out)
             + "\nRejected alternatives (say each in rejected_alternatives with its number and tag, copying these sentences):\n"
             + "\n".join(f"- {x}" for x in rejected(out, n, t)))
 
@@ -299,6 +302,19 @@ def pareto_lines(out):
             "follow it; the row best on the priority is the default; another row is allowed only within 5 % of the best on the "
             "priority objective. trade_off is one sentence with the chosen row's LCoH and CO2 and what it gives up against the "
             "other end of the front, each number tagged [C].")
+
+
+def verification_line(out):
+    """The gemini_replay verdict for the model, with the exact gemini_verification string (first sentence + any shortfall)."""
+    r = next((r["result"] for r in out if r["name"] == "gemini_replay"), None)
+    if r is None:
+        return ""
+    verdict = r.get("verdict") or f"gemini_replay returned an error: {r.get('error')}"
+    keep = [s for i, s in enumerate(verdict.split(". ")) if i == 0 or "reaches only" in s]
+    text = ". ".join(x.rstrip(".") for x in keep) + "."
+    return ("\nGEMINI verification (gemini_replay verdict): " + verdict
+            + f'\ngemini_verification is exactly this string: "{text}" Do not repeat it in reasoning; one reasoning item may say '
+              f"that GEMINI's own solver re-ran the design on {r.get('n_days', 3)} days [C].")
 
 
 def gas_lifetime(out):
