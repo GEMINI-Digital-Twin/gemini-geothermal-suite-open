@@ -18,7 +18,8 @@ class Flare(Equipment, Module):
     unburnt, to ``Atmosphere.gas_in``; ``combustion_efficiency`` is stated by the plant; 98 % is the
     figure for a well-operated flare (US EPA, AP-42,
     5th ed., section 13.5 "Industrial Flares", 2018). ``burned_mass_flow`` closes ``mass_balance``.
-    The chemical power burned is ``fuel``; it leaves as heat through ``loss_out``.
+    The chemical power burned is ``fuel``; it leaves as heat through ``loss_out``. H2S in the gas
+    burns too: it adds to ``fuel`` and forms no CO2; the SO2 it forms is not reported.
     """
 
     bypass = {}

@@ -97,7 +97,11 @@ Constant fluid properties inherited from GEMINI's PVTConstantSTP model.
 ### `gas.py`
 
 A gas from its composition, a mapping of species to mole fraction (`SPECIES`: `CH4`, `C2H6`, `C3H8`,
-`CO2`, `N2`, with molar mass, lower heating value and burning carbon atoms).
+`CO2`, `N2`, `O2`, `H2S`, with molar mass, lower heating value and burning carbon atoms). It is the
+one list of gas species: stream compositions, `site.fluid.dissolved_gas` (`CH4`, `CO2`, `N2`, `H2S`)
+and `utilities.gas.composition` (all of them) take theirs from it. H2S burns to SO2 and water
+(lower heating value 518.07 kJ/mol from NIST formation enthalpies), adding heat and no CO2; no
+module reports the SO2.
 
 - `molar_mass(composition)` [kg/mol]; `mass_fraction(composition, species)` [-].
 - `ideal_gas_density(pressure, temperature, mass_per_mole)` [kg/m3], `normal_density(composition)` at

@@ -1,5 +1,7 @@
 """The closed lists of the case: equipment kinds with their cost basis, and gas species."""
 
+from gemini.physics import gas
+
 EQUIPMENT_KINDS = {
     "drilling": ("money_per_length", "per metre of well"),
     "production_pump": ("money_per_power", "per W of shaft power at the nominal flow"),
@@ -89,8 +91,9 @@ PRODUCTS = {
 
 A module of such a kind names the ports of its product (``Equipment.product``)."""
 
-GAS_SPECIES = ("CH4", "CO2", "N2", "H2S")
-"""The species of ``site.fluid.dissolved_gas``."""
-
-GRID_GAS_SPECIES = ("CH4", "C2H6", "C3H8", "CO2", "N2", "O2")
+GRID_GAS_SPECIES = tuple(gas.SPECIES)
 """The species of ``utilities.gas.composition``: ``SPECIES`` of ``gemini.physics.gas``."""
+
+GAS_SPECIES = tuple(name for name in gas.SPECIES if name in ("CH4", "CO2", "N2", "H2S"))
+"""The species of ``site.fluid.dissolved_gas``: those of ``SPECIES`` of ``gemini.physics.gas`` a
+reservoir brine carries, so a stream takes every species a case accepts."""

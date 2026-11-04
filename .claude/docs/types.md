@@ -167,7 +167,7 @@ viscosity: the fluid owns its properties. A value that does not fit raises `Vali
 
 Free gas is `gas_liquid_ratio` (normal m3 of free gas per m3 of produced liquid, at 0 degC and
 1.01325 bar a, unit `Nm3/m3`) with `gas_composition` (mole fractions summing to one; species `CH4`,
-`C2H6`, `C3H8`, `CO2`, `N2`), which derive `gas_mass_fraction` through `physics/gas.py`, or
+`C2H6`, `C3H8`, `CO2`, `N2`, `O2`, `H2S`, the `SPECIES` of `physics/gas.py`), which derive `gas_mass_fraction` through `physics/gas.py`, or
 `gas_mass_fraction` directly; giving both raises `ValidationError`. A dump leaves the derived
 fraction out, so it reads back.
 

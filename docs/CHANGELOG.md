@@ -12,6 +12,25 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.4] - 2026-11-04
+
+A bug fix, additive: everything that worked on 0.6.3 works the same, and `examples/hackathon.py`
+prints the same output.
+
+### Fixed
+- A case whose `site.fluid.dissolved_gas` names `H2S` (even at 0 mol%) passed `set_case` and
+  `gm.check`, then failed in `build_plant`/`simulate` with `gas composition: species = 'H2S'`.
+  `H2S` is now a species of `gemini.physics.gas.SPECIES`, the one list of gas species:
+  `site.fluid.dissolved_gas` (`CH4`, `CO2`, `N2`, `H2S`, unchanged) and
+  `utilities.gas.composition` take their species from it, so the case reader can no longer accept
+  a species a stream refuses (a test holds the two together).
+
+### Added
+- `H2S` in any gas composition (`Fluid.gas_composition`, `utilities.gas.composition`): molar
+  mass 34.081 g/mol, lower heating value 518.07 kJ/mol (H2S + 3/2 O2 -> SO2 + H2O, NIST
+  formation enthalpies), no carbon. It adds heat in boilers, CHPs and flares and forms no CO2;
+  the SO2 it forms is not reported by any module.
+
 ## [0.6.3] - 2026-11-04
 
 The app team's requests 11, 12, 16, 17, 22 and 26 to 31, as far as they are gemini's. Additive:

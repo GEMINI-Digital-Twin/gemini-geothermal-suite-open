@@ -137,3 +137,56 @@ def test_the_chain_conserves_the_carbon_it_reports():
     expected = boiler_burnt * (formed + carried)
     expected += flared * (carried + combustion.FLARE_EFFICIENCY * formed)
     assert result.leaves()["air"].outputs.co2_emission == pytest.approx(expected)
+
+
+SOUR = {"CH4": 0.75, "CO2": 0.2, "H2S": 0.05}
+
+
+def run_sour(setpoint):
+    """Return the plant and one call of the chain on a brine whose gas holds 5 mol% H2S."""
+    plant = chain()
+    plant.boiler.temperature_setpoint = setpoint
+    plant.air.temperature = {"value": 15, "unit": "degC"}
+    brine = gm.Fluid(
+        density={"value": 1030, "unit": "kg/m3"},
+        viscosity={"value": 0.4, "unit": "mPa*s"},
+        gas_liquid_ratio={"value": 0.8, "unit": "Nm3/m3"},
+        gas_composition=SOUR,
+    )
+    produced = gm.Stream(
+        flow={"value": 300, "unit": "m3/h"},
+        T={"value": 80, "unit": "degC"},
+        p={"value": 10, "unit": "bar"},
+        fluid=brine,
+    )
+    return plant, plant(produced=produced, water_in=WATER)
+
+
+@pytest.mark.parametrize(
+    "setpoint",
+    [{"value": 65, "unit": "degC"}, {"value": 95, "unit": "degC"}],
+    ids=["surplus", "short"],
+)
+def test_a_sour_gas_closes_the_balances_of_the_chain(setpoint):
+    """H2S is carried, burnt in the boiler and at the flare; mass and energy still close."""
+    plant, result = run_sour(setpoint)
+    assert call_mass_balance(plant, result)["relative_residual"] < 1e-12
+    assert call_energy_balance(plant, result)["relative_thermal_residual"] < 1e-12
+
+
+def test_h2s_adds_heat_and_no_carbon():
+    """The gas burns at its sour heating value; the CO2 is that of its carbon alone."""
+    _, result = run_sour({"value": 65, "unit": "degC"})
+    leaves = result.leaves()
+    gas_out = leaves["degasser"].outlets.gas_out
+    assert gas_out.fluid.heating_value() == pytest.approx(gas.lower_heating_value(SOUR))
+    boiler_burnt = leaves["boiler"].inlets.fuel_in.m_dot
+    assert leaves["makeup"].inlets.grid_in.m_dot == 0
+    assert boiler_burnt * gas.lower_heating_value(SOUR) == pytest.approx(
+        leaves["boiler"].outputs.fuel
+    )
+    flared = gas_out.m_dot - boiler_burnt
+    formed, carried = gas.combustion_co2(SOUR), gas.mass_fraction(SOUR, "CO2")
+    expected = boiler_burnt * (formed + carried)
+    expected += flared * (carried + combustion.FLARE_EFFICIENCY * formed)
+    assert leaves["air"].outputs.co2_emission == pytest.approx(expected)

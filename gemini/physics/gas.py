@@ -34,12 +34,21 @@ SPECIES = {
     "CO2": (float(constants.CO2_MOLAR_MASS), 0.0, 0),
     "N2": (0.0280134, 0.0, 0),
     "O2": (0.0319988, 0.0, 0),
+    "H2S": (0.034081, 518.07e3, 0),
 }
 """Molar mass [kg/mol], lower heating value [J/mol] and carbon atoms burnt to CO2 per species.
 
+The one list of gas species of gemini: ``Fluid.gas_composition``, ``site.fluid.dissolved_gas`` and
+``utilities.gas.composition`` all take their species from it.
+
 Heating values: gas-phase standard enthalpy of combustion of the NIST Chemistry WebBook (890.3,
 1560.7 and 2219.2 kJ/mol) less the latent heat of the water formed (44.0 kJ/mol H2O). Molar masses:
-IUPAC 2013 standard atomic weights. CO2 and N2 do not burn; the CO2 of a gas is carried through.
+IUPAC 2013 standard atomic weights. CO2, N2 and O2 do not burn; the CO2 of a gas is carried through.
+
+H2S burns as H2S + 3/2 O2 -> SO2 + H2O. From the standard enthalpies of formation of the NIST
+Chemistry WebBook (H2S -20.6, SO2 -296.84, H2O gas -241.826 kJ/mol) its lower heating value is
+518.07 kJ/mol (higher 562.1 kJ/mol). It holds no carbon, so it adds heat and no CO2; the SO2 it
+forms is not reported by any module. Molar mass 34.081 g/mol (IUPAC 2013: 2 x 1.008 + 32.065).
 """
 
 COMPOSITION_TOLERANCE = 1e-9

@@ -212,3 +212,16 @@ def test_a_margin_needs_the_supply_temperature_of_the_case():
     with raises(gm.errors.ValidationError, "missing_value") as caught:
         apply_case(sample_plant(), bare)
     assert caught.value.path == "demand.heating.supply_temperature"
+
+
+def test_a_case_with_h2s_in_the_dissolved_gas_reaches_the_plant():
+    """``site.fluid.dissolved_gas.H2S`` is a stream species too, even at 0 mol% (0.6.4 fix)."""
+
+    def mix(co2, h2s):
+        return {"CH4": {"value": 0.8}, "CO2": {"value": co2}, "H2S": {"value": h2s, "unit": "mol%"}}
+
+    for given, expected in ((mix(0.15, 5), 0.05), (mix(0.2, 0), 0.0)):
+        case = sample_case().to_dict()
+        case["site"]["fluid"]["dissolved_gas"] = given
+        applied = apply_case(sample_plant(), gm.Case.from_dict(case, files=sample_case().files()))
+        assert applied.d1.well.fluid.gas_composition["H2S"] == pytest.approx(expected)

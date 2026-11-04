@@ -181,3 +181,24 @@ def test_overall_ratio_power_and_heat_rejected():
     assert_function_matches(gas.heat_rejected, rows, stages=2)
     assert_function_matches(gas.shaft_power, rows)
     assert_function_matches(gas.overall_pressure_ratio, [(12e5, 4e5), (1e5, 1e5)])
+
+
+def test_hydrogen_sulfide_burns_to_so2_and_water_and_carries_no_carbon():
+    """34.08 g/mol; LHV 518.1 kJ/mol from the formation enthalpies; no CO2 formed."""
+    molar_mass, heating_value, carbon = gas.SPECIES["H2S"]
+    assert molar_mass == pytest.approx(0.034081, rel=1e-4)
+    assert heating_value == pytest.approx(-(-296.84 - 241.826 + 20.6) * 1e3, rel=1e-4)
+    assert carbon == 0
+    sour = {"CH4": 0.9, "H2S": 0.1}
+    assert gas.lower_heating_value(sour) == pytest.approx(
+        (0.9 * 802.3e3 + 0.1 * 518.07e3) / gas.molar_mass(sour), rel=1e-4
+    )
+    assert gas.combustion_co2({"H2S": 1.0}) == 0
+
+
+def test_every_species_a_case_names_is_a_species_of_the_gas_code():
+    """One source: the case reader never accepts a species that a stream would refuse."""
+    from gemini.case._utils import kinds
+
+    assert set(kinds.GAS_SPECIES) <= set(gas.SPECIES)
+    assert tuple(kinds.GRID_GAS_SPECIES) == tuple(gas.SPECIES)

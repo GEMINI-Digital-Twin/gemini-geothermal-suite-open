@@ -9643,6 +9643,85 @@
                     "ppm"
                   ]
                 },
+                "H2S": {
+                  "additionalProperties": false,
+                  "description": "The entry of this map for H2S.",
+                  "properties": {
+                    "range": {
+                      "additionalProperties": false,
+                      "description": "Deprecated on a case or economics leaf (a check reports it as a warning): the interval the value may take, in the unit of the leaf; either side optional.",
+                      "properties": {
+                        "max": {
+                          "description": "The highest value, in the unit of the leaf.",
+                          "type": "number"
+                        },
+                        "min": {
+                          "description": "The lowest value, in the unit of the leaf.",
+                          "type": "number"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "uncertainty": {
+                      "additionalProperties": false,
+                      "description": "The spread of the value that a sample or a sensitivity study draws from, in the unit of the leaf: min and max for uniform and triangular, std for normal.",
+                      "properties": {
+                        "kind": {
+                          "description": "The distribution: uniform, triangular (peak at value) or normal.",
+                          "enum": [
+                            "uniform",
+                            "triangular",
+                            "normal"
+                          ]
+                        },
+                        "max": {
+                          "description": "The highest value drawn (uniform, triangular).",
+                          "type": "number"
+                        },
+                        "min": {
+                          "description": "The lowest value drawn (uniform, triangular).",
+                          "type": "number"
+                        },
+                        "std": {
+                          "description": "The standard deviation around the value (normal).",
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "unit": {
+                      "description": "The unit of the value and of its range and uncertainty.",
+                      "enum": [
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
+                    "value": {
+                      "description": "The value, in its unit.",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "type": "object",
+                  "x-fraction": true,
+                  "x-limits": {
+                    "max": 1.0,
+                    "min": 0.0
+                  },
+                  "x-units": [
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
+                },
                 "N2": {
                   "additionalProperties": false,
                   "description": "The entry of this map for N2.",

@@ -20,7 +20,7 @@ def test_the_kinds_are_the_list_of_the_task():
 
 
 def test_the_gas_species_are_closed():
-    """Four species."""
+    """Four species, all of them species of the gas physics."""
     assert kinds.GAS_SPECIES == ("CH4", "CO2", "N2", "H2S")
 
 
