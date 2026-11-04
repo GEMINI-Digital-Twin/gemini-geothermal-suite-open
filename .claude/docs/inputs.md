@@ -135,6 +135,7 @@ path, so the world stays one object and signatures stay `(plant, case)`. It repl
 | `capex.<equipment kind>` | market prices of equipment kinds; the kind list is `gm.case.Capex` (the `equipment_kind` of the modules), so a case prices kinds, not modules. The unit tells the basis a catalogue publishes: a heat exchanger per W/K or per W of nominal duty, a storage per m3 or per MWh, a production pump per W or per unit; the size of another basis is a design value of the module (`nominal_duty`, `energy_capacity`), so it stays in the plant |
 | `capex.drilling` | per metre, or a depth table (`{"depth": [...], "cost_per_metre": [...]}`) because published costs rise with depth |
 | `opex.fixed.<kind>` | percent of capex per year, market practice per kind; or, for a kind sized by a power, an amount per capacity and year (`EUR/MW/yr`), the unit telling which |
+| `opex.per_energy.<kind>` | variable O&M per energy each unit of a producing kind makes (`EUR/MWh`), market practice per kind like the fixed opex |
 | `opex.variable`: `chemical`, `waste_disposal` (no other name) | consumables priced by the market, per kg; `chemical` is every product drawn from a `ChemicalGrid` (a scale or a corrosion inhibitor alike) |
 | `energy.electricity`, `energy.gas` (constant or series) | money, so here, not in `utilities` (P1: the grid's physics and its tariff are two values with two owners) |
 | `carbon.price` | money per tonne CO2-equivalent |

@@ -160,7 +160,8 @@ and the case holds it as `case.economics`, `None` for a pure physics case. Field
 [economics.md](economics.md#costs); the unit tells the basis: a heat exchanger per W/K or per W
 of nominal duty, a storage per m3 or per MWh stored, a production pump per W or per unit),
 `opex.fixed.<kind>` (a share of capex per year, or per capacity and year in `EUR/MW/yr` for a kind
-sized by a power), `opex.variable.chemical` and
+sized by a power), `opex.per_energy.<kind>` (variable O&M per energy produced, for the kinds that
+produce an energy), `opex.variable.chemical` and
 `waste_disposal`, `energy.electricity` and `gas`, `carbon.price`, `revenue.heat`, `cold` and
 `subsidy` (`amount` per year, or per energy of the useful heat in `EUR/MWh`, `duration`, and for an
 amount per energy an optional `cap`, `MWh/yr` or full-load hours `h/yr` times `capacity`), `accounting.allocation.heat_cost_share` and

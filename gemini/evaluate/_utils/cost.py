@@ -2,12 +2,15 @@
 
 import numpy as np
 
+from gemini._utils.strings import join_path
 from gemini.case._utils.access import require
+from gemini.case._utils.kinds import PRODUCTS
 from gemini.evaluate._utils import pricing
 from gemini.evaluate._utils.co2_steps import emitted_steps
 from gemini.evaluate._utils.flows import Flows
 from gemini.evaluate._utils.level import level
 from gemini.evaluate._utils.outcome import unavailable
+from gemini.evaluate._utils.series import energy
 from gemini.units import SECONDS_PER_YEAR
 from gemini.units.shapes import measure
 
@@ -90,6 +93,45 @@ def _bills(flows, case, results, plant):
     return bills
 
 
+def _produced(path, module, frame, seconds):
+    """Return the energy [J] that the module at ``path`` produced over the run; NaN ticks add none.
+
+    A column the run lacks adds nothing.
+    """
+    first, second = module.product()
+    power = frame.get(join_path(path, first))
+    if power is None:
+        return 0.0
+    if second is not None:
+        inlet = frame.get(join_path(path, second))
+        power = power if inlet is None else power - inlet
+    return energy(power, seconds)
+
+
+def per_energy_opex(plant, case, results):
+    """Return the variable opex of a year [currency/yr] of each producing kind, or ``None``.
+
+    ``economics.opex.per_energy`` prices the energy each unit of a kind produces
+    (``Equipment.product``), scaled from the run to a year. Without that map there is none; with
+    it, a producing kind the plant uses and the map lacks raises ``missing_assumption``.
+    """
+    economics = require(case, ECONOMICS)
+    prices = None if economics.opex is None else economics.opex.per_energy
+    if prices is None:
+        return None
+    frame, seconds = results.to_frame(), results.durations
+    scale = SECONDS_PER_YEAR / seconds.sum()
+    amounts = {}
+    for path, module in equipment(plant).items():
+        kind = module.equipment_kind
+        if kind not in PRODUCTS:
+            continue
+        price = require(prices, kind, f"{ECONOMICS}.opex.per_energy")
+        produced = _produced(path, module, frame, seconds) * scale
+        amounts[kind] = amounts.get(kind, 0.0) + price * produced
+    return amounts
+
+
 def _components(amounts, unit):
     """Return each amount of a cost as a value."""
     return {name: measure(amount, unit) for name, amount in amounts.items()}
@@ -104,9 +146,14 @@ def yearly_cost(plant, case, results, on_error):
         return unavailable(unit, NO_COST, on_error, components=_components(bills, unit))
     by_kind = fixed_opex(plant, case)
     components = {"fixed": sum(by_kind.values()), **bills}
+    parts = {"fixed_by_kind": _components(by_kind, unit)}
+    variable = per_energy_opex(plant, case, results)
+    if variable is not None:
+        components["per_energy"] = sum(variable.values())
+        parts["per_energy_by_kind"] = _components(variable, unit)
     return measure(
         sum(components.values()),
         unit,
         components=_components(components, unit),
-        fixed_by_kind=_components(by_kind, unit),
+        **parts,
     )

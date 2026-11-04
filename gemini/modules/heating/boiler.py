@@ -59,6 +59,10 @@ class _BoilerBody(Equipment, Module):
         """Return the size that the cost of the boiler scales with: capacity."""
         return self.capacity
 
+    def product(self):
+        """Return the heat the water gains: its outlet less its inlet enthalpy flow."""
+        return ("fluid_out.enthalpy_flow", "fluid_in.enthalpy_flow")
+
     def _requested_duty(self, inputs, inlet):
         """Return the duty [W] that reaches the setpoint, refusing reverse flow."""
         require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)

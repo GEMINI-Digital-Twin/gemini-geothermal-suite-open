@@ -112,7 +112,9 @@ Shared conventions, stated once here and not repeated per module:
 
 A module that is equipment subclasses the mixin `Equipment` (`gemini/modules/_utils/equipment.py`), sets
 `equipment_kind` to one of the 19 kinds of `gm.case.Capex` and defines `cost_size()`, the size its
-cost scales with, and, for a kind with another cost basis, `cost_size_of(quantity)`; `gemini/evaluate` prices it, and the fixed opex is the share of the kind times
+cost scales with, and, for a kind with another cost basis, `cost_size_of(quantity)`; a unit that
+produces an energy names the port fields of its product with `product()` (for a variable opex
+per energy produced); `gemini/evaluate` prices it, and the fixed opex is the share of the kind times
 that capex. The factor is read from `case.economics`; one the case lacks raises `missing_assumption` naming its path. These
 modules are equipment, with the size the factor multiplies ([economics.md](economics.md#costs)):
 

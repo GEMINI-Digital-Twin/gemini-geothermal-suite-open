@@ -190,6 +190,12 @@ class HeatPump(Equipment, Module):
         """Return the size that the cost of the machine scales with: capacity."""
         return self.capacity
 
+    def product(self):
+        """Return the sink's heat gain, or in cooling mode the source's heat loss (the cold)."""
+        if self.mode == "cooling":
+            return ("source_in.enthalpy_flow", "source_out.enthalpy_flow")
+        return ("sink_out.enthalpy_flow", "sink_in.enthalpy_flow")
+
     def _performance(self, inputs, source_in, sink_in):
         """Return every output; the outlet temperatures [K] also define the outlets."""
         source_rate = _rate(self.path, "source_in", source_in)

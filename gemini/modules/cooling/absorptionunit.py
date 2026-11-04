@@ -188,6 +188,12 @@ class AbsorptionUnit(Equipment, Module):
         """Return the size that the cost of the absorption unit scales with: capacity."""
         return self.capacity
 
+    def product(self):
+        """Return the cold the chilled water loses, or as a heat pump the heat its circuit gains."""
+        if self.mode == "heat_pump":
+            return ("cooling_out.enthalpy_flow", "cooling_in.enthalpy_flow")
+        return ("chilled_in.enthalpy_flow", "chilled_out.enthalpy_flow")
+
     def _performance(self, inputs, inlets):
         """Return the duties [W], COP and outlet temperatures [K] of one operating point."""
         generator_in, chilled_in, cooling_in = (

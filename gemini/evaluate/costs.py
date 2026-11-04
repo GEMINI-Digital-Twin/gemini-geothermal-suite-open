@@ -58,7 +58,8 @@ def opex(plant, case, results, on_error="raise", *, units="si"):
     fuel, the waste and the chemicals, and the CO2 emitted per year at ``opex.co2`` when the case
     gives it. The run is scaled to a year. A price along the demand is integrated over the run:
     the power of each step times its price. A share the case lacks for a kind the plant uses
-    raises ``missing_assumption`` naming ``economics.opex.fixed.<kind>``.
+    raises ``missing_assumption`` naming ``economics.opex.fixed.<kind>``. With
+    ``economics.opex.per_energy``, the energy each unit of a producing kind made is priced too.
 
     Parameters
     ----------
@@ -83,8 +84,9 @@ def opex(plant, case, results, on_error="raise", *, units="si"):
         gives the JSON). ``{value, unit, components, fixed_by_kind}`` with ``unit`` the currency
         per year, ``components`` ``{fixed, electricity, fuel, waste, chemical}`` and ``co2`` with a
         price for it, and ``fixed_by_kind`` the fixed opex of each kind of equipment, each a value
-        in that unit. With no equipment and ``on_error="record"``, ``value`` is ``None`` with a
-        ``reason``, and only the bills are given.
+        in that unit; with ``economics.opex.per_energy``, ``components`` has ``per_energy`` and
+        ``per_energy_by_kind`` gives it by kind. With no equipment and ``on_error="record"``,
+        ``value`` is ``None`` with a ``reason``, and only the bills are given.
     """
     return displayed(
         units,

@@ -4784,6 +4784,538 @@
                     "1/yr"
                   ]
                 },
+                "per_energy": {
+                  "additionalProperties": false,
+                  "description": "Variable operation and maintenance of each kind that produces an energy, per energy each unit of the kind produces (EUR/MWh): boiler: heat; electric_boiler: heat; chp: electricity; heat_pump: heat; compression_chiller: cold; absorption_chiller: cold, or heat in heat pump mode; adsorption_chiller: cold. Given, every producing kind a plant uses needs one (missing_assumption)",
+                  "properties": {
+                    "absorption_chiller": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "range": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "uncertainty": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "enum": [
+                                "uniform",
+                                "triangular",
+                                "normal"
+                              ]
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            },
+                            "std": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        },
+                        "unit": {
+                          "enum": [
+                            "EUR/J",
+                            "EUR/MWh",
+                            "EUR/kWh",
+                            "currency/J",
+                            "currency/MWh",
+                            "currency/kWh"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/J"
+                      },
+                      "x-quantity": "money_per_energy",
+                      "x-units": [
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
+                      ]
+                    },
+                    "adsorption_chiller": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "range": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "uncertainty": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "enum": [
+                                "uniform",
+                                "triangular",
+                                "normal"
+                              ]
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            },
+                            "std": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        },
+                        "unit": {
+                          "enum": [
+                            "EUR/J",
+                            "EUR/MWh",
+                            "EUR/kWh",
+                            "currency/J",
+                            "currency/MWh",
+                            "currency/kWh"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/J"
+                      },
+                      "x-quantity": "money_per_energy",
+                      "x-units": [
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
+                      ]
+                    },
+                    "boiler": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "range": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "uncertainty": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "enum": [
+                                "uniform",
+                                "triangular",
+                                "normal"
+                              ]
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            },
+                            "std": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        },
+                        "unit": {
+                          "enum": [
+                            "EUR/J",
+                            "EUR/MWh",
+                            "EUR/kWh",
+                            "currency/J",
+                            "currency/MWh",
+                            "currency/kWh"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/J"
+                      },
+                      "x-quantity": "money_per_energy",
+                      "x-units": [
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
+                      ]
+                    },
+                    "chp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "range": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "uncertainty": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "enum": [
+                                "uniform",
+                                "triangular",
+                                "normal"
+                              ]
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            },
+                            "std": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        },
+                        "unit": {
+                          "enum": [
+                            "EUR/J",
+                            "EUR/MWh",
+                            "EUR/kWh",
+                            "currency/J",
+                            "currency/MWh",
+                            "currency/kWh"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/J"
+                      },
+                      "x-quantity": "money_per_energy",
+                      "x-units": [
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
+                      ]
+                    },
+                    "compression_chiller": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "range": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "uncertainty": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "enum": [
+                                "uniform",
+                                "triangular",
+                                "normal"
+                              ]
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            },
+                            "std": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        },
+                        "unit": {
+                          "enum": [
+                            "EUR/J",
+                            "EUR/MWh",
+                            "EUR/kWh",
+                            "currency/J",
+                            "currency/MWh",
+                            "currency/kWh"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/J"
+                      },
+                      "x-quantity": "money_per_energy",
+                      "x-units": [
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
+                      ]
+                    },
+                    "electric_boiler": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "range": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "uncertainty": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "enum": [
+                                "uniform",
+                                "triangular",
+                                "normal"
+                              ]
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            },
+                            "std": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        },
+                        "unit": {
+                          "enum": [
+                            "EUR/J",
+                            "EUR/MWh",
+                            "EUR/kWh",
+                            "currency/J",
+                            "currency/MWh",
+                            "currency/kWh"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/J"
+                      },
+                      "x-quantity": "money_per_energy",
+                      "x-units": [
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
+                      ]
+                    },
+                    "heat_pump": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "range": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "uncertainty": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "enum": [
+                                "uniform",
+                                "triangular",
+                                "normal"
+                              ]
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "min": {
+                              "type": "number"
+                            },
+                            "std": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ],
+                          "type": "object"
+                        },
+                        "unit": {
+                          "enum": [
+                            "EUR/J",
+                            "EUR/MWh",
+                            "EUR/kWh",
+                            "currency/J",
+                            "currency/MWh",
+                            "currency/kWh"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "type": "object",
+                      "x-limits": {
+                        "min": 0.0,
+                        "unit": "currency/J"
+                      },
+                      "x-quantity": "money_per_energy",
+                      "x-units": [
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
+                      ]
+                    }
+                  },
+                  "required": [],
+                  "type": "object",
+                  "x-limits": {
+                    "min": 0.0,
+                    "unit": "currency/J"
+                  },
+                  "x-quantity": "money_per_energy",
+                  "x-units": [
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
+                  ]
+                },
                 "variable": {
                   "additionalProperties": false,
                   "description": "The consumables priced by the market, per kg; the names accepted are chemical and waste_disposal and no other",

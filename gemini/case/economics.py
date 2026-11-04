@@ -8,7 +8,7 @@ from gemini import units
 from gemini._utils.strings import join_path
 from gemini.case._utils import schema
 from gemini.case._utils.access import require
-from gemini.case._utils.kinds import CAPEX_BASES, EQUIPMENT_KINDS, POWER_KINDS
+from gemini.case._utils.kinds import CAPEX_BASES, EQUIPMENT_KINDS, POWER_KINDS, PRODUCTS
 from gemini.case._utils.node import Field, Frozen, Node, issue, load, write
 from gemini.case.site import FRACTION, POSITIVE
 from gemini.errors import ValidationError
@@ -193,7 +193,9 @@ class Opex(Node):
 
     ``fixed`` is a dict of the yearly share [1/yr] of the capex of each kind, or, for a kind of
     ``POWER_KINDS`` given in ``currency/W/yr``, the yearly amount per W of its capacity; the unit
-    tells which. ``variable`` holds the consumables.
+    tells which. ``per_energy`` is a dict of the variable cost of each kind of
+    ``gemini.case._utils.kinds.PRODUCTS`` per J it produces [currency/J]; absent, there is none.
+    ``variable`` holds the consumables.
     """
 
     where = "economics.opex"
@@ -211,7 +213,18 @@ class Opex(Node):
             ),
             alternatives=("annual_money_per_power",),
             alternative_keys=POWER_KINDS,
-        )
+        ),
+        "per_energy": Field(
+            "money_per_energy",
+            keys=tuple(PRODUCTS),
+            bounds=POSITIVE,
+            description=(
+                "Variable operation and maintenance of each kind that produces an energy, per "
+                "energy each unit of the kind produces (EUR/MWh): "
+                + "; ".join(f"{kind}: {made}" for kind, made in PRODUCTS.items())
+                + ". Given, every producing kind a plant uses needs one (missing_assumption)"
+            ),
+        ),
     }
     sections = {"variable": Variable}
 

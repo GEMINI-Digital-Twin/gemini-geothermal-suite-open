@@ -28,6 +28,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   (`MWh/yr`) or full-load hours per year (`h/yr`) times the new `capacity` it is granted for (absent
   with a cap in hours: `missing_assumption`). A cap on an amount per year is refused. `npv` and
   `payback` count it. New units `h/yr`, `s/yr` (quantity `annual_duration`, shown in `h/yr`).
+- `economics.opex.per_energy.<kind>`: a variable O&M per energy produced (`EUR/MWh`) for the kinds
+  that produce an energy (`chp` its electricity, `boiler`, `electric_boiler`, `heat_pump` their
+  heat, the chillers their cold), on what each unit produced in the run, scaled to a year. `opex`
+  gains `components["per_energy"]` and `per_energy_by_kind` only when the case gives the map;
+  with it, a producing kind the plant uses needs a price. `Equipment.product()` names the ports.
 
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,

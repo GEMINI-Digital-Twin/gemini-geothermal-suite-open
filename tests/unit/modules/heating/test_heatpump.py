@@ -349,3 +349,14 @@ def test_a_source_outlet_exactly_at_the_minimum_is_not_capped():
     )
     assert limited.source_out_T == free.source_out_T
     assert limited.useful_duty == free.useful_duty and limited.is_capped == free.is_capped
+
+
+def test_the_product_of_a_heat_pump_is_its_heat_or_in_cooling_its_cold():
+    """The sink's gain in heating mode, the source's loss in cooling mode."""
+    from gemini.modules.heating import HeatPump
+
+    pump = HeatPump()
+    pump.mode = "heating"
+    assert pump.product() == ("sink_out.enthalpy_flow", "sink_in.enthalpy_flow")
+    pump.mode = "cooling"
+    assert pump.product() == ("source_in.enthalpy_flow", "source_out.enthalpy_flow")

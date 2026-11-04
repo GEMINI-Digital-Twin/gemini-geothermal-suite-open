@@ -29,6 +29,15 @@ class Equipment:
         """
         return None
 
+    def product(self):
+        """Return the port fields whose difference is the power [W] this unit produces.
+
+        ``(first, second)`` gives ``first - second`` (an outlet less an inlet enthalpy flow), and
+        ``(field, None)`` the field alone (a power port); ``None`` for a unit that produces no
+        energy. A variable opex per energy produced multiplies its energy.
+        """
+        return None
+
     def missing_size(self, name):
         """Return the ``missing_value`` error of the design value ``name`` that sizes a cost."""
         path = f"{self.path}.{name}" if getattr(self, "path", "") else name

@@ -239,3 +239,19 @@ def test_the_schema_lists_the_fixed_opex_bases_per_kind():
     assert list(fixed["properties"]["chp"]["x-bases"]) == ["annual_rate", "annual_money_per_power"]
     assert "x-bases" not in fixed["properties"]["pipe"] and "x-bases" not in fixed
     assert "EUR/MW/yr" in fixed["description"]
+
+
+def test_a_variable_opex_per_energy_produced_is_read_per_producing_kind(money):
+    """``opex.per_energy.<kind>`` in EUR/MWh, for the kinds that produce an energy only."""
+    money["opex"]["per_energy"] = {
+        "chp": {"value": 5.4, "unit": "EUR/MWh"},
+        "boiler": {"value": 1, "unit": "EUR/MWh"},
+    }
+    found = gm.case.Economics.from_dict(money)
+    assert found.opex.per_energy["chp"] == pytest.approx(5.4 / 3.6e9)
+    assert found.to_dict() == money
+    money["opex"]["per_energy"]["pipe"] = {"value": 1, "unit": "EUR/MWh"}
+    with raises(gm.errors.ValidationError, "unknown_name", match=r"per_energy\.pipe"):
+        gm.case.Economics.from_dict(money)
+    per_energy = gm.case.Economics.schema()["properties"]["opex"]["properties"]["per_energy"]
+    assert "electricity" in per_energy["description"] and "chp" in per_energy["properties"]

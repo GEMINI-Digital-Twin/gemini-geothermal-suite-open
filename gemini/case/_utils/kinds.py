@@ -54,6 +54,19 @@ POWER_KINDS = tuple(
 )
 """The kinds whose modules have a size in power, the capacity of a fixed opex per W and year."""
 
+PRODUCTS = {
+    "boiler": "heat",
+    "electric_boiler": "heat",
+    "chp": "electricity",
+    "heat_pump": "heat",
+    "compression_chiller": "cold",
+    "absorption_chiller": "cold, or heat in heat pump mode",
+    "adsorption_chiller": "cold",
+}
+"""The kinds that produce an energy, with what they produce: the keys of ``opex.per_energy``.
+
+A module of such a kind names the ports of its product (``Equipment.product``)."""
+
 GAS_SPECIES = ("CH4", "CO2", "N2", "H2S")
 """The species of ``site.fluid.dissolved_gas``."""
 
