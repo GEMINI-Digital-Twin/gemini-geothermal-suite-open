@@ -1,5 +1,5 @@
 """Design optimiser: doublet count, network return and pump depth for the lowest cost of heat and the lowest CO2.
-Objectives come from geo.cost.economics, feasibility from the 16 checks in geo.year and the rule in geo.rule.
+Objectives come from geo.cost.economics, feasibility from the 17 checks in geo.year and the rule in geo.rule.
 Method: a coarse grid, then a pattern search that halves its steps around the best point, run for three weightings
 of the two objectives; the Pareto front is every feasible design no other design beats on both. Parameter choices are
 in the inline comments. Returns a dict with the front, the best design per objective, the count evaluated and a basis."""
@@ -149,7 +149,7 @@ def optimise(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_start_m=
             "basis": (f"coarse grid n {N_RANGE[0]}-{N_RANGE[:n_max][-1]}, return {T_RANGE_C[0]:g}-{T_RANGE_C[1]:g} C "
                       f"step {T_STEP_C:g}, pump depth {ESP_RANGE_M[0]:g}-{ESP_RANGE_M[1]:g} m step {ESP_STEP_M:g} plus "
                       f"the start {esp_start_m:g} m; pattern search with {HALVINGS} halvings for weights {WEIGHTS} on "
-                      f"min-max normalised objectives [A, our choice]; feasible = 16 checks pass and the doublet rule "
+                      f"min-max normalised objectives [A, our choice]; feasible = 17 checks pass and the doublet rule "
                       f"[C]; {len(s.seen)} designs in {secs} s")}
 
 

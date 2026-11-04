@@ -192,6 +192,7 @@ def plan_message(brief, out):
             + "\n" + iteration_lines(it, out)
             + pareto_lines(out)
             + gas_lifetime(out)
+            + outage_line(out, n, t)
             + verification_line(out)
             + "\nRejected alternatives (say each in rejected_alternatives with its number and tag, copying these sentences):\n"
             + "\n".join(f"- {x}" for x in rejected(out, n, t)))
@@ -287,6 +288,27 @@ def gas_lifetime(out):
     return s
 
 
+def _year(out, n, t):
+    """The heating_year result of the chosen design."""
+    return next((r["result"] for r in out if r["name"] == "heating_year" and "error" not in r["result"]
+                 and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t), None)
+
+
+def outage_line(out, n, t):
+    """One line on where the planned outages fall, the N-1 check row and the unplanned winter week, for the model's reasoning."""
+    h = _year(out, n, t)
+    last = next((r["result"] for r in reversed(out) if r["name"] == "checks" and "error" not in r["result"]), {})
+    row = next((v for k, v in last.items() if "one doublet out on the coldest day" in k), None)
+    if not h or not row:
+        return ""
+    heat = row.split(" MW available")[0].split()[-1]
+    status = row.rsplit("-> ", 1)[-1]
+    days = " and ".join(w.split(" (")[0].split("days ")[1] for w in h["staggered_windows"].split("; "))
+    return (f"\nOutages (one reasoning string, word for word, its tag included): 35-day outages staggered over days {days}; "
+            f"one doublet out on the coldest day leaves {heat} MW ({status}); a winter week out costs "
+            f"{h['unplanned_7d_cost_MEUR']} MEUR [C, A].")
+
+
 def rejected(out, n, t):
     """One copy-ready sentence per alternative the plan priced and did not choose."""
     res = lambda name, **a: next((r["result"] for r in out if r["name"] == name and "error" not in r["result"]
@@ -312,6 +334,11 @@ def rejected(out, n, t):
         lines.append(f"A storage tank instead of the {st['backup_boiler_MW']:g} MW backup boiler: "
                      f"a {st['outage_days']}-day winter outage of one doublet needs {st['tank_for_outage_MWh']:.0f} MWh, "
                      f"{st['tanks_needed']} tanks, {st['tank_cost_MEUR']} MEUR against {st['backup_boiler_MEUR']} MEUR [C, L, A].")
+    h = _year(out, n, t)
+    if h and n > 1:
+        who = "Both" if n == 2 else f"All {n}"
+        lines.append(f"{who} doublets out at once instead of staggered: the backup boiler carries up to "
+                     f"{h['all_at_once_backup_max_MW']} MW for 35 days, {h['all_at_once_extra_gas_GWh']} GWh more gas, +{h['all_at_once_extra_gas_MEUR']} MEUR a year [C].")
     sw = res("return_sweep", n_doublets=n)
     low = [x for x in tools.SWEEP_C if x < t] if sw else []
     if low:

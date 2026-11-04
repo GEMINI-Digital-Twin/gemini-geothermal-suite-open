@@ -117,15 +117,20 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(checks[-1]["result"]["n_fail"], 0)
         later = [r for r in out if r["name"] in ("heating_year", "economics", "layout_compare", "gas_point", "lifetime_point")]
         self.assertTrue(later and all(r["args"].get("esp_depth_m") == 1100 for r in later))
-        good = answer(it, [f"Tried {it['tried']} candidates [C].", "Model's move left a violation, ESP 800 to 900 m, checks 15/16 [C].",
-                           "Model's move repaired a violation, ESP 900 to 1100 m, checks 16/16 [C]."])
+        good = answer(it, [f"Tried {it['tried']} candidates [C].", "Model's move left a violation, ESP 800 to 900 m, checks 16/17 [C].",
+                           "Model's move repaired a violation, ESP 900 to 1100 m, checks 17/17 [C]."])
         self.assertEqual(checker.check_iterations(it, good, good["reasoning"], out), [])
         bad = answer(it, [f"Tried {it['tried']} candidates [C]."])
         self.assertTrue(any("the model made the move" in p for p in checker.check_iterations(it, bad, bad["reasoning"], out)))
         msg = planner.plan_message(BRIEF_F, out)
         self.assertIn("Model's move left a violation: free gas at ESP intake, 45.2 bar against limit 62.5 bar, so the ESP moved from 800 to 900 m, "
-                      "checks now 15/16 [C].", msg)
+                      "checks now 16/17 [C].", msg)
         self.assertIn("Model's move repaired a violation: free gas at ESP intake", msg)
+        self.assertIn("staggered over days", msg)   # the outage choice and the N-1 row reach the model
+        self.assertIn("one doublet out on the coldest day leaves 31.0 MW (pass)", msg)
+        outage = next(line for line in msg.splitlines() if line.startswith("Outages"))
+        self.assertLessEqual(len(outage.split(": ", 1)[1].split()), 30)
+        self.assertTrue(any(line.startswith("- Both doublets out at once") for line in msg.splitlines()))
         self.assertTrue(all(len(line.split(": ", 1)[1].split()) <= 30 for line in msg.splitlines() if line.startswith("Violation")))
 
     def test_brief_f_code_fallback(self):

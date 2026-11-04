@@ -61,18 +61,19 @@ def crf(r, n):
 
 @lru_cache
 def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doublet_MEUR=None, depth_m=year.DEPTH_M, heat_pump=True,
-              esp_depth_m=year.ESP_DEPTH_M):
-    """Economics dict (see module docstring); doublet_MEUR overrides the ThermoGIS price, heat_pump=False prices a boiler lift."""
+              esp_depth_m=year.ESP_DEPTH_M, outage_mode="staggered"):
+    """Economics dict (see module docstring); doublet_MEUR overrides the ThermoGIS price, heat_pump=False prices a boiler lift,
+    outage_mode places the planned outages (geo.outage)."""
     doublet_given = doublet_MEUR is not None
     doublet_MEUR = float(doublet_MEUR) if doublet_given else doublet_meur(float(depth_m))
     d = year.heating_year(int(n_doublets), float(t_return_c), peak_heat_MW=peak_heat_MW, depth_m=float(depth_m), heat_pump=bool(heat_pump),
-                          esp_depth_m=float(esp_depth_m))
+                          esp_depth_m=float(esp_depth_m), outage_mode=outage_mode)
     c, tot = year.cooling_year(d.surplus, peak_cold_MW=peak_cold_MW)
     gwh = lambda s: float(s.sum() * 24 / 1000)
     rejected = c.cold + c.electric / year.COP_ELECTRIC + c.absorption / year.COP_ABSORPTION   # heat the cooling tower rejects, MW
     capex = {"doublets": n_doublets * doublet_MEUR, "heat_pump": d.hp.max() * HP_EUR_KW / 1000,
              "backup_boiler": year.BACKUP_BOILER_MW * BOILER_EUR_KW / 1000,
-             "electric_chillers": c.electric.max() * CHILLER_EUR_KW / 1000, "cooling_tower": rejected.max() * TOWER_EUR_KW / 1000,
+             "electric_chillers": year.chiller_MW(c) * CHILLER_EUR_KW / 1000, "cooling_tower": rejected.max() * TOWER_EUR_KW / 1000,
              "absorption_chillers": c.absorption.max() * ABSORPTION_EUR_KW / 1000}
     life = {k: LIFE_DOUBLET if k == "doublets" else LIFE_SURFACE for k in capex}
     heat_items, cold_items = ("doublets", "heat_pump", "backup_boiler"), ("electric_chillers", "cooling_tower", "absorption_chillers")
@@ -92,7 +93,7 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
     heat_cost, cold_cost = annual(heat_items, el_heat, gas, co2_kt), annual(cold_items, el_cold, 0.0, 0.0)
     heat_GWh, cold_GWh = gwh(d.demand - d.unmet), tot["cold"]
     return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "depth_m": float(depth_m),
-            "layout": "B heat-pump lift" if heat_pump else "A boiler lift",
+            "layout": "B heat-pump lift" if heat_pump else "A boiler lift", "outage_mode": outage_mode,
             "capex_MEUR": {**capex, "total": sum(capex.values())},
             "annual_cost_MEUR": {"heating": heat_cost, "cooling": cold_cost,
                                  "total": sum(heat_cost.values()) + sum(cold_cost.values())},

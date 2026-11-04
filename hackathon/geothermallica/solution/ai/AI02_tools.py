@@ -14,7 +14,7 @@ from geo.common import DEPTH_M, DT_BRINE_MAX_K, Q_MAX_M3H, Q_MIN_M3H, t_reservoi
 from gemini_model.heatpump.heatpump_lift import HeatPumpLift
 from geo.plant import doublet_at
 from geo.well import ESP_DEPTH_M, Producer, injector_at, reservoir_pressure
-from geo import cost, gas, gemini_project, lifetime, optimise, storage, year
+from geo import cost, gas, gemini_project, lifetime, optimise, outage, storage, year
 
 gwh = lambda s: float(s.sum() * 24 / 1000)
 # the GEMINI classes each tool runs, so a tool result names the twin's components
@@ -122,12 +122,13 @@ def doublet_point(q_m3h, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
 
 
 @lru_cache
-def _heat(n, t, ph=None, depth=DEPTH_M, esp=None):
+def _heat(n, t, ph=None, depth=DEPTH_M, esp=None, mode="staggered"):
     _need("n_doublets", n, 1, 3)
     _need("t_return_c", t, 30, 70)
     _peaks(ph, None)
     _need("depth_m", depth, 1500, 4000)
-    return year.heating_year(int(n), float(t), peak_heat_MW=ph, depth_m=float(depth), esp_depth_m=_esp(esp))
+    _mode(mode)
+    return year.heating_year(int(n), float(t), peak_heat_MW=ph, depth_m=float(depth), esp_depth_m=_esp(esp), outage_mode=mode)
 
 
 @lru_cache
@@ -136,12 +137,26 @@ def _cool(n, t, ph=None, pc=None, depth=DEPTH_M, esp=None):
     return year.cooling_year(_heat(n, t, ph, depth, esp).surplus, peak_cold_MW=pc)
 
 
-def heating_year(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
+def _mode(outage_mode):
+    if outage_mode not in outage.MODES:
+        raise ValueError(f"outage_mode={outage_mode} not one of {outage.MODES}")
+    return outage_mode
+
+
+def heating_year(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, esp_depth_m=None, outage_mode="staggered"):
     """Daily dispatch over 2027 of 1-3 doublets at a network return of 30-70 C, reservoir at depth_m (default 2500 m), heat demand
-    scaled to peak_heat_MW if given (else 30 MW), staggered 35-day outage per doublet, 16 MW backup boiler: annual GWh by source,
-    electricity (ESP, heat pump, injection pump), unmet heat, capacity, the peak-day MW by source and margin, and brine heat above
-    78 C left for absorption chillers [C, A]."""
-    d = _heat(n_doublets, t_return_c, peak_heat_MW, depth_m, esp_depth_m)
+    scaled to peak_heat_MW if given (else 30 MW), 16 MW backup boiler, 35-day planned outage per doublet placed by outage_mode
+    (staggered = the least-demand non-overlapping windows, the default; all_at_once = every doublet in one window): annual GWh by
+    source, electricity (ESP, heat pump, injection pump), unmet heat, capacity, the peak-day MW by source and margin, brine heat above
+    78 C left for absorption chillers, the outage windows (day of year and dates) with the backup heat in them for both modes, and
+    one doublet out unplanned for 7 days over the coldest week: extra boiler GWh, cost MEUR, CO2 kt [C, A]."""
+    return {**_year_row(n_doublets, t_return_c, peak_heat_MW, depth_m, esp_depth_m, outage_mode),
+            **r2(outage.summary(int(n_doublets), float(t_return_c), peak_heat_MW, float(depth_m), _esp(esp_depth_m), outage_mode))}
+
+
+def _year_row(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, esp_depth_m=None, outage_mode="staggered"):
+    """The heating_year dict without the outage keys (return_sweep runs it six times)."""
+    d = _heat(n_doublets, t_return_c, peak_heat_MW, depth_m, esp_depth_m, outage_mode)
     tab = year.table(float(t_return_c), float(depth_m), esp_depth_m=_esp(esp_depth_m))
     pk = d.demand.idxmax()
     cap = n_doublets * tab.out_max
@@ -207,16 +222,17 @@ def heat_pump_point(t_brine_in_c, t_water_in_c, brine_m3h, water_m3h, t_brine_fl
         | gemini(["HeatpumpBasic (Lorenz) via HeatPumpLift, floor-branch root fixed"])
 
 
-def checks(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
-    """The brief's constraints, 16 rows (incl. capacity covers the peak, free gas at the ESP intake, thermal breakthrough and doublet
-    interference) for 1-3 doublets at a 30-70 C return, reservoir at depth_m (default 2500 m), demand scaled to the given peaks:
+def checks(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None, outage_mode="staggered"):
+    """The brief's constraints, 17 rows (incl. capacity covers the peak, free gas at the ESP intake, thermal breakthrough, doublet
+    interference and one doublet out on the coldest day with the 16 MW backup boiler) for 1-3 doublets at a 30-70 C return, reservoir at depth_m (default 2500 m), demand scaled to the given peaks:
     each row is name: value (limit) -> pass or FAIL; four rows are declared (inputs or true by construction), the summary says
     how many are computed [C]."""
     _need("n_doublets", n_doublets, 1, 3)
     _need("t_return_c", t_return_c, 30, 70)
     _peaks(peak_heat_MW, peak_cold_MW)
     _need("depth_m", depth_m, 1500, 4000)
-    rows = year.checks(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m))
+    rows = year.checks(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m),
+                       outage_mode=_mode(outage_mode))
     out = {f"{i + 1:02d} {r['name']}": f"{r['value']} (limit {r['limit']}) -> {r['status']}" for i, r in enumerate(rows)}
     n_pass = sum(r["status"].startswith("pass") for r in rows)
     n_declared = sum("declared" in r["status"] for r in rows)   # rows true by construction or set as inputs, not computed
@@ -225,7 +241,7 @@ def checks(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m
             "summary": summary, "tag": "[C]"}
 
 
-def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
+def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None, outage_mode="staggered"):
     """Cost of 1-3 doublets at a 30-70 C return over 2027, reservoir at depth_m (default 2500 m; doublet price from the ThermoGIS
     well-cost curve at that depth, 9.33 MEUR at 2500 m), demand scaled to the given peaks: CAPEX in MEUR by item (doublets, heat
     pump, 16 MW backup boiler, chillers, tower, absorption), annual cost in MEUR, levelised cost of heat lcoh_EUR_MWh (doublets,
@@ -236,14 +252,15 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, dept
     _need("t_return_c", t_return_c, 30, 70)
     _peaks(peak_heat_MW, peak_cold_MW)
     _need("depth_m", depth_m, 1500, 4000)
-    e = cost.economics(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m))
+    e = cost.economics(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m),
+                       outage_mode=_mode(outage_mode))
     cap, ann = e["capex_MEUR"], e["annual_cost_MEUR"]
     flat = {**{f"capex_{k}_MEUR": v for k, v in cap.items()},
             **{f"annual_{side}_{k}_MEUR": v for side in ("heating", "cooling") for k, v in ann[side].items()},
             "annual_total_MEUR": ann["total"]}
     keys = ("n_doublets", "heat_served_GWh", "cold_served_GWh", "lcoh_EUR_MWh", "lcoc_EUR_MWh", "electricity_GWh", "gas_GWh", "co2_kt",
             "co2_electricity_kt", "co2_associated_gas_kt", "co2_total_kt", "gas_handling", "associated_gas_q_m3h",
-            "associated_gas_electricity_GWh", "associated_gas_heat_GWh", "esp_GWh")
+            "associated_gas_electricity_GWh", "associated_gas_heat_GWh", "esp_GWh", "outage_mode")
     return {**r2({**{k: e[k] for k in keys}, **flat}), "tag": "[C]", "basis": e["basis"]}
 
 
@@ -348,7 +365,7 @@ def lifetime_point(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, s
 def optimise_point(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, priority="lcoh", esp_depth_m=None, max_doublets=3):
     """Search doublet count (1-3), network return (50-70 C) and ESP depth (300-1250 m) for the lowest LCoH and the lowest CO2 at
     once, reservoir at depth_m (default 2500 m), demand scaled to the given peaks: a coarse grid then a pattern search, feasible =
-    all 16 checks pass and the doublet rule (no unmet heat, peak covered, boiler at most 5 %); returns the Pareto front (designs no
+    all 17 checks pass and the doublet rule (no unmet heat, peak covered, boiler at most 5 %); returns the Pareto front (designs no
     other beats on both LCoH and CO2, with the breakthrough time), best_lcoh and best_co2 rows, best_on_priority for priority
     'lcoh' or 'co2', the number of designs evaluated and the seconds taken [C]."""
     _peaks(peak_heat_MW, peak_cold_MW)
@@ -374,7 +391,7 @@ def return_sweep(n_doublets, peak_heat_MW=None, depth_m=DEPTH_M, esp_depth_m=Non
     with the least boiler). Use it before calling any return temperature best [C]."""
     rows, swept = {}, SWEEP_C if extra_return_c is None else tuple(sorted({*SWEEP_C, float(extra_return_c)}))
     for t in swept:
-        h = heating_year(n_doublets, t, peak_heat_MW, depth_m, esp_depth_m)
+        h = _year_row(n_doublets, t, peak_heat_MW, depth_m, esp_depth_m)
         key = str(int(t)) if float(t).is_integer() else str(t)   # "60" for the swept integers, "57.5" for an optimised return
         rows[key] = {"boiler_GWh": h["boiler_GWh"], "served_GWh": round(h["demand_GWh"] - h["unmet_GWh"], 2),
                         "boiler_share_pct": round(100 * h["boiler_GWh"] / max(h["demand_GWh"] - h["unmet_GWh"], 1e-9), 2),
@@ -478,17 +495,20 @@ ARGS = {"depth_m": NUM("reservoir depth in m (omit for the brief's 2500 m); give
         "extra_return_c": NUM("one more return temperature in C to add to the sweep (omit for the six standard ones)", 30, 70),
         "priority": {"type": "string", "enum": ["lcoh", "co2"],
                      "description": "what the brief wants first: lcoh (cheapest heat, the default) or co2 (lowest emissions)"},
-        "max_doublets": NUM("most doublets the brief allows (omit for 3)", 1, 3, "integer")}
+        "max_doublets": NUM("most doublets the brief allows (omit for 3)", 1, 3, "integer"),
+        "outage_mode": {"type": "string", "enum": list(outage.MODES),
+                        "description": "where the 35 planned outage days of each doublet fall: staggered (the default, least-demand "
+                                       "windows one doublet at a time) or all_at_once (every doublet out together, backup carries it)"}}
 PEAKS = ["peak_heat_MW", "peak_cold_MW"]
 OPTIONAL = PEAKS + ["t_brine_floor_c", "depth_m", "outage_days", "spacing_m", "doublet_spacing_m", "esp_depth_m", "extra_return_c",
-            "priority", "max_doublets"]
+            "priority", "max_doublets", "outage_mode"]
 D = ["depth_m", "esp_depth_m"]   # every tool that runs the producer takes both
 SIG = {"site_inputs": ["depth_m", "supply_heat_c", "supply_cold_c"], "demand_summary": PEAKS,
-       "doublet_point": ["q_m3h", "t_return_c"] + D, "heating_year": ["n_doublets", "t_return_c", "peak_heat_MW"] + D,
+       "doublet_point": ["q_m3h", "t_return_c"] + D, "heating_year": ["n_doublets", "t_return_c", "peak_heat_MW"] + D + ["outage_mode"],
        "cooling_year": ["t_return_c", "n_doublets"] + PEAKS + D, "injector_point": ["q_m3h", "depth_m"], "gas_point": ["q_m3h"] + D,
        "lifetime_point": ["n_doublets", "t_return_c", "peak_heat_MW"] + D + ["spacing_m", "doublet_spacing_m"],
        "heat_pump_point": ["t_brine_in_c", "t_water_in_c", "brine_m3h", "water_m3h", "t_brine_floor_c"],
-       "checks": ["n_doublets", "t_return_c"] + PEAKS + D, "economics": ["n_doublets", "t_return_c"] + PEAKS + D,
+       "checks": ["n_doublets", "t_return_c"] + PEAKS + D + ["outage_mode"], "economics": ["n_doublets", "t_return_c"] + PEAKS + D + ["outage_mode"],
        "layout_compare": ["n_doublets", "t_return_c"] + PEAKS + D,
        "storage_point": ["n_doublets", "t_return_c", "peak_heat_MW"] + D + ["outage_days"],
        "return_sweep": ["n_doublets", "peak_heat_MW"] + D + ["extra_return_c"], "optimise_point": PEAKS + D + ["priority", "max_doublets"],
@@ -502,7 +522,7 @@ TOOLS = [{"type": "function", "function": {"name": n, "description": " ".join(FU
 def call(name, args):
     if name not in FUNCS:
         raise ValueError(f"unknown tool {name}; valid: {sorted(FUNCS)}")
-    conv = lambda k, v: v if v is None or k == "priority" else int(v) if k in ("n_doublets", "outage_days", "max_doublets") else float(v)
+    conv = lambda k, v: v if v is None or k in ("priority", "outage_mode") else int(v) if k in ("n_doublets", "outage_days", "max_doublets") else float(v)
     return FUNCS[name](**{k: conv(k, v) for k, v in (args or {}).items()})
 
 

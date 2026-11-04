@@ -23,6 +23,7 @@ PROMPT = pathlib.Path(__file__).parent / "prompts" / "move.md"
 MOVES = {"free gas at ESP intake": ("esp_depth_m", "m", "+300 m, cap 1250 m"),
          "SodM injection pressure": ("n_doublets", "doublets", "+1, cap the brief's maximum"),
          "capacity covers the peak": ("n_doublets", "doublets", "+1, cap the brief's maximum"),
+         "one doublet out on the coldest day": ("n_doublets", "doublets", "+1, cap the brief's maximum"),
          "thermal breakthrough": ("spacing_m", "m", "spacing for 30 yr at 300 m3/h, rounded up to 50 m"),
          "doublet interference": ("doublet_spacing_m", "m", "x 1.5, cap 5000 m")}
 START = {"esp_depth_m": ESP_DEPTH_M, "spacing_m": lifetime.SPACING_M}   # tool defaults when the brief gives no value

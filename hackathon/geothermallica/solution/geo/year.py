@@ -19,8 +19,8 @@ from geo.well import ESP_DEPTH_M, PUMP_EFF, injector_at
 # source: Hydreco 2020, production plan Haagse Aardwarmte Leyweg,
 # https://www.nlog.nl/sites/default/files/2020-10/200129_verzoek_tot_instemming_wp_haagse_aardwarmte_leyweg_publiek_gelakt.pdf
 BACKUP_BOILER_MW = 16.0
-# planned outage per doublet, 35 days each so that each runs 330 days (brief); the dates are assumed, staggered outside winter
-STAGGERED = {0: ("2027-06-01", "2027-07-05"), 1: ("2027-08-01", "2027-09-04"), 2: ("2027-09-15", "2027-10-19")}
+# the hand-picked summer outage windows used before geo/outage.py placed them on the demand; kept to compare against
+STAGGERED_HAND = {0: ("2027-06-01", "2027-07-05"), 1: ("2027-08-01", "2027-09-04"), 2: ("2027-09-15", "2027-10-19")}
 T_COLD_SUPPLY, T_COLD_RETURN = 20.0, 26.0   # district-cooling supply and return, C; supply from the challenge brief, return assumed
 TOWER_APPROACH_K = 4.0                        # cooling-tower water temperature above the wet bulb, K; assumed, no source
 # coefficient of performance (COP, cold out per heat in) of a single-effect lithium-bromide (LiBr) absorption chiller;
@@ -73,14 +73,18 @@ def injection_pump_MW(d):
     return np.interp(d.q_m3h, Q_INJ, [r["pump_kW"] for r in injector_rows(d.attrs.get("depth_m", DEPTH_M))]) / 1000 * d.doublets_on
 
 
-def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, depth_m=DEPTH_M, heat_pump=True, esp_depth_m=ESP_DEPTH_M):
-    """DataFrame per day for n doublets: of those available, run the count that meets demand with least electricity, equal split."""
+def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, depth_m=DEPTH_M, heat_pump=True, esp_depth_m=ESP_DEPTH_M,
+                 outage_mode="staggered"):
+    """DataFrame per day for n doublets: of those available, run the count that meets demand with least electricity, equal split.
+    outages {doublet: (start, end) or a list of them} overrides the windows that geo.outage places by outage_mode."""
+    from geo import outage
     point = point or table(t_return_c, depth_m, heat_pump, esp_depth_m).at_output
     heat_d = scaled(heat, peak_heat_MW)
-    outages = {i: STAGGERED[i] for i in range(n)} if outages is None else outages
+    outages = outage.windows(n, mode=outage_mode) if outages is None else outages
     avail = pd.DataFrame(1, index=heat_d.index, columns=range(n))
-    for i, (a, b) in outages.items():
-        avail.loc[a:b, i] = 0
+    for i, w in outages.items():
+        for a, b in (w if isinstance(w, list) else [w]):
+            avail.loc[a:b, i] = 0
     rows = []
     for day, demand in heat_d.items():
         k = int(avail.loc[day].sum())
@@ -145,10 +149,15 @@ def cooling_year(drive_avail, agg="max", peak_cold_MW=None):
     return c, totals
 
 
-def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M):
-    """Every constraint of the brief for n doublets at return temperature t_return_c: 16 dicts of name, value, limit, status;
+def chiller_MW(c):
+    """Electric chillers installed, MW: all cold above free cooling on the worst day, so they back up the absorption chillers."""
+    return float((c.cold - c.free).max())
+
+
+def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, outage_mode="staggered"):
+    """Every constraint of the brief for n doublets at return temperature t_return_c: 17 dicts of name, value, limit, status;
     four rows are declared (their status says so), the rest computed."""
-    d = heating_year(n, t_return_c, peak_heat_MW=peak_heat_MW, depth_m=depth_m, esp_depth_m=esp_depth_m)
+    d = heating_year(n, t_return_c, peak_heat_MW=peak_heat_MW, depth_m=depth_m, esp_depth_m=esp_depth_m, outage_mode=outage_mode)
     c, _ = cooling_year(d.surplus, peak_cold_MW=peak_cold_MW)
     tab = table(t_return_c, depth_m, esp_depth_m=esp_depth_m)
     gwh = lambda s: s.sum() * 24 / 1000
@@ -171,6 +180,12 @@ def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M,
     t_bt = lifetime.t_bt_yr(q_mean)                                        # thermal breakthrough time, years
     dp_int = max(lifetime.interference_bar(n, Q_MAX_M3H))                 # worst injector at 300 m3/h, doublets as far apart as the wells
     int_margin = worst["sodm_margin_bar"] - dp_int
+    pk, pkc = d.demand.idxmax(), c.cold.idxmax()
+    heat_n1 = (n - 1) * tab.out_max + BACKUP_BOILER_MW                     # the other doublets at full flow plus the backup boiler, MW
+    j = int(d.doublets_on[pkc])
+    drive = c.drive_avail[pkc] * (min(1.0, (n - 1) / j) if j else 0.0)    # hot brine left for absorption with one doublet out, MW
+    rest = c.cold[pkc] - c.free[pkc]
+    cold_n1 = c.free[pkc] + min(rest, drive * COP_ABSORPTION) + chiller_MW(c)   # free + absorption + the electric chillers installed
     rows = [
         ("doublets 1-3 [D]", f"{n} built at {depth_m:.0f} m, {int(d.doublets_on.min())}-{int(d.doublets_on.max())} on", "1-3", ok(1 <= n <= 3)),
         ("flow per doublet [D]", f"{q.min():.0f}-{q.max():.0f} m3/h", f"{Q_MIN_M3H:.0f}-{Q_MAX_M3H:.0f}",
@@ -187,8 +202,9 @@ def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M,
          f"approach ({'yes' if approach_ok else 'NO'}); the heat pump lifts to {T_SUPPLY_HEAT_C:.0f} C on {int((on.hp > 1e-6).sum())} "
          f"of {len(on)} running days, boiler lift {gwh(d.boiler_lift):.2f} GWh on {int((d.boiler_lift > 0.01).sum())} days",
          f"{T_SUPPLY_HEAT_C:.0f} C every day", ok(approach_ok and d.boiler_lift.max() < 1e-6) + " [A, Lorenz HP]"),
-        ("cold supply 20 C [D]", f"electric chiller sized {c.electric.max():.2f} MW for the peak day; the free, absorption, electric "
-         "stack meets every day's cold by construction (declared)", f"{T_SUPPLY_COLD_C:.0f} C", "pass [declared, return 26 C]"),
+        ("cold supply 20 C [D]", f"electric chiller sized {chiller_MW(c):.2f} MW, all cold above free cooling (backs up absorption); "
+         "the free, absorption, electric stack meets every day's cold by construction (declared)", f"{T_SUPPLY_COLD_C:.0f} C",
+         "pass [declared, return 26 C]"),
         ("SodM injection pressure [L]",
          f"worst p_bh {worst['p_bh_req_bar']:.1f} bar at {worst['q_m3h']:.0f} m3/h, margin {worst['sodm_margin_bar']:.1f} bar",
          f"<= {worst['sodm_limit_bar']:.1f} bar", ok(worst["sodm_margin_bar"] >= 0)),
@@ -212,5 +228,9 @@ def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M,
         ("doublet interference [L, A]", (f"SodM margin {worst['sodm_margin_bar']:.1f} - interference {dp_int:.2f} bar (worst of {n} injectors, "
          f"D = L = {lifetime.SPACING_M:.0f} m, {Q_MAX_M3H:.0f} m3/h) = {int_margin:.1f} bar") if n > 1 else
          f"one doublet, no interference (0 bar); SodM margin {int_margin:.1f} bar", ">= 0 bar", ok(int_margin >= 0)),
+        ("one doublet out on the coldest day [C]",
+         f"heat {heat_n1:.1f} MW available ({n - 1} x {tab.out_max:.1f} MW + {BACKUP_BOILER_MW:.0f} MW backup boiler) vs "
+         f"{d.demand[pk]:.0f} MW on {pk.date()}; cold {cold_n1:.1f} MW available vs {c.cold[pkc]:.0f} MW on {pkc.date()}",
+         f">= {d.demand[pk]:.0f} MW heat and {c.cold[pkc]:.0f} MW cold", ok(heat_n1 >= d.demand[pk] - 1e-6 and cold_n1 >= c.cold[pkc] - 1e-6)),
     ]
     return [dict(name=a, value=v, limit=lim, status=st) for a, v, lim, st in rows]
