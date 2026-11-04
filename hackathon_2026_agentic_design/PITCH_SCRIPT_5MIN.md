@@ -1,7 +1,9 @@
 # Five-minute video pitch script (executive version)
 
-Screen recording with voice over the slide deck. Target 3:30 to 4:00, leaving margin under the
-5-minute cap. Speak slowly; the slides carry the numbers, you carry the story.
+Screen recording with voice over the pitch deck GEMINI_Hackathon_Pitch_Ramdhan_Wibawa.pptx
+(10 slides, one message each; the detailed report deck is the written deliverable). Slides are in
+the order spoken below. Target 3:30 to 4:00, leaving margin under the 5-minute cap. Speak slowly;
+the slides carry the numbers, you carry the story.
 
 ---
 
@@ -20,7 +22,7 @@ well, pump, corrosion and erosion physics. The heating and cooling plant did not
 so the agent uses models we built for it. Every step is logged with its reasoning and its token
 count. A rule-based mode reaches the same design with no LLM at all."
 
-**Slide 2. The answer (40 s)**
+**Slide 4. The answer (40 s)**
 
 "The answer is three doublets drilled deeper than the brief suggested, to thirty-five hundred
 metres. That one decision changes everything: the brine is hot enough to feed the network
