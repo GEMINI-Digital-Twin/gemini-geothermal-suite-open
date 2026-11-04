@@ -15,6 +15,7 @@ from gemini.physics import constants, gas
 from gemini.physics.chemistry import henry_constant
 from gemini.physics.fluid import DEFAULT_LIQUID_DENSITY, FluidProperties, mixture_density
 from gemini.units import bare
+from gemini.units.display import written
 from gemini.units.quantities import (
     Density,
     Fraction,
@@ -130,9 +131,9 @@ class Fluid(BaseModel):
     def _to_dict(self):
         """Return the plant dict form: ``{"value", "unit"}`` for the fields with a dimension."""
         data = self.model_dump(mode="json")
-        for name, (unit, _) in _QUANTITIES.items():
+        for name, (unit, quantity) in _QUANTITIES.items():
             if unit != "-" and data.get(name) is not None:
-                data[name] = {"value": data[name], "unit": unit}
+                data[name] = written({"value": data[name], "unit": unit}, quantity)
         return data
 
     @classmethod

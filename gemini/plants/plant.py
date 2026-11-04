@@ -35,6 +35,7 @@ from gemini.plants._utils.ports import PortResolver
 from gemini.plants._utils.serialization import tree_params
 from gemini.streams.fluid import Fluid
 from gemini.streams.kinds import Direction, Level
+from gemini.units import display
 
 
 class Plant(PortResolver, Module):
@@ -556,14 +557,25 @@ class Plant(PortResolver, Module):
             ends = [item for item in ends if connections.free(self, *item)]
         return {declaration: listed(path, name, declaration) for path, name, declaration in ends}
 
-    def to_dict(self, structure=False):
+    def to_dict(self, structure=False, *, units=None):
         """Return the plant file as a dict.
 
         A plant of a class stores its class, its size and the values that were given, never its
         structure or a derived value. A plant built with ``add`` and ``connect`` stores its
         modules and connections, which is how an agent edits a plant; ``structure=True`` writes the
         full form, the class and its modules and connections. ``gm.Plant.from_dict`` reads either.
+
+        ``units`` chooses the units of the values, as a view does: ``None`` keeps each as stated
+        (else SI), a map from quantity to unit such as ``{"thermal_conductance": "MW/K"}``
+        converts those quantities (and their family), ``"display"`` writes the display units and
+        ``"si"`` SI. A difference converts by scale only, and the file reads back to the same
+        plant whatever its units.
         """
+        with display.written_in(units):
+            return self._file_dict(structure)
+
+    def _file_dict(self, structure):
+        """Return the plant file as a dict in the units stored; ``to_dict`` documents it."""
         if type(self) is Plant:
             return form.render(self, writer.structure_dict(self))
         if structure:
@@ -578,9 +590,12 @@ class Plant(PortResolver, Module):
             return form.render(self, writer.structure_dict(self))
         return form.render(self, writer.class_dict(self, fresh))
 
-    def to_json(self, path, structure=False):
-        """Write the plant file as JSON; ``structure=True`` writes the full form."""
-        files.to_json(path, self.to_dict(structure))
+    def to_json(self, path, structure=False, *, units=None):
+        """Write the plant file as JSON; ``structure=True`` writes the full form.
+
+        ``units`` chooses the units of the values as in ``to_dict``.
+        """
+        files.to_json(path, self.to_dict(structure, units=units))
 
     @classmethod
     def from_json(cls, path):

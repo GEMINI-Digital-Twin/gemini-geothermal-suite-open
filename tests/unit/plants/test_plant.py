@@ -276,3 +276,63 @@ def test_add_takes_one_dict_of_parameters_the_dict_of_set_params():
     assert pipe.length == pytest.approx(60.96)
     with pytest.raises(TypeError, match="length"):
         plant.add("Pipe", name="other", length=5.0)
+
+
+BRIEF_PLANT = "examples/hackathon_2026/plants_brief/HeatingPlant.json"
+
+
+def _quantities(found, path=""):
+    """Return ``{path: (value, unit)}`` of every ``{"value", "unit"}`` leaf of a plant file."""
+    if isinstance(found, dict):
+        if "value" in found and "unit" in found:
+            return {path: (found["value"], found["unit"])}
+        result = {}
+        for key, item in found.items():
+            result |= _quantities(item, f"{path}.{key}")
+        return result
+    return {}
+
+
+def test_a_plant_file_is_written_in_the_units_a_caller_chooses():
+    """``units`` maps a quantity to a unit: 1 500 000 W/K is written as 1.5 MW/K, the rest stays."""
+    plant = gm.Plant.from_json(BRIEF_PLANT)
+    written = plant.to_dict(units={"thermal_conductance": "MW/K", "length": "km"})
+    leaf = written["params"]["heat_exchanger"]["thermal_conductance"]
+    assert leaf == {"value": pytest.approx(1.5), "unit": "MW/K"}
+    depth = written["params"]["depth"]
+    assert depth["unit"] == "km" and depth["value"] == pytest.approx(2.5)
+    assert depth["range"] == {"min": pytest.approx(2.0), "max": pytest.approx(3.5)}
+    assert written["params"]["injection_pump"]["nominal_head"] == {"value": 15.74, "unit": "bar"}
+    assert plant.to_dict(units=None) == plant.to_dict()
+
+
+def test_a_difference_is_written_by_scale_only():
+    """A temperature map writes a difference of 0 K as 0 degC; ``display`` keeps it in K."""
+    plant = gm.Plant.from_json(BRIEF_PLANT)
+    path = ".params.peak_boiler.supply_margin"
+    assert _quantities(plant.to_dict())[path] == (0, "K")
+    assert _quantities(plant.to_dict(units={"temperature": "degC"}))[path] == (0, "degC")
+    assert _quantities(plant.to_dict(units="display"))[path] == (0, "K")
+
+
+def test_a_plant_file_in_any_units_reads_back_to_the_same_plant(tmp_path):
+    """A file written in display units or in SI reads back to the plant that wrote it."""
+    plant = gm.Plant.from_json(BRIEF_PLANT)
+    si = _quantities(plant.to_dict(units="si"))
+    for choice in ("display", {"thermal_conductance": "kW/K", "pressure": "kPa"}):
+        target = tmp_path / "plant.json"
+        plant.to_json(target, units=choice)
+        again = _quantities(gm.Plant.from_json(target).to_dict(units="si"))
+        assert again.keys() == si.keys()
+        for path, (value, unit) in si.items():
+            assert again[path][1] == unit
+            assert again[path][0] == pytest.approx(value), path
+
+
+def test_a_plant_file_refuses_a_unit_of_another_quantity():
+    """A unit that does not fit the quantity raises at once, naming the units it takes."""
+    plant = gm.Plant.from_json(BRIEF_PLANT)
+    with pytest.raises(ValidationError, match="thermal_conductance"):
+        plant.to_dict(units={"thermal_conductance": "MW"})
+    with pytest.raises(ValidationError):
+        plant.to_dict(units="shown")

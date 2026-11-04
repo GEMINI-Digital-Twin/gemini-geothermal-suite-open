@@ -351,12 +351,38 @@ _UNITS = {
     "W/m/K": ("W/m/K", 1, 0),
     "W/m2/K": ("W/m2/K", 1, 0),
     "W/K": ("W/K", 1, 0),
+    "kW/K": ("W/K", KILO, 0),
+    "MW/K": ("W/K", MEGA, 0),
+    "GW/K": ("W/K", GIGA, 0),
     "m3/s/Pa": ("m3/s/Pa", 1, 0),
     "m3/h/bar": ("m3/s/Pa", 1 / SECONDS_PER_HOUR / PA_PER_BAR, 0),
     "-": ("-", 1, 0),
     "ppm": ("-", 1e-6, 0),
     "Nm3/m3": ("-", 1, 0),
     "mol%": ("-", 0.01, 0),
+}
+
+_PER_KELVIN = {
+    "K/m": ("degC", "°C", "C"),
+    "K/km": ("degC", "°C", "C"),
+    "W/m/K": ("degC", "°C"),
+    "W/m2/K": ("degC", "°C"),
+    "W/K": ("degC", "°C"),
+    "J/kg/K": ("degC", "°C"),
+    "J/m3/K": ("degC", "°C"),
+}
+"""The units in which the kelvin is a temperature difference, with the degree Celsius spelt there.
+
+A gradient in degC/km and a conductivity in W/m/degC hold the same number as in K/km and W/m/K:
+a difference of 1 degC is a difference of 1 K, so these units take no offset. Alone a degree
+Celsius stays absolute, with the offset of 0 degC. A bare ``C`` is taken in a gradient only: in
+``W/C`` or ``J/kg/C`` it would read as a coulomb.
+"""
+
+_UNITS |= {
+    kelvin.replace("K", spelling): _UNITS[kelvin]
+    for kelvin, spellings in _PER_KELVIN.items()
+    for spelling in spellings
 }
 
 _QUANTITY_UNITS = {}
@@ -386,9 +412,15 @@ _SPELLED = (
 
 
 def _member_name(unit):
-    """Return the member name of ``unit``: upper case words, ``/`` read as ``_PER_``."""
+    """Return the member name of ``unit``: upper case words, ``/`` read as ``_PER_``.
+
+    A degree Celsius in a compound unit is named as alone: ``W/m/degC`` is ``W_PER_M_PER_DEG_C``.
+    """
     if unit in _NAMED:
         return _NAMED[unit]
+    for spelling in ("degC", "°C"):
+        if spelling in unit:
+            return _member_name(unit.replace(spelling, "#")).replace("#", _NAMED[spelling])
     name = unit
     for old, new in _SPELLED:
         name = name.replace(old, new)

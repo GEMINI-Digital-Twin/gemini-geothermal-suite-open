@@ -288,3 +288,53 @@ def test_a_yearly_amount_per_capacity_converts_to_currency_per_w_and_year():
     ]
     assert units.Unit.EUR_PER_MW_PER_YR == "EUR/MW/yr"
     assert DISPLAY_UNITS["annual_money_per_power"] == "EUR/MW/yr"
+
+
+CELSIUS_SPELLINGS = ("degC", "°C", "C")
+
+
+@pytest.mark.parametrize("spelling", CELSIUS_SPELLINGS)
+def test_a_gradient_per_degree_celsius_is_a_difference_without_offset(spelling):
+    """30 degC/km is 30 K/km: a temperature difference per length, so no 273.15 is added."""
+    assert units.Quantity(30, f"{spelling}/km").si == pytest.approx(0.03)
+    assert units.Quantity(0.03, f"{spelling}/m").si == pytest.approx(0.03)
+    assert units.convert(30, f"{spelling}/km", "K/km") == pytest.approx(30)
+    assert units.fits(f"{spelling}/km", "temperature_gradient")
+    assert units.value_in_si({"value": 30, "unit": f"{spelling}/km"}, "K/m") == pytest.approx(0.03)
+
+
+@pytest.mark.parametrize("spelling", CELSIUS_SPELLINGS)
+def test_a_lone_degree_celsius_stays_absolute(spelling):
+    """A temperature in degC adds 273.15; only a ``*_difference`` quantity converts by scale."""
+    assert units.to_si(10, spelling) == pytest.approx(283.15)
+    assert units.to_si(10, spelling, "temperature_difference") == pytest.approx(10)
+
+
+@pytest.mark.parametrize("spelling", ("degC", "°C"))
+@pytest.mark.parametrize(
+    "kelvin",
+    ["W/m/K", "W/m2/K", "J/kg/K", "J/m3/K", "W/K"],
+)
+def test_a_property_per_degree_celsius_equals_the_property_per_kelvin(spelling, kelvin):
+    """Per degC is per K: the degree is a difference there, so the scale is one, no offset."""
+    unit = kelvin.replace("K", spelling)
+    assert units.si_unit(unit) == kelvin
+    assert units.convert(2.5, unit, kelvin) == pytest.approx(2.5)
+    assert units.si_conversion(unit) == (1, 0)
+
+
+@pytest.mark.parametrize("unit", ["W/C", "W/m/C", "J/kg/C"])
+def test_a_bare_c_is_no_degree_in_a_property(unit):
+    """``C`` reads as a coulomb in ``W/C`` or ``J/kg/C``, so it is no unit; degC is."""
+    with pytest.raises(ValidationError, match="known unit"):
+        units.Quantity(1, unit)
+
+
+def test_a_conductance_takes_the_prefixes_of_a_power():
+    """kW/K, MW/K and GW/K convert like kW, MW and GW: 1.5 MW/K is 1 500 000 W/K."""
+    assert units.Quantity(1.5, "MW/K").si == pytest.approx(1.5e6)
+    assert units.Quantity(250, "kW/K").si == pytest.approx(2.5e5)
+    assert units.Quantity(2, "GW/K").si == pytest.approx(2e9)
+    assert units.Quantity(1.5e6, "W/K").to("MW/K").value == pytest.approx(1.5)
+    assert {"kW/K", "MW/K", "GW/K"} <= set(units.names("thermal_conductance"))
+    assert units.Unit.MW_PER_K == "MW/K"

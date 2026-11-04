@@ -21,6 +21,7 @@ from gemini.modules.bindings import Binding, DatedParams, ModuleBindings
 from gemini.modules.declarations import holds_list
 from gemini.streams.flows import STREAM_FIELDS
 from gemini.units import bare
+from gemini.units.display import written
 
 FIELD_UNITS = {"m_dot": ("kg/s", "m3/s"), "T": ("K",), "p": ("Pa",)}
 """The SI units a column bound to a stream field may have; a volume flow becomes mass flow."""
@@ -322,17 +323,18 @@ def refuse_bare(declaration, value, path):
 def quantity_form(declaration, value):
     """Return ``value`` as ``{"value", "unit"}`` when the declaration has a unit.
 
-    This is how a plant dict stores it.
+    This is how a plant dict stores it, in the units ``units.display.written_in`` chose.
 
     A ``Quantity`` gives its dict; a value without a dimension, ``None``, text, a dict or a flag
     stays as it is.
     """
+    quantity = None if declaration is None else declaration.quantity
     if isinstance(value, units.Quantity):
-        return value.to_dict()
+        return written(value.to_dict(), quantity)
     unit = None if declaration is None else declaration.unit
     if unit in (None, "-") or value is None or isinstance(value, (dict, str, bool)):
-        return value
-    return {"value": value, "unit": unit}
+        return written(value, quantity)
+    return written({"value": value, "unit": unit}, quantity)
 
 
 def in_si(module, path, params):

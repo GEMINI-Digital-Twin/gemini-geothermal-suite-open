@@ -86,6 +86,14 @@ The plant dict is the JSON form agents read and write: `plant.to_dict()`, `gm.Pl
 file (`gm.case.from_csv`) or from values (`from_values`). Readers are `from_<format>` and writers
 `to_<format>` everywhere.
 
+gemini converts every unit; a caller only chooses. `plant.to_dict(units=...)` and
+`plant.to_json(path, units=...)` write the values in the units asked for, as a view does: a map
+from quantity to unit (`{"thermal_conductance": "MW/K"}` writes 1 500 000 W/K as 1.5 MW/K),
+`"display"` or `"si"`; without it each value stays as stated (else SI). A difference converts by
+scale only, and `gm.Plant.from_json` reads a file in any unit that fits each value. A temperature in
+`degC` is absolute; in a compound unit a degree is a difference, so `degC/km` equals `K/km` and
+`W/m/degC` equals `W/m/K`. `gm.units.names(quantity)` lists the units a quantity takes.
+
 gemini holds no data file. A sample project is a folder of `examples/` (its case, plants and
 demand), in a source checkout and not installed; read a stored plant with `gm.Plant.from_json(path)`:
 
