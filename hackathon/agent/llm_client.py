@@ -63,6 +63,14 @@ class TokenLog:
         m["cost_usd"] += record["cost_usd"]
 
 
+def _retry_after_s(response, default):
+    """Seconds to wait from a Retry-After header (seconds form), else the default."""
+    try:
+        return max(1.0, float(response.headers.get("Retry-After")))
+    except (TypeError, ValueError):
+        return float(default)
+
+
 class ChatModel:
     """OpenAI-compatible chat endpoint (Ollama or Gemini)."""
 
@@ -71,6 +79,9 @@ class ChatModel:
         self.temperature = temperature
         self.timeout = timeout or route.get("timeout_s", 300)  # per-route, from llm_config.yaml
         self.retries = retries
+        self.max_429_retries = 3   # method choice: give the free-tier window time to reset
+        self.wait_429_s = 30       # method choice: used when the server sends no Retry-After
+        self._sleep = time.sleep   # replaceable in tests
 
     def chat(self, messages, tools=None, step=None):
         key_env = self.route.get("api_key_env")
@@ -87,14 +98,22 @@ class ChatModel:
             body["tool_choice"] = "auto"
         t0 = time.time()
         url = self.route["base_url"].rstrip("/") + "/chat/completions"
-        for attempt in range(self.retries + 1):
-            try:
-                r = requests.post(url, headers=headers, json=body, timeout=self.timeout)
+        for n_429 in range(self.max_429_retries + 1):
+            for attempt in range(self.retries + 1):
+                try:
+                    r = requests.post(url, headers=headers, json=body, timeout=self.timeout)
+                    break
+                except (requests.Timeout, requests.ConnectionError) as exc:
+                    if attempt == self.retries:
+                        raise RuntimeError(f"{self.name} did not answer after {attempt + 1} attempts "
+                                           f"({self.timeout} s timeout each): {exc}") from exc
+            # P5c: 429 = rate limit (free tier). Wait and retry instead of stopping the run.
+            if r.status_code != 429 or n_429 == self.max_429_retries:
                 break
-            except (requests.Timeout, requests.ConnectionError) as exc:
-                if attempt == self.retries:
-                    raise RuntimeError(f"{self.name} did not answer after {attempt + 1} attempts "
-                                       f"({self.timeout} s timeout each): {exc}") from exc
+            wait = _retry_after_s(r, self.wait_429_s)
+            print(f"[{self.name}] 429 rate limit, waiting {wait:.0f} s "
+                  f"(retry {n_429 + 1}/{self.max_429_retries})")
+            self._sleep(wait)
         if r.status_code >= 400:
             raise RuntimeError(f"{self.name} returned {r.status_code}: {r.text[:500]}")
         data = r.json()

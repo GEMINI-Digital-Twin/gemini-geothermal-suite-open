@@ -161,3 +161,31 @@ def test_loop_guard_detects_repeats_and_stops(tmp_path):
     text = (tmp_path / "transcript.md").read_text()
     assert '"repeat":true' in text and "loop detected" in text
     assert log.totals["calls"] == 4  # 1 real call + 3 repeat steps, then stop
+
+
+def test_shortfall_reports_installed_capacity():
+    """P5b: a demand violation states the installed equipment, so a 0 MW chiller is visible."""
+    r = evaluate_design(Design(depth_m=2500, n_doublets=2, spacing_m=1600))
+    cool = [v["detail"] for v in r["violations"] if v["constraint"] == "cooling_demand"]
+    assert cool and "electric chiller 0 MW" in cool[0]
+
+
+def test_rate_limit_waits_and_retries(tmp_path, monkeypatch):
+    """P5c: a 429 answer is retried after the Retry-After wait instead of stopping the run."""
+    from hackathon.agent import llm_client as lc
+
+    class Resp:
+        def __init__(self, code, headers=None):
+            self.status_code, self.headers, self.text = code, headers or {}, ""
+
+        def json(self):
+            return {"choices": [{"message": {"role": "assistant", "content": "ok"}}],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1}}
+
+    answers = [Resp(429, {"Retry-After": "7"}), Resp(429), Resp(200)]
+    monkeypatch.setattr(lc.requests, "post", lambda *a, **k: answers.pop(0))
+    m = lc.ChatModel("api", {"model": "x", "base_url": "http://x"}, lc.TokenLog(tmp_path / "l.jsonl"))
+    waits = []
+    m._sleep = waits.append
+    assert m.chat([{"role": "user", "content": "hi"}])["content"] == "ok"
+    assert waits == [7.0, 30.0]

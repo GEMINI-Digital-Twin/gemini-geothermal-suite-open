@@ -387,7 +387,8 @@ TOOL_SCHEMAS = [
         {"depth_m": NUM, "target_flow_m3h": NUM, "esp_stages": {"type": "integer"}},
         ["depth_m", "target_flow_m3h"]),
     _fn("evaluate_design", "Runs a full design over 365 days: KPIs, LCOH (ThermoGIS economics), breakthrough "
-        "time and constraint violations. Returns which supplementary models to load if any are missing.",
+        "time and constraint violations. Returns which supplementary models to load if any are missing. "
+        "Equipment capacities (heat pump, chillers, boiler) default to 0, meaning not installed.",
         {"depth_m": NUM, "n_doublets": {"type": "integer"}, "spacing_m": NUM, "max_flow_m3h": NUM,
          "outage": {"type": "string", "enum": ["staggered", "simultaneous"]},
          "heating_return_c": NUM, "hp_capacity_mw": NUM,

@@ -198,14 +198,18 @@ def check_constraints(design, cfg, daily, table, offline, spacing, kpis):
         on = int((~offline[i]).sum())
         if on > cfg.op_days:
             add("hard", "operating_days", f"doublet {i + 1} runs {on} days > {cfg.op_days}")
+    s = design.surface  # P5b: state what is installed, so the cause of a shortfall is visible
     bad = daily[daily.heat_unmet > 1e-3]
     if len(bad):
         add("hard", "heating_demand", f"heating not met on {len(bad)} days, max shortfall "
-            f"{bad.heat_unmet.max():.2f} MW (100 C supply)", bad.day.tolist())
+            f"{bad.heat_unmet.max():.2f} MW (100 C supply); installed: heat pump "
+            f"{s.hp_capacity_mw:g} MW, boiler {s.boiler_capacity_mw:g} MW", bad.day.tolist())
     bad = daily[daily.cool_unmet > 1e-3]
     if len(bad):
         add("hard", "cooling_demand", f"cooling not met on {len(bad)} days, max shortfall "
-            f"{bad.cool_unmet.max():.2f} MW (20 C supply)", bad.day.tolist())
+            f"{bad.cool_unmet.max():.2f} MW (20 C supply); installed: {s.chiller_type} chiller "
+            f"{s.sorption_capacity_mw:g} MW, electric chiller {s.elec_chiller_capacity_mw:g} MW",
+            bad.day.tolist())
     if kpis["breakthrough_years"] < cfg.lifetime_years:
         add("hard", "thermal_breakthrough",
             f"breakthrough after {kpis['breakthrough_years']:.1f} years < {cfg.lifetime_years} "
