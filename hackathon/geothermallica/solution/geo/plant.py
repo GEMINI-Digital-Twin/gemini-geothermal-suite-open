@@ -20,6 +20,11 @@ T_ABS_MIN_C = 78.0    # coldest brine a single-effect absorption chiller can use
 Q_CAP_M3H = 300.0     # maximum flow per doublet, m3/h; from the challenge brief
 
 
+def _abs_drive(t_wh, mcp, t_return_c, hx):
+    """Brine heat above T_ABS_MIN_C left for absorption chillers, MW: brine at t_wh, heat capacity flow mcp (MW/K), hx MW to the exchanger."""
+    return max(0.0, mcp * (t_wh - max(T_ABS_MIN_C, t_return_c + APPROACH_K + hx / mcp)))
+
+
 def _tlm(a, b):
     """Log-mean of two temperatures given in C, returned in K."""
     a, b = a + 273.15, b + 273.15
@@ -46,9 +51,8 @@ def doublet_at(w: Producer, q_m3h: float, t_return_c: float, heat_pump: bool = T
             t_net_hx = min(t_wh - APPROACH_K, t_return_c + q_hx * 1000 / (m_net * CP))
     else:
         cop, q_hp, p_hp = np.nan, 0.0, 0.0
-    # absorption drive: brine from T_wh down to the warmer of 78 C and what the exchanger still needs
     mcp = m * CP / 1000   # MW/K
-    q_abs = max(0.0, mcp * (t_wh - max(T_ABS_MIN_C, t_return_c + APPROACH_K + q_hx / mcp)))
+    q_abs = _abs_drive(t_wh, mcp, t_return_c, q_hx)
     m_net = q_hx * 1000 / (CP * (t_net_hx - t_return_c))
     q_boiler = max(0.0, m_net * CP * (T_SUPPLY_HEAT_C - t_net_hx) / 1000 - q_hp)
     return {"q_m3h": q_m3h, "freq_hz": r["freq_hz"], "T_wh_C": t_wh, "MW_hx": q_hx, "MW_hp": q_hp, "MW_el_hp": p_hp,
@@ -82,14 +86,12 @@ class DoubletTable:
             hx = (1 - share) * mw_out
             pt = {**floor, "MW_hx": hx, "MW_hp": 0.0, "MW_el_hp": 0.0, "MW_boiler_lift": share * mw_out, "MW_out": mw_out}
             pt["MW_brine_left"] = floor["MW_hx"] - hx
-            mcp = floor["mcp_MW_per_K"]
-            pt["MW_abs_drive"] = max(0.0, mcp * (floor["T_wh_C"] - max(T_ABS_MIN_C, t_ret + APPROACH_K + hx / mcp)))
+            pt["MW_abs_drive"] = _abs_drive(floor["T_wh_C"], floor["mcp_MW_per_K"], t_ret, hx)
             return pt
         if mw_out <= floor["MW_hx"]:
             pt = {**floor, "MW_hx": mw_out, "MW_hp": 0.0, "MW_el_hp": 0.0, "MW_boiler_lift": 0.0, "MW_out": mw_out}
             pt["MW_brine_left"] = brine_cap_floor - mw_out
-            mcp = floor["mcp_MW_per_K"]
-            pt["MW_abs_drive"] = max(0.0, mcp * (floor["T_wh_C"] - max(T_ABS_MIN_C, t_ret + APPROACH_K + mw_out / mcp)))
+            pt["MW_abs_drive"] = _abs_drive(floor["T_wh_C"], floor["mcp_MW_per_K"], t_ret, mw_out)
             return pt
         if mw_out <= floor["MW_out"]:
             hp = max(0.0, mw_out - floor["MW_hx"] - floor["MW_boiler_lift"])   # never negative

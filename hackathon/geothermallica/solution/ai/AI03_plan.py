@@ -8,11 +8,7 @@ from geo import lifetime
 from geo.common import Q_MAX_M3H
 from geo.well import ESP_DEPTH_M
 
-brief_peak = checker.brief_peak
-
-
-brief_site = checker.brief_site
-brief_priority = checker.brief_priority
+brief_peak, brief_site, brief_priority = checker.brief_peak, checker.brief_site, checker.brief_priority
 SITE_DEFAULTS = {"depth_m": 2500.0, "supply_heat_c": 100.0, "supply_cold_c": 20.0}   # the challenge site
 
 
@@ -261,13 +257,14 @@ def plan_message(brief, out):
             + "\n".join(f"- {x}" for x in rejected(out, n, t)))
 
 
-SHORT = {"unmet heat": "unmet heat", "peak margin": "peak margin", "boiler share": "boiler share",
-         "needs boiler energy": "boiler energy", "a lower return meets the rule": "higher return"}
+SHORT = {"needs boiler energy": "boiler energy", "a lower return meets the rule": "higher return"}   # shorter rejection reasons
 SAY = {"esp_depth_m": "ESP moved from {a:g} to {b:g} m", "n_doublets": "doublet count rose from {a:g} to {b:g}",
        "spacing_m": "producer-injector spacing went from {a:g} to {b:g} m", "doublet_spacing_m": "doublet spacing went from {a:g} to {b:g} m"}
+
+
 def iteration_lines(it, out):
     """The copy-ready 'Design iterations' sentence and one sentence per repair move."""
-    why = ", ".join(f"{k} {SHORT[r]}" for r, k in it["by_reason"].items())
+    why = ", ".join(f"{k} {SHORT.get(r, r)}" for r, k in it["by_reason"].items())
     s = ("Design iterations (copy as one reasoning string of its own, word for word, ending with its [C] tag): "
          f"Tried {it['tried']} designs, rejected {it['rejected']}"
          + (f": {why}" if why else "") + (f"; {it['not_needed']} not needed" if it["not_needed"] else "")

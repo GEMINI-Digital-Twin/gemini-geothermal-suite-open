@@ -6,8 +6,9 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
-DEV = Path(os.environ.get("GEMINI_DEV_SRC", os.path.expanduser("~/src/gemini-dev/src")))
-SRC = DEV if (DEV / "gemini_model").is_dir() else Path(os.environ.get("GEMINI_SRC", os.path.expanduser("~/src/gemini-geothermal-suite-open/src")))
+REPO_SRC = Path(__file__).resolve().parents[4] / "src"   # <gemini repo>/src when this file sits inside the repository
+SRC = (Path(os.environ["GEMINI_DEV_SRC"]).expanduser() if os.environ.get("GEMINI_DEV_SRC") else
+       REPO_SRC if (REPO_SRC / "gemini_model").is_dir() else Path("~/src/gemini-dev/src").expanduser())
 OUT = Path(__file__).parent / "runs" / "gemini_docs.md"
 MAX_DOC, MAX_FUNC, MAX_FILE = 40, 10, 2200   # line caps: module/class docstring, function docstring, whole file
 # keys GEMINI docstrings rarely list, read from the code instead

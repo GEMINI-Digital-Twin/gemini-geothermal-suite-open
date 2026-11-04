@@ -194,6 +194,16 @@ class TestHeatPumpLift(unittest.TestCase):
         self.assertGreater(y["T_water_out_C"], u["T_water_in_C"])
         self.assertAlmostEqual(y["Q_th_MW"], y["Q_brine_MW"] + y["P_el_MW"], delta=1e-3 * y["Q_th_MW"])
 
+    def test_brine_at_floor_gives_nothing(self):
+        """Brine entering at the floor: nothing to take, so no heat, no electricity, and the water passes through."""
+        u, _ = balanced_case()
+        u["T_brine_in_C"] = u["T_brine_floor_C"]
+        y = run_hp(u)
+        self.assertEqual((y["Q_th_MW"], y["P_el_MW"]), (0.0, 0.0))
+        self.assertAlmostEqual(y["Q_brine_MW"], 0.0, delta=1e-9)
+        self.assertTrue(y["floor_binds"])
+        self.assertAlmostEqual(y["T_water_out_C"], u["T_water_in_C"], delta=1e-9)
+
     def test_gemini_floor_branch_wrong_root(self):
         """The floor branch of GEMINI gives an unphysical water temperature; HeatPumpLift 91.2 C."""
         u, _ = balanced_case()

@@ -1,83 +1,30 @@
+"""Plot house style: figure size, colours and the matplotlib settings, applied on import (geo.common imports it before pyplot).
+
+Text goes through LaTeX only when a latex binary is on the PATH, so the scripts run on a machine without LaTeX.
+"""
+import shutil
+
 import matplotlib
 
-marker_legend_params = {'facecolor':'Navy','edgecolor':'k', 'framealpha':0.05 , 'frameon':True}
-histogram_facecolor = (0,1,0,0.25)
-# fig_width
-fig_width = 5.7*0.75
-fig_height = fig_width/1.618
-
-
+fig_width = 5.7 * 0.75          # figure width, inches; figures are sized as multiples of it
+fig_height = fig_width / 1.618  # golden ratio
 COLORS = ["Navy", "Crimson", "mediumseagreen", "darkorchid"]
+LINE = 0.75                     # line and axis width, points
 
-def toGreyColor(namedColor):
-	rgb = matplotlib.colors.to_rgb(namedColor)
-	Grayscale = 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]
-	rgb = (Grayscale,Grayscale,Grayscale)
-	return rgb
-
-def toGrey(COLORS):
-	colors = COLORS.copy()
-	for i in range(len(colors)):
-		colors[i] = toGreyColor(colors[i])
-	return colors
-
-GREYCOLORS = toGrey(COLORS)
-
-linewidths=0.75
-tickwidths=0.75*linewidths
-tickminor=3
-tickmajor=2*tickminor
-params = {
-			'font.size':11,
-			'axes.titlesize': 11,
-			'axes.labelsize': 11, 
-			'xtick.labelsize': 10,
-			'ytick.labelsize': 10,
-			'legend.fontsize': 10,
-			
-			'font.family': 'sans-serif',
-			'mathtext.fontset': 'dejavuserif',
-			'mathtext.rm': 'serif',
-			'mathtext.bf': 'serif:bold',
-			'mathtext.it': 'serif:italic',
-			'font.weight': 'medium',
-
-			# 'xtick.minor.visible': True,
-			# 'ytick.minor.visible': True,
-			'xtick.direction': 'in',
-			'ytick.direction': 'in',
-			'ytick.major.width': tickwidths,
-			'xtick.major.width': tickwidths,
-			'ytick.minor.width': tickwidths,
-			'xtick.minor.width': tickwidths,
-			'ytick.minor.size': tickminor,
-			'xtick.minor.size': tickminor,
-			'ytick.major.size': tickmajor,
-			'xtick.major.size': tickmajor,
-
-			'ytick.right': True,
-			'xtick.top': True,
-			'xtick.direction': 'in',
-    		'ytick.direction': 'in',
-			'text.usetex': True,
-			"text.latex.preamble": "\n".join([
-		        r"\usepackage[utf8]{inputenc}",
-		        r"\usepackage[T1]{fontenc}",
-		        r"\usepackage[detect-all, per-mode=symbol]{siunitx}",
-		        r"\usepackage{amsmath, amssymb}",
-		        ]),
-
-
-			'figure.figsize': [fig_width,fig_height],
-			'figure.constrained_layout.use': True,
-			'axes.spines.top': True,
-    		'axes.spines.right': True,
-			'axes.linewidth': linewidths,
-			'lines.linewidth': linewidths,
-			'lines.markeredgewidth': linewidths,
-			'lines.markersize': 7,
-			'legend.handlelength': 1.7,
-			'legend.frameon': False,
-			
-}
-matplotlib.rcParams.update(params)
+matplotlib.rcParams.update({
+    "font.size": 11, "axes.titlesize": 11, "axes.labelsize": 11,
+    "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 10,
+    "font.family": "sans-serif", "font.weight": "medium",
+    "mathtext.fontset": "dejavuserif", "mathtext.rm": "serif", "mathtext.bf": "serif:bold", "mathtext.it": "serif:italic",
+    "xtick.direction": "in", "ytick.direction": "in", "xtick.top": True, "ytick.right": True,
+    "xtick.major.size": 6, "ytick.major.size": 6, "xtick.minor.size": 3, "ytick.minor.size": 3,
+    "xtick.major.width": 0.75 * LINE, "ytick.major.width": 0.75 * LINE,
+    "xtick.minor.width": 0.75 * LINE, "ytick.minor.width": 0.75 * LINE,
+    "axes.linewidth": LINE, "lines.linewidth": LINE, "lines.markeredgewidth": LINE, "lines.markersize": 7,
+    "axes.spines.top": True, "axes.spines.right": True,
+    "legend.handlelength": 1.7, "legend.frameon": False,
+    "figure.figsize": [fig_width, fig_height], "figure.constrained_layout.use": True,
+    "text.usetex": shutil.which("latex") is not None,
+    "text.latex.preamble": "\n".join([r"\usepackage[utf8]{inputenc}", r"\usepackage[T1]{fontenc}",
+                                      r"\usepackage[detect-all, per-mode=symbol]{siunitx}", r"\usepackage{amsmath, amssymb}"]),
+})

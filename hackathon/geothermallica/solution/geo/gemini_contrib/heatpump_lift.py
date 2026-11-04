@@ -36,8 +36,11 @@ class HeatPumpLift(HeatpumpBasic):
 
     def _calculate(self, Th_out, Th_in, Ts_in, mh, ms):
         """HeatpumpBasic's (COP, T out, T brine out, heat, power); in the floor branch, where its Nelder-Mead finds a COP ~1 root, brentq."""
-        result = super()._calculate(Th_out, Th_in, Ts_in, mh, ms)
         Ts_floor = self.parameters["Ts_in_minimum"] + 273.15
+        # brine at or below the floor: nothing to take, so no heat, no power, water passes through
+        if Ts_in <= Ts_floor:
+            return float("nan"), Th_in, Ts_in, 0.0, 0.0
+        result = super()._calculate(Th_out, Th_in, Ts_in, mh, ms)
         if abs(result[2] - Ts_floor) >= 1e-9:
             return result
         p = self.parameters
@@ -76,7 +79,7 @@ class HeatPumpLift(HeatpumpBasic):
         y["Q_brine_MW"] = m_s * self.parameters["Cp_s"] * (u["T_brine_in_C"] - y["Ts_out"]) / 1e6
         y["T_brine_out_C"] = y["Ts_out"]
         y["T_water_out_C"] = y["Th_out"]
-        y["floor_binds"] = abs(y["Ts_out"] - u["T_brine_floor_C"]) < 1e-9
+        y["floor_binds"] = y["Ts_out"] <= u["T_brine_floor_C"] + 1e-9
 
 
 def register():

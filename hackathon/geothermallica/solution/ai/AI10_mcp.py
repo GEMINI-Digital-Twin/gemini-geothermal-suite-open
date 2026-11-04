@@ -38,14 +38,20 @@ for name in tools.SIG:
     server._tool_manager.get_tool(name).parameters = SCHEMA[name]["parameters"]   # clients see AI02's schema verbatim
 
 
+def note(name):
+    """The markdown note next to solution/, or one line saying this checkout does not carry it."""
+    path = HERE.parent / name
+    return path.read_text() if path.exists() else f"{name} is not in this checkout (the design notes live in the working repository)."
+
+
 @server.resource("notes://findings", name="findings", description="The GEMINI findings (jury material)", mime_type="text/markdown")
 def findings():
-    return (HERE.parent / "NOTES_findings.md").read_text()
+    return note("NOTES_findings.md")
 
 
 @server.resource("notes://readme", name="readme", description="solution/README.md: the map of the deliverable", mime_type="text/markdown")
 def readme():
-    return (HERE.parent / "README.md").read_text()
+    return note("README.md")
 
 
 @server.prompt(name="design_brief", description="The challenge brief (AI03.BRIEF), ready to send to the model")

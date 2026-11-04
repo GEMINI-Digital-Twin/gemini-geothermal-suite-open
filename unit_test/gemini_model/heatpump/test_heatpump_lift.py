@@ -47,6 +47,14 @@ class TestHeatPumpLift(unittest.TestCase):
             y["Q_th_MW"], y["Q_brine_MW"] + y["P_el_MW"], delta=1e-3 * y["Q_th_MW"]
         )
 
+    def test_brine_at_floor_gives_nothing(self):
+        """Brine entering at the floor: no heat, no electricity, the water passes through."""
+        y = _run({**CASE, "T_brine_in_C": CASE["T_brine_floor_C"]})
+        self.assertEqual((y["Q_th_MW"], y["P_el_MW"]), (0.0, 0.0))
+        self.assertAlmostEqual(y["Q_brine_MW"], 0.0, delta=1e-9)
+        self.assertTrue(y["floor_binds"])
+        self.assertAlmostEqual(y["T_water_out_C"], CASE["T_water_in_C"], delta=1e-9)
+
     def test_heatpump_basic_floor_branch_root(self):
         """Same inputs through HeatpumpBasic: its floor branch gives an outlet far above target."""
         u = {**CASE, "water_flow_m3h": 2 * CASE["water_flow_m3h"]}

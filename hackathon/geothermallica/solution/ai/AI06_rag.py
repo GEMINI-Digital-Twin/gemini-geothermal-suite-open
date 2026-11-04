@@ -103,7 +103,7 @@ def index(rebuild=False):
     IDF.clear()
     IDF.update({w: math.log(len(cs) / n) for w, n in df.items()})
     global IDF_MAX
-    IDF_MAX = math.log(len(cs))
+    IDF_MAX = math.log(max(len(cs), 1))
     return cs
 
 
@@ -203,9 +203,12 @@ def grounding(text, hits):
 
 def answer(question, show=False):
     t0, records = time.time(), []
-    hits = retrieve(question, index())
+    cs = index()
+    hits = retrieve(question, cs) if cs else []
     problems, first, fixed = [], None, []
-    if max(h["cosine"] for h in hits) < MIN_COSINE:
+    if not hits:
+        text = "Not in the notes: this checkout carries no note files."
+    elif max(h["cosine"] for h in hits) < MIN_COSINE:
         text = "Not in the notes."
     else:
         context = "\n\n".join(f"[{i}] ({kind(h['file'])}) {h['file']} § {h['heading']}\n{h['text']}" for i, h in enumerate(hits, 1))

@@ -52,7 +52,8 @@ def _need(name, x, lo, hi):
 
 
 def _peaks(peak_heat_MW, peak_cold_MW):
-    _need("peak_heat_MW", peak_heat_MW, 1, 100); _need("peak_cold_MW", peak_cold_MW, 0, 50)
+    _need("peak_heat_MW", peak_heat_MW, 1, 100)
+    _need("peak_cold_MW", peak_cold_MW, 0, 50)
 
 
 def _esp(esp_depth_m):
@@ -65,7 +66,9 @@ def site_inputs(supply_heat_c, supply_cold_c, depth_m=DEPTH_M):
     """Call first. Reservoir at depth_m (1500-4000 m): temperature from the 30 C/km gradient, pressure (the brief's 250 bar at 2500
     m, hydrostatic elsewhere), producer wellhead T at 300 m3/h; and whether the design tables cover the supply setpoints (built
     for 100 C heat / 20 C cold only). Any depth in range is supported: pass the same depth_m to every other tool [D, A]."""
-    _need("depth_m", depth_m, 1500, 4000); _need("supply_heat_c", supply_heat_c, 60, 120); _need("supply_cold_c", supply_cold_c, 6, 25)
+    _need("depth_m", depth_m, 1500, 4000)
+    _need("supply_heat_c", supply_heat_c, 60, 120)
+    _need("supply_cold_c", supply_cold_c, 6, 25)
     w = Producer(depth_m=float(depth_m), stages=24)
     f = w.freq_for_wellhead(300.0)
     ok = supply_heat_c == 100 and supply_cold_c == 20
@@ -99,7 +102,9 @@ def doublet_point(q_m3h, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
     """One doublet at flow q_m3h (50-300 m3/h) and network return t_return_c (30-70 C), reservoir at depth_m (default 2500 m),
     24-stage ESP to a 10 bar wellhead, exchanger then a brine-source heat pump lifting to 100 C: wellhead T, MW by source, ESP kW,
     COP, whether the pump is inside its 158-342 m3/h curve. GEMINI models plus our exchanger and Lorenz heat pump [C, A]."""
-    _need("q_m3h", q_m3h, Q_MIN_M3H, Q_MAX_M3H); _need("t_return_c", t_return_c, 30, 70); _need("depth_m", depth_m, 1500, 4000)
+    _need("q_m3h", q_m3h, Q_MIN_M3H, Q_MAX_M3H)
+    _need("t_return_c", t_return_c, 30, 70)
+    _need("depth_m", depth_m, 1500, 4000)
     w = Producer(depth_m=float(depth_m), stages=24, esp_depth_m=_esp(esp_depth_m))
     p = doublet_at(w, float(q_m3h), float(t_return_c))
     return r2({"q_m3h": q_m3h, "depth_m": depth_m, "esp_freq_Hz": p["freq_hz"], "T_wellhead_C": p["T_wh_C"], "exchanger_MW": p["MW_hx"],
@@ -110,7 +115,10 @@ def doublet_point(q_m3h, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
 
 @lru_cache
 def _heat(n, t, ph=None, depth=DEPTH_M, esp=None):
-    _need("n_doublets", n, 1, 3); _need("t_return_c", t, 30, 70); _peaks(ph, None); _need("depth_m", depth, 1500, 4000)
+    _need("n_doublets", n, 1, 3)
+    _need("t_return_c", t, 30, 70)
+    _peaks(ph, None)
+    _need("depth_m", depth, 1500, 4000)
     return year.heating_year(int(n), float(t), peak_heat_MW=ph, depth_m=float(depth), esp_depth_m=_esp(esp))
 
 
@@ -160,7 +168,8 @@ def injector_point(q_m3h, depth_m=DEPTH_M):
     """Injection well at q_m3h (50-300 m3/h), reservoir at depth_m (default 2500 m), brine back at wellhead T minus 40 K: cold
     injectivity, bottomhole and wellhead pressure needed, injection pump kW, margin to the SodM 0.135 bar/m limit at that depth,
     and the wellhead pressure GEMINI's own friction sign would give [C, A]."""
-    _need("q_m3h", q_m3h, Q_MIN_M3H, Q_MAX_M3H); _need("depth_m", depth_m, 1500, 4000)
+    _need("q_m3h", q_m3h, Q_MIN_M3H, Q_MAX_M3H)
+    _need("depth_m", depth_m, 1500, 4000)
     r = injector_at(float(q_m3h), float(depth_m))
     return r2({"q_m3h": q_m3h, "depth_m": depth_m, "T_inj_C": r["T_inj_C"], "injectivity_m3h_per_bar": r["II"], "p_bottomhole_bar": r["p_bh_req_bar"],
                "p_wellhead_bar": r["p_wh_bar"], "p_wellhead_gemini_sign_bar": r["p_wh_gemini_sign_bar"],
@@ -174,8 +183,10 @@ def heat_pump_point(t_brine_in_c, t_water_in_c, brine_m3h, water_m3h, t_brine_fl
     (the wellhead T - 40 K; omitted = t_brine_in_c - 40 K, right only with no exchanger upstream): COP, heat and electricity MW,
     brine and water out, and whether the floor binds (then the water falls short of 100 C). A cross-check of the plant tables, not
     used by the code plan [C, A]."""
-    _need("t_brine_in_c", t_brine_in_c, 40, 90); _need("t_water_in_c", t_water_in_c, 40, 99)
-    _need("brine_m3h", brine_m3h, 50, 600); _need("water_m3h", water_m3h, 50, 600)
+    _need("t_brine_in_c", t_brine_in_c, 40, 90)
+    _need("t_water_in_c", t_water_in_c, 40, 99)
+    _need("brine_m3h", brine_m3h, 50, 600)
+    _need("water_m3h", water_m3h, 50, 600)
     floor = t_brine_in_c - DT_BRINE_MAX_K if t_brine_floor_c is None else t_brine_floor_c
     _need("t_brine_floor_c", floor, t_brine_in_c - DT_BRINE_MAX_K - 50, t_brine_in_c)
     hp = HeatPumpLift()
@@ -192,8 +203,10 @@ def checks(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m
     """The brief's constraints, 16 rows (incl. capacity covers the peak, free gas at the ESP intake, thermal breakthrough and doublet
     interference) for 1-3 doublets at a 30-70 C return, reservoir at depth_m (default 2500 m), demand scaled to the given peaks:
     each row is name: value (limit) -> pass or FAIL [C]."""
-    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70)
-    _peaks(peak_heat_MW, peak_cold_MW); _need("depth_m", depth_m, 1500, 4000)
+    _need("n_doublets", n_doublets, 1, 3)
+    _need("t_return_c", t_return_c, 30, 70)
+    _peaks(peak_heat_MW, peak_cold_MW)
+    _need("depth_m", depth_m, 1500, 4000)
     rows = year.checks(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m))
     out = {f"{i + 1:02d} {r['name']}": f"{r['value']} (limit {r['limit']}) -> {r['status']}" for i, r in enumerate(rows)}
     n_pass = sum(r["status"].startswith("pass") for r in rows)
@@ -207,8 +220,10 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, dept
     heat pump, boiler, ESP and injection electricity, gas, CO2) and of cold lcoc_EUR_MWh, electricity, gas; CO2 kt from the boiler gas
     (co2_kt), grid electricity at 0.3 kg/kWh, the associated gas as handled (default gas engine) and the total; 5.2 % real, 30/20 yr
     lives, sourced prices [C, L, A]."""
-    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70)
-    _peaks(peak_heat_MW, peak_cold_MW); _need("depth_m", depth_m, 1500, 4000)
+    _need("n_doublets", n_doublets, 1, 3)
+    _need("t_return_c", t_return_c, 30, 70)
+    _peaks(peak_heat_MW, peak_cold_MW)
+    _need("depth_m", depth_m, 1500, 4000)
     e = cost.economics(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m))
     cap, ann = e["capex_MEUR"], e["annual_cost_MEUR"]
     flat = {**{f"capex_{k}_MEUR": v for k, v in cap.items()},
@@ -227,8 +242,10 @@ def layout_compare(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None,
     and co2_total_kt with grid electricity and associated gas),
     electricity GWh, geothermal share, heat-pump and total CAPEX MEUR; chosen = the lower LCoH, delta_lcoh_EUR_MWh = A minus B
     [C]."""
-    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70)
-    _peaks(peak_heat_MW, peak_cold_MW); _need("depth_m", depth_m, 1500, 4000)
+    _need("n_doublets", n_doublets, 1, 3)
+    _need("t_return_c", t_return_c, 30, 70)
+    _peaks(peak_heat_MW, peak_cold_MW)
+    _need("depth_m", depth_m, 1500, 4000)
     out, esp = {}, _esp(esp_depth_m)
     for hp, key in ((True, "B"), (False, "A")):
         e = cost.economics(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), heat_pump=hp, esp_depth_m=esp)
@@ -248,8 +265,11 @@ def storage_point(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, ou
     depth_m (default 2500 m), heat demand scaled to peak_heat_MW: tank MWh for the peak with every doublet on, tank MWh, number of
     175 MWh / 2.9 MW units and MEUR for one doublet out over outage_days (1-35, default 7 [A]) in winter at 3 000 EUR/MWh [L,
     DEA], the boiler's MEUR, and a verdict sentence; daily data make the peak tank a lower bound [C, L, A]."""
-    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70); _peaks(peak_heat_MW, None)
-    _need("depth_m", depth_m, 1500, 4000); _need("outage_days", outage_days, 1, 35)
+    _need("n_doublets", n_doublets, 1, 3)
+    _need("t_return_c", t_return_c, 30, 70)
+    _peaks(peak_heat_MW, None)
+    _need("depth_m", depth_m, 1500, 4000)
+    _need("outage_days", outage_days, 1, 35)
     s = storage.storage_case(int(n_doublets), float(t_return_c), peak_heat_MW, depth_m=float(depth_m), outage_days=int(outage_days),
                              esp_depth_m=_esp(esp_depth_m))
     return r2(s)
@@ -262,7 +282,8 @@ def gas_point(q_m3h, depth_m=DEPTH_M, esp_depth_m=None):
     (free_gas_at_intake true means gas breaks out before the pump), and five handling options (vent, flare, gas engine, site boiler,
     reinjection) with CO2 t/yr, energy credit or compression duty; the chosen option (gas engine) in kt and GWh per doublet-year
     against the ESP electricity at the same flow [C, L, A]."""
-    _need("q_m3h", q_m3h, Q_MIN_M3H, Q_MAX_M3H); _need("depth_m", depth_m, 1500, 4000)
+    _need("q_m3h", q_m3h, Q_MIN_M3H, Q_MAX_M3H)
+    _need("depth_m", depth_m, 1500, 4000)
     g = gas.gas_at(float(q_m3h), float(depth_m))
     w = Producer(depth_m=float(depth_m), stages=24, esp_depth_m=_esp(esp_depth_m))
     f = w.freq_for_wellhead(float(q_m3h))
@@ -292,8 +313,12 @@ def lifetime_point(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, s
     producer-injector spacing_m (500-3000 m, default 1500 m), the spacing that gives 30 and 50 yr, and the extra injector pressure
     from the neighbouring doublets placed side by side doublet_spacing_m apart (default = spacing_m) against the SodM margin [C,
     L, A]."""
-    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70); _peaks(peak_heat_MW, None); _need("depth_m", depth_m, 1500, 4000)
-    _need("spacing_m", spacing_m, 500, 3000); _need("doublet_spacing_m", doublet_spacing_m, 300, 5000)
+    _need("n_doublets", n_doublets, 1, 3)
+    _need("t_return_c", t_return_c, 30, 70)
+    _peaks(peak_heat_MW, None)
+    _need("depth_m", depth_m, 1500, 4000)
+    _need("spacing_m", spacing_m, 500, 3000)
+    _need("doublet_spacing_m", doublet_spacing_m, 300, 5000)
     d = _heat(int(n_doublets), float(t_return_c), peak_heat_MW, float(depth_m), esp_depth_m)
     q_mean = float(d.q_m3h[d.doublets_on > 0].mean())
     dp = lifetime.interference_bar(int(n_doublets), Q_MAX_M3H, float(spacing_m), doublet_spacing_m)
@@ -314,7 +339,8 @@ def optimise_point(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, priori
     all 16 checks pass and the doublet rule (no unmet heat, peak covered, boiler at most 5 %); returns the Pareto front (designs no
     other beats on both LCoH and CO2, with the breakthrough time), best_lcoh and best_co2 rows, best_on_priority for priority
     'lcoh' or 'co2', the number of designs evaluated and the seconds taken [C]."""
-    _peaks(peak_heat_MW, peak_cold_MW); _need("depth_m", depth_m, 1500, 4000)
+    _peaks(peak_heat_MW, peak_cold_MW)
+    _need("depth_m", depth_m, 1500, 4000)
     if priority not in ("lcoh", "co2"):
         raise ValueError(f"priority must be 'lcoh' or 'co2', got {priority!r}")
     _need("max_doublets", max_doublets, 1, 3)
@@ -375,7 +401,9 @@ def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
     GEMINI needs for our flow, and at that flow GEMINI's ESP intake pressure, ESP head, injection wellhead pressure, brine outlet
     temperature, exchanger MW and boiler MW next to ours (_ours, _gemini, _diff_pct); residual columns take out the known 1 000 vs
     1 030 kg/m3 well-column offset. Also the project file path, gemini_version and a verdict sentence [C]."""
-    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70); _need("depth_m", depth_m, 1500, 4000)
+    _need("n_doublets", n_doublets, 1, 3)
+    _need("t_return_c", t_return_c, 30, 70)
+    _need("depth_m", depth_m, 1500, 4000)
     r = gemini_project.replay(int(n_doublets), float(t_return_c), float(depth_m), _esp(esp_depth_m))
     days = [r2({k: v for k, v in d.items() if v is not None}) for d in r["days"]]
     solved = [d for d in days if "esp_head_residual_bar" in d]
