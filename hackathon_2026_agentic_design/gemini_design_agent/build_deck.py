@@ -97,7 +97,7 @@ def table(sl, x, y, w, rows, col_w, font=11, head_fill=DEEP, row_h=Inches(0.32),
 s = prs.slides.add_slide(BLANK); rect(s, 0, 0, W, H, DEEP)
 rect(s, Inches(8.9), Inches(0), Inches(4.433), H, "143A4F")
 text(s, Inches(0.8), Inches(1.5), Inches(7.8), Inches(0.5), "SPE EUROPE ENERGY GEOHACKATHON 2026  |  EXPRESS EDITION", size=12, color="9FB3BF", bold=True)
-text(s, Inches(0.8), Inches(2.0), Inches(7.8), Inches(2.2), "An AI agent designs a geothermal heating and cooling system, and the digital twin keeps it honest",
+text(s, Inches(0.8), Inches(2.0), Inches(7.8), Inches(2.2), "Three doublets at 3,500 m, direct heating and brine-driven cooling: an AI-designed, twin-verified district energy system",
      size=34, bold=True, font=HEAD, color=WHITE, line_spacing=1.05)
 text(s, Inches(0.8), Inches(4.5), Inches(7.8), Inches(1.2), [
     "Propose - evaluate - diagnose - repair on the GEMINI twin, then closed-loop management, robust optimisation and real-time ESP monitoring.",
