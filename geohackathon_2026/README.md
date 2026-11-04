@@ -19,7 +19,7 @@ The two demand files are the challenge inputs.
 
 ## Result
 
-Recommended design: 2 doublets at 3,000 m, produced gas in a CHP, absorption chillers. 71.2 EUR/MWh, 5.97 kt CO2 a year, 0.3% of delivered energy bought; every operating day passes in GEMINI plant files. Details: `results/evidence/evidence_summary.md`, `results/sensitivity.md` and `results/figures/`.
+Recommended design: 2 doublets at 3,000 m, produced gas in a CHP, absorption chillers. 71.2 EUR/MWh, 5.97 kt CO2 a year (78% less than gas boilers and electric chillers), 0.3% of delivered energy bought; every operating day passes in GEMINI plant files. Details: `results/evidence/evidence_summary.md`, `results/sensitivity.md` and `results/figures/`.
 
 ## Setup
 
@@ -52,6 +52,7 @@ All commands run from this folder.
 | Agent | `PYTHONPATH=../src:cases:agent python agent/run_agent.py "Design the heating and cooling system for the district. Compare designs and recommend one."` | 3-5 min | `RECOMMENDATION: doublets=2, depth_m=3000, layout=chp+absorption`, then `REVIEWER: accepted.` |
 | Price sensitivity and failure study | `PYTHONPATH=../src:cases:agent python agent/sensitivity_study.py` | 2 min | writes `results/sensitivity.md` |
 | Figures | `PYTHONPATH=../src:cases:agent python cases/figures.py` | 10 s | writes `results/figures/*.svg` |
+| Conventional reference | `PYTHONPATH=../src:cases:agent python cases/reference_case.py` | 5 s | gas boilers + electric chillers: 26.71 kt CO2 at 65.3 EUR/MWh; the design saves 78% |
 | GEMINI baseline case | `PYTHONPATH=../src python cases/run_baseline.py` | 5 s | the challenge's reference case (one doublet at 2,500 m) and its checks. It fails the 100 C supply check on purpose: brine at 2,500 m is too cold, which is why the design goes deeper |
 
 The agent needs Ollama running (`ollama serve`, or the Ollama app). Each agent session is logged in `logs/` with every tool call and its token count. Tool results are cached in `agent/memory.json`; delete it to recompute everything (the first design question then takes a few minutes longer).
