@@ -23,6 +23,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   share of the capex (`%/yr`), for the kinds sized by a power; it multiplies the power size of
   each module (a heat exchanger's `nominal_duty`). New units `EUR/W/yr`, `EUR/kW/yr`,
   `EUR/MW/yr` and `currency/W/yr` (quantity `annual_money_per_power`, shown in `EUR/MW/yr`).
+- `economics.revenue.subsidy.amount` may be per energy of the useful heat (`EUR/MWh`), as SDE++
+  pays, besides per year; the new optional `cap` limits the heat it is paid on, an energy per year
+  (`MWh/yr`) or full-load hours per year (`h/yr`) times the new `capacity` it is granted for (absent
+  with a cap in hours: `missing_assumption`). A cap on an amount per year is refused. `npv` and
+  `payback` count it. New units `h/yr`, `s/yr` (quantity `annual_duration`, shown in `h/yr`).
 
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,

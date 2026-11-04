@@ -15,6 +15,8 @@ from gemini.errors import ValidationError
 from gemini.units import inputs
 
 HEADER = ("format", "kind", "name")
+PER_ENERGY = "money_per_energy"
+"""The quantity of a subsidy paid per energy of useful heat."""
 TABLE_KEYS = ("depth", "cost_per_metre")
 EXAMPLE_UNITS = {
     "money": "EUR",
@@ -260,7 +262,13 @@ class Carbon(Node):
 
 
 class Subsidy(Node):
-    """A subsidy: the ``amount`` paid per year [currency/yr] for a ``duration`` [s]."""
+    """A subsidy: the ``amount`` paid for a ``duration`` [s], per year or per energy.
+
+    ``amount`` is per year [currency/yr], or per J of the useful heat delivered [currency/J] when
+    its unit is per energy. A subsidy per energy may have a ``cap``, the most heat a year it is
+    paid on: an energy per year [J/yr], or full-load hours per year [s/yr] times the ``capacity``
+    the subsidy is granted for [W].
+    """
 
     where = "economics.revenue.subsidy"
     description = (
@@ -271,14 +279,49 @@ class Subsidy(Node):
         "amount": Field(
             "annual_money",
             bounds=POSITIVE,
-            description="The subsidy paid per year (EUR/yr, MEUR/yr)",
+            description=(
+                "The subsidy paid per year (EUR/yr, MEUR/yr), or per energy of the useful heat "
+                "delivered (EUR/MWh), as SDE++ pays; the unit tells which"
+            ),
+            alternatives=("money_per_energy",),
         ),
         "duration": Field(
             "duration",
             bounds=POSITIVE,
             description="How long the subsidy is paid (yr), within the analysis period",
         ),
+        "cap": Field(
+            "annual_energy",
+            bounds=POSITIVE,
+            description=(
+                "The most heat a year a subsidy per energy is paid on: an energy per year "
+                "(MWh/yr), or full-load hours per year (h/yr) times the capacity; absent, all "
+                "the useful heat"
+            ),
+            alternatives=("annual_duration",),
+        ),
+        "capacity": Field(
+            "power",
+            bounds=POSITIVE,
+            description=(
+                "The capacity the subsidy is granted for (MW), which a cap in full-load hours "
+                "multiplies"
+            ),
+        ),
     }
+
+    def _verify(self, path, ctx):
+        """Refuse a cap on a subsidy that is not paid per energy."""
+        amount = self._leaves.get("amount")
+        if "cap" in self._leaves and getattr(amount, "quantity", None) != PER_ENERGY:
+            where = join_path(path, "cap")
+            issue(
+                ctx.issues,
+                where,
+                "incompatible",
+                f"{where}: a cap limits the energy a subsidy per energy (EUR/MWh) is paid on; "
+                "expected an amount per energy, or no cap",
+            )
 
 
 class Revenue(Node):

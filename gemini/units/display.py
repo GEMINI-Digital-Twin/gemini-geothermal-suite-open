@@ -27,6 +27,7 @@ DISPLAY_UNITS = {
     "temperature_gradient": "K/km",
     "money_per_mass": "EUR/t",
     "annual_money_per_power": "EUR/MW/yr",
+    "annual_duration": "h/yr",
     "volume_flow": "m3/h",
     "temperature": "degC",
 }

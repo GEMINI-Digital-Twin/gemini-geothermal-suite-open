@@ -162,7 +162,8 @@ of nominal duty, a storage per m3 or per MWh stored, a production pump per W or 
 `opex.fixed.<kind>` (a share of capex per year, or per capacity and year in `EUR/MW/yr` for a kind
 sized by a power), `opex.variable.chemical` and
 `waste_disposal`, `energy.electricity` and `gas`, `carbon.price`, `revenue.heat`, `cold` and
-`subsidy` (`amount` per year, `duration`), `accounting.allocation.heat_cost_share` and
+`subsidy` (`amount` per year, or per energy of the useful heat in `EUR/MWh`, `duration`, and for an
+amount per energy an optional `cap`, `MWh/yr` or full-load hours `h/yr` times `capacity`), `accounting.allocation.heat_cost_share` and
 `accounting.gwp` (`standard` text, `CH4`). `capex.drilling` is a quantity per metre or a depth table
 `{"depth": {"value": [...], "unit": "m"}, "cost_per_metre": {"value": [...], "unit": "EUR/m"}}`;
 `economics.drilling_cost_per_metre(length)` interpolates it linearly and a length outside the table

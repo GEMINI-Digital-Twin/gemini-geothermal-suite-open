@@ -340,6 +340,8 @@ _UNITS = {
     "kWh/yr": ("J/yr", JOULES_PER_KWH, 0),
     "MWh/yr": ("J/yr", KILO * JOULES_PER_KWH, 0),
     "GWh/yr": ("J/yr", MEGA * JOULES_PER_KWH, 0),
+    "s/yr": ("s/yr", 1, 0),
+    "h/yr": ("s/yr", SECONDS_PER_HOUR, 0),
     "1/yr": ("1/yr", 1, 0),
     "%/yr": ("1/yr", 0.01, 0),
     "kg/J": ("kg/J", 1, 0),

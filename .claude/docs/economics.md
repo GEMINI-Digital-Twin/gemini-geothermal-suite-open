@@ -52,7 +52,7 @@ for an assumption nobody gave. With `on_error="record"` nothing is raised and `v
 | `annualised_cost(plant, case, results, on_error="raise")` | `capex / A + opex` in currency/yr, with `capex`, `opex`, `annuity_factor`, `discount_rate`, `analysis_period` |
 | `lcts(...)` (as `lcoh`) | levelised cost of thermal supply: `annualised_cost / (heat + cold)` in currency/J; it needs no `heat_cost_share` |
 | `co2(plant, case, results)` | kg of CO2-equivalent over the window, step by step: the leaf `co2_emission`, `methane_emission` times `economics.accounting.gwp.CH4`, grid electricity times `utilities.electricity.co2_intensity`; a factor is asked for only when its source is non-zero |
-| `npv(plant, case, results, on_error="raise")` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case and the discounted subsidy (`economics.revenue.subsidy`: its amount per year for its duration, within the lifetime) |
+| `npv(plant, case, results, on_error="raise")` | `-capex + (revenue - opex) A`, with the `revenue` prices of the case and the discounted subsidy (`economics.revenue.subsidy`: its amount per year for its duration, within the lifetime; an amount per energy, `EUR/MWh` as SDE++ pays, is paid on the useful heat of a year up to its `cap`, `MWh/yr` or full-load hours `h/yr` times its `capacity`) |
 | `payback(plant, case, results)` | `capex / (revenue - opex)` in `yr`, undiscounted; a subsidy of the case adds its amount per year to the cash flow for its duration only |
 
 The discount rate and the analysis period are `economics.discount_rate` and `economics.analysis_period` of the case; no function takes

@@ -4171,7 +4171,7 @@
             },
             "amount": {
               "additionalProperties": false,
-              "description": "The subsidy paid per year (EUR/yr, MEUR/yr)",
+              "description": "The subsidy paid per year (EUR/yr, MEUR/yr), or per energy of the useful heat delivered (EUR/MWh), as SDE++ pays; the unit tells which",
               "properties": {
                 "range": {
                   "additionalProperties": false,
@@ -4215,7 +4215,191 @@
                     "EUR/yr",
                     "MEUR/yr",
                     "currency/yr",
-                    "kEUR/yr"
+                    "kEUR/yr",
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
+                  ]
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "value",
+                "unit"
+              ],
+              "type": "object",
+              "x-bases": {
+                "annual_money": [
+                  "EUR/yr",
+                  "MEUR/yr",
+                  "currency/yr",
+                  "kEUR/yr"
+                ],
+                "money_per_energy": [
+                  "EUR/J",
+                  "EUR/MWh",
+                  "EUR/kWh",
+                  "currency/J",
+                  "currency/MWh",
+                  "currency/kWh"
+                ]
+              },
+              "x-limits": {
+                "min": 0.0,
+                "unit": "currency/yr"
+              },
+              "x-quantity": "annual_money",
+              "x-units": [
+                "EUR/yr",
+                "MEUR/yr",
+                "currency/yr",
+                "kEUR/yr",
+                "EUR/J",
+                "EUR/MWh",
+                "EUR/kWh",
+                "currency/J",
+                "currency/MWh",
+                "currency/kWh"
+              ]
+            },
+            "cap": {
+              "additionalProperties": false,
+              "description": "The most heat a year a subsidy per energy is paid on: an energy per year (MWh/yr), or full-load hours per year (h/yr) times the capacity; absent, all the useful heat",
+              "properties": {
+                "range": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "max": {
+                      "type": "number"
+                    },
+                    "min": {
+                      "type": "number"
+                    }
+                  },
+                  "type": "object"
+                },
+                "uncertainty": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "uniform",
+                        "triangular",
+                        "normal"
+                      ]
+                    },
+                    "max": {
+                      "type": "number"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "std": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "type": "object"
+                },
+                "unit": {
+                  "enum": [
+                    "GWh/yr",
+                    "J/yr",
+                    "MWh/yr",
+                    "kWh/yr",
+                    "h/yr",
+                    "s/yr"
+                  ]
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "value",
+                "unit"
+              ],
+              "type": "object",
+              "x-bases": {
+                "annual_duration": [
+                  "h/yr",
+                  "s/yr"
+                ],
+                "annual_energy": [
+                  "GWh/yr",
+                  "J/yr",
+                  "MWh/yr",
+                  "kWh/yr"
+                ]
+              },
+              "x-limits": {
+                "min": 0.0,
+                "unit": "J/yr"
+              },
+              "x-quantity": "annual_energy",
+              "x-units": [
+                "GWh/yr",
+                "J/yr",
+                "MWh/yr",
+                "kWh/yr",
+                "h/yr",
+                "s/yr"
+              ]
+            },
+            "capacity": {
+              "additionalProperties": false,
+              "description": "The capacity the subsidy is granted for (MW), which a cap in full-load hours multiplies",
+              "properties": {
+                "range": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "max": {
+                      "type": "number"
+                    },
+                    "min": {
+                      "type": "number"
+                    }
+                  },
+                  "type": "object"
+                },
+                "uncertainty": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "uniform",
+                        "triangular",
+                        "normal"
+                      ]
+                    },
+                    "max": {
+                      "type": "number"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "std": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "type": "object"
+                },
+                "unit": {
+                  "enum": [
+                    "GW",
+                    "MW",
+                    "W",
+                    "kW"
                   ]
                 },
                 "value": {
@@ -4229,14 +4413,14 @@
               "type": "object",
               "x-limits": {
                 "min": 0.0,
-                "unit": "currency/yr"
+                "unit": "W"
               },
-              "x-quantity": "annual_money",
+              "x-quantity": "power",
               "x-units": [
-                "EUR/yr",
-                "MEUR/yr",
-                "currency/yr",
-                "kEUR/yr"
+                "GW",
+                "MW",
+                "W",
+                "kW"
               ]
             },
             "duration": {
@@ -4330,6 +4514,16 @@
   "title": "Economics",
   "type": "object",
   "x-quantities": {
+    "annual_duration": [
+      "h/yr",
+      "s/yr"
+    ],
+    "annual_energy": [
+      "GWh/yr",
+      "J/yr",
+      "MWh/yr",
+      "kWh/yr"
+    ],
     "annual_money": [
       "EUR/yr",
       "MEUR/yr",
@@ -4389,6 +4583,12 @@
     "money_per_volume": [
       "EUR/m3",
       "currency/m3"
+    ],
+    "power": [
+      "GW",
+      "MW",
+      "W",
+      "kW"
     ]
   }
 }

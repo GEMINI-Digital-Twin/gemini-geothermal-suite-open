@@ -138,7 +138,7 @@ path, so the world stays one object and signatures stay `(plant, case)`. It repl
 | `opex.variable`: `chemical`, `waste_disposal` (no other name) | consumables priced by the market, per kg; `chemical` is every product drawn from a `ChemicalGrid` (a scale or a corrosion inhibitor alike) |
 | `energy.electricity`, `energy.gas` (constant or series) | money, so here, not in `utilities` (P1: the grid's physics and its tariff are two values with two owners) |
 | `carbon.price` | money per tonne CO2-equivalent |
-| `revenue.heat`, `revenue.cold`, `revenue.subsidy` (amount, duration) | money |
+| `revenue.heat`, `revenue.cold`, `revenue.subsidy` (amount, duration; an amount per energy may have a `cap` and the `capacity` it is granted for) | money; the subsidy's terms are those of the grant, so here, not in the plant |
 | `accounting`: `allocation` (heat cost share), `gwp` (CH4 and others, with the standard named) | conventions the report cannot be built without; a second convention is a second economics file (7.2) |
 
 Each value may carry `uncertainty`. Sources are not fields: no per-value source tag; the example
