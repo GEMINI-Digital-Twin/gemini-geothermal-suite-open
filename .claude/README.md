@@ -8,5 +8,5 @@ people read. Read both, and the project-wide context in the project root (`../AG
 | Folder | Holds |
 |---|---|
 | `docs/` | Reference for the code, listed in `AGENTS.md`. |
-| `notes/` | Current work on this repo: the GEMINI II handoff. |
+| `notes/` | Current work on this repo: the GEMINI II and GEMINI III handovers. |
 | `archive/` | Finished work: task prompts (`prompts/`), phase prompts (`phases/`), old notes (`notes/`). Read only when the history of a decision matters. |
