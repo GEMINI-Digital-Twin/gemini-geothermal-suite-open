@@ -196,3 +196,12 @@ class TestPlan(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SplitJoined(unittest.TestCase):
+    def test_joined_reasoning_is_split(self):
+        import AI03_agent as agent
+        one = "; ".join(f"item {i} with {i} MW [C]" for i in range(10))
+        j = agent.split_joined({"reasoning": [one, "short item 2 MW [C]"]})
+        self.assertEqual(len(j["reasoning"]), 11)
+        self.assertEqual(j["code_split"], 1)

@@ -328,7 +328,8 @@ def rejected(out, n, t):
     if lay:
         a, b = lay["A"], lay["B"]
         lines.append(f"The boiler-lift layout without heat pump costs {a['lcoh_EUR_MWh']} against {b['lcoh_EUR_MWh']} EUR/MWh, "
-                     f"burns {a['gas_GWh']} GWh gas and emits {a['co2_kt']} kt CO2 [C].")
+                     f"burns {a['gas_GWh']} GWh gas and emits {a.get('co2_total_kt', a['co2_kt'])} kt CO2 in total against "
+                     f"{b.get('co2_total_kt', b['co2_kt'])} kt [C].")
     st = res("storage_point")
     if st:
         lines.append(f"A storage tank instead of the {st['backup_boiler_MW']:g} MW backup boiler: "

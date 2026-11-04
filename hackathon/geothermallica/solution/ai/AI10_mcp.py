@@ -40,8 +40,8 @@ for name in tools.SIG:
 
 def note(name):
     """The markdown note next to solution/, or one line saying this checkout does not carry it."""
-    path = HERE.parent / name
-    return path.read_text() if path.exists() else f"{name} is not in this checkout (the design notes live in the working repository)."
+    path = next((q for q in (HERE.parent / name, HERE.parents[2] / name) if q.exists()), None)   # solution/ or the fork's hackathon folder
+    return path.read_text() if path else f"{name} is not in this checkout (the design notes live in the working repository)."
 
 
 @server.resource("notes://findings", name="findings", description="The GEMINI findings (jury material)", mime_type="text/markdown")
