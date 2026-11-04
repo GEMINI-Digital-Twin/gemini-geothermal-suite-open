@@ -9,9 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 
-import geo.gemini_contrib  # noqa: F401  (GEMINI development tree first)
+import geo.gemini_path  # noqa: F401  (GEMINI tree with our models first)
 from geo.common import DEPTH_M, DT_BRINE_MAX_K, Q_MAX_M3H, Q_MIN_M3H, t_reservoir_c
-from geo.gemini_contrib.heatpump_lift import HeatPumpLift
+from gemini_model.heatpump.heatpump_lift import HeatPumpLift
 from geo.plant import doublet_at
 from geo.well import ESP_DEPTH_M, Producer, injector_at, reservoir_pressure
 from geo import cost, gas, gemini_project, lifetime, optimise, storage, year
@@ -400,7 +400,7 @@ def gemini_traps():
                             "at reduced speed, 9 % at 57 Hz and 300 m3/h; corrected in ESPAffinity.",
             "injector_sign": "GEMINI's well model is right (signed flow), but its simulator passes a positive flow for the injector, "
                              "so friction is added going down and the injector wellhead is understated by 25 bar at 300 m3/h; "
-                             "one-sign fix in gemini_contrib.",
+                             "one-sign fix in src/gemini_simulator/nodal_solver.py on the fork.",
             "heatpump_root": "GEMINI's HeatpumpBasic finds an unphysical root (COP 1.0, water out 796 C, 602 MW) when the source floor "
                              "binds; HeatPumpLift brackets the solve and gets 91 C.",
             "tag": "[C]"}

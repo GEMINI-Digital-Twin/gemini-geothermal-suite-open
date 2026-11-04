@@ -187,7 +187,7 @@ def plan_message(brief, out):
             f"{row['boiler_GWh']} GWh of {row['served_GWh']} GWh served ({row['boiler_share_pct']} %), unmet {row['unmet_GWh']} GWh [C]"
             + ("; so boiler_needed_for_energy is true" if row["boiler_GWh"] > 0.01 else "") + "."
             + (f"\nLCoH {lcoh} [C]." if lcoh else "")
-            + "\nFormat: reasoning is a JSON list of 3 to 15 separate strings, one sentence per string, each with its own tag; "
+            + "\nFormat: reasoning is a JSON list of 3 to 20 separate strings, one sentence per string, each with its own tag; "
               "never join sentences with ';' into one string."
             + "\n" + iteration_lines(it, out)
             + pareto_lines(out)

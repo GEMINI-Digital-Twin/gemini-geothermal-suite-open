@@ -2,9 +2,7 @@
 
 Every constant below comes from the SPE GeoHackathon 2026 challenge brief.
 """
-import geo.gemini_contrib  # noqa: F401  (puts the GEMINI development tree first on sys.path)
-import os
-import sys
+import geo.gemini_path  # noqa: F401  (puts the GEMINI tree with our models first on sys.path)
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -12,9 +10,6 @@ SOLUTION = HERE.parent
 PROJECT = SOLUTION.parent
 DATA = PROJECT / "data" / "raw" / "challenge_20261028"   # the challenge input files (daily demand CSVs)
 FIG = SOLUTION / "explore" / "figures"
-
-# released GEMINI tree; the development tree is already first on sys.path (see gemini_contrib)
-sys.path.insert(0, os.environ.get("GEMINI_SRC", os.path.expanduser("~/src/gemini-geothermal-suite-open/src")))
 
 from geo.InitParams import COLORS, fig_width, fig_height  # noqa: E402  (applies the house style)
 import matplotlib.pyplot as plt  # noqa: E402

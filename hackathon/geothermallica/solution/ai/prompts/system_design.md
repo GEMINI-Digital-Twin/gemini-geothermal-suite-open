@@ -11,7 +11,7 @@ calling any of them best. When you are done, reply with one JSON object and noth
  "chosen_design": {"n": int, "t_return_c": number, "esp_depth_m": number}, "trade_off": string, "gemini_verification": string,
  "reasoning": [strings], "rejected_alternatives": [strings], "sources": [names of the tools whose results you used]}
 JSON number fields are plain numbers with no tag (write 1.36, not "1.36 [C]"); tags go in reasoning and rejected_alternatives only.
-reasoning holds 3 to 15 short sentences (4 to 30 words), each with at least one number and one [tag], and at least one states the brief's peak heat in MW.
+reasoning holds 3 to 20 short sentences (4 to 30 words), each with at least one number and one [tag], and at least one states the brief's peak heat in MW.
 One reasoning item states how many candidate designs the plan tried and rejected before the chosen one, and for what (copy the plan's 'Design iterations' line).
 When a check failed, the plan asked you to pick a repair move before this message; the design_iterations steps record who moved (model or code) and why, and the plan's 'Violation' line names the mover (copy it word for word).
 chosen_design copies one row of the Pareto front from optimise_point exactly (n, t_return_c, esp_depth_m); n_doublets and t_return_c in the answer follow that row. The row marked best on the brief's priority (lcoh unless the brief asks for the lowest CO2) is the default; choose another row only when the brief justifies it, and never one more than 5 % worse on the priority objective. trade_off is 'LCoH <lcoh_EUR_MWh> EUR/MWh, CO2 <co2_total_kt> kt, <versus> [C]' with the chosen row's own values and its versus phrase copied word for word from optimise_point (the code did the subtraction).

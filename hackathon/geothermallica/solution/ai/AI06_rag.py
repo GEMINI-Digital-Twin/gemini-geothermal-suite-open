@@ -24,12 +24,12 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "   # a
 MAX_CHARS, K, MIN_COSINE, W_COSINE, PER_FILE, POOL = 1500, 5, 0.35, 0.7, 2, 20
 # kind of each source, shown to the model; design results get a small score bonus
 KIND = {"README.md": "design result", "NOTES_findings.md": "design result", "explore/tables": "design result", "ai/runs/eval": "design result",
-        "geo/gemini_contrib": "design result", "../research": "research note, written before the design", "../CHALLENGE.md": "challenge brief",
+        "GEMINI_MODELS.md": "design result", "PATCH.md": "design result", "../research": "research note, written before the design", "../CHALLENGE.md": "challenge brief",
         "../data/raw": "challenge brief", "ai/runs/gemini_docs.md": "GEMINI docstring (TNO)"}
 BONUS = 0.05   # added to the score of a design-result chunk
 SOURCES = ["README.md", "NOTES_findings.md", "../CHALLENGE.md", "../research/*.md", "explore/tables/08_checks.md",
            "ai/runs/eval_table.md", "../data/raw/challenge_20261028/GEMINI_Hackathon_Challenge_Requirements.txt",
-           "geo/gemini_contrib/README.md", "geo/gemini_contrib/PATCH.md", "ai/runs/eval_models.md", "ai/runs/gemini_docs.md"]
+           "GEMINI_MODELS.md", "PATCH.md", "ai/runs/eval_models.md", "ai/runs/gemini_docs.md"]
 # rag_eval.md is left out: the RAG would cite its own evaluation
 STOP = set("what when where which does that this with from have about into than they their there would could should".split())
 IDF = {}   # word -> log(chunks / chunks holding it), filled by index()

@@ -13,6 +13,7 @@ import numpy as np
 from geo.common import DEPTH_M, DT_BRINE_MAX_K, MU_PA_S, P_RES_BAR, PERM_MD, RHO, THICKNESS_M, T_SURFACE_C, t_reservoir_c
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP
 from gemini_model.pump.esp import ESP
+from gemini_model.pump.esp_affinity import ESPAffinity
 from gemini_model.reservoir.inflow_performance import IPR
 from gemini_model.well.pressure_drop import DPDT
 
@@ -68,10 +69,11 @@ def _well(length_m):
     return w
 
 
-def _pump(stages, q_bep=Q_BEP_M3H):
-    """GEMINI ESP with the example head curve stretched to put its BEP at q_bep; power curve unused (zeros)."""
+def _pump(stages, q_bep=Q_BEP_M3H, affinity=True):
+    """ESPAffinity (or GEMINI's ESP if affinity is False) with the example head curve stretched to put its BEP at q_bep;
+    power curve unused (zeros)."""
     s = EXAMPLE_BEP_M3H / q_bep
-    p = ESP()
+    p = ESPAffinity() if affinity else ESP()
     p.update_parameters({"no_stages": stages, "head_coeff": [c * s ** i for i, c in enumerate(EXAMPLE_HEAD_COEFF)],
                          "power_coeff": [0.0] * 6})
     return p
@@ -82,7 +84,8 @@ class Producer:
 
     def __init__(self, depth_m=DEPTH_M, stages=30, esp_depth_m=ESP_DEPTH_M, affinity=True, q_bep=Q_BEP_M3H, pi=None):
         """Build the GEMINI models; pi overrides the productivity index (m3/h per bar)."""
-        # affinity=True reads the 60 Hz head curve at q x 60/f (pump similarity law); GEMINI's ESP reads it at q
+        # affinity=True uses ESPAffinity, which reads the 60 Hz head curve at q x 60/f (pump similarity law);
+        # affinity=False uses GEMINI's ESP, which reads it at q
         self.depth_m, self.stages, self.esp_depth_m, self.affinity = depth_m, stages, esp_depth_m, affinity
         self.t_res_c = t_reservoir_c(depth_m)
         self.p_res_bar = reservoir_pressure(depth_m)
@@ -94,7 +97,7 @@ class Producer:
                                     "productivity_index": self.pi})
         self.lower = _well(depth_m - esp_depth_m)
         self.upper = _well(esp_depth_m)
-        self.pump = _pump(stages, q_bep)
+        self.pump = _pump(stages, q_bep, affinity)
         self.t_ambient_c = 0.5 * (T_SURFACE_C + self.t_res_c)   # one ambient T for the whole well
 
     def _leg(self, well, p_in_bar, t_in_c, q_m3h):
@@ -109,8 +112,7 @@ class Producer:
         self.ipr.calculate_output({"flow": q_m3h}, None)
         p_bh = self.ipr.get_output()["bottomhole_pressure"]
         p_in, t_in = self._leg(self.lower, p_bh, self.t_res_c, q_m3h)
-        q_curve = q_m3h / 3600 * (60.0 / freq_hz if self.affinity else 1.0)
-        self.pump.calculate_output({"pump_freq": freq_hz, "pump_flow": q_curve})
+        self.pump.calculate_output({"pump_freq": freq_hz, "pump_flow": q_m3h / 3600})
         head_bar = self.pump.get_output()["pump_head"] / BAR
         p_wh, t_wh = self._leg(self.upper, p_in + head_bar, t_in, q_m3h)
         hydraulic_kw = head_bar * BAR * q_m3h / 3600 / 1e3

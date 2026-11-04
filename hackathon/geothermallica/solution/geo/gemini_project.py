@@ -11,17 +11,15 @@ from pathlib import Path
 
 import numpy as np
 
-import geo.gemini_contrib  # noqa: F401  (GEMINI development tree first on sys.path)
+import geo.gemini_path  # noqa: F401  (GEMINI tree with our models first on sys.path)
 from geo import gas, lifetime
 from geo.common import DEPTH_M, MU_PA_S, PERM_MD, RHO, T_SUPPLY_HEAT_C, THICKNESS_M, t_reservoir_c
 from geo.cost import BOILER_EFF, EF_EL_KG_KWH, GCV_LHV
 from geo.gemini_compare import compare, ours, theirs
-from geo.gemini_contrib import absorption_chiller, heatpump_lift, henry_gas, thermal_breakthrough
 from geo.plant import COP_MAX, CP, LORENZ_EFF, T_ABS_MIN_C
 from geo.well import CELL_M, ESP_DEPTH_M, PUMP_EFF, ROUGHNESS_M, TUBING_ID_M, Injector, reservoir_pressure
 from geo.year import AUX_KW_PER_KW_COLD, COP_ABSORPTION, heating_year, table
 from gemini_simulator.project_loader import build_project
-from gemini_simulator.registry import COMPONENT_REGISTRY
 
 P_WELLHEAD_BAR = 10.0        # producer wellhead pressure the ESP holds, bar; the floor used by geo.well.Producer
 SEPARATOR = {"flow_resistance": 3.6, "temperature_drop": 0.0}   # resistance as in GEMINI's example; no temperature loss, assumed
@@ -32,13 +30,6 @@ GAS_LHV_J_KG = gas.Y_CH4 * gas.LHV_CH4 * 1e3 / M_GAS     # lower heating value o
 GAS_CO2_KG_GJ = gas.M_CO2 / (gas.Y_CH4 * gas.LHV_CH4 * 1e-6)   # CO2 per GJ burned: one CO2 per mole of gas, kg/GJ
 BOILER_EFF_LHV = BOILER_EFF * GCV_LHV   # GEMINI's boiler burns caloric_value on LHV; our efficiency is on GCV
 RUNS = Path(__file__).resolve().parents[1] / "ai" / "runs"
-
-# our models, registered only where the GEMINI tree in use lacks them (TNO's tree; our fork registers its own copies)
-for _name, _module in (("absorption_chiller", absorption_chiller), ("heatpump_lift", heatpump_lift),
-                       ("henry_gas", henry_gas), ("thermal_breakthrough", thermal_breakthrough)):
-    if _name not in COMPONENT_REGISTRY:
-        _module.register()
-
 
 def _stations(depth_m):
     """Trajectory table of a vertical well, one station per CELL_M, the tubing diameter of geo.well."""

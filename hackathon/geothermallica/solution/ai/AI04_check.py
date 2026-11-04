@@ -98,8 +98,8 @@ def check(run_json, transcript, tool_results, brief=""):
         if not NUM.search(TAG.sub("", r)):
             problems.append(f"(f) no number in: {r}")
     n_model = len([x for x in reasoning if not x.rstrip().endswith("; code]")])   # items appended by code are not counted
-    if not 3 <= n_model <= 15:
-        problems.append(f"(f) {n_model} reasoning items, need 3 to 15")
+    if not 3 <= n_model <= 20:
+        problems.append(f"(f) {n_model} reasoning items, need 3 to 20")
     ph = brief_peak(brief, "heat")
     if ph is not None and not any(float(x) == ph for r in reasoning for x in NUM.findall(TAG.sub("", r))):
         problems.append(f"(f) the brief's peak heat {ph:g} MW appears in no reasoning item")
