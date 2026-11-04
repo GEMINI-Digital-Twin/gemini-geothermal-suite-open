@@ -186,6 +186,43 @@ Libraries: Python 3.12; `gemini_model` from the GEMINI suite (imported directly,
 database); numpy, pandas, scipy, matplotlib; scikit-learn (ESP monitoring); py-trsqp, petlab and
 stosag (optimiser study, vendored as sibling folders); anthropic SDK (API mode only).
 
+## 5f. Organiser clarifications (Discord technical Q&A, 1-3 November) and how the design meets them
+
+- **330 days means the geothermal source, not the system; the full system must supply all 365
+  days.** The selected design schedules the three doublets' 35-day windows one after another in the
+  low-load season (May-October), so two doublets are always available and the demand is met every
+  day without a backup boiler or chiller. The dispatch figure on slide 6 shows the availability
+  steps; unmet heat and cooling are zero. A single-doublet design would need backup equipment
+  sized for the full peak, which is why the agent rejects it.
+- **Changing depth is acceptable**, using hydrostatic pressure and the 30 C/km gradient. That is
+  exactly what the agent does (3,500 m, 351 bar, 117 C).
+- **Return temperatures are the designer's choice** as long as the constraints hold. We use a 60 C
+  heating return and a 3 C heat-exchanger approach; the brine is never cooled more than 40 C.
+- **Associated gas is a CH4/CO2 mix; several handling options are possible; grid electricity
+  emission factor 0.3 kg CO2/kWh.** The gas-handling model (`components.py`, GasHandling) uses
+  80 % CH4 / 20 % CO2 at GLR 0.8. For the selected design, hand-calculated from the model constants:
+
+  | Item | Value per year |
+  |---|---|
+  | Associated gas | 2.59 MNm3 (CH4 2.08, CO2 0.52) |
+  | Formation CO2 separated | 1,026 t |
+  | CH4 fuel value (LHV) | 20.6 GWh |
+  | Electricity from a gas engine at 38 % | 7.8 GWh, equal to the plant's whole electricity use |
+  | CO2 from burning the CH4 (engine or flare) | 4,090 t |
+  | Grid electricity, 7.8 GWh at 0.3 kg/kWh | 2,340 t (shallow heat-pump design: 10,800 t) |
+  | Option A: flare CH4, buy grid power | 7,460 t CO2 |
+  | Option B: gas engine on CH4, no grid import | 5,120 t CO2, and about 0.9 MEUR/yr electricity saved |
+  | Venting CH4 (not an option) | 41,700 t CO2-equivalent |
+
+  Recommendation: option B, a 1 MW gas engine running on the separated CH4 makes the plant
+  electrically self-sufficient on average and cuts the CO2 balance by a third relative to flaring.
+  The engine's jacket heat can also drive the absorption chiller in summer. The formation CO2 can
+  be re-dissolved into the injection brine rather than vented, since injection is at 33 bar; we
+  have not modelled that. The engine is a sizing note, not yet in the daily dispatch model.
+- **Submission:** a pull request to the GEMINI development branch is sufficient; deadline
+  Thursday 5 November, 23:59 CET. We did not modify any GEMINI model, so there are no bug fixes
+  to report; the package imports `gemini_model` unchanged.
+
 ## 6. How to run
 
 ```

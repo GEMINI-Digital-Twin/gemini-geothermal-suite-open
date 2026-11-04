@@ -240,7 +240,7 @@ text(s, Inches(6.4), Inches(4.85), Inches(6.35), Inches(1.9), [
     "Heating 30.0 MW delivered on the peak day (28.2 MW direct HX + 1.8 MW heat pump; installed 3 x 13.7 MW HX + 2.5 MW HP). Cooling 10.0 MW delivered (10 MW absorption installed).",
     f"Heat {K['heat_delivered_gwh']:.1f} GWh (direct {K['heat_direct_gwh']:.1f}, heat pump {K['heat_hp_gwh']:.1f}); cooling {K['cool_delivered_gwh']:.1f} GWh, all absorption.",
     f"Electricity {K['electricity_gwh']:.1f} GWh: ESP {K['electricity_esp_gwh']:.1f}, injection {K['electricity_injection_gwh']:.1f}, heat pump {K['electricity_heat_pump_gwh']:.1f}, chillers {K['electricity_chillers_gwh']:.1f}. System COP {K['system_cop']:.1f}, geothermal share {K['geothermal_share'] * 100:.0f} %.",
-    f"Associated gas {K['annual_gas_mnm3']:.2f} MNm3/yr handled in a degasser; {K['annual_co2_t']:.0f} t CO2/yr separated."], size=11)
+    f"Associated gas {K['annual_gas_mnm3']:.2f} MNm3/yr (80 % CH4): a 1 MW gas engine on the CH4 yields 7.8 GWh/yr, the plant's whole electricity; CO2 balance 5,100 t/yr versus 7,500 t flaring with grid power at 0.3 kg/kWh."], size=11)
 footer(s, 6)
 
 # ================================================================== 7 Closed loop + uncertainty
