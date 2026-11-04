@@ -14,7 +14,7 @@
     {
       "parameter": "heating_return_T",
       "value": 50,
-      "runtime_s": 27.457931000040844,
+      "runtime_s": 3.851223299978301,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -26,6 +26,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3250_co2ri",
       "agent_pick_emissions_t": 4023.886428250462,
       "agent_evaluations": 13,
+      "base_pick_verdict": "parsimony rule not met: ranks better than n2_q300_s1.8_ua1000_z3250_co2ri (decided by emissions_t: 3958 vs 4024); deeper 3250 -> 3500 m: emissions +1.634% (needs >= 5% beyond the tie tolerance), marginal abatement 0.066 t CO2/yr per extra metre drilled",
       "label": "Heating return temperature",
       "unit": "C",
       "base": 60,
@@ -37,7 +38,7 @@
     {
       "parameter": "heating_return_T",
       "value": 70,
-      "runtime_s": 25.563265900011174,
+      "runtime_s": 6.907186099910177,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -49,6 +50,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
       "agent_pick_emissions_t": 4172.446343246378,
       "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0064 GWh, emissions 4172 t, grid import 1.64 GWh, 2 doublets, 14000 m drilled",
       "label": "Heating return temperature",
       "unit": "C",
       "base": 60,
@@ -60,7 +62,7 @@
     {
       "parameter": "hp_eta_lorenz",
       "value": 0.4,
-      "runtime_s": 32.10663030005526,
+      "runtime_s": 23.220327500021085,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -72,6 +74,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
       "agent_pick_emissions_t": 3983.3377693476887,
       "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled",
       "label": "Heat pump Lorenz efficiency",
       "unit": "-",
       "base": 0.45,
@@ -83,7 +86,7 @@
     {
       "parameter": "hp_eta_lorenz",
       "value": 0.5,
-      "runtime_s": 26.658136599930003,
+      "runtime_s": 26.36210840009153,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -95,6 +98,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
       "agent_pick_emissions_t": 3983.3377693476887,
       "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled",
       "label": "Heat pump Lorenz efficiency",
       "unit": "-",
       "base": 0.45,
@@ -106,7 +110,7 @@
     {
       "parameter": "absorption_COP",
       "value": 0.6,
-      "runtime_s": 30.654228300089017,
+      "runtime_s": 29.57160450005904,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -118,6 +122,7 @@
       "agent_pick": "n3_q300_s1.8_ua1000_z3500_co2ri",
       "agent_pick_emissions_t": 4098.633233067363,
       "agent_evaluations": 14,
+      "base_pick_verdict": "superseded by n3_q300_s1.8_ua1000_z3500_co2ri: ranks better than n2_q300_s1.8_ua1000_z3500_co2ri (decided by external_gas_fuel_GWh: 0.00468 vs 0.1577, beyond its tie tolerance); extra doublet: external gas +97.0%, emissions +0.9% (needs >= 5% on either, beyond the tie tolerance)",
       "label": "Absorption chiller COP",
       "unit": "-",
       "base": 0.7,
@@ -129,7 +134,7 @@
     {
       "parameter": "absorption_COP",
       "value": 0.8,
-      "runtime_s": 30.12894259998575,
+      "runtime_s": 30.517478400026448,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -141,6 +146,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
       "agent_pick_emissions_t": 3873.89056801407,
       "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0118 GWh, emissions 3874 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled",
       "label": "Absorption chiller COP",
       "unit": "-",
       "base": 0.7,
@@ -152,7 +158,7 @@
     {
       "parameter": "gradient",
       "value": 27,
-      "runtime_s": 35.542337799910456,
+      "runtime_s": 36.28310439991765,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -164,6 +170,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3750_co2ri",
       "agent_pick_emissions_t": 4018.0726973869187,
       "agent_evaluations": 15,
+      "base_pick_verdict": "not evaluated: the depth ladder stopped elsewhere (each step must cut emissions >= 5%)",
       "label": "Geothermal gradient",
       "unit": "C/km",
       "base": 30,
@@ -175,7 +182,7 @@
     {
       "parameter": "gradient",
       "value": 33,
-      "runtime_s": 31.607819300028495,
+      "runtime_s": 31.375628100009635,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -187,6 +194,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3000_co2ri",
       "agent_pick_emissions_t": 4103.705554836494,
       "agent_evaluations": 12,
+      "base_pick_verdict": "not evaluated: the depth ladder stopped elsewhere (each step must cut emissions >= 5%)",
       "label": "Geothermal gradient",
       "unit": "C/km",
       "base": 30,
@@ -198,7 +206,7 @@
     {
       "parameter": "brine_cp",
       "value": 4000,
-      "runtime_s": 36.19299949996639,
+      "runtime_s": 37.12234540004283,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -210,6 +218,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3250_co2ri",
       "agent_pick_emissions_t": 4344.365757334653,
       "agent_evaluations": 13,
+      "base_pick_verdict": "parsimony rule not met: ranks better than n2_q300_s1.8_ua1000_z3250_co2ri (decided by emissions_t: 4085 vs 4344); deeper 3250 -> 3500 m: emissions +5.962% (needs >= 5% beyond the tie tolerance), marginal abatement 0.259 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)",
       "label": "Brine specific heat",
       "unit": "J/(kg K)",
       "base": 4100,
@@ -221,7 +230,7 @@
     {
       "parameter": "brine_cp",
       "value": 4200,
-      "runtime_s": 30.35668169998098,
+      "runtime_s": 30.812241800013,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -233,6 +242,7 @@
       "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
       "agent_pick_emissions_t": 3903.657721887771,
       "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0040 GWh, emissions 3904 t, grid import 0.88 GWh, 2 doublets, 14000 m drilled",
       "label": "Brine specific heat",
       "unit": "J/(kg K)",
       "base": 4100,

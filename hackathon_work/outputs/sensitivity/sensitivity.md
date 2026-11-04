@@ -16,4 +16,12 @@ Rerun: `$env:PYTHONPATH="src"; py -3.11 -m poetry run python hackathon_work/sens
 | Brine specific heat (J/(kg K)) | 4000 (base 4100) | 4085 | +102 | +2.6% | PASS | `n2_q300_s1.8_ua1000_z3250_co2ri` (4344 t) | **yes** |
 | Brine specific heat (J/(kg K)) | 4200 (base 4100) | 3904 | -80 | -2.0% | PASS | `n2_q300_s1.8_ua1000_z3500_co2ri` (3904 t) | no |
 
-Pick changes in: heating_return_T=50, absorption_COP=0.6, gradient=27, gradient=33, brine_cp=4000.
+Pick changes in 5 of 10 cases: heating_return_T=50, absorption_COP=0.6, gradient=27, gradient=33, brine_cp=4000.
+
+Why the base pick loses where the pick changes:
+
+- Heating return temperature = 50: parsimony rule not met: ranks better than n2_q300_s1.8_ua1000_z3250_co2ri (decided by emissions_t: 3958 vs 4024); deeper 3250 -> 3500 m: emissions +1.634% (needs >= 5% beyond the tie tolerance), marginal abatement 0.066 t CO2/yr per extra metre drilled
+- Absorption chiller COP = 0.6: superseded by n3_q300_s1.8_ua1000_z3500_co2ri: ranks better than n2_q300_s1.8_ua1000_z3500_co2ri (decided by external_gas_fuel_GWh: 0.00468 vs 0.1577, beyond its tie tolerance); extra doublet: external gas +97.0%, emissions +0.9% (needs >= 5% on either, beyond the tie tolerance)
+- Geothermal gradient = 27: not evaluated: the depth ladder stopped elsewhere (each step must cut emissions >= 5%)
+- Geothermal gradient = 33: not evaluated: the depth ladder stopped elsewhere (each step must cut emissions >= 5%)
+- Brine specific heat = 4000: parsimony rule not met: ranks better than n2_q300_s1.8_ua1000_z3250_co2ri (decided by emissions_t: 4085 vs 4344); deeper 3250 -> 3500 m: emissions +5.962% (needs >= 5% beyond the tie tolerance), marginal abatement 0.259 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)

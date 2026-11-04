@@ -1,5 +1,11 @@
 # GEMINI Agentic Geothermal Hackathon — Starter Workspace
 
+> **Current state (2026-11-04).** The sections below are the original starter notes. The design work has since
+> been done: see `STRONG_POINTS.md` (what the submission shows, with evidence and how to reproduce it),
+> `CLAUDE.md` (inputs, provenance, decisions), `DECISIONS_LOG.md` (minor decisions taken without asking) and
+> `dashboard/index.html` (results). Final pick: `n2_q300_s1.8_ua1000_z3500_co2ri`: 2 doublets at 3 500 m,
+> CO₂ reinjected, CH₄ to CHP, 3 983 t CO₂/yr (85.1% below the gas-boiler + electric-chiller reference).
+
 This folder is intentionally separate from GEMINI's `src/` code. The original GitHub `development` branch remains unchanged.
 
 ## Setup on your Windows work computer

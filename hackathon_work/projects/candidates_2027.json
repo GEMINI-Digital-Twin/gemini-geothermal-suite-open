@@ -29,7 +29,8 @@
     "gas_dissolution": "DERIVED check (gas_solubility.py): bubble point of the brine holding the reinjected gas (co2_reinject: 0.16 Nm3 CO2/m3; reinject_all: 0.8 Nm3/m3, 80/20 CH4/CO2) vs the lowest injector wellhead pressure of the year (hottest injection T) and vs reservoir P/T. Henry constants IAPWS G7-04 (Fernandez-Prini et al. 2003) with Poynting correction (v_inf 35/37 cm3/mol, ASSUMED); salting-out Weisenberger & Schumpe (1996); gas phase Peng-Robinson, k_ij 0.09 (ASSUMED); salinity DERIVED from 1030 kg/m3 (NaCl at 20 C: 0.80 mol/kg; conservative reading at reservoir T: ~2.1-2.3 mol/kg, used for the check). Hard check: margin >= 1 at reservoir conditions and the dip-tube depth (where P_wh + rho g z reaches the bubble point) above the reservoir. Validated within ~10% of Duan & Sun (2003) for CO2; conservative for CH4.",
     "gas_handling.co2_reinject emission factor": "DERIVED: only CH4 combustion CO2 counts: 68.6 kg/GJ x x_CH4 / (x_CH4 + x_CO2) = 68.6 x 0.8 = 54.9 kg CO2/GJ (the 0.2 Nm3 pass-through CO2 per Nm3 gas is reinjected).",
     "gas_handling.separation_compression_kWh_per_kg_CO2": "ASSUMED 0.1 kWh per kg CO2 for separation + compression to injection pressure (order of magnitude for membrane/amine separation plus multistage compression; not modelled in detail). 0.2 Nm3 CO2/Nm3 gas x 1.9635 kg/Nm3 = 0.393 kg CO2 per Nm3 gas (DERIVED).",
-    "gas_handling.reinjection_compression_kWh_per_kg_gas": "ASSUMED 0.1 kWh per kg of produced gas (0.9653 kg/Nm3) to compress all gas to injection pressure; no separation.",
+    "gas_handling.reinjection_compression_kWh_per_kg_gas": "DERIVED 0.197 kWh per kg of produced gas (0.9653 kg/Nm3; user decision 2026-11-04): isothermal ideal-gas compression at 40 C from 1 atm to the 61.5 bar(g) bubble point that the gas_dissolution check finds at the injector wellhead of n2 at 3500 m, divided by an ASSUMED 0.7 compressor efficiency. Was ASSUMED 0.1. co2_reinject keeps the ASSUMED 0.1 kWh/kg CO2 (conservative: its DERIVED minimum to the ~5 bar(g) wellhead is ~0.04 kWh/kg).",
+    "sensitivities": "ASSUMED what-if cases for the C1-C3 comparison (run_candidates.py): HP_eta0.5_nocap = Lorenz efficiency 0.5 with no COP cap. The one-at-a-time sensitivity of the final design is in sensitivity.py.",
     "n_minus_1": "ASSUMED resilience case: UNPLANNED outage of one doublet on the peak heating day and the peak cooling day (in addition to any planned maintenance). Installed backup (boiler, electric chiller) = max(annual peak duty, N-1 duty).",
     "dispatch.heating_tolerance_K": "ASSUMED: geothermal (HEX + heat pump) counts as meeting heating when within 0.05 K of 100 C."
   },
@@ -53,7 +54,7 @@
     "options": ["chp", "co2_reinject", "reinject_all"],
     "default": "chp",
     "separation_compression_kWh_per_kg_CO2": 0.1,
-    "reinjection_compression_kWh_per_kg_gas": 0.1
+    "reinjection_compression_kWh_per_kg_gas": 0.197
   },
   "dispatch": {
     "flow_step_m3h": 5,

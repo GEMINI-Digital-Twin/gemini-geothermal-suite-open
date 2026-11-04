@@ -60,6 +60,10 @@ def run_case(param: str, value: float, pick: dict, folder: Path) -> dict:
     result = agent.run("B_design", copy.deepcopy(project), settings)
     fixed = agent.evaluate(pick)["summary"]  # the base pick under the changed input
     agent_pick = result.get("pick")
+    base_id = candidate_id(pick)
+    base_h = next((h for h in result.get("history", []) if candidate_id(h["candidate"]) == base_id), None)
+    why = (base_h["verdict"]["reason"] if base_h else
+           "not evaluated: the depth ladder stopped elsewhere (each step must cut emissions >= 5%)")
     return {
         "parameter": param, "value": value, "runtime_s": time.perf_counter() - start,
         "final_design": {"candidate": candidate_id(pick), "feasible": fixed["feasible"],
@@ -69,6 +73,7 @@ def run_case(param: str, value: float, pick: dict, folder: Path) -> dict:
         "agent_pick": candidate_id(agent_pick["candidate"]) if agent_pick else None,
         "agent_pick_emissions_t": agent_pick["summary"]["emissions_t"] if agent_pick else None,
         "agent_evaluations": len(result.get("history", [])),
+        "base_pick_verdict": why,  # why the base pick is (not) chosen in this case
     }
 
 
@@ -107,7 +112,9 @@ def main():
                      f"{r['delta_emissions_pct'] * 100:+.1f}% | {'PASS' if fd['feasible'] else 'FAIL: ' + ', '.join(fd['failing'])} | "
                      f"`{r['agent_pick']}` ({r['agent_pick_emissions_t']:.0f} t) | {'**yes**' if r['pick_changed'] else 'no'} |")
     changed = summary["pick_changed_in"]
-    lines += ["", f"Pick changes in: {', '.join(changed)}." if changed else "The agent's pick is the same in every case."]
+    lines += ["", f"Pick changes in {len(changed)} of {len(rows)} cases: {', '.join(changed)}." if changed else "The agent's pick is the same in every case."]
+    lines += ["", "Why the base pick loses where the pick changes:", ""]
+    lines += [f"- {r['label']} = {r['value']:g}: {r['base_pick_verdict']}" for r in rows if r["pick_changed"]]
     (OUT / "sensitivity.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"WROTE {(OUT / 'summary.json').relative_to(REPO)}, {(OUT / 'sensitivity.md').relative_to(REPO)}")
 

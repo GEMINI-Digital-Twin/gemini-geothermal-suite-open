@@ -101,7 +101,10 @@ def constraints(s: dict, d: dict) -> list[dict]:
          "status": from_checks("esp_intake_pressure")},
         {"name": "Tubing velocity at max flow", "limit": "≤ 4 m/s", "worst": f"{checks['tubing_velocity'][0]['value']:.2f} m/s",
          "status": from_checks("tubing_velocity")},
-    ]
+    ] + ([{"name": "Reinjected gas dissolves", "limit": "margin ≥ 1 at reservoir; dip tube above reservoir",
+           "worst": f"margin {gd['points']['wellhead@reservoir']['margin']:.1f} at the injector wellhead, "
+                    f"{gd['points']['reservoir@reservoir']['margin']:.0f} at the reservoir",
+           "status": from_checks("gas_dissolution")}] if (gd := s.get("gas_dissolution")) else [])
 
 
 def design_point(d: dict, rho: float, cp: float, t_return: float) -> dict:
@@ -419,25 +422,52 @@ function renderAgent() {
            e.status === "marginal" ? { show: true, formatter: "marginal", position: "bottom", color: C.ink2, fontSize: 12 } : { show: false } }));
   const evalSeries = Object.entries(STATUS).map(([k, st]) => ({ name: st.label, type: "scatter", symbol: st.symbol, symbolSize: st.size, color: st.color,
     itemStyle: { borderColor: C.surface, borderWidth: 2 }, xAxisIndex: 0, yAxisIndex: 0, z: 4, data: byStatus(k) }));
-  // ladder: base (first feasible 2-doublet point at the ladder start) + each depth step
-  const ladder = [];
-  if (steps.length) {
-    ladder.push({ depth: steps[0].from_m, em: steps[0].emissions_from_t, kind: "kept", text: "start" });
-    steps.forEach(st => ladder.push({ depth: st.to_m, em: st.emissions_to_t, kind: st.accepted ? "kept" : st.marginal ? "marginal" : "rejected",
-      text: `${pct(st.emissions_change)} · ${fmt(st.marginal_abatement_t_per_yr_per_m, 2)} t/a per m`, st }));
-  }
-  const kept = ladder.filter(p => p.kind === "kept");
-  const last = ladder[ladder.length - 1];
+  // ladder: one segment per depth step (kept / marginal / rejected). A step that does not start where an earlier
+  // step ended starts a new branch after a gas-handling switch at that depth (drawn as a dotted connector).
+  const KIND = { kept: { color: C.good, type: "solid" }, marginal: { color: C.warning, type: "dashed" }, rejected: { color: C.muted, type: "dashed" } };
+  const near = (a, b) => Math.abs(a - b) < 1e-6;
+  const ends = [], segs = [], switches = [];
+  steps.forEach((st, k) => {
+    const kind = st.accepted ? "kept" : st.marginal ? "marginal" : "rejected";
+    if (k === 0) ends.push({ depth: st.from_m, em: st.emissions_from_t, kind: "kept", text: "start" });
+    else if (!ends.some(e => e.depth === st.from_m && near(e.em, st.emissions_from_t))) {
+      const prev = ends.filter(e => e.depth === st.from_m && e.kind === "kept").pop();
+      const change = prev ? st.emissions_from_t / prev.em - 1 : null;
+      if (prev) switches.push({ from: prev, to: { depth: st.from_m, em: st.emissions_from_t }, change });
+      ends.push({ depth: st.from_m, em: st.emissions_from_t, kind: "kept", text: "switch", change });
+    }
+    const p = { depth: st.to_m, em: st.emissions_to_t, kind, st };
+    ends.push(p); segs.push({ st, kind, p });
+  });
+  const gasName = { co2_reinject: "CO₂ reinjected", reinject_all: "all gas reinjected", chp: "CHP" }[(A.gas_handling || {}).chosen] || "gas option";
+  const maxDepth = Math.max(3500, ...ends.map(e => e.depth));
+  const ladderSeries = [
+    ...segs.map((g, k) => ({ name: `ladder-${k}`, type: "line", xAxisIndex: 1, yAxisIndex: 1, symbol: "none", silent: true, tooltip: { show: false },
+      lineStyle: { width: 2, color: KIND[g.kind].color, type: KIND[g.kind].type }, z: 2,
+      data: [[g.st.from_m, g.st.emissions_from_t], [g.st.to_m, g.st.emissions_to_t]] })),
+    ...switches.map((w, k) => ({ name: `switch-${k}`, type: "line", xAxisIndex: 1, yAxisIndex: 1, symbol: "none", silent: true, tooltip: { show: false },
+      lineStyle: { width: 2, color: C.s1, type: "dotted" }, z: 2,
+      data: [[w.from.depth, w.from.em], [w.to.depth, w.to.em]] })),
+    ...Object.keys(KIND).map(kind => ({ name: `ladder-pts-${kind}`, type: "scatter", xAxisIndex: 1, yAxisIndex: 1, z: 4,
+      symbol: kind === "kept" ? "circle" : "diamond", symbolSize: kind === "kept" ? 12 : 16, color: KIND[kind].color,
+      itemStyle: { borderColor: C.surface, borderWidth: 2 },
+      data: ends.filter(e => e.kind === kind).map(e => ({ value: [e.depth, e.em], p: e,
+        label: { show: !!e.st || e.text === "switch", distance: 8, fontSize: 12, lineHeight: 16,
+          position: e.text === "switch" ? "left" : kind === "kept" ? "top" : kind === "marginal" ? "right" : "bottom",
+          color: e.text === "switch" ? C.s1 : kind === "kept" ? C.ink2 : C.ink,
+          formatter: e.text === "switch" ? `${gasName} ${pct(e.change)}`
+            : !e.st ? "" : `${pct(e.st.emissions_change)}` + (kind === "kept" ? "" : kind === "marginal" ? "\nmarginal" : "\nrejected") } })) })),
+  ];
   const ladderTip = p => p.st ? `<b>${fmt(p.st.from_m)} → ${fmt(p.st.to_m)} m</b><br>emissions ${fmt(p.st.emissions_from_t)} → ${fmt(p.st.emissions_to_t)} t/a (${pct(p.st.emissions_change)})` +
     `<br>marginal abatement ${fmt(p.st.marginal_abatement_t_per_yr_per_m, 3)} t CO₂/a per extra metre<br>` +
     (p.kind === "kept" ? "kept (≥ 5 % beyond tie tolerance)" : p.kind === "marginal" ? "<b>marginal sensitivity case</b>: within the tie tolerance of the 5 % threshold → not taken (drilling cost and risk not modelled)" : "rejected")
-    : `<b>${fmt(p.depth)} m</b>: ladder start, ${fmt(p.em)} t/a`;
+    : `<b>${fmt(p.depth)} m</b>: ${p.text === "switch" ? "gas-handling option accepted at this depth, ladder re-opened" : "ladder start"}, ${fmt(p.em)} t/a`;
   chart("c-agent").setOption({
     ...base(),
     legend: { ...LEGEND, data: Object.keys(STATUS).filter(k => ev.some(e => e.status === k)).map(k => STATUS[k].label) },  // only statuses that occur
-    grid: [{ left: 64, right: "45%", top: 76, bottom: 56 }, { left: "62%", right: 22, top: 76, bottom: 56 }],
+    grid: [{ left: 64, right: "52%", top: 76, bottom: 56 }, { left: "56%", right: 22, top: 76, bottom: 56 }],
     title: [{ text: "Evaluations in order (t CO₂/a)", left: 0, top: 36, textStyle: { fontSize: 14, fontWeight: 600, color: C.ink } },
-            { text: "Depth ladder, 2 doublets (t CO₂/a)", left: "57%", top: 36, textStyle: { fontSize: 14, fontWeight: 600, color: C.ink } }],
+            { text: "Depth ladder, 2 doublets (t CO₂/a; % = step change)", left: "50%", top: 36, textStyle: { fontSize: 14, fontWeight: 600, color: C.ink } }],
     tooltip: { ...TIP, trigger: "item", formatter: p => {
       if (p.data && p.data.e) { const e = p.data.e; return `<b>#${e.n} ${e.id}</b><br>${STATUS[e.status].label}<br>emissions <b>${fmt(e.emissions_t)}</b> t/a · ` +
         `external gas ${fmt(e.external_gas_GWh, 3)} GWh · grid ${fmt(e.grid_import_GWh, 2)} GWh · ${fmt(e.drilled_m)} m drilled<br>` +
@@ -446,23 +476,15 @@ function renderAgent() {
       return ""; } },
     xAxis: [{ type: "value", gridIndex: 0, min: 0, max: ev.length + 1, interval: 1, name: "evaluation #", nameLocation: "middle", nameGap: 30, ...AXIS,
               splitLine: { show: false }, axisLabel: { ...AXIS.axisLabel, formatter: v => v >= 1 && v <= ev.length ? v : "" } },
-            { type: "value", gridIndex: 1, min: 2250, max: 3750, interval: 250, name: "well depth (m)", nameLocation: "middle", nameGap: 30, ...AXIS, splitLine: { show: false },
-              axisLabel: { ...AXIS.axisLabel, formatter: v => v % 250 === 0 && v >= 2500 && v <= 3500 ? v : "" } }],
-    yAxis: [valueAxis("", { gridIndex: 0, min: 0 }), valueAxis("", { gridIndex: 1, min: 0 })],
+            { type: "value", gridIndex: 1, min: 2250, max: maxDepth + 250, interval: 250, name: "well depth (m)", nameLocation: "middle", nameGap: 30, ...AXIS, splitLine: { show: false },
+              axisLabel: { ...AXIS.axisLabel, formatter: v => v % 500 === 0 && v >= 2500 && v <= maxDepth ? v : "" } }],
+    yAxis: [valueAxis("", { gridIndex: 0, min: 0 }),
+            valueAxis("", { gridIndex: 1, min: Math.max(0, Math.floor(Math.min(...ends.map(e => e.em)) / 1000 - 1) * 1000) })],
     series: [
       { name: "order", type: "line", xAxisIndex: 0, yAxisIndex: 0, symbol: "none", silent: true, lineStyle: { color: C.axis, width: 1.5 },
         data: ev.map(e => [e.n, e.emissions_t]), tooltip: { show: false }, legendHoverLink: false },
       ...evalSeries,
-      { name: "ladder-kept", type: "line", xAxisIndex: 1, yAxisIndex: 1, symbol: "circle", symbolSize: 12, color: C.good, lineStyle: { width: 2, color: C.good },
-        itemStyle: { borderColor: C.surface, borderWidth: 2 },
-        data: kept.map(p => ({ value: [p.depth, p.em], p, label: { show: p.text !== "start", formatter: p.text.split(" · ")[0], position: "top", color: C.ink2, fontSize: 12 } })) },
-      ...(last && last.kind !== "kept" ? [{ name: "ladder-marginal", type: "line", xAxisIndex: 1, yAxisIndex: 1, symbol: "none",
-        lineStyle: { width: 2, type: "dashed", color: last.kind === "marginal" ? C.warning : C.muted }, silent: true, tooltip: { show: false },
-        data: [[kept[kept.length - 1].depth, kept[kept.length - 1].em], [last.depth, last.em]] },
-        { name: "ladder-last", type: "scatter", xAxisIndex: 1, yAxisIndex: 1, symbol: "diamond", symbolSize: 18,
-          color: last.kind === "marginal" ? C.warning : C.muted, itemStyle: { borderColor: C.surface, borderWidth: 2 },
-          data: [{ value: [last.depth, last.em], p: last, label: { show: true, position: "bottom", distance: 12, align: "right", offset: [12, 0], color: C.ink, fontSize: 12, lineHeight: 16,
-            formatter: `${fmt(last.depth)} m: −${fmt(Math.abs(last.st.emissions_change) * 100, 3)} %\n${last.kind === "marginal" ? "marginal sensitivity case" : "rejected"}` } }] }] : []),
+      ...ladderSeries,
     ],
   }, true);
 }
@@ -586,7 +608,7 @@ function renderTornado() {
     itemStyle: { borderRadius: 4, borderColor: C.surface, borderWidth: 1 },
     data: rows.map(r => ({ value: r[side].delta_emissions_t, c: r[side], r })),
     label: { show: true, position: "right", color: C.ink2, fontSize: 12,
-      formatter: q => `${num(q.data.c.value)}${u(q.data.r)}: ${q.value > 0 ? "+" : "−"}${fmt(Math.abs(q.value))} t` +
+      formatter: q => `${num(q.data.c.value)}${u(q.data.r)}: ${Math.abs(q.value) < 0.5 ? "" : q.value > 0 ? "+" : "−"}${fmt(Math.abs(q.value))} t` +
         (q.data.c.final_design.feasible ? "" : " (fails)") + (q.data.c.pick_changed ? " · pick changes" : "") } });
   chart("c-tornado").setOption({
     ...base(),
@@ -603,8 +625,15 @@ function renderTornado() {
       axisLabel: { color: C.ink, fontSize: 13, rich: { s: { color: C.ink2, fontSize: 12, lineHeight: 18 } } } },
     series: [bar("Low value", C.s1, "low"), bar("High value", C.s2, "high")],
   }, true);
+  const why = c => { const r = c.base_pick_verdict || "";
+    return r.startsWith("not evaluated") ? "the reservoir temperature moves, so the depth ladder stops at another depth"
+      : r.includes("extra doublet") ? "a third doublet cuts external gas by ≥ 5 %"
+      : r.includes("within the tie tolerance of the threshold") ? "the 3 500 m step lands within the tie tolerance of the 5 % threshold"
+      : r.includes("parsimony rule not met") ? "the 3 500 m step saves < 5 %" : "ranked lower"; };
   document.getElementById("p10-note").textContent = changed.length
-    ? `The agent's pick changes when: ${changed.map(c => `${c.label} = ${c.value} → ${c.agent_pick}`).join("; ")}. Every other case keeps ${S.base.candidate}.`
+    ? `The agent's pick changes in ${changed.length} of ${S.cases.length} cases: ${changed.map(c => `${c.label} = ${c.value} → ${shortId(c.agent_pick.replace(/_(co2ri|allri)$/, ""))} (${why(c)})`).join("; ")}. ` +
+      `The other cases keep ${S.base.candidate}; every case passes all hard constraints.` +
+      rows.filter(r => r.span < 0.5).map(r => ` ${r.label} does not change emissions at this design.`).join("")
     : `A fresh agent run with each changed input keeps ${S.base.candidate} in every case.`;
 }
 

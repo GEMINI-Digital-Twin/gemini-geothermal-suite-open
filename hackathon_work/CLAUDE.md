@@ -72,7 +72,7 @@ quantity is missing, ask the user rather than invent it.
 | Heat pump | Lorenz η 0.45, COP cap 6.0, sink out 100 °C (sensitivity: η 0.5, no cap) | ASSUMED |
 | Absorption chiller | hot end of the brine (after filter_a, before HEX), COP_th 0.7, drive inlet ≥ 75 °C, drive outlet ≥ 70 °C | ASSUMED (single-effect LiBr; 70 °C outlet added by Claude) |
 | Produced gas | GEMINI CHP first (η 0.8, 1/3 el, 2/3 heat) into the 100 °C top-up; heat pump covers only the lift CHP cannot; then boiler; flared only if heat unusable | ASSUMED dispatch |
-| Gas handling (agent design variable) | a) `chp`: all produced gas to CHP; b) `co2_reinject`: CO₂ (20 mol%, OFFICIAL) separated and reinjected with the brine, CH₄ to CHP, EF 68.6 × 0.8 = 54.9 kg CO₂/GJ (DERIVED), 0.1 kWh/kg CO₂ separation + compression (ASSUMED); c) `reinject_all`: no combustion, 0.1 kWh/kg gas compression (ASSUMED) | dissolution checked (`gas_solubility.py`, DERIVED): IAPWS G7-04 Henry + Poynting, Weisenberger–Schumpe salting-out (salinity from 1030 kg/m³, conservative reading at reservoir T ≈ 2.1–2.3 mol/kg NaCl), Peng–Robinson gas phase; hard check `gas_dissolution`: margin ≥ 1 at reservoir P/T and dip-tube depth < well depth; wellhead margin reported |
+| Gas handling (agent design variable) | a) `chp`: all produced gas to CHP; b) `co2_reinject`: CO₂ (20 mol%, OFFICIAL) separated and reinjected with the brine, CH₄ to CHP, EF 68.6 × 0.8 = 54.9 kg CO₂/GJ (DERIVED), 0.1 kWh/kg CO₂ separation + compression (ASSUMED); c) `reinject_all`: no combustion, 0.197 kWh/kg gas compression (DERIVED, isothermal to the 61.5 bar(g) wellhead bubble point / 0.7; user decision 2026-11-04) | dissolution checked (`gas_solubility.py`, DERIVED): IAPWS G7-04 Henry + Poynting, Weisenberger–Schumpe salting-out (salinity from 1030 kg/m³, conservative reading at reservoir T ≈ 2.1–2.3 mol/kg NaCl), Peng–Robinson gas phase; hard check `gas_dissolution`: margin ≥ 1 at reservoir P/T and dip-tube depth < well depth; wellhead margin reported |
 | N-1 resilience | unplanned outage of one doublet on the peak heating (28 Jan) and peak cooling (19 Jul) days; installed backup = max(planned peak, N-1) | ASSUMED case |
 | CHP electricity | offsets ESP / injector / HP / chiller; no export credit | ASSUMED |
 | External gas | 56.6 kg CO₂/GJ, 35.8 MJ/Nm³ | ASSUMED (pipeline natural gas) |
@@ -202,17 +202,19 @@ Cascade per active doublet:
    reservoir, CO₂ reinjected, CH₄ to CHP): 3 983 t CO₂/yr, 85.1% below the conventional reference,
    external gas 0.016 GWh (CHP on all gas at the same design: 4 891 t). Re-run 2026-11-03 with the
    0.1 GWh external-gas tie tolerance: 3500 m co2ri (−6.3% vs 3250 m) is now taken; 3750 m (−0.8%)
-   is not. reinject_all at 3500 m: 1 952 t but 0.271 GWh external gas → ranked out. 3 doublets:
+   is not. reinject_all at 3500 m: 2 023 t but 0.271 GWh external gas → ranked out. 3 doublets:
    3 979 t (−0.1%) → ranked out. 1 doublet (2500 m: 28.6 GWh external gas; 3500 m: 36.5 GWh) is
    feasible with backup and ranked out. N-1 at the pick: 15.1 MWth boiler (28 Jan), 2.1 MWth boiler
    and no electric chiller (19 Jul). LIMITATION: wellhead 114 °C at 300 m³/h exceeds the
    PVTConstantSTP range (100 °C), so constant brine properties are extrapolated.
    Gas dissolution (gas_solubility.py): CO₂ (co2ri) margin 7.3 at the injector wellhead
    (5.1 bar(g), 75 °C) and 148 at the reservoir; reinject_all margin 0.11 at the wellhead (bubble
-   point 61.5 bar(g): dip tube to ≥ 558 m) and 4.8 at the reservoir; its ASSUMED 0.1 kWh/kg
-   compression is below the DERIVED minimum 0.197 kWh/kg.
+   point 61.5 bar(g): dip tube to ≥ 558 m) and 4.8 at the reservoir; its compression energy is set to that DERIVED minimum,
+   0.197 kWh/kg (user decision 2026-11-04; was ASSUMED 0.1). Pick unchanged.
    Sensitivity (10 cases, fresh agent runs): pick changes in 5 (gradient 27 → 3750 m, 33 → 3000 m;
    heating return 50 → 3250 m (3500 m step only −1.6%); brine cp 4000 → 3250 m (−5.96%, within
    the tie tolerance of the 5% threshold); absorption COP 0.6 → 3 doublets (external gas 0.158 vs
-   0.005 GWh)). All cases pass the hard constraints.
+   0.005 GWh)). All cases pass the hard constraints. HP η 0.40/0.50 changes nothing: at 3500 m the
+   heat pump runs at the COP 6 cap on all 145 days it operates. Unchanged after option (c) compression
+   was raised to 0.197 kWh/kg (2026-11-04).
 7. Report artifacts: comparison tables, plots, ≤5-page report or ≤10 slides, ≤5 min pitch.

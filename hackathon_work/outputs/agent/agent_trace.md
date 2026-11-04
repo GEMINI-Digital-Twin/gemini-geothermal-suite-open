@@ -1,6 +1,6 @@
 # Design agent trace (rules backend)
 
-Generated 2026-11-04 00:10 UTC from `decision_log.jsonl` (91 logged steps). Rerun: `$env:PYTHONPATH="src"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend rules`.
+Generated 2026-11-04 00:36 UTC from `decision_log.jsonl` (91 logged steps). Rerun: `$env:PYTHONPATH="src"; py -3.11 -m poetry run python hackathon_work/design_agent.py --backend rules`.
 
 ## Judges' agent-reasoning tests
 
@@ -15,24 +15,24 @@ Generated 2026-11-04 00:10 UTC from `decision_log.jsonl` (91 logged steps). Reru
 
 | # | Candidate | T_res (C) | ESP set (m) / intake (bar) | Feasible | External gas (GWh) | Emissions (t) | Grid import (GWh) | Drilled (m) | Wall (s) | Final verdict |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | n1_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | yes | 28.597 | 12968 | 11.91 | 5000 | 0.9 | REJECTED (rank 13) |
-| 2 | n2_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | yes | 0.002 | 8908 | 12.01 | 10000 | 0.9 | REJECTED (rank 9) |
-| 3 | n2_q300_s1.8_ua500_z2500 | 87 | 660 / 30.3 | yes | 0.008 | 9036 | 12.50 | 10000 | 1.4 | REJECTED (rank 10) |
+| 1 | n1_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | yes | 28.597 | 12968 | 11.91 | 5000 | 0.8 | REJECTED (rank 13) |
+| 2 | n2_q300_s1.8_ua1000_z2500 | 87 | 660 / 30.3 | yes | 0.002 | 8908 | 12.01 | 10000 | 0.8 | REJECTED (rank 9) |
+| 3 | n2_q300_s1.8_ua500_z2500 | 87 | 660 / 30.3 | yes | 0.008 | 9036 | 12.50 | 10000 | 1.0 | REJECTED (rank 10) |
 | 4 | n2_q300_s1.0_ua1000_z2500 | 87 | 530 / 30.7 | yes | 8.090 | 9429 | 11.49 | 10000 | 2.1 | REJECTED (rank 12) |
 | 5 | n2_q300_s1.8_ua1000_z2750 | 94 | 670 / 30.1 | yes | 0.006 | 7267 | 7.83 | 11000 | 2.4 | REJECTED (rank 8) |
 | 6 | n2_q300_s1.8_ua1000_z3000 | 102 | 690 / 31.0 | yes | 0.004 | 6038 | 4.66 | 12000 | 2.1 | REJECTED (rank 7) |
-| 7 | n2_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 13000 | 3.8 | REJECTED (rank 6) |
-| 8 | n2_q300_s1.8_ua1000_z3500 | 117 | 710 / 30.7 | yes | 0.016 | 4891 | 0.80 | 14000 | 1.4 | REJECTED (rank 5) |
+| 7 | n2_q300_s1.8_ua1000_z3250 | 110 | 700 / 30.9 | yes | 0.004 | 5148 | 1.84 | 13000 | 4.0 | REJECTED (rank 6) |
+| 8 | n2_q300_s1.8_ua1000_z3500 | 117 | 710 / 30.7 | yes | 0.016 | 4891 | 0.80 | 14000 | 1.3 | REJECTED (rank 5) |
 | 9 | n2_q300_s1.8_ua1000_z3250_co2ri | 110 | 700 / 30.9 | yes | 0.004 | 4252 | 1.91 | 13000 | 3.8 | REJECTED (rank 4) |
 | 10 | n2_q300_s1.8_ua1000_z3500_co2ri | 117 | 710 / 30.7 | yes | 0.016 | 3983 | 0.87 | 14000 | 1.3 | ACCEPTED (rank 1) |
-| 11 | n2_q300_s1.8_ua1000_z3750_co2ri | 124 | 720 / 30.6 | yes | 0.020 | 3950 | 0.73 | 15000 | 1.3 | REJECTED (rank 2) |
-| 12 | n2_q300_s1.8_ua1000_z3500_allri | 117 | 710 / 30.7 | yes | 0.271 | 1952 | 6.32 | 14000 | 1.4 | REJECTED (rank 11) |
+| 11 | n2_q300_s1.8_ua1000_z3750_co2ri | 124 | 720 / 30.6 | yes | 0.020 | 3950 | 0.73 | 15000 | 1.2 | REJECTED (rank 2) |
+| 12 | n2_q300_s1.8_ua1000_z3500_allri | 117 | 710 / 30.7 | yes | 0.271 | 2023 | 6.56 | 14000 | 1.3 | REJECTED (rank 11) |
 | 13 | n3_q300_s1.8_ua1000_z3500_co2ri | 117 | 710 / 30.7 | yes | 0.004 | 3979 | 0.87 | 21000 | 1.3 | REJECTED (rank 3) |
 | 14 | n1_q300_s1.8_ua1000_z3500_co2ri | 117 | 710 / 30.7 | yes | 36.457 | 10783 | 1.75 | 7000 | 1.2 | REJECTED (rank 14) |
 
 ## Final pick
 
-Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected, marginal); 3250->3500 m: -6.3%, 0.268 t/yr/m (kept); 3500->3750 m: -0.8%, 0.033 t/yr/m (rejected). Selected n2_q300_s1.8_ua1000_z3500_co2ri (117 C reservoir): selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 85.1% lower emissions, external gas 0.016 vs 124.1 GWh, grid import 0.87 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 114.1 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule. Gas handling: options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 1952 t, grid 6.32 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); ASSUMED compression 0.1 kWh/kg is below the DERIVED minimum 0.197 kWh/kg to 62 bar(g); reservoir margin 4.8 (conservative salinity 2.29 mol/kg). N-1 (unplanned outage of one doublet, ASSUMED): peak heating day 2027-01-28: boiler 15.1 MWth, electric chiller 0.0 MWcool; peak cooling day 2027-07-19: boiler 2.1 MWth, electric chiller 0.0 MWcool; installed backup 15.1 MWth boiler + 0.0 MWcool electric chiller covers it. One-doublet alternative n1_q300_s1.8_ua1000_z2500 (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 28.6 GWh external gas and 12968 t, so it is ranked out. One-doublet alternative n1_q300_s1.8_ua1000_z3500_co2ri (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 36.5 GWh external gas and 10783 t, so it is ranked out.
+Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected, marginal); 3250->3500 m: -6.3%, 0.268 t/yr/m (kept); 3500->3750 m: -0.8%, 0.033 t/yr/m (rejected). Selected n2_q300_s1.8_ua1000_z3500_co2ri (117 C reservoir): selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 85.1% lower emissions, external gas 0.016 vs 124.1 GWh, grid import 0.87 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 114.1 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule. Gas handling: options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 2023 t, grid 6.56 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); reservoir margin 4.8 (conservative salinity 2.29 mol/kg). N-1 (unplanned outage of one doublet, ASSUMED): peak heating day 2027-01-28: boiler 15.1 MWth, electric chiller 0.0 MWcool; peak cooling day 2027-07-19: boiler 2.1 MWth, electric chiller 0.0 MWcool; installed backup 15.1 MWth boiler + 0.0 MWcool electric chiller covers it. One-doublet alternative n1_q300_s1.8_ua1000_z2500 (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 28.6 GWh external gas and 12968 t, so it is ranked out. One-doublet alternative n1_q300_s1.8_ua1000_z3500_co2ri (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 36.5 GWh external gas and 10783 t, so it is ranked out.
 
 ## Backup equipment sizing (feasible candidates)
 
@@ -51,7 +51,7 @@ Peak daily duties the backup must be built for, in planned operation and in the 
 | n2_q300_s1.8_ua1000_z3250_co2ri | REJECTED | 0 | 0.03 | 15.12 | 15.12 | 0.00 | 0.99 | 0.99 | 0.004 | 4252 |
 | n2_q300_s1.8_ua1000_z3500_co2ri | ACCEPTED | 0 | 0.23 | 15.12 | 15.12 | 0.00 | 0.00 | 0.00 | 0.016 | 3983 |
 | n2_q300_s1.8_ua1000_z3750_co2ri | REJECTED | 0 | 0.26 | 15.12 | 15.12 | 0.00 | 0.00 | 0.00 | 0.020 | 3950 |
-| n2_q300_s1.8_ua1000_z3500_allri | REJECTED | 0 | 2.27 | 16.13 | 16.13 | 0.00 | 0.00 | 0.00 | 0.271 | 1952 |
+| n2_q300_s1.8_ua1000_z3500_allri | REJECTED | 0 | 2.27 | 16.13 | 16.13 | 0.00 | 0.00 | 0.00 | 0.271 | 2023 |
 | n3_q300_s1.8_ua1000_z3500_co2ri | REJECTED | 0 | 0.03 | 0.23 | 0.23 | 0.00 | 0.00 | 0.00 | 0.004 | 3979 |
 | n1_q300_s1.8_ua1000_z3500_co2ri | REJECTED | 35 | 15.12 | 30.00 | 30.00 | 5.89 | 10.00 | 10.00 | 36.457 | 10783 |
 
@@ -66,21 +66,21 @@ Installed backup at the pick: 15.12 MWth boiler, 0.00 MWcool electric chiller.
 
 ## Gas handling (design variable)
 
-options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 1952 t, grid 6.32 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); ASSUMED compression 0.1 kWh/kg is below the DERIVED minimum 0.197 kWh/kg to 62 bar(g); reservoir margin 4.8 (conservative salinity 2.29 mol/kg).
+options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 2023 t, grid 6.56 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); reservoir margin 4.8 (conservative salinity 2.29 mol/kg).
 
 | Candidate | Gas handling | External gas (GWh) | Emissions (t) | of which produced gas (t) | Grid import (GWh) | Gas-handling el. (GWh) | CHP heat (GWh) | Dissolution margin wellhead / reservoir | Verdict (rank) |
 |---|---|---|---|---|---|---|---|---|---|
 | n2_q300_s1.8_ua1000_z3500 | chp | 0.016 | 4891 | 4647 | 0.80 | 0.000 | 9.1 | n/a (burned) | REJECTED (5) |
 | n2_q300_s1.8_ua1000_z3500_co2ri | co2_reinject | 0.016 | 3983 | 3718 | 0.87 | 0.093 | 9.1 | 7.27 / 147.5 (PASS) | ACCEPTED (1) |
-| n2_q300_s1.8_ua1000_z3500_allri | reinject_all | 0.271 | 1952 | 0 | 6.32 | 0.244 | 0.0 | 0.11 / 4.8 (PASS) | REJECTED (11) |
+| n2_q300_s1.8_ua1000_z3500_allri | reinject_all | 0.271 | 2023 | 0 | 6.56 | 0.481 | 0.0 | 0.11 / 4.8 (PASS) | REJECTED (11) |
 
 Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point at the available pressure; IAPWS G7-04 Henry constants, Weisenberger-Schumpe salting-out, Peng-Robinson; `gas_solubility.py`). Wellhead: lowest injector wellhead pressure of the year at the hottest injection temperature; reservoir: reservoir P and T; conservative salinity (1030 kg/m3 read at reservoir temperature).
 
 
 ## Runtime
 
-- Annual evaluations: 14 (14 computed, 0 from cache); computed wall time mean 1.8 s, max 3.8 s
-- Scenario B runtime: 25.6 s; scenario A runtime: 0.0 s
+- Annual evaluations: 14 (14 computed, 0 from cache); computed wall time mean 1.8 s, max 4.0 s
+- Scenario B runtime: 24.8 s; scenario A runtime: 0.0 s
 - Backend calls: 0 (0.0 s)
 
 ## Scenario A: heating_return_T removed from the inputs
@@ -175,7 +175,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | 300 | 53.4 | 4.61 / 85.5 | 0.59 | 30.3 / 74.5 | 0.526 | 225.2 | 3.3 |
 
 **14. [evaluate] Annual model + constraint check: n1_q300_s1.8_ua1000_z2500**
-> FEASIBLE: external gas 28.597 GWh, emissions 12968 t, grid import 11.91 GWh, drilled 5000 m; 35 day(s) without geothermal supply, covered by backup (boiler 13.7 MWth, electric chiller 6.3 MWcool peak) (0.9 s)
+> FEASIBLE: external gas 28.597 GWh, emissions 12968 t, grid import 11.91 GWh, drilled 5000 m; 35 day(s) without geothermal supply, covered by backup (boiler 13.7 MWth, electric chiller 6.3 MWcool peak) (0.8 s)
 
 **15. [rank] Ranking after evaluation**
 > Incumbent: n1_q300_s1.8_ua1000_z2500
@@ -205,7 +205,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | 300 | 53.4 | 4.61 / 85.5 | 0.59 | 30.3 / 74.5 | 0.526 | 225.2 | 3.3 |
 
 **21. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z2500**
-> FEASIBLE: external gas 0.002 GWh, emissions 8908 t, grid import 12.01 GWh, drilled 10000 m (0.9 s)
+> FEASIBLE: external gas 0.002 GWh, emissions 8908 t, grid import 12.01 GWh, drilled 10000 m (0.8 s)
 
 **22. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z2500 (was n1_q300_s1.8_ua1000_z2500)
@@ -230,7 +230,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | 300 | 53.4 | 4.61 / 85.5 | 0.59 | 30.3 / 74.5 | 0.526 | 225.2 | 3.3 |
 
 **26. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua500_z2500**
-> FEASIBLE: external gas 0.008 GWh, emissions 9036 t, grid import 12.50 GWh, drilled 10000 m (1.4 s)
+> FEASIBLE: external gas 0.008 GWh, emissions 9036 t, grid import 12.50 GWh, drilled 10000 m (1.0 s)
 
 **27. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z2500
@@ -346,7 +346,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | 300 | 55.5 | 4.61 / 107.0 | 1.30 | 30.9 / 78.8 | 0.570 | 301.0 | 3.3 |
 
 **48. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z3250**
-> FEASIBLE: external gas 0.004 GWh, emissions 5148 t, grid import 1.84 GWh, drilled 13000 m (3.8 s)
+> FEASIBLE: external gas 0.004 GWh, emissions 5148 t, grid import 1.84 GWh, drilled 13000 m (4.0 s)
 
 **49. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3250 (was n2_q300_s1.8_ua1000_z3000)
@@ -379,7 +379,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | 300 | 56.2 | 4.61 / 114.1 | 1.64 | 30.7 / 79.8 | 0.584 | 326.2 | 3.3 |
 
 **54. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z3500**
-> FEASIBLE: external gas 0.016 GWh, emissions 4891 t, grid import 0.80 GWh, drilled 14000 m (1.4 s)
+> FEASIBLE: external gas 0.016 GWh, emissions 4891 t, grid import 0.80 GWh, drilled 14000 m (1.3 s)
 
 **55. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3250
@@ -481,7 +481,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | 300 | 56.9 | 4.61 / 121.1 | 2.05 | 30.6 / 80.9 | 0.599 | 351.5 | 3.3 |
 
 **71. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z3750_co2ri**
-> FEASIBLE: external gas 0.020 GWh, emissions 3950 t, grid import 0.73 GWh, drilled 15000 m (1.3 s)
+> FEASIBLE: external gas 0.020 GWh, emissions 3950 t, grid import 0.73 GWh, drilled 15000 m (1.2 s)
 
 **72. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3500_co2ri
@@ -518,7 +518,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | 300 | 56.2 | 4.61 / 114.1 | 1.64 | 30.7 / 79.8 | 0.584 | 326.2 | 3.3 |
 
 **77. [evaluate] Annual model + constraint check: n2_q300_s1.8_ua1000_z3500_allri**
-> FEASIBLE: external gas 0.271 GWh, emissions 1952 t, grid import 6.32 GWh, drilled 14000 m (1.4 s)
+> FEASIBLE: external gas 0.271 GWh, emissions 2023 t, grid import 6.56 GWh, drilled 14000 m (1.3 s)
 
 **78. [rank] Ranking after evaluation**
 > Incumbent: n2_q300_s1.8_ua1000_z3500_co2ri
@@ -534,12 +534,12 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | n2_q300_s1.8_ua1000_z2750 | 7 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750 (decided by emissions_t: 6038 vs 7267); deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua1000_z2500 | 8 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500 (decided by emissions_t: 7267 vs 8908); deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua500_z2500 | 9 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
-| n2_q300_s1.8_ua1000_z3500_allri | 10 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 1952 vs 3983 t, grid import 6.32 vs 0.87 GWh, drilled 14000 vs 14000 m |
+| n2_q300_s1.8_ua1000_z3500_allri | 10 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 2023 vs 3983 t, grid import 6.56 vs 0.87 GWh, drilled 14000 vs 14000 m |
 | n2_q300_s1.0_ua1000_z2500 | 11 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 12 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2500: ranks better than n1_q300_s1.8_ua1000_z2500 (decided by external_gas_fuel_GWh: 0.001987 vs 28.6, beyond its tie tolerance); extra doublet: external gas +100.0%, emissions +31.3% (needs >= 5% on either, beyond the tie tolerance) |
 
 **79. [propose] Proposal n3_q300_s1.8_ua1000_z3500_co2ri**
-> Previous candidate n2_q300_s1.8_ua1000_z3500_allri was ranked out (same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 1952 vs 3983 t, grid import 6.32 vs 0.87 GWh, drilled 14000 vs 14000 m); keep incumbent n2_q300_s1.8_ua1000_z3500_co2ri. Variant of incumbent n2_q300_s1.8_ua1000_z3500_co2ri: More doublets: accepted only if external gas or emissions improve by >= 5%.
+> Previous candidate n2_q300_s1.8_ua1000_z3500_allri was ranked out (same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 2023 vs 3983 t, grid import 6.56 vs 0.87 GWh, drilled 14000 vs 14000 m); keep incumbent n2_q300_s1.8_ua1000_z3500_co2ri. Variant of incumbent n2_q300_s1.8_ua1000_z3500_co2ri: More doublets: accepted only if external gas or emissions improve by >= 5%.
 
 **80. [build_json] GEMINI JSON for n3_q300_s1.8_ua1000_z3500_co2ri**
 > GEMINI load_project accepted the brine-chain file; all connections and boundary inputs reference declared components.
@@ -570,7 +570,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | n2_q300_s1.8_ua1000_z2750 | 8 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750 (decided by emissions_t: 6038 vs 7267); deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua1000_z2500 | 9 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500 (decided by emissions_t: 7267 vs 8908); deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua500_z2500 | 10 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
-| n2_q300_s1.8_ua1000_z3500_allri | 11 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 1952 vs 3983 t, grid import 6.32 vs 0.87 GWh, drilled 14000 vs 14000 m |
+| n2_q300_s1.8_ua1000_z3500_allri | 11 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 2023 vs 3983 t, grid import 6.56 vs 0.87 GWh, drilled 14000 vs 14000 m |
 | n2_q300_s1.0_ua1000_z2500 | 12 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 13 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2500: ranks better than n1_q300_s1.8_ua1000_z2500 (decided by external_gas_fuel_GWh: 0.001987 vs 28.6, beyond its tie tolerance); extra doublet: external gas +100.0%, emissions +31.3% (needs >= 5% on either, beyond the tie tolerance) |
 
@@ -606,7 +606,7 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 | n2_q300_s1.8_ua1000_z2750 | 8 | REJECTED | superseded by n2_q300_s1.8_ua1000_z3000: ranks better than n2_q300_s1.8_ua1000_z2750 (decided by emissions_t: 6038 vs 7267); deeper 2750 -> 3000 m: emissions +16.910% (needs >= 5% beyond the tie tolerance), marginal abatement 1.229 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua1000_z2500 | 9 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2750: ranks better than n2_q300_s1.8_ua1000_z2500 (decided by emissions_t: 7267 vs 8908); deeper 2500 -> 2750 m: emissions +18.422% (needs >= 5% beyond the tie tolerance), marginal abatement 1.641 t CO2/yr per extra metre drilled |
 | n2_q300_s1.8_ua500_z2500 | 10 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on emissions_t (tied within tolerance on external_gas_fuel_GWh): external gas 0.0079 vs 0.0020 GWh, emissions 9036 vs 8908 t, grid import 12.50 vs 12.01 GWh, drilled 10000 vs 10000 m |
-| n2_q300_s1.8_ua1000_z3500_allri | 11 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 1952 vs 3983 t, grid import 6.32 vs 0.87 GWh, drilled 14000 vs 14000 m |
+| n2_q300_s1.8_ua1000_z3500_allri | 11 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 2023 vs 3983 t, grid import 6.56 vs 0.87 GWh, drilled 14000 vs 14000 m |
 | n2_q300_s1.0_ua1000_z2500 | 12 | REJECTED | same doublet count and depth as n2_q300_s1.8_ua1000_z2500 but ranks lower on external_gas_fuel_GWh: external gas 8.0904 vs 0.0020 GWh, emissions 9429 vs 8908 t, grid import 11.49 vs 12.01 GWh, drilled 10000 vs 10000 m |
 | n1_q300_s1.8_ua1000_z2500 | 13 | REJECTED | superseded by n2_q300_s1.8_ua1000_z2500: ranks better than n1_q300_s1.8_ua1000_z2500 (decided by external_gas_fuel_GWh: 0.001987 vs 28.6, beyond its tie tolerance); extra doublet: external gas +100.0%, emissions +31.3% (needs >= 5% on either, beyond the tie tolerance) |
 | n1_q300_s1.8_ua1000_z3500_co2ri | 14 | REJECTED | parsimony rule not met: ranks not better than n1_q300_s1.8_ua1000_z2500 (decided by external_gas_fuel_GWh: 36.46 vs 28.6, beyond its tie tolerance); deeper 2500 -> 3500 m: emissions +16.853% (needs >= 5% beyond the tie tolerance), marginal abatement 1.093 t CO2/yr per extra metre drilled |
@@ -615,8 +615,8 @@ Dissolution margin = brine's gas capacity / gas to reinject per m3 (bubble point
 > No untried variant can change the pick within the design space and the parsimony rules.
 
 **90. [gas_decision] Gas handling: co2_reinject**
-> options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 1952 t, grid 6.32 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); ASSUMED compression 0.1 kWh/kg is below the DERIVED minimum 0.197 kWh/kg to 62 bar(g); reservoir margin 4.8 (conservative salinity 2.29 mol/kg).
+> options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 2023 t, grid 6.56 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); reservoir margin 4.8 (conservative salinity 2.29 mol/kg).
 
 **91. [final] Final pick: n2_q300_s1.8_ua1000_z3500_co2ri**
-> Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected, marginal); 3250->3500 m: -6.3%, 0.268 t/yr/m (kept); 3500->3750 m: -0.8%, 0.033 t/yr/m (rejected). Selected n2_q300_s1.8_ua1000_z3500_co2ri (117 C reservoir): selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 85.1% lower emissions, external gas 0.016 vs 124.1 GWh, grid import 0.87 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 114.1 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule. Gas handling: options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 1952 t, grid 6.32 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); ASSUMED compression 0.1 kWh/kg is below the DERIVED minimum 0.197 kWh/kg to 62 bar(g); reservoir margin 4.8 (conservative salinity 2.29 mol/kg). N-1 (unplanned outage of one doublet, ASSUMED): peak heating day 2027-01-28: boiler 15.1 MWth, electric chiller 0.0 MWcool; peak cooling day 2027-07-19: boiler 2.1 MWth, electric chiller 0.0 MWcool; installed backup 15.1 MWth boiler + 0.0 MWcool electric chiller covers it. One-doublet alternative n1_q300_s1.8_ua1000_z2500 (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 28.6 GWh external gas and 12968 t, so it is ranked out. One-doublet alternative n1_q300_s1.8_ua1000_z3500_co2ri (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 36.5 GWh external gas and 10783 t, so it is ranked out.
+> Depth ladder: 2500->2750 m: -18.4%, 1.641 t/yr/m (kept); 2750->3000 m: -16.9%, 1.229 t/yr/m (kept); 3000->3250 m: -14.7%, 0.890 t/yr/m (kept); 3250->3500 m: -5.0%, 0.257 t/yr/m (rejected, marginal); 3250->3500 m: -6.3%, 0.268 t/yr/m (kept); 3500->3750 m: -0.8%, 0.033 t/yr/m (rejected). Selected n2_q300_s1.8_ua1000_z3500_co2ri (117 C reservoir): selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled. Versus the conventional reference (gas boiler eta 0.90 + electric chiller COP 5.0, 26706 t): 85.1% lower emissions, external gas 0.016 vs 124.1 GWh, grid import 0.87 vs 4.75 GWh. Well checks at the pick: 300 m3/h: wellhead 114.1 C exceeds PVTConstantSTP temperature_max (100 C) - constant brine properties extrapolated. Drilling cost is not modeled; deeper steps are limited by the 5% parsimony rule. Gas handling: options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 2023 t, grid 6.56 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); reservoir margin 4.8 (conservative salinity 2.29 mol/kg). N-1 (unplanned outage of one doublet, ASSUMED): peak heating day 2027-01-28: boiler 15.1 MWth, electric chiller 0.0 MWcool; peak cooling day 2027-07-19: boiler 2.1 MWth, electric chiller 0.0 MWcool; installed backup 15.1 MWth boiler + 0.0 MWcool electric chiller covers it. One-doublet alternative n1_q300_s1.8_ua1000_z2500 (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 28.6 GWh external gas and 12968 t, so it is ranked out. One-doublet alternative n1_q300_s1.8_ua1000_z3500_co2ri (valid per the organizer clarification of 2026-11-01, backup covers the source outage): feasible with 35 day(s) without geothermal supply, installed backup 30.0 MWth boiler + 10.0 MWcool chiller, but 36.5 GWh external gas and 10783 t, so it is ranked out.
 

@@ -1,14 +1,14 @@
 {
   "backend": "rules",
-  "total_runtime_s": 26.96471550001297,
+  "total_runtime_s": 26.054183800006285,
   "status": "selected",
   "timing": {
     "evaluations": 14,
     "computed": 14,
     "cached": 0,
-    "wall_s_per_computed_evaluation_mean": 1.813414614298381,
-    "wall_s_per_computed_evaluation_max": 3.8237066000001505,
-    "scenario_runtime_s": 25.629110599984415,
+    "wall_s_per_computed_evaluation_mean": 1.760151678571544,
+    "wall_s_per_computed_evaluation_max": 3.9712911000242457,
+    "scenario_runtime_s": 24.752910899929702,
     "backend_calls": 0,
     "backend_wall_s": 0
   },
@@ -209,7 +209,7 @@
       "feasible": true,
       "verdict": {
         "status": "REJECTED",
-        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 1952 vs 3983 t, grid import 6.32 vs 0.87 GWh, drilled 14000 vs 14000 m",
+        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 2023 vs 3983 t, grid import 6.56 vs 0.87 GWh, drilled 14000 vs 14000 m",
         "rank": 11
       }
     },
@@ -440,7 +440,7 @@
       "installed_boiler_MWth": 16.134483333305763,
       "installed_electric_chiller_MWcool": 0.0,
       "external_gas_GWh": 0.2710430667731342,
-      "emissions_t": 1951.676503896862
+      "emissions_t": 2022.6553464763847
     },
     {
       "candidate": "n3_q300_s1.8_ua1000_z3500_co2ri",
@@ -566,14 +566,14 @@
         "gas_handling": "reinject_all",
         "feasible": true,
         "external_gas_GWh": 0.2710430667731342,
-        "emissions_t": 1951.676503896862,
+        "emissions_t": 2022.6553464763847,
         "emissions_produced_gas_t": 0.0,
-        "grid_import_GWh": 6.3214958953705525,
-        "el_gas_handling_GWh": 0.24391354838324877,
+        "grid_import_GWh": 6.558092037302298,
+        "el_gas_handling_GWh": 0.48050969031500224,
         "heat_chp_GWh": 0.0,
         "verdict": "REJECTED",
         "rank": 11,
-        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 1952 vs 3983 t, grid import 6.32 vs 0.87 GWh, drilled 14000 vs 14000 m",
+        "reason": "same doublet count and depth as n2_q300_s1.8_ua1000_z3500_co2ri but ranks lower on external_gas_fuel_GWh: external gas 0.2710 vs 0.0157 GWh, emissions 2023 vs 3983 t, grid import 6.56 vs 0.87 GWh, drilled 14000 vs 14000 m",
         "dissolution": {
           "status": "PASS",
           "wellhead_margin": 0.10600741652812458,
@@ -583,12 +583,12 @@
           "bubble_point_wellhead_bar_g": 61.503248625206055,
           "dip_tube_depth_m": 558.2021921017165,
           "compression_kWh_per_kg_derived": 0.19687265887205935,
-          "compression_kWh_per_kg_assumed": 0.1,
-          "reason": "CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); ASSUMED compression 0.1 kWh/kg is below the DERIVED minimum 0.197 kWh/kg to 62 bar(g); reservoir margin 4.8 (conservative salinity 2.29 mol/kg)"
+          "compression_kWh_per_kg_assumed": 0.197,
+          "reason": "CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); reservoir margin 4.8 (conservative salinity 2.29 mol/kg)"
         }
       }
     ],
-    "text": "options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 1952 t, grid 6.32 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); ASSUMED compression 0.1 kWh/kg is below the DERIVED minimum 0.197 kWh/kg to 62 bar(g); reservoir margin 4.8 (conservative salinity 2.29 mol/kg)."
+    "text": "options compared at n2_q300_s1.8_ua1000_z3500: chp external gas 0.016 GWh, 4891 t, grid 0.80 GWh; co2_reinject external gas 0.016 GWh, 3983 t, grid 0.87 GWh; reinject_all external gas 0.271 GWh, 2023 t, grid 6.56 GWh. The ranking keeps co2_reinject at that design (external gas first, then emissions); reinject_all has the lowest emissions but needs more external gas (0.271 vs 0.016 GWh (without CHP heat the heat pump cannot cover the whole lift on the coldest days)), and external gas ranks first. Final pick uses co2_reinject. Dissolution check (co2_reinject): CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg). Dissolution check (reinject_all): CO2+CH4 0.80 Nm3/m3: wellhead margin 0.11 < 1: co-inject through a dip tube reaching >= 558 m (bubble point 61.5 bar(g)); reservoir margin 4.8 (conservative salinity 2.29 mol/kg)."
   },
   "judges_tests": [
     {
