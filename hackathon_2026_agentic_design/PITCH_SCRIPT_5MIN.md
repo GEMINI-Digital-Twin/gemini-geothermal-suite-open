@@ -1,65 +1,62 @@
-# Five-minute video pitch script
+# Five-minute video pitch script (executive version)
 
-Record screen + voice. Show the dashboard (https://claude.ai/artifact/NsWjVJL11z7fZCAK5Fe4my)
-and the slide deck; switch to the terminal only for the live move at the end. Target 4:45.
+Screen recording with voice over the slide deck. Target 3:30 to 4:00, leaving margin under the
+5-minute cap. Speak slowly; the slides carry the numbers, you carry the story.
 
-**0:00 - Hook (25 s).** Slide 1.
-"A district needs thirty megawatts of heat in January and ten megawatts of cooling in July, at one
-hundred and twenty degrees respectively. The reservoir on offer is twenty-five hundred metres deep
-and eighty-seven degrees. Too cold for the heating network. We gave this problem to an AI agent
-armed with the GEMINI digital twin and told it: design it, prove it, and explain every move."
+---
 
-**0:25 - The loop (60 s).** Slide 3, then dashboard "How the agent got there".
-"The agent does not guess. It proposes a design, runs it through all three hundred and sixty-five
-days with GEMINI's well, pump, corrosion and erosion models and our own heat-pump, heat-exchanger
-and chiller models, reads the violations, diagnoses them, repairs, and repeats until the twin
-stops objecting. Here is the trail. It started at the specified depth: feasible, but every
-megawatt lifted by a thirty-one megawatt heat pump, COP under four. It went to three thousand
-metres: worst of both worlds. At thirty-five hundred metres the wellhead clears one hundred and
-three degrees, direct heat exchange switches on, the absorption chiller runs at full COP, and
-electricity falls by four fifths. It tried two doublets and a bigger heat pump: sixteen peak days
-failed, because once the brine is cooled forty degrees there is nothing left for the heat pump to
-draw on. Three doublets it is. Every step has the reason and the number next to it."
+**Slide 1. The problem (30 s)**
 
-**1:25 - The result (35 s).** Dashboard top tiles and constraint scorecard.
-"Three doublets at thirty-five hundred metres. On the peak day, thirty megawatts of heat,
-twenty-eight of them by direct heat exchange and two from the heat pump, and ten megawatts of
-cooling from the absorption chiller. Every megawatt-hour of heat and cooling delivered, zero unmet. System COP seventeen. Ninety-four percent of the energy is geothermal. All eight
-challenge caps pass on every day of the year, plus three engineering guards the brief did not ask
-for: ESP intake forty bar above the gas bubble point, tubing velocity under the API erosional
-limit, injection pressure within limit."
+"A district needs thirty megawatts of heating and ten megawatts of cooling. The geothermal
+reservoir on offer is too cold for the heating network. We gave this problem to an AI agent,
+armed with the GEMINI digital twin, and asked it to design the system, prove it works, and
+explain its choices."
 
-**2:00 - What we built versus what GEMINI gave us (30 s).** Slide 4.
-"GEMINI gave us six physics models and we call them directly. GEMINI has no heating or cooling
-plant, so we built the plate heat exchanger, the high-temperature heat pump, the absorption and
-electric chillers, the gas handling, the daily dispatcher that finds the minimum brine flow, and
-the cost model. The agent and the twin are ours. The physics is GEMINI's."
+**Slide 3. How the agent works (45 s)**
 
-**2:30 - Beyond the brief (75 s).** Slides 7, 8, 9.
-"Three things the brief did not ask for. First, uncertainty: the design is re-run over a
-geological ensemble of permeability, gradient and skin. That exposed a cliff. A design at
-thirty-two fifty metres is cheapest on paper and collapses if the gradient is one degree per
-kilometre lower. Second, we handed the same twin to three external optimisers: a derivative-free
-trust-region method, COBYLA, and StoSAG robust optimisation. They confirmed the agent's structure,
-shaved five percent off the cost, and showed that starting from the specified depth lands in a
-worse local optimum, which is exactly why the agent's engineering reasoning matters as the
-starting point. Third, the plant lives for twenty-five years, so we closed the loop: a yearly
-management controller that re-runs the twin with reservoir cooling, skin growth and pump wear
-and books acid jobs and workovers, and an hourly ESP monitor that compares live telemetry with
-the twin, catches gas slugs, wear, a hot motor and a trip, names each one, and hands the workover
-date to the controller. On synthetic telemetry: ninety-one percent recall, under one percent
-false alarms."
+"The agent works like an engineer, not a calculator. It proposes a design, runs it through a full
+year on the GEMINI twin, reads what fails, fixes the cause, and tries again. GEMINI supplies the
+well, pump, corrosion and erosion physics. The heating and cooling plant did not exist in GEMINI,
+so the agent uses models we built for it. Every step is logged with its reasoning and its token
+count. A rule-based mode reaches the same design with no LLM at all."
 
-**3:45 - The agent as a colleague (35 s).** Slide 10, interaction evidence.
-"Every move is logged with its prompt, its answer and its token count: eight turns, about
-thirty-three thousand tokens. We also tested the agent as a colleague. Give it the heating file without the cooling file and
-it lists what is missing and asks whether to proceed on heating alone. Ask it for a fifty megawatt
-power plant and it declines: direct use only. Tell it the reservoir is one hundred and forty
-degrees at twenty-five hundred metres and it points out that this contradicts the gradient and
-refuses to size the plant until you say which to trust, because the whole design flips on that
-answer."
+**Slide 2. The answer (40 s)**
 
-**4:20 - Close (25 s).** Terminal, then slide 1.
-Run: `python claude_session.py suggest final-3dbl-3500m-abs-trim`
-"No repair suggested: the twin has nothing left to object to. Everything is open source, runs
-offline from the command line in five minutes, and is pushed to the GEMINI repository. Thank you."
+"The answer is three doublets drilled deeper than the brief suggested, to thirty-five hundred
+metres. That one decision changes everything: the brine is hot enough to feed the network
+directly and to drive an absorption chiller, so almost no electricity is needed. Thirty megawatts
+of heat and ten of cooling on the peak day, nothing unmet all year, ninety-four percent of the
+energy from the ground."
+
+**Slide 5. Why that design (35 s)**
+
+"The agent got there by testing alternatives and rejecting them with a number: the shallow
+reservoir needs a huge heat pump; a mid depth is the worst of both; two doublets fail on peak days;
+electric chillers cost more to run. Each rejection is in the log with its reason."
+
+**Slide 6. Proof (25 s)**
+
+"Every day of the year is simulated and every limit in the brief is checked, plus three engineering
+guards the brief did not ask for. All pass."
+
+**Slides 7, 8, 9. Beyond the brief (60 s)**
+
+"Three things we added. One: uncertainty. We re-ran the design over a range of geology and found a
+cliff in the design space, so our recommendation comes with a safety margin and a condition.
+Two: optimisation. Three external optimisers confirmed the agent's design and trimmed its cost by
+five percent. Three: operations. The plant runs for twenty-five years, so we closed the loop: a
+yearly controller that schedules maintenance, and a real-time pump monitor that catches faults
+from live data and feeds them back into the plan."
+
+**Slide 10. The agent as a colleague, and close (35 s)**
+
+"Finally, the agent knows its limits. Give it incomplete data and it asks for what is missing.
+Ask it for something out of scope and it declines. Give it contradictory inputs and it refuses to
+size the plant until you resolve them. Everything is open source, runs offline in five minutes,
+and is pushed to the GEMINI repository. Thank you."
+
+---
+
+Optional live moment before the close (15 s): switch to a terminal and run
+`python claude_session.py suggest final-3dbl-3500m-abs-trim`. It returns no repair, which is the
+twin saying it has nothing left to object to.
