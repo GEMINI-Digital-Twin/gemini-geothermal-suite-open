@@ -168,9 +168,11 @@ def build_project_dict(design, op: dict, a: Assumptions = None, hx_ua_w_k: float
         "gas_emission_factor": a.natural_gas_co2_kg_nm3 / a.natural_gas_lhv_mj_nm3 * 1e3}}
 
     order = op.get("order", "-")
-    has_abs = op.get("abs_cooling_w", 0.0) > 0 and design.absorption_mw > 0
-    has_hp = op.get("hp_heat_w", 0.0) > 0 and design.heat_pump_mw > 0
-    has_ec = op.get("ec_load_w", 0.0) > 0 and design.electric_chiller_mw > 0
+    # include a component only if it actually runs on this day (> 1 kW); an idle unit asked to "lift" a stream
+    # to its own temperature sends GEMINI's HeatpumpBasic into its unstable branch
+    has_abs = op.get("abs_cooling_w", 0.0) > 1e3 and design.absorption_mw > 0
+    has_hp = op.get("hp_heat_w", 0.0) > 1e3 and design.heat_pump_mw > 0
+    has_ec = op.get("ec_load_w", 0.0) > 1e3 and design.electric_chiller_mw > 0
     if has_abs:
         comp["absorption_chiller"] = {"type": "absorption_chiller", "parameters": {
             "capacity_w": design.absorption_mw * 1e6, "cop_nom": a.absorption_cop_nominal,

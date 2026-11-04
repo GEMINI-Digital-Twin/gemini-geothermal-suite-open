@@ -18,7 +18,8 @@ from gemini_model.heat_exchanger.heat_exchanger import HeatExchanger
 from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
 
 A = Assumptions()
-INTEGRATED = PlantDesign("2x2500m_HP12_ABS6_EC4", 2, heat_pump_mw=12, absorption_mw=6, electric_chiller_mw=4)
+# electric chiller sized for the plant-wide geothermal outage (organisers, 1 Nov): absorption has no drive heat then
+INTEGRATED = PlantDesign("2x2500m_HP12_ABS6_EC10", 2, heat_pump_mw=12, absorption_mw=6, electric_chiller_mw=10)
 
 
 @pytest.fixture(scope="module")
@@ -124,3 +125,94 @@ def test_gemini_issue_heatpump_constrained_branch_nonsense():
         hp.calculate_output({"Th_in": 55.0, "Ts_in": 47.0, "hot_flow_rate": 0.015, "source_flow_rate": 0.067})
     o = hp.get_output()
     assert o["COP"] < 1.1 and o["Th_out"] > 500  # physically impossible output
+
+
+def test_idle_heat_pump_not_sent_to_gemini():
+    """Demo 5: a 25 MW heat pump that does not run on the peak day was sent to GEMINI's HeatpumpBasic, which
+    returned COP 1 and a 900 C outlet -> false MISMATCH. Idle units are now left out of the plant JSON."""
+    from agentic_design.annual import PlantDesign, run_year
+    from agentic_design.config import Assumptions
+    from agentic_design.verify import format_report, verify_days
+    from agentic_design.wells import WellDesign
+    a = Assumptions()
+    d = PlantDesign("2x3500m_HP25_ABS5_EC5", 2, WellDesign(3500), heat_pump_mw=25, absorption_mw=5, electric_chiller_mw=5)
+    daily, k, _, _ = run_year(d, a)
+    v = verify_days(d, daily, a, ua_mw_k=k["hx_ua_mw_k"])
+    assert v["pass"].all(), format_report(v)
+    assert "nan" not in format_report(v)
+
+
+def test_low_flow_wellhead_temperature_interpolation():
+    """Windows run, 31 Oct: verification picked a 53-55 m3/h day; linear interpolation in q was 0.11 C off
+    GEMINI (tolerance 0.05 C). Interpolating in 1/q fixes it."""
+    from agentic_design.config import Assumptions
+    from agentic_design.wells import WellDesign, hydraulic_curve, interp
+    a, w = Assumptions(), WellDesign(3500)
+    grid = hydraulic_curve(w, a, t_inj_c=58.0)
+    for q in (53.0, 55.0, 65.0):
+        exact = hydraulic_curve(w, a, t_inj_c=58.0, q_grid=(q,))["wellhead_temperature_c"][0]
+        assert abs(float(interp(grid, "wellhead_temperature_c", q)) - exact) < 0.02
+
+
+def test_default_verification_days_are_platform_independent():
+    """37 days tie at the minimum heating demand; the choice must not depend on the sort algorithm."""
+    import pandas as pd
+    s = pd.Series([3.0, 1.0, 2.0, 1.0, 1.0])
+    assert int(s.sort_values(kind="stable").index[0]) == 1
+
+
+def test_plant_diagram_matches_gemini_project(tmp_path):
+    """The flowsheet is drawn from the same project file GEMINI solves: every component appears."""
+    from agentic_design.annual import PlantDesign
+    from agentic_design.diagram import design_diagram
+    from agentic_design.wells import WellDesign
+    d = PlantDesign("2x3500m_HP1_ABS7.5_EC5", 2, WellDesign(3500), heat_pump_mw=1, absorption_mw=7.5, electric_chiller_mw=5)
+    files = design_diagram(d, out_dir=tmp_path)
+    md = [f for f in files if f.suffix == ".md"][0].read_text()
+    for part in ("Production well 1", "Heat exchanger", "Heat pump", "Absorption chiller", "Electric chiller", "-- gas -->"):
+        assert part in md
+
+
+
+def test_plant_wide_geothermal_outage():
+    """Organisers, 1-2 Nov: 330 days per doublet; staggered shut-ins or backup equipment are both allowed."""
+    from agentic_design.annual import PlantDesign, run_year
+    from agentic_design.config import Assumptions
+    from agentic_design.wells import WellDesign
+    d = PlantDesign("3x3000m_EC10", 3, WellDesign(3000), electric_chiller_mw=10)
+    daily, k, _, starts = run_year(d, Assumptions(maintenance_mode="simultaneous"))
+    off = daily["doublets_available"] == 0
+    assert off.sum() == 35 and len(set(starts)) == 1                       # one shared window
+    assert (daily.loc[off, "heat_geothermal_mw"] == 0).all()
+    assert k["heating_unmet_gwh"] < 1e-6 and k["cooling_unmet_gwh"] < 1e-6  # backup covers it
+    daily_s, k_s, _, starts_s = run_year(d, Assumptions(maintenance_mode="staggered"))
+    assert (daily_s["doublets_available"] > 0).all() and len(set(starts_s)) == 3
+    assert k["co2_t"] > k_s["co2_t"]                                          # the outage costs CO2
+
+
+def test_well_heat_loss_coefficient_is_used():
+    """GEMINI issue 12: DPDT hard-coded U = 10 W/m2K. Now a parameter; higher U -> cooler wellhead."""
+    from agentic_design.config import Assumptions
+    from agentic_design.wells import WellDesign, hydraulic_curve
+    w = WellDesign(3000)
+    t10 = hydraulic_curve(w, Assumptions(), q_grid=(100.0,))["wellhead_temperature_c"][0]
+    t20 = hydraulic_curve(w, Assumptions(well_heat_transfer_u_w_m2k=20.0), q_grid=(100.0,))["wellhead_temperature_c"][0]
+    assert t20 < t10 - 0.5
+
+
+def test_bypass_days_fully_verified_against_gemini():
+    """GEMINI's exchanger has no bypass valve; an equivalent smaller UA reproduces the controlled duty, so heat and
+    temperatures are now compared on bypass days too (they were skipped before)."""
+    from agentic_design.annual import PlantDesign, run_year
+    from agentic_design.config import Assumptions
+    from agentic_design.verify import verify_days
+    from agentic_design.wells import WellDesign
+    a = Assumptions()
+    d = PlantDesign("2x3500m_ABS5_EC5_RI", 2, WellDesign(3500), absorption_mw=5, electric_chiller_mw=5,
+                    gas_reinjection=True)
+    daily, k, _, _ = run_year(d, a)
+    days = list(daily.index[daily["hx_bypass_active"] & (daily["doublets_on"] > 0)][:3])
+    v = verify_days(d, daily, a, days=days, ua_mw_k=k["hx_ua_mw_k"])
+    assert v["pass"].all()
+    assert max(abs(g - f) for f, g in v["geothermal_heat_mw"]) < 0.01
+    assert max(abs(g - f) for f, g in v["supply_temperature_c"]) < 0.05

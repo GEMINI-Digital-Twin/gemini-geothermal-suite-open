@@ -42,12 +42,15 @@ def main():
     ap.add_argument("--think", action="store_true", help="enable thinking (slower, more tokens)")
     ap.add_argument("--demo", action="store_true")
     ap.add_argument("--reset-memory", action="store_true", help="start with empty long-term memory")
+    ap.add_argument("--keep-turns", type=int, default=1,
+                    help="earlier questions kept in the conversation (token saving; -1 keeps all)")
     args = ap.parse_args()
 
     mem_path = DEFAULT_PATH.with_name("demo_log.json") if args.demo else DEFAULT_PATH
     if args.reset_memory or args.demo:
         mem_path.unlink(missing_ok=True)
-    agent = Agent(OllamaLLM(args.model, think=args.think), ToolBox(Memory(mem_path)))
+    agent = Agent(OllamaLLM(args.model, think=args.think), ToolBox(Memory(mem_path)),
+                  keep_turns=None if args.keep_turns < 0 else args.keep_turns)
 
     if args.demo:
         for kind, q in DEMO:

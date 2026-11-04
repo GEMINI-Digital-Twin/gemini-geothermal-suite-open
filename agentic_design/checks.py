@@ -56,9 +56,21 @@ def check(daily, kpis, design, a: Assumptions):
         if n > CHALLENGE["max_operating_days_per_doublet"]:
             out.append(_finding("C6_OPERATING_DAYS", "violation",
                                 f"doublet {i + 1} runs {n} days (> {CHALLENGE['max_operating_days_per_doublet']})."))
-    out.append(_finding("I1_330_DAYS_INTERPRETATION", "info",
-                        "'330 daily steps' interpreted as max 330 operating days per doublet "
-                        f"({a.maintenance_days_per_doublet}-day maintenance window each). Confirm with organisers."))
+    if getattr(a, "maintenance_mode", "staggered") == "simultaneous":
+        out_days = daily.loc[daily["doublets_available"] == 0, "date"]
+        out.append(_finding("I1_GEOTHERMAL_OUTAGE", "info",
+                            f"Geothermal source available 330 days (organisers, 1 Nov): one plant-wide "
+                            f"{a.maintenance_days_per_doublet}-day outage"
+                            + (f" from {out_days.iloc[0].date()} to {out_days.iloc[-1].date()}" if len(out_days) else "")
+                            + "; boilers and electric chillers meet all demand then. An unplanned outage could hit "
+                              f"the peak: full backup needs {daily['heating_mw'].max():.0f} MW boilers and "
+                              f"{daily['cooling_mw'].max():.0f} MW electric chillers."))
+    else:
+        out.append(_finding("I1_330_DAYS_INTERPRETATION", "info",
+                            "330 operating days per doublet with staggered "
+                            f"{a.maintenance_days_per_doublet}-day shut-ins, so the other doublets keep running "
+                            "(allowed by the organisers, 2 Nov). Shared surface equipment then needs maintenance "
+                            "without a full shutdown (e.g. spare filter) - state this in the report."))
     # C7 heating demand met at 100 degC
     supplied = (daily["heat_geothermal_mw"] + daily["heat_pump_mw"] + daily["heat_assoc_gas_boiler_mw"]
                 + daily["heat_ng_boiler_mw"])
@@ -119,6 +131,18 @@ def check(daily, kpis, design, a: Assumptions):
                 - daily["cooling_mw"]).abs() > a.demand_tolerance_mw
     if cool_bal.any():
         out.append(_finding("P1_ENERGY_BALANCE", "violation", "cooling balance does not close.", dates[cool_bal]))
+    # P8 oversized / unused components (costs are not modelled, so this is the only brake on oversizing)
+    for label, cap, col in (("heat pump", design.heat_pump_mw, "heat_pump_mw"),
+                            ("absorption chiller", design.absorption_mw, "cooling_absorption_mw"),
+                            ("electric chiller", design.electric_chiller_mw, "cooling_electric_mw")):
+        if cap > 0:
+            peak_use = float(daily[col].max())
+            energy = float(daily[col].sum() * 24 / 1e3)
+            if peak_use < 0.5 * cap:
+                out.append(_finding("P8_OVERSIZED", "warning",
+                                    f"{label} {cap:g} MW: peak use {peak_use:.1f} MW, {energy:.1f} GWh/yr. Oversized"
+                                    + (" or unnecessary" if energy < 0.01 * cap * 8.76 else "")
+                                    + f"; choose about {max(peak_use, 0.0):.1f} MW or remove it (an oversized unit only adds cost)."))
     # P6 temperatures within physical bounds
     t_res = daily["t_wellhead_c"].max()
     if active.any() and (daily.loc[active, "t_injection_c"] > daily.loc[active, "t_wellhead_c"] + 1e-6).any():

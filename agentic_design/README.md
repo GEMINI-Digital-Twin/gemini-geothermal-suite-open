@@ -1,21 +1,36 @@
 # agentic_design: simulation core for the GEMINI GeoHackathon 2026
 
-A design-evaluation engine for a geothermal district heating (and, next, cooling)
+A design-evaluation engine for a geothermal district heating and cooling
 plant, built on the GEMINI models. An agent can call one function, `evaluate(design)`,
 and get back the annual performance, every constraint violation, and an independent
 cross-check against the full GEMINI simulator.
 
-## Install and run (Windows, from the repository root)
+## Install and run on a new computer (Windows)
+
+Needs Python 3.12 or newer and Git. The folder only works inside a GEMINI clone: it imports GEMINI's models from
+`src/`, plus our two new components in `src/gemini_model/chiller/`.
 
 ```
-git checkout development            # this folder goes in the repo root, next to src/
+git clone -b development https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open.git gemini
+cd gemini
+:: unzip the package here, so that agentic_design\ and src\gemini_model\chiller\ land in this folder
+tar -xf "%USERPROFILE%\Downloads\agentic_design_v8_2.zip"
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r agentic_design/requirements.txt
-python -m agentic_design.run_design --doublets 2 --depth 2500
-python -m agentic_design.run_design --compare
-pytest agentic_design/tests -q
+python -m pytest agentic_design/tests -q                      :: expect: all passed
+python -m agentic_design.run_design --doublets 2 --depth 3000 --ec 10
+python -m agentic_design.diagram --doublets 2 --depth 3500 --hp 1 --abs 7.5 --ec 5
 ```
 
-No `PYTHONPATH` needed. Results are written to `agentic_design/results/<design>/`.
+No `PYTHONPATH` needed; the demand data is in `agentic_design/data/`. Results go to `agentic_design/results/<design>/`.
+
+The agent additionally needs [Ollama](https://ollama.com) and the model (about 5 GB; a GPU makes it fast):
+
+```
+ollama pull qwen3:8b
+python -m agentic_design.agent --demo
+```
 
 ## What is in here
 
@@ -32,6 +47,12 @@ No `PYTHONPATH` needed. Results are written to `agentic_design/results/<design>/
 
 Speed: one full year ≈ 0.05 s per design, so the agent can compare hundreds of designs.
 
+## Plant diagram
+
+`python -m agentic_design.diagram --doublets 2 --depth 3500 --hp 1 --abs 7.5 --ec 5` draws the flowsheet from the
+same GEMINI project file the simulator solves (components and connections), as Mermaid (renders on GitHub) and
+Graphviz (`.svg`/`.png` if Graphviz is installed). Files go to `results/<design name>/plant_diagram.*`.
+
 ## The agent (`agent/`)
 
 ```
@@ -43,11 +64,11 @@ python -m agentic_design.agent --demo     # scripted questions -> agentic_design
 | File | Role |
 |---|---|
 | `agent/tools.py` | 10 tools: challenge inputs, demand, assumptions (list/set), model inventory, evaluate design, sweep designs, compare, one day's operation, record decision. Outputs are compact and already in report units |
-| `agent/guard.py` | Argument checks (types, bounds, enums; coerces "1500" -> 1500); provenance (a "user-given" value must appear in what the user wrote); claim check (every number in an answer must trace to a tool result or the user, else one correction round, then a visible warning) |
+| `agent/guard.py` | Before a tool runs: argument checks (types, bounds, enums; coerces "1500" -> 1500), provenance (a "user-given" value must appear in what the user wrote; nothing is attributed to the organisers), geometry lock (well diameter and ESP depth stay at defaults unless the user asks or a tool reported low ESP intake). After an answer: unit-aware claim check (every number must trace to a tool result, the fixed challenge facts or the user), per-design check (a number quoted for a design must be in that design's results; component sizes are read from names like `HP12`), component check (a component named for a design must be in it), compliance, ranking ("lowest CO2" must name the design the tools ranked lowest), attribution, unfinished-action, and no-tool-call checks (explanations and design figures need a tool call this turn), field citations (`cooling_unmet_GWh = 0.0` must be that design's value), peak-day dates, and recommending an oversized (P8) design. Two correction rounds, then a visible warning |
 | `agent/memory.py` | Long-term memory: designs evaluated, assumption changes, decisions; persisted to JSON and summarised into the system prompt next session |
-| `agent/core.py` | Loop: LLM -> tool calls -> guards -> tools -> answer -> claim check; records a transcript with tokens per turn |
+| `agent/core.py` | Loop: LLM -> tool calls -> guards -> tools -> answer -> claim check; records a transcript with tokens per turn. Token saving: after each turn its tool results are shortened to names, CO2 and constraint status (compare_designs re-fetches numbers when needed) |
 | `agent/llm.py` | Ollama backend (qwen3:8b, thinking off: 7/7 tool-calling tasks at 1.6 s/task in our test) and a scripted stand-in for tests |
-| `tests/test_agent.py` | 11 scenarios: invented number caught and corrected, 4 doublets rejected, string arguments coerced, fake "user-given" value refused, irrelevant question answered without tools, memory carried to a new session |
+| `tests/test_agent.py` | Scripted-LLM scenarios plus one regression test per failure seen in the live demos (demos 1-5): invented numbers, organiser attribution, numbers from another design, wrong ranking, unrequested geometry change, explanation without a tool call, components not in the named design |
 
 ## Issues found in GEMINI (report these; they are fixed/avoided here)
 
@@ -72,6 +93,15 @@ python -m agentic_design.agent --demo     # scripted questions -> agentic_design
    (COP 3, Ts_in − 10). A 0.005 % change in an input can flip it into the broken branch of issue 8. Where this happens,
    `verify.py` checks our heat pump directly against GEMINI's two equations and says so in the report.
 10. **HeatpumpBasic is not registered in the simulator** (`registry.py`), so project files could not use it; registered here.
+12. **Well heat-loss coefficient hard-coded.** `DPDT.calculate_output` sets `Uvalue = 10` W/m²K regardless of the
+    parameters, so heat-loss sensitivity was impossible (our U assumption silently did nothing). Fixed in
+    `src/gemini_model/well/pressure_drop.py`: optional parameter `heat_transfer_coefficient`, default 10 (unchanged results).
+11. **An idle HeatpumpBasic also breaks.** Asked to lift a stream that needs no lift (heat duty about 0), it returns COP 1.0
+    and a ~900 °C outlet. Verification now leaves units that do not run on the verified day out of the plant file.
+
+`sweep_designs` right-sizes the best feasible design (each oversized unit cut to its peak use or removed, re-evaluated)
+and returns it as `recommended_design` when its CO2 is within 2 %. The checker also flags oversizing (`P8_OVERSIZED`): capital cost is not modelled, so without it the agent can add a 25 MW heat
+pump that delivers 0.3 GWh/yr at 3,500 m and still call the design "lowest CO2".
 
 Issues 7–9 have tests in `tests/test_components.py` that assert the faulty behaviour; they will fail once GEMINI is fixed.
 
@@ -94,6 +124,16 @@ maintenance each, placed automatically in the lowest-load window).
 
 The daily dispatch chooses, per day, the brine order (absorption first or heating first) and the absorption
 load share (0, 50, 100 %), within the 40 °C brine-cooling cap shared by absorption, heat exchanger and heat pump.
+
+## Design choice with costs and gas handling (3 Nov)
+
+`economics.py` adds investment and yearly cost (ThermoGIS well and plant costs, Eurostat 2025 energy prices,
+EU ETS price, N-1 backup boilers, gas reinjection) and `studies.py` runs the 216-design sweep and sensitivities.
+Associated gas (80 % CH4, 20 % CO2) can be burned with the surplus flared, or burned only when the boilers need it with
+the rest compressed and reinjected (`_RI`). Selection: lowest cost per MWh with CO2 valued at 450 EUR/t (EIB shadow
+cost of carbon, plant-life average); within 1 % the simplest, then lowest CO2. Result: **2x3500m_ABS5_EC5_RI**
+(2.37 kt CO2/yr, 99.5 % geothermal heating, 55.6 MEUR, 62.9 EUR/MWh). Without a CO2 value a single doublet is
+cheapest (11 kt CO2); the reinjecting design beats the cheapest gas-burning two-doublet plant above about 284 EUR/t.
 
 ## Results (heating and cooling, all designs below meet every constraint)
 

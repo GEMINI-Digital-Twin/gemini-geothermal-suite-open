@@ -110,6 +110,22 @@ class Assumptions:
 
     # --- Annual operation ("330 daily steps" interpreted as max 330 days/doublet) ---
     maintenance_days_per_doublet: int = 35
+    # Organisers (Discord, 1-2 Nov): the geothermal source is available 330 days; how the 35 days are taken is part
+    # of the solution: several doublets with different shut-in periods, or one doublet plus backup equipment.
+    # "staggered" (default): one window per doublet, never overlapping, so other doublets keep running;
+    # "simultaneous": all doublets off together (e.g. shared surface plant maintenance) - kept as a scenario.
+    maintenance_mode: str = "staggered"
+    # Associated gas (80 % CH4, 20 % CO2). Organisers, 3 Nov: different options are possible.
+    # "burn_all": separated gas fuels the boilers first; ALL produced gas counts as emitted (surplus flared).
+    # "reinject_surplus": the boilers burn only what they need; the rest is compressed and reinjected with the
+    #     brine below its bubble-point depth (no emission). "reinject_all": no gas is burned (natural gas tops up).
+    # Venting is not an option: CH4 is a strong greenhouse gas.
+    assoc_gas_handling: str = "burn_all"  # default when a design does not choose (designs choose with gas_reinjection)
+    # reinjection: compress from the separator to above the bubble point. Henry's law (CH4, ~100 C, brine)
+    # puts the bubble point of GLR 0.8 at roughly 60-75 bar, so 80 bar; multistage, intercooled, 70 % efficient
+    gas_separator_pressure_bar: float = 7.0
+    gas_reinjection_pressure_bar: float = 80.0
+    gas_compressor_efficiency: float = 0.7
     maintenance_start_doy: list = field(default_factory=list)  # 0-based day of year per doublet
 
     # --- Feasibility tolerances ---
@@ -145,6 +161,14 @@ def reservoir_pressure_bar(depth_m: float) -> float:
     rho = CHALLENGE["brine_density_kg_m3"]
     z0 = CHALLENGE["reservoir_midpoint_depth_m"]
     return CHALLENGE["reservoir_pressure_bar"] + rho * G * (depth_m - z0) / 1e5
+
+
+def gas_compression_kwh_per_nm3(a):
+    """Near-isothermal (multistage, intercooled) compression work per Nm3 of associated gas."""
+    r_t = 8.314 * 300.0  # J/mol at ~27 C after intercooling
+    mol_per_nm3 = 101325 / (8.314 * 273.15)
+    work_j = r_t * np.log(a.gas_reinjection_pressure_bar / a.gas_separator_pressure_bar) / a.gas_compressor_efficiency
+    return work_j * mol_per_nm3 / 3.6e6
 
 
 def gas_properties():

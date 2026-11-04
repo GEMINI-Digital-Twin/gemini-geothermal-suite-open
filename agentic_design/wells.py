@@ -96,6 +96,7 @@ def _segment_model(length_m, diameter_m, a: Assumptions) -> DPDT:
             "friction_correlation": "darcy_weisbach",
             "friction_correlation_2p": "BeggsBrill",
             "correction_factors": [1, 0],
+            "heat_transfer_coefficient": a.well_heat_transfer_u_w_m2k,  # GEMINI issue 12: was hard-coded to 10
         }
     )
     w.PVT = brine_pvt(a)
@@ -253,7 +254,18 @@ def hydraulic_curve(design: WellDesign, a: Assumptions, t_inj_c: float = 50.0, q
 
 
 def interp(curve: dict, key: str, q_m3h):
+    if key == "wellhead_temperature_c":
+        return interp_wellhead_temperature(curve, q_m3h)
     return np.interp(q_m3h, curve["q_m3h"], curve[key])
+
+
+def interp_wellhead_temperature(curve: dict, q_m3h):
+    """Heat lost on the way up scales roughly with 1/flow, so interpolate in 1/q, not q.
+
+    Linear interpolation in q on a 10 m3/h grid was up to 0.11 degC off at 50-60 m3/h (found when
+    GEMINI verification picked a low-flow day); in 1/q it is exact for a pure 1/q loss."""
+    x = 1.0 / np.asarray(curve["q_m3h"], dtype=float)
+    return np.interp(1.0 / np.asarray(q_m3h, dtype=float), x[::-1], np.asarray(curve["wellhead_temperature_c"])[::-1])
 
 
 def check_injection_sign(design: WellDesign = WellDesign(), a: Assumptions = Assumptions(), q_m3h=300.0):

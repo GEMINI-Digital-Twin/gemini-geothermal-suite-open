@@ -32,8 +32,9 @@ def evaluate(design: PlantDesign, a: Assumptions = None, out_dir=None, verify=Tr
     t0 = time.time()
     daily, kpis, _, _ = run_year(design, a)
     findings = check(daily, kpis, design, a)
+    from agentic_design.economics import economics
     result = {"kpis": kpis, "findings": findings, "counts": summarize(findings),
-              "runtime_s": round(time.time() - t0, 3)}
+              "economics": economics(design, daily, kpis, a), "runtime_s": round(time.time() - t0, 3)}
     if verify:
         v = verify_days(design, daily, a, ua_mw_k=kpis["hx_ua_mw_k"])
         result["gemini_verification_passed"] = bool(v["pass"].all())
@@ -43,6 +44,7 @@ def evaluate(design: PlantDesign, a: Assumptions = None, out_dir=None, verify=Tr
         out.mkdir(parents=True, exist_ok=True)
         (out / "kpis.json").write_text(json.dumps(kpis, indent=2, default=float))
         (out / "findings.json").write_text(json.dumps(findings, indent=2))
+        (out / "economics.json").write_text(json.dumps(result["economics"], indent=2, default=float))
         daily.to_csv(out / "daily.csv", index=False)
         peak = int(daily["heating_mw"].idxmax())
         save_project(build_project_dict(design, operating_point(daily.loc[peak], a), a,
@@ -68,6 +70,13 @@ def summary_text(design, r) -> str:
         f"maintenance from {k['maintenance_start_dates']}",
         f"HX UA {k['hx_ua_mw_k']:.2f} MW/K | checks: {r['counts']}",
     ]
+    if "economics" in r:
+        e = r["economics"]
+        lines.append(f"Investment {e['capex_meur']:.1f} MEUR (wells {e['capex_breakdown_meur']['wells']:.1f}) | "
+                     f"cost {e['lcoe_eur_per_mwh']:.1f} EUR/MWh, {e['lcoe_with_co2_eur_per_mwh']:.1f} with CO2 price | "
+                     f"backup boilers {e['boiler_capacity_mw']:.1f} MW (N-1) | "
+                     f"{e['lcoe_with_shadow_co2_eur_per_mwh']:.1f} EUR/MWh with CO2 valued at "
+                     f"{e['cost_assumptions']['co2_shadow_eur_per_t']:.0f} EUR/t")
     if "gemini_verification_passed" in r:
         lines.append(f"GEMINI verification: {'PASS' if r['gemini_verification_passed'] else 'CHECK'}")
     for f in r["findings"]:
@@ -83,6 +92,10 @@ def main():
     ap.add_argument("--depth", type=float, default=2500.0)
     ap.add_argument("--id", type=float, default=0.20, help="well inner diameter, m")
     ap.add_argument("--esp-depth", type=float, default=650.0)
+    ap.add_argument("--hp", type=float, default=0.0, help="heat pump size, MW")
+    ap.add_argument("--abs", type=float, default=0.0, help="absorption chiller size, MW cooling")
+    ap.add_argument("--ec", type=float, default=0.0, help="electric chiller size, MW cooling")
+    ap.add_argument("--ri", action="store_true", help="reinject associated gas not needed by the boilers")
     ap.add_argument("--return-temp", type=float, default=None, help="network return temperature, degC")
     ap.add_argument("--compare", action="store_true", help="compare 1-3 doublets at 2500/3000/3500 m")
     ap.add_argument("--no-verify", action="store_true")
@@ -102,8 +115,11 @@ def main():
         tab.to_csv(RESULTS / "comparison.csv")
         return
 
-    name = args.name or f"{args.doublets}x{int(args.depth)}m"
-    design = PlantDesign(name, args.doublets, WellDesign(args.depth, args.id, args.esp_depth))
+    from agentic_design.agent.tools import ToolBox
+    name = args.name or ToolBox.canonical_name(args.doublets, args.depth, args.id, args.esp_depth, args.hp, args.abs,
+                                               args.ec, args.ri)
+    design = PlantDesign(name, args.doublets, WellDesign(args.depth, args.id, args.esp_depth),
+                         heat_pump_mw=args.hp, absorption_mw=args.abs, electric_chiller_mw=args.ec, gas_reinjection=args.ri)
     r = evaluate(design, a, RESULTS / name, verify=not args.no_verify)
     print(summary_text(design, r))
     print(f"\nFiles written to {RESULTS / name}")

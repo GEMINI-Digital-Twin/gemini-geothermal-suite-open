@@ -26,9 +26,9 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 import pandas as pd
 
-from agentic_design.config import CHALLENGE, Assumptions, gas_properties, load_demand
+from agentic_design.config import CHALLENGE, Assumptions, gas_compression_kwh_per_nm3, gas_properties, load_demand
 from agentic_design.surface import absorption_operate, electric_chiller_operate, heat_pump_operate
-from agentic_design.wells import WellDesign, hydraulic_curve
+from agentic_design.wells import WellDesign, hydraulic_curve, interp_wellhead_temperature
 
 Q_FINE = np.arange(CHALLENGE["min_flow_m3h_per_doublet"], CHALLENGE["max_flow_m3h_per_doublet"] + 0.5, 1.0)
 
@@ -43,6 +43,7 @@ class PlantDesign:
     electric_chiller_mw: float = 0.0  # cooling capacity of electric chillers
     maintenance_start_doy: tuple = ()  # one 0-based start day per doublet; () = auto schedule
     hx_ua_mw_k: float = None  # heat exchanger size; None = size for min approach on the peak day
+    gas_reinjection: bool = False  # True: burn associated gas only when the boilers need it, reinject the rest
 
     @property
     def cooling(self):
@@ -59,6 +60,10 @@ class PlantDesign:
                 f"ID {self.well.inner_diameter_m:.2f} m, ESP at {self.well.esp_depth_m:.0f} m, "
                 f"top-up={self.topup}, cooling={self.cooling}"
                 + (f", HX UA {self.hx_ua_mw_k:.2f} MW/K" if self.hx_ua_mw_k else ""))
+
+
+def gas_handling(design, a):
+    return "reinject_surplus" if getattr(design, "gas_reinjection", False) else getattr(a, "assoc_gas_handling", "burn_all")
 
 
 def schedule_maintenance(load_mw: np.ndarray, n_doublets: int, days: int) -> tuple:
@@ -85,9 +90,30 @@ def _geothermal_load_profile(design, demand, a):
     return load
 
 
-def _availability(design: PlantDesign, n_days: int, a: Assumptions, load_mw: np.ndarray):
-    starts = design.maintenance_start_doy or schedule_maintenance(
-        load_mw, design.n_doublets, a.maintenance_days_per_doublet)
+def schedule_plant_outage(design, demand: pd.DataFrame, a: Assumptions) -> int:
+    """Start day of the single plant-wide geothermal outage: the window where running WITHOUT geothermal
+    costs least. Per day: heating from natural gas, all cooling from the electric chiller (absorption has no
+    drive heat), and a large penalty for cooling the electric chiller cannot cover (the window must be feasible)."""
+    days = a.maintenance_days_per_doublet
+    heat, cool = demand["heating_mw"].to_numpy(), demand["cooling_mw"].to_numpy()
+    co2_ng = a.natural_gas_co2_kg_nm3 * 3600 / a.natural_gas_lhv_mj_nm3 / a.boiler_efficiency  # kg/MWh heat
+    co2_el = a.electricity_co2_kg_kwh * 1e3
+    ec = design.electric_chiller_mw
+    served = np.minimum(cool, ec)
+    day_cost = (heat * co2_ng + served / 5.0 * co2_el  # typical chiller COP ~5 for ranking windows only
+                + (cool - served) * a.unmet_demand_penalty_kg_co2_per_mwh) * 24
+    window = pd.Series(day_cost).rolling(days).sum().shift(-(days - 1)).to_numpy()
+    return int(np.nanargmin(window))
+
+
+def _availability(design: PlantDesign, n_days: int, a: Assumptions, load_mw: np.ndarray, demand=None):
+    if design.maintenance_start_doy:
+        starts = design.maintenance_start_doy
+    elif getattr(a, "maintenance_mode", "staggered") == "simultaneous":
+        # one plant-wide geothermal outage (organisers, 1 Nov), placed where it costs least
+        starts = (schedule_plant_outage(design, demand, a),) * design.n_doublets
+    else:
+        starts = schedule_maintenance(load_mw, design.n_doublets, a.maintenance_days_per_doublet)
     avail = np.ones((n_days, design.n_doublets), bool)
     for i, s in enumerate(starts):
         avail[s:s + a.maintenance_days_per_doublet, i] = False
@@ -141,9 +167,11 @@ def run_year(design: PlantDesign, a: Assumptions = None, demand: pd.DataFrame = 
     co2_el = a.electricity_co2_kg_kwh * 1e3  # kg per MWh
     co2_ng = a.natural_gas_co2_kg_nm3 * 3600 / a.natural_gas_lhv_mj_nm3  # kg per MWh fuel
     co2_assoc = gas["co2_kg_nm3_burned"] * 3600 / gas["lhv_mj_nm3"]
+    handling = gas_handling(design, a)
+    comp_mw_per_fuel_mw = gas_compression_kwh_per_nm3(a) / 1e3 * 3600 / gas["lhv_mj_nm3"]  # MW electric per MW gas fuel
     penalty = a.unmet_demand_penalty_kg_co2_per_mwh
 
-    t_wh = np.interp(Q_FINE, curve["q_m3h"], curve["wellhead_temperature_c"])
+    t_wh = interp_wellhead_temperature(curve, Q_FINE)
     t_b = t_wh - a.surface_temperature_loss_c
     esp = np.interp(Q_FINE, curve["q_m3h"], curve["esp_power_mw"])
     intake = np.interp(Q_FINE, curve["q_m3h"], curve["esp_intake_pressure_bar"])
@@ -195,8 +223,14 @@ def run_year(design: PlantDesign, a: Assumptions = None, demand: pd.DataFrame = 
         # top-up boilers: associated gas first, then natural gas
         topup = np.clip(qh - geo - hp_heat, 0, None)
         gas_fuel = CHALLENGE["gas_liquid_ratio_nm3_per_m3"] * n_on * Q_FINE * gas["lhv_mj_nm3"] / 3600
-        assoc_heat = np.minimum(topup, eta_b * gas_fuel)
+        assoc_heat = np.minimum(topup, eta_b * gas_fuel) if handling != "reinject_all" else zeros
         ng_fuel = (topup - assoc_heat) / eta_b
+        if handling == "burn_all":  # everything produced is burned or flared
+            gas_emit, gas_reinj = gas_fuel, zeros
+        else:  # burn what the boilers need, compress and reinject the rest
+            gas_emit = assoc_heat / eta_b
+            gas_reinj = gas_fuel - gas_emit
+        comp_pw = gas_reinj * comp_mw_per_fuel_mw
         # electric chiller for remaining cooling
         ec_load = np.clip(qc - cool_abs, 0, None)
         if design.electric_chiller_mw > 0 and qc > 0:
@@ -209,13 +243,14 @@ def run_year(design: PlantDesign, a: Assumptions = None, demand: pd.DataFrame = 
         # pumps (surface plant sized for all installed doublets; GEMINI units are linear dp = R*Q)
         p_av = a.producer_wellhead_pressure_bar - a.surface_pressure_drop_bar * (n_on * Q_FINE / (design.n_doublets * qmax))
         inj_pump = n_on * Q_FINE / 3600 * np.clip(inj_whp - p_av, 0, None) * 1e5 / CHALLENGE["pump_hydraulic_efficiency"] / 1e6
-        elec = n_on * esp + inj_pump + hp_pw + ec_pw + abs_aux
-        co2 = ng_fuel * co2_ng + gas_fuel * co2_assoc + elec * co2_el  # kg/h
+        elec = n_on * esp + inj_pump + hp_pw + ec_pw + abs_aux + comp_pw
+        co2 = ng_fuel * co2_ng + gas_emit * co2_assoc + elec * co2_el  # kg/h
         objective = co2 + penalty * unmet_cool
         return dict(c_sec=c_sec, cool_abs=cool_abs, drive=drive, abs_cop=abs_cop, abs_aux=abs_aux,
                     t1=np.broadcast_to(t1, Q_FINE.shape), geo=geo, bypass=bypass,
                     t_hx_out=np.broadcast_to(t_hx_out, Q_FINE.shape), t2=t2, hp_heat=hp_heat, hp_pw=hp_pw,
                     hp_cop=hp_cop, hp_evap=hp_evap, t3=t3, assoc_heat=assoc_heat, ng_fuel=ng_fuel, gas_fuel=gas_fuel,
+                    gas_emit=gas_emit, gas_reinj=gas_reinj, comp_pw=comp_pw,
                     cool_ec=cool_ec, ec_pw=ec_pw, ec_cop=np.broadcast_to(ec_cop, Q_FINE.shape), unmet_cool=unmet_cool,
                     inj_pump=inj_pump, p_av=p_av, elec=elec, co2=co2, objective=objective,
                     order=np.full(Q_FINE.shape, order if use_abs else "-", dtype=object),
@@ -251,7 +286,7 @@ def run_year(design: PlantDesign, a: Assumptions = None, demand: pd.DataFrame = 
         return best
 
     load_profile = _geothermal_load_profile(design, demand, a)
-    avail, starts = _availability(design, n_days, a, load_profile)
+    avail, starts = _availability(design, n_days, a, load_profile, demand)
 
     ua = design.hx_ua_mw_k
     if ua is None:  # size the heating HX for its minimum approach on the peak heating day
@@ -276,7 +311,8 @@ def run_year(design: PlantDesign, a: Assumptions = None, demand: pd.DataFrame = 
                    "hx_bypass_active": False, "heat_geothermal_mw": 0.0, "heat_pump_mw": 0.0, "heat_pump_power_mw": 0.0,
                    "heat_pump_cop": np.nan, "heat_pump_evaporator_mw": 0.0, "absorption_drive_mw": 0.0,
                    "heat_assoc_gas_boiler_mw": 0.0, "heat_ng_boiler_mw": qh, "ng_fuel_mw": qh / eta_b,
-                   "assoc_gas_fuel_mw": 0.0, "assoc_gas_unused_fuel_mw": 0.0,
+                   "assoc_gas_fuel_mw": 0.0, "assoc_gas_unused_fuel_mw": 0.0, "assoc_gas_emitted_fuel_mw": 0.0,
+                   "assoc_gas_reinjected_fuel_mw": 0.0, "gas_compressor_power_mw": 0.0,
                    "cooling_absorption_mw": 0.0, "absorption_cop": np.nan, "cooling_electric_mw": float(ec["cooling"]) / 1e6,
                    "electric_chiller_cop": float(ec["cop"]), "electric_chiller_power_mw": float(ec["power_el"]) / 1e6,
                    "chiller_aux_power_mw": 0.0, "esp_power_mw": 0.0, "injection_pump_power_mw": 0.0,
@@ -294,6 +330,8 @@ def run_year(design: PlantDesign, a: Assumptions = None, demand: pd.DataFrame = 
                    "heat_assoc_gas_boiler_mw": g("assoc_heat"), "heat_ng_boiler_mw": g("ng_fuel") * eta_b,
                    "ng_fuel_mw": g("ng_fuel"), "assoc_gas_fuel_mw": g("gas_fuel"),
                    "assoc_gas_unused_fuel_mw": g("gas_fuel") - g("assoc_heat") / eta_b,
+                   "assoc_gas_emitted_fuel_mw": g("gas_emit"), "assoc_gas_reinjected_fuel_mw": g("gas_reinj"),
+                   "gas_compressor_power_mw": g("comp_pw"),
                    "cooling_absorption_mw": g("cool_abs"), "absorption_cop": g("abs_cop"),
                    "cooling_electric_mw": g("cool_ec"), "electric_chiller_cop": g("ec_cop"),
                    "electric_chiller_power_mw": g("ec_pw"), "chiller_aux_power_mw": g("abs_aux"),
@@ -328,12 +366,15 @@ def compute_kpis(daily: pd.DataFrame, design: PlantDesign, a: Assumptions) -> di
     heat, cool = gwh("heating_mw"), gwh("cooling_mw")
     elec_parts = {k: gwh(c) for k, c in [("esp", "esp_power_mw"), ("injection_pump", "injection_pump_power_mw"),
                                           ("heat_pump", "heat_pump_power_mw"), ("electric_chiller", "electric_chiller_power_mw"),
-                                          ("chiller_aux", "chiller_aux_power_mw")]}
+                                          ("chiller_aux", "chiller_aux_power_mw"),
+                                          ("gas_compressor", "gas_compressor_power_mw")]}
     elec = sum(elec_parts.values())
     ng_nm3 = float((daily["ng_fuel_mw"] * 24 * 3600 / a.natural_gas_lhv_mj_nm3).sum())
     assoc_nm3 = float((daily["assoc_gas_fuel_mw"] * 24 * 3600 / gas["lhv_mj_nm3"]).sum())
+    emitted_nm3 = float((daily["assoc_gas_emitted_fuel_mw"] * 24 * 3600 / gas["lhv_mj_nm3"]).sum())
+    reinj_nm3 = float((daily["assoc_gas_reinjected_fuel_mw"] * 24 * 3600 / gas["lhv_mj_nm3"]).sum())
     co2_ng = ng_nm3 * a.natural_gas_co2_kg_nm3 / 1e3
-    co2_assoc = assoc_nm3 * gas["co2_kg_nm3_burned"] / 1e3
+    co2_assoc = emitted_nm3 * gas["co2_kg_nm3_burned"] / 1e3
     co2_el = elec * 1e6 * a.electricity_co2_kg_kwh / 1e3
     op_days = [int(daily[f"doublet_{i + 1}_on"].sum()) for i in range(design.n_doublets)]
     active = daily["doublets_on"] > 0
@@ -360,7 +401,11 @@ def compute_kpis(daily: pd.DataFrame, design: PlantDesign, a: Assumptions) -> di
         "pump_electricity_gwh": elec_parts["esp"] + elec_parts["injection_pump"],
         "natural_gas_mm3": ng_nm3 / 1e6,
         "assoc_gas_mm3": assoc_nm3 / 1e6,
-        "assoc_gas_unused_share": float(daily["assoc_gas_unused_fuel_mw"].sum() / max(daily["assoc_gas_fuel_mw"].sum(), 1e-9)),
+        "assoc_gas_reinjected_mm3": reinj_nm3 / 1e6,
+        "assoc_gas_handling": gas_handling(design, a),
+        # flared share: only when surplus gas is not reinjected
+        "assoc_gas_unused_share": (float(daily["assoc_gas_unused_fuel_mw"].sum() / max(daily["assoc_gas_fuel_mw"].sum(), 1e-9))
+                                   if gas_handling(design, a) == "burn_all" else 0.0),
         "co2_t": co2_ng + co2_assoc + co2_el,
         "co2_t_breakdown": {"natural_gas": co2_ng, "associated_gas": co2_assoc, "electricity": co2_el},
         "co2_kg_per_mwh_heat": (co2_ng + co2_assoc + co2_el) * 1e3 / (heat * 1e3),

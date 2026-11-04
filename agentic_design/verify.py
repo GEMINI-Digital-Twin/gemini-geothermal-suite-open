@@ -41,6 +41,24 @@ def size_hx_ua(row: pd.Series, a: Assumptions) -> float:
     return row["heat_geothermal_mw"] * 1e6 / lmtd
 
 
+def bypass_equivalent_ua(row: pd.Series, a: Assumptions) -> float:
+    """UA (W/K) at which GEMINI's counter-flow exchanger moves exactly the heat our bypass-controlled exchanger
+    moves on this day. A bypass valve sends part of the brine around the exchanger; GEMINI's model has no bypass,
+    so we give it the equivalent smaller exchanger (inverted effectiveness-NTU relation)."""
+    q = row["heat_geothermal_mw"] * 1e6
+    if q <= 0:
+        return 0.0
+    rho_cp = CHALLENGE["brine_density_kg_m3"] * a.brine_specific_heat_j_kgk
+    c_b = row["doublets_on"] * row["q_per_doublet_m3h"] / 3600 * rho_cp
+    c_s = row["heating_mw"] * 1e6 / (CHALLENGE["heating_supply_temperature_c"] - a.heating_return_temperature_c)
+    c_min, c_max = min(c_b, c_s), max(c_b, c_s)
+    eps = q / (c_min * (row["t_hx_brine_in_c"] - a.heating_return_temperature_c))
+    eps = min(max(eps, 1e-9), 1 - 1e-9)
+    cr = c_min / c_max
+    ntu = eps / (1 - eps) if abs(1 - cr) < 1e-9 else np.log((1 - eps * cr) / (1 - eps)) / (1 - cr)
+    return float(ntu * c_min)
+
+
 def operating_point(row: pd.Series, a: Assumptions) -> dict:
     t_sup = CHALLENGE["heating_supply_temperature_c"]
     t_ret = a.heating_return_temperature_c
@@ -79,7 +97,9 @@ def verify_days(design, daily: pd.DataFrame, a: Assumptions = None, days=None, u
     peak = int(daily["heating_mw"].idxmax())
     ua = ua_mw_k * 1e6 if ua_mw_k else size_hx_ua(daily.loc[peak], a)
     if days is None:
-        order = daily["heating_mw"].sort_values()
+        # stable sort: many days tie at the minimum demand, and an unstable sort picked a different
+        # day on Windows than on Linux
+        order = daily["heating_mw"].sort_values(kind="stable")
         days = [peak, int(order.index[len(order) // 2]), int(order.index[0]), int(daily["cooling_mw"].idxmax())]
         days = list(dict.fromkeys(days))
     rows = []
@@ -88,7 +108,8 @@ def verify_days(design, daily: pd.DataFrame, a: Assumptions = None, days=None, u
         if r["doublets_on"] == 0:
             continue
         op = operating_point(r, a)
-        project = build_project_dict(design, op, a, hx_ua_w_k=ua, use_gemini_injector=use_gemini_injector)
+        ua_day = bypass_equivalent_ua(r, a) if r["hx_bypass_active"] else ua
+        project = build_project_dict(design, op, a, hx_ua_w_k=ua_day, use_gemini_injector=use_gemini_injector)
         s = run_project(project)
         n = op["doublets_on"]
         g = lambda c, k: s.get_output(c, k)  # noqa: E731
@@ -116,25 +137,27 @@ def verify_days(design, daily: pd.DataFrame, a: Assumptions = None, days=None, u
             "electric_chiller_power_mw": (r["electric_chiller_power_mw"], g("electric_chiller", "power_el") / 1e6)
             if "electric_chiller" in s.components else None,
             "brine_order": r["brine_order"],
-            "hx_ua_mw_k": ua / 1e6,
+            "hx_ua_mw_k": ua_day / 1e6,
             "hx_bypass_active": bool(r["hx_bypass_active"]),
         }
-        checks = []
+        checks, checked = [], []
         for k, tol in TOLERANCES.items():
             if res.get(k) is None:
                 continue
-            if res["hx_bypass_active"] and k in ("geothermal_heat_mw", "supply_temperature_c", "injection_temperature_c",
-                                                 "heat_pump_cop", "heat_pump_power_mw"):
-                continue  # the GEMINI project has no brine bypass; compare these only without bypass
+            if res["hx_bypass_active"] and k in ("heat_pump_cop", "heat_pump_power_mw"):
+                continue  # heat pump downstream of a bypassed exchanger: checked against GEMINI's equations below
             fast, gem = res[k]
+            if fast != fast or gem != gem:  # NaN: quantity not active on this day
+                continue
             rel = k.endswith("mw") or k == "heat_pump_cop"
             err = abs(gem - fast) / (abs(fast) if rel and abs(fast) > 1e-9 else 1.0)
             checks.append(err <= tol)
+            checked.append((k, err <= tol))
         # GEMINI's HeatpumpBasic solves its two equations with an unbounded Nelder-Mead from a fixed start;
         # at some points it misses its own target (and its constrained branch returns COP~1, ~800 C). Then we
         # check our solution directly against GEMINI's equations instead of against its optimiser.
         hp_check = None
-        if res.get("heat_pump_cop") is not None:
+        if res.get("heat_pump_cop") is not None and r["heat_pump_mw"] > 1e-3:
             gem_th = g("heat_pump", "Th_out")
             hp_failed = abs(gem_th - op["hp_target_c"]) > 1.0
             t_src_in = r["t_injection_c"] + r["heat_pump_evaporator_mw"] / (
@@ -148,10 +171,8 @@ def verify_days(design, daily: pd.DataFrame, a: Assumptions = None, days=None, u
                         f"{op['hp_target_c']:.1f} C); Lorenz COP {cop_eq:.3f} vs {r['heat_pump_cop']:.3f}, "
                         f"energy balance residual {balance:.1e} MW")
             if hp_failed:
-                checks = [c for c, k in zip(checks, [k for k in TOLERANCES if res.get(k) is not None and not (
-                    res["hx_bypass_active"] and k in ("geothermal_heat_mw", "supply_temperature_c", "injection_temperature_c",
-                                                      "heat_pump_cop", "heat_pump_power_mw"))])
-                          if k not in ("heat_pump_cop", "heat_pump_power_mw", "supply_temperature_c", "injection_temperature_c")]
+                checks = [ok for k, ok in checked if k not in ("heat_pump_cop", "heat_pump_power_mw", "supply_temperature_c",
+                                                               "injection_temperature_c")]
                 checks.append(eq_ok)
         res["heat_pump_check"] = hp_check
         res["pass"] = all(checks)
@@ -172,8 +193,10 @@ def format_report(v: pd.DataFrame) -> str:
             if r.get(k) is None or (isinstance(r[k], float) and r[k] != r[k]):
                 continue
             fast, gem = r[k]
+            if fast != fast:
+                continue
             lines.append(f"    {k:<26} fast {fast:9.3f}   GEMINI {gem:9.3f}   diff {gem - fast:+8.3f}")
-        if r.get("heat_pump_check") and r["heat_pump_check"] != "GEMINI HeatpumpBasic":
+        if isinstance(r.get("heat_pump_check"), str) and r["heat_pump_check"] != "GEMINI HeatpumpBasic":
             lines.append(f"    heat pump verified against: {r['heat_pump_check']}")
     return "\n".join(lines)
 

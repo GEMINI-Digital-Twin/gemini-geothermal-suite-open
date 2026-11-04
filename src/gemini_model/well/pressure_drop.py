@@ -54,7 +54,8 @@ class DPDT(StaticModel):
         Atube = np.pi / 4 * Dtube**2  # area of cells (m2)
         Krough = self.parameters["roughness"]  # roughness of cells (mm)
         SAtube = np.pi * Dtube * Lcel  # surface area of cell (m2)
-        Uvalue = 10 * np.ones(Ngrid)  # Heat transfer coefficient (W/m2.K)
+        # Heat transfer coefficient (W/m2.K); was hard-coded to 10, now an optional parameter with the same default
+        Uvalue = np.asarray(self.parameters.get("heat_transfer_coefficient", 10.0), dtype=float) * np.ones(Ngrid)
         correlation = self.parameters["friction_correlation"]
         correlation_2p = self.parameters["friction_correlation_2p"]
         correction_factors = self.parameters["correction_factors"]
