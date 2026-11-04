@@ -7,7 +7,7 @@ the slides carry the numbers, you carry the story.
 
 ---
 
-**Slide 1. The problem (30 s)**
+**Slides 1 and 2. The problem (30 s)**
 
 "A district needs thirty megawatts of heating and ten megawatts of cooling. The geothermal
 reservoir on offer is too cold for the heating network. We gave this problem to an AI agent,
