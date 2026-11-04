@@ -128,7 +128,8 @@ stat(s, Inches(8.9), Inches(2.5), Inches(3.9), f"{COST['levelised_cost_eur_per_m
 text(s, Inches(0.7), Inches(4.6), Inches(12.0), Inches(1.4), [
     "3 doublets at 3,500 m  |  direct plate heat exchange  |  10 MW absorption chiller on the brine  |  2.5 MW heat pump for cold spells"],
     size=18, color=INK)
-takeaway(s, "One decision, depth, removes almost all the electricity the shallow design needed.", y=Inches(5.6))
+takeaway(s, "One decision, depth, removes almost all the electricity the shallow design needed.", y=Inches(5.5))
+text(s, Inches(0.7), Inches(6.15), Inches(12.0), Inches(0.6), "And the methane in the brine, burned in a 1 MW engine, can supply what is left.", size=18, color=INK)
 footer(s, 4)
 
 # ================================================================== 5 Why: the alternatives

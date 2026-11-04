@@ -28,7 +28,8 @@ count. A rule-based mode reaches the same design with no LLM at all."
 metres. That one decision changes everything: the brine is hot enough to feed the network
 directly and to drive an absorption chiller, so almost no electricity is needed. Thirty megawatts
 of heat and ten of cooling on the peak day, nothing unmet all year, ninety-four percent of the
-energy from the ground."
+energy from the ground. And the methane that comes up with the brine, burned in a small engine,
+can supply the electricity that remains."
 
 **Slide 5. Why that design (35 s)**
 
