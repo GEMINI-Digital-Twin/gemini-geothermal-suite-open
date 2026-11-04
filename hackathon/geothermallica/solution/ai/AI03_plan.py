@@ -12,6 +12,7 @@ brief_peak = checker.brief_peak
 
 
 brief_site = checker.brief_site
+brief_priority = checker.brief_priority
 SITE_DEFAULTS = {"depth_m": 2500.0, "supply_heat_c": 100.0, "supply_cold_c": 20.0}   # the challenge site
 
 
@@ -143,8 +144,34 @@ def repair(design, life, out, max_n):
     return steps
 
 
+def optimised(design, out, brief, max_n):
+    """Optimise from the repaired design; the design moves to the front row best on the brief's priority. Returns the front steps."""
+    pr = brief_priority(brief)
+    args = {k: v for k, v in design.items() if k not in ("n_doublets", "t_return_c")}   # peaks, depth, ESP depth
+    res = call("optimise_point", {**args, "priority": pr, "max_doublets": max_n})
+    out.append({"name": "optimise_point", "args": {**args, "priority": pr, "max_doublets": max_n}, "result": res})
+    best = res.get("best_on_priority") if "error" not in res else None
+    if not best:   # nothing feasible: the sweep's choice stands
+        return []
+    design.update({"n_doublets": best["n"], "t_return_c": best["t_return_c"], "esp_depth_m": best["esp_depth_m"]})
+    heat = {k: v for k, v in design.items() if k not in ("n_doublets", "t_return_c", "peak_cold_MW")}
+    for p in res["front"]:   # every front row gets the year tools, so the model may choose any row and the checker can verify it
+        d = {"n_doublets": p["n"], "t_return_c": p["t_return_c"], **args, "esp_depth_m": p["esp_depth_m"]}
+        sweep = {"n_doublets": p["n"], **heat, "esp_depth_m": p["esp_depth_m"], "extra_return_c": p["t_return_c"]}
+        out.append({"name": "return_sweep", "args": sweep, "result": call("return_sweep", sweep)})
+        for k in ("checks", "heating_year", "cooling_year", "economics"):
+            a = {k2: v for k2, v in d.items() if k2 != "peak_cold_MW"} if k == "heating_year" else d
+            out.append({"name": k, "args": a, "result": call(k, a)})
+    out.append({"name": "checks", "args": dict(design), "result": call("checks", dict(design))})   # the chosen design last
+    return [{"candidate": name(p["n"], p["t_return_c"]) + f", ESP {p['esp_depth_m']:g} m", "n_doublets": p["n"],
+             "t_return_c": p["t_return_c"], "esp_depth_m": p["esp_depth_m"],
+             "verdict": "chosen" if (p["n"], p["t_return_c"]) == (best["n"], best["t_return_c"]) else "on the front",
+             "reason": p["verdict"], "number": f"{p['lcoh_EUR_MWh']} EUR/MWh, {p['co2_total_kt']} kt CO2", "front": True, "tag": "[C]"}
+            for p in res["front"]]
+
+
 def plan(brief):
-    """The code plan's tool calls: site, demand, sweeps, checks, repair moves, years, economics, alternatives, trace."""
+    """The code plan's tool calls: site, demand, sweeps, checks, repair moves, optimiser, years, economics, alternatives, trace."""
     ph, pc, _, found = brief_inputs(brief)
     esp = checker.brief_esp(brief)
     site = {k: v for k, v in zip(SITE_DEFAULTS, found) if v is not None}
@@ -163,6 +190,7 @@ def plan(brief):
     design, life = {"n_doublets": chosen[0], "t_return_c": chosen[1], **peaks}, {}
     out.append({"name": "checks", "args": dict(design), "result": call("checks", dict(design))})
     moves = repair(design, life, out, max_n)
+    front = optimised(design, out, brief, max_n)
     n, t = design["n_doublets"], design["t_return_c"]
     peaks = {k: v for k, v in design.items() if k not in ("n_doublets", "t_return_c")}   # the moved inputs from here on
     heat = {k: v for k, v in peaks.items() if k != "peak_cold_MW"}
@@ -173,7 +201,7 @@ def plan(brief):
                  ("cooling_year", {"t_return_c": t, "n_doublets": n, **peaks}), ("injector_point", {"q_m3h": 300, **dep}),
                  ("gas_point", {"q_m3h": 300, **well}), ("lifetime_point", {"n_doublets": n, "t_return_c": t, **heat, **life})):
         out.append({"name": k, "args": a, "result": call(k, a)})
-    trace = iterations(sweeps, chosen)
+    trace = iterations(sweeps, (n, t))
     by = {}
     for st in trace:
         if st["verdict"] == "rejected":
@@ -181,7 +209,7 @@ def plan(brief):
     out.append({"name": "design_iterations", "args": {},
                 "result": {"tried": len(trace), "rejected": sum(by.values()), "not_needed": sum(st["verdict"] == "not needed" for st in trace),
                            "by_reason": by, "moves": len(moves), "chosen": name(n, t), "n_doublets": n, "t_return_c": t,
-                           "steps": trace + moves, "tag": "[C]"}})
+                           "optimised": len(front), "steps": trace + moves + front, "tag": "[C]"}})
 
     econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
     if n in econ and n + 1 in econ:   # computed from two tool results so the checker can trace it
@@ -197,7 +225,9 @@ def plan_message(brief, out):
     _, _, ok = pick([r["result"] for r in out if r["name"] == "return_sweep"])
     it = next(r["result"] for r in out if r["name"] == "design_iterations")
     n, t = it["n_doublets"], it["t_return_c"]   # the design after any repair move
-    row = next(r["result"] for r in out if r["name"] == "return_sweep" and r["result"].get("n_doublets") == n)["by_return_C"][str(t)]
+    key = str(int(t)) if float(t).is_integer() else str(t)
+    row = next(r["result"]["by_return_C"][key] for r in out if r["name"] == "return_sweep" and r["result"].get("n_doublets") == n
+               and key in r["result"].get("by_return_C", {}))
     scale = " ".join(f"{name.capitalize()} demand scaled to the brief's {v} MW peak." if v is not None else
                      f"No {name} peak found in the brief, so the {name} demand file is used as is ({d} MW)."
                      for name, v, d in (("heating", ph, 30.0), ("cooling", pc, 10.0)))
@@ -210,7 +240,7 @@ def plan_message(brief, out):
     elif not si["supported"]:
         site_msg += f" {si['message']}. The design cannot be trusted for these inputs [D, A]."
     rule = ("the smallest number of doublets whose best_return_c leaves no heat unmet with boiler energy at most 5 % of the "
-            "heat served [A]; so demand_met is true" if ok else
+            "heat served, then the optimiser's front row best on the brief's priority [A]; so demand_met is true" if ok else
             f"the demand cannot be met with up to {brief_max_n(brief)} doublets at any return; least-boiler option shown; "
             "so demand_met is false")
     econ = {r["args"]["n_doublets"]: r["result"]["lcoh_EUR_MWh"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
@@ -225,6 +255,7 @@ def plan_message(brief, out):
             + "\nFormat: reasoning is a JSON list of 3 to 12 separate strings, one sentence per string, each with its own tag; "
               "never join sentences with ';' into one string."
             + "\n" + iteration_lines(it, out)
+            + pareto_lines(out)
             + gas_lifetime(out)
             + "\nRejected alternatives (say each in rejected_alternatives with its number and tag, copying these sentences):\n"
             + "\n".join(f"- {x}" for x in rejected(out, n, t)))
@@ -252,6 +283,25 @@ def iteration_lines(it, out):
         s += (f"\nThe answer describes the design after the move: checks_passed is {last['result']['n_pass']}/{last['result']['n_rows']} "
               "(the last checks result, not the first).")
     return s
+
+
+def pareto_lines(out):
+    """The front, the priority and the decision the model has to make, for the plan message."""
+    o = next((r["result"] for r in out if r["name"] == "optimise_point" and "error" not in r["result"]), None)
+    if not o or not o["front"]:
+        return ""
+    b = o["best_on_priority"]
+    return (f"\nPareto front (copy as one reasoning string of its own, word for word, ending with its [C] tag): "
+            f"Optimiser front of {len(o['front'])} designs from {o['n_evaluated']} tried, priority {o['priority']}, best: "
+            f"{b['n']} doublets, {b['t_return_c']:g} C, ESP {b['esp_depth_m']:g} m, LCoH {b['lcoh_EUR_MWh']} EUR/MWh, "
+            f"CO2 {b['co2_total_kt']} kt [C]."
+            "\nThe other front rows are in the optimise_point result; name them only in trade_off, not in reasoning."
+            "\ntrade_off is 'LCoH <row lcoh_EUR_MWh> EUR/MWh, CO2 <row co2_total_kt> kt, <row versus> [C]' with the chosen row's "
+            "own values and its versus phrase word for word (the code did the subtraction)."
+            "\nDecision: chosen_design copies one front row (n, t_return_c, esp_depth_m) and the answer's n_doublets and t_return_c "
+            "follow it; the row best on the priority is the default; another row is allowed only within 5 % of the best on the "
+            "priority objective. trade_off is one sentence with the chosen row's LCoH and CO2 and what it gives up against the "
+            "other end of the front, each number tagged [C].")
 
 
 def gas_lifetime(out):

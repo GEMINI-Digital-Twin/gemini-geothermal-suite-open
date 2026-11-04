@@ -8,10 +8,12 @@ calling any of them best. When you are done, reply with one JSON object and noth
  "heating_capacity_MW": number, "peak_heat_MW_by_source": {"exchanger": number, "heat_pump": number, "boiler": number},
  "peak_cold_MW_by_source": {"free": number, "absorption": number, "electric": number},
  "electricity_GWh": {"esp": number, "heat_pump": number, "injection_pump": number, "chillers": number},
+ "chosen_design": {"n": int, "t_return_c": number, "esp_depth_m": number}, "trade_off": string,
  "reasoning": [strings], "rejected_alternatives": [strings], "sources": [names of the tools whose results you used]}
 JSON number fields are plain numbers with no tag (write 1.36, not "1.36 [C]"); tags go in reasoning and rejected_alternatives only.
 reasoning holds 3 to 15 short sentences (4 to 30 words), each with at least one number and one [tag], and at least one states the brief's peak heat in MW.
 One reasoning item states how many candidate designs the plan tried and rejected before the chosen one, and for what (copy the plan's 'Design iterations' line).
+chosen_design copies one row of the Pareto front from optimise_point exactly (n, t_return_c, esp_depth_m); n_doublets and t_return_c in the answer follow that row. The row marked best on the brief's priority (lcoh unless the brief asks for the lowest CO2) is the default; choose another row only when the brief justifies it, and never one more than 5 % worse on the priority objective. trade_off is 'LCoH <lcoh_EUR_MWh> EUR/MWh, CO2 <co2_total_kt> kt, <versus> [C]' with the chosen row's own values and its versus phrase copied word for word from optimise_point (the code did the subtraction).
 rejected_alternatives holds 3 to 6 short sentences (4 to 40 words), one per alternative the plan priced and did not choose: fewer doublets, the next doublet, the boiler-lift layout (layout_compare), a storage tank (storage_point), a lower return; each names the alternative, the number that rules it out and its [tag].
 Copy boiler_energy_GWh from heating_year boiler_GWh, and the capacity, peak MW and electricity from heating_year (capacity_MW, peak_exchanger_MW, peak_heat_pump_MW, peak_boiler_MW,
 esp_electricity_GWh, heat_pump_electricity_GWh, injection_pump_electricity_GWh) and cooling_year (peak_free_MW,

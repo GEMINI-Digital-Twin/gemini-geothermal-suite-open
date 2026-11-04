@@ -1,11 +1,16 @@
-"""Check a final JSON answer against the tool results the model saw; each problem is prefixed by its rule (a) to (i).
-(a) 'best' needs a sweep (b) tags (c) numbers from tools (d) consistency (e) brief values used (f) shape (g) site (h) alternatives (i) trace
+"""Check a final JSON answer against the tool results the model saw; each problem is prefixed by its rule (a) to (j).
+(a) 'best' needs a sweep (b) tags (c) numbers from tools (d) consistency (e) brief values used (f) shape (g) site (h) alternatives
+(i) trace (j) the chosen design is on the Pareto front and the trade-off quotes its numbers
 """
 import json
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import AI01_log as log
+from geo.rule import rule_failures, meets_rule  # noqa: E402, F401  (one source of truth for the doublet rule)
 
 WORDS = re.compile(r"\b(optimal|best|lowest|cheapest)\b", re.I)
 TAG = re.compile(r"\[(?:[CDLA]|TBC)[^\]]*\]")   # [C], [C, A], [L, DEA], [TBC]
@@ -55,27 +60,20 @@ def brief_site(brief):
     return depth, (float(h.groups()[-1]) if h else None), (float(c.group(1)) if c else None)
 
 
+def brief_priority(brief):
+    """'co2' when the brief asks for the lowest CO2, emissions or a green design; else 'lcoh' (cheapest heat, the default)."""
+    return "co2" if re.search(r"(lowest|reduce|minimi[sz]e|least)\s+(the\s+)?(CO2|carbon)|emissions|green|climate", brief, re.I) else "lcoh"
+
+
+def brief_stated_priority(brief):
+    """True when the brief says what comes first (cheapest, lowest cost, lowest CO2, emissions, green)."""
+    return bool(re.search(r"cheapest|lowest\s+cost|(lowest|reduce|minimi[sz]e|least)\s+(the\s+)?(CO2|carbon)|emissions|green|climate", brief, re.I))
+
+
 def brief_esp(brief):
     """ESP setting depth in m when the brief gives one ('ESP at 800 m', 'pump at 800 m'; never 'heat pump'); else None."""
     m = re.search(r"(?<!heat )(?:ESP|pump)\D{0,15}?(\d{3,4})\s*m\b", norm(brief), re.I)
     return float(m.group(1)) if m else None
-
-
-def rule_failures(row):
-    """(reason, number, unit) per failure of a return_sweep row: heat unmet, capacity short of the peak, boiler above 5 %."""
-    f = []
-    if row["unmet_GWh"] >= 0.01:
-        f.append(("unmet heat", row["unmet_GWh"], "GWh"))
-    if row.get("peak_margin_pct", 0.0) < 0.0:
-        f.append(("peak margin", row["peak_margin_pct"], "%"))
-    if row["boiler_GWh"] > 0.05 * row.get("served_GWh", 0):
-        f.append(("boiler share", row.get("boiler_share_pct"), "%"))
-    return f
-
-
-def meets_rule(row):
-    """The plan's rule for enough doublets: no heat unmet, capacity covers the peak, boiler at most 5 % (outage days)."""
-    return not rule_failures(row)
 
 
 def close(x, p):
@@ -143,6 +141,8 @@ def check(run_json, transcript, tool_results, brief=""):
                 problems.append(f"(d) t_return_c={t} but the sweep's best_return_c is {s['best_return_c']} for {n} doublets")
     iters = next((r["result"] for r in tool_results if r["name"] == "design_iterations"), {})
     n_moved = any(st.get("key") == "n_doublets" for st in iters.get("steps", []))   # a repair added a doublet on purpose
+    opt = next((r["result"] for r in tool_results if r["name"] == "optimise_point" and "error" not in r["result"]), None)
+    n_moved = n_moved or bool(opt and any(p["n"] == n for p in opt["front"]))       # or the front holds a row with this n
     for m, sm in sweeps.items():
         best = sm["by_return_C"][str(sm["best_return_c"])]
         if n is not None and m < n and meets_rule(best) and not n_moved:
@@ -188,6 +188,8 @@ def check(run_json, transcript, tool_results, brief=""):
                             "'not supported' or 'cannot be trusted'")
     if iters:
         problems += check_iterations(iters, run_json, reasoning, tool_results)
+    if opt:
+        problems += check_choice(run_json, opt, brief_stated_priority(brief))
     return problems
 
 
@@ -204,7 +206,9 @@ def check_iterations(it, run_json, reasoning, tool_results):
     pairs = {(m, t) for m, s in sweeps.items() for t in s["by_return_C"]}
     if it.get("tried") != len(pairs):
         p.append(f"(i) design_iterations tried={it.get('tried')} but the sweeps hold {len(pairs)} (n, return) pairs")
-    if (it.get("n_doublets"), it.get("t_return_c")) != (run_json.get("n_doublets"), run_json.get("t_return_c")):
+    ans = (run_json.get("n_doublets"), run_json.get("t_return_c"))
+    on_front = any((st["n_doublets"], st["t_return_c"]) == ans for st in it.get("steps", []) if st.get("front"))
+    if (it.get("n_doublets"), it.get("t_return_c")) != ans and not on_front:
         p.append(f"(i) design_iterations chose {it.get('chosen')} but the answer says "
                  f"{run_json.get('n_doublets')} doublets at {run_json.get('t_return_c')} C")
     tried = str(it.get("tried"))
@@ -212,7 +216,7 @@ def check_iterations(it, run_json, reasoning, tool_results):
         p.append(f"(i) no reasoning item states the {tried} candidates the plan tried (copy the 'Design iterations' line)")
     any_ok = any(meets_rule(s["by_return_C"][t]) for s in sweeps.values() for t in s["by_return_C"])
     for st in it.get("steps", []):
-        if st.get("move") or st.get("verdict") not in ("chosen", "rejected"):
+        if st.get("move") or st.get("front") or st.get("verdict") not in ("chosen", "rejected"):
             continue
         row = sweeps.get(st.get("n_doublets"), {}).get("by_return_C", {}).get(str(st.get("t_return_c")))
         if row is None:
@@ -236,6 +240,39 @@ def check_iterations(it, run_json, reasoning, tool_results):
             p.append(f"(i) move {st['move']}: no tool result has {k}={v:g} in its args")
     if moves and checks and checks[-1]["result"]["n_fail"] > 0 and not any(st["verdict"] == "still failing" for st in moves):
         p.append(f"(i) the final checks still fail {checks[-1]['result']['n_fail']} rows but no step says 'still failing'")
+    return p
+
+
+def check_choice(run_json, opt, stated):
+    """(j) chosen_design is a front row, the answer follows it, trade_off quotes its LCoH and CO2, and the row stays within 5 % of the
+    front's best on the brief's priority when the brief states one."""
+    c, tr, front = run_json.get("chosen_design"), run_json.get("trade_off"), opt["front"]
+    if not front:
+        return []
+    if not isinstance(c, dict):
+        return ["(j) chosen_design missing: copy one row of the Pareto front as {n, t_return_c, esp_depth_m}"]
+    near = lambda a, b, tol: isinstance(a, (int, float)) and abs(float(a) - float(b)) <= tol
+    row = next((p for p in front if c.get("n") == p["n"] and near(c.get("t_return_c"), p["t_return_c"], 0.01)
+                and near(c.get("esp_depth_m"), p["esp_depth_m"], 1.0)), None)
+    if row is None:
+        return [f"(j) chosen_design {c} is not a row of the Pareto front {[(p['n'], p['t_return_c'], p['esp_depth_m']) for p in front]}"]
+    p = []
+    if (run_json.get("n_doublets"), run_json.get("t_return_c")) != (row["n"], row["t_return_c"]):
+        p.append(f"(j) chosen_design is {row['n']} doublets at {row['t_return_c']} C but the answer says "
+                 f"{run_json.get('n_doublets')} doublets at {run_json.get('t_return_c')} C")
+    text = TAG.sub("", str(tr or ""))
+    for k, unit in (("lcoh_EUR_MWh", "EUR/MWh"), ("co2_total_kt", "kt")):
+        if not any(close(x, row[k]) for x in NUM.findall(text)):
+            p.append(f"(j) trade_off does not quote the chosen row's {row[k]} {unit}: {tr}")
+    if not isinstance(tr, str) or not TAG.search(tr):
+        p.append(f"(j) trade_off needs a [tag]: {tr}")
+    if row.get("versus") and (row["versus"] not in str(tr)):
+        p.append(f"(j) trade_off does not carry the chosen row's versus phrase '{row['versus']}': {tr}")
+    k = "lcoh_EUR_MWh" if opt["priority"] == "lcoh" else "co2_total_kt"
+    best = opt["best_on_priority"][k]
+    if row[k] > 1.05 * best:
+        p.append(f"(j) the brief {'asks for' if stated else 'defaults to'} {opt['priority']} first but the chosen row's {k} {row[k]} "
+                 f"is more than 5 % above the front's best {best}")
     return p
 
 

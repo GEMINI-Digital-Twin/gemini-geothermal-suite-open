@@ -101,6 +101,7 @@ def prose(j, results=(), free=False, problems=()):
             f"Cooling: {c.get('free_pct')} % free, {c.get('absorption_pct')} % absorption, {c.get('electric_pct')} % electric."
             + open_ + "\n\n"
             + "\n".join(f"- {r}" for r in j.get("reasoning", []))
+            + (f"\n\nChosen from the Pareto front: {j['chosen_design']}. {j.get('trade_off', '')}" if j.get("chosen_design") else "")
             + ("\n\nRejected alternatives:\n" + "\n".join(f"- {r}" for r in j.get("rejected_alternatives", []))
                if j.get("rejected_alternatives") else ""))
 
@@ -120,6 +121,8 @@ def brief_result(r):
     """A tool result as the model sees it: design_iterations without its swept steps, checks as counts plus the FAIL rows."""
     if r["name"] == "design_iterations":
         return {**r["result"], "steps": [st for st in r["result"]["steps"] if st.get("move")]}
+    if r["name"] == "optimise_point" and "error" not in r["result"]:
+        return {k: v for k, v in r["result"].items() if k not in ("basis", "best_lcoh", "best_co2")}
     if r["name"] == "checks" and "error" not in r["result"]:
         res = r["result"]
         keep = {k: v for k, v in res.items() if not k[:2].isdigit() or "FAIL" in str(v)}

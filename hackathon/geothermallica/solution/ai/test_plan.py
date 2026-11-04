@@ -1,4 +1,4 @@
-"""The code plan's design_iterations trace and repair move, and checker rule (i), without Ollama: python -m pytest ai/test_plan.py"""
+"""The code plan's trace, repair move, optimiser front and checker rules (i) and (j), without Ollama: python -m pytest ai/test_plan.py"""
 import copy
 import sys
 import unittest
@@ -25,6 +25,10 @@ def trace(out):
     return next(r["result"] for r in out if r["name"] == "design_iterations")
 
 
+def opt(out):
+    return next(r["result"] for r in out if r["name"] == "optimise_point")
+
+
 def answer(it, reasoning):
     return {"n_doublets": it["n_doublets"], "t_return_c": it["t_return_c"], "reasoning": reasoning}
 
@@ -33,9 +37,52 @@ class TestPlan(unittest.TestCase):
     def test_brief_a_trace(self):
         it = trace(plan(agent.BRIEF))
         self.assertEqual(it["tried"], 18)
-        self.assertEqual(it["chosen"], "2 doublets at 60 C")
+        self.assertEqual(it["chosen"], "2 doublets at 56.5 C")   # the optimiser's cheapest feasible return, below the 60 C sweep step
         self.assertEqual(it["moves"], 0)
         self.assertEqual([s["verdict"] for s in it["steps"]].count("chosen"), 1)
+        self.assertEqual(it["optimised"], len([s for s in it["steps"] if s.get("front")]))
+
+    def test_front_nondominated_and_feasible(self):
+        o = opt(plan(agent.BRIEF))
+        front = o["front"]
+        self.assertTrue(front)
+        for a in front:
+            self.assertTrue(a["feasible"])
+            for b in front:
+                if a is not b:
+                    self.assertFalse(b["lcoh_EUR_MWh"] <= a["lcoh_EUR_MWh"] and b["co2_total_kt"] < a["co2_total_kt"], (a, b))
+                    self.assertFalse(b["lcoh_EUR_MWh"] < a["lcoh_EUR_MWh"] and b["co2_total_kt"] <= a["co2_total_kt"], (a, b))
+        self.assertEqual(o["best_lcoh"]["lcoh_EUR_MWh"], min(p["lcoh_EUR_MWh"] for p in front))
+        self.assertTrue(o["best_lcoh"]["feasible"])
+        self.assertEqual(o["best_on_priority"], o["best_lcoh"])   # brief A states no priority: cheapest heat is the default
+
+    def test_priority_parse(self):
+        self.assertEqual(checker.brief_priority(agent.BRIEF), "lcoh")
+        self.assertEqual(checker.brief_priority("District, 30 MW peak heating, lowest CO2 please"), "co2")
+        self.assertEqual(checker.brief_priority("The cheapest heat for a 20 MW peak heating town"), "lcoh")
+        self.assertFalse(checker.brief_stated_priority(agent.BRIEF))
+        self.assertTrue(checker.brief_stated_priority("cheapest heat for 20 MW"))
+
+    def test_rule_j(self):
+        out = plan(agent.BRIEF)
+        o, it = opt(out), trace(out)
+        row = o["best_on_priority"]
+        good = {"n_doublets": row["n"], "t_return_c": row["t_return_c"],
+                "chosen_design": {"n": row["n"], "t_return_c": row["t_return_c"], "esp_depth_m": row["esp_depth_m"]},
+                "trade_off": f"LCoH {row['lcoh_EUR_MWh']} EUR/MWh, CO2 {row['co2_total_kt']} kt, {row['versus']} [C]"}
+        self.assertEqual(checker.check_choice(good, o, stated=False), [])
+        off = copy.deepcopy(good)
+        off["chosen_design"]["t_return_c"] = 60.0   # not a front row
+        self.assertTrue(any(p.startswith("(j)") and "not a row" in p for p in checker.check_choice(off, o, False)))
+        wrong = copy.deepcopy(good)
+        wrong["trade_off"] = f"At 99.9 EUR/MWh and {row['co2_total_kt']} kt CO2 [C]."
+        self.assertTrue(any("does not quote" in p for p in checker.check_choice(wrong, o, False)))
+        self.assertTrue(any("missing" in p for p in checker.check_choice({"trade_off": "x [C]"}, o, False)))
+        # the answer may follow another front row: rule (i) accepts it when the trace holds that row
+        other = next((p for p in o["front"] if p is not row and p != row), None)
+        if other:
+            ans = {"n_doublets": other["n"], "t_return_c": other["t_return_c"], "reasoning": [f"Tried {it['tried']} candidates [C]."]}
+            self.assertFalse(any("design_iterations chose" in p for p in checker.check_iterations(it, ans, ans["reasoning"], out)))
 
     def test_brief_f_repair(self):
         out = plan(BRIEF_F)

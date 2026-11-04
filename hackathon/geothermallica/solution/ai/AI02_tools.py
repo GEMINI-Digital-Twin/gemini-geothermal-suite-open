@@ -14,7 +14,7 @@ from geo.common import DEPTH_M, DT_BRINE_MAX_K, Q_MAX_M3H, Q_MIN_M3H, t_reservoi
 from geo.gemini_contrib.heatpump_lift import HeatPumpLift
 from geo.plant import doublet_at
 from geo.well import ESP_DEPTH_M, Producer, injector_at, reservoir_pressure
-from geo import cost, gas, lifetime, storage, year
+from geo import cost, gas, gemini_project, lifetime, optimise, storage, year
 
 gwh = lambda s: float(s.sum() * 24 / 1000)
 # the GEMINI classes each tool runs, so a tool result names the twin's components
@@ -37,11 +37,13 @@ def gemini(names):
 
 # a result made JSON-ready: text and bools kept, integers as int, every other number rounded to 2 decimals
 def r2(d):
-    def one(v):
+    def one(k, v):
         if isinstance(v, (str, bool, np.bool_)):
             return v if isinstance(v, str) else bool(v)
-        return int(v) if isinstance(v, (int, np.integer)) else round(float(v), 2)
-    return {k: one(v) for k, v in d.items()}
+        if isinstance(v, (int, np.integer)):
+            return int(v)
+        return round(float(v), 3 if k.startswith("co2_") else 2)   # CO2 in kt keeps 3 decimals (front rows differ by 0.03 kt)
+    return {k: one(k, v) for k, v in d.items()}
 
 
 def _need(name, x, lo, hi):
@@ -306,24 +308,43 @@ def lifetime_point(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, s
             "interference_per_injector_bar": [round(x, 2) for x in dp], "basis": lifetime.BASIS, "tag": "[C, L, A]"}
 
 
+def optimise_point(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, priority="lcoh", esp_depth_m=None, max_doublets=3):
+    """Search doublet count (1-3), network return (50-70 C) and ESP depth (300-1250 m) for the lowest LCoH and the lowest CO2 at
+    once, reservoir at depth_m (default 2500 m), demand scaled to the given peaks: a coarse grid then a pattern search, feasible =
+    all 16 checks pass and the doublet rule (no unmet heat, peak covered, boiler at most 5 %); returns the Pareto front (designs no
+    other beats on both LCoH and CO2, with the breakthrough time), best_lcoh and best_co2 rows, best_on_priority for priority
+    'lcoh' or 'co2', the number of designs evaluated and the seconds taken [C]."""
+    _peaks(peak_heat_MW, peak_cold_MW); _need("depth_m", depth_m, 1500, 4000)
+    if priority not in ("lcoh", "co2"):
+        raise ValueError(f"priority must be 'lcoh' or 'co2', got {priority!r}")
+    _need("max_doublets", max_doublets, 1, 3)
+    r = optimise.optimise(peak_heat_MW, peak_cold_MW, float(depth_m), _esp(esp_depth_m), n_max=int(max_doublets))
+    row = lambda p: None if p is None else r2({k: v for k, v in p.items() if k != "fails"})
+    return {"priority": priority, "front": [row(p) for p in r["front"]], "best_lcoh": row(r["best_lcoh"]), "best_co2": row(r["best_co2"]),
+            "best_on_priority": row(r["best_lcoh"] if priority == "lcoh" else r["best_co2"]), "n_evaluated": r["n_evaluated"],
+            "n_feasible": r["n_feasible"], "seconds": r["seconds"], "basis": r["basis"], "tag": "[C]"}
+
+
 SWEEP_C = (40, 50, 55, 60, 65, 70)
 
 
-def return_sweep(n_doublets, peak_heat_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
-    """Compare network return temperatures 40, 50, 55, 60, 65 and 70 C for 1-3 doublets over the 2027 year, reservoir at depth_m
+def return_sweep(n_doublets, peak_heat_MW=None, depth_m=DEPTH_M, esp_depth_m=None, extra_return_c=None):
+    """Compare network return temperatures 40, 50, 55, 60, 65 and 70 C (plus extra_return_c if given, e.g. an optimised return) for
+    1-3 doublets over the 2027 year, reservoir at depth_m
     (default 2500 m), heat demand scaled to peak_heat_MW if given: boiler GWh, heat-pump and ESP electricity GWh, geothermal
     share, unmet heat and peak margin per return, and best_return_c = the lowest return that needs no boiler energy (else the one
     with the least boiler). Use it before calling any return temperature best [C]."""
-    rows = {}
-    for t in SWEEP_C:
+    rows, swept = {}, SWEEP_C if extra_return_c is None else tuple(sorted({*SWEEP_C, float(extra_return_c)}))
+    for t in swept:
         h = heating_year(n_doublets, t, peak_heat_MW, depth_m, esp_depth_m)
-        rows[str(t)] = {"boiler_GWh": h["boiler_GWh"], "served_GWh": round(h["demand_GWh"] - h["unmet_GWh"], 2),
+        key = str(int(t)) if float(t).is_integer() else str(t)   # "60" for the swept integers, "57.5" for an optimised return
+        rows[key] = {"boiler_GWh": h["boiler_GWh"], "served_GWh": round(h["demand_GWh"] - h["unmet_GWh"], 2),
                         "boiler_share_pct": round(100 * h["boiler_GWh"] / max(h["demand_GWh"] - h["unmet_GWh"], 1e-9), 2),
                         "heat_pump_electricity_GWh": h["heat_pump_electricity_GWh"],
                         "esp_GWh": h["esp_electricity_GWh"], "geothermal_share_pct": h["geothermal_share_pct"],
                         "unmet_GWh": h["unmet_GWh"], "peak_margin_pct": h["peak_margin_pct"]}
-    free = [t for t in SWEEP_C if rows[str(t)]["boiler_GWh"] < 0.01]
-    best = free[0] if free else min(SWEEP_C, key=lambda t: rows[str(t)]["boiler_GWh"])
+    free = [t for t in swept if rows[str(t)]["boiler_GWh"] < 0.01]
+    best = free[0] if free else min(swept, key=lambda t: rows[str(t)]["boiler_GWh"])
     return {"n_doublets": int(n_doublets), "depth_m": depth_m, "by_return_C": rows, "best_return_c": best, "tag": "[C]",
             "backup_boiler_MW": year.BACKUP_BOILER_MW, "backup_boiler_tag": "[L] security of supply, not energy"}
 
@@ -347,9 +368,36 @@ def gemini_traps():
             "tag": "[C]"}
 
 
+def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
+    """GEMINI's own simulator re-runs our design: the tool writes one doublet of the design as a native GEMINI project file
+    (producer well with ESP, separator, filters, exchanger, boiler on the separator gas, injector) and runs GEMINI's solver on the
+    coldest, the median and the mildest day of 2027 at the day's flow. Per day: GEMINI's flow at our ESP frequency, the frequency
+    GEMINI needs for our flow, and at that flow GEMINI's ESP intake pressure, ESP head, injection wellhead pressure, brine outlet
+    temperature, exchanger MW and boiler MW next to ours (_ours, _gemini, _diff_pct); residual columns take out the known 1 000 vs
+    1 030 kg/m3 well-column offset. Also the project file path, gemini_version and a verdict sentence [C]."""
+    _need("n_doublets", n_doublets, 1, 3); _need("t_return_c", t_return_c, 30, 70); _need("depth_m", depth_m, 1500, 4000)
+    r = gemini_project.replay(int(n_doublets), float(t_return_c), float(depth_m), _esp(esp_depth_m))
+    days = [r2({k: v for k, v in d.items() if v is not None}) for d in r["days"]]
+    solved = [d for d in days if "esp_head_residual_bar" in d]
+    if not solved:
+        return {"error": f"GEMINI's pump at 60 Hz cannot reach our flow on any of the {len(days)} days; nothing to compare"}
+    head = max(abs(d["esp_head_residual_bar"]) for d in solved)
+    inj = max(abs(d["p_injection_wellhead_residual_bar"]) for d in solved)
+    sign = (" GEMINI's injector friction sign (fixed on our branch) explains the rest."
+            if inj > 3 and all(d["p_injection_wellhead_residual_bar"] < 0 for d in solved) else "")
+    short = (f" GEMINI's pump at 60 Hz cannot reach our flow on {len(days) - len(solved)} of the days."
+             if len(solved) < len(days) else "")
+    verdict = (f"Independent checks on {len(solved)} days: GEMINI's own nodal solve gives the ESP head within {head:.1f} bar and the "
+               f"injection wellhead pressure within {inj:.1f} bar of ours after the water-column offset; flow, exchanger duty and "
+               "boiler heat are equal by construction (the project carries our duty and gas)." + sign + short)
+    return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "depth_m": float(depth_m), "esp_depth_m": _esp(esp_depth_m),
+            "n_days": len(days), "days": days, "project_path": r["project_path"], "gemini_version": r["gemini_version"],
+            "verdict": verdict, "basis": r["basis"], "tag": "[C]"}
+
+
 FUNCS = {f.__name__: f for f in (site_inputs, demand_summary, doublet_point, heating_year, cooling_year, injector_point, gas_point,
                                  lifetime_point, heat_pump_point, checks, economics, layout_compare, storage_point, return_sweep,
-                                 gemini_traps)}
+                                 optimise_point, gemini_replay, gemini_traps)}
 NUM = lambda desc, lo, hi, kind="number": {"type": kind, "description": f"{desc}, {lo} to {hi}", "minimum": lo, "maximum": hi}
 ARGS = {"depth_m": NUM("reservoir depth in m (omit for the brief's 2500 m); give the brief's depth to every tool", 1500, 4000),
         "supply_heat_c": NUM("heating supply temperature in C", 60, 120),
@@ -366,9 +414,14 @@ ARGS = {"depth_m": NUM("reservoir depth in m (omit for the brief's 2500 m); give
         "outage_days": NUM("days one doublet is out in winter for the tank sizing (omit for 7)", 1, 35, "integer"),
         "spacing_m": NUM("distance producer to injector of one doublet at reservoir level in m (omit for 1500)", 500, 3000),
         "doublet_spacing_m": NUM("distance between neighbouring doublets in m (omit: equal to spacing_m)", 300, 5000),
-        "esp_depth_m": NUM("ESP setting depth in m (omit for 1100 m); give the brief's or the plan's value to every tool", 300, 1250)}
+        "esp_depth_m": NUM("ESP setting depth in m (omit for 1100 m); give the brief's or the plan's value to every tool", 300, 1250),
+        "extra_return_c": NUM("one more return temperature in C to add to the sweep (omit for the six standard ones)", 30, 70),
+        "priority": {"type": "string", "enum": ["lcoh", "co2"],
+                     "description": "what the brief wants first: lcoh (cheapest heat, the default) or co2 (lowest emissions)"},
+        "max_doublets": NUM("most doublets the brief allows (omit for 3)", 1, 3, "integer")}
 PEAKS = ["peak_heat_MW", "peak_cold_MW"]
-OPTIONAL = PEAKS + ["t_brine_floor_c", "depth_m", "outage_days", "spacing_m", "doublet_spacing_m", "esp_depth_m"]
+OPTIONAL = PEAKS + ["t_brine_floor_c", "depth_m", "outage_days", "spacing_m", "doublet_spacing_m", "esp_depth_m", "extra_return_c",
+            "priority", "max_doublets"]
 D = ["depth_m", "esp_depth_m"]   # every tool that runs the producer takes both
 SIG = {"site_inputs": ["depth_m", "supply_heat_c", "supply_cold_c"], "demand_summary": PEAKS,
        "doublet_point": ["q_m3h", "t_return_c"] + D, "heating_year": ["n_doublets", "t_return_c", "peak_heat_MW"] + D,
@@ -378,7 +431,9 @@ SIG = {"site_inputs": ["depth_m", "supply_heat_c", "supply_cold_c"], "demand_sum
        "checks": ["n_doublets", "t_return_c"] + PEAKS + D, "economics": ["n_doublets", "t_return_c"] + PEAKS + D,
        "layout_compare": ["n_doublets", "t_return_c"] + PEAKS + D,
        "storage_point": ["n_doublets", "t_return_c", "peak_heat_MW"] + D + ["outage_days"],
-       "return_sweep": ["n_doublets", "peak_heat_MW"] + D, "gemini_traps": []}
+       "return_sweep": ["n_doublets", "peak_heat_MW"] + D + ["extra_return_c"], "optimise_point": PEAKS + D + ["priority", "max_doublets"],
+       "gemini_replay": ["n_doublets", "t_return_c"] + D,
+       "gemini_traps": []}
 TOOLS = [{"type": "function", "function": {"name": n, "description": " ".join(FUNCS[n].__doc__.split()),
           "parameters": {"type": "object", "properties": {a: ARGS[a] for a in args},
                          "required": [a for a in args if a not in OPTIONAL]}}} for n, args in SIG.items()]
@@ -387,7 +442,7 @@ TOOLS = [{"type": "function", "function": {"name": n, "description": " ".join(FU
 def call(name, args):
     if name not in FUNCS:
         raise ValueError(f"unknown tool {name}; valid: {sorted(FUNCS)}")
-    conv = lambda k, v: v if v is None else int(v) if k in ("n_doublets", "outage_days") else float(v)
+    conv = lambda k, v: v if v is None or k == "priority" else int(v) if k in ("n_doublets", "outage_days", "max_doublets") else float(v)
     return FUNCS[name](**{k: conv(k, v) for k, v in (args or {}).items()})
 
 

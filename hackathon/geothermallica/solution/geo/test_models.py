@@ -1,9 +1,10 @@
 """Unit tests: gas rates, well cost and doublet lifetime against hand calculations, and the plant table against frozen values."""
 import unittest
+from pathlib import Path
 
 import numpy as np
 
-from geo import cost, gas, lifetime
+from geo import cost, gas, gemini_project, lifetime, optimise, rule
 from geo.plant import DoubletTable
 
 # DoubletTable at 60 C return, 2 500 m, heat-pump layout: first and last row, frozen on 3 Nov 2026 as a regression reference
@@ -56,11 +57,49 @@ class TestModels(unittest.TestCase):
         self.assertEqual(lifetime.interference_bar(1, 300.0), [0])
         self.assertAlmostEqual(lifetime.interference_bar(2, 300.0)[0], 0.93, delta=0.01)   # 2.69 bar x ln(sqrt 2), checked by hand
 
+    def test_optimiser_challenge_brief(self):
+        """Optimiser on the challenge brief: a feasible 2-doublet row on the front, best LCoH within 5 EUR/MWh below the 60 C
+        sweep value of 63.97 (the lowest feasible return is 57.5 C, one 2.5 C pattern step below 60 C), every front row feasible."""
+        r = optimise.optimise()
+        self.assertTrue(any(p["n"] == 2 for p in r["front"]))
+        self.assertTrue(all(p["feasible"] and not p["fails"] for p in r["front"]))
+        self.assertLess(abs(r["best_lcoh"]["lcoh_EUR_MWh"] - 63.97), 5.0)
+        self.assertLess(r["best_lcoh"]["lcoh_EUR_MWh"], 63.97)
+        self.assertTrue(56.25 < r["best_lcoh"]["t_return_c"] <= 57.5)   # 56.25 C needs boiler lift, 57.5 C is the 1.25 C sweep point
+        self.assertLessEqual(r["n_evaluated"], 400)
+
+    def test_rule_shared(self):
+        """The doublet rule: boiler above 5 % of the heat served fails, a row with nothing unmet and a covered peak passes."""
+        self.assertEqual(rule.rule_failures({"unmet_GWh": 0.0, "boiler_GWh": 1.0, "served_GWh": 100.0, "peak_margin_pct": 2.0}), [])
+        self.assertEqual([f[0] for f in rule.rule_failures({"unmet_GWh": 0.0, "boiler_GWh": 6.0, "served_GWh": 100.0,
+                                                            "boiler_share_pct": 6.0})], ["boiler share"])
+
     def test_plant_table_unchanged(self):
         """Plant table first and last rows equal the frozen values."""
         t = DoubletTable(60.0, depth_m=2500.0)
         for k, (first, last) in BEFORE.items():
             np.testing.assert_allclose([t.cols[k][0], t.cols[k][-1]], [first, last], rtol=1e-6, err_msg=k)
+
+    def test_gemini_project_dict(self):
+        """The generated GEMINI project has the example's component types, our ESP depth and one station per 50 m."""
+        w = gemini_project.Producer(stages=24)
+        p = gemini_project.project_dict(w, 60.0, 85.0, 58.0, 0.1, 5e5, 6.0)
+        self.assertEqual([c["type"] for c in p["components"].values()],
+                         ["producer_well", "separator", "filter", "heat_exchanger", "filter", "boiler", "injector_well"])
+        self.assertEqual(p["components"]["producer_well"]["parameters"]["esp_depth_m"], 1100.0)
+        self.assertEqual(len(p["components"]["producer_well"]["parameters"]["trajectory_table"]), 51)
+
+    def test_gemini_replay_coldest_day(self):
+        """GEMINI's solver on the coldest day: same flow, exchanger duty equal, ESP head within 1 bar after the 7.4 bar water-column
+        offset (what is left is the friction of water at 1 mPa s against our 0.4 mPa s brine), project file written."""
+        days = gemini_project._days(2, 57.5, 2500.0, 1100.0).iloc[[0]]
+        r = gemini_project.replay(2, 57.5, days=days)
+        d = r["days"][0]
+        self.assertAlmostEqual(d["q_m3h_diff_pct"], 0.0, delta=0.01)
+        self.assertAlmostEqual(d["MW_exchanger_diff_pct"], 0.0, delta=0.1)
+        self.assertAlmostEqual(d["water_column_offset_bar"], 7.36, delta=0.01)
+        self.assertLess(abs(d["esp_head_residual_bar"]), 1.0)
+        self.assertTrue(Path(r["project_path"]).exists())
 
 
 if __name__ == "__main__":
