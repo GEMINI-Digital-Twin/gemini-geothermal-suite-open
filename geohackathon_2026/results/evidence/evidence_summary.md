@@ -1,5 +1,27 @@
 # Agent evidence
 
+## Final agent with CHP layouts (4 November)
+
+The agent screens 54 designs (1-3 doublets x 3 depths x 6 layouts; deeper depths added if none is eligible), checks the peak point in GEMINI, and runs verify_design. A full design answer costs 55,000-65,000 tokens in 8-9 calls.
+
+| # | Question | What the agent did | Result | Tokens in / out, LLM calls | Log |
+|---|---|---|---|---|---|
+| 1 | "Design the heating and cooling system for the district. Compare designs and recommend one." | 2 x 3,000 m, CHP on produced gas, absorption chillers: 71.2 EUR/MWh, 5.97 kt CO2, 0.3% bought. Fixed GEMINI flow (326.6 to 297.2 m3/h) and brine cooling (to 39.0 C) | Accepted after one review | 63,708 / 1,481, 9 | `session_20261104_203717.jsonl` |
+| 2 | "Could shallower wells of about 2000 m with a heat pump be better than deep wells?" | Compared six layouts; best heat pump design 92.2 EUR/MWh against 71.2 for deep wells with CHP | Accepted after one review | 55,460 / 1,435, 8 | `session_20261104_204026.jsonl` |
+| 3 | "The district now has a 50 MW heating peak. Design for that." | Passed 50 MW to every tool, including verify_design; 3 x 3,000 m CHP + absorption, 67.4 EUR/MWh, 8.77 kt | Accepted after one review | 64,208 / 1,494, 9 | `session_20261104_204744.jsonl` |
+| 4 | "What is the best pizza place in Padova?" | Declined in one sentence, no tools | Correct | 3,325 / 10, 1 | `session_20261104_205108.jsonl` |
+| 5 | "Design it." | Same design as 1 | Accepted after one review | 63,950 / 1,510, 9 | `session_20261104_205110.jsonl` |
+| 6 | "Use 5 doublets at 2000 m with 400 m3/h each." | Screened 2000 m only; the tool went deeper because nothing was eligible; stated the 400 m3/h limit; same design as 1 | Accepted after one nudge and one review | 77,224 / 1,848, 11 | `session_20261104_210842.jsonl` |
+| 7 | "What heating return temperature should we use?" | Compared 40, 50 and 60 C; chose 40 C, which costs the same as 50 C (the tool recommends 50 C) | Accepted, inconsistent with the tool | 84,066 / 2,018, 12 | `session_20261104_205658.jsonl` |
+
+Fixes made while testing:
+
+| Failure | Log | Fix |
+|---|---|---|
+| verify_design run at 30 MW while the screen used 50 MW; reviewer missed it | `session_20261104_204324.jsonl` | compare_designs passes the demand with the alternative; a verification at another demand is flagged and not counted |
+| Screened only the user's 2000 m, where nothing is eligible; the agent looped | `session_20261104_205344.jsonl` | compare_designs adds deeper depths until a design is eligible, then one step more |
+| Announced the next tool in text instead of calling it, using up review rounds | `session_20261104_210228.jsonl` | Up to two "call the next tool" nudges that do not count as reviews |
+
 ## Agent with layouts, uncertainty and GEMINI year (3 November)
 
 Workflow: get_requirements, compare_designs (doublets x depths x 4 layouts, 36 designs), simulate_doublet until GEMINI passes, verify_design (return temperature, unplanned failure, uncertainty against the runner-up, every operating day in GEMINI plant files). The reviewer then checks the answer.

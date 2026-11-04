@@ -5,12 +5,15 @@ generated for that day's operation and solved by GEMINI's nodal solver:
 - the pump design point is adjusted until GEMINI's flow matches the day's flow,
   because GEMINI's well model uses water density and overshoots the flow;
 - the district water flow through the heat exchanger is adjusted until
-  GEMINI's heat duty matches the day's geothermal heat per doublet, from
-  below, so a day the model runs at the 40 C limit is not pushed over it. The
-  rest of the district water bypasses the exchanger.
-GEMINI's results are then checked against the challenge limits and compared
-with the yearly model. The absorption chiller is not a GEMINI component, so
-only layouts with electric chillers send all brine through the plant.
+  GEMINI's heat duty matches the day's brine heat per doublet, from below, so
+  a day the model runs at the 40 C limit is not pushed over it. The rest of
+  the district water bypasses the exchanger.
+With an absorption chiller, brine heats the district and drives the chiller
+in two exchangers in parallel. On the brine side that equals one exchanger
+carrying both duties: the same flow, the same heat taken and the same mixed
+outlet temperature, so the plant's exchanger carries the heating heat plus the
+chiller drive heat. GEMINI's results are then checked against the challenge
+limits and compared with the yearly model.
 """
 
 import csv
@@ -24,6 +27,7 @@ from yearly_heating import Design, pump_power_mw
 FLOW_TOLERANCE = 0.005
 HEAT_TOLERANCE = 0.002
 MAX_ITERATIONS = 40
+MIN_HEAT_W = 1e3  # below this the day needs no brine heat; the exchanger runs at its minimum flow
 SECONDARY_RANGE_M3H = (1.0, 3000.0)
 
 
@@ -39,28 +43,31 @@ def solve(plant):
         "heat_w": get("heat_exchanger", "heat_duty"),
         "brine_cooling_c": t_wellhead - get("filter_b", "temperature_out"),
         "pump_w": get("producer_well", "esp_power_el") + get("injector_well", "power_el"),
+        "chp_power_el_w": get("chp", "power_el"),
         "intake_bar": get("producer_well", "esp_intake_pressure"),
     }
 
 
-def match_flow(depth_m, return_c, target_m3h):
+def match_flow(depth_m, return_c, target_m3h, gas_to_chp=False):
     """Return the pump design flow that makes GEMINI produce the target flow."""
     design = target_m3h
     for _ in range(MAX_ITERATIONS):
-        actual = solve(build_plant(depth_m, design, return_c, target_m3h))["flow_m3h"]
+        actual = solve(build_plant(depth_m, design, return_c, target_m3h, gas_to_chp))["flow_m3h"]
         if abs(actual - target_m3h) <= FLOW_TOLERANCE * target_m3h:
             return design
         design *= target_m3h / actual
     return design
 
 
-def match_heat(depth_m, design_flow, return_c, target_w):
+def match_heat(depth_m, design_flow, return_c, target_w, gas_to_chp=False):
     """Return the GEMINI result whose heat duty is just below the target, by bisection on district flow."""
     low, high = SECONDARY_RANGE_M3H
+    if target_w < MIN_HEAT_W:
+        return {**solve(build_plant(depth_m, design_flow, return_c, low, gas_to_chp)), "secondary_m3h": low}
     best = None
     for _ in range(MAX_ITERATIONS):
         middle = (low + high) / 2.0
-        result = {**solve(build_plant(depth_m, design_flow, return_c, middle)), "secondary_m3h": middle}
+        result = {**solve(build_plant(depth_m, design_flow, return_c, middle, gas_to_chp)), "secondary_m3h": middle}
         if result["heat_w"] <= target_w:
             best = result
             if result["heat_w"] >= (1 - HEAT_TOLERANCE) * target_w:
@@ -73,9 +80,8 @@ def match_heat(depth_m, design_flow, return_c, target_w):
 
 def run_year(design, dates, heating, cooling, first, second):
     """Run the yearly model, then every active day through GEMINI; return rows and a summary."""
-    if design.cooling != "electric":
-        return [], {"error": "Only layouts with electric chillers are run through GEMINI plant files."}
     rows, _ = run_design(design, dates, heating, cooling, first, second)
+    gas_to_chp = design.heating_top_up == "chp"
     well = Design(design.doublets, design.depth_m, design.return_c, design.staggered)
     design_flows, model_pumps = {}, {}
     days = []
@@ -85,11 +91,11 @@ def run_year(design, dates, heating, cooling, first, second):
             continue
         flow = row["flow_m3h_each"]
         if flow not in design_flows:
-            design_flows[flow] = match_flow(design.depth_m, design.return_c, flow)
+            design_flows[flow] = match_flow(design.depth_m, design.return_c, flow, gas_to_chp)
             esp, injector, _ = pump_power_mw(well, flow)
             model_pumps[flow] = esp + injector
-        heat_w = row["geothermal_heat_mw"] * 1e6 / active
-        result = match_heat(design.depth_m, design_flows[flow], design.return_c, heat_w)
+        heat_w = (row["geothermal_heat_mw"] + row["chiller_drive_mw"]) * 1e6 / active
+        result = match_heat(design.depth_m, design_flows[flow], design.return_c, heat_w, gas_to_chp)
         checks = {
             "flow_within_50_300": MIN_FLOW_M3H <= result["flow_m3h"] <= MAX_FLOW_M3H * (1 + FLOW_TOLERANCE),
             "brine_cooling_max_40": result["brine_cooling_c"] <= MAX_COOLING_C,
@@ -107,6 +113,8 @@ def run_year(design, dates, heating, cooling, first, second):
                 "gemini_brine_cooling_c": round(result["brine_cooling_c"], 2),
                 "model_pump_mw": round(model_pumps[flow], 4),
                 "gemini_pump_mw": round(result["pump_w"] / 1e6, 4),
+                "model_chp_electricity_mw": round(row["chp_electricity_mw"] / active, 4),
+                "gemini_chp_electricity_mw": round(result["chp_power_el_w"] / 1e6, 4),
                 "gemini_district_flow_m3h": round(result["secondary_m3h"], 1),
                 "checks_failed": ";".join(name for name, passed in checks.items() if not passed),
             }
@@ -117,7 +125,11 @@ def run_year(design, dates, heating, cooling, first, second):
 def summarize(days, design):
     """Return the yearly GEMINI validation summary."""
     failed = [day for day in days if day["checks_failed"]]
-    heat_error = max(abs(day["gemini_heat_mw"] - day["model_heat_mw"]) / day["model_heat_mw"] for day in days)
+    heat_error = max(
+        abs(day["gemini_heat_mw"] - day["model_heat_mw"]) / day["model_heat_mw"]
+        for day in days
+        if day["model_heat_mw"] * 1e6 >= MIN_HEAT_W
+    )
     flow_error = max(abs(day["gemini_flow_m3h"] - day["model_flow_m3h"]) / day["model_flow_m3h"] for day in days)
     gemini_heat_gwh = sum(day["gemini_heat_mw"] * day["active_doublets"] for day in days) * 24 / 1000
     gemini_pump_gwh = sum(day["gemini_pump_mw"] * day["active_doublets"] for day in days) * 24 / 1000
@@ -136,6 +148,12 @@ def summarize(days, design):
         "gemini_geothermal_heat_gwh": round(gemini_heat_gwh, 2),
         "gemini_pump_electricity_gwh": round(gemini_pump_gwh, 3),
         "model_pump_electricity_gwh": round(model_pump_gwh, 3),
+        "gemini_chp_electricity_gwh": round(
+            sum(day["gemini_chp_electricity_mw"] * day["active_doublets"] for day in days) * 24 / 1000, 3
+        ),
+        "model_chp_electricity_gwh": round(
+            sum(day["model_chp_electricity_mw"] * day["active_doublets"] for day in days) * 24 / 1000, 3
+        ),
     }
 
 
@@ -149,8 +167,9 @@ def save(days, summary, design):
         writer.writeheader()
         writer.writerows(days)
     peak = max(days, key=lambda day: day["gemini_heat_mw"] * day["active_doublets"])
-    design_flow = match_flow(design.depth_m, design.return_c, peak["model_flow_m3h"])
-    plant = build_plant(design.depth_m, design_flow, design.return_c, peak["gemini_district_flow_m3h"])
+    gas_to_chp = design.heating_top_up == "chp"
+    design_flow = match_flow(design.depth_m, design.return_c, peak["model_flow_m3h"], gas_to_chp)
+    plant = build_plant(design.depth_m, design_flow, design.return_c, peak["gemini_district_flow_m3h"], gas_to_chp)
     plant["_description"] += f" Peak day {peak['date']} of the year run."
     plant_file = PLANTS_DIR / f"{stem}_peak_day.json"
     plant_file.write_text(json.dumps(plant, indent=2), encoding="utf-8")

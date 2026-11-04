@@ -22,6 +22,7 @@ OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL = "qwen3:8b"
 MAX_ROUNDS = 20
 MAX_REVIEWS = 3
+MAX_NUDGES = 2  # answers without a recommendation line that only announce the next step
 PEAK_CHECK_FLOW_M3H = 250.0
 CONTEXT_TOKENS = 24576
 
@@ -127,7 +128,8 @@ demand you did not simulate.
 cause from the result, change one input, and run again.
 5. The design choices are the number of doublets (1-3), the reservoir depth and the layout. \
 Depth sets the brine temperature. The layout sets how water reaches 100 C (gas boiler or heat \
-pump) and how cooling is made (absorption or electric chillers).
+pump, or a CHP that turns the produced gas into electricity and heat) and how cooling is made \
+(absorption or electric chillers).
 6. Selection rule, geothermal first: only designs with meets_geothermal_first true are \
 eligible (energy bought to make heat or cooling at most 10% of energy delivered). Among \
 those, recommend the lowest levelised_cost_eur_per_mwh. Report the cheapest ineligible \
@@ -176,7 +178,7 @@ def run(question):
     log_path = LOG_DIR / f"session_{datetime.now():%Y%m%d_%H%M%S}.jsonl"
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": question}]
     tokens_in = tokens_out = 0
-    reviews = 0
+    reviews = nudges = 0
     year_runs, cost_runs, tool_results, doublet_runs = {}, {}, [], []
     return_runs, outage_runs, uncertainty_runs, year_checks = set(), set(), set(), set()
     comparisons = []
@@ -214,6 +216,13 @@ def run(question):
             designing = bool(tool_results) or bool(RECOMMENDATION.search(answer))
             if asks_user or not designing:
                 break
+            if tool_results and not RECOMMENDATION.search(answer) and nudges < MAX_NUDGES:
+                nudges += 1
+                nudge = "Continue the workflow: call the next tool now instead of describing it."
+                print(f"NUDGE: {nudge}\n")
+                log({"event": "nudge", "number": nudges})
+                messages.append({"role": "user", "content": nudge})
+                continue
             problems = review(answer, question, year_runs, cost_runs, tool_results)
             chosen = RECOMMENDATION.search(answer)
             if chosen and not any(
@@ -236,9 +245,9 @@ def run(question):
                         "brine cooling, and the inputs you changed to get there."
                     )
                 design = chosen_design(chosen)
-                verified = all(design in runs for runs in (return_runs, outage_runs, uncertainty_runs))
-                if design[2].endswith("+electric"):
-                    verified = verified and design in year_checks
+                verified = all(
+                    design in runs for runs in (return_runs, outage_runs, uncertainty_runs, year_checks)
+                )
                 if not verified:
                     problems.append(
                         f"Call verify_design for {design[0]} doublets at {design[1]:.0f} m with layout "
@@ -317,8 +326,22 @@ def run(question):
                 runs_by_tool[name].add(design)
             if name == "verify_design" and "error" not in result:
                 design = (int(arguments["doublets"]), float(arguments["depth_m"]), result["layout"])
-                for runs in runs_by_tool.values():
-                    runs.add(design)
+                screened = comparisons[-1]["designs"][0] if comparisons else {}
+                screened_peak = year_runs.get(
+                    (screened.get("doublets"), screened.get("depth_m"), screened.get("layout")), {}
+                ).get("heating_peak_mw_used")
+                if screened_peak is None or abs(screened_peak - result["heating_peak_mw_used"]) < 0.01:
+                    for runs in runs_by_tool.values():
+                        runs.add(design)
+                else:
+                    result = {
+                        **result,
+                        "warning": (
+                            f"verify_design used a {result['heating_peak_mw_used']} MW heating peak, but "
+                            f"compare_designs used {screened_peak} MW. Run verify_design again with "
+                            f"heating_peak_mw={screened_peak}."
+                        ),
+                    }
             if name in ("simulate_year", "estimate_cost") and "error" not in result:
                 design = (
                     int(arguments["doublets"]), float(arguments["depth_m"]), arguments.get("layout", DEFAULT_LAYOUT)

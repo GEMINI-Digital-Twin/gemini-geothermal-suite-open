@@ -29,7 +29,7 @@ from yearly_heating import OUTAGE_DAYS
 ROOT = Path(__file__).parent.parent
 MEMORY_FILE = Path(__file__).parent / "memory.json"
 # Change this whenever the models change, so results from older models are not reused.
-MODEL_VERSION = "2026-11-03 layouts, flared gas CO2, GEMINI chiller"
+MODEL_VERSION = "2026-11-04 CHP layout, CHP in plant files"
 
 DEPTH_RANGE_M = (1500.0, 4000.0)
 RETURN_RANGE_C = (30.0, 70.0)
@@ -140,6 +140,8 @@ def get_requirements():
             "boiler+electric": "gas boilers reach 100 C; electric chillers only",
             "heat_pump+absorption": "a heat pump takes more heat from the brine (within the 40 C limit) and lifts water to 100 C; absorption chiller",
             "heat_pump+electric": "heat pump for heating; electric chillers only",
+            "chp+absorption": "produced gas runs a CHP: its electricity covers pumps and chillers, its heat the district; absorption chiller",
+            "chp+electric": "produced gas runs a CHP; electric chillers only",
         },
         "tools": (
             "compare_designs screens doublet counts, depths and layouts; simulate_doublet checks one "
@@ -286,7 +288,7 @@ def estimate_cost(
     }
 
 
-MAX_COMPARED_DESIGNS = 36
+MAX_COMPARED_DESIGNS = 54
 BRACKET_STEP_M = 500.0
 MAX_BRACKET_STEPS = 3
 
@@ -368,9 +370,10 @@ def compare_designs(
 ):
     """Simulate and cost every combination, then rank them with the selection rule.
 
-    ``layouts`` defaults to all four layouts. If the best eligible design sits at the
+    ``layouts`` defaults to all six layouts. If the best eligible design sits at the
     shallowest or deepest depth tried, the next depth beyond it is added, so the best
-    depth is always bracketed on both sides.
+    depth is always bracketed on both sides. If no design is eligible, deeper depths
+    are added for every doublet count and layout until one is, or 4,000 m is reached.
     """
     layouts = list(layouts or LAYOUTS)
     unknown = [error for error in map(_layout_error, layouts) if error]
@@ -384,6 +387,20 @@ def compare_designs(
     scenario = {"return_c": return_c, "heating_peak_mw": heating_peak_mw, "cooling_peak_mw": cooling_peak_mw}
     rows = [_design_row(count, depth, layout, scenario) for count, depth, layout in combinations]
     step = min((b - a for a, b in zip(sorted(depths_m), sorted(depths_m)[1:])), default=BRACKET_STEP_M)
+    counts = sorted({int(count) for count in doublet_options if 1 <= int(count) <= 3})
+    added_for_rule = []
+    if counts and not _ranked(rows)[0]:
+        # Go deeper until a design is eligible, then one step more, so a cheaper deeper
+        # design with another layout is not missed.
+        extra_steps = 1
+        while extra_steps >= 0:
+            depth = max(row["depth_m"] for row in rows) + step
+            if depth > DEPTH_RANGE_M[1]:
+                break
+            rows += [_design_row(count, depth, layout, scenario) for count in counts for layout in layouts]
+            added_for_rule.append(depth)
+            if _ranked(rows)[0]:
+                extra_steps -= 1
     added = []
     for _ in range(MAX_BRACKET_STEPS):
         eligible, _ = _ranked(rows)
@@ -412,6 +429,9 @@ def compare_designs(
             "alternative_depth_m": runner["depth_m"],
             "alternative_layout": runner["layout"],
         }
+        for key, value in (("heating_peak_mw", heating_peak_mw), ("cooling_peak_mw", cooling_peak_mw)):
+            if value is not None:
+                alternative[key] = value
     return {
         "trade_off": _trade_off(eligible, ineligible),
         "alternative_for_verify_design": alternative,
@@ -420,6 +440,7 @@ def compare_designs(
         "next_lowest_cost_eligible": eligible[1] if len(eligible) > 1 else None,
         "lowest_cost_ineligible": ineligible[0] if ineligible else None,
         "depths_added_to_bracket_best": added,
+        "depths_added_because_none_eligible": added_for_rule,
         "same_as": "a heat_pump row marked same_as never runs its heat pump, so it equals that boiler layout and is not ranked",
         "rule": (
             "eligible means energy bought to make heat or cooling (backup gas, electricity for heat "
@@ -607,12 +628,6 @@ def validate_year_in_gemini(doublets, depth_m, layout, heating_peak_mw=None, coo
     errors = [error for error in errors if error]
     if errors:
         return {"error": " ".join(errors), "nothing_was_run": True}
-    if not layout.endswith("+electric"):
-        return {
-            "error": "The absorption chiller is not a GEMINI component, so only layouts with electric "
-            "chillers can be run through GEMINI plant files for the whole year.",
-            "nothing_was_run": True,
-        }
     arguments = {
         "doublets": int(doublets),
         "depth_m": float(depth_m),
@@ -663,6 +678,7 @@ def verify_design(
         "doublets": int(doublets),
         "depth_m": float(depth_m),
         "layout": layout,
+        "heating_peak_mw_used": returns["heating_peak_mw_used"],
         "return_temperature": keep(returns, ["best_return_c", "returns_with_lowest_cost_c", "lowest_cost_eur_per_mwh", "why"]),
         "unplanned_failure": keep(
             outage,
@@ -675,15 +691,12 @@ def verify_design(
              "cost_driver_rank_correlation", "versus_alternative"],
         ),
     }
-    if layout.endswith("+electric"):
-        year = validate_year_in_gemini(doublets, depth_m, layout, **scenario)
-        combined["gemini_year"] = keep(
-            year,
-            ["gemini_days_run", "days_failing_gemini_checks", "worst_brine_cooling_c",
-             "max_flow_difference_pct", "max_heat_difference_pct", "daily_results", "peak_day_plant"],
-        )
-    else:
-        combined["gemini_year"] = "not run: the absorption chiller branch is not in the GEMINI plant file"
+    year = validate_year_in_gemini(doublets, depth_m, layout, **scenario)
+    combined["gemini_year"] = keep(
+        year,
+        ["gemini_days_run", "days_failing_gemini_checks", "worst_brine_cooling_c",
+         "max_flow_difference_pct", "max_heat_difference_pct", "daily_results", "peak_day_plant"],
+    )
     return combined
 
 
@@ -795,7 +808,7 @@ TOOL_SCHEMAS = [
             "name": "compare_designs",
             "description": (
                 "Simulate and cost every combination of doublet counts, depths and layouts (at most "
-                "36), then return each design, the lowest-cost eligible and ineligible designs under "
+                "54), then return each design, the lowest-cost eligible and ineligible designs under "
                 "the geothermal-first rule, and a trade_off sentence. Use this to screen options."
             ),
             "parameters": {
@@ -898,7 +911,7 @@ TOOL_SCHEMAS = [
                 "properties": {
                     "doublets": {"type": "integer", "description": "Number of doublets"},
                     "depth_m": {"type": "number", "description": "Reservoir depth in m"},
-                    "layout": {"type": "string", "enum": LAYOUTS, "description": "Layout of the design; must use electric chillers"},
+                    "layout": {"type": "string", "enum": LAYOUTS, "description": "Layout of the design"},
                     "heating_peak_mw": {"type": "number", "description": "Only for a demand scenario: scale the heating profile to this peak in MW"},
                     "cooling_peak_mw": {"type": "number", "description": "Only for a demand scenario: scale the cooling profile to this peak in MW"},
                 },

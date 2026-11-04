@@ -2,7 +2,7 @@
 
 An agent that selects, sizes and checks a deep geothermal direct-use system for one district with GEMINI. It must meet the 2027 daily heating demand (30 MWth peak) and cooling demand (10 MW peak).
 
-The agent chooses the number of doublets, the depth and the layout: gas boiler or heat pump to reach 100 C, and absorption or electric chillers. It then checks the chosen design for return temperature, an unplanned failure over the peak, subsurface, demand and grid uncertainty, and every operating day in GEMINI plant files.
+The agent chooses the number of doublets, the depth and the layout: gas boiler, heat pump or CHP on the produced gas to reach 100 C, and absorption or electric chillers. It then checks the chosen design for return temperature, an unplanned failure over the peak, subsurface, demand and grid uncertainty, and every operating day in GEMINI plant files.
 
 The agent runs on an open-weight model (qwen3:8b) through Ollama. The model plans, chooses tools and explains the result. Every number comes from Python tools built on GEMINI's models, and every challenge limit is checked in code.
 

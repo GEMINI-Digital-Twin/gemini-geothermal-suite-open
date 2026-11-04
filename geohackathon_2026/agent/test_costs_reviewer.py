@@ -112,3 +112,9 @@ def test_mentions_matches_whole_numbers_only():
     assert mentions("a backup boiler of 15.45 MW", "15.45")
     assert not mentions("a backup boiler of 15.45 MW", "5")
     assert mentions("5 doublets break the limit", "5")
+
+
+def test_sold_electricity_lowers_cost():
+    """Surplus CHP electricity sold at the export price lowers the yearly cost."""
+    sold = dict(YEAR, electricity_exported_gwh=1.0)
+    assert design_costs(2, 3200, YEAR)["annual_cost_meur"] - design_costs(2, 3200, sold)["annual_cost_meur"] == pytest.approx(0.08, abs=0.005)

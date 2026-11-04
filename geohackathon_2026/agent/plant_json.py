@@ -11,6 +11,7 @@ from pathlib import Path
 from gemini_simulator.project_loader import build_project
 from pipe_size_study import CP, RHO, build_well, walk
 from gemini_simulator.well_flow import _split_trajectory_at_depth
+from yearly_energy import CHP_EFFICIENCY
 
 ROOT = Path(__file__).parent.parent
 PLANTS_DIR = ROOT / "results" / "plants"
@@ -70,8 +71,11 @@ def trajectory(depth_m):
     return [{"MD": md, "TVD": md, "ID": PIPE_ID_M} for md in stations]
 
 
-def build_plant(depth_m, design_flow_m3h, return_c, secondary_flow_m3h):
-    """Return a GEMINI plant JSON dict for one doublet."""
+def build_plant(depth_m, design_flow_m3h, return_c, secondary_flow_m3h, gas_to_chp=False):
+    """Return a GEMINI plant JSON dict for one doublet.
+
+    ``gas_to_chp`` sends the produced gas to the CHP instead of the boiler.
+    """
     reservoir_bar = RHO * G * depth_m / 1e5
     well = {
         "reservoir_pressure_bar": reservoir_bar,
@@ -122,9 +126,9 @@ def build_plant(depth_m, design_flow_m3h, return_c, secondary_flow_m3h):
                 "parameters": {"base_resistance": 3.6, "fouling_coeff_a": 18.0, "fouling_coeff_b": 0.036, "temperature_drop": 1},
             },
             "boiler": {"type": "boiler", "parameters": {**gas, **fluid}},
-            "chp": {"type": "chp", "parameters": {**gas, **fluid}},
+            "chp": {"type": "chp", "parameters": {**gas, **fluid, "efficiency_factor": CHP_EFFICIENCY}},
             "secondary_splitter": {"type": "splitter", "parameters": {"split_fractions": [1.0, 0.0]}},
-            "gas_splitter": {"type": "splitter", "parameters": {"split_fractions": [1.0, 0.0]}},
+            "gas_splitter": {"type": "splitter", "parameters": {"split_fractions": [0.0, 1.0] if gas_to_chp else [1.0, 0.0]}},
             "water_mixer": {"type": "mixer", "parameters": {"num_inputs": 2}},
         },
         "boundary_inputs": [

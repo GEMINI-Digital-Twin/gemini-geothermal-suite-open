@@ -24,10 +24,11 @@ ROOT = Path(__file__).parent.parent
 OUTPUT = ROOT / "results" / "sensitivity.md"
 
 DESIGNS = [
-    (1, 3000.0, "boiler+electric"),
+    (1, 3000.0, "chp+absorption"),
+    (2, 3000.0, "chp+absorption"),
+    (2, 3000.0, "chp+electric"),
     (2, 3000.0, "boiler+electric"),
-    (2, 3000.0, "boiler+absorption"),
-    (3, 3000.0, "boiler+electric"),
+    (3, 3000.0, "chp+absorption"),
     (2, 2500.0, "heat_pump+electric"),
 ]
 CASES = [
@@ -45,6 +46,8 @@ CASES = [
     ("Electricity 300 EUR/MWh", {"electricity_eur_per_mwh": 300.0}),
     ("Heat pump 1,000 EUR/kW", {"heat_pump_eur_per_kw": 1000.0}),
     ("Absorption chiller 250 EUR/kW", {"absorption_chiller_eur_per_kw": 250.0}),
+    ("CHP 1,500 EUR/kWe", {"chp_eur_per_kw_el": 1500.0}),
+    ("Sold electricity 40 EUR/MWh", {"export_eur_per_mwh": 40.0}),
 ]
 UNPLANNED_START = "2027-01-25"
 UNPLANNED_DAYS = 7
@@ -129,7 +132,7 @@ def main():
         "",
         *price_table(years),
         "",
-        "## CO2 price at which 2 x 3000 m costs the same as 1 x 3000 m (both boiler+electric)",
+        "## CO2 price at which 2 x 3000 m costs the same as 1 x 3000 m (both chp+absorption)",
         "",
     ]
     for gas in (40.0, 80.0, 120.0):
