@@ -11,6 +11,7 @@ gives a single place to extend when new gemini_model components are added.
 from gemini_model.adder.adder import Adder
 from gemini_model.boiler.boiler import Boiler
 from gemini_model.booster_pump.booster_pump import BoosterPump
+from gemini_model.chiller.absorption_chiller import AbsorptionChiller
 from gemini_model.chp.chp import CHP
 from gemini_model.filter.filter import Filter
 from gemini_model.fluid.henry_gas import HenryGasBubblePoint
@@ -39,6 +40,7 @@ COMPONENT_REGISTRY = {
     "heat_exchanger": HeatExchanger,
     "boiler": Boiler,
     "chp": CHP,
+    "absorption_chiller": AbsorptionChiller,
     "injector_pump": InjectorPump,
     "booster_pump": BoosterPump,
     "well": DPDT,

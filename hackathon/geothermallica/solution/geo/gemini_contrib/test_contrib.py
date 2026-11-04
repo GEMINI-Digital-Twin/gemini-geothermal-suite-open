@@ -10,6 +10,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import geo.gemini_contrib  # noqa: F401  (puts the GEMINI tree on the path before geo.well)
+from geo.gemini_contrib import absorption_chiller as chiller
 from geo.gemini_contrib.esp_affinity import ESPAffinity
 from geo.gemini_contrib.heatpump_lift import HeatPumpLift, register
 from geo.gemini_contrib import injector_sign as fixed
@@ -24,7 +25,7 @@ from gemini_simulator import nodal_solver
 from gemini_simulator.well_flow import _build_dpdt
 import numpy as np
 
-from geo import gas, lifetime, plant
+from geo import gas, lifetime, plant, year
 from geo.common import MU_PA_S, PERM_MD, RHO, THICKNESS_M, t_reservoir_c
 from geo.well import ROUGHNESS_M, TUBING_ID_M, Producer, _pump
 
@@ -278,6 +279,65 @@ class TestGasAndLifetime(unittest.TestCase):
                 self.assertAlmostEqual(a / BAR, b, delta=1e-9)
         self.assertAlmostEqual(m.spacing_for_years(30.0, q), lifetime.spacing_for_yr(30.0, 300.0),
                                delta=1e-6)
+
+
+def run_chiller(temperature=85.6, **extra):
+    """Output of AbsorptionChiller for 300 m3/h of brine at 10 bar."""
+    m = chiller.AbsorptionChiller()
+    m.calculate_output({"pressure": 10.0, "temperature": temperature, "flow_rate": 300 / 3600, **extra})
+    return m.get_output()
+
+
+class TestAbsorptionChiller(unittest.TestCase):
+    """Hand numbers, plant constants and registry of AbsorptionChiller."""
+
+    def test_full_drive(self):
+        """85.6 C to 78 C: 2.609 MW drive, 1.957 MW cold, 58.7 kW electricity, 10 bar out."""
+        y = run_chiller()
+        self.assertAlmostEqual(y["drive_heat"] / 1e6, 2.609, delta=0.001)
+        self.assertAlmostEqual(y["cooling_power"] / 1e6, 1.957, delta=0.001)
+        self.assertAlmostEqual(y["temperature_out"], 78.0, delta=1e-9)
+        self.assertAlmostEqual(y["power_el"] / 1e3, 58.7, delta=0.1)
+        self.assertEqual(y["pressure_out"], 10.0)
+
+    def test_cold_brine_and_floors(self):
+        """70 C brine gives nothing; a 80 C floor gives 1.923 MW drive; a 70 C floor stays 78 C."""
+        y = run_chiller(temperature=70.0)
+        self.assertEqual((y["drive_heat"], y["cooling_power"], y["temperature_out"]), (0.0, 0.0, 70.0))
+        self.assertAlmostEqual(run_chiller(temperature_floor=80.0)["drive_heat"] / 1e6, 1.923, delta=0.001)
+        self.assertEqual(run_chiller(temperature_floor=70.0)["drive_temperature_floor"], 78.0)
+
+    def test_demand_cap(self):
+        """1 MW demand: 1.3333 MW drive, brine out 81.72 C, nothing unmet."""
+        y = run_chiller(cooling_demand=1.0e6)
+        self.assertAlmostEqual(y["drive_heat"] / 1e6, 1.3333, delta=1e-4)
+        self.assertAlmostEqual(y["cooling_power"], 1.0e6, delta=1e-6)
+        self.assertAlmostEqual(y["temperature_out"], 81.72, delta=0.01)
+        self.assertAlmostEqual(y["cooling_unmet"], 0.0, delta=1e-6)
+
+    def test_constants_match_plant(self):
+        """COP equals year.COP_ABSORPTION and the driving minimum equals plant.T_ABS_MIN_C."""
+        p = chiller.AbsorptionChiller().parameters
+        self.assertEqual(p["cop_thermal"], year.COP_ABSORPTION)
+        self.assertEqual(p["min_driving_temperature"], plant.T_ABS_MIN_C)
+
+    def test_drive_matches_plant(self):
+        """Drive heat at 300 m3/h and 60 C return equals plant MW_abs_drive, also at smaller exchanger duties."""
+        p = plant.doublet_at(Producer(stages=24), 300.0, 60.0)
+        t_wh, mcp = p["T_wh_C"], p["mcp_MW_per_K"]
+        self.assertAlmostEqual(p["MW_abs_drive"], plant._abs_drive(t_wh, mcp, 60.0, p["MW_hx"]), delta=1e-12)
+        for hx in (p["MW_hx"], 0.0, 1.0, 6.0):  # at the full exchanger duty nothing is left above the floor
+            floor = 60.0 + plant.APPROACH_K + hx / mcp
+            y = run_chiller(temperature=t_wh, temperature_floor=floor)
+            ref = plant._abs_drive(t_wh, mcp, 60.0, hx)
+            print(f"  hx {hx:.3f} MW: drive chiller {y['drive_heat'] / 1e6:.6f} MW, plant {ref:.6f} MW")
+            self.assertAlmostEqual(y["drive_heat"] / 1e6, ref, delta=1e-6)
+
+    def test_register(self):
+        """register() makes create_component("absorption_chiller") return an AbsorptionChiller."""
+        chiller.register()
+        from gemini_simulator.registry import create_component
+        self.assertIsInstance(create_component("absorption_chiller"), chiller.AbsorptionChiller)
 
 
 if __name__ == "__main__":
