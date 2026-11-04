@@ -401,15 +401,22 @@ on_progress=None, stop=None)` (`gemini/study/evolve.py`; the operators in
   random candidates. Parents are drawn by binary tournament; continuous and integer genes cross by
   simulated binary crossover (probability 0.9, index 15) and mutate by polynomial mutation (index
   20), choices cross uniformly and mutate by a random reset; structure genes mutate with probability
-  one over their number, the others one over theirs. A quarter of the children are local steps: one
-  value of one of the best candidates moved up or down by a step (a quarter of its range, halved
-  while the best does not improve, back to a quarter below 1 %). A child equal to a candidate seen
-  before is mutated again (five times at most). Each generation keeps the best `population` of
+  one over their number, the others one over theirs. Half of the children are local steps (a
+  compass search): half of those from the best candidate of the best structure, the rest from the
+  best candidates of the next structures (on each objective in turn) and, with two objectives or
+  more, from first-front members by crowding distance. A step moves one value up or down by a
+  share of its range (a quarter at first, halved per structure and value once both directions
+  failed from the same candidate, back to a quarter below 1 %) or takes the next option; a
+  candidate a step made is stepped again the same way, twice as far (pattern move). A child equal
+  to a candidate seen before is mutated again (five times at most). Each generation keeps the best `population` of
   parents and children, each candidate once while there are enough.
 - **Structures.** Up to 256 structures, every one is judged before the search (`with_structure` and
   `check`, the plan compiled): the refused ones are `rejected` with their reasons, and none valid
   raises `invalid_design` naming the first reasons. Above, each structure is judged the first time it
-  is drawn. A refused candidate is never simulated and counts in `invalid`.
+  is drawn. A candidate drawn with a refused structure is never simulated and counts in
+  `invalid`; when valid structures are known (enumerated, or judged so far) it takes the nearest
+  one (fewest structure genes changed, a tie drawn by the seed) so no slot is wasted, else it is
+  refused.
 - **Runs.** The new candidates of a generation run in the worker processes of
   `gm.runtime.settings(processes=n)`; those of one structure are one batch on one plant (built once
   per process), each giving what it gives alone, so the result does not depend on `n`. A candidate

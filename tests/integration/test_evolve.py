@@ -50,10 +50,10 @@ def test_the_structures_without_a_chiller_are_not_valid(plant):
 
 
 def test_the_best_structure_has_the_chiller(plant, case):
-    """Each structure is run or refused once, then the search stalls; the best meets the case."""
+    """Each valid structure runs once, a refused one drawn counts as invalid; the best is valid."""
     found = gm.study.evolve(plant, case, "lcts", 6, 0, population=4, polish=0)
     assert found["evaluations"] == len(plant.structures()) < 6
-    assert found["evaluations"] + found["invalid"] == STRUCTURES
+    assert found["invalid"] >= STRUCTURES - found["evaluations"]
     best = found["best"]
     assert best["structure"]["chiller"] == "absorption"
     assert best["feasible"] and best["reason"] is None
