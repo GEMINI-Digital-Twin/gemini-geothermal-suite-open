@@ -1011,7 +1011,7 @@
   ]
  },
  "schemas": {
-  "case.schema.json": "7525d7a2628b4f80cb0feedb35ac7058e9f8e9874399b2889cfcb685cc94f867",
+  "case.schema.json": "8afdf26ec5e3a188b4514766dcfd56a22e61f039f0d80f3f8fd3b9ed035199f0",
   "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
   "economics.schema.json": "94360bd981ee80271eac0ff21cd1315c197e5bf579bab5f592da380d35e3ddd8",
   "module_description.schema.json": "ab505f2142d76ff6792ebcea84d05fe3a3896f43b56ae910ce9213cf28dc6e45",
@@ -1070,5 +1070,5 @@
   "study",
   "units"
  ],
- "version": "0.6.3"
+ "version": "0.6.4"
 }
