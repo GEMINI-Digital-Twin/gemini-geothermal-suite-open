@@ -35,7 +35,9 @@ class Field:
     must be present, ``text`` that its value is a free label, ``integer`` that it is a whole
     number, and ``keys`` that the field is a map ``{key: leaf}`` whose values add up to ``total``
     when that is set. ``description`` is the meaning of the field and its accepted units, written
-    into the JSON Schema; ``None`` writes none.
+    into the JSON Schema; ``None`` writes none. ``alternatives`` are other quantities the leaf may
+    be given in, its unit telling which (a cost per W/K or per W); in a map they hold for the keys
+    of ``alternative_keys`` only, or for every key when that is ``None``.
     """
 
     quantity: str | None = None
@@ -47,6 +49,24 @@ class Field:
     keys: tuple | None = None
     total: float | None = None
     description: str | None = None
+    alternatives: tuple = ()
+    alternative_keys: tuple | None = None
+
+    def accepted(self):
+        """Return the quantity of a leaf, or the tuple of quantities when it has alternatives."""
+        return (self.quantity, *self.alternatives) if self.alternatives else self.quantity
+
+    def of_key(self, key):
+        """Return the field of the leaf ``key`` of a map: no keys, and its own alternatives."""
+        keep = self.alternative_keys is None or key in self.alternative_keys
+        return dataclasses.replace(
+            self, keys=None, total=None, alternatives=self.alternatives if keep else ()
+        )
+
+    def kept(self, leaf):
+        """Return the quantity of a value set over ``leaf``: the basis that leaf was given in."""
+        quantity = getattr(leaf, "quantity", None)
+        return quantity if self.alternatives and quantity in self.alternatives else self.quantity
 
 
 @dataclass(frozen=True)
@@ -297,20 +317,22 @@ class Node(Frozen):
             return self._copy(children={head: child.with_value(rest, number)})
         if field.keys:
             return self._with_key(head, rest, field, number)
-        return self._with_leaf(head, field, self._leaf_of(field, number), number)
+        leaf = self._leaf_of(field, number, field.kept(self._leaves.get(head)))
+        return self._with_leaf(head, field, leaf, number)
 
     def _with_key(self, head, key, field, number):
         """Return a copy with the key ``key`` of the map ``head`` set."""
         current = self._leaves.get(head)
         leaves = {} if current is None else dict(current.leaves)
-        leaves[key] = self._leaf_of(field, number)
+        item = field.of_key(key)
+        leaves[key] = self._leaf_of(item, number, item.kept(leaves.get(key)))
         values = dict(getattr(self, head) or {}) | {key: number}
         return self._with_leaf(head, field, LeafMap(leaves), values)
 
     @staticmethod
-    def _leaf_of(field, number):
-        """Return the leaf of a constant SI ``number``, refused when outside the bounds."""
-        unit = None if field.quantity is None else si_unit_of(field.quantity)
+    def _leaf_of(field, number, quantity):
+        """Return the leaf of a constant SI ``number`` of ``quantity``, refused out of bounds."""
+        unit = None if quantity is None else si_unit_of(quantity)
         bounds = field.bounds
         if bounds is not None and (
             (bounds.min is not None and number < bounds.min)
@@ -320,7 +342,7 @@ class Node(Frozen):
                 f"value = {number}; expected within the bounds {bounds.to_json()} (SI)",
                 code="out_of_bounds",
             )
-        return inputs.Leaf(number, unit, field.quantity)
+        return inputs.Leaf(number, unit, quantity)
 
     def _with_leaf(self, name, field, leaf, value):
         """Return a copy with one leaf and its value replaced."""
@@ -425,7 +447,7 @@ def _leaf_from(field, data, path, ctx):
         data,
         path,
         ctx.issues,
-        quantity=field.quantity,
+        quantity=field.accepted(),
         bounds=field.bounds,
         source=ctx.source,
     )
@@ -490,9 +512,8 @@ def _map_from(field, data, path, ctx):
         return None
     before = len(ctx.issues)
     inputs.check_keys(data, field.keys, path, ctx.issues)
-    item = dataclasses.replace(field, keys=None, total=None)
     found = {
-        key: field_from(item, raw, join_path(path, key), ctx)
+        key: field_from(field.of_key(key), raw, join_path(path, key), ctx)
         for key, raw in data.items()
         if key in field.keys
     }

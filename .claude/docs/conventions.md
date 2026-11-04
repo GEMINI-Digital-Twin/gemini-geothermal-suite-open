@@ -464,7 +464,9 @@ reason it is needed:
 - Two optional method protocols: a module that is equipment (the mixin `Equipment` of
   `gemini/modules/_utils/equipment.py`) sets `equipment_kind`, one of the kinds of `gm.case.Capex`,
   and defines `cost_size()`, the size its cost scales with (a power, a length, a volume, or 1 for a
-  fixed item), in SI from its own design values. A module never reads a case: `gemini/evaluate`
+  fixed item), in SI from its own design values, and `cost_size_of(quantity)` for another cost basis
+  of its kind (`None` when it has no size of that quantity, `missing_value` when its design value
+  is unset). A module never reads a case: `gemini/evaluate`
   prices it, the unit cost of its kind in `case.economics` times that size, and the fixed opex is the
   share of the kind times that capex ([economics.md](economics.md#costs)). A module that overrides `health(result, measured)` gets a
   diagnostic, which the engine calls after each replayed twin (the base method returns `None`,

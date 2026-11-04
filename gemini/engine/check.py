@@ -4,6 +4,7 @@ from dataclasses import replace
 
 from gemini import units
 from gemini._utils.strings import join_path
+from gemini.case._utils.kinds import BASIS_SIZES, EQUIPMENT_KINDS
 from gemini.engine.apply import apply_case
 from gemini.errors import ValidationError
 from gemini.errors.base import Issue, raise_issues
@@ -33,6 +34,9 @@ def check(plant, case):
       (``missing``, ``economics.capex.<kind>``, ``economics.opex.fixed.<kind>``, code
       ``missing_assumption``); a case without economics is a pure physics case and has none of
       these issues;
+    - for a capex given on another basis than that of its kind (a heat exchanger per W), the
+      design value of each module of the kind that sizes it (``missing``, path
+      ``params.<path>.<name>``, code ``missing_value``);
     - every role a requirement names must exist in the plant (``incompatible``, path
       ``requirements[<n>].on``), except ``heating_supply`` and ``cooling_supply``: a plant without
       a supply is judged infeasible for that service by ``gm.evaluate.verdict``, so that one case
@@ -91,6 +95,7 @@ def issues_of(applied, case):
         return [
             *_parameters(applied),
             *_kinds(applied, case),
+            *_sizes(applied, case),
             *_roles(applied, case),
             *_states(applied, case),
             *_prices(applied, case),
@@ -162,6 +167,37 @@ def _kinds(plant, case):
             found.append(_absent(f"capex.{kind}", kind))
         if fixed.get(kind) is None:
             found.append(_absent(f"opex.fixed.{kind}", kind))
+    return found
+
+
+def _sizes(plant, case):
+    """Return the issues of a size that a capex on another basis needs and a module lacks.
+
+    The unit of ``economics.capex.<kind>`` tells the basis; a basis per unit needs no size.
+    """
+    capex = None if case.economics is None else case.economics.capex
+    if capex is None:
+        return []
+    found = []
+    for _, module in plant.named_modules():
+        kind = getattr(module, "equipment_kind", None) if module.is_initialized else None
+        if kind is None:
+            continue
+        quantity = getattr(capex.leaf(kind), "quantity", None)
+        if quantity == EQUIPMENT_KINDS[kind][0] or quantity not in BASIS_SIZES:
+            continue
+        try:
+            module.cost_size_of(BASIS_SIZES[quantity])
+        except ValidationError as error:
+            found += [
+                Issue(
+                    join_path("params", form.file_path(item["path"])),
+                    "missing",
+                    item["message"],
+                    code=item["code"],
+                )
+                for item in error.problems
+            ]
     return found
 
 

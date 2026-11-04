@@ -2246,7 +2246,7 @@
                 },
                 "heat_exchanger": {
                   "additionalProperties": false,
-                  "description": "Investment in the equipment kind heat_exchanger: per W/K of conductance (EUR/(W/K))",
+                  "description": "Investment in the equipment kind heat_exchanger: per W/K of conductance (EUR/(W/K)), or per W of nominal duty (EUR/W); the unit tells the basis",
                   "properties": {
                     "range": {
                       "additionalProperties": false,
@@ -2288,7 +2288,9 @@
                     "unit": {
                       "enum": [
                         "EUR/(W/K)",
-                        "currency/(W/K)"
+                        "currency/(W/K)",
+                        "EUR/W",
+                        "currency/W"
                       ]
                     },
                     "value": {
@@ -2300,6 +2302,16 @@
                     "unit"
                   ],
                   "type": "object",
+                  "x-bases": {
+                    "money_per_conductance": [
+                      "EUR/(W/K)",
+                      "currency/(W/K)"
+                    ],
+                    "money_per_power": [
+                      "EUR/W",
+                      "currency/W"
+                    ]
+                  },
                   "x-limits": {
                     "min": 0.0,
                     "unit": "currency/(W/K)"
@@ -2307,7 +2319,9 @@
                   "x-quantity": "money_per_conductance",
                   "x-units": [
                     "EUR/(W/K)",
-                    "currency/(W/K)"
+                    "currency/(W/K)",
+                    "EUR/W",
+                    "currency/W"
                   ]
                 },
                 "heat_pump": {
@@ -2378,7 +2392,7 @@
                 },
                 "ice_storage": {
                   "additionalProperties": false,
-                  "description": "Investment in the equipment kind ice_storage: per m3 (EUR/m3)",
+                  "description": "Investment in the equipment kind ice_storage: per m3 (EUR/m3), or per J of energy capacity (EUR/MWh); the unit tells the basis",
                   "properties": {
                     "range": {
                       "additionalProperties": false,
@@ -2420,7 +2434,13 @@
                     "unit": {
                       "enum": [
                         "EUR/m3",
-                        "currency/m3"
+                        "currency/m3",
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
                       ]
                     },
                     "value": {
@@ -2432,6 +2452,20 @@
                     "unit"
                   ],
                   "type": "object",
+                  "x-bases": {
+                    "money_per_energy": [
+                      "EUR/J",
+                      "EUR/MWh",
+                      "EUR/kWh",
+                      "currency/J",
+                      "currency/MWh",
+                      "currency/kWh"
+                    ],
+                    "money_per_volume": [
+                      "EUR/m3",
+                      "currency/m3"
+                    ]
+                  },
                   "x-limits": {
                     "min": 0.0,
                     "unit": "currency/m3"
@@ -2439,7 +2473,13 @@
                   "x-quantity": "money_per_volume",
                   "x-units": [
                     "EUR/m3",
-                    "currency/m3"
+                    "currency/m3",
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
                   ]
                 },
                 "injection_pump": {
@@ -2576,7 +2616,7 @@
                 },
                 "production_pump": {
                   "additionalProperties": false,
-                  "description": "Investment in the equipment kind production_pump: per W of shaft power at the nominal flow (EUR/W)",
+                  "description": "Investment in the equipment kind production_pump: per W of shaft power at the nominal flow (EUR/W), or per unit (EUR); the unit tells the basis",
                   "properties": {
                     "range": {
                       "additionalProperties": false,
@@ -2618,7 +2658,11 @@
                     "unit": {
                       "enum": [
                         "EUR/W",
-                        "currency/W"
+                        "currency/W",
+                        "EUR",
+                        "MEUR",
+                        "currency",
+                        "kEUR"
                       ]
                     },
                     "value": {
@@ -2630,6 +2674,18 @@
                     "unit"
                   ],
                   "type": "object",
+                  "x-bases": {
+                    "money": [
+                      "EUR",
+                      "MEUR",
+                      "currency",
+                      "kEUR"
+                    ],
+                    "money_per_power": [
+                      "EUR/W",
+                      "currency/W"
+                    ]
+                  },
                   "x-limits": {
                     "min": 0.0,
                     "unit": "currency/W"
@@ -2637,12 +2693,16 @@
                   "x-quantity": "money_per_power",
                   "x-units": [
                     "EUR/W",
-                    "currency/W"
+                    "currency/W",
+                    "EUR",
+                    "MEUR",
+                    "currency",
+                    "kEUR"
                   ]
                 },
                 "thermal_storage": {
                   "additionalProperties": false,
-                  "description": "Investment in the equipment kind thermal_storage: per m3 (EUR/m3)",
+                  "description": "Investment in the equipment kind thermal_storage: per m3 (EUR/m3), or per J of energy capacity (EUR/MWh); the unit tells the basis",
                   "properties": {
                     "range": {
                       "additionalProperties": false,
@@ -2684,7 +2744,13 @@
                     "unit": {
                       "enum": [
                         "EUR/m3",
-                        "currency/m3"
+                        "currency/m3",
+                        "EUR/J",
+                        "EUR/MWh",
+                        "EUR/kWh",
+                        "currency/J",
+                        "currency/MWh",
+                        "currency/kWh"
                       ]
                     },
                     "value": {
@@ -2696,6 +2762,20 @@
                     "unit"
                   ],
                   "type": "object",
+                  "x-bases": {
+                    "money_per_energy": [
+                      "EUR/J",
+                      "EUR/MWh",
+                      "EUR/kWh",
+                      "currency/J",
+                      "currency/MWh",
+                      "currency/kWh"
+                    ],
+                    "money_per_volume": [
+                      "EUR/m3",
+                      "currency/m3"
+                    ]
+                  },
                   "x-limits": {
                     "min": 0.0,
                     "unit": "currency/m3"
@@ -2703,7 +2783,13 @@
                   "x-quantity": "money_per_volume",
                   "x-units": [
                     "EUR/m3",
-                    "currency/m3"
+                    "currency/m3",
+                    "EUR/J",
+                    "EUR/MWh",
+                    "EUR/kWh",
+                    "currency/J",
+                    "currency/MWh",
+                    "currency/kWh"
                   ]
                 }
               },

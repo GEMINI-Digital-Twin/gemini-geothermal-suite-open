@@ -83,6 +83,15 @@ class HeatExchanger(Equipment, Module):
                 "fouling check off"
             ),
         )
+        self.nominal_duty = Parameter(
+            Duty | None,
+            default=None,
+            gt=0,
+            description=(
+                "Heat duty at the design point; the size of a cost given per W, and empty when "
+                "the cost is per W/K"
+            ),
+        )
 
         # Inlets
         self.hot_in = Port(
@@ -175,6 +184,14 @@ class HeatExchanger(Equipment, Module):
     def cost_size(self):
         """Return the size that the cost of the exchanger scales with: thermal conductance."""
         return self.thermal_conductance
+
+    def cost_size_of(self, quantity):
+        """Return the ``nominal_duty`` [W] for a cost per power, ``None`` for another quantity."""
+        if quantity != "power":
+            return None
+        if self.nominal_duty is None:
+            raise self.missing_size("nominal_duty")
+        return self.nominal_duty
 
     def _performance(self, hot_in, cold_in):
         """Return the outputs of the exchanger: the balance of the two streams and the drops."""

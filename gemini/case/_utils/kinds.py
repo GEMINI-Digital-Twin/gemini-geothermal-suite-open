@@ -26,6 +26,27 @@ EQUIPMENT_KINDS = {
 The keys of ``economics.capex`` and ``economics.opex.fixed``. A module that is
 equipment declares one of these kinds."""
 
+CAPEX_BASES = {
+    "production_pump": {"money": "per unit"},
+    "heat_exchanger": {"money_per_power": "per W of nominal duty"},
+    "thermal_storage": {"money_per_energy": "per J of energy capacity"},
+    "ice_storage": {"money_per_energy": "per J of energy capacity"},
+}
+"""The other cost bases of a kind besides ``EQUIPMENT_KINDS``: ``{kind: {quantity: basis}}``.
+
+The unit of ``economics.capex.<kind>`` tells which basis a factor is on (EUR/(W/K) or EUR/W for a
+heat exchanger). A basis per unit counts one per module; any other needs the size of the module in
+that quantity (``Equipment.cost_size_of``)."""
+
+BASIS_SIZES = {
+    "money_per_power": "power",
+    "money_per_energy": "energy",
+    "money_per_volume": "volume",
+    "money_per_length": "length",
+    "money_per_conductance": "thermal_conductance",
+}
+"""For a cost per a quantity, the quantity of the size it multiplies (``cost_size_of``)."""
+
 GAS_SPECIES = ("CH4", "CO2", "N2", "H2S")
 """The species of ``site.fluid.dissolved_gas``."""
 

@@ -150,3 +150,59 @@ def test_the_schema_lists_the_consumables_the_variable_opex_accepts():
     assert variable["additionalProperties"] is False
     assert "inhibitor" in variable["properties"]["chemical"]["description"]
     assert "chemical" in variable["description"] and "waste_disposal" in variable["description"]
+
+
+def test_the_unit_of_a_capex_factor_tells_its_basis(money):
+    """A heat exchanger per W of duty, a tank per MWh stored, a production pump per unit."""
+    money["capex"] |= {
+        "heat_exchanger": {"value": 0.14, "unit": "EUR/W"},
+        "thermal_storage": {"value": 3, "unit": "EUR/MWh"},
+        "ice_storage": {"value": 4, "unit": "EUR/kWh"},
+        "production_pump": {"value": 0.8, "unit": "MEUR"},
+    }
+    found = gm.case.Economics.from_dict(money)
+    assert found.capex.heat_exchanger == pytest.approx(0.14)
+    assert found.capex.thermal_storage == pytest.approx(3 / 3.6e9)
+    assert found.capex.production_pump == pytest.approx(8e5)
+    bases = {kind: found.capex.leaf(kind).quantity for kind in money["capex"]}
+    assert bases["heat_exchanger"] == "money_per_power"
+    assert bases["thermal_storage"] == bases["ice_storage"] == "money_per_energy"
+    assert bases["production_pump"] == "money" and bases["heat_pump"] == "money_per_power"
+    assert found.to_dict() == money
+
+
+def test_a_capex_unit_of_no_basis_of_the_kind_is_refused_naming_every_accepted_unit(money):
+    """A boiler has no basis per energy; a heat exchanger none per m3."""
+    for kind, unit in (("boiler", "EUR/MWh"), ("heat_exchanger", "EUR/m3")):
+        data = copy.deepcopy(money)
+        data["capex"][kind] = {"value": 1, "unit": unit}
+        with pytest.raises(gm.errors.ValidationError) as caught:
+            gm.case.Economics.from_dict(data)
+        problem = caught.value.problems[0]
+        assert problem["path"] == f"economics.capex.{kind}.unit"
+        assert problem["code"] == "invalid_unit"
+        if kind == "heat_exchanger":
+            assert "EUR/(W/K)" in problem["message"] and "EUR/W" in problem["message"]
+
+
+def test_a_value_set_on_a_capex_factor_keeps_its_basis(money):
+    """``with_value`` writes the SI number in the SI unit of the basis the file gave."""
+    money["capex"]["heat_exchanger"] = {"value": 0.14, "unit": "EUR/W"}
+    found = gm.case.Economics.from_dict(money).with_value("capex.heat_exchanger", 0.2)
+    assert found.capex.leaf("heat_exchanger").to_json() == {"value": 0.2, "unit": "currency/W"}
+    assert found.check() == []
+    fresh = gm.case.Economics.from_dict(money).with_value("capex.boiler", 0.1)
+    assert fresh.capex.leaf("boiler").quantity == "money_per_power"
+
+
+def test_the_schema_lists_the_bases_of_a_capex_factor_by_quantity():
+    """``x-bases``: each accepted quantity with its units, the first that of ``x-quantity``."""
+    capex = gm.case.Economics.schema()["properties"]["capex"]["properties"]
+    bases = capex["heat_exchanger"]["x-bases"]
+    assert list(bases) == ["money_per_conductance", "money_per_power"]
+    assert bases["money_per_power"] == gm.units.names("money_per_power")
+    assert set(capex["heat_exchanger"]["properties"]["unit"]["enum"]) == {
+        unit for units in bases.values() for unit in units
+    }
+    assert "x-bases" not in capex["boiler"]
+    assert "per W of nominal duty" in capex["heat_exchanger"]["description"]

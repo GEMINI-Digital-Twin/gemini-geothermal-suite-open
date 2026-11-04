@@ -1,5 +1,7 @@
 """What a study may vary: a value of the plant, or a value of the case named ``case.<path>``."""
 
+import dataclasses
+
 import numpy as np
 
 from gemini import units
@@ -52,7 +54,8 @@ def _not_a_number(name, detail):
 def case_field(case, name):
     """Return ``(field, current)`` of the value ``case.<path>``: its field and its SI value.
 
-    ``field`` is the ``Field`` of the value (its quantity and bounds); ``current`` is ``None`` when
+    ``field`` is the ``Field`` of the value (its quantity and bounds; for a value whose unit tells
+    its basis, the quantity it was given in); ``current`` is ``None`` when
     the value is absent and the mean of the steps for a series. A section above it that is absent
     raises ``missing_value``. A path that is no number of the case (a text, a table, a date)
     raises ``invalid_value``; an unknown part raises ``unknown_name``.
@@ -70,6 +73,9 @@ def case_field(case, name):
     if field.keys and path.rpartition(".")[2] not in field.keys:
         raise _not_a_number(name, f" (a table of {join_names(field.keys)}: name one of them)")
     leaf = case.leaf(path)
+    if field.keys:
+        field = field.of_key(path.rpartition(".")[2])
+    field = dataclasses.replace(field, quantity=field.kept(leaf), alternatives=())
     return field, None if leaf is None else _number(leaf.si)
 
 

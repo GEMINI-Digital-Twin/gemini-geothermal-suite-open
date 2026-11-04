@@ -325,16 +325,33 @@ def from_section(value, path, source, issues):
     return data, source.at(value)
 
 
+def _quantities(quantity):
+    """Return the quantity names of ``quantity``: a name or a tuple of names, the first the main."""
+    return quantity if isinstance(quantity, tuple) else (quantity,)
+
+
+def _fitting(quantity, unit):
+    """Return the first quantity of ``quantity`` that ``unit`` fits, else the first of them.
+
+    A leaf whose field accepts several quantities (a cost per W or per W/K) takes the one its
+    unit tells.
+    """
+    names = _quantities(quantity)
+    found = (name for name in names if isinstance(unit, str) and units.fits(unit, name))
+    return next(found, names[0])
+
+
 def _unit_issue(issues, path, quantity, given, text):
     """Append the ``unit`` issue naming the quantity and the units it accepts."""
-    accepted = tuple(units.names(quantity))
+    names = _quantities(quantity)
+    accepted = tuple(unit for name in names for unit in units.names(name))
+    spelled = " or ".join(name.replace("_", " ") for name in names)
     _issue(
         issues,
         path,
         "unit",
-        f"{path}: {text}; expected a unit of {quantity.replace('_', ' ')}: "
-        f"{join_names(list(accepted))}",
-        quantity=quantity,
+        f"{path}: {text}; expected a unit of {spelled}: {join_names(list(accepted))}",
+        quantity=names[0],
         accepted=accepted,
         suggestions=tuple(close_matches(given, accepted)) if isinstance(given, str) else (),
     )
@@ -356,7 +373,7 @@ def _from_unit(data, path, quantity, issues):
     if "unit" not in data:
         _unit_issue(issues, unit_path, quantity, "", "unit is missing")
         return None
-    if not isinstance(given, str) or not units.fits(given, quantity):
+    if not isinstance(given, str) or not any(units.fits(given, q) for q in _quantities(quantity)):
         _unit_issue(issues, unit_path, quantity, given, f"unit = {given!r}")
         return None
     return given
@@ -543,11 +560,12 @@ def _dimension_form(data, path, quantity, choices, issues):
 def from_leaf(data, path, issues, *, quantity=None, choices=None, bounds=None, source=None):
     """Return the ``Leaf`` of ``data`` or ``None`` with issues appended.
 
-    ``quantity`` is the name of the dimension (``"power"``) or ``None`` for a dimensionless value
-    or a choice; ``choices`` the closed list of a choice; ``bounds`` a ``Range`` in SI the value and
-    the ends of its range must lie in; ``source`` a ``Source`` for a series (``file`` replaces
-    ``value``). A bare number, text such as ``"150 m3/h"``, a unit on a dimensionless value, a
-    missing unit on a quantity and an unknown key are issues.
+    ``quantity`` is the name of the dimension (``"power"``), a tuple of names when the unit tells
+    which one the value is in (the ``Leaf`` keeps the one it fits), or ``None`` for a
+    dimensionless value or a choice; ``choices`` the closed list of a choice; ``bounds`` a
+    ``Range`` in SI the value and the ends of its range must lie in; ``source`` a ``Source`` for a
+    series (``file`` replaces ``value``). A bare number, text such as ``"150 m3/h"``, a unit on a
+    dimensionless value, a missing unit on a quantity and an unknown key are issues.
     """
     if not _dimension_form(data, path, quantity, choices, issues):
         return None
@@ -560,7 +578,7 @@ def from_leaf(data, path, issues, *, quantity=None, choices=None, bounds=None, s
     extras = _from_extras(data, path, unit, value, choices, bounds, issues)
     if len(issues) > before:
         return None
-    return Leaf(value, unit, quantity, *extras)
+    return Leaf(value, unit, None if quantity is None else _fitting(quantity, unit), *extras)
 
 
 def _from_extras(data, path, unit, value, choices, bounds, issues):
@@ -592,6 +610,7 @@ def _from_series_leaf(data, path, issues, quantity, bounds, source):
     before = len(issues)
     check_keys(data, SERIES_KEYS, path, issues)
     unit = _from_unit(data, path, quantity, issues)
+    quantity = None if quantity is None else _fitting(quantity, unit)
     series = from_series(data, path, source, issues, quantity=quantity, unit=unit)
     rng = None
     if "range" in data:

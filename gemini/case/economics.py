@@ -8,7 +8,7 @@ from gemini import units
 from gemini._utils.strings import join_path
 from gemini.case._utils import schema
 from gemini.case._utils.access import require
-from gemini.case._utils.kinds import EQUIPMENT_KINDS
+from gemini.case._utils.kinds import CAPEX_BASES, EQUIPMENT_KINDS
 from gemini.case._utils.node import Field, Frozen, Node, issue, load, write
 from gemini.case.site import FRACTION, POSITIVE
 from gemini.errors import ValidationError
@@ -22,16 +22,20 @@ EXAMPLE_UNITS = {
     "money_per_length": "EUR/m",
     "money_per_conductance": "EUR/(W/K)",
     "money_per_volume": "EUR/m3",
+    "money_per_energy": "EUR/MWh",
 }
 """A unit of each cost basis, named in the descriptions of the schema; ``x-units`` lists all."""
 
 
 def _capex_text(kind, quantity, basis):
-    """Return the description of ``capex.<kind>``: its basis and a unit of it."""
-    text = f"Investment in the equipment kind {kind}: {basis} ({EXAMPLE_UNITS[quantity]})"
+    """Return the description of ``capex.<kind>``: its bases, each with a unit of it."""
+    bases = {quantity: basis} | CAPEX_BASES.get(kind, {})
+    text = f"Investment in the equipment kind {kind}: " + ", or ".join(
+        f"{told} ({EXAMPLE_UNITS[name]})" for name, told in bases.items()
+    )
     if kind == "drilling":
         text += ", or a table of the cost per metre by measured depth"
-    return text
+    return text + ("; the unit tells the basis" if len(bases) > 1 else "")
 
 
 class DepthTable(Frozen):
@@ -118,9 +122,12 @@ class Capex(Node):
 
     The fields are the equipment kinds of ``gemini.case._utils.kinds.EQUIPMENT_KINDS``, each with
     its cost basis: per W of capacity, per metre, per W/K, per m3, or a fixed amount, as a
-    ``{"value", "unit"}`` in ``currency``. ``drilling`` may instead be a table by depth,
-    ``{"depth": {"value": [...], "unit": "m"}, "cost_per_metre": {"value": [...], "unit":
-    "EUR/m"}}``, which ``Economics.drilling_cost_per_metre`` interpolates.
+    ``{"value", "unit"}`` in ``currency``. Some kinds accept another basis
+    (``gemini.case._utils.kinds.CAPEX_BASES``: a heat exchanger per W of nominal duty, a storage
+    per J stored, a production pump per unit), and the unit of the factor tells which.
+    ``drilling`` may instead be a table by depth, ``{"depth": {"value": [...], "unit": "m"},
+    "cost_per_metre": {"value": [...], "unit": "EUR/m"}}``, which
+    ``Economics.drilling_cost_per_metre`` interpolates.
     """
 
     where = "economics.capex"
@@ -129,7 +136,12 @@ class Capex(Node):
         "is priced by; a kind a plant uses and the economics lacks raises missing_assumption"
     )
     fields = {
-        kind: Field(quantity, bounds=POSITIVE, description=_capex_text(kind, quantity, basis))
+        kind: Field(
+            quantity,
+            bounds=POSITIVE,
+            description=_capex_text(kind, quantity, basis),
+            alternatives=tuple(CAPEX_BASES.get(kind, ())),
+        )
         for kind, (quantity, basis) in EQUIPMENT_KINDS.items()
     }
 

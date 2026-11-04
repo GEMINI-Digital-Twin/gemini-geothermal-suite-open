@@ -112,7 +112,7 @@ Shared conventions, stated once here and not repeated per module:
 
 A module that is equipment subclasses the mixin `Equipment` (`gemini/modules/_utils/equipment.py`), sets
 `equipment_kind` to one of the 19 kinds of `gm.case.Capex` and defines `cost_size()`, the size its
-cost scales with; `gemini/evaluate` prices it, and the fixed opex is the share of the kind times
+cost scales with, and, for a kind with another cost basis, `cost_size_of(quantity)`; `gemini/evaluate` prices it, and the fixed opex is the share of the kind times
 that capex. The factor is read from `case.economics`; one the case lacks raises `missing_assumption` naming its path. These
 modules are equipment, with the size the factor multiplies ([economics.md](economics.md#costs)):
 
@@ -783,7 +783,9 @@ Two-stream effectiveness-NTU heat exchanger with fouling diagnostics.
 - **Parameters**: `thermal_conductance` (`ThermalConductance`, calibratable, required), `arrangement`
   (`"counterflow"` or `"parallel"`, required), `hot_nominal_pressure_drop`, `cold_nominal_pressure_drop`
   (>= 0, required) at `hot_nominal_mass_flow`, `cold_nominal_mass_flow` (> 0, required),
-  `fouling_threshold` (`Fraction | None`, default `None`: `health` returns `None`; 0.15 is a usual alarm limit).
+  `fouling_threshold` (`Fraction | None`, default `None`: `health` returns `None`; 0.15 is a usual alarm limit),
+  `nominal_duty` (`Duty | None`, default `None`: the size of a capex given per W, `cost_size_of("power")`;
+  without it such a capex raises `missing_value` naming it).
 - **Outputs**: `duty` (soft sensor), `effectiveness` (soft sensor), `transfer_units`,
   `log_mean_temperature_difference`, `hot_out_T`, `cold_out_T`, `hot_pressure_drop`,
   `cold_pressure_drop`, `approach_temperature`.
@@ -1400,7 +1402,9 @@ Fully mixed hot or chilled water tank with a charge and a discharge circuit.
 - **Parameters**: `service` (`"hot"` or `"chilled"`, the sign of the reported energies),
   `volume` (> 0), `heat_loss_conductance` (UA to ambient), `reference_temperature` (zero of
   `stored_energy`), all required; `charge_effectiveness`, `discharge_effectiveness`
-  (`Fraction`, required, 1 is a direct connection).
+  (`Fraction`, required, 1 is a direct connection); `energy_capacity` (`Energy | None`, default
+  `None`: the heat the tank holds between its design temperatures, the size of a capex given per
+  MWh, `cost_size_of("energy")`; without it such a capex raises `missing_value` naming it).
 - **Boundaries**: the temperature of `air_in`.
 - **States**: `temperature` (no default: `case.initial_state` gives it, `missing_value` when absent).
 - **Outputs**: `tank_temperature`, `stored_energy`, `charge_duty`, `discharge_duty`,

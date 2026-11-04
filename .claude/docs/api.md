@@ -401,8 +401,9 @@ The cost functions return a value with the parts of the result as more keys. A v
 cannot give raises `ValidationError` (code `no_value`, or `missing_assumption` for an assumption
 nobody gave); with `on_error="record"` it is a `Value` whose `value` is `None` and whose `reason`
 says why. Prices, rates and cost factors are those of `case.economics`; gemini holds none.
-Equipment declares its `equipment_kind` and the `cost_size()` its cost scales with; `gm.evaluate` multiplies
-it by the cost factor of its kind, see [economics.md](economics.md#costs). A violated requirement is a check, never an
+Equipment declares its `equipment_kind` and the `cost_size()` its cost scales with (and
+`cost_size_of(quantity)` for another basis of its kind); `gm.evaluate` multiplies
+it by the cost factor of its kind, the unit of the factor telling its basis, see [economics.md](economics.md#costs). A violated requirement is a check, never an
 error.
 
 | Name | Status |

@@ -61,7 +61,24 @@ mixin `Equipment` (`gemini/modules/_utils/equipment.py`), sets `equipment_kind` 
 `gm.case.Capex` and defines `cost_size()`, the size its cost scales with. A module never reads the
 case: `gemini/evaluate/_utils/pricing.py` multiplies that size by the factor of the kind (for
 `drilling`, the cost per metre of the length drilled) and the fixed opex is the share
-`opex.fixed[kind]` times that capex. A composite adds only its own part. A factor or a share that
+`opex.fixed[kind]` times that capex.
+
+The unit of a capex factor tells its basis. Besides the basis of the table below, some kinds take
+another (`CAPEX_BASES` of `gemini/case/_utils/kinds.py`), so that a factor of a cost catalogue
+is used as it is published:
+
+| Kind | Other basis | Unit | Size |
+| --- | --- | --- | --- |
+| `heat_exchanger` | per W of nominal duty | `EUR/W` | `HeatExchanger.nominal_duty` |
+| `thermal_storage`, `ice_storage` | per energy stored | `EUR/MWh` | `ThermalStorage.energy_capacity` (no module is `ice_storage`) |
+| `production_pump` | per unit | `EUR` | one per `Doublet`, whatever its flow |
+
+A module gives the size of another basis with `cost_size_of(quantity)` (`"power"`, `"energy"`). A
+size it lacks raises `missing_value` naming the design value (`<path>.nominal_duty`), and
+`gm.check` reports it as `params.<path>.<name>`; a module with no size of that quantity has no
+value (`no_value`). A unit of no basis of the kind is refused when the economics is read
+(`invalid_unit`, listing the units of every basis), and `Economics.schema()` lists the bases of a
+kind in `x-bases`. A study or a sensitivity varies such a factor in the unit of its basis. A composite adds only its own part. A factor or a share that
 the case lacks for a kind the plant uses raises `missing_assumption` naming
 `economics.capex.<kind>` or `economics.opex.fixed.<kind>`; nothing is
 estimated. A plant with no equipment has no value.

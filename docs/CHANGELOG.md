@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   section a `description`: its meaning and the units it accepts. `opex.variable` says it accepts
   two consumables only, `chemical` (every product drawn from a `ChemicalGrid`, a scale or a
   corrosion inhibitor alike) and `waste_disposal`, each per kg.
+- A capex factor's unit tells its basis: `economics.capex.heat_exchanger` per W of nominal duty
+  (`EUR/W`) besides per W/K, `thermal_storage` and `ice_storage` per energy stored (`EUR/MWh`)
+  besides per m3, `production_pump` per unit (`EUR`) besides per W. The new optional parameters
+  `HeatExchanger.nominal_duty` and `ThermalStorage.energy_capacity` give those sizes
+  (`Equipment.cost_size_of(quantity)`); a missing one raises `missing_value` naming it, and
+  `gm.check` reports it. A unit of no basis is `invalid_unit`. `Economics.schema()` lists the
+  bases in `x-bases`. Every existing file reads and costs as before.
 
 ### Changed
 - Documents by audience: `README.md` is short and `docs/` is for people, with `docs/guide.md`,

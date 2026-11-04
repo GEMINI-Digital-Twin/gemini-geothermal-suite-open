@@ -157,7 +157,8 @@ numbers in it; `equals` is `min` = `max`. `name` is required, snake_case and uni
 **Economics.** `gm.case.Economics` is its own class (`from_json`, `to_json`, `check`, `schema`)
 and the case holds it as `case.economics`, `None` for a pure physics case. Fields: `currency` and
 `price_year`, `discount_rate`, `analysis_period`, `capex.<kind>` (the 19 kinds of
-[economics.md](economics.md#costs)), `opex.fixed.<kind>`, `opex.variable.chemical` and
+[economics.md](economics.md#costs); the unit tells the basis: a heat exchanger per W/K or per W
+of nominal duty, a storage per m3 or per MWh stored, a production pump per W or per unit), `opex.fixed.<kind>`, `opex.variable.chemical` and
 `waste_disposal`, `energy.electricity` and `gas`, `carbon.price`, `revenue.heat`, `cold` and
 `subsidy` (`amount` per year, `duration`), `accounting.allocation.heat_cost_share` and
 `accounting.gwp` (`standard` text, `CH4`). `capex.drilling` is a quantity per metre or a depth table
