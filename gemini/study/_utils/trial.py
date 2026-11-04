@@ -28,10 +28,13 @@ ECONOMICS = {
 }
 """The economic metrics of ``gm.evaluate``; the others are the KPIs of ``gm.evaluate.totals``."""
 
+METRICS = (*KPI_NAMES, *ECONOMICS)
+"""The names of every metric a study reads, in order: the one list ``gm.study.metrics`` shows."""
+
 
 def checked_metric(name):
     """Return ``name`` when it is a metric the call can read, or raise with the close names."""
-    known = [*KPI_NAMES, *ECONOMICS]
+    known = list(METRICS)
     if name not in known:
         raise ValidationError(
             f"study: metric = {name!r}; expected one of {join_names(known)}"

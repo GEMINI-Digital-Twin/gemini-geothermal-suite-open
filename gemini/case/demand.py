@@ -22,17 +22,48 @@ class Service(Node):
     """
 
     where = "demand.heating"
+    description = "The heating service: the power demanded and the conditions of the consumer."
     old = {
         "column": '"power": {"file": "data/demand.csv", "column": "...", "unit": "MW"}',
         "unit": '"power": {"file": "data/demand.csv", "column": "...", "unit": "MW"}',
     }
     fields = {
-        "power": Field("power", series=True, bounds=POSITIVE, required=True),
-        "supply_temperature": Field("temperature", bounds=POSITIVE),
-        "return_temperature": Field("temperature", bounds=POSITIVE),
-        "minimum_return_temperature": Field("temperature", bounds=POSITIVE),
-        "maximum_return_temperature": Field("temperature", bounds=POSITIVE),
-        "return_pressure": Field("pressure", bounds=POSITIVE),
+        "power": Field(
+            "power",
+            series=True,
+            bounds=POSITIVE,
+            required=True,
+            description=(
+                "The power the consumers demand, a constant or a series on the steps of time."
+            ),
+        ),
+        "supply_temperature": Field(
+            "temperature",
+            bounds=POSITIVE,
+            description="The temperature the consumer asks the water to be supplied at.",
+        ),
+        "return_temperature": Field(
+            "temperature",
+            bounds=POSITIVE,
+            description="The temperature the water returns from the consumer at.",
+        ),
+        "minimum_return_temperature": Field(
+            "temperature",
+            bounds=POSITIVE,
+            description="The lowest temperature the consumer can return the water at (cool it to).",
+        ),
+        "maximum_return_temperature": Field(
+            "temperature",
+            bounds=POSITIVE,
+            description=(
+                "The highest temperature the consumer can return the water at (warm it to)."
+            ),
+        ),
+        "return_pressure": Field(
+            "pressure",
+            bounds=POSITIVE,
+            description="The pressure of the water leaving the consumer.",
+        ),
     }
 
 
@@ -44,11 +75,28 @@ class CoolingService(Service):
     """
 
     where = "demand.cooling"
+    description = (
+        "The cooling service: the power demanded, the conditions of the consumer and the state of "
+        "the building."
+    )
     fields = {
         **Service.fields,
-        "indoor_temperature": Field("temperature", bounds=POSITIVE),
-        "indoor_relative_humidity": Field(bounds=FRACTION),
-        "dew_point_margin": Field("temperature_difference", bounds=POSITIVE),
+        "indoor_temperature": Field(
+            "temperature",
+            bounds=POSITIVE,
+            description="The indoor air temperature of the building.",
+        ),
+        "indoor_relative_humidity": Field(
+            bounds=FRACTION, description="The relative humidity of the indoor air, between 0 and 1."
+        ),
+        "dew_point_margin": Field(
+            "temperature_difference",
+            bounds=POSITIVE,
+            description=(
+                "The margin the chilled water keeps above the dew point of the room; below it a "
+                "latent load is taken."
+            ),
+        ),
     }
 
 
@@ -64,6 +112,7 @@ class Demand(Node):
     """
 
     where = "demand"
+    description = "What the consumers take: the heating and the cooling service, at least one."
     old = {
         "file": 'a "power" series in "heating" and "cooling"',
         "time_column": 'a first column named "time" in the CSV file',
