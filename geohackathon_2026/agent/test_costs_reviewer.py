@@ -118,3 +118,11 @@ def test_sold_electricity_lowers_cost():
     """Surplus CHP electricity sold at the export price lowers the yearly cost."""
     sold = dict(YEAR, electricity_exported_gwh=1.0)
     assert design_costs(2, 3200, YEAR)["annual_cost_meur"] - design_costs(2, 3200, sold)["annual_cost_meur"] == pytest.approx(0.08, abs=0.005)
+
+
+def test_wrong_return_temperature_is_flagged():
+    from run_agent import wrong_return_temperature
+
+    assert wrong_return_temperature("Return temperature: 40 C, lowest cost.", 50.0) == 40.0
+    assert wrong_return_temperature("Return temperature: 50°C, best return.", 50.0) is None
+    assert wrong_return_temperature("No return stated.", 50.0) is None

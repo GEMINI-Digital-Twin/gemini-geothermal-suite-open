@@ -129,7 +129,7 @@
       "type": "chp",
       "parameters": {
         "caloric_value": 29660000.0,
-        "efficiency_factor": 0.8,
+        "efficiency_factor": 0.85,
         "gas_emission_factor": 68.6,
         "fluid_density": 1030.0,
         "specific_heat": 4100.0

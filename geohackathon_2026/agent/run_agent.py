@@ -100,6 +100,17 @@ def for_model(name, result):
     return {**result, "designs": lines}
 
 
+RETURN_IN_ANSWER = re.compile(r"Return temperature[^\n]*?(\d+(?:\.\d+)?)\s*°?\s*C", re.I)
+
+
+def wrong_return_temperature(answer, best_return_c):
+    """Return the return temperature the answer states if it differs from the tools' choice."""
+    match = RETURN_IN_ANSWER.search(answer)
+    if best_return_c is None or not match or abs(float(match.group(1)) - best_return_c) < 0.01:
+        return None
+    return float(match.group(1))
+
+
 def cheapest_ineligible_missing(answer, comparisons):
     """Return the cheapest ineligible design's cost if the answer leaves it out, else None."""
     if not comparisons or not comparisons[-1].get("lowest_cost_ineligible"):
@@ -182,6 +193,7 @@ def run(question):
     year_runs, cost_runs, tool_results, doublet_runs = {}, {}, [], []
     return_runs, outage_runs, uncertainty_runs, year_checks = set(), set(), set(), set()
     comparisons = []
+    best_returns = {}
 
     def log(entry):
         with open(log_path, "a", encoding="utf-8") as file:
@@ -254,6 +266,15 @@ def run(question):
                         f"{design[2]} and report its return temperature, unplanned failure, uncertainty "
                         "and GEMINI year results."
                     )
+            if chosen:
+                best = best_returns.get(chosen_design(chosen))
+                stated = wrong_return_temperature(answer, best)
+                if stated is not None:
+                    problems.append(
+                        f"Under Return temperature you give {stated:.0f} C, but the tools recommend "
+                        f"best_return_c = {best:.0f} C: the highest return with the lowest cost, which "
+                        "keeps the most margin for the network. Use it."
+                    )
             trade_off = chosen and cheapest_ineligible_missing(answer, comparisons)
             if trade_off:
                 problems.append(f"Under Why, copy the whole trade_off sentence from compare_designs: {trade_off}")
@@ -324,6 +345,8 @@ def run(question):
             if name in runs_by_tool and "error" not in result:
                 design = (int(arguments["doublets"]), float(arguments["depth_m"]), result["layout"])
                 runs_by_tool[name].add(design)
+                if name == "compare_return_temperatures" and result.get("best_return_c") is not None:
+                    best_returns[design] = result["best_return_c"]
             if name == "verify_design" and "error" not in result:
                 design = (int(arguments["doublets"]), float(arguments["depth_m"]), result["layout"])
                 screened = comparisons[-1]["designs"][0] if comparisons else {}
@@ -331,6 +354,7 @@ def run(question):
                     (screened.get("doublets"), screened.get("depth_m"), screened.get("layout")), {}
                 ).get("heating_peak_mw_used")
                 if screened_peak is None or abs(screened_peak - result["heating_peak_mw_used"]) < 0.01:
+                    best_returns[design] = result["return_temperature"].get("best_return_c")
                     for runs in runs_by_tool.values():
                         runs.add(design)
                 else:

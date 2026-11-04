@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" font-family="Arial, Helvetica, sans-serif">
+<defs><marker id="brine" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker><marker id="gas" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#eb6834"/></marker><marker id="cool" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1baf7a"/></marker><marker id="power" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#52514e"/></marker></defs>
+<rect width="1000" height="540" fill="#fcfcfb"/>
+<text x="20" y="28" font-size="15" font-weight="600" fill="#0b0b0b">Recommended system: 2 doublets at 3,000 m, CHP on produced gas, absorption cooling</text>
+<rect x="20" y="190" width="160" height="70" rx="6" fill="#ffffff" stroke="#2a78d6" stroke-width="2"/>
+<text x="100.0" y="210" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">2 production wells</text>
+<text x="100.0" y="227" font-size="11.5" text-anchor="middle" fill="#52514e">3,000 m, 101 C at wellhead</text>
+<text x="100.0" y="242" font-size="11.5" text-anchor="middle" fill="#52514e">50-300 m3/h each</text>
+<rect x="230" y="195" width="120" height="60" rx="6" fill="#ffffff" stroke="#2a78d6" stroke-width="2"/>
+<text x="290.0" y="215" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">Separator</text>
+<text x="290.0" y="232" font-size="11.5" text-anchor="middle" fill="#52514e">gas 0.8 Nm3 per m3</text>
+<rect x="220" y="60" width="140" height="70" rx="6" fill="#ffffff" stroke="#eb6834" stroke-width="2"/>
+<text x="290.0" y="80" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">CHP</text>
+<text x="290.0" y="97" font-size="11.5" text-anchor="middle" fill="#52514e">produced gas only</text>
+<text x="290.0" y="112" font-size="11.5" text-anchor="middle" fill="#52514e">1.1 MW electric</text>
+<rect x="410" y="130" width="160" height="70" rx="6" fill="#ffffff" stroke="#2a78d6" stroke-width="2"/>
+<text x="490.0" y="150" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">Heating exchanger</text>
+<text x="490.0" y="167" font-size="11.5" text-anchor="middle" fill="#52514e">district water 50 C in</text>
+<text x="490.0" y="182" font-size="11.5" text-anchor="middle" fill="#52514e">2 MW/K per doublet</text>
+<rect x="410" y="260" width="160" height="70" rx="6" fill="#ffffff" stroke="#2a78d6" stroke-width="2"/>
+<text x="490.0" y="280" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">Chiller exchanger</text>
+<text x="490.0" y="297" font-size="11.5" text-anchor="middle" fill="#52514e">94 C hot water</text>
+<text x="490.0" y="312" font-size="11.5" text-anchor="middle" fill="#52514e">brine out 75 C or more</text>
+<rect x="20" y="400" width="160" height="70" rx="6" fill="#ffffff" stroke="#2a78d6" stroke-width="2"/>
+<text x="100.0" y="420" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">2 injection wells</text>
+<text x="100.0" y="437" font-size="11.5" text-anchor="middle" fill="#52514e">equal volume</text>
+<text x="100.0" y="452" font-size="11.5" text-anchor="middle" fill="#52514e">brine cooled 40 C or less</text>
+<rect x="630" y="130" width="140" height="70" rx="6" fill="#ffffff" stroke="#eb6834" stroke-width="2"/>
+<text x="700.0" y="150" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">Backup boiler</text>
+<text x="700.0" y="167" font-size="11.5" text-anchor="middle" fill="#52514e">15.9 MW, gas</text>
+<text x="700.0" y="182" font-size="11.5" text-anchor="middle" fill="#52514e">0.1 GWh a year</text>
+<rect x="820" y="130" width="160" height="70" rx="6" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<text x="900.0" y="150" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">District heating</text>
+<text x="900.0" y="167" font-size="11.5" text-anchor="middle" fill="#52514e">100 C supply</text>
+<text x="900.0" y="182" font-size="11.5" text-anchor="middle" fill="#52514e">30 MW peak, 111.7 GWh</text>
+<rect x="630" y="260" width="140" height="70" rx="6" fill="#ffffff" stroke="#1baf7a" stroke-width="2"/>
+<text x="700.0" y="280" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">Absorption chillers</text>
+<text x="700.0" y="297" font-size="11.5" text-anchor="middle" fill="#52514e">10 MW, COP 0.67</text>
+<text x="700.0" y="312" font-size="11.5" text-anchor="middle" fill="#52514e">20.8 GWh a year</text>
+<rect x="630" y="380" width="140" height="70" rx="6" fill="#ffffff" stroke="#1baf7a" stroke-width="2"/>
+<text x="700.0" y="400" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">Electric chillers</text>
+<text x="700.0" y="417" font-size="11.5" text-anchor="middle" fill="#52514e">3.7 MW, COP 5</text>
+<text x="700.0" y="432" font-size="11.5" text-anchor="middle" fill="#52514e">2.9 GWh a year</text>
+<rect x="820" y="300" width="160" height="70" rx="6" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<text x="900.0" y="320" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">District cooling</text>
+<text x="900.0" y="337" font-size="11.5" text-anchor="middle" fill="#52514e">20 C supply</text>
+<text x="900.0" y="352" font-size="11.5" text-anchor="middle" fill="#52514e">10 MW peak, 23.7 GWh</text>
+<rect x="820" y="440" width="160" height="60" rx="6" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<text x="900.0" y="460" font-size="13" font-weight="600" text-anchor="middle" fill="#0b0b0b">Grid</text>
+<text x="900.0" y="477" font-size="11.5" text-anchor="middle" fill="#52514e">1.88 GWh a year bought</text>
+<polyline points="180,225 228,225" fill="none" stroke="#2a78d6" stroke-width="2.5" marker-end="url(#brine)"/>
+<polyline points="290,195 290,132" fill="none" stroke="#eb6834" stroke-width="2.5" marker-end="url(#gas)"/>
+<text x="296" y="170" font-size="11.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="3" paint-order="stroke">gas</text>
+<polyline points="350,225 385,225 385,165 408,165" fill="none" stroke="#2a78d6" stroke-width="2.5" marker-end="url(#brine)"/>
+<text x="360" y="160" font-size="11.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="3" paint-order="stroke">brine</text>
+<polyline points="385,225 385,295 408,295" fill="none" stroke="#2a78d6" stroke-width="2.5" marker-end="url(#brine)"/>
+<polyline points="490,200 490,240 595,240 595,360 100,360 100,398" fill="none" stroke="#2a78d6" stroke-width="2.5" marker-end="url(#brine)"/>
+<text x="215" y="352" font-size="11.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="3" paint-order="stroke">cooled brine, 62 C</text>
+<polyline points="490,330 490,360" fill="none" stroke="#2a78d6" stroke-width="2.5" marker-end="url(#brine)"/>
+<polyline points="570,165 628,165" fill="none" stroke="#eb6834" stroke-width="2.5" marker-end="url(#gas)"/>
+<text x="582" y="156" font-size="11.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="3" paint-order="stroke">water</text>
+<polyline points="360,95 700,95 700,128" fill="none" stroke="#eb6834" stroke-width="2.5" marker-end="url(#gas)"/>
+<text x="440" y="88" font-size="11.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="3" paint-order="stroke">CHP heat 12.3 GWh</text>
+<polyline points="770,165 818,165" fill="none" stroke="#eb6834" stroke-width="2.5" marker-end="url(#gas)"/>
+<polyline points="570,295 628,295" fill="none" stroke="#1baf7a" stroke-width="2.5" marker-end="url(#cool)"/>
+<text x="574" y="286" font-size="11.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="3" paint-order="stroke">hot water</text>
+<polyline points="770,295 795,295 795,325 818,325" fill="none" stroke="#1baf7a" stroke-width="2.5" marker-end="url(#cool)"/>
+<polyline points="770,415 795,415 795,345 818,345" fill="none" stroke="#1baf7a" stroke-width="2.5" marker-end="url(#cool)"/>
+<polyline points="220,115 200,115 200,515 700,515 700,452" fill="none" stroke="#52514e" stroke-width="2.5" stroke-dasharray="5 4" marker-end="url(#power)"/>
+<text x="215" y="508" font-size="11.5" fill="#0b0b0b" stroke="#fcfcfb" stroke-width="3" paint-order="stroke">CHP electricity 6.2 GWh: pumps and chillers</text>
+<polyline points="820,470 772,440" fill="none" stroke="#52514e" stroke-width="2.5" stroke-dasharray="5 4" marker-end="url(#power)"/>
+<text x="20" y="535" font-size="11.5" fill="#52514e">Blue: brine. Orange: produced gas and the heat it makes. Green: cooling. Dashed: electricity. Annual values for 2027 from the yearly model.</text>
+</svg>
