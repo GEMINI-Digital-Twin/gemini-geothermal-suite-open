@@ -205,6 +205,18 @@ class TestHeatPumpLift(unittest.TestCase):
         self.assertTrue(y["floor_binds"])
         self.assertAlmostEqual(y["T_water_out_C"], u["T_water_in_C"], delta=1e-9)
 
+    def test_heatpump_basic_keys(self):
+        """HeatpumpBasic's own keys with the floor as a parameter give the same outputs as the plant keys."""
+        u, _ = balanced_case()
+        hp = HeatPumpLift()
+        hp.update_parameters({"Ts_in_minimum": u["T_brine_floor_C"]})
+        hp.calculate_output({"Ts_in": u["T_brine_in_C"], "Th_in": u["T_water_in_C"], "source_pressure_in": 9.5,
+                             "source_flow_rate": u["brine_flow_m3h"] / 3600, "hot_flow_rate": u["water_flow_m3h"] / 3600})
+        y, ref = hp.get_output(), run_hp(u)
+        for k in ("Q_th_MW", "COP", "Ts_out"):
+            self.assertAlmostEqual(y[k], ref[k], delta=1e-9 * abs(ref[k]), msg=k)
+        self.assertEqual(y["source_pressure_out"], 9.5)
+
     def test_gemini_floor_branch_wrong_root(self):
         """The floor branch of GEMINI gives an unphysical water temperature; HeatPumpLift 91.2 C."""
         u, _ = balanced_case()

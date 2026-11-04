@@ -13,8 +13,12 @@ from geo.common import MU_PA_S, PERM_MD, RHO, THICKNESS_M
 # ThermoGIS = TNO's geothermal resource tool; its default properties: https://pythermogis-15909e.ci.tno.nl/theory/utcprops/contents/
 SPACING_M = 1500.0                 # producer-to-injector distance at reservoir level, m; source: ThermoGIS default well_distance
 PHI = 0.20                         # porosity; assumed, no source
-RHO_C_ROCK = 2700.0 * 1000.0       # rock heat capacity per volume, J/m3/K: ThermoGIS default density x specific heat
-RHO_C_WATER = RHO * 4000.0         # brine heat capacity per volume, J/m3/K: brief density x 4 000 J/kg/K (assumed)
+ROCK_DENSITY = 2700.0              # rock grain density, kg/m3; source: ThermoGIS default
+ROCK_CP = 1000.0                   # rock specific heat, J/kg/K; source: ThermoGIS default
+BRINE_CP = 4000.0                  # brine specific heat, J/kg/K; assumed
+RHO_C_ROCK = ROCK_DENSITY * ROCK_CP   # rock heat capacity per volume, J/m3/K
+RHO_C_WATER = RHO * BRINE_CP       # brine heat capacity per volume, J/m3/K
+MD_TO_M2 = 9.869e-16               # one millidarcy in m2
 YEAR_S = 365.25 * 24 * 3600        # seconds per year
 T_BT_MIN_YR = 30.0                 # shortest acceptable breakthrough time, years; assumed (ThermoGIS uses 1 % cooling at 50 years)
 BASIS = ("t_BT = pi H L^2 (rho c)_a / (3 Q rho_w c_w), Gringarten-Sauty via Wallmeier et al. 2025 eq. 9 [L]; phi 0.20 [A], rock 2 700 kg/m3 "
@@ -40,5 +44,5 @@ def spacing_for_yr(years, q_m3h, h_m=THICKNESS_M, phi=PHI):
 def interference_bar(n, q_m3h, spacing_m=SPACING_M, doublet_spacing_m=None):
     """Extra pressure at each injector from the other n-1 doublets in a row, bar (one value per injector)."""
     d = spacing_m if doublet_spacing_m is None else doublet_spacing_m
-    unit = q_m3h / 3600 * MU_PA_S / (2 * math.pi * PERM_MD * 9.869e-16 * THICKNESS_M) / 1e5
+    unit = q_m3h / 3600 * MU_PA_S / (2 * math.pi * PERM_MD * MD_TO_M2 * THICKNESS_M) / 1e5
     return [sum(unit * math.log(math.hypot(spacing_m, (i - j) * d) / (abs(i - j) * d)) for j in range(n) if j != i) for i in range(n)]

@@ -396,28 +396,38 @@ def gemini_traps():
 
 def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
     """GEMINI's own simulator re-runs our design: the tool writes one doublet of the design as a native GEMINI project file
-    (producer well with ESP, separator, filters, exchanger, boiler on the separator gas, injector) and runs GEMINI's solver on the
-    coldest, the median and the mildest day of 2027 at the day's flow. Per day: GEMINI's flow at our ESP frequency, the frequency
-    GEMINI needs for our flow, and at that flow GEMINI's ESP intake pressure, ESP head, injection wellhead pressure, brine outlet
-    temperature, exchanger MW and boiler MW next to ours (_ours, _gemini, _diff_pct); residual columns take out the known 1 000 vs
-    1 030 kg/m3 well-column offset. Also the project file path, gemini_version and a verdict sentence [C]."""
+    (producer well with ESP, separator, filters, our absorption chiller, exchanger, our heat pump, boiler on the separator gas,
+    injector, plus our gas bubble-point and thermal-breakthrough models) and runs GEMINI's solver on the coldest, the median and
+    the mildest day of 2027 at the day's dispatch per doublet. Per day: GEMINI's flow at our ESP frequency, the frequency GEMINI
+    needs for our flow, and at that flow GEMINI's pressures, brine and supply temperatures, exchanger, heat-pump, boiler and
+    chiller MW, heat-pump COP, bubble point, breakthrough years and interference next to ours (_ours, _gemini, _diff_pct);
+    residual columns take out the known 1 000 vs 1 030 kg/m3 well-column offset. Also the project file path, gemini_version
+    and a verdict sentence [C]."""
     _need("n_doublets", n_doublets, 1, 3)
     _need("t_return_c", t_return_c, 30, 70)
     _need("depth_m", depth_m, 1500, 4000)
     r = gemini_project.replay(int(n_doublets), float(t_return_c), float(depth_m), _esp(esp_depth_m))
-    days = [r2({k: v for k, v in d.items() if v is not None}) for d in r["days"]]
+    days = [r2({k: v for k, v in d.items() if v is not None and v == v}) for d in r["days"]]   # v == v drops nan
     solved = [d for d in days if "esp_head_residual_bar" in d]
     if not solved:
         return {"error": f"GEMINI's pump at 60 Hz cannot reach our flow on any of the {len(days)} days; nothing to compare"}
     head = max(abs(d["esp_head_residual_bar"]) for d in solved)
     inj = max(abs(d["p_injection_wellhead_residual_bar"]) for d in solved)
+    worst = lambda key: max((abs(d.get(key + "_diff_pct", 0.0)) for d in solved), default=0.0)
     sign = (" GEMINI's injector friction sign (fixed on our branch) explains the rest."
             if inj > 3 and all(d["p_injection_wellhead_residual_bar"] < 0 for d in solved) else "")
     short = (f" GEMINI's pump at 60 Hz cannot reach our flow on {len(days) - len(solved)} of the days."
              if len(solved) < len(days) else "")
+    cold = [d for d in solved if d.get("T_supply_C_gemini", 100.0) < 99.0]
+    supply = (f" On {len(cold)} day(s) GEMINI's series chain (exchanger, then heat pump) reaches only "
+              f"{min(d['T_supply_C_gemini'] for d in cold):.1f} C where our dispatch counts the heat at 100 C (heat pump cut "
+              "back or off, or a boiler lift outside this chain); COP and duty differ on those days." if cold else "")
     verdict = (f"Independent checks on {len(solved)} days: GEMINI's own nodal solve gives the ESP head within {head:.1f} bar and the "
-               f"injection wellhead pressure within {inj:.1f} bar of ours after the water-column offset; flow, exchanger duty and "
-               "boiler heat are equal by construction (the project carries our duty and gas)." + sign + short)
+               f"injection wellhead pressure within {inj:.1f} bar of ours after the water-column offset; GEMINI's Lorenz solve gives "
+               f"the heat-pump COP within {worst('cop_heat_pump'):.1f} %, the gas model the bubble point within "
+               f"{worst('p_bubble_bar'):.1f} %, the breakthrough model the breakthrough time within {worst('t_breakthrough_yr'):.1f} %, "
+               f"the chiller its drive within {worst('MW_abs_drive'):.1f} %; flow, exchanger duty, full-draw heat-pump duty and boiler "
+               "heat are equal by construction (the project carries our duty, floors, water flow and gas)." + sign + short + supply)
     return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "depth_m": float(depth_m), "esp_depth_m": _esp(esp_depth_m),
             "n_days": len(days), "days": days, "project_path": r["project_path"], "gemini_version": r["gemini_version"],
             "verdict": verdict, "basis": r["basis"], "tag": "[C]"}

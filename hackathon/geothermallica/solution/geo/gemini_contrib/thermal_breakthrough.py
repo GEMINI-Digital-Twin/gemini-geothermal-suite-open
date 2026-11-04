@@ -87,3 +87,10 @@ class DoubletThermalBreakthrough(StaticModel):
         self.output["breakthrough_time"] = self.breakthrough_time(flowrate)
         self.output["interference_pressure"] = dp
         self.output["interference_pressure_max"] = max(dp)
+
+
+def register():
+    """Add the breakthrough model to GEMINI's component registry so create_component finds it."""
+    from gemini_simulator.registry import COMPONENT_REGISTRY
+
+    COMPONENT_REGISTRY["thermal_breakthrough"] = DoubletThermalBreakthrough

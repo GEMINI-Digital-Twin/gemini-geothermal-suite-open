@@ -55,6 +55,24 @@ class TestHeatPumpLift(unittest.TestCase):
         self.assertTrue(y["floor_binds"])
         self.assertAlmostEqual(y["T_water_out_C"], CASE["T_water_in_C"], delta=1e-9)
 
+    def test_heatpump_basic_keys(self):
+        """Same outputs through HeatpumpBasic keys with the floor as a parameter."""
+        hp = HeatPumpLift()
+        hp.update_parameters({"Ts_in_minimum": CASE["T_brine_floor_C"]})
+        hp.calculate_output(
+            {
+                "Ts_in": CASE["T_brine_in_C"],
+                "Th_in": CASE["T_water_in_C"],
+                "source_flow_rate": CASE["brine_flow_m3h"] / 3600.0,
+                "hot_flow_rate": CASE["water_flow_m3h"] / 3600.0,
+                "source_pressure_in": 9.5,
+            }
+        )
+        y, ref = hp.get_output(), _run(CASE)
+        for key in ("Q_th_MW", "COP", "Ts_out"):
+            self.assertAlmostEqual(y[key], ref[key], delta=1e-9 * abs(ref[key]), msg=key)
+        self.assertEqual(y["source_pressure_out"], 9.5)
+
     def test_heatpump_basic_floor_branch_root(self):
         """Same inputs through HeatpumpBasic: its floor branch gives an outlet far above target."""
         u = {**CASE, "water_flow_m3h": 2 * CASE["water_flow_m3h"]}

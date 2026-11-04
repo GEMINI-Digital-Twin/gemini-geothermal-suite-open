@@ -1,8 +1,9 @@
 """One of our designs written as a native GEMINI simulator project and re-run by GEMINI's own solver.
 
 Format: GEMINI's simulator_examples/projects/doublet_plant.json (producer with ESP, separator, filters, exchanger,
-boiler on the separator gas, injector). Parameter sources are in the inline comments. replay() returns, for a few days
-of 2027, GEMINI's pressures, duty and boiler heat next to ours, the project file path and a basis string.
+boiler on the separator gas, injector), plus our four models: absorption chiller before the exchanger, heat pump after it,
+dissolved-gas bubble point and thermal breakthrough on the producer flow. Parameter sources are in the inline comments.
+replay() returns, for a few days of 2027, GEMINI's outputs next to ours (geo.gemini_compare), the project file path and a basis.
 """
 import json
 import subprocess
@@ -11,13 +12,16 @@ from pathlib import Path
 import numpy as np
 
 import geo.gemini_contrib  # noqa: F401  (GEMINI development tree first on sys.path)
-from geo import gas
-from geo.common import DEPTH_M, DT_BRINE_MAX_K, RHO, T_SUPPLY_HEAT_C
+from geo import gas, lifetime
+from geo.common import DEPTH_M, MU_PA_S, PERM_MD, RHO, T_SUPPLY_HEAT_C, THICKNESS_M, t_reservoir_c
 from geo.cost import BOILER_EFF
-from geo.plant import CP, doublet_at
-from geo.well import CELL_M, ESP_DEPTH_M, ROUGHNESS_M, TUBING_ID_M, Injector, Producer, reservoir_pressure
-from geo.year import heating_year
+from geo.gemini_compare import compare, ours, theirs
+from geo.gemini_contrib import absorption_chiller, heatpump_lift, henry_gas, thermal_breakthrough
+from geo.plant import CP, LORENZ_EFF, T_ABS_MIN_C
+from geo.well import CELL_M, ESP_DEPTH_M, ROUGHNESS_M, TUBING_ID_M, Injector, reservoir_pressure
+from geo.year import AUX_KW_PER_KW_COLD, COP_ABSORPTION, heating_year, table
 from gemini_simulator.project_loader import build_project
+from gemini_simulator.registry import COMPONENT_REGISTRY
 
 P_WELLHEAD_BAR = 10.0        # producer wellhead pressure the ESP holds, bar; the floor used by geo.well.Producer
 SEPARATOR = {"flow_resistance": 3.6, "temperature_drop": 0.0}   # resistance as in GEMINI's example; no temperature loss, assumed
@@ -27,8 +31,12 @@ GAS_DENSITY = M_GAS / gas.V_M                            # gas density at normal
 GAS_LHV_J_KG = gas.Y_CH4 * gas.LHV_CH4 * 1e3 / M_GAS     # lower heating value of the gas, J/kg (only the methane burns)
 GAS_CO2_KG_GJ = gas.M_CO2 / (gas.Y_CH4 * gas.LHV_CH4 * 1e-6)   # CO2 per GJ burned: one CO2 per mole of gas, kg/GJ
 RUNS = Path(__file__).resolve().parents[1] / "ai" / "runs"
-COMPARED = ("q_m3h", "p_esp_intake_bar", "esp_head_bar", "p_injection_wellhead_bar", "T_brine_out_C", "MW_exchanger",
-            "MW_boiler_gas")
+
+# our models, registered only where the GEMINI tree in use lacks them (TNO's tree; our fork registers its own copies)
+for _name, _module in (("absorption_chiller", absorption_chiller), ("heatpump_lift", heatpump_lift),
+                       ("henry_gas", henry_gas), ("thermal_breakthrough", thermal_breakthrough)):
+    if _name not in COMPONENT_REGISTRY:
+        _module.register()
 
 
 def _stations(depth_m):
@@ -44,26 +52,52 @@ def _well_params(w, depth_m, ii):
             "productivity_index_m3h_per_bar": ii}
 
 
-def project_dict(w, t_return_c, t_wellhead_c, esp_freq_hz, secondary_m3s, ua_w_per_k, ii_m3h_bar):
-    """Native GEMINI project dict of one doublet of our design around the producer w at these day values."""
-    prod = {**_well_params(w, w.depth_m, w.pi), "esp_depth_m": w.esp_depth_m, "esp_freq_hz": esp_freq_hz,
+def _our_models(n, day):
+    """Project components of our four models for one doublet of n on this day (keys of geo.gemini_compare.ours)."""
+    chiller = {"cop_thermal": COP_ABSORPTION, "min_driving_temperature": T_ABS_MIN_C, "fluid_density": RHO,
+               "specific_heat": CP * 1e3, "auxiliary_power_fraction": AUX_KW_PER_KW_COLD}
+    # the exchanger uses one density for both sides and hands the water over as m3/s at RHO, so the heat pump does too
+    pump = {"Ts_in_minimum": day["T_hp_floor_C"], "Th_out_target": T_SUPPLY_HEAT_C, "eta_lorenz": LORENZ_EFF,
+            "rho_s": RHO, "rho_h": RHO, "Cp_s": CP * 1e3, "Cp_h": CP * 1e3}
+    henry = {"GLR": gas.GLR, "methane_fraction": gas.Y_CH4, "co2_fraction": gas.Y_CO2, "nacl_concentration": gas.SALT_G_L,
+             "salting_out_coefficient": gas.K_SALT_CH4, "salting_out_convention": "ln", "henry_method": "fits",
+             "henry_fits": gas.FITS}   # the defaults of geo.gas.p_bubble_bar
+    front = {"rock_density": lifetime.ROCK_DENSITY, "rock_heat_capacity": lifetime.ROCK_CP, "water_density": RHO,
+             "water_heat_capacity": lifetime.BRINE_CP, "well_spacing": lifetime.SPACING_M, "porosity": lifetime.PHI,
+             "reservoir_thickness": THICKNESS_M, "reservoir_permeability": PERM_MD * lifetime.MD_TO_M2,
+             "viscosity": MU_PA_S, "number_of_doublets": n}
+    return {"absorption_chiller": {"type": "absorption_chiller", "parameters": chiller},
+            "heat_pump": {"type": "heatpump_lift", "parameters": pump},
+            "gas": {"type": "henry_gas", "parameters": henry},
+            "breakthrough": {"type": "thermal_breakthrough", "parameters": front}}
+
+
+def project_dict(w, t_return_c, day, n=1):
+    """Native GEMINI project dict of one doublet (of n) around the producer w; day = geo.gemini_compare.ours() of that day."""
+    prod = {**_well_params(w, w.depth_m, w.pi), "esp_depth_m": w.esp_depth_m, "esp_freq_hz": day["freq_hz"],
             "esp": {**w.pump.parameters, "electricity_emission_factor": 0.3}}
+    mine = _our_models(n, day)
     comps = {"producer_well": {"type": "producer_well", "parameters": prod},
              "separator": {"type": "separator",
                            "parameters": {**SEPARATOR, "gas_water_ratio": gas.GLR, "gas_density": GAS_DENSITY}},
              "filter_a": {"type": "filter", "parameters": FILTER},
+             "absorption_chiller": mine["absorption_chiller"],
              "heat_exchanger": {"type": "heat_exchanger", "parameters": {"flow_resistance": 0.0, "flow_configuration": "counter",
-                                                                         "heat_transfer_coefficient": ua_w_per_k,
+                                                                         "heat_transfer_coefficient": day["ua_w_per_k"],
                                                                          "fluid_density": RHO, "specific_heat": CP * 1e3}},
+             "heat_pump": mine["heat_pump"],
              "filter_b": {"type": "filter", "parameters": FILTER},
              "boiler": {"type": "boiler", "parameters": {"caloric_value": GAS_LHV_J_KG, "efficiency_factor": BOILER_EFF,
                                                          "gas_emission_factor": GAS_CO2_KG_GJ}},
-             "injector_well": {"type": "injector_well", "parameters": {**_well_params(w, w.depth_m, ii_m3h_bar),
-                                                                       "injector_pump": {"efficiency_factor": 0.7}}}}
+             "injector_well": {"type": "injector_well", "parameters": {**_well_params(w, w.depth_m, day["ii_m3h_bar"]),
+                                                                       "injector_pump": {"efficiency_factor": 0.7}}},
+             "gas": mine["gas"], "breakthrough": mine["breakthrough"]}
     boundary = [{"component": "producer_well", "key": "wellhead_pressure", "value": P_WELLHEAD_BAR},
-                {"component": "producer_well", "key": "wellhead_temperature", "value": t_wellhead_c},
+                {"component": "producer_well", "key": "wellhead_temperature", "value": day["T_wellhead_C"]},
+                {"component": "absorption_chiller", "key": "temperature_floor", "value": day["T_chiller_floor_C"]},
                 {"component": "heat_exchanger", "key": "secondary_temperature_in", "value": t_return_c},
-                {"component": "heat_exchanger", "key": "secondary_flow_rate", "value": secondary_m3s}]
+                {"component": "heat_exchanger", "key": "secondary_flow_rate", "value": day["secondary_m3s"]},
+                {"component": "gas", "key": "temperature", "value": t_reservoir_c(w.depth_m) + 273.15}]
 
     def link(a, b, ports):
         return {"predecessor": a, "successor": b, "ports": ports}
@@ -71,15 +105,23 @@ def project_dict(w, t_return_c, t_wellhead_c, esp_freq_hz, secondary_m3s, ua_w_p
                                                 ["temperature_out", "temperature"]]),
             link("separator", "filter_a", [["pressure_out", "pressure"], ["temperature_out", "temperature"],
                                            ["flow_rate", "flow_rate"]]),
-            link("filter_a", "heat_exchanger", [["pressure_out", "pressure_in"], ["temperature_out", "primary_temperature_in"],
-                                                ["flow_rate", "primary_flow_rate"]]),
-            link("heat_exchanger", "filter_b", [["pressure_out", "pressure"], ["primary_temperature_out", "temperature"],
-                                                ["primary_flow_rate", "flow_rate"]]),
+            link("filter_a", "absorption_chiller", [["pressure_out", "pressure"], ["temperature_out", "temperature"],
+                                                    ["flow_rate", "flow_rate"]]),
+            link("absorption_chiller", "heat_exchanger", [["pressure_out", "pressure_in"],
+                                                          ["temperature_out", "primary_temperature_in"],
+                                                          ["flow_rate", "primary_flow_rate"]]),
+            link("heat_exchanger", "heat_pump", [["primary_temperature_out", "Ts_in"], ["primary_flow_rate", "source_flow_rate"],
+                                                 ["secondary_temperature_out", "Th_in"], ["secondary_flow_rate", "hot_flow_rate"],
+                                                 ["pressure_out", "source_pressure_in"]]),
+            link("heat_pump", "filter_b", [["source_pressure_out", "pressure"], ["Ts_out", "temperature"],
+                                           ["source_flow_rate", "flow_rate"]]),
             link("heat_exchanger", "boiler", [["secondary_temperature_out", "temperature_in"],
                                               ["secondary_flow_rate", "water_flow_rate"]]),
             link("separator", "boiler", [["gas_mass_flow_rate", "gas_flow_rate"]]),
             link("filter_b", "injector_well", [["flow_rate_m3h", "flow_rate"], ["temperature_out", "wellhead_temperature"],
-                                               ["pressure_out_pa", "pressure_in"]])]
+                                               ["pressure_out_pa", "pressure_in"]]),
+            link("producer_well", "gas", [["flow_rate_m3s", "flowrate"]]),
+            link("producer_well", "breakthrough", [["flow_rate_m3s", "flowrate"]])]
     return {"_description": "Generated from the Geothermallica design; one doublet; units as in GEMINI's doublet_plant.json",
             "components": comps, "boundary_inputs": boundary, "connections": conn}
 
@@ -111,47 +153,12 @@ def _freq_for_flow(project, q_m3h, f_lo=30.0, f_hi=60.0):
     return f_hi
 
 
-def _ua(t_hot_in, t_cold_in, c_hot, c_cold, duty_w):
-    """Heat-transfer coefficient UA (W/K) of a counter-flow exchanger with this duty, inverted NTU-effectiveness method."""
-    c_min, c_max = min(c_hot, c_cold), max(c_hot, c_cold)
-    eff, cr = duty_w / (c_min * (t_hot_in - t_cold_in)), c_min / c_max
-    ntu = eff / (1 - eff) if cr > 0.999 else np.log((1 - eff * cr) / (1 - eff)) / (1 - cr)
-    return float(ntu * c_min)
-
-
 def _days(n, t_return_c, depth_m, esp_depth_m, k=3):
     """Up to k representative days with every doublet running: the coldest, the median demand and the mildest."""
     d = heating_year(n, t_return_c, depth_m=depth_m, esp_depth_m=esp_depth_m)
     d = d[(d.doublets_on == n) & (d.q_m3h > 0)].sort_values("demand")
     picks = [d.index[-1], d.index[len(d) // 2], d.index[0]][:k]
     return d.loc[picks]
-
-
-def _ours(w, inj, q_m3h, t_return_c):
-    """Our numbers for one doublet at q_m3h: well, exchanger, injector and the boiler heat of the separator gas."""
-    pt = doublet_at(w, q_m3h, t_return_c)
-    r = w.run(q_m3h, pt["freq_hz"])
-    mcp_w = pt["mcp_MW_per_K"] * 1e6
-    t_brine_out = pt["T_wh_C"] - pt["MW_hx"] * 1e6 / mcp_w
-    m_net = (pt["MW_hx"] + pt["MW_hp"]) * 1e3 / (CP * (T_SUPPLY_HEAT_C - t_return_c))   # network water, kg/s
-    t_inj = pt["T_wh_C"] - DT_BRINE_MAX_K
-    i = inj.run(q_m3h, t_inj)
-    return {"q_m3h": q_m3h, "freq_hz": pt["freq_hz"], "T_wellhead_C": pt["T_wh_C"], "p_esp_intake_bar": r["p_esp_intake_bar"],
-            "esp_head_bar": r["esp_head_bar"], "p_injection_wellhead_bar": i["p_wh_bar"], "T_brine_out_C": t_brine_out,
-            "MW_exchanger": pt["MW_hx"], "MW_boiler_gas": gas.gas_at(q_m3h, w.depth_m)["CH4_MW_LHV"] * BOILER_EFF,
-            "MW_heat_pump": pt["MW_hp"], "secondary_m3s": m_net / RHO, "ii_m3h_bar": i["II"],
-            "ua_w_per_k": _ua(pt["T_wh_C"], t_return_c, mcp_w, m_net * CP * 1e3, pt["MW_hx"] * 1e6)}
-
-
-def _theirs(s):
-    """Read GEMINI's outputs of the solved project into the keys of _ours."""
-    g = s.get_output
-    return {"q_m3h": g("producer_well", "flow_rate"), "p_esp_intake_bar": g("producer_well", "esp_intake_pressure"),
-            "esp_head_bar": g("producer_well", "esp_discharge_pressure") - g("producer_well", "esp_intake_pressure"),
-            "p_injection_wellhead_bar": g("injector_well", "wellhead_pressure"),
-            "T_brine_out_C": g("heat_exchanger", "primary_temperature_out"),
-            "MW_exchanger": g("heat_exchanger", "heat_duty") / 1e6,
-            "MW_boiler_gas": g("boiler", "power_th") / 1e6}
 
 
 def _version():
@@ -164,21 +171,18 @@ def _version():
 
 def replay(n=2, t_return_c=60.0, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, days=None):
     """Run GEMINI's own solver on the generated project for a few days against our numbers; dict of day rows, file path, basis."""
-    w, inj = Producer(depth_m=depth_m, stages=24, esp_depth_m=esp_depth_m), Injector(depth_m=depth_m)
+    tab, inj = table(t_return_c, depth_m, True, esp_depth_m), Injector(depth_m=depth_m)
+    w = tab.w
     rows, path = [], None
     for day, d in (days if days is not None else _days(n, t_return_c, depth_m, esp_depth_m)).iterrows():
-        o = _ours(w, inj, float(d.q_m3h), t_return_c)
-        p = project_dict(w, t_return_c, o["T_wellhead_C"], o["freq_hz"], o["secondary_m3s"], o["ua_w_per_k"], o["ii_m3h_bar"])
+        o = ours(w, inj, tab.at_output(float(d.demand) / int(d.doublets_on)), t_return_c, n)   # the day's dispatch per doublet
+        p = project_dict(w, t_return_c, o, n)
         path = path or write_project(RUNS / f"gemini_project_{n}d_{t_return_c:g}C.json", p)
         q_at_our_freq = _solve(p).get_output("producer_well", "flow_rate")
         f = _freq_for_flow(p, o["q_m3h"])
-        t = _theirs(_solve(p)) if f is not None else {}
+        t = theirs(_solve(p)) if f is not None else {}
         row = {"date": str(day.date()), "demand_MW": float(d.demand), "freq_hz_ours": o["freq_hz"], "freq_hz_gemini_same_flow": f,
-               "q_m3h_gemini_at_our_freq": q_at_our_freq}
-        for k in COMPARED:
-            row[k + "_ours"] = o[k]
-            row[k + "_gemini"] = t.get(k)
-            row[k + "_diff_pct"] = None if k not in t or o[k] == 0 else 100 * (t[k] - o[k]) / o[k]
+               "q_m3h_gemini_at_our_freq": q_at_our_freq, **compare(o, t)}
         offset = (RHO - 1000.0) * 9.81 * depth_m / 1e5   # brine column minus GEMINI's water column over the well, bar
         row["water_column_offset_bar"] = offset
         row["esp_head_residual_bar"] = None if not t else t["esp_head_bar"] + offset - o["esp_head_bar"]
@@ -186,10 +190,17 @@ def replay(n=2, t_return_c=60.0, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, days=
                                                     t["p_injection_wellhead_bar"] - offset - o["p_injection_wellhead_bar"])
         rows.append(row)
     basis = (f"GEMINI simulator {_version()} re-runs our generated project (one doublet; producer with 24-stage ESP, separator, "
-             f"filters, counter-flow exchanger, boiler on the separator gas, injector) on {len(rows)} days of 2027 at the "
-             "day's flow; the ESP frequency is re-solved so GEMINI's nodal solve gives our flow, then pressures, duty and boiler "
-             "heat are compared; differences = (GEMINI - ours) / ours. Not in the native chain: the heat-pump lift after the "
-             "exchanger, the backup boiler on the network, staggered outages, our brine density and viscosity in the well "
+             "filters, our absorption chiller, counter-flow exchanger, our heat pump with a brine floor, boiler on the separator "
+             f"gas, injector, plus our dissolved-gas bubble point and thermal breakthrough on the producer flow) on {len(rows)} "
+             "days of 2027 at the day's dispatch per doublet; the ESP frequency is re-solved so GEMINI's nodal solve gives our "
+             "flow; differences = (GEMINI - ours) / ours. Inputs by construction: the exchanger UA is set to give our duty, the "
+             "chiller floor and the heat-pump floor are our day's brine temperatures, the network water flow is ours, so the "
+             "exchanger duty, the heat-pump duty on full-draw days and the boiler heat match by construction. Independent: the "
+             "pressures from GEMINI's nodal solve, the heat-pump COP and brine outlet from its own Lorenz solve, the bubble point "
+             "and the breakthrough time from the GEMINI models with our parameters; on the mildest day the chiller drive (set by "
+             "the chiller's 78 C minimum, not by our floor) and the supply temperature the series chain really reaches. Not in "
+             "the native chain: the boiler lift at low return temperatures, the backup boiler on the network, staggered outages, "
+             "our brine density and viscosity in the well "
              "(GEMINI's well PVT is water at standard conditions), the pump similarity law (GEMINI reads the 60 Hz curve at the "
              "actual flow). The residual columns remove the water-column offset: GEMINI's well walks a 1 000 kg/m3 column, ours "
              "1 030 kg/m3 [C]")

@@ -17,7 +17,8 @@ def _tlm(a_k, b_k):
 
 
 class HeatPumpLift(HeatpumpBasic):
-    """Heat pump taking T_brine_in_C, brine_flow_m3h, T_brine_floor_C, T_water_in_C, water_flow_m3h; adds MW and C outputs."""
+    """Heat pump taking T_brine_in_C, brine_flow_m3h, T_brine_floor_C, T_water_in_C, water_flow_m3h, or HeatpumpBasic's keys
+    (Ts_in, Th_in in C, source_flow_rate, hot_flow_rate in m3/s, floor from the parameter Ts_in_minimum); adds MW and C outputs."""
 
     def __init__(self):
         """Lorenz mode, efficiency 0.5, heat capacity 4 000 J/kg/K both sides, water 1 000 and brine 1 030 kg/m3, target 100 C."""
@@ -55,20 +56,50 @@ class HeatPumpLift(HeatpumpBasic):
             # sink duty minus what the source and the compressor can give at that outlet temperature
             return p["Cp_h"] * mh * (th - Th_in) - q_s * cop(th) / (cop(th) - 1)
 
+        if gap(Th_out) <= 0:
+            # the floor tripped only within the Nelder-Mead tolerance: the target is reachable
+            return self._at_target(Th_out, Th_in, Ts_in, Ts_floor, mh, ms)
         th = brentq(gap, Th_in + 1e-6, Th_out)
         q_h = p["Cp_h"] * mh * (th - Th_in)
         return cop(th), th, Ts_floor, q_h, q_h / cop(th)
 
+    def _at_target(self, Th_out, Th_in, Ts_in, Ts_floor, mh, ms):
+        """Water at the target; brine outlet between floor and inlet where the balance closes."""
+        p = self.parameters
+        q_h = p["Cp_h"] * mh * (Th_out - Th_in)
+        t_h = _tlm(Th_out, Th_in)
+
+        def cop(ts):
+            return p["eta_lorenz"] * t_h / (t_h - _tlm(Ts_in, ts))
+
+        def left(ts):
+            # brine heat minus what the sink needs from the brine at that brine outlet
+            return p["Cp_s"] * ms * (Ts_in - ts) - q_h * (cop(ts) - 1) / cop(ts)
+
+        ts = brentq(left, Ts_floor, Ts_in - 1e-6)
+        return cop(ts), Th_out, ts, q_h, q_h / cop(ts)
+
+    def _plant_keys(self, u):
+        """Inputs u in plant keys; HeatpumpBasic's own keys (C, m3/s) are mapped and the floor read from Ts_in_minimum."""
+        if "Ts_in" not in u:
+            return u
+        return {**u, "T_brine_in_C": u["Ts_in"], "brine_flow_m3h": u["source_flow_rate"] * 3600.0,
+                "T_brine_floor_C": self.parameters["Ts_in_minimum"], "T_water_in_C": u["Th_in"],
+                "water_flow_m3h": u["hot_flow_rate"] * 3600.0}
+
     def calculate_output(self, u, x=None):
-        """Run HeatpumpBasic on plant-unit inputs u and add the MW, C and floor_binds outputs."""
+        """Run HeatpumpBasic on inputs u (plant keys or HeatpumpBasic's keys) and add the MW, C and floor_binds outputs."""
+        u = self._plant_keys(u)
         self.parameters["mode"] = "lorenz"
         self.parameters["Ts_in_minimum"] = u["T_brine_floor_C"]
+        pressures = {k: u[k] for k in ("hot_pressure_in", "source_pressure_in") if k in u}   # echoed by HeatpumpBasic
         super().calculate_output(
             {
                 "Th_in": u["T_water_in_C"],
                 "Ts_in": u["T_brine_in_C"],
                 "hot_flow_rate": u["water_flow_m3h"] / 3600.0,
                 "source_flow_rate": u["brine_flow_m3h"] / 3600.0,
+                **pressures,
             },
             x,
         )

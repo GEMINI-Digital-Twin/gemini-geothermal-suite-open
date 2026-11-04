@@ -92,3 +92,10 @@ class HenryGasBubblePoint(StaticModel):
             self.output["gas_flowrate"] = gas
             self.output["methane_power"] = gas * p["methane_fraction"] / V_M * LHV_CH4
             self.output["co2_mass_flow"] = gas * p["co2_fraction"] / V_M * M_CO2
+
+
+def register():
+    """Add the gas model to GEMINI's component registry so create_component("henry_gas") works."""
+    from gemini_simulator.registry import COMPONENT_REGISTRY
+
+    COMPONENT_REGISTRY["henry_gas"] = HenryGasBubblePoint

@@ -266,7 +266,7 @@
     "ambient_temperature_c": 49.5,
     "productivity_index_m3h_per_bar": 11.879396165040427,
     "esp_depth_m": 1100.0,
-    "esp_freq_hz": 58.01958069349894,
+    "esp_freq_hz": 39.34294877164575,
     "esp": {
      "no_stages": 24,
      "head_coeff": [
@@ -307,14 +307,36 @@
     "temperature_drop": 0.0
    }
   },
+  "absorption_chiller": {
+   "type": "absorption_chiller",
+   "parameters": {
+    "cop_thermal": 0.75,
+    "min_driving_temperature": 78.0,
+    "fluid_density": 1030.0,
+    "specific_heat": 4000.0,
+    "auxiliary_power_fraction": 0.03
+   }
+  },
   "heat_exchanger": {
    "type": "heat_exchanger",
    "parameters": {
     "flow_resistance": 0.0,
     "flow_configuration": "counter",
-    "heat_transfer_coefficient": 2527403.8077531117,
+    "heat_transfer_coefficient": 627156.2560104155,
     "fluid_density": 1030.0,
     "specific_heat": 4000.0
+   }
+  },
+  "heat_pump": {
+   "type": "heatpump_lift",
+   "parameters": {
+    "Ts_in_minimum": 84.38154712244324,
+    "Th_out_target": 100.0,
+    "eta_lorenz": 0.5,
+    "rho_s": 1030.0,
+    "rho_h": 1030.0,
+    "Cp_s": 4000.0,
+    "Cp_h": 4000.0
    }
   },
   "filter_b": {
@@ -597,10 +619,98 @@
     ],
     "roughness_m": 4.5e-05,
     "ambient_temperature_c": 49.5,
-    "productivity_index_m3h_per_bar": 6.514611473700721,
+    "productivity_index_m3h_per_bar": 6.3764989071814515,
     "injector_pump": {
      "efficiency_factor": 0.7
     }
+   }
+  },
+  "gas": {
+   "type": "henry_gas",
+   "parameters": {
+    "GLR": 0.8,
+    "methane_fraction": 0.8,
+    "co2_fraction": 0.2,
+    "nacl_concentration": 45.0,
+    "salting_out_coefficient": 0.319,
+    "salting_out_convention": "ln",
+    "henry_method": "fits",
+    "henry_fits": {
+     "CH4": [
+      [
+       -133.87698,
+       6629.95765,
+       17.62619
+      ],
+      [
+       -206.41149,
+       10058.7638,
+       28.34414
+      ],
+      [
+       -201.05778,
+       9920.37989,
+       27.4802
+      ],
+      [
+       -195.92029,
+       9624.35229,
+       26.7497
+      ],
+      [
+       -203.15923,
+       9951.76163,
+       27.82682
+      ],
+      [
+       -185.72813,
+       9197.97398,
+       25.21142
+      ]
+     ],
+     "CO2": [
+      [
+       -144.44445,
+       8071.06256,
+       19.2004
+      ],
+      [
+       -167.86796,
+       9146.18176,
+       22.6731
+      ],
+      [
+       -126.83006,
+       7302.88057,
+       16.55553
+      ],
+      [
+       -140.70031,
+       7951.74051,
+       18.60965
+      ],
+      [
+       -138.54127,
+       7859.16691,
+       18.28487
+      ]
+     ]
+    }
+   }
+  },
+  "breakthrough": {
+   "type": "thermal_breakthrough",
+   "parameters": {
+    "rock_density": 2700.0,
+    "rock_heat_capacity": 1000.0,
+    "water_density": 1030.0,
+    "water_heat_capacity": 4000.0,
+    "well_spacing": 1500.0,
+    "porosity": 0.2,
+    "reservoir_thickness": 100.0,
+    "reservoir_permeability": 1.9738e-13,
+    "viscosity": 0.0004,
+    "number_of_doublets": 2
    }
   }
  },
@@ -613,7 +723,12 @@
   {
    "component": "producer_well",
    "key": "wellhead_temperature",
-   "value": 85.57314253123792
+   "value": 84.38154712244324
+  },
+  {
+   "component": "absorption_chiller",
+   "key": "temperature_floor",
+   "value": 75.13592233009709
   },
   {
    "component": "heat_exchanger",
@@ -623,7 +738,12 @@
   {
    "component": "heat_exchanger",
    "key": "secondary_flow_rate",
-   "value": 0.08566533592604907
+   "value": 0.037170596393897366
+  },
+  {
+   "component": "gas",
+   "key": "temperature",
+   "value": 360.15
   }
  ],
  "connections": [
@@ -665,6 +785,24 @@
   },
   {
    "predecessor": "filter_a",
+   "successor": "absorption_chiller",
+   "ports": [
+    [
+     "pressure_out",
+     "pressure"
+    ],
+    [
+     "temperature_out",
+     "temperature"
+    ],
+    [
+     "flow_rate",
+     "flow_rate"
+    ]
+   ]
+  },
+  {
+   "predecessor": "absorption_chiller",
    "successor": "heat_exchanger",
    "ports": [
     [
@@ -683,18 +821,44 @@
   },
   {
    "predecessor": "heat_exchanger",
-   "successor": "filter_b",
+   "successor": "heat_pump",
    "ports": [
     [
-     "pressure_out",
-     "pressure"
-    ],
-    [
      "primary_temperature_out",
-     "temperature"
+     "Ts_in"
     ],
     [
      "primary_flow_rate",
+     "source_flow_rate"
+    ],
+    [
+     "secondary_temperature_out",
+     "Th_in"
+    ],
+    [
+     "secondary_flow_rate",
+     "hot_flow_rate"
+    ],
+    [
+     "pressure_out",
+     "source_pressure_in"
+    ]
+   ]
+  },
+  {
+   "predecessor": "heat_pump",
+   "successor": "filter_b",
+   "ports": [
+    [
+     "source_pressure_out",
+     "pressure"
+    ],
+    [
+     "Ts_out",
+     "temperature"
+    ],
+    [
+     "source_flow_rate",
      "flow_rate"
     ]
    ]
@@ -738,6 +902,26 @@
     [
      "pressure_out_pa",
      "pressure_in"
+    ]
+   ]
+  },
+  {
+   "predecessor": "producer_well",
+   "successor": "gas",
+   "ports": [
+    [
+     "flow_rate_m3s",
+     "flowrate"
+    ]
+   ]
+  },
+  {
+   "predecessor": "producer_well",
+   "successor": "breakthrough",
+   "ports": [
+    [
+     "flow_rate_m3s",
+     "flowrate"
     ]
    ]
   }

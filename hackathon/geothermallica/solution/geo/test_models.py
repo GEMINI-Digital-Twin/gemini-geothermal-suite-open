@@ -6,6 +6,8 @@ import numpy as np
 
 from geo import cost, gas, gemini_project, lifetime, optimise, rule
 from geo.plant import DoubletTable
+from geo.well import Producer
+from geo.year import COP_ABSORPTION
 
 # DoubletTable at 60 C return, 2 500 m, heat-pump layout: first and last row, frozen on 3 Nov 2026 as a regression reference
 BEFORE = {"MW_out": [8.165720210178794, 15.206432108241914], "kW_esp": [188.36576949356862, 596.8526578341806],
@@ -81,17 +83,24 @@ class TestModels(unittest.TestCase):
             np.testing.assert_allclose([t.cols[k][0], t.cols[k][-1]], [first, last], rtol=1e-6, err_msg=k)
 
     def test_gemini_project_dict(self):
-        """The generated GEMINI project has the example's component types, our ESP depth and one station per 50 m."""
-        w = gemini_project.Producer(stages=24)
-        p = gemini_project.project_dict(w, 60.0, 85.0, 58.0, 0.1, 5e5, 6.0)
+        """The generated GEMINI project has the example's component types plus our four models, our ESP depth and one station
+        per 50 m."""
+        w = Producer(stages=24)
+        day = {"freq_hz": 58.0, "T_wellhead_C": 85.0, "secondary_m3s": 0.1, "ua_w_per_k": 5e5, "ii_m3h_bar": 6.0,
+               "T_chiller_floor_C": 85.0, "T_hp_floor_C": 45.0}
+        p = gemini_project.project_dict(w, 60.0, day, n=2)
         self.assertEqual([c["type"] for c in p["components"].values()],
-                         ["producer_well", "separator", "filter", "heat_exchanger", "filter", "boiler", "injector_well"])
+                         ["producer_well", "separator", "filter", "absorption_chiller", "heat_exchanger", "heatpump_lift",
+                          "filter", "boiler", "injector_well", "henry_gas", "thermal_breakthrough"])
         self.assertEqual(p["components"]["producer_well"]["parameters"]["esp_depth_m"], 1100.0)
         self.assertEqual(len(p["components"]["producer_well"]["parameters"]["trajectory_table"]), 51)
 
     def test_gemini_replay_coldest_day(self):
-        """GEMINI's solver on the coldest day: same flow, exchanger duty equal, ESP head within 1 bar after the 7.4 bar water-column
-        offset (what is left is the friction of water at 1 mPa s against our 0.4 mPa s brine), project file written."""
+        """GEMINI's solver on the coldest day (full draw, 2 doublets at 57.5 C return): same flow, exchanger duty equal, ESP head
+        within 1 bar after the 7.4 bar water-column offset (what is left is the friction of water at 1 mPa s against our 0.4 mPa s
+        brine), project file written. Our models inside GEMINI's chain: heat-pump duty within 1 % and COP within 2 % of the plant
+        (printed 6.436 MW, COP 4.8109 vs 4.8108), bubble point within 0.05 bar (45.57 bar), breakthrough within 0.5 % (65.2 years),
+        no absorption drive (the exchanger needs all the brine above 78 C)."""
         days = gemini_project._days(2, 57.5, 2500.0, 1100.0).iloc[[0]]
         r = gemini_project.replay(2, 57.5, days=days)
         d = r["days"][0]
@@ -100,6 +109,26 @@ class TestModels(unittest.TestCase):
         self.assertAlmostEqual(d["water_column_offset_bar"], 7.36, delta=0.01)
         self.assertLess(abs(d["esp_head_residual_bar"]), 1.0)
         self.assertTrue(Path(r["project_path"]).exists())
+        self.assertLess(abs(d["MW_heat_pump_diff_pct"]), 1.0)
+        self.assertLess(abs(d["cop_heat_pump_diff_pct"]), 2.0)
+        self.assertAlmostEqual(d["p_bubble_bar_gemini"], d["p_bubble_bar_ours"], delta=0.05)
+        self.assertLess(abs(d["t_breakthrough_yr_diff_pct"]), 0.5)
+        self.assertEqual(d["MW_abs_drive_ours"], 0.0)
+        self.assertLess(d["MW_abs_drive_gemini"], 1e-6)
+
+    def test_gemini_replay_mildest_day(self):
+        """GEMINI's solver on the mildest day with both doublets on (8 May, 5.36 MW, 57.5 C return): flow at the 160 m3/h floor,
+        the exchanger cut back to 2.68 MW per doublet, so the brine above 78 C drives the absorption chiller. GEMINI's chiller drive
+        equals ours within 0.1 % and is above zero (printed 1.1685 MW), its cold is COP_ABSORPTION x drive. With the heat pump off
+        the exchanger alone heats the network water to 3 K below the 78 C chiller outlet, 75 C: the dispatch counts this day's heat
+        in MW without the 100 C supply temperature (printed, kept as a finding)."""
+        days = gemini_project._days(2, 57.5, 2500.0, 1100.0).iloc[[-1]]
+        d = gemini_project.replay(2, 57.5, days=days)["days"][0]
+        self.assertGreater(d["MW_abs_drive_gemini"], 0.0)
+        self.assertLess(abs(d["MW_abs_drive_diff_pct"]), 0.1)
+        self.assertAlmostEqual(d["MW_abs_cold_gemini"], COP_ABSORPTION * d["MW_abs_drive_gemini"], delta=1e-9)
+        self.assertEqual(d["MW_heat_pump_gemini"], 0.0)
+        self.assertAlmostEqual(d["T_supply_C_gemini"], 75.0, delta=0.01)
 
 
 if __name__ == "__main__":
