@@ -14,6 +14,7 @@ from gemini.units.quantities import (
     Elevation,
     HeatTransferCoefficient,
     Length,
+    Power,
     PressureDifference,
     Speed,
 )
@@ -29,6 +30,13 @@ class Pipe(Equipment, Module):
     Div. ASCE 102) from Re = 4000, and in between a linear interpolation in Re of the friction
     drop at the two limits, a continuous bridge without physical claim for the intermittent
     transition regime; all of it in ``hydraulics.pipe_friction_drop``.
+
+    Cost: ``economics.capex.pipe`` per metre (``EUR/m``) multiplies ``length``; per W and metre
+    (``EUR/MW/m``, the basis of the Danish Energy Agency catalogue for district heating pipes) it
+    multiplies ``nominal_capacity * length``. ``nominal_capacity`` is the thermal capacity the line
+    is designed to carry, its design mass flow times ``cp`` times the design supply-return
+    temperature difference of the network; the pipe never computes it, since its flow and
+    temperatures change every step. Without it a cost per W and metre raises ``missing_value``.
 
     Heat: the fluid exchanges heat with surroundings at the fixed ``ambient_temperature``
     through the overall coefficient ``heat_transfer_coefficient`` referred to the inner wall area
@@ -72,6 +80,16 @@ class Pipe(Equipment, Module):
         self.heat_transfer_coefficient = Parameter(
             HeatTransferCoefficient,
             description="Overall heat transfer coefficient to the surroundings",
+        )
+        self.nominal_capacity = Parameter(
+            Power | None,
+            default=None,
+            gt=0,
+            description=(
+                "Thermal capacity the line is designed to carry: design mass flow times cp times "
+                "the design supply-return temperature difference; the size, times length, of a "
+                "cost given per W and metre, and empty when the cost is per metre"
+            ),
         )
 
         # Inlets
@@ -137,6 +155,17 @@ class Pipe(Equipment, Module):
     def cost_size(self):
         """Return the size that the cost of the pipe scales with: length."""
         return self.length
+
+    def cost_size_of(self, quantity):
+        """Return the ``nominal_capacity`` [W] for a cost per W and metre, ``None`` otherwise.
+
+        A cost per W and metre multiplies it by ``cost_size()``, the length.
+        """
+        if quantity != "power":
+            return None
+        if self.nominal_capacity is None:
+            raise self.missing_size("nominal_capacity")
+        return self.nominal_capacity
 
     def _check(self, inlet):
         """Reject a pipe shorter than its rise, reverse flow and free gas."""

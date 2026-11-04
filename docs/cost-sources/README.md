@@ -13,14 +13,21 @@ the `id`. Several rows often share one key: choosing between them is a project d
 
 ## Columns
 
-`path` is the key a scenario uses for the value, spelled as in
-`examples/hackathon_2026/case.json`. It is empty when no case key takes the figure. `in_case`
-is what that example case held for the key on 2026-11-01, so the gap between the example and the
+`path` is the key of the case that takes the value, as gemini names it in its errors and in
+`gm.Case.schema()`: `economics.<key of the economics file>` (`economics.capex.pipe`,
+`economics.opex.variable.chemical`) or another case key (`utilities.electricity.co2_intensity`).
+It is empty when no case key takes the figure. `tests/unit/test_cost_sources.py` checks that every
+`path` is a key of the case. `in_case`
+is what `examples/hackathon_2026` (its `case.json` and `economics.json`) held for the key on
+2026-11-01, so the gap between the example and the
 evidence is visible. It is a snapshot, and the example is not changed to match. `note` says when the
 units of a row and its key differ, in which case the two numbers cannot be compared directly.
 
-`value` and `value_2015` share one unit, written in gemini's spelling. Four units have no entry in
-the unit table, because no case key takes them: `EUR/MW/yr`, `EUR/MW/m`, `EUR/MW/km/yr` and `USD/W`.
+`value` and `value_2015` share one unit, written in gemini's spelling. Two units have no entry in
+the unit table, because no case key takes them: `EUR/MW/km/yr` and `USD/W`. `EUR/MW/m` is a basis
+of `economics.capex.pipe` (it multiplies the pipe's `nominal_capacity` by its length), and
+`EUR/MW/yr` one of `economics.opex.fixed.<kind>` for the kinds sized by a power, which `pipe` is
+not.
 
 ## Status
 
@@ -150,5 +157,6 @@ DEA PDFs and workbooks are not kept here, for size and licence. Every row has it
    existing one, since projects cite it.
 3. Write `value` and `unit` in gemini's spelling and say any change of unit in `conversion`.
 4. Compute `value_2015` as above with the row's `price_year`, and leave it empty for USD or no money.
-5. Spell `path` as in the case file, leave it empty if no key fits, and fill `in_case` from that file.
+5. Spell `path` as a key of the case (`economics.capex.pipe`), leave it empty if no key fits, and
+   fill `in_case` from the example.
 6. Put the row in its group, set `status`, and run `pytest tests/unit/test_cost_sources.py`.

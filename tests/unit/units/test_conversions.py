@@ -288,3 +288,16 @@ def test_a_yearly_amount_per_capacity_converts_to_currency_per_w_and_year():
     ]
     assert units.Unit.EUR_PER_MW_PER_YR == "EUR/MW/yr"
     assert DISPLAY_UNITS["annual_money_per_power"] == "EUR/MW/yr"
+
+
+def test_a_cost_per_capacity_and_length_converts_to_currency_per_w_and_metre():
+    """EUR/MW/m, the DEA basis of a district heating pipe, is a millionth of EUR/W/m."""
+    assert units.to_si(63.195, "EUR/MW/m") == pytest.approx(63.195e-6)
+    assert units.to_si(2, "EUR/kW/m") == pytest.approx(2e-3)
+    assert units.names("money_per_power_length") == [
+        "EUR/MW/m",
+        "EUR/W/m",
+        "EUR/kW/m",
+        "currency/W/m",
+    ]
+    assert units.Unit.EUR_PER_MW_PER_M == "EUR/MW/m"

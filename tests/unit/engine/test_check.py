@@ -264,3 +264,28 @@ def test_an_ice_store_priced_by_the_economics_needs_its_fixed_opex_and_its_size(
 
     found = priced(gm.check(ice_plant(), revised(shallow_case(), per_energy)))
     assert sorted(found) == ["economics.opex.fixed.ice_storage", "params.ice.energy_capacity"]
+
+
+def test_a_pipe_priced_per_w_and_metre_needs_its_nominal_capacity():
+    """``capex.pipe`` in EUR/MW/m asks the ``nominal_capacity`` of each pipe; given, nothing."""
+    _, case = sample()
+    plant = gm.Plant()
+    plant.add("Pipe", name="line")
+    plant.set_params(
+        "line",
+        {
+            "length": Quantity(2, "km"),
+            "inner_diameter": Quantity(0.3, "m"),
+            "roughness": Quantity(0.05, "mm"),
+            "elevation_change": Quantity(0, "m"),
+            "heat_transfer_coefficient": Quantity(1, "W/m2/K"),
+        },
+    )
+
+    def per_capacity(data):
+        data["economics"]["capex"]["pipe"] = {"value": 63.195, "unit": "EUR/MW/m"}
+
+    priced = revised(case, per_capacity)
+    assert "params.line.nominal_capacity" in paths(gm.check(plant, priced))
+    plant.set_params("line", {"nominal_capacity": Quantity(10, "MW")})
+    assert "params.line.nominal_capacity" not in paths(gm.check(plant, priced))

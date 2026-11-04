@@ -28,6 +28,7 @@ equipment declares one of these kinds."""
 
 CAPEX_BASES = {
     "production_pump": {"money": "per unit"},
+    "pipe": {"money_per_power_length": "per W of nominal capacity and per metre"},
     "heat_exchanger": {"money_per_power": "per W of nominal duty"},
     "thermal_storage": {"money_per_energy": "per J of energy capacity"},
     "ice_storage": {"money_per_energy": "per J of energy capacity"},
@@ -35,8 +36,8 @@ CAPEX_BASES = {
 """The other cost bases of a kind besides ``EQUIPMENT_KINDS``: ``{kind: {quantity: basis}}``.
 
 The unit of ``economics.capex.<kind>`` tells which basis a factor is on (EUR/(W/K) or EUR/W for a
-heat exchanger). A basis per unit counts one per module; any other needs the size of the module in
-that quantity (``Equipment.cost_size_of``)."""
+heat exchanger, EUR/m or EUR/MW/m for a pipe). A basis per unit counts one per module; any other
+needs the size of the module in that quantity (``Equipment.cost_size_of``)."""
 
 PRICED_WHEN_GIVEN = ("ice_storage",)
 """The kinds priced only when the economics gives their capex: ``is_priced``.
@@ -62,8 +63,11 @@ BASIS_SIZES = {
     "money_per_volume": "volume",
     "money_per_length": "length",
     "money_per_conductance": "thermal_conductance",
+    "money_per_power_length": "power",
 }
-"""For a cost per a quantity, the quantity of the size it multiplies (``cost_size_of``)."""
+"""For a cost per a quantity, the quantity of the size it multiplies (``cost_size_of``).
+
+A cost per W and metre (a pipe) multiplies the power size times ``cost_size()``, the length."""
 
 POWER_KINDS = tuple(
     kind

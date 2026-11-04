@@ -255,3 +255,15 @@ def test_a_variable_opex_per_energy_produced_is_read_per_producing_kind(money):
         gm.case.Economics.from_dict(money)
     per_energy = gm.case.Economics.schema()["properties"]["opex"]["properties"]["per_energy"]
     assert "electricity" in per_energy["description"] and "chp" in per_energy["properties"]
+
+
+def test_a_pipe_capex_is_per_metre_or_per_w_and_metre(money):
+    """``capex.pipe`` in EUR/MW/m, as DEA gives district heating pipes, besides EUR/m."""
+    money["capex"]["pipe"] = {"value": 63.195, "unit": "EUR/MW/m"}
+    found = gm.case.Economics.from_dict(money)
+    assert found.capex.pipe == pytest.approx(63.195e-6)
+    assert found.capex.leaf("pipe").quantity == "money_per_power_length"
+    assert found.to_dict() == money
+    capex = gm.case.Economics.schema()["properties"]["capex"]["properties"]["pipe"]
+    assert list(capex["x-bases"]) == ["money_per_length", "money_per_power_length"]
+    assert "EUR/MW/m" in capex["description"] and "nominal capacity" in capex["description"]

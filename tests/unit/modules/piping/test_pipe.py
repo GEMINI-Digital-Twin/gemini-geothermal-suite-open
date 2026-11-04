@@ -137,3 +137,12 @@ def test_pipe_matches_traced_across_regimes():
         ]
     ]
     assert_module_matches(pipe(), rows)
+
+
+def test_the_nominal_capacity_is_the_power_size_of_a_cost_per_w_and_metre():
+    """``cost_size_of("power")`` is ``nominal_capacity``; unset, it is missing and named."""
+    line = pipe()
+    assert line.cost_size() == 1000 and line.cost_size_of("energy") is None
+    with raises(gm.errors.ValidationError, "missing_value", match="nominal_capacity"):
+        line.cost_size_of("power")
+    assert pipe(nominal_capacity=5e6).cost_size_of("power") == 5e6
