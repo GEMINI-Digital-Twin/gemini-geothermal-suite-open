@@ -7,6 +7,7 @@ from gemini._utils import registry
 from gemini._utils.strings import close_matches, did_you_mean, join_names
 from gemini.errors import GeminiError, ValidationError
 from gemini.errors.base import check_on_error
+from gemini.errors.lookup import UnknownKey
 from gemini.modules._utils import design
 from gemini.modules.module import Module
 from gemini.streams.flows import FIELD_SI, STREAM_FIELDS, Stream
@@ -30,7 +31,8 @@ def evaluate(module, parameters, inlets, controls, units, on_error="raise", stat
     in place of ``m_dot`` for a volume flow, which converts with the density of the inlet's
     fluid, and a ``fluid`` (required, a mapping of the fields of ``Fluid``). ``m_dot`` refuses a
     volume unit and suggests ``flow``.
-    ``controls`` maps control and boundary names to values for this call only, in the same form.
+    ``controls`` maps control and boundary names to values for this call only, in the same form;
+    a control or a boundary given in ``parameters`` raises ``invalid_call`` naming ``controls``.
     A bare number for a value with a dimension, in ``parameters``, ``controls`` or an inlet
     field, is refused with ``invalid_value`` naming the path, the quantity and its units.
 
@@ -166,9 +168,22 @@ def _check_inlets(inlets):
 
 
 def _check_given(instance, parameters, controls):
-    """Refuse a bare number for a parameter, control or boundary with a dimension."""
+    """Refuse a bare number for a parameter, control or boundary with a dimension.
+
+    A control or a boundary among ``parameters`` is refused with ``invalid_call`` pointing to
+    ``controls``; the error is also a ``KeyError``, the error such a name raised before.
+    """
     for name, value in parameters.items():
-        design.refuse_bare(instance.get(name), value, name)
+        declaration = instance.get(name)
+        if declaration.section in ("control", "boundary"):
+            raise UnknownKey(
+                f"evaluate: parameters.{name} is a {declaration.section}, not a parameter; "
+                "give it in controls",
+                path=f"parameters.{name}",
+                code="invalid_call",
+                suggestions=["controls"],
+            )
+        design.refuse_bare(declaration, value, name)
     declared = instance.inputs()
     for name, value in controls.items():
         if name in declared:

@@ -23,7 +23,6 @@ from gemini.units.quantities import (
     VolumeFlow,
 )
 
-
 DESIGNED = ("well_diameter", "nominal_flow", "pump_efficiency", "nominal_wellhead_pressure")
 """The design values that only a doublet designed from its ``depth`` reads: one of them stated
 without a depth makes the depth missing."""
@@ -252,9 +251,10 @@ class Doublet(Equipment, Plant):
         """Return ``(design values missing, children waiting for them)`` of a doublet with a depth.
 
         A doublet without a ``depth`` and without any value of ``DESIGNED`` is set child by child
-        and has none. A group whose design is blocked (a value of it or of a group before it missing, or the
-        ``drainage_radius`` or a ``skin`` the flow paths need, which are missing parameters
-        themselves) has its children without a value waiting; its own values left out are missing.
+        and has none. A group whose design is blocked (a value of it or of a group before it
+        missing, or the ``drainage_radius`` or a ``skin`` the flow paths need, which are missing
+        parameters themselves) has its children without a value waiting; its own values left out
+        are missing.
         """
         values = {"drainage_radius": None, "roughness": None} | self._params_at(None)
         stated = [name for name in DESIGNED if values[name] is not None]

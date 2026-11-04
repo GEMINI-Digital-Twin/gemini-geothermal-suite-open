@@ -411,3 +411,29 @@ def test_a_composite_takes_and_returns_the_state_by_child_name():
         state={"first": {"temperature": Quantity(20, "degC")}},
     )
     assert result["state"]["first"]["temperature"]["value"] == pytest.approx(323.15)
+
+
+@pytest.mark.parametrize("on_error", ["raise", "record"])
+def test_a_control_given_as_a_parameter_says_it_belongs_in_controls(on_error):
+    """No bare ``KeyError``: an ``invalid_call`` naming the control and ``controls``.
+
+    The error is also a ``KeyError``, so a caller that caught the old one still does.
+    """
+    parameters = ESP_PARAMETERS | {"frequency": {"value": 50, "unit": "Hz"}}
+    if on_error == "record":
+        [error] = call(parameters=parameters, on_error="record")["errors"]
+        assert error["code"] == "invalid_call" and error["path"] == "parameters.frequency"
+        assert error["suggestions"] == ["controls"]
+        return
+    with raises(gm.errors.ValidationError, "invalid_call", match="is a control") as caught:
+        call(parameters=parameters)
+    assert isinstance(caught.value, KeyError)
+    assert caught.value.path == "parameters.frequency" and "controls" in str(caught.value)
+
+
+def test_set_params_of_a_control_says_where_it_belongs():
+    """``set_params`` keeps ``unknown_name`` and says the name is a control for ``set_inputs``."""
+    plant = gm.plants.HeatingPlant()
+    with raises(gm.errors.ValidationError, "unknown_name", match="is a control") as caught:
+        plant.set_params("d0.esp", {"frequency": {"value": 50, "unit": "Hz"}})
+    assert "set_inputs" in str(caught.value)

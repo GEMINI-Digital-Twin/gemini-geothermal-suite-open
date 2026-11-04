@@ -70,8 +70,14 @@ def parameter(module, name):
         return owner._parameters[local]
     declarations = dict(module.named_parameters())
     if name not in declarations:
+        given = module.inputs().get(name)
+        where = (
+            f"; {name!r} is a {given.section}: set it with set_inputs, or in the controls of a call"
+            if given is not None
+            else ""
+        )
         raise ValidationError(
-            f"{module.path}: unknown parameter {name!r}; valid: {join_names(declarations)}"
+            f"{module.path}: unknown parameter {name!r}{where}; valid: {join_names(declarations)}"
             f"{did_you_mean(name, declarations)}",
             suggestions=close_matches(name, declarations),
             code="unknown_name",
