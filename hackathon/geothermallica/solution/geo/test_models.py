@@ -121,7 +121,12 @@ class TestModels(unittest.TestCase):
         GEMINI solves it (ESP head residual present) and the project file name carries the peak."""
         days = gemini_project._days(3, 56.5, peak_heat_MW=45)
         self.assertAlmostEqual(float(days.demand.iloc[0]), 45.0, delta=1e-6)
-        r = gemini_project.replay(3, 56.5, days=days.iloc[[0]], peak_heat_MW=45)
+        import tempfile
+        runs, gemini_project.RUNS = gemini_project.RUNS, Path(tempfile.mkdtemp())   # the project file goes to a scratch folder
+        try:
+            r = gemini_project.replay(3, 56.5, days=days.iloc[[0]], peak_heat_MW=45)
+        finally:
+            gemini_project.RUNS = runs
         self.assertIn("esp_head_residual_bar", r["days"][0])
         self.assertTrue(r["project_path"].endswith("gemini_project_3d_56.5C_45MW.json"))
 
