@@ -38,6 +38,24 @@ The unit of ``economics.capex.<kind>`` tells which basis a factor is on (EUR/(W/
 heat exchanger). A basis per unit counts one per module; any other needs the size of the module in
 that quantity (``Equipment.cost_size_of``)."""
 
+PRICED_WHEN_GIVEN = ("ice_storage",)
+"""The kinds priced only when the economics gives their capex: ``is_priced``.
+
+A module of such a kind adds no capex and no fixed opex, and ``gm.check`` asks nothing for it, when
+``economics.capex.<kind>`` is absent; given, it is priced as every kind (its fixed opex and its
+size are then needed). ``IceStorage`` gained its kind after 0.5.0, so a case written before prices
+it as before: not at all."""
+
+
+def is_priced(kind, economics):
+    """Return whether equipment of ``kind`` is priced by ``economics`` (``PRICED_WHEN_GIVEN``)."""
+    if kind is None:
+        return False
+    if kind not in PRICED_WHEN_GIVEN:
+        return True
+    return economics.capex is not None and getattr(economics.capex, kind, None) is not None
+
+
 BASIS_SIZES = {
     "money_per_power": "power",
     "money_per_energy": "energy",

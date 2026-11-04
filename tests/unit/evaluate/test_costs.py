@@ -119,6 +119,84 @@ def test_the_unit_of_a_capex_factor_prices_the_exchanger_and_the_tank_by_another
         priced("ThermalStorage", dict(volume={"value": 200, "unit": "m3"}), capex)
 
 
+ICE = dict(
+    water_mass={"value": 50, "unit": "t"},
+    thermal_conductance={"value": 20000, "unit": "W/K"},
+)
+"""An ice store of 50 t of water, with neither a volume nor an energy capacity."""
+
+
+def ice_plant(**params):
+    """Return a plant of one boiler of 10 MW and one ice store with ``params`` besides ``ICE``."""
+    plant = gm.Plant("Ice")
+    plant.add("Boiler", name="boiler", params={"capacity": {"value": 10, "unit": "MW"}})
+    plant.add("IceStorage", name="ice", params=ICE | params)
+    return plant
+
+
+def ice_case(**capex):
+    """Return a case with a boiler at 0.06 per W and 2 %/yr, and the ice store's ``capex``."""
+    fixed = {"boiler": Quantity(2, "%/yr")}
+    if capex:
+        fixed["ice_storage"] = Quantity(1, "%/yr")
+    economics = {
+        "capex": {"boiler": Quantity(0.06, "currency/W")} | capex,
+        "opex": {"fixed": fixed},
+    }
+    return make_case(economics=economics)
+
+
+def test_an_ice_store_is_not_priced_when_the_economics_gives_no_ice_storage():
+    """Without ``capex.ice_storage`` the store adds nothing, as before it had a kind."""
+    plant, case = ice_plant(), ice_case()
+    result = gm.evaluate.capex(plant, case)
+    assert result.value == pytest.approx(0.06e7)
+    assert list(result.parts["modules"]) == ["boiler"]
+    assert cost.fixed_opex(plant, case) == {"boiler": pytest.approx(0.02 * 0.06e7)}
+
+
+def test_an_ice_store_alone_without_ice_storage_is_no_equipment():
+    """A plant whose only equipment is an unpriced ice store has no capex, as before."""
+    plant = gm.Plant("Ice")
+    plant.add("IceStorage", name="ice", params=ICE)
+    result = gm.evaluate.capex(plant, ice_case(), on_error="record")
+    assert result.value is None and result.reason == cost.NO_COST
+
+
+def test_an_ice_store_is_priced_per_energy_stored_or_per_m3():
+    """Per MWh of ``energy_capacity`` or per m3 of ``volume``, with its fixed opex share."""
+    per_energy = ice_case(ice_storage=Quantity(20, "EUR/MWh"))
+    plant = ice_plant(energy_capacity={"value": 5, "unit": "MWh"})
+    result = gm.evaluate.capex(plant, per_energy)
+    assert result.parts["modules"]["ice"].value == pytest.approx(100.0)
+    assert result.parts["modules"]["ice"].parts["kind"] == "ice_storage"
+    assert cost.fixed_opex(plant, per_energy)["ice_storage"] == pytest.approx(1.0)
+    per_volume = ice_case(ice_storage=Quantity(40, "EUR/m3"))
+    plant = ice_plant(volume={"value": 60, "unit": "m3"})
+    assert gm.evaluate.capex(plant, per_volume).parts["modules"]["ice"].value == pytest.approx(2400)
+
+
+def test_a_priced_ice_store_needs_its_size_and_its_fixed_opex():
+    """With ``capex.ice_storage`` the size of its basis is missing_value and named."""
+    per_energy = ice_case(ice_storage=Quantity(20, "EUR/MWh"))
+    with raises(gm.errors.ValidationError, "missing_value", match=r"ice\.energy_capacity"):
+        gm.evaluate.capex(ice_plant(), per_energy)
+    per_volume = ice_case(ice_storage=Quantity(40, "EUR/m3"))
+    with raises(gm.errors.ValidationError, "missing_value", match=r"ice\.volume"):
+        gm.evaluate.capex(ice_plant(), per_volume)
+    no_share = make_case(
+        economics={
+            "capex": {
+                "boiler": Quantity(0.06, "currency/W"),
+                "ice_storage": Quantity(40, "EUR/m3"),
+            },
+            "opex": {"fixed": {"boiler": Quantity(2, "%/yr")}},
+        }
+    )
+    with raises(gm.errors.ValidationError, "missing_assumption", match=r"opex\.fixed\.ice_storage"):
+        cost.fixed_opex(ice_plant(volume={"value": 60, "unit": "m3"}), no_share)
+
+
 def test_a_circulation_pump_costs_by_its_shaft_power_at_the_nominal_flow():
     """Hydraulic power over the efficiency, at the flow and the rise of the design."""
     plant = gm.Plant("One")
@@ -237,8 +315,8 @@ def test_a_case_without_economics_is_missing_assumption():
         gm.evaluate.capex(heating_plant(), make_case())
 
 
-def test_every_kind_but_the_ice_storage_is_declared_by_a_module():
-    """Only the ice storage has no module that declares its kind.
+def test_every_kind_is_declared_by_a_module():
+    """Every kind has a module; ``IceStorage`` declares ``ice_storage``.
 
     A heat pump is a ``heat_pump`` or, in cooling mode, a ``compression_chiller``.
     """
@@ -248,7 +326,7 @@ def test_every_kind_but_the_ice_storage_is_declared_by_a_module():
         if isinstance(getattr(module_class, "equipment_kind", None), str)
     }
     declared |= {"heat_pump", "compression_chiller"}
-    assert set(EQUIPMENT_KINDS) - declared == {"ice_storage"}
+    assert set(EQUIPMENT_KINDS) - declared == set()
 
 
 def _subclasses(root):
