@@ -1,5 +1,5 @@
 """Unit tests for the GEMINI contributions: similarity-law ESP (electrical submersible pump), injector friction sign,
-HeatPumpLift, and the component-registry hook.
+HeatPumpLift, the component-registry hook, the Henry's-law bubble point and the doublet breakthrough.
 
 Run: python -m unittest geo.gemini_contrib.test_contrib -v
 """
@@ -14,6 +14,8 @@ import geo.gemini_contrib  # noqa: F401  (puts the GEMINI development tree first
 from geo.gemini_contrib.esp_affinity import ESPAffinity
 from geo.gemini_contrib.heatpump_lift import HeatPumpLift, register
 from geo.gemini_contrib import injector_sign as fixed
+from geo.gemini_contrib.henry_gas import HenryGasBubblePoint
+from geo.gemini_contrib.thermal_breakthrough import YEAR, DoubletThermalBreakthrough
 
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP
 from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
@@ -23,7 +25,8 @@ from gemini_simulator import nodal_solver
 from gemini_simulator.well_flow import _build_dpdt
 import numpy as np
 
-from geo import plant
+from geo import gas, lifetime, plant
+from geo.common import MU_PA_S, PERM_MD, RHO, THICKNESS_M, t_reservoir_c
 from geo.well import ROUGHNESS_M, TUBING_ID_M, Producer, _pump
 
 BAR = 1e5
@@ -225,6 +228,52 @@ class TestHeatPumpLift(unittest.TestCase):
         register()
         from gemini_simulator.registry import create_component
         self.assertIsInstance(create_component("heatpump_lift"), HeatPumpLift)
+
+
+class TestGasAndLifetime(unittest.TestCase):
+    """HenryGasBubblePoint and DoubletThermalBreakthrough against geo.gas and geo.lifetime."""
+
+    def test_henry_gas_matches_geo_gas(self):
+        """Bubble points (pure water, ln and log10 salt, van 't Hoff) and gas rates equal geo.gas at 300 m3/h."""
+        g = gas.gas_at(300.0)
+        t_k = t_reservoir_c() + 273.15
+
+        def run(**par):
+            m = HenryGasBubblePoint()
+            m.update_parameters(par)
+            m.calculate_output({"temperature": t_k, "flowrate": 300.0 / 3600})
+            return m.get_output()
+
+        brine = {"nacl_concentration": gas.SALT_G_L}
+        cases = (("p_bubble_pure_water_bar", {}), ("p_bubble_bar", brine),
+                 ("p_bubble_log10_reading_bar", {**brine, "salting_out_convention": "log10"}),
+                 ("p_bubble_upper_bar", {**brine, "henry_method": "vant_hoff"}))
+        for key, par in cases:
+            y = run(**par)
+            print(f"  {key}: contrib {y['bubble_point_pressure'] / BAR:.3f} bar, geo.gas {g[key]:.3f} bar")
+            self.assertAlmostEqual(y["bubble_point_pressure"] / BAR, g[key], delta=1e-9)
+        y = run(**brine)
+        self.assertAlmostEqual(y["gas_flowrate"] * 3600, g["gas_Nm3h"], delta=1e-9)
+        self.assertAlmostEqual(y["methane_power"] / 1e6, g["CH4_MW_LHV"], delta=1e-9)
+        self.assertAlmostEqual(y["co2_mass_flow"] * 3600, g["CO2_in_gas_kg_h"], delta=1e-9)
+
+    def test_breakthrough_matches_geo_lifetime(self):
+        """Breakthrough time, spacing for 30 years and interference for 1-3 doublets equal geo.lifetime at 300 m3/h."""
+        q = 300.0 / 3600
+        for n in (1, 2, 3):
+            m = DoubletThermalBreakthrough()
+            m.update_parameters({"reservoir_thickness": THICKNESS_M, "porosity": lifetime.PHI, "water_density": RHO,
+                                 "reservoir_permeability": PERM_MD * 9.869e-16, "viscosity": MU_PA_S,
+                                 "number_of_doublets": n})
+            m.calculate_output({"flowrate": q})
+            y = m.get_output()
+            ref = lifetime.interference_bar(n, 300.0)
+            print(f"  {n} doublet(s): t_bt {y['breakthrough_time'] / YEAR:.2f} yr, "
+                  f"interference {[round(v / BAR, 3) for v in y['interference_pressure']]} bar")
+            self.assertAlmostEqual(y["breakthrough_time"] / YEAR, lifetime.t_bt_yr(300.0), delta=1e-9)
+            for a, b in zip(y["interference_pressure"], ref):
+                self.assertAlmostEqual(a / BAR, b, delta=1e-9)
+        self.assertAlmostEqual(m.spacing_for_years(30.0, q), lifetime.spacing_for_yr(30.0, 300.0), delta=1e-6)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,23 @@ class TestModels(unittest.TestCase):
                           ("CO2_in_gas_kg_h", 94, 0.5)):
             self.assertAlmostEqual(g[k], v, delta=tol, msg=k)
 
+    def test_gas_handling(self):
+        """Gas handling at 300 m3/h: 94 kg/h CO2 in the gas, 377 kg/h from burning the CH4, engine electricity 0.64 MW."""
+        hours = gas.OPERATING_DAYS * 24
+        opts = {o["option"]: o for o in gas.handling_options(300.0)}
+        self.assertAlmostEqual(opts["vent"]["CO2_t_per_yr"] * 1000 / hours, 94, delta=0.5)
+        self.assertAlmostEqual((opts["flare"]["CO2_t_per_yr"] - opts["vent"]["CO2_t_per_yr"]) * 1000 / hours, 377, delta=0.5)
+        self.assertAlmostEqual(opts["engine"]["electricity_MWh_per_yr"] / hours, 0.64, delta=0.005)
+        self.assertEqual(opts["engine"]["CO2_t_per_yr"], opts["flare"]["CO2_t_per_yr"])
+        self.assertEqual(opts["reinject"]["CO2_t_per_yr"], 0.0)
+        self.assertGreater(opts["vent"]["CO2e_t_per_yr"], opts["flare"]["CO2e_t_per_yr"])
+
+    def test_co2_electricity(self):
+        """Electricity CO2 equals electricity GWh x 0.3 kg/kWh, and the total adds the three lines."""
+        e = cost.economics(2, 60.0, 30.0, 10.0)
+        self.assertAlmostEqual(e["co2_electricity_kt"], e["electricity_GWh"] * 0.3, places=9)
+        self.assertAlmostEqual(e["co2_total_kt"], e["co2_kt"] + e["co2_electricity_kt"] + e["co2_associated_gas_kt"], places=9)
+
     def test_bubble_point_tens_of_bar(self):
         """Bubble point between 10 and 100 bar, van 't Hoff above the fits."""
         self.assertTrue(10 < gas.p_bubble_bar(2500.0) < gas.p_bubble_bar(2500.0, "vant_hoff") < 100)

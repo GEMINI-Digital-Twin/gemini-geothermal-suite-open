@@ -3,7 +3,7 @@
 Well costs follow the TNO ThermoGIS cost model, https://pythermogis-15909e.ci.tno.nl/theory/economicmodel/cost_model/ .
 Parameter sources are in the inline comments.
 economics() returns a dict: the design inputs, CAPEX by item, annual cost of heating and cooling by item, heat and cold
-served, LCoH and LCoC, electricity, gas and CO2 totals, and a "basis" dict that names the source of each price.
+served, LCoH and LCoC, electricity, gas and CO2 (boiler gas, grid electricity, associated gas, total), and a "basis" dict of sources.
 """
 import sys
 from functools import lru_cache
@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from geo import year  # noqa: E402
+from geo import gas as assoc, year  # noqa: E402
 from geo.common import THICKNESS_M  # noqa: E402
 
 # PBL = Netherlands Environmental Assessment Agency; SDE++ = the Dutch renewable-energy subsidy scheme. "PBL SDE++ 2026" below is
@@ -41,6 +41,9 @@ BOILER_EFF = 0.9                # boiler efficiency, heat out per gas in on GCV;
 # CO2 per MWh of gas on GCV, t/MWh: 56.2 kg/GJ on lower calorific value (LHV), RVO (Netherlands Enterprise Agency) 2026,
 # divided by a GCV/LHV ratio of 1.11 (assumed)
 CO2_T_MWH = 56.2 * 3.6 / 1000 / 1.11
+# CO2 emission factor of grid electricity, kg per kWh; organiser reference value on Discord, 3 Nov 2026. No CO2 cost is added on
+# electricity: the grid price already carries the EU emissions trading (ETS) cost of the power plants
+EF_EL_KG_KWH = 0.3
 P_CO2 = 58.64                   # CO2 price, EUR/t, EU emissions trading for buildings fuel (ETS2) from 2028; source: PBL SDE++ 2026
 
 
@@ -75,7 +78,12 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
     el_heat = gwh(d.esp) + gwh(d.el_hp) + gwh(year.injection_pump_MW(d))
     el_cold = tot["el_chillers"] + tot["el_aux"]
     gas = gwh(d.boiler) / BOILER_EFF
-    co2_kt = gas * CO2_T_MWH                                     # GWh x t/MWh = kilotonnes
+    co2_kt = gas * CO2_T_MWH                                     # boiler gas: GWh x t/MWh = kilotonnes
+    on = d.doublets_on
+    days_run = float(on.sum())                                   # doublet-days run in the year
+    q_run = float((d.q_m3h * on).sum() / days_run) if days_run else 0.0   # flow-weighted mean running flow, m3/h per doublet
+    # associated gas over the doublet-days actually run, handled by gas.GAS_HANDLING; the engine's credit is reported, not netted
+    ag = assoc.handling(q_run, float(depth_m), days=days_run, esp_kW=float(d.esp.sum()) * 1000 / days_run) if days_run else None
 
     def annual(items, el, gas_gwh, co2):
         return {"capital": sum(capex[k] * crf(R, life[k]) for k in items), "fom": sum(capex[k] * FOM for k in items),
@@ -90,7 +98,13 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
             "heat_served_GWh": heat_GWh, "cold_served_GWh": cold_GWh,
             "lcoh_EUR_MWh": sum(heat_cost.values()) / heat_GWh * 1000,
             "lcoc_EUR_MWh": sum(cold_cost.values()) / cold_GWh * 1000 if cold_GWh > 0 else float("nan"),
-            "electricity_GWh": el_heat + el_cold, "gas_GWh": gas, "co2_kt": co2_kt, "tag": "[C]",
+            "electricity_GWh": el_heat + el_cold, "gas_GWh": gas, "co2_kt": co2_kt,
+            "co2_electricity_kt": (el_heat + el_cold) * EF_EL_KG_KWH,   # GWh x kg/kWh = kilotonnes
+            "co2_associated_gas_kt": ag["CO2e_t_per_yr"] / 1000 if ag else 0.0,
+            "co2_total_kt": co2_kt + (el_heat + el_cold) * EF_EL_KG_KWH + (ag["CO2e_t_per_yr"] / 1000 if ag else 0.0),
+            "gas_handling": assoc.GAS_HANDLING, "associated_gas_q_m3h": q_run, "associated_gas_doublet_days": days_run,
+            "associated_gas_electricity_GWh": ag["electricity_MWh_per_yr"] / 1000 if ag else 0.0,
+            "associated_gas_heat_GWh": ag["heat_MWh_per_yr"] / 1000 if ag else 0.0, "esp_GWh": gwh(d.esp), "tag": "[C]",
             "basis": {"discount_rate": f"{R} real [L, PBL 2026]", "life_yr": "doublets 30 [L, PBL], surface 20 [A]",
                       "fom": f"{FOM} of CAPEX per yr [C, PBL 4.6-6.9 %]",
                       "doublet_MEUR": (f"{doublet_MEUR:.2f} given by the caller [A]" if doublet_given else
@@ -102,13 +116,18 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
                       "chiller_EUR_kW": f"{CHILLER_EUR_KW} [L, HRE4]", "tower_EUR_kW": f"{TOWER_EUR_KW} [A]",
                       "absorption_EUR_kW": f"{ABSORPTION_EUR_KW} [A/TBC]", "electricity_EUR_MWh": f"{P_EL} [L, Eurostat ID]",
                       "gas_EUR_MWh": f"{P_GAS} GCV [L, Eurostat], boiler eff {BOILER_EFF} [A]",
-                      "co2": f"{CO2_T_MWH:.3f} t/MWh gas [D, RVO], {P_CO2} EUR/t [L, ETS2]"}}
+                      "co2": f"{CO2_T_MWH:.3f} t/MWh gas [D, RVO], {P_CO2} EUR/t [L, ETS2]",
+                      "co2_electricity": f"{EF_EL_KG_KWH} kg/kWh grid [D, organiser Q&A 3 Nov 2026]; no CO2 cost, the grid price carries ETS [A]",
+                      "co2_associated_gas": f"gas handled by '{assoc.GAS_HANDLING}' at the flow-weighted mean running flow {q_run:.0f} m3/h over "
+                                            f"{days_run:.0f} doublet-days [C]; engine or boiler credit reported, not netted [A]"}}
 
 
 if __name__ == "__main__":
     rows = {n: economics(n, 60.0, 30.0, 10.0) for n in (1, 2, 3)}
-    print("n  CAPEX MEUR  heat GWh  LCoH EUR/MWh  LCoC EUR/MWh  el GWh  gas GWh  CO2 kt   (60 C return, 30/10 MW) [C]")
+    print("n  CAPEX MEUR  heat GWh  LCoH EUR/MWh  LCoC EUR/MWh  el GWh  gas GWh  CO2 kt  CO2 el kt  CO2 assoc kt  CO2 total kt"
+          "   (60 C return, 30/10 MW) [C]")
     for n, e in rows.items():
         print(f"{n}  {e['capex_MEUR']['total']:10.2f}  {e['heat_served_GWh']:8.2f}  {e['lcoh_EUR_MWh']:12.2f}  "
-              f"{e['lcoc_EUR_MWh']:12.2f}  {e['electricity_GWh']:6.2f}  {e['gas_GWh']:7.2f}  {e['co2_kt']:6.2f}")
+              f"{e['lcoc_EUR_MWh']:12.2f}  {e['electricity_GWh']:6.2f}  {e['gas_GWh']:7.2f}  {e['co2_kt']:6.2f}  "
+              f"{e['co2_electricity_kt']:9.2f}  {e['co2_associated_gas_kt']:12.2f}  {e['co2_total_kt']:12.2f}")
     print(f"third doublet costs {rows[3]['lcoh_EUR_MWh'] - rows[2]['lcoh_EUR_MWh']:+.2f} EUR/MWh of heat [C]")

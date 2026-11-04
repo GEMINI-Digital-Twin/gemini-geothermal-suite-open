@@ -255,7 +255,7 @@ def iteration_lines(it, out):
 
 
 def gas_lifetime(out):
-    """One line each on the plan's gas and lifetime results, for the model to carry into reasoning."""
+    """One line each on the plan's gas, gas handling, CO2 and lifetime results, for the model to carry into reasoning."""
     g = next((r["result"] for r in out if r["name"] == "gas_point" and "error" not in r["result"]), None)
     l = next((r["result"] for r in out if r["name"] == "lifetime_point" and "error" not in r["result"]), None)
     s = ""
@@ -264,6 +264,16 @@ def gas_lifetime(out):
         s += (f"\nGas (one reasoning string, its tag included): ESP at {g['esp_depth_m']:g} m: intake {g['p_esp_intake_bar']} bar, "
               f"bubble point {g['p_bubble_bar']} (log10 {g['p_bubble_log10_reading_bar']}) bar, {free}; {g['gas_Mm3_per_yr']} Mm3 gas, "
               f"{g['CH4_GWh_LHV_per_yr']} GWh CH4 per doublet-year [C, L, A].")
+    it = next((r["result"] for r in out if r["name"] == "design_iterations"), {})
+    e = next((r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]
+              and r["args"].get("n_doublets") == it.get("n_doublets")), None)
+    if g and "gas_handling" in g:
+        how = {"engine": "Gas engine", "flare": "Flare", "vent": "Venting", "boiler": "Site boiler", "reinject": "Reinjection"}
+        s += (f"\nGas handling and CO2 (one reasoning string, word for word, its tag included): {how[g['gas_handling']]}: "
+              f"{g['handling_CO2_kt_per_yr']} kt CO2/yr, {g['handling_electricity_GWh_per_yr']} GWh electricity per doublet against its "
+              f"{g['esp_GWh_per_yr']} GWh ESP load"
+              + (f"; plant CO2 {e['co2_total_kt']} kt/yr, {e['co2_electricity_kt']} kt from grid electricity" if e and "co2_total_kt" in e else "")
+              + " [C, D, A].")
     if l:
         s += (f"\nLifetime (say in reasoning): thermal breakthrough after {l['t_bt_mean_flow_yr']} yr at the mean running flow "
               f"{l['q_mean_running_m3h']} m3/h and {l['spacing_m']} m spacing; "

@@ -117,10 +117,14 @@ def declare(j, results):
 
 
 def brief_result(r):
-    """A tool result as the model sees it: design_iterations without its swept steps."""
-    if r["name"] != "design_iterations":
-        return r["result"]
-    return {**r["result"], "steps": [st for st in r["result"]["steps"] if st.get("move")]}
+    """A tool result as the model sees it: design_iterations without its swept steps, checks as counts plus the FAIL rows."""
+    if r["name"] == "design_iterations":
+        return {**r["result"], "steps": [st for st in r["result"]["steps"] if st.get("move")]}
+    if r["name"] == "checks" and "error" not in r["result"]:
+        res = r["result"]
+        keep = {k: v for k, v in res.items() if not k[:2].isdigit() or "FAIL" in str(v)}
+        return {**keep, "note": "rows that pass are omitted here; copy only n_pass/n_rows into checks_passed"}
+    return r["result"]
 
 
 def run(brief, free=False):
@@ -138,6 +142,9 @@ def run(brief, free=False):
         msgs.append({"role": "user", "content": prompt("recheck").replace("{problems}", "\n".join(p1))})
         a2 = declare(answer(msgs, records, results, 3), results)
         p2 = checker.check(a2, msgs, results, brief)
+    if a2 is not None and len(p2) > len(p1):   # the re-prompt made the answer worse: keep the first one
+        print(f"re-prompt answer has {len(p2)} problems against {len(p1)}: first answer kept")
+        a2, p2 = None, p1
     save(brief, free, msgs, records, results, a1, p1, a2, p2, time.time() - t0)
     return a2 or a1, p1, p2, results
 
