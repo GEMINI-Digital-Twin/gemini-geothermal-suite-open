@@ -1,7 +1,7 @@
-"""Tests for the GEMINI contributions: affinity-law ESP, injector friction sign, HeatPumpLift, registry hook.
+"""Unit tests for the GEMINI contributions: similarity-law ESP (electrical submersible pump), injector friction sign,
+HeatPumpLift, and the component-registry hook.
 
-Run from solution/:  ../../.venv/bin/python -m unittest geo.gemini_contrib.test_contrib -v
-Numbers printed here are [C] on GEMINI's models unless tagged otherwise.
+Run: python -m unittest geo.gemini_contrib.test_contrib -v
 """
 import sys
 import unittest
@@ -27,16 +27,17 @@ from geo import plant
 from geo.well import ROUGHNESS_M, TUBING_ID_M, Producer, _pump
 
 BAR = 1e5
-# copied from GEMINI unit_test/gemini_model/pump/test_esp.py (ESP_PARAMS, pump HC27000) [D]
+# copied from GEMINI unit_test/gemini_model/pump/test_esp.py (ESP_PARAMS, pump HC27000)
 ESP_PARAMS = {
     "no_stages": 12,
     "head_coeff": [83.08389282, -0.000460444, -1.19e-07, 1.69e-11, -6.36e-16, 6.69e-21],
     "power_coeff": [10.02089977, -0.000160233, 6.52e-08, -2.13e-12, 1.71e-17, 1.38e-23],
 }
-Q_REF = 200 / 3600  # m3/s, as test_esp.py [D]
+Q_REF = 200 / 3600  # reference flow, m3/s, as in test_esp.py
 
 
 def esp_out(model_class, params, freq, flow):
+    """Output dict of a pump of model_class with params at freq (Hz) and flow (m3/s)."""
     m = model_class()
     m.update_parameters(dict(params))
     m.calculate_output({"pump_freq": freq, "pump_flow": flow})
@@ -44,12 +45,16 @@ def esp_out(model_class, params, freq, flow):
 
 
 class TestESPAffinity(unittest.TestCase):
+    """Similarity-law pump against GEMINI's ESP."""
+
     def test_equals_gemini_at_60_hz(self):
+        """At 60 Hz the similarity-law pump equals GEMINI's ESP."""
         a, g = esp_out(ESPAffinity, ESP_PARAMS, 60, Q_REF), esp_out(ESP, ESP_PARAMS, 60, Q_REF)
         for k in ("pump_head", "pump_power", "pump_eff"):
             self.assertAlmostEqual(a[k], g[k], delta=1e-9)
 
     def test_homologous_point_48_hz(self):
+        """At 48 Hz and 0.8 q: head x 0.64, power x 0.512, same efficiency."""
         ref = esp_out(ESPAffinity, ESP_PARAMS, 60, Q_REF)
         y = esp_out(ESPAffinity, ESP_PARAMS, 48, 0.8 * Q_REF)
         self.assertAlmostEqual(y["pump_head"], 0.64 * ref["pump_head"], delta=1e-6)
@@ -57,24 +62,27 @@ class TestESPAffinity(unittest.TestCase):
         self.assertAlmostEqual(y["pump_eff"], ref["pump_eff"], delta=1e-9)
 
     def test_zero_frequency_rejected(self):
+        """0 Hz raises ValueError."""
         with self.assertRaises(ValueError):
             esp_out(ESPAffinity, ESP_PARAMS, 0, Q_REF)
 
     def test_gemini_discrepancy_on_our_pump(self):
-        params = _pump(24).parameters   # our 24-stage pump, BEP 250 m3/h [A]
+        """Below 60 Hz GEMINI's ESP gives more head than the similarity law on the 24-stage pump."""
+        params = _pump(24).parameters   # 24-stage pump, BEP 250 m3/h
         rows = []
         for q, f in ((230, 58.0), (250, 47.353), (300, 56.879), (230, 50.0)):
             g = esp_out(ESP, params, f, q / 3600)["pump_head"] / BAR
             a = esp_out(ESPAffinity, params, f, q / 3600)["pump_head"] / BAR
             rows.append((q, f, g, a, 100 * (g - a) / a))
             print(f"  ESP 24 st {q} m3/h {f:.2f} Hz: head GEMINI {g:.2f} bar, affinity {a:.2f} bar, "
-                  f"GEMINI over by {100 * (g - a) / a:.2f} % [C]")
+                  f"GEMINI over by {100 * (g - a) / a:.2f} %")
         d58 = rows[0][4]
         self.assertGreater(d58, 2.0, f"58 Hz, 230 m3/h: GEMINI head exceeds the affinity head by {d58:.2f} % "
                                      "(66.89 vs 65.56 bar on 1 Nov run)")
         self.assertGreater(rows[3][4], 10.0, "50 Hz gap should be > 10 %")
 
     def test_producer_uses_same_law(self):
+        """The producer well model uses the same similarity law as ESPAffinity."""
         w = Producer(stages=24)
         f = w.freq_for_wellhead(300.0, 10.0)
         head = w.run(300.0, f)["esp_head_bar"]
@@ -83,13 +91,17 @@ class TestESPAffinity(unittest.TestCase):
 
 
 def vertical_well():
-    seg = [{"angle": 90.0, "depth": 100.0, "diameter": TUBING_ID_M}] * 25   # 2 500 m, 100 m cells [A]
+    """GEMINI pipe-flow model (DPDT) of a 2 500 m vertical well."""
+    seg = [{"angle": 90.0, "depth": 100.0, "diameter": TUBING_ID_M}] * 25   # 2 500 m, 100 m cells
     return _build_dpdt(seg, roughness=ROUGHNESS_M)
 
 
 class TestInjectorSign(unittest.TestCase):
+    """Friction sign in the injector pressure solve."""
+
     def test_gemini_own_convention(self):
-        # replica of GEMINI unit_test/gemini_model/well/test_pressure_drop.py::test_calculate_bottomhole [D]
+        """GEMINI's own test: -q going down gives a negative friction drop."""
+        # replica of GEMINI unit_test/gemini_model/well/test_pressure_drop.py::test_calculate_bottomhole
         w = DPDT()
         w.update_parameters({
             "diameter": np.array([6.366, 6.366, 9.95, 6.366, 3.92]) * 0.0254,
@@ -104,14 +116,15 @@ class TestInjectorSign(unittest.TestCase):
         self.assertAlmostEqual(w.get_output()["pressuredrop_fric_output"], -6264.02, delta=0.01)
 
     def test_friction_subtracts_with_fix(self):
-        q, p_wh, t_wh = 300 / 3600, 1 * BAR, 50 + 273.15   # [A] test case
+        """With the fix the bottomhole pressure is below hydrostatic (friction opposes the flow)."""
+        q, p_wh, t_wh = 300 / 3600, 1 * BAR, 50 + 273.15
         d = vertical_well()
         p_fix = fixed._well_bottomhole_pressure_injection(d, q, p_wh, t_wh)
         p_hyd = p_wh + d.get_output()["pressuredrop_grav_output"]
         p_gem = nodal_solver._well_bottomhole_pressure_injection(d, q, p_wh, t_wh)
-        patched = abs(p_gem - p_fix) < 1.0   # upstream already carries PATCH.md item 1 (branch geothermallica)
+        patched = abs(p_gem - p_fix) < 1.0   # upstream already carries the sign fix
         print(f"  injector 2500 m, 300 m3/h: p_bh fixed {p_fix / BAR:.2f} bar, hydrostatic {p_hyd / BAR:.2f} bar, "
-              f"GEMINI call {p_gem / BAR:.2f} bar{' (upstream patched)' if patched else ''} [C]")
+              f"GEMINI call {p_gem / BAR:.2f} bar{' (upstream patched)' if patched else ''}")
         self.assertLess(p_fix, p_hyd)
         if patched:
             self.assertAlmostEqual(p_gem, p_fix, delta=0.01 * BAR)
@@ -119,20 +132,21 @@ class TestInjectorSign(unittest.TestCase):
             self.assertGreater(p_gem, p_hyd)
 
     def test_wellhead_solver_drop_in(self):
+        """The drop-in wellhead solver gives 47.25 bar for 300 m3/h into 250 bar with an injectivity index of 10 m3/h/bar."""
         cfg = {"reservoir_pressure_bar": 250.0, "productivity_index_m3h_per_bar": 10.0, "roughness_m": ROUGHNESS_M,
-               "welltrajectory": [{"angle": 90.0, "depth": 100.0, "diameter": TUBING_ID_M}] * 25}   # [A]
+               "welltrajectory": [{"angle": 90.0, "depth": 100.0, "diameter": TUBING_ID_M}] * 25}
         from gemini_simulator.well_flow import solve_injector_wellhead_pressure_bar as gemini_solve
         p_fix = fixed.solve_injector_wellhead_pressure_bar(cfg, 300.0, 50.0)
         p_gem = gemini_solve(cfg, 300.0, 50.0)
         print(f"  injector wellhead for 300 m3/h into 250 bar, II 10 m3/h/bar: fixed {p_fix:.2f} bar, "
-              f"GEMINI {p_gem:.2f} bar [C]")
-        self.assertAlmostEqual(p_fix, 47.25, delta=0.05)   # 2 Nov run [C]
+              f"GEMINI {p_gem:.2f} bar")
+        self.assertAlmostEqual(p_fix, 47.25, delta=0.05)
         if abs(p_gem - p_fix) > 1e-6:   # unpatched upstream: GEMINI's own sign gives 22.25 bar
             self.assertAlmostEqual(p_gem, 22.25, delta=0.05)
 
 
 def balanced_case(duty_fraction=0.98):
-    """Brine and water temperatures of geo.plant at 300 m3/h, 60 C return; water flow sized to a share of plant's HP duty."""
+    """(HeatPumpLift inputs, plant result) at 300 m3/h and 60 C return; water flow sized to a share of the plant's heat-pump duty."""
     r = plant.doublet_at(Producer(stages=24), 300.0, 60.0)
     t_wh = r["T_wh_C"]
     t_brine_in, t_floor, t_water_in = 60.0 + plant.APPROACH_K, t_wh - plant.DT_BRINE_MAX_K, t_wh - plant.APPROACH_K
@@ -143,24 +157,29 @@ def balanced_case(duty_fraction=0.98):
 
 
 def run_hp(u):
+    """Output dict of HeatPumpLift for inputs u."""
     hp = HeatPumpLift()
     hp.calculate_output(u)
     return hp.get_output()
 
 
 class TestHeatPumpLift(unittest.TestCase):
+    """HeatPumpLift energy balance, floor branch and registry."""
+
     def test_constants_match_plant(self):
+        """Heat capacity, brine density and Lorenz efficiency match the plant model."""
         hp = HeatPumpLift()
         self.assertEqual(hp.parameters["Cp_s"], plant.CP * 1000)
         self.assertEqual(hp.parameters["rho_s"], plant.RHO)
         self.assertEqual(hp.parameters["eta_lorenz"], plant.LORENZ_EFF)
 
     def test_energy_balance_and_cop(self):
+        """Heat out = brine heat + electricity; COP = heat / electricity; water reaches 100 C."""
         u, _ = balanced_case()
         y = run_hp(u)
         print(f"  HeatPumpLift brine {u['T_brine_in_C']:.1f}->{y['T_brine_out_C']:.2f} C (floor {u['T_brine_floor_C']:.2f}), "
               f"water {u['T_water_in_C']:.2f}->{y['T_water_out_C']:.2f} C at {u['water_flow_m3h']:.1f} m3/h: "
-              f"Q_th {y['Q_th_MW']:.3f} MW, P_el {y['P_el_MW']:.3f} MW, COP {y['COP']:.3f} [C]")
+              f"Q_th {y['Q_th_MW']:.3f} MW, P_el {y['P_el_MW']:.3f} MW, COP {y['COP']:.3f}")
         self.assertAlmostEqual(y["Q_th_MW"], y["Q_brine_MW"] + y["P_el_MW"], delta=1e-3 * y["Q_th_MW"])
         self.assertAlmostEqual(y["COP"], y["Q_th_MW"] / y["P_el_MW"], delta=1e-9)
         self.assertTrue(2.0 < y["COP"] < 8.0)
@@ -168,17 +187,19 @@ class TestHeatPumpLift(unittest.TestCase):
         self.assertAlmostEqual(y["T_water_out_C"], 100.0, delta=1e-6)
 
     def test_floor_binds(self):
+        """At twice the duty the brine floor binds and the water stays below 100 C."""
         u, _ = balanced_case()
-        u["water_flow_m3h"] *= 2.0   # twice the duty the 40 K cap allows [A]
+        u["water_flow_m3h"] *= 2.0   # twice the duty the 40 K cap allows
         y = run_hp(u)
         print(f"  HeatPumpLift at 2x duty: brine out {y['T_brine_out_C']:.2f} C, water out {y['T_water_out_C']:.2f} C, "
-              f"floor_binds {y['floor_binds']} [C]")
+              f"floor_binds {y['floor_binds']}")
         self.assertTrue(y["floor_binds"])
         self.assertLess(y["T_water_out_C"], 100.0)
         self.assertGreater(y["T_water_out_C"], u["T_water_in_C"])   # GEMINI's own floor branch gives ~796 C here
         self.assertAlmostEqual(y["Q_th_MW"], y["Q_brine_MW"] + y["P_el_MW"], delta=1e-3 * y["Q_th_MW"])
 
     def test_gemini_floor_branch_wrong_root(self):
+        """GEMINI's floor branch returns an unphysical water temperature; HeatPumpLift returns 91.2 C."""
         u, _ = balanced_case()
         u["water_flow_m3h"] *= 2.0   # same input as test_floor_binds
         hp = HeatpumpBasic()
@@ -187,18 +208,20 @@ class TestHeatPumpLift(unittest.TestCase):
         hp.calculate_output({"Th_in": u["T_water_in_C"], "Ts_in": u["T_brine_in_C"],
                              "hot_flow_rate": u["water_flow_m3h"] / 3600, "source_flow_rate": u["brine_flow_m3h"] / 3600})
         g, y = hp.get_output()["Th_out"], run_hp(u)["T_water_out_C"]
-        print(f"  floor branch at 2x duty: GEMINI HeatpumpBasic water out {g:.1f} C, HeatPumpLift {y:.2f} C [C]")
+        print(f"  floor branch at 2x duty: GEMINI HeatpumpBasic water out {g:.1f} C, HeatPumpLift {y:.2f} C")
         self.assertGreater(g, 100.0)   # unphysical root, about 796 C
         self.assertAlmostEqual(y, 91.23, delta=0.1)
 
     def test_cop_matches_plant(self):
+        """HeatPumpLift COP is within 5 % of the plant model's."""
         u, r = balanced_case(duty_fraction=1.0)
         y = run_hp(u)
         print(f"  COP HeatPumpLift {y['COP']:.3f} vs geo.plant {r['cop']:.3f} "
-              f"({100 * (y['COP'] - r['cop']) / r['cop']:+.2f} %), brine out {y['T_brine_out_C']:.2f} C [C]")
+              f"({100 * (y['COP'] - r['cop']) / r['cop']:+.2f} %), brine out {y['T_brine_out_C']:.2f} C")
         self.assertAlmostEqual(y["COP"], r["cop"], delta=0.05 * r["cop"])
 
     def test_register(self):
+        """register() makes create_component("heatpump_lift") return a HeatPumpLift."""
         register()
         from gemini_simulator.registry import create_component
         self.assertIsInstance(create_component("heatpump_lift"), HeatPumpLift)

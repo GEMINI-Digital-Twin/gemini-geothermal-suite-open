@@ -1,23 +1,25 @@
-"""A steel heat-storage tank priced against the 16 MW backup boiler: what a tank must hold to replace it, and what it costs.
+"""A steel hot-water storage tank priced against the 16 MW backup boiler, sized for the peak and for a winter outage of one doublet.
 
-Two duties a tank could take over: (a) the peak with every doublet on (zero when the plan rule holds), (b) one doublet out
-for OUTAGE_DAYS in winter (the boiler's real job, security of supply). Tank prices and sizes from research/04 lines 24-27
-[L, DEA technology data for energy storage]. Daily data hide the hourly peak, so (a) is a lower bound [A].
+Tank data: Danish Energy Agency (DEA), Technology Data: Energy storage, https://ens.dk/media/6448/download
+Parameter sources are in the inline comments.
+storage_case() returns a dict: heat deficits (MW, GWh), tank size (MWh), tanks needed, tank and boiler cost (MEUR, million
+euros), and "verdict" and "basis" strings. Run: python geo/storage.py
 """
 import math
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))   # run as python geo/storage.py
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from geo import cost, year  # noqa: E402
 from geo.common import DEPTH_M  # noqa: E402
+from geo.well import ESP_DEPTH_M  # noqa: E402
 
-TANK_EUR_MWH = 3000.0       # steel tank, EUR2015, range 2 200-8 000 [L, DEA technology data: energy storage]
-TANK_UNIT_MWH = 175.0       # DEA standard unit, energy [L, DEA-S]
-TANK_UNIT_MW = 2.9          # DEA standard unit, discharge power [L, DEA-S]
-TANK_LOSS_PER_DAY = 0.002   # share of content lost per day [L, DEA-S]
-OUTAGE_DAYS = 7             # unplanned winter outage of one doublet [A]
+TANK_EUR_MWH = 3000.0       # steel tank cost, EUR per MWh stored (2015 euros, range 2 200-8 000); source: DEA energy storage
+TANK_UNIT_MWH = 175.0       # heat stored per standard tank, MWh; source: DEA energy storage
+TANK_UNIT_MW = 2.9          # discharge power per standard tank, MW; source: DEA energy storage
+TANK_LOSS_PER_DAY = 0.002   # share of the stored heat lost per day; source: DEA energy storage
+OUTAGE_DAYS = 7             # unplanned winter outage of one doublet (N-1), days; assumed, no source
 
 
 def _longest_run(mask, values):
@@ -30,15 +32,15 @@ def _longest_run(mask, values):
     return best, best_sum
 
 
-def storage_case(n, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, outage_days=OUTAGE_DAYS):
-    """Tank for the all-doublets peak and for an N-1 winter outage, its cost, and the boiler it competes with [C, L, A]."""
-    d = year.heating_year(int(n), float(t_return_c), peak_heat_MW=peak_heat_MW, depth_m=float(depth_m))
+def storage_case(n, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, outage_days=OUTAGE_DAYS, esp_depth_m=ESP_DEPTH_M):
+    """Dict of the tank for the all-doublets peak and for an N-1 winter outage, its cost, and the boiler it competes with."""
+    d = year.heating_year(int(n), float(t_return_c), peak_heat_MW=peak_heat_MW, depth_m=float(depth_m), esp_depth_m=float(esp_depth_m))
     full = d[[f"avail_{i}" for i in range(int(n))]].all(axis=1)
-    short = (d.boiler_peak + d.unmet).where(full, 0.0)                     # MW per day the doublets cannot give, all on
+    short = (d.boiler_peak + d.unmet).where(full, 0.0)                     # MW per day the doublets cannot give with all of them on
     days, mw_days = _longest_run(short > 0.01, short)
     tank_peak = mw_days * 24
-    cap = year.table(float(t_return_c), float(depth_m)).out_max            # MW per doublet at 300 m3/h [C]
-    deficit = float((d.demand - (n - 1) * cap).clip(lower=0).max())        # N-1 on the coldest day [C]
+    cap = year.table(float(t_return_c), float(depth_m), esp_depth_m=float(esp_depth_m)).out_max   # MW per doublet at 300 m3/h
+    deficit = float((d.demand - (n - 1) * cap).clip(lower=0).max())        # MW short with one doublet out on the coldest day
     tank_out = deficit * 24 * outage_days
     tanks = max(math.ceil(tank_out / TANK_UNIT_MWH), math.ceil(deficit / TANK_UNIT_MW)) if tank_out > 0 else 0
     tank_meur = tank_out * TANK_EUR_MWH / 1e6
@@ -56,7 +58,7 @@ def storage_case(n, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, outage_days=
             "backup_boiler_MEUR": boiler_meur, "verdict": verdict,
             "basis": (f"tank {TANK_EUR_MWH:.0f} EUR/MWh (2 200-8 000), unit {TANK_UNIT_MWH:.0f} MWh / {TANK_UNIT_MW} MW, loss "
                       f"{100 * TANK_LOSS_PER_DAY:.1f} %/day [L, DEA]; units = max(energy, power) count [C]; boiler "
-                      f"{cost.BOILER_EUR_KW:.0f} EUR/kW [C, research/04]; {outage_days}-day outage [A]; daily profile hides the "
+                      f"{cost.BOILER_EUR_KW:.0f} EUR/kW [C, DEA]; {outage_days}-day outage [A]; daily profile hides the "
                       "hourly peak, so the tank for the peak is a lower bound, and stored brine-temperature heat still needs the lift [A]"),
             "tag": "[C, L, A]"}
 

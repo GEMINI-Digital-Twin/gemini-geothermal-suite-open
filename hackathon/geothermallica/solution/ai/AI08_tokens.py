@@ -7,7 +7,7 @@ import AI01_log as log
 
 LINE = re.compile(r"(\d+) model calls, (\d+) prompt tokens, (\d+) completion tokens")
 SECS = re.compile(r"([\d.]+) s (?:wall|in the model)")   # rag files give wall only, the oldest file model time only
-PRICE = ("Claude Haiku 4.5", 1.0, 5.0, "https://platform.claude.com/docs/en/about-claude/pricing (read 2026-11-02)")  # USD/MTok in, out [L]
+PRICE = ("Claude Haiku 4.5", 1.0, 5.0, "https://platform.claude.com/docs/en/about-claude/pricing (read 2026-11-02)")  # USD/MTok in, out
 
 
 # {type: [calls, prompt, completion, seconds]} from each run file's Tokens line; type = plan / free / rag / other

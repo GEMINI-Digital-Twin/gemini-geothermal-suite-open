@@ -1,13 +1,8 @@
-"""Injector bottomhole pressure with the friction sign GEMINI's own DPDT test uses.
+"""Injector bottomhole pressure with the flow passed to DPDT (GEMINI's pipe-flow pressure-drop model) as -q going down.
 
-Why: DPDT takes a signed flow, dp_fric = f rho L/D |u| u / 2, and GEMINI's test_pressure_drop.py injects with
-flowrate = -10/3600 and direction "down" (friction -6264.02 Pa). The simulator's injector call sites pass +q with
-"down", so friction is added on the way down and the bottomhole pressure comes out too high. The fix is to hand
-DPDT -q; the API keeps a positive injection rate, and the IPR still gets +q.
-
-Drop-in versions of gemini_simulator.nodal_solver._well_bottomhole_pressure_injection,
-nodal_solver.solve_injection_wellhead_pressure and well_flow.solve_injector_wellhead_pressure_bar,
-same signatures. Upstream only the first needs a one-line change (PATCH.md); the other two inherit it.
+This is the sign GEMINI's own test_pressure_drop.py uses, so friction opposes the downward flow.
+Drop-in versions of three gemini_simulator functions, same signatures; upstream only _well_bottomhole_pressure_injection changes.
+Functions return pressures in Pa, or in bar where the name says so.
 """
 from scipy.optimize import brentq
 
@@ -34,6 +29,7 @@ def solve_injection_wellhead_pressure(ipr, dpdt, flow_rate, wellhead_temperature
     p_reservoir = _reservoir_bottomhole_pressure(ipr, flow_rate)
 
     def residual(wellhead_pressure):
+        """Bottomhole pressure from the well minus that the reservoir needs, Pa."""
         return _well_bottomhole_pressure_injection(dpdt, flow_rate, wellhead_pressure, wellhead_temperature) - p_reservoir
 
     if residual(pressure_bracket[0]) >= 0:

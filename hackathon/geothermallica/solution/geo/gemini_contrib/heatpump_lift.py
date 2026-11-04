@@ -1,19 +1,8 @@
-"""Heat pump lifting district water to a target on brine from the exchanger (HeatpumpBasic, Lorenz).
+"""GEMINI's HeatpumpBasic in Lorenz mode, with a lowest brine outlet temperature (floor) set per call and inputs in plant units.
 
-Why: a brief may cap brine cooling (40 K here), so the evaporator can only take brine down to the
-wellhead temperature minus the cap. HeatpumpBasic already has a source floor (Ts_in_minimum): when
-the network duty would cool the brine below it, it fixes the brine at the floor and lets the
-delivered temperature drop. HeatPumpLift sets that floor from the input each call, works in plant
-units (C, m3/h, MW) and reports when the floor binds. In that floor branch the Nelder-Mead search of
-HeatpumpBasic lands on a second, unphysical root (COP about 1, water out about 800 C, measured
-2 Nov 2026), so HeatPumpLift re-solves it as a one-variable root between water-in and the target
-(brentq), where the root is bracketed. COP = eta_lorenz T_h / (T_h - T_s) with log-mean temperatures
-of the sink and source glides (Ommen et al. 2015, Int. J. Refrig. 55, 168-182,
-DOI 10.1016/j.ijrefrig.2015.02.012; Arpagaus et al. 2018, Energy 152, 985-1010,
-DOI 10.1016/j.energy.2018.03.166).
-
-Defaults: eta_lorenz 0.5, brine rho 1030 kg/m3 and cp 4000 J/kg/K, network water rho 1000 kg/m3 and
-cp 4000 J/kg/K, target 100 C; all assumptions a plant model may overwrite through update_parameters.
+COP (coefficient of performance, heat out per electricity in) = eta T_h / (T_h - T_s) on log-mean temperatures,
+Ommen et al. 2015, DOI 10.1016/j.ijrefrig.2015.02.012. When the floor binds the outlet is solved by bracketing (brentq).
+calculate_output() fills the GEMINI outputs plus Q_th_MW, P_el_MW, Q_brine_MW, T_brine_out_C, T_water_out_C and floor_binds.
 """
 
 import numpy as np
@@ -28,30 +17,25 @@ def _tlm(a_k, b_k):
 
 
 class HeatPumpLift(HeatpumpBasic):
-    """HeatpumpBasic in Lorenz mode with a brine floor set per call and a bracketed floor branch.
-
-    Inputs (u): T_brine_in_C, brine_flow_m3h, T_brine_floor_C, T_water_in_C, water_flow_m3h.
-    Outputs added to HeatpumpBasic's: Q_th_MW, P_el_MW, Q_brine_MW, T_brine_out_C, T_water_out_C,
-    floor_binds.
-    """
+    """Heat pump taking T_brine_in_C, brine_flow_m3h, T_brine_floor_C, T_water_in_C, water_flow_m3h; adds MW and C outputs."""
 
     def __init__(self):
-        """Initialize with Lorenz mode, eta 0.5, cp 4000 J/kg/K on both sides, target 100 C."""
+        """Lorenz mode, efficiency 0.5, heat capacity 4 000 J/kg/K both sides, water 1 000 and brine 1 030 kg/m3, target 100 C."""
         super().__init__()
         self.parameters.update(
             {
                 "mode": "lorenz",
-                "eta_lorenz": 0.5,
+                "eta_lorenz": 0.5,   # Lorenz efficiency; International Energy Agency heat-pump Annex 58 gives 0.35-0.59
                 "Cp_h": 4000.0,
                 "Cp_s": 4000.0,
                 "rho_h": 1000.0,
-                "rho_s": 1030.0,
-                "Th_out_target": 100.0,
+                "rho_s": 1030.0,   # brine density from the challenge brief
+                "Th_out_target": 100.0,   # district-heating supply, C, from the challenge brief
             }
         )
 
     def _calculate(self, Th_out, Th_in, Ts_in, mh, ms):
-        """Return the HeatpumpBasic solution, except in the floor branch, re-solved by brentq."""
+        """HeatpumpBasic's (COP, T out, T brine out, heat, power); in the floor branch, where its Nelder-Mead finds a COP ~1 root, brentq."""
         result = super()._calculate(Th_out, Th_in, Ts_in, mh, ms)
         Ts_floor = self.parameters["Ts_in_minimum"] + 273.15
         if abs(result[2] - Ts_floor) >= 1e-9:

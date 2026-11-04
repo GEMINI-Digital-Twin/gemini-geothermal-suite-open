@@ -1,4 +1,7 @@
-"""The agent loop: brief -> code plan (sweeps, checks) -> model may call more tools -> JSON answer -> AI04 check -> one re-prompt."""
+"""The design agent: brief -> code plan -> model answer in JSON -> AI04 check -> one re-prompt; run file written.
+
+Run: python ai/AI03_agent.py ["<brief>"] [--free]   (no brief: interactive)
+"""
 import json
 import pathlib
 import re
@@ -8,6 +11,7 @@ from datetime import datetime
 
 import AI01_log as log
 import AI02_tools as tools
+import AI03_plan as planner
 import AI04_check as checker
 
 PROMPTS = pathlib.Path(__file__).parent / "prompts"
@@ -20,132 +24,6 @@ def prompt(name):
 
 SYSTEM = prompt("system_design")
 PLAN_NOTE = prompt("plan_note")
-
-
-brief_peak = checker.brief_peak
-
-
-brief_site = checker.brief_site
-SITE_DEFAULTS = {"depth_m": 2500.0, "supply_heat_c": 100.0, "supply_cold_c": 20.0}   # the challenge's site [D]
-
-
-def pick(sweeps):
-    """Smallest n whose best return leaves no heat unmet and has boiler <= 5 % of the heat served [A]; else least boiler."""
-    row = lambda s: s["by_return_C"][str(s["best_return_c"])]
-    sweeps = [s for s in sweeps if "error" not in s]
-    ok = [s for s in sweeps if checker.meets_rule(row(s))]
-    s = ok[0] if ok else min(sweeps, key=lambda s: row(s)["boiler_GWh"])
-    return s, row(s), bool(ok)
-
-
-def brief_max_n(brief):
-    m = re.search(r"(?:up to|at most|max(?:imum)?)\s+(\d)\s+doublets", brief, re.I)
-    return min(3, int(m.group(1))) if m else 3
-
-
-def brief_inputs(brief):
-    """Peaks (heat, cold), the site with defaults filled in, and what the brief gave (None where it gave nothing)."""
-    ph, pc = brief_peak(brief, "heat"), brief_peak(brief, "cool")
-    found = brief_site(brief)
-    site = {k: (v if v is not None else d) for (k, d), v in zip(SITE_DEFAULTS.items(), found)}
-    return ph, pc, site, found
-
-
-def call(name, args):
-    """A tool result, or {"error": ...} when the tool rejects its arguments."""
-    try:
-        return tools.call(name, {**SITE_DEFAULTS, **args} if name == "site_inputs" else args)
-    except ValueError as e:
-        return {"error": str(e)}
-
-
-def plan(brief):
-    """The tool calls of the code plan: site, demand, a return sweep per n, then checks and years for the chosen design.
-    site_inputs is recorded with the values the brief gave; the challenge defaults fill the rest (prose() warns)."""
-    ph, pc, _, found = brief_inputs(brief)
-    site = {k: v for k, v in zip(SITE_DEFAULTS, found) if v is not None}
-    print(f"brief peaks: heat {ph} MW, cold {pc} MW, depth {found[0]} m")
-    dep = {} if found[0] is None else {"depth_m": found[0]}   # the brief's depth reaches every tool (rule (e))
-    heat = {**dep, **({} if ph is None else {"peak_heat_MW": ph})}
-    peaks = {**heat, **({} if pc is None else {"peak_cold_MW": pc})}
-    steps = [("site_inputs", site), ("demand_summary", {k: v for k, v in peaks.items() if k != "depth_m"})] + [("return_sweep", {"n_doublets": n, **heat}) for n in range(1, brief_max_n(brief) + 1)]
-    out = [{"name": k, "args": a, "result": call(k, a)} for k, a in steps]
-    s, _, _ = pick([r["result"] for r in out if r["name"] == "return_sweep"])
-    n, t = s["n_doublets"], s["best_return_c"]
-    cost = [("economics", {"n_doublets": m, "t_return_c": t, **peaks}) for m in (n, n + 1) if m <= 3]   # what the next doublet costs
-    alts = [("layout_compare", {"n_doublets": n, "t_return_c": t, **peaks}), ("storage_point", {"n_doublets": n, "t_return_c": t, **heat})]
-    for k, a in (("checks", {"n_doublets": n, "t_return_c": t, **peaks}), *cost, *alts, ("heating_year", {"n_doublets": n, "t_return_c": t, **heat}),
-                 ("cooling_year", {"t_return_c": t, "n_doublets": n, **peaks}), ("injector_point", {"q_m3h": 300, **dep})):
-        out.append({"name": k, "args": a, "result": call(k, a)})
-    econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
-    if n in econ and n + 1 in econ:   # the increment is computed here from two tool results, so the checker can trace it
-        out.append({"name": "economics_delta", "args": {"from_n": n, "to_n": n + 1},
-                    "result": {"delta_lcoh_EUR_MWh": round(econ[n + 1]["lcoh_EUR_MWh"] - econ[n]["lcoh_EUR_MWh"], 2),
-                               "delta_capex_MEUR": round(econ[n + 1]["capex_total_MEUR"] - econ[n]["capex_total_MEUR"], 2), "tag": "[C]"}})
-    return out
-
-
-def plan_message(brief, out):
-    """The plan's choice in words, from the tool results of plan()."""
-    ph, pc, site, found = brief_inputs(brief)
-    s, row, ok = pick([r["result"] for r in out if r["name"] == "return_sweep"])
-    n, t = s["n_doublets"], s["best_return_c"]
-    scale = " ".join(f"{name.capitalize()} demand scaled to the brief's {v} MW peak." if v is not None else
-                     f"No {name} peak found in the brief, so the {name} demand file is used as is ({d} MW)."
-                     for name, v, d in (("heating", ph, 30.0), ("cooling", pc, 10.0)))
-    miss = [f"{k} (default {site[k]:g})" for k, v in zip(site, found) if v is None]
-    site_msg = ("Site from the brief: " + ", ".join(f"{k} {v:g}" for k, v in site.items()) + "."
-                + (f" Not found in the brief, defaults used: {', '.join(miss)}." if miss else ""))
-    si = out[0]["result"]
-    if "error" in si:
-        site_msg += f" site_inputs rejected these inputs: {si['error']}. The design cannot be trusted for them [C]."
-    elif not si["supported"]:
-        site_msg += f" {si['message']}. The design cannot be trusted for these inputs [D, A]."
-    rule = ("the smallest number of doublets whose best_return_c leaves no heat unmet with boiler energy at most 5 % of the "
-            "heat served [A]; so demand_met is true" if ok else
-            f"the demand cannot be met with up to {brief_max_n(brief)} doublets at any return; least-boiler option shown; "
-            "so demand_met is false")
-    econ = {r["args"]["n_doublets"]: r["result"]["lcoh_EUR_MWh"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
-    lcoh = "; ".join(f"with {m} doublets {v} EUR/MWh" for m, v in econ.items())
-    if n in econ and n + 1 in econ:
-        lcoh += f"; so the {({2: 'second', 3: 'third'}[n + 1])} doublet adds {round(econ[n + 1] - econ[n], 2)} EUR/MWh (say this, not the n+1 LCoH, as 'what the next doublet costs')"
-    return (f"{site_msg}\n{scale}\nPlan choice: {n} doublets at a {t} C return, {rule}. Boiler energy there: "
-            f"{row['boiler_GWh']} GWh of {row['served_GWh']} GWh served ({row['boiler_share_pct']} %), unmet {row['unmet_GWh']} GWh [C]"
-            + ("; so boiler_needed_for_energy is true" if row["boiler_GWh"] > 0.01 else "") + "."
-            + (f"\nLCoH {lcoh} [C]." if lcoh else "")
-            + "\nRejected alternatives (say each in rejected_alternatives with its number and tag, copying these sentences):\n"
-            + "\n".join(f"- {x}" for x in rejected(out, n, t)))
-
-
-def rejected(out, n, t):
-    """One copy-ready sentence per alternative the plan priced and did not choose, every number from a tool result in out."""
-    res = lambda name, **a: next((r["result"] for r in out if r["name"] == name and "error" not in r["result"]
-                                  and all(r["args"].get(k) == v for k, v in a.items())), None)
-    lines = []
-    fewer = res("return_sweep", n_doublets=n - 1) if n > 1 else None
-    if fewer:
-        b = fewer["best_return_c"]; r = fewer["by_return_C"][str(b)]
-        lines.append(f"Fewer doublets: {n - 1} doublet{'s' if n > 2 else ''} at {'their' if n > 2 else 'its'} best {b} C return leave{'' if n > 2 else 's'} {r['unmet_GWh']} GWh unmet, "
-                     f"boiler share {r['boiler_share_pct']} % and peak margin {r['peak_margin_pct']} % [C].")
-    delta = res("economics_delta")
-    if n < 3 and delta:
-        lines.append(f"A {({2: 'second', 3: 'third'})[n + 1]} doublet adds {delta['delta_lcoh_EUR_MWh']} EUR/MWh to the LCoH and "
-                     f"{delta['delta_capex_MEUR']} MEUR of CAPEX when {n} already meet the heat [C].")
-    lay = res("layout_compare")
-    if lay:
-        a, b = lay["A"], lay["B"]
-        lines.append(f"The boiler-lift layout without heat pump costs {a['lcoh_EUR_MWh']} against {b['lcoh_EUR_MWh']} EUR/MWh, "
-                     f"burns {a['gas_GWh']} GWh gas and emits {a['co2_kt']} kt CO2 [C].")
-    st = res("storage_point")
-    if st:
-        lines.append(f"A storage tank instead of the {st['backup_boiler_MW']:g} MW backup boiler: a {st['outage_days']}-day winter outage of one doublet "
-                     f"needs {st['tank_for_outage_MWh']:.0f} MWh, {st['tanks_needed']} tanks, {st['tank_cost_MEUR']} MEUR against {st['backup_boiler_MEUR']} MEUR [C, L, A].")
-    sw = res("return_sweep", n_doublets=n)
-    low = [x for x in tools.SWEEP_C if x < t] if sw else []
-    if low:
-        r = sw["by_return_C"][str(low[-1])]
-        lines.append(f"A lower {low[-1]} C return needs {r['boiler_GWh']} GWh of boiler energy ({r['boiler_share_pct']} % of the heat) [C].")
-    return lines
 
 
 def loop(msgs, records, results, max_steps, offer_tools=True):
@@ -199,12 +77,18 @@ def prose(j, results=(), free=False, problems=()):
             warn.append(f"Warning: {r['result']['message']}.")
         for k, (what, unit) in SITE_WORDS.items():
             if k not in r["args"]:
-                warn.append(f"Warning: no {what} found in the brief; the challenge default {SITE_DEFAULTS[k]:g} {unit} was used [A].")
+                warn.append(f"Warning: no {what} found in the brief; "
+                            f"the challenge default {planner.SITE_DEFAULTS[k]:g} {unit} was used [A].")
     for r in results:
         if r["name"] == "demand_summary":
             for k, what in (("peak_heat_MW", "heat"), ("peak_cold_MW", "cold")):
                 if k not in r["args"]:
-                    warn.append(f"Warning: no {what} peak found in the brief; the challenge default {r['result'][what + '_peak_MW']} MW was used [A].")
+                    warn.append(f"Warning: no {what} peak found in the brief; "
+                                f"the challenge default {r['result'][what + '_peak_MW']} MW was used [A].")
+    it = next((r["result"] for r in results if r["name"] == "design_iterations"), None)
+    if it:
+        warn.append(f"Design iterations: {it['tried']} tried, {it['rejected']} rejected"
+                    + (f", {it['moves']} repair move{'s' if it['moves'] > 1 else ''} by the plan" if it["moves"] else "") + "; see the run file.")
     head = "\n".join([first] + warn) + "\n\n"
     open_ = f"\n\nOpen checker problems: {'; '.join(problems)}" if problems else ""
     if "unparsed" in j:
@@ -222,23 +106,32 @@ def prose(j, results=(), free=False, problems=()):
 
 
 def declare(j, results):
-    """Code, not the model, states when site_inputs says the setpoints are unsupported (safety line; F10: the model forgets it)."""
+    """Code, not the model, adds the 'not supported' line when site_inputs rejects the setpoints (small models forget it)."""
     bad = [r["result"] for r in results if r["name"] == "site_inputs" and isinstance(r["result"], dict) and not r["result"].get("supported", True)]
-    if bad and isinstance(j, dict) and "reasoning" in j and not any("not supported" in x.lower() or "cannot be trusted" in x.lower() for x in j["reasoning"]):
-        j["reasoning"].append(f"Not supported: supply {bad[0].get('supply_heat_c', 0):g} C heat / {bad[0].get('supply_cold_c', 0):g} C cold is outside the design tables built for 100 C / 20 C, so the design above cannot be trusted [D, site_inputs; code]")
+    said = lambda x: "not supported" in x.lower() or "cannot be trusted" in x.lower()
+    if bad and isinstance(j, dict) and "reasoning" in j and not any(said(x) for x in j["reasoning"]):
+        j["reasoning"].append(f"Not supported: supply {bad[0].get('supply_heat_c', 0):g} C heat / {bad[0].get('supply_cold_c', 0):g} C cold "
+                              "is outside the design tables built for 100 C / 20 C, so the design above cannot be trusted [D, site_inputs; code]")
         j["code_added"] = ["reasoning[-1]"]
     return j
 
 
+def brief_result(r):
+    """A tool result as the model sees it: design_iterations without its swept steps."""
+    if r["name"] != "design_iterations":
+        return r["result"]
+    return {**r["result"], "steps": [st for st in r["result"]["steps"] if st.get("move")]}
+
+
 def run(brief, free=False):
     t0, records = time.time(), []
-    results = [] if free else plan(brief)
-    choice = "" if free else plan_message(brief, results)
+    results = [] if free else planner.plan(brief)
+    choice = "" if free else planner.plan_message(brief, results)
     content = brief if free else brief + "\n\n" + "\n".join(
-        f"{r['name']}({json.dumps(r['args'])}) = {json.dumps(r['result'], separators=(',', ':'))}" for r in results) + \
+        f"{r['name']}({json.dumps(r['args'])}) = {json.dumps(brief_result(r), separators=(',', ':'))}" for r in results) + \
         f"\n\n{choice}\n{PLAN_NOTE}"
     msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": content}]
-    a1 = declare(answer(msgs, records, results, 6, offer_tools=free), results)   # planned: first answer from the plan results, no tools
+    a1 = declare(answer(msgs, records, results, 6, offer_tools=free), results)   # plan mode: no tools offered for the first answer
     p1 = checker.check(a1, msgs, results, brief)
     a2 = p2 = None
     if p1:
@@ -254,7 +147,8 @@ def save(brief, free, msgs, records, results, a1, p1, a2, p2, secs):
     slug = re.sub(r"[^a-z0-9]+", "_", brief.lower())[:40].strip("_") or "brief"
     path = log.RUNS / f"{datetime.now():%Y%m%d_%H%M%S}_{'free' if free else 'plan'}_{slug}.md"
     lines = [f"# Agent run, {MODEL}, {'free (no code plan)' if free else 'code plan'}", "", f"**Brief.** {brief}", "",
-             "## Recommendation", "", prose(a2 or a1, results, free, p2 or ()), "", "## First answer", "", "```", json.dumps(a1, indent=1), "```", "",
+             "## Recommendation", "", prose(a2 or a1, results, free, p2 or ()), "", *iteration_table(results),
+             "## First answer", "", "```", json.dumps(a1, indent=1), "```", "",
              "Checker problems: " + ("none" if not p1 else "".join(f"\n- {x}" for x in p1)), ""]
     if a2:
         lines += ["## Answer after re-prompt", "", "```", json.dumps(a2, indent=1), "```", "",
@@ -272,18 +166,20 @@ def save(brief, free, msgs, records, results, a1, p1, a2, p2, secs):
           f"{s['wall_s']:.1f} s in the model, {secs:.1f} s wall\nwrote {path}")
 
 
+def iteration_table(results):
+    """The design_iterations steps as a markdown table for the run file (empty in free mode)."""
+    it = next((r["result"] for r in results if r["name"] == "design_iterations"), None)
+    if not it:
+        return []
+    rows = [f"| {st['candidate']} | {st['verdict']} | {st['reason']} | {st.get('move') or st.get('number')} |" for st in it["steps"]]
+    return ["## Design iterations", "", f"{it['tried']} tried, {it['rejected']} rejected, {it['not_needed']} not needed, {it['moves']} repair moves; "
+            f"chosen {it['chosen']} [C].", "", "| candidate | verdict | reason | number or move |", "|---|---|---|---|", *rows, ""]
+
+
 BRIEF = ("District with 30 MW peak heating and 10 MW peak cooling, supply 100 C and 20 C, reservoir at 2500 m. "
          "Recommend the number of doublets and the network return temperature, and tell me whether the design needs "
          "a boiler. Check the constraints.")
 MODEL = log.DEFAULT_MODEL
-
-def gemini_version():
-    """Path and git commit of the GEMINI package the tools import."""
-    import subprocess
-    import gemini_model
-    root = str(pathlib.Path(gemini_model.__file__).parents[2])
-    sha = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-    return f"{root} @ {sha or 'no git'}"
 
 
 def ask(brief, free=False):
@@ -300,7 +196,7 @@ if __name__ == "__main__":
     if args:                                   # one brief on the command line
         ask(args[0], free)
     else:                                      # interactive: type a brief, Enter for the challenge brief, q to quit
-        print(f"Agent on {MODEL}{' (free mode)' if free else ''}, tools on GEMINI {gemini_version()}.\n"
+        print(f"Agent on {MODEL}{' (free mode)' if free else ''}, tools on GEMINI {tools.gemini_version()}.\n"
               "Brief with MW -> design agent, any other question -> notes (RAG). Enter = challenge brief, q = quit.")
         while True:
             try:

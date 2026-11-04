@@ -38,7 +38,7 @@ for name in tools.SIG:
     server._tool_manager.get_tool(name).parameters = SCHEMA[name]["parameters"]   # clients see AI02's schema verbatim
 
 
-@server.resource("notes://findings", name="findings", description="NOTES_findings.md: the GEMINI findings (jury material)", mime_type="text/markdown")
+@server.resource("notes://findings", name="findings", description="The GEMINI findings (jury material)", mime_type="text/markdown")
 def findings():
     return (HERE.parent / "NOTES_findings.md").read_text()
 

@@ -1,4 +1,4 @@
-"""Five briefs x two modes through AI03, scored against the expected design; writes runs/eval_table.md."""
+"""Six briefs x two modes through AI03, scored against the expected design; writes runs/eval_table.md."""
 import json
 import re
 import sys
@@ -16,9 +16,12 @@ BRIEFS = [
     ("D 45/10", "Large district: 45 MW peak heating, 10 MW peak cooling, supply 100 C and 20 C, reservoir at 2500 m. "
                 "How many doublets, which return, is a boiler needed?", (3, 60, False)),
     ("E 30/10 at 3000 m", "District 30 MW peak heating, 10 MW peak cooling, supply 100 C and 20 C, reservoir 3000 m. "
-                          "Doublets, return, boiler?", (3, 60, False)),   # 3 Nov, depth threaded: 2 doublets at 3000 m are 3 % short at the peak, so the rule needs 3 [C]
+                          "Doublets, return, boiler?", (3, 60, False)),   # at 3000 m two doublets are 3 % short at the peak
+    ("F 30/10 ESP 800 m", "District with 30 MW peak heating and 10 MW peak cooling, supply 100 C and 20 C, reservoir at 2500 m, ESP at 800 m. "
+                          "How many doublets, what return, boiler needed?", (2, 60, False)),
+    # F exercises the repair: the ESP at 800 m fails the free-gas check and the plan moves it to 1100 m
 ]
-# expected (n, return, boiler) for A to E checked against return_sweep(n, peak_heat_MW, depth_m) before this was written [C]
+# expected (n, return, boiler) per brief, from return_sweep
 
 
 def tokens_since(n0):
@@ -49,15 +52,19 @@ for name, brief, expected in BRIEFS:
                      j.get("boiler_energy_GWh"), j.get("demand_met"), j.get("checks_passed"), len(probs), calls, ptok, ctok,
                      round(secs, 1), ok, ok and not probs))
 
-head = "| brief | mode | n | return C | boiler | boiler GWh | met | checks | problems | calls | prompt tok | completion tok | s | pass | clean |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+head = ("| brief | mode | n | return C | boiler | boiler GWh | met | checks | problems | calls | prompt tok | completion tok | s | pass | clean |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 table = head + "\n" + "\n".join("| " + " | ".join(str(x) for x in r) + " |" for r in rows)
 tot = "| mode | runs | passes | clean | mean prompt tok | mean s | cost |\n|---|---|---|---|---|---|---|"
 for mode in ("plan", "free"):
     rs = [r for r in rows if r[1] == mode]
     if not rs:
         continue
-    tot += f"\n| {mode} | {len(rs)} | {sum(r[13] for r in rs)} | {sum(r[14] for r in rs)} | {sum(r[10] for r in rs) / len(rs):.0f} | {sum(r[12] for r in rs) / len(rs):.1f} | 0 EUR |"
-out = f"# Multi-brief evaluation, {agent.MODEL}, {time.strftime('%Y-%m-%d %H:%M')}\n\nExpected: A 2/60/no boiler, B 1/60/boiler (outage), C 2/60/no, D 3/60/no, E 3/60/no (3000 m: 2 doublets are 3 % short at the peak). All [C].\n\n{table}\n\n{tot}\n"
+    tot += (f"\n| {mode} | {len(rs)} | {sum(r[13] for r in rs)} | {sum(r[14] for r in rs)} | {sum(r[10] for r in rs) / len(rs):.0f} | "
+            f"{sum(r[12] for r in rs) / len(rs):.1f} | 0 EUR |")
+out = (f"# Multi-brief evaluation, {agent.MODEL}, {time.strftime('%Y-%m-%d %H:%M')}\n\n"
+       "Expected: A 2/60/no boiler, B 1/60/boiler (outage), C 2/60/no, D 3/60/no, E 3/60/no (3000 m: 2 doublets are 3 % short at the peak), "
+       f"F 2/60/no with the ESP repaired from 800 to 1100 m. All [C].\n\n{table}\n\n{tot}\n")
 slug = re.sub(r"[^a-z0-9]+", "_", agent.MODEL.lower()).strip("_")
 (log.RUNS / ("eval_table.md" if len(MODES) == 2 and agent.MODEL == "qwen3:4b-instruct-2507-q4_K_M" else f"eval_table_{slug}.md")).write_text(out)
 print(out)

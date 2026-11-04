@@ -11,7 +11,8 @@ QUESTIONS = [
     ("Why does absorption cooling need brine above 78 C?", ("NOTES_findings.md", "README.md"), "78"),
     ("What is wrong with GEMINI's pump head law?", ("NOTES_findings.md",), "affinity"),
     ("What is the SodM injection pressure limit?", ("../research/03_doublet_reservoir_design.md", "explore/tables/08_checks.md"), "bar"),
-    ("What are the challenge deliverables?", ("../CHALLENGE.md", "../data/raw/challenge_20261028/GEMINI_Hackathon_Challenge_Requirements.txt"), "video"),
+    ("What are the challenge deliverables?",
+     ("../CHALLENGE.md", "../data/raw/challenge_20261028/GEMINI_Hackathon_Challenge_Requirements.txt"), "video"),
     ("Why does the agent not choose the tools itself?", ("NOTES_findings.md",), "free"),
     ("What is the geothermal share of heating?", ("README.md",), "91.9"),
 ]
@@ -29,7 +30,8 @@ def main():
                      ", ".join(f.split("/")[-1] for f in files)))
         print(f"{'hit ' if hit else 'MISS'} {'kw ' if kw else 'NOKW'} {len(r['problems'])} problems {len(r['repaired'])} repaired  {q}")
 
-    head = "| question | retrieval hit | keyword hit | grounding problems | citations repaired by code | prompt tok | completion tok | s | top-5 files |\n|---|---|---|---|---|---|---|---|---|"
+    head = ("| question | retrieval hit | keyword hit | grounding problems | citations repaired by code | prompt tok | completion tok | s | "
+            "top-5 files |\n|---|---|---|---|---|---|---|---|---|")
     body = "\n".join("| " + " | ".join(str(x) for x in row) + " |" for row in rows)
     n = len(rows)
     tot = (f"retrieval {sum(r[1] for r in rows)}/{n}, keyword {sum(r[2] for r in rows)}/{n}, "

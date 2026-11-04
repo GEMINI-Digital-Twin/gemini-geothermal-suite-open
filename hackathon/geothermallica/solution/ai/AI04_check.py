@@ -1,7 +1,6 @@
-"""Check a final JSON answer against the tool results the model saw: wording, tags, numbers, consistency with the sweep.
-
-Rules: (a) no 'best' without a sweep, (b) tags, (c) numbers traceable to a tool, (d) consistency with the sweep and the
-tools, (e) brief values reached a tool, (f) reasoning shape, (g) unsupported site said, (h) rejected_alternatives."""
+"""Check a final JSON answer against the tool results the model saw; each problem is prefixed by its rule (a) to (i).
+(a) 'best' needs a sweep (b) tags (c) numbers from tools (d) consistency (e) brief values used (f) shape (g) site (h) alternatives (i) trace
+"""
 import json
 import re
 import sys
@@ -9,7 +8,7 @@ import sys
 import AI01_log as log
 
 WORDS = re.compile(r"\b(optimal|best|lowest|cheapest)\b", re.I)
-TAG = re.compile(r"\[(?:[CDLA]|TBC)[^\]]*\]")   # [C], [C, A], [C, 03], [L, research/04], [TBC]
+TAG = re.compile(r"\[(?:[CDLA]|TBC)[^\]]*\]")   # [C], [C, A], [L, DEA], [TBC]
 NUM = re.compile(r"\d+(?:\.\d+)?")
 NUM_UNIT = re.compile(r"\d+(?:\.\d+)?\s*(?:MW|GWh|C|%|m3/h|bar|days|d)(?![A-Za-z0-9])")
 FIELDS = {("heating_capacity_MW",): ("heating_year", "capacity_MW"),
@@ -56,10 +55,27 @@ def brief_site(brief):
     return depth, (float(h.groups()[-1]) if h else None), (float(c.group(1)) if c else None)
 
 
+def brief_esp(brief):
+    """ESP setting depth in m when the brief gives one ('ESP at 800 m', 'pump at 800 m'; never 'heat pump'); else None."""
+    m = re.search(r"(?<!heat )(?:ESP|pump)\D{0,15}?(\d{3,4})\s*m\b", norm(brief), re.I)
+    return float(m.group(1)) if m else None
+
+
+def rule_failures(row):
+    """(reason, number, unit) per failure of a return_sweep row: heat unmet, capacity short of the peak, boiler above 5 %."""
+    f = []
+    if row["unmet_GWh"] >= 0.01:
+        f.append(("unmet heat", row["unmet_GWh"], "GWh"))
+    if row.get("peak_margin_pct", 0.0) < 0.0:
+        f.append(("peak margin", row["peak_margin_pct"], "%"))
+    if row["boiler_GWh"] > 0.05 * row.get("served_GWh", 0):
+        f.append(("boiler share", row.get("boiler_share_pct"), "%"))
+    return f
+
+
 def meets_rule(row):
-    """No heat unmet, boiler at most 5 % of the heat served, and capacity covers the peak with every doublet on:
-    the plan's rule for enough doublets [A]. The boiler allowance is for outage days, not for a plant too small at the peak."""
-    return row["unmet_GWh"] < 0.01 and row["boiler_GWh"] <= 0.05 * row.get("served_GWh", 0) and row.get("peak_margin_pct", 0.0) >= 0.0
+    """The plan's rule for enough doublets: no heat unmet, capacity covers the peak, boiler at most 5 % (outage days)."""
+    return not rule_failures(row)
 
 
 def close(x, p):
@@ -69,7 +85,7 @@ def close(x, p):
 
 
 def check(run_json, transcript, tool_results, brief=""):
-    """run_json: the parsed answer; transcript: the messages; tool_results: [{"name", "args", "result"}] the model received."""
+    """Problems of run_json (the parsed answer) against tool_results [{"name", "args", "result"}] and the brief."""
     problems, brief = [], norm(brief)
     reasoning = [str(r) for r in run_json.get("reasoning", [])]
     called = {r["name"] for r in tool_results}
@@ -84,8 +100,8 @@ def check(run_json, transcript, tool_results, brief=""):
         if not NUM.search(TAG.sub("", r)):
             problems.append(f"(f) no number in: {r}")
     n_model = len([x for x in reasoning if not x.rstrip().endswith("; code]")])   # items appended by code are not counted
-    if not 3 <= n_model <= 12:
-        problems.append(f"(f) {n_model} reasoning items, need 3 to 12")
+    if not 3 <= n_model <= 15:
+        problems.append(f"(f) {n_model} reasoning items, need 3 to 15")
     ph = brief_peak(brief, "heat")
     if ph is not None and not any(float(x) == ph for r in reasoning for x in NUM.findall(TAG.sub("", r))):
         problems.append(f"(f) the brief's peak heat {ph:g} MW appears in no reasoning item")
@@ -125,15 +141,20 @@ def check(run_json, transcript, tool_results, brief=""):
                 problems.append(f"(d) backup_boiler_MW={run_json.get('backup_boiler_MW')} but the sweep gives {s['backup_boiler_MW']} MW")
             if t != s["best_return_c"] and not (boiler and t < s["best_return_c"]):
                 problems.append(f"(d) t_return_c={t} but the sweep's best_return_c is {s['best_return_c']} for {n} doublets")
+    iters = next((r["result"] for r in tool_results if r["name"] == "design_iterations"), {})
+    n_moved = any(st.get("key") == "n_doublets" for st in iters.get("steps", []))   # a repair added a doublet on purpose
     for m, sm in sweeps.items():
         best = sm["by_return_C"][str(sm["best_return_c"])]
-        if n is not None and m < n and meets_rule(best):
+        if n is not None and m < n and meets_rule(best) and not n_moved:
             problems.append(f"(d) {m} doublets already meet the heat with boiler at most 5 % of it at {sm['best_return_c']} C; "
                             f"{n} is more than needed")
-    for r in tool_results:
-        if r["name"] == "checks" and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t:
-            if run_json.get("checks_passed") != f"{r['result']['n_pass']}/{r['result'].get('n_rows', 13)}":
-                problems.append(f"(d) checks_passed={run_json.get('checks_passed')} but checks gives {r['result']['n_pass']}/{r['result'].get('n_rows', 13)}")
+    last = [r for r in tool_results if r["name"] == "checks" and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t
+            and "error" not in r["result"]]
+    if last:   # the last checks call is the design after any repair move
+        r = last[-1]
+        if run_json.get("checks_passed") != f"{r['result']['n_pass']}/{r['result'].get('n_rows', 13)}":
+            problems.append(f"(d) checks_passed={run_json.get('checks_passed')} but checks gives "
+                            f"{r['result']['n_pass']}/{r['result'].get('n_rows', 13)}")
     same = lambda r: r["args"].get("n_doublets", 2) == n and r["args"].get("t_return_c") == t
     found = {r["name"]: r["result"] for r in tool_results if r["name"] in ("heating_year", "cooling_year") and same(r)}
     for path, (tool, key) in FIELDS.items():
@@ -157,7 +178,7 @@ def check(run_json, transcript, tool_results, brief=""):
         elif not isinstance(v, (int, float)) or isinstance(v, bool) or not close(v, w):
             problems.append(f"(d) {path[0]}={v} but {tool} gives {w}")
     args = [float(v) for r in tool_results for v in r["args"].values() if isinstance(v, (int, float))]
-    parsed = zip((brief_peak(brief, "heat"), brief_peak(brief, "cool"), *brief_site(brief)), ("MW", "MW", "m", "C", "C"))
+    parsed = zip((brief_peak(brief, "heat"), brief_peak(brief, "cool"), *brief_site(brief), brief_esp(brief)), ("MW", "MW", "m", "C", "C", "m"))
     for x, unit in parsed:
         if x is not None and x not in args:
             problems.append(f"(e) brief value {x:g} {unit} never reached a tool")
@@ -165,12 +186,61 @@ def check(run_json, transcript, tool_results, brief=""):
         if not re.search(r"not supported|cannot be trusted", " ".join(reasoning), re.I):
             problems.append("(g) site_inputs says the setpoints are not supported, but the reasoning does not say "
                             "'not supported' or 'cannot be trusted'")
+    if iters:
+        problems += check_iterations(iters, run_json, reasoning, tool_results)
     return problems
 
 
+PASS_REASONS = ("meets the rule", "needs boiler energy", "a lower return meets the rule")   # rows that meet the rule but were not chosen
+
+
+def check_iterations(it, run_json, reasoning, tool_results):
+    """(i) design_iterations: counts, chosen design, said in reasoning, verdicts recomputed, moves reached later tools."""
+    p = []
+    sweeps = {}
+    for r in tool_results:   # the plan's own sweeps: the first one per n
+        if r["name"] == "return_sweep" and "error" not in r["result"]:
+            sweeps.setdefault(r["result"]["n_doublets"], r["result"])
+    pairs = {(m, t) for m, s in sweeps.items() for t in s["by_return_C"]}
+    if it.get("tried") != len(pairs):
+        p.append(f"(i) design_iterations tried={it.get('tried')} but the sweeps hold {len(pairs)} (n, return) pairs")
+    if (it.get("n_doublets"), it.get("t_return_c")) != (run_json.get("n_doublets"), run_json.get("t_return_c")):
+        p.append(f"(i) design_iterations chose {it.get('chosen')} but the answer says "
+                 f"{run_json.get('n_doublets')} doublets at {run_json.get('t_return_c')} C")
+    tried = str(it.get("tried"))
+    if not any(re.search(rf"(?<![\d.]){tried}(?![\d.])", r) and re.search(r"tried|candidates", r, re.I) for r in reasoning):
+        p.append(f"(i) no reasoning item states the {tried} candidates the plan tried (copy the 'Design iterations' line)")
+    any_ok = any(meets_rule(s["by_return_C"][t]) for s in sweeps.values() for t in s["by_return_C"])
+    for st in it.get("steps", []):
+        if st.get("move") or st.get("verdict") not in ("chosen", "rejected"):
+            continue
+        row = sweeps.get(st.get("n_doublets"), {}).get("by_return_C", {}).get(str(st.get("t_return_c")))
+        if row is None:
+            p.append(f"(i) step {st.get('candidate')}: no sweep row to recompute it from")
+            continue
+        fails = [f[0] for f in rule_failures(row)]
+        if st["reason"] in PASS_REASONS and fails:
+            p.append(f"(i) step {st['candidate']}: '{st['reason']}' but the sweep row fails {', '.join(fails)}")
+        elif st["reason"] not in PASS_REASONS and st["reason"] not in fails:
+            p.append(f"(i) step {st['candidate']}: rejected for '{st['reason']}' but the sweep row fails {fails or 'nothing'}")
+        if st["verdict"] == "chosen" and fails and any_ok:
+            p.append(f"(i) step {st['candidate']}: chosen but it fails {', '.join(fails)} while another candidate meets the rule")
+    moves = [st for st in it.get("steps", []) if st.get("move")]
+    checks = [r for r in tool_results if r["name"] == "checks" and "error" not in r["result"]]
+    used = lambda k, v: [r for r in tool_results if r["name"] != "design_iterations" and r["args"].get(k) == v]
+    for st in moves:
+        k, v = st["key"], st["to"]
+        if k in ("esp_depth_m", "n_doublets") and (not checks or checks[-1]["args"].get(k) != v):
+            p.append(f"(i) move {st['move']}: the final checks call does not use {k}={v:g}")
+        if not used(k, v):
+            p.append(f"(i) move {st['move']}: no tool result has {k}={v:g} in its args")
+    if moves and checks and checks[-1]["result"]["n_fail"] > 0 and not any(st["verdict"] == "still failing" for st in moves):
+        p.append(f"(i) the final checks still fail {checks[-1]['result']['n_fail']} rows but no step says 'still failing'")
+    return p
+
+
 def check_alternatives(alts, called):
-    """(h) rejected_alternatives: 3 to 6 strings of 4 to 40 words, each with a number and a [tag]; the layout and the
-    tank named when layout_compare / storage_point ran."""
+    """(h) 3 to 6 rejected alternatives of 4 to 40 words, each with a number and a tag, naming layout and tank when priced."""
     if not isinstance(alts, list) or not all(isinstance(x, str) for x in alts):
         return [f"(h) rejected_alternatives must be a list of strings, got {type(alts).__name__}"]
     problems = [] if 3 <= len(alts) <= 6 else [f"(h) {len(alts)} rejected_alternatives, need 3 to 6"]

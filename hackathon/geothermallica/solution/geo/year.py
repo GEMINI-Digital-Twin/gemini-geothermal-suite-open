@@ -1,64 +1,81 @@
-"""The year, day by day: heating dispatch (script 05) and the cooling stack (script 06) as functions."""
+"""The year 2027 day by day: heating dispatch of n doublets, the cooling supply, and the constraint checks of the challenge brief.
+
+Demand comes from the brief's daily heating and cooling CSVs; weather from KNMI (the Dutch weather service), De Bilt hourly.
+Parameter sources are in the inline comments.
+heating_year() returns a DataFrame per day (demand, doublets on, flow, heat by source, electricity, boiler, unmet, availability);
+cooling_year() a DataFrame per day of cold by source plus yearly totals; checks() a list of dicts (name, value, limit, status).
+"""
 from functools import lru_cache
 
 import numpy as np
 import pandas as pd
 
+from geo import gas, lifetime
 from geo.common import DATA, DEPTH_M, DT_BRINE_MAX_K, PROJECT, Q_MAX_M3H, Q_MIN_M3H, RHO, T_SUPPLY_COLD_C, T_SUPPLY_HEAT_C
 from geo.plant import CP, Q_FLOOR_M3H, DoubletTable
-from geo.well import PUMP_EFF, injector_at
+from geo.well import ESP_DEPTH_M, PUMP_EFF, injector_at
 
-BACKUP_BOILER_MW = 16.0      # security of supply, one doublet out at the winter peak; Dutch practice [L, research/04]
-STAGGERED = {0: ("2027-06-01", "2027-07-05"), 1: ("2027-08-01", "2027-09-04"), 2: ("2027-09-15", "2027-10-19")}  # 35 d each [A]
-T_COLD_SUPPLY, T_COLD_RETURN = 20.0, 26.0   # supply [D], return [A]
-TOWER_APPROACH_K = 4.0                        # cooling-tower water above wet bulb [A]
-COP_ABSORPTION = 0.75                         # single-effect LiBr, hot water >= 80 C [L, research/02]
-COP_ELECTRIC = 7.0                            # at 20 C chilled water, Carnot-fraction estimate [A, research/02]
-AUX_KW_PER_KW_COLD = 0.03                     # tower fans and pumps [A]
-WEATHER_YEAR = 2024                           # KNMI De Bilt year laid over the 2027 calendar [A]
-KNMI = PROJECT / "data" / "raw" / "knmi_debilt_hourly" / "knmi_260_debilt_hourly_2021_2026.csv"
+# backup gas boiler, MW: covers the winter peak with one doublet out (N-1); a backup boiler is Dutch practice,
+# source: Hydreco 2020, production plan Haagse Aardwarmte Leyweg,
+# https://www.nlog.nl/sites/default/files/2020-10/200129_verzoek_tot_instemming_wp_haagse_aardwarmte_leyweg_publiek_gelakt.pdf
+BACKUP_BOILER_MW = 16.0
+# planned outage per doublet, 35 days each so that each runs 330 days (brief); the dates are assumed, staggered outside winter
+STAGGERED = {0: ("2027-06-01", "2027-07-05"), 1: ("2027-08-01", "2027-09-04"), 2: ("2027-09-15", "2027-10-19")}
+T_COLD_SUPPLY, T_COLD_RETURN = 20.0, 26.0   # district-cooling supply and return, C; supply from the challenge brief, return assumed
+TOWER_APPROACH_K = 4.0                        # cooling-tower water temperature above the wet bulb, K; assumed, no source
+# coefficient of performance (COP, cold out per heat in) of a single-effect lithium-bromide (LiBr) absorption chiller;
+# source: US Department of Energy, CHP (combined heat and power) Technology Fact Sheet: Absorption Chillers, DOE/EE-1608 (2017),
+# https://www.energy.gov/sites/prod/files/2017/06/f35/CHP-Absorption%20Chiller-compliant.pdf
+COP_ABSORPTION = 0.75
+COP_ELECTRIC = 7.0                            # electric chiller COP at 20 C chilled water; assumed, estimated as a fraction of Carnot
+AUX_KW_PER_KW_COLD = 0.03                     # electricity for cooling-tower fans and pumps per kW of cold; assumed, no source
+WEATHER_YEAR = 2024                           # KNMI De Bilt weather year laid over the 2027 calendar; our choice
+KNMI = PROJECT / "data" / "raw" / "knmi_debilt_hourly" / "knmi_260_debilt_hourly_2021_2026.csv"   # KNMI station 260, hourly
 
 heat = pd.read_csv(DATA / "GEMINI_Heating_Demand_Daily_2027.csv", parse_dates=["date"]).set_index("date").iloc[:, 0]
 cold = pd.read_csv(DATA / "GEMINI_Cooling_Demand_Daily_2027.csv", parse_dates=["date"]).set_index("date").iloc[:, 0]
 
 
-Q_INJ = np.linspace(Q_FLOOR_M3H, Q_MAX_M3H, 8)   # injector grid for the SodM check and the injection pump [C]
+# flows at which the injector is solved, m3/h: for the injection-pressure limit of SodM (Dutch State Supervision of Mines)
+# and for the injection-pump power
+Q_INJ = np.linspace(Q_FLOOR_M3H, Q_MAX_M3H, 8)
 
 
 def scaled(series, peak_MW=None):
-    """The CSV series scaled linearly so its maximum is peak_MW; None keeps the file as is."""
+    """The demand series scaled linearly so its maximum is peak_MW, MW per day; peak_MW None returns it unchanged."""
     return series if peak_MW is None else series * (peak_MW / series.max())
 
 
 @lru_cache
-def _table(t_return_c, depth_m, heat_pump):
-    return DoubletTable(t_return_c, depth_m=depth_m, heat_pump=heat_pump)
+def _table(t_return_c, depth_m, heat_pump, esp_depth_m):
+    """DoubletTable for these inputs (cached)."""
+    return DoubletTable(t_return_c, depth_m=depth_m, heat_pump=heat_pump, esp_depth_m=esp_depth_m)
 
 
-def table(t_return_c, depth_m=DEPTH_M, heat_pump=True):
-    """heat_pump False = layout A (boiler lift, no heat pump), for layout_compare only."""
-    return _table(float(t_return_c), float(depth_m), bool(heat_pump))   # one cache entry per (return, depth, layout), however the caller spells it
+def table(t_return_c, depth_m=DEPTH_M, heat_pump=True, esp_depth_m=ESP_DEPTH_M):
+    """DoubletTable of one doublet (cached); heat_pump=False is the layout where a boiler lifts the water to 100 C."""
+    return _table(float(t_return_c), float(depth_m), bool(heat_pump), float(esp_depth_m))   # floats: one cache entry per input set
 
 
 @lru_cache
 def _injector_rows(depth_m):
+    """Injector results at each flow of Q_INJ (cached)."""
     return [injector_at(q, depth_m) for q in Q_INJ]
 
 
 def injector_rows(depth_m=DEPTH_M):
+    """List of injector result dicts, one per flow in Q_INJ, at depth_m."""
     return _injector_rows(float(depth_m))
 
 
 def injection_pump_MW(d):
-    """Injection pump electricity per day, interpolated on the daily flow, times the doublets running."""
+    """Injection-pump electricity per day, MW: interpolated on the daily flow, times the doublets running."""
     return np.interp(d.q_m3h, Q_INJ, [r["pump_kW"] for r in injector_rows(d.attrs.get("depth_m", DEPTH_M))]) / 1000 * d.doublets_on
 
 
-def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, depth_m=DEPTH_M, heat_pump=True):
-    """Daily dispatch of n doublets: among 1..k available, equal split, least electricity (ESP + heat pump).
-
-    point(MW per doublet) -> operating point; defaults to the DoubletTable's at_output at depth_m (layout B, or A if not heat_pump)."""
-    point = point or table(t_return_c, depth_m, heat_pump).at_output
+def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, depth_m=DEPTH_M, heat_pump=True, esp_depth_m=ESP_DEPTH_M):
+    """DataFrame per day for n doublets: of those available, run the count that meets demand with least electricity, equal split."""
+    point = point or table(t_return_c, depth_m, heat_pump, esp_depth_m).at_output
     heat_d = scaled(heat, peak_heat_MW)
     outages = {i: STAGGERED[i] for i in range(n)} if outages is None else outages
     avail = pd.DataFrame(1, index=heat_d.index, columns=range(n))
@@ -80,7 +97,7 @@ def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, dep
             j, _, _, pt = best
             geo, hp, el_hp = j * pt["MW_hx"], j * pt["MW_hp"], j * pt["MW_el_hp"]
             esp, boiler_lift = j * pt["kW_esp"] / 1000, j * pt["MW_boiler_lift"]
-            abs_drive = j * pt.get("MW_abs_drive", 0.0)        # brine heat above 78 C not needed for heating: usable by absorption
+            abs_drive = j * pt.get("MW_abs_drive", 0.0)        # brine heat above 78 C left over for the absorption chillers, MW
         delivered = geo + hp + boiler_lift
         boiler_peak = min(BACKUP_BOILER_MW, max(0.0, demand - delivered))
         rows.append(dict(date=day, demand=demand, doublets_on=j, q_m3h=pt.get("q_m3h", 0.0) if pt else 0.0, geo=geo, hp=hp,
@@ -95,7 +112,7 @@ def heating_year(n, t_return_c, outages=None, peak_heat_MW=None, point=None, dep
 
 @lru_cache
 def wet_bulb(agg="max"):
-    """Daily wet bulb (Stull 2011 from KNMI T and RH), daily max by default [A], mapped onto 2027."""
+    """Daily wet-bulb temperature, C, mapped onto 2027: Stull 2011 formula on KNMI temperature and humidity, daily max by default."""
     k = pd.read_csv(KNMI, parse_dates=["time_utc_start"]).set_index("time_utc_start")
     k = k[k.index.year == WEATHER_YEAR]
     T, RH = k.T_degC, k.U_pct.clip(1, 100)
@@ -108,7 +125,7 @@ def wet_bulb(agg="max"):
 
 
 def cooling_year(drive_avail, agg="max", peak_cold_MW=None):
-    """Free cooling from the wet bulb, absorption on the free hot brine (MW per day), electric for the rest."""
+    """(DataFrame per day, totals in GWh): free cooling from the wet bulb, absorption on spare hot brine, electric for the rest."""
     cold_d = scaled(cold, peak_cold_MW)
     twb = wet_bulb(agg)
     tower = twb + TOWER_APPROACH_K
@@ -127,41 +144,66 @@ def cooling_year(drive_avail, agg="max", peak_cold_MW=None):
     return c, totals
 
 
-def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M):
-    """Every brief constraint for n doublets at a return of t_return_c: 13 rows of name, value, limit, status."""
-    d = heating_year(n, t_return_c, peak_heat_MW=peak_heat_MW, depth_m=depth_m)
+def checks(n, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M):
+    """Every constraint of the brief for n doublets at return temperature t_return_c: 16 dicts of name, value, limit, status."""
+    d = heating_year(n, t_return_c, peak_heat_MW=peak_heat_MW, depth_m=depth_m, esp_depth_m=esp_depth_m)
     c, _ = cooling_year(d.surplus, peak_cold_MW=peak_cold_MW)
-    tab = table(t_return_c, depth_m)
+    tab = table(t_return_c, depth_m, esp_depth_m=esp_depth_m)
     gwh = lambda s: s.sum() * 24 / 1000
     ok = lambda b: "pass" if b else "FAIL"
     on = d[d.doublets_on > 0]
     q = on.q_m3h
-    mcp = q / 3600 * RHO * CP / 1000                                       # MW/K per doublet
+    mcp = q / 3600 * RHO * CP / 1000                                       # brine heat capacity flow, MW/K per doublet
     dt = ((on.geo + on.hp - on.el_hp) / on.doublets_on / mcp).max()      # brine cooling actually used, K
     days = [int(d[f"avail_{i}"].sum()) for i in range(n)]
     worst = min(injector_rows(depth_m), key=lambda r: r["sodm_margin_bar"])
     f_max = np.nanmax(tab.cols["freq_hz"])
     bal = (d.geo + d.hp + d.boiler - d.demand).abs().max()
     full = d[[f"avail_{i}" for i in range(n)]].all(axis=1)                 # days with every doublet available
+    used = np.r_[q.min(), tab.q[(tab.q >= q.min()) & (tab.q <= q.max())], q.max()]   # table flows inside the year's flow range
+    p_in = float(np.interp(used, tab.q, tab.cols["p_esp_intake_bar"]).min())         # pump intake pressure falls with flow
+    p_b, p_b10, p_pure = gas.p_bubble_bar(depth_m), gas.p_bubble_bar(depth_m, salt="log10"), gas.p_bubble_bar(depth_m, salt=None)
+    p_b_worst = max(p_b, p_b10)                                            # log base of the salt correction is unconfirmed: take the worse
+    q_mean = float(q.mean())                                               # mean flow per doublet on running days
+    t_bt = lifetime.t_bt_yr(q_mean)                                        # thermal breakthrough time, years
+    dp_int = max(lifetime.interference_bar(n, Q_MAX_M3H))                 # worst injector at 300 m3/h, doublets as far apart as the wells
+    int_margin = worst["sodm_margin_bar"] - dp_int
     rows = [
         ("doublets 1-3 [D]", f"{n} built at {depth_m:.0f} m, {int(d.doublets_on.min())}-{int(d.doublets_on.max())} on", "1-3", ok(1 <= n <= 3)),
-        ("flow per doublet [D]", f"{q.min():.0f}-{q.max():.0f} m3/h", f"{Q_MIN_M3H:.0f}-{Q_MAX_M3H:.0f}", ok(q.min() >= Q_MIN_M3H and q.max() <= Q_MAX_M3H)),
-        ("flow above pump floor [C, 03]", f"min {q.min():.0f} m3/h", f">= {Q_FLOOR_M3H:.0f}", ok(q.min() >= Q_FLOOR_M3H - 1e-6)),
+        ("flow per doublet [D]", f"{q.min():.0f}-{q.max():.0f} m3/h", f"{Q_MIN_M3H:.0f}-{Q_MAX_M3H:.0f}",
+         ok(q.min() >= Q_MIN_M3H and q.max() <= Q_MAX_M3H)),
+        ("flow above pump floor [C]", f"min {q.min():.0f} m3/h", f">= {Q_FLOOR_M3H:.0f}", ok(q.min() >= Q_FLOOR_M3H - 1e-6)),
         ("brine cooling [D]", f"max {dt:.1f} K", f"<= {DT_BRINE_MAX_K:.0f} K", ok(dt <= DT_BRINE_MAX_K + 1e-6)),
         ("pump efficiency [D]", f"{PUMP_EFF:.2f} (ESP and injection pump)", "0.70", ok(PUMP_EFF == 0.70)),
-        ("production = injection volume [D]", "q_inj = q_prod every day (07 by construction)", "equal", "pass [A]"),
+        ("production = injection volume [D]", "q_inj = q_prod every day (by construction)", "equal", "pass [A]"),
         ("operating days per doublet [D]", " / ".join(str(x) for x in days) + " d available", "330", ok(all(x <= 330 for x in days))),
-        ("heat supply 100 C [D]", f"boiler lift needed {gwh(d.boiler_lift):.2f} GWh on {int((d.boiler_lift > 0.01).sum())} days (heat pump does the lift)",
+        ("heat supply 100 C [D]",
+         f"boiler lift needed {gwh(d.boiler_lift):.2f} GWh on {int((d.boiler_lift > 0.01).sum())} days (heat pump does the lift)",
          f"{T_SUPPLY_HEAT_C:.0f} C", ok(d.boiler_lift.max() < 1e-6) + " [A, Lorenz HP]"),
         ("cold supply 20 C [D]", f"electric chiller sized {c.electric.max():.2f} MW for the peak day; stack meets demand by construction",
          f"{T_SUPPLY_COLD_C:.0f} C", "pass [A, return 26 C]"),
-        ("SodM injection pressure [L]", f"worst p_bh {worst['p_bh_req_bar']:.1f} bar at {worst['q_m3h']:.0f} m3/h, margin {worst['sodm_margin_bar']:.1f} bar",
+        ("SodM injection pressure [L]",
+         f"worst p_bh {worst['p_bh_req_bar']:.1f} bar at {worst['q_m3h']:.0f} m3/h, margin {worst['sodm_margin_bar']:.1f} bar",
          f"<= {worst['sodm_limit_bar']:.1f} bar", ok(worst["sodm_margin_bar"] >= 0)),
-        ("ESP envelope [C, 03]", f"{q.min():.0f}-{q.max():.0f} m3/h, f max {f_max:.1f} Hz", f"{tab.w.q_min:.0f}-{tab.w.q_max:.0f} m3/h, 60 Hz",
+        ("ESP envelope [C]", f"{q.min():.0f}-{q.max():.0f} m3/h, f max {f_max:.1f} Hz",
+         f"{tab.w.q_min:.0f}-{tab.w.q_max:.0f} m3/h, 60 Hz",
          ok(q.min() >= tab.w.q_min and q.max() <= tab.w.q_max and f_max <= 60)),
-        ("accounting check 05 [C]", f"max abs(geo + hp + boiler - demand) {bal:.1e} MW (dispatch serves demand by construction)", "0 every day", ok(bal < 1e-6)),
-        ("capacity covers the peak [D]", f"with every doublet available: backup boiler fired for capacity {gwh(d.boiler_peak[full]):.3f} GWh on "
+        ("accounting check [C]", f"max abs(geo + hp + boiler - demand) {bal:.1e} MW (dispatch serves demand by construction)",
+         "0 every day", ok(bal < 1e-6)),
+        ("capacity covers the peak [D]",
+         f"with every doublet available: backup boiler fired for capacity {gwh(d.boiler_peak[full]):.3f} GWh on "
          f"{int((d.boiler_peak[full] > 0.01).sum())} days, unmet {gwh(d.unmet[full]):.3f} GWh (outage days excluded)",
          "0 GWh with all doublets on", ok(d.boiler_peak[full].max() < 1e-6 and d.unmet[full].max() < 1e-6)),
+        ("free gas at ESP intake [D, L, A]", f"min intake {p_in:.1f} bar at {q.max():.0f} m3/h (ESP at {tab.w.esp_depth_m:.0f} m)",
+         f">= p_bubble {p_b_worst:.1f} bar (Henry fits with 45 g/L NaCl, worse of ln {p_b:.1f} / log10 {p_b10:.1f} readings; "
+         f"pure water {p_pure:.1f})",
+         ok(p_in >= p_b_worst)),
+        ("thermal breakthrough [L, A]", f"t_BT {t_bt:.0f} yr at the mean running flow {q_mean:.0f} m3/h, L {lifetime.SPACING_M:.0f} m "
+         f"({lifetime.t_bt_yr(Q_MAX_M3H):.0f} yr at {Q_MAX_M3H:.0f} m3/h)",
+         f">= {lifetime.T_BT_MIN_YR:.0f} yr [A criterion; ThermoGIS uses 1 % cooling at 50 yr]",
+         ok(t_bt >= lifetime.T_BT_MIN_YR)),
+        ("doublet interference [L, A]", (f"SodM margin {worst['sodm_margin_bar']:.1f} - interference {dp_int:.2f} bar (worst of {n} injectors, "
+         f"D = L = {lifetime.SPACING_M:.0f} m, {Q_MAX_M3H:.0f} m3/h) = {int_margin:.1f} bar") if n > 1 else
+         f"one doublet, no interference (0 bar); SodM margin {int_margin:.1f} bar", ">= 0 bar", ok(int_margin >= 0)),
     ]
     return [dict(name=a, value=v, limit=lim, status=st) for a, v, lim, st in rows]

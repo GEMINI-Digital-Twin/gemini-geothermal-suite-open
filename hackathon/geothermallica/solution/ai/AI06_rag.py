@@ -1,5 +1,7 @@
-"""Answer "why" questions from our own notes: chunk, embed, hybrid retrieval (rarity-weighted keywords, two chunks per file),
-cited answer, code repair of citations the numbers prove, grounding check, one re-prompt."""
+"""Answer "why" questions from the project notes: hybrid retrieval, cited answer, citation repair, grounding check, one re-prompt.
+
+Run: python ai/AI06_rag.py "<question>"   (--build re-embeds, --files lists the corpus)
+"""
 import glob
 import hashlib
 import json
@@ -20,18 +22,19 @@ INDEX = log.RUNS / "rag_index.json"
 EMBED_MODEL = "snowflake-arctic-embed:latest"
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "   # arctic-embed's query instruction
 MAX_CHARS, K, MIN_COSINE, W_COSINE, PER_FILE, POOL = 1500, 5, 0.35, 0.7, 2, 20
-# what each source is, told to the model in the context header; design results outrank research notes and get a small score bonus
+# kind of each source, shown to the model; design results get a small score bonus
 KIND = {"README.md": "design result", "NOTES_findings.md": "design result", "explore/tables": "design result", "ai/runs/eval": "design result",
         "geo/gemini_contrib": "design result", "../research": "research note, written before the design", "../CHALLENGE.md": "challenge brief",
         "../data/raw": "challenge brief", "ai/runs/gemini_docs.md": "GEMINI docstring (TNO)"}
-BONUS = 0.05   # added to the score of a design-result chunk [A]
+BONUS = 0.05   # added to the score of a design-result chunk
 SOURCES = ["README.md", "NOTES_findings.md", "../CHALLENGE.md", "../research/*.md", "explore/tables/08_checks.md",
            "ai/runs/eval_table.md", "../data/raw/challenge_20261028/GEMINI_Hackathon_Challenge_Requirements.txt",
-           "geo/gemini_contrib/README.md", "geo/gemini_contrib/PATCH.md", "ai/runs/eval_models.md", "ai/runs/gemini_docs.md"]   # no rag_eval.md: the RAG cited its own evaluation
+           "geo/gemini_contrib/README.md", "geo/gemini_contrib/PATCH.md", "ai/runs/eval_models.md", "ai/runs/gemini_docs.md"]
+# rag_eval.md is left out: the RAG would cite its own evaluation
 STOP = set("what when where which does that this with from have about into than they their there would could should".split())
 IDF = {}   # word -> log(chunks / chunks holding it), filled by index()
 CITE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")   # [1], [1, 3], [1,3]
-NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.]*\w)")   # a whole number: not inside m3/h, F5, CO2 or a file name
+NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.]*\w)")   # a whole number: not inside m3/h, CO2 or a file name
 
 
 def prompt(name):
@@ -125,7 +128,7 @@ def keyword(question, text):
 
 
 def retrieve(question, cs):
-    """Two stages: the POOL closest by cosine, re-ranked by cosine + keywords + result bonus; at most PER_FILE chunks from one file."""
+    """The POOL closest by cosine, re-ranked by cosine + keywords + design-result bonus, at most PER_FILE chunks per file."""
     q = embed([QUERY_PREFIX + question])[0]
     for c in cs:
         c["cosine"] = cosine(q, c["vec"])
@@ -161,8 +164,7 @@ def holds(hit, nums):
 
 
 def repair(text, hits):
-    """Code fixes what the numbers prove: a sentence with numbers that all sit in exactly one note, and no valid citation,
-    gets that note as its citation. Returns the text and the repaired sentences (reported, never hidden)."""
+    """A sentence without a valid citation whose numbers all sit in one or two notes gets those notes cited; returns text, fixes."""
     out, fixed, seen = [], [], set()
     for s in sentences(text):
         key = re.sub(r"\W+", " ", CITE.sub("", s).lower()).strip()
@@ -180,8 +182,7 @@ def repair(text, hits):
 
 
 def grounding(text, hits):
-    """Each sentence cites [n] with 1 <= n <= len(hits); each number in it appears in a chunk it cites; a sentence without
-    numbers shares at least one content word (6+ letters) with a note it cites."""
+    """Problems: uncited sentences, citations out of range, numbers or words not found in the cited notes."""
     problems = []
     for s in sentences(text):
         cites = cited(s)
@@ -224,7 +225,8 @@ def answer(question, show=False):
             problems = grounding(text, hits)
     s = log.summary(records, show=False)
     tokens = {"calls": s["calls"], "prompt": s["prompt_tokens"], "completion": s["completion_tokens"], "seconds": round(time.time() - t0, 1)}
-    sources = [{"n": i, "file": h["file"], "kind": kind(h["file"]), "heading": h["heading"], "cosine": round(h["cosine"], 3), "score": round(h["score"], 3),
+    sources = [{"n": i, "file": h["file"], "kind": kind(h["file"]), "heading": h["heading"], "cosine": round(h["cosine"], 3),
+                "score": round(h["score"], 3),
                 "text": h["text"]} for i, h in enumerate(hits, 1)]
     save(question, text, first, problems, sources, tokens, fixed)
     if show:
@@ -239,10 +241,12 @@ def save(question, text, first, problems, sources, tokens, fixed=()):
     slug = re.sub(r"[^a-z0-9]+", "_", question.lower())[:40].strip("_")
     lines = [f"# RAG answer, {log.DEFAULT_MODEL}, embeddings {EMBED_MODEL}", "", f"**Question.** {question}", "", "## Answer", "", text, "",
              "Grounding problems: " + ("none" if not problems else "".join(f"\n- {p}" for p in problems)), "",
-             "Citations repaired by code (the sentence's numbers sit in that note alone): " + ("none" if not fixed else "".join(f"\n- {f}" for f in fixed)), ""]
+             "Citations repaired by code (the sentence's numbers sit in that note alone): "
+             + ("none" if not fixed else "".join(f"\n- {f}" for f in fixed)), ""]
     if first is not None and first != text:
         lines += ["## First answer (before re-prompt)", "", first, ""]
-    lines += ["## Sources", ""] + [f"### [{x['n']}] ({x['kind']}) {x['file']} § {x['heading']} (cosine {x['cosine']:.3f}, score {x['score']:.3f})\n\n"
+    lines += ["## Sources", ""] + [f"### [{x['n']}] ({x['kind']}) {x['file']} § {x['heading']} "
+                                   f"(cosine {x['cosine']:.3f}, score {x['score']:.3f})\n\n"
                                    f"```\n{x['text']}\n```\n" for x in sources]
     lines += ["## Tokens", "", f"{tokens['calls']} model calls, {tokens['prompt']} prompt tokens, {tokens['completion']} completion tokens, "
               f"{tokens['seconds']} s wall", ""]
