@@ -14,22 +14,23 @@ import numpy as np
 import geo.gemini_contrib  # noqa: F401  (GEMINI development tree first on sys.path)
 from geo import gas, lifetime
 from geo.common import DEPTH_M, MU_PA_S, PERM_MD, RHO, T_SUPPLY_HEAT_C, THICKNESS_M, t_reservoir_c
-from geo.cost import BOILER_EFF
+from geo.cost import BOILER_EFF, EF_EL_KG_KWH, GCV_LHV
 from geo.gemini_compare import compare, ours, theirs
 from geo.gemini_contrib import absorption_chiller, heatpump_lift, henry_gas, thermal_breakthrough
 from geo.plant import CP, LORENZ_EFF, T_ABS_MIN_C
-from geo.well import CELL_M, ESP_DEPTH_M, ROUGHNESS_M, TUBING_ID_M, Injector, reservoir_pressure
+from geo.well import CELL_M, ESP_DEPTH_M, PUMP_EFF, ROUGHNESS_M, TUBING_ID_M, Injector, reservoir_pressure
 from geo.year import AUX_KW_PER_KW_COLD, COP_ABSORPTION, heating_year, table
 from gemini_simulator.project_loader import build_project
 from gemini_simulator.registry import COMPONENT_REGISTRY
 
 P_WELLHEAD_BAR = 10.0        # producer wellhead pressure the ESP holds, bar; the floor used by geo.well.Producer
 SEPARATOR = {"flow_resistance": 3.6, "temperature_drop": 0.0}   # resistance as in GEMINI's example; no temperature loss, assumed
-FILTER = {"base_resistance": 3.6, "fouling_coeff_a": 18.0, "fouling_coeff_b": 0.036, "temperature_drop": 0.0}   # GEMINI's example
+FILTER = {"base_resistance": 3.6, "fouling_coeff_a": 18.0, "fouling_coeff_b": 0.036, "temperature_drop": 0.0}   # filter_b of GEMINI's example; no temperature drop assumed
 M_GAS = gas.Y_CH4 * gas.M_CH4 + gas.Y_CO2 * gas.M_CO2    # molar mass of the 80/20 gas, kg/mol
 GAS_DENSITY = M_GAS / gas.V_M                            # gas density at normal conditions, kg/Nm3
 GAS_LHV_J_KG = gas.Y_CH4 * gas.LHV_CH4 * 1e3 / M_GAS     # lower heating value of the gas, J/kg (only the methane burns)
 GAS_CO2_KG_GJ = gas.M_CO2 / (gas.Y_CH4 * gas.LHV_CH4 * 1e-6)   # CO2 per GJ burned: one CO2 per mole of gas, kg/GJ
+BOILER_EFF_LHV = BOILER_EFF * GCV_LHV   # GEMINI's boiler burns caloric_value on LHV; our efficiency is on GCV
 RUNS = Path(__file__).resolve().parents[1] / "ai" / "runs"
 
 # our models, registered only where the GEMINI tree in use lacks them (TNO's tree; our fork registers its own copies)
@@ -75,7 +76,7 @@ def _our_models(n, day):
 def project_dict(w, t_return_c, day, n=1):
     """Native GEMINI project dict of one doublet (of n) around the producer w; day = geo.gemini_compare.ours() of that day."""
     prod = {**_well_params(w, w.depth_m, w.pi), "esp_depth_m": w.esp_depth_m, "esp_freq_hz": day["freq_hz"],
-            "esp": {**w.pump.parameters, "electricity_emission_factor": 0.3}}
+            "esp": {**w.pump.parameters, "electricity_emission_factor": EF_EL_KG_KWH}}
     mine = _our_models(n, day)
     comps = {"producer_well": {"type": "producer_well", "parameters": prod},
              "separator": {"type": "separator",
@@ -87,10 +88,12 @@ def project_dict(w, t_return_c, day, n=1):
                                                                          "fluid_density": RHO, "specific_heat": CP * 1e3}},
              "heat_pump": mine["heat_pump"],
              "filter_b": {"type": "filter", "parameters": FILTER},
-             "boiler": {"type": "boiler", "parameters": {"caloric_value": GAS_LHV_J_KG, "efficiency_factor": BOILER_EFF,
-                                                         "gas_emission_factor": GAS_CO2_KG_GJ}},
+             "boiler": {"type": "boiler", "parameters": {"caloric_value": GAS_LHV_J_KG, "efficiency_factor": BOILER_EFF_LHV,
+                                                         "gas_emission_factor": GAS_CO2_KG_GJ, "fluid_density": RHO,
+                                                         "specific_heat": CP * 1e3}},
              "injector_well": {"type": "injector_well", "parameters": {**_well_params(w, w.depth_m, day["ii_m3h_bar"]),
-                                                                       "injector_pump": {"efficiency_factor": 0.7}}},
+                                                                       "injector_pump": {"efficiency_factor": PUMP_EFF,
+                                                                                         "electricity_emission_factor": EF_EL_KG_KWH}}},
              "gas": mine["gas"], "breakthrough": mine["breakthrough"]}
     boundary = [{"component": "producer_well", "key": "wellhead_pressure", "value": P_WELLHEAD_BAR},
                 {"component": "producer_well", "key": "wellhead_temperature", "value": day["T_wellhead_C"]},
@@ -115,8 +118,7 @@ def project_dict(w, t_return_c, day, n=1):
                                                  ["pressure_out", "source_pressure_in"]]),
             link("heat_pump", "filter_b", [["source_pressure_out", "pressure"], ["Ts_out", "temperature"],
                                            ["source_flow_rate", "flow_rate"]]),
-            link("heat_exchanger", "boiler", [["secondary_temperature_out", "temperature_in"],
-                                              ["secondary_flow_rate", "water_flow_rate"]]),
+            link("heat_pump", "boiler", [["Th_out", "temperature_in"], ["hot_flow_rate", "water_flow_rate"]]),   # in series
             link("separator", "boiler", [["gas_mass_flow_rate", "gas_flow_rate"]]),
             link("filter_b", "injector_well", [["flow_rate_m3h", "flow_rate"], ["temperature_out", "wellhead_temperature"],
                                                ["pressure_out_pa", "pressure_in"]]),
@@ -145,7 +147,7 @@ def _freq_for_flow(project, q_m3h, f_lo=30.0, f_hi=60.0):
     def flow(f):
         project["components"]["producer_well"]["parameters"]["esp_freq_hz"] = f
         return _solve(project).get_output("producer_well", "flow_rate")
-    if flow(f_hi) < q_m3h:
+    if flow(f_hi) < q_m3h or flow(f_lo) > q_m3h:   # the bracket does not hold
         return None
     for _ in range(30):
         f = 0.5 * (f_lo + f_hi)
@@ -190,7 +192,7 @@ def replay(n=2, t_return_c=60.0, depth_m=DEPTH_M, esp_depth_m=ESP_DEPTH_M, days=
                                                     t["p_injection_wellhead_bar"] - offset - o["p_injection_wellhead_bar"])
         rows.append(row)
     basis = (f"GEMINI simulator {_version()} re-runs our generated project (one doublet; producer with 24-stage ESP, separator, "
-             "filters, our absorption chiller, counter-flow exchanger, our heat pump with a brine floor, boiler on the separator "
+             "filters, our absorption chiller, counter-flow exchanger, our heat pump with a brine floor, then the boiler on the separator "
              f"gas, injector, plus our dissolved-gas bubble point and thermal breakthrough on the producer flow) on {len(rows)} "
              "days of 2027 at the day's dispatch per doublet; the ESP frequency is re-solved so GEMINI's nodal solve gives our "
              "flow; differences = (GEMINI - ours) / ours. Inputs by construction: the exchanger UA is set to give our duty, the "

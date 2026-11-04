@@ -58,6 +58,9 @@ class HeatPumpLift(HeatpumpBasic):
         # brine at or below the floor: nothing to take, so no heat, no power, water passes through
         if Ts_in <= Ts_floor:
             return float("nan"), Th_in, Ts_in, 0.0, 0.0
+        # water already at or above the target: nothing to lift
+        if Th_in >= Th_out:
+            return float("nan"), Th_in, Ts_in, 0.0, 0.0
         result = super()._calculate(Th_out, Th_in, Ts_in, mh, ms)
         if abs(result[2] - Ts_floor) >= 1e-9:
             return result

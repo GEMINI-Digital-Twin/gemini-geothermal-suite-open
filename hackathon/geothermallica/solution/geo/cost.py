@@ -38,9 +38,10 @@ P_EL = 182.4                    # electricity price, EUR/MWh; source: Eurostat d
 # https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_pc_203
 P_GAS = 83.9
 BOILER_EFF = 0.9                # boiler efficiency, heat out per gas in on GCV; assumed, no source
+GCV_LHV = 1.11                  # ratio of gross to lower calorific value of natural gas; assumed
 # CO2 per MWh of gas on GCV, t/MWh: 56.2 kg/GJ on lower calorific value (LHV), RVO (Netherlands Enterprise Agency) 2026,
-# divided by a GCV/LHV ratio of 1.11 (assumed)
-CO2_T_MWH = 56.2 * 3.6 / 1000 / 1.11
+# divided by the GCV/LHV ratio
+CO2_T_MWH = 56.2 * 3.6 / 1000 / GCV_LHV
 # CO2 emission factor of grid electricity, kg per kWh; organiser reference value on Discord, 3 Nov 2026. No CO2 cost is added on
 # electricity: the grid price already carries the EU emissions trading (ETS) cost of the power plants
 EF_EL_KG_KWH = 0.3

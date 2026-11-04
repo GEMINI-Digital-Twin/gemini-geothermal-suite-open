@@ -6,8 +6,8 @@ import math
 import numpy as np
 
 from geo import gas, lifetime
-from geo.common import DT_BRINE_MAX_K, RHO, T_SUPPLY_HEAT_C
-from geo.cost import BOILER_EFF
+from geo.common import RHO, T_SUPPLY_HEAT_C
+from geo.cost import BOILER_EFF, GCV_LHV
 from geo.plant import APPROACH_K, CP
 from geo.year import COP_ABSORPTION
 
@@ -44,12 +44,12 @@ def ours(w, inj, pt, t_return_c, n):
     t_out = t_hx_out - (pt["MW_hp"] - pt["MW_el_hp"]) / mcp     # brine leaving the heat-pump evaporator, C
     hp_on = pt["MW_hp"] > 0
     m_net = _network_water_kg_s(pt, t_hx_in, t_return_c)
-    i = inj.run(q, t_wh - DT_BRINE_MAX_K)
+    i = inj.run(q, t_out)                                       # brine as the day's chain leaves it
     g = gas.gas_at(q, w.depth_m)
     return {"q_m3h": q, "freq_hz": r["freq_hz"], "T_wellhead_C": t_wh, "p_esp_intake_bar": r["p_esp_intake_bar"],
             "esp_head_bar": r["esp_head_bar"], "p_injection_wellhead_bar": i["p_wh_bar"], "T_brine_out_C": t_hx_out,
             "T_injection_C": t_out, "T_supply_C": T_SUPPLY_HEAT_C, "MW_exchanger": pt["MW_hx"],
-            "MW_boiler_gas": g["CH4_MW_LHV"] * BOILER_EFF, "MW_heat_pump": pt["MW_hp"],
+            "MW_boiler_gas": g["CH4_MW_LHV"] * BOILER_EFF * GCV_LHV, "MW_heat_pump": pt["MW_hp"],   # BOILER_EFF is on GCV, gas on LHV
             "cop_heat_pump": pt["cop"] if hp_on else math.nan, "MW_abs_drive": pt["MW_abs_drive"], "MW_abs_cold": COP_ABSORPTION * pt["MW_abs_drive"],
             "p_bubble_bar": g["p_bubble_bar"], "MW_methane_LHV": g["CH4_MW_LHV"],
             "t_breakthrough_yr": lifetime.t_bt_yr(q), "interference_bar": max(lifetime.interference_bar(n, q)),

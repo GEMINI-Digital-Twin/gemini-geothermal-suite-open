@@ -38,6 +38,8 @@ class AbsorptionChiller(StaticModel):
         temperature = u["temperature"]
         flow_rate = u["flow_rate"]
         demand = u.get("cooling_demand")
+        if demand is not None:
+            demand = max(0.0, demand)  # a negative demand must not heat the brine
 
         floor = p["min_driving_temperature"]
         if u.get("temperature_floor") is not None:

@@ -44,6 +44,7 @@ class TestAbsorptionChiller(unittest.TestCase):
         self.assertAlmostEqual(y["cooling_power"], 1.0e6, delta=1e-6)
         self.assertAlmostEqual(y["temperature_out"], 81.72, delta=0.01)
         self.assertAlmostEqual(y["cooling_unmet"], 0.0, delta=1e-6)
+        self.assertEqual(_run(cooling_demand=-1.0e6)["drive_heat"], 0.0)  # negative demand
 
     def test_floor_above_minimum(self):
         """A floor of 80 C leaves 5.6 K: 1.923 MW of drive."""

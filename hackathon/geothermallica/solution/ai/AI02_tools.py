@@ -394,6 +394,12 @@ def gemini_traps():
             "tag": "[C]"}
 
 
+def _within(days, key):
+    """'within X %' for the largest |key_diff_pct| over the days, or 'not compared' when no day has it."""
+    diffs = [abs(d[key + "_diff_pct"]) for d in days if key + "_diff_pct" in d]
+    return f"within {max(diffs):.1f} %" if diffs else "not compared"
+
+
 def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
     """GEMINI's own simulator re-runs our design: the tool writes one doublet of the design as a native GEMINI project file
     (producer well with ESP, separator, filters, our absorption chiller, exchanger, our heat pump, boiler on the separator gas,
@@ -413,7 +419,9 @@ def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
         return {"error": f"GEMINI's pump at 60 Hz cannot reach our flow on any of the {len(days)} days; nothing to compare"}
     head = max(abs(d["esp_head_residual_bar"]) for d in solved)
     inj = max(abs(d["p_injection_wellhead_residual_bar"]) for d in solved)
-    worst = lambda key: max((abs(d.get(key + "_diff_pct", 0.0)) for d in solved), default=0.0)
+    gaps = [d["freq_hz_ours"] - d["freq_hz_gemini_same_flow"] for d in solved if "freq_hz_gemini_same_flow" in d]
+    freq = (f" GEMINI needs up to {max(gaps):.1f} Hz less for the same flow (it reads the 60 Hz pump curve at the actual flow; "
+            "we apply the similarity law)." if gaps else "")
     sign = (" GEMINI's injector friction sign (fixed on our branch) explains the rest."
             if inj > 3 and all(d["p_injection_wellhead_residual_bar"] < 0 for d in solved) else "")
     short = (f" GEMINI's pump at 60 Hz cannot reach our flow on {len(days) - len(solved)} of the days."
@@ -424,10 +432,11 @@ def gemini_replay(n_doublets, t_return_c, depth_m=DEPTH_M, esp_depth_m=None):
               "back or off, or a boiler lift outside this chain); COP and duty differ on those days." if cold else "")
     verdict = (f"Independent checks on {len(solved)} days: GEMINI's own nodal solve gives the ESP head within {head:.1f} bar and the "
                f"injection wellhead pressure within {inj:.1f} bar of ours after the water-column offset; GEMINI's Lorenz solve gives "
-               f"the heat-pump COP within {worst('cop_heat_pump'):.1f} %, the gas model the bubble point within "
-               f"{worst('p_bubble_bar'):.1f} %, the breakthrough model the breakthrough time within {worst('t_breakthrough_yr'):.1f} %, "
-               f"the chiller its drive within {worst('MW_abs_drive'):.1f} %; flow, exchanger duty, full-draw heat-pump duty and boiler "
-               "heat are equal by construction (the project carries our duty, floors, water flow and gas)." + sign + short + supply)
+               f"the heat-pump COP {_within(solved, 'cop_heat_pump')}, the gas model the bubble point "
+               f"{_within(solved, 'p_bubble_bar')}, the breakthrough model the breakthrough time "
+               f"{_within(solved, 't_breakthrough_yr')}; flow, exchanger duty, full-draw heat-pump duty, boiler heat and chiller "
+               "drive are equal by construction (the project carries our duty, floors, water flow and gas; the chiller has the same "
+               "formula and wellhead temperature on both sides)." + freq + sign + short + supply)
     return {"n_doublets": int(n_doublets), "t_return_c": float(t_return_c), "depth_m": float(depth_m), "esp_depth_m": _esp(esp_depth_m),
             "n_days": len(days), "days": days, "project_path": r["project_path"], "gemini_version": r["gemini_version"],
             "verdict": verdict, "basis": r["basis"], "tag": "[C]"}

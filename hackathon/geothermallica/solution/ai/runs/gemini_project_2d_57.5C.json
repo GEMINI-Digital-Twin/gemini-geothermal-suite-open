@@ -352,8 +352,10 @@
    "type": "boiler",
    "parameters": {
     "caloric_value": 29680004.06731405,
-    "efficiency_factor": 0.9,
-    "gas_emission_factor": 68.53422607924334
+    "efficiency_factor": 0.9990000000000001,
+    "gas_emission_factor": 68.53422607924334,
+    "fluid_density": 1030.0,
+    "specific_heat": 4000.0
    }
   },
   "injector_well": {
@@ -619,9 +621,10 @@
     ],
     "roughness_m": 4.5e-05,
     "ambient_temperature_c": 49.5,
-    "productivity_index_m3h_per_bar": 6.3764989071814515,
+    "productivity_index_m3h_per_bar": 8.697855474901502,
     "injector_pump": {
-     "efficiency_factor": 0.7
+     "efficiency_factor": 0.7,
+     "electricity_emission_factor": 0.3
     }
    }
   },
@@ -864,15 +867,15 @@
    ]
   },
   {
-   "predecessor": "heat_exchanger",
+   "predecessor": "heat_pump",
    "successor": "boiler",
    "ports": [
     [
-     "secondary_temperature_out",
+     "Th_out",
      "temperature_in"
     ],
     [
-     "secondary_flow_rate",
+     "hot_flow_rate",
      "water_flow_rate"
     ]
    ]

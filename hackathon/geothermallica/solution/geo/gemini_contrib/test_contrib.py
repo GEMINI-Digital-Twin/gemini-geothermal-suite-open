@@ -217,6 +217,20 @@ class TestHeatPumpLift(unittest.TestCase):
             self.assertAlmostEqual(y[k], ref[k], delta=1e-9 * abs(ref[k]), msg=k)
         self.assertEqual(y["source_pressure_out"], 9.5)
 
+    def test_at_target_balance(self):
+        """_at_target on the balanced case: water at 100 C, brine out 46.02 C, COP 4.953, 7.305 MW, balance closes."""
+        u, _ = balanced_case()
+        hp = HeatPumpLift()
+        p, k = hp.parameters, 273.15
+        mh, ms = u["water_flow_m3h"] / 3600 * p["rho_h"], u["brine_flow_m3h"] / 3600 * p["rho_s"]
+        ts_in, ts_floor = u["T_brine_in_C"] + k, u["T_brine_floor_C"] + k
+        cop, th_out, ts_out, q_h, _ = hp._at_target(100.0 + k, u["T_water_in_C"] + k, ts_in, ts_floor, mh, ms)
+        print(f"  _at_target: COP {cop:.4f}, brine out {ts_out - k:.4f} C, {q_h / 1e6:.3f} MW")
+        self.assertAlmostEqual(th_out, 100.0 + k, delta=1e-9)
+        self.assertTrue(ts_floor < ts_out < ts_in)
+        brine = p["Cp_s"] * ms * (ts_in - ts_out)
+        self.assertAlmostEqual(brine, q_h * (cop - 1) / cop, delta=1e-6 * brine)
+
     def test_gemini_floor_branch_wrong_root(self):
         """The floor branch of GEMINI gives an unphysical water temperature; HeatPumpLift 91.2 C."""
         u, _ = balanced_case()
@@ -326,6 +340,7 @@ class TestAbsorptionChiller(unittest.TestCase):
         self.assertAlmostEqual(y["cooling_power"], 1.0e6, delta=1e-6)
         self.assertAlmostEqual(y["temperature_out"], 81.72, delta=0.01)
         self.assertAlmostEqual(y["cooling_unmet"], 0.0, delta=1e-6)
+        self.assertEqual(run_chiller(cooling_demand=-1.0e6)["drive_heat"], 0.0)   # a negative demand takes nothing
 
     def test_constants_match_plant(self):
         """COP equals year.COP_ABSORPTION and the driving minimum equals plant.T_ABS_MIN_C."""
@@ -334,11 +349,12 @@ class TestAbsorptionChiller(unittest.TestCase):
         self.assertEqual(p["min_driving_temperature"], plant.T_ABS_MIN_C)
 
     def test_drive_matches_plant(self):
-        """Drive heat at 300 m3/h and 60 C return equals plant MW_abs_drive, also at smaller exchanger duties."""
+        """Chiller model drive equals plant._abs_drive at 300 m3/h and 60 C return; exchanger floors 85.6, 74.7, 78.1, 80.5 C;
+        drives 0, 2.603, 2.553, 1.753 MW."""
         p = plant.doublet_at(Producer(stages=24), 300.0, 60.0)
         t_wh, mcp = p["T_wh_C"], p["mcp_MW_per_K"]
-        self.assertAlmostEqual(p["MW_abs_drive"], plant._abs_drive(t_wh, mcp, 60.0, p["MW_hx"]), delta=1e-12)
-        for hx in (p["MW_hx"], 0.0, 1.0, 6.0):  # at the full exchanger duty nothing is left above the floor
+        # full duty leaves nothing above the floor; 4 MW puts the floor below the 78 C minimum, 5.2 and 6 MW just above it
+        for hx in (p["MW_hx"], 4.0, 5.2, 6.0):
             floor = 60.0 + plant.APPROACH_K + hx / mcp
             y = run_chiller(temperature=t_wh, temperature_floor=floor)
             ref = plant._abs_drive(t_wh, mcp, 60.0, hx)

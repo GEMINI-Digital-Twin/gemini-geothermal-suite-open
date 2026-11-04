@@ -15,6 +15,8 @@ CASE = {
     "water_flow_m3h": 360.0,
 }
 
+K = 273.15  # C to K
+
 
 def _run(u):
     hp = HeatPumpLift()
@@ -72,6 +74,22 @@ class TestHeatPumpLift(unittest.TestCase):
         for key in ("Q_th_MW", "COP", "Ts_out"):
             self.assertAlmostEqual(y[key], ref[key], delta=1e-9 * abs(ref[key]), msg=key)
         self.assertEqual(y["source_pressure_out"], 9.5)
+
+    def test_at_target_balance(self):
+        """_at_target on CASE: water at 100 C, brine out 46.78 C, COP 5.004, balance closes."""
+        hp = HeatPumpLift()
+        p = hp.parameters
+        mh = CASE["water_flow_m3h"] / 3600.0 * p["rho_h"]
+        ms = CASE["brine_flow_m3h"] / 3600.0 * p["rho_s"]
+        ts_in, ts_floor = CASE["T_brine_in_C"] + K, CASE["T_brine_floor_C"] + K
+        cop, th_out, ts_out, q_h, _ = hp._at_target(
+            100.0 + K, CASE["T_water_in_C"] + K, ts_in, ts_floor, mh, ms
+        )
+        print(f"  _at_target: COP {cop:.4f}, brine out {ts_out - K:.4f} C, {q_h / 1e6:.3f} MW")
+        self.assertAlmostEqual(th_out, 100.0 + K, delta=1e-9)
+        self.assertTrue(ts_floor < ts_out < ts_in)
+        brine = p["Cp_s"] * ms * (ts_in - ts_out)
+        self.assertAlmostEqual(brine, q_h * (cop - 1) / cop, delta=1e-6 * brine)
 
     def test_heatpump_basic_floor_branch_root(self):
         """Same inputs through HeatpumpBasic: its floor branch gives an outlet far above target."""
