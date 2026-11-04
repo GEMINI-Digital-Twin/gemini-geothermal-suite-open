@@ -96,7 +96,12 @@ def prose(j, results=(), free=False, problems=()):
     it = next((r["result"] for r in results if r["name"] == "design_iterations"), None)
     if it:
         warn.append(f"Design iterations: {it['tried']} tried, {it['rejected']} rejected"
-                    + (f", {it['moves']} repair move{'s' if it['moves'] > 1 else ''} by the plan" if it["moves"] else "") + "; see the run file.")
+                    + (f", {it['moves']} repair move{'s' if it['moves'] > 1 else ''} ({it.get('model_moves', 0)} chosen by the model, "
+                       f"{it.get('code_moves', 0)} by the code fallback)" if it["moves"] else "") + "; see the run file.")
+        for st in it["steps"]:
+            if st.get("by"):
+                warn.append(f"Repair step by the {st['by']}: {st.get('move') or st['verdict']}, {st['verdict']}"
+                            + (f" (checks {st['checks_after']})" if st.get("checks_after") else "") + f"; why: {st['why']}")
     head = "\n".join([first] + warn) + "\n\n"
     open_ = f"\n\nOpen checker problems: {'; '.join(problems)}" if problems else ""
     if "unparsed" in j:
@@ -129,7 +134,7 @@ def declare(j, results):
 def brief_result(r):
     """A tool result as the model sees it: design_iterations without its swept steps, checks as counts plus the FAIL rows."""
     if r["name"] == "design_iterations":
-        return {**r["result"], "steps": [st for st in r["result"]["steps"] if st.get("move")]}
+        return {**r["result"], "steps": [st for st in r["result"]["steps"] if st.get("by")]}   # the repair loop's steps only
     if r["name"] == "optimise_point" and "error" not in r["result"]:
         return {k: v for k, v in r["result"].items() if k not in ("basis", "best_lcoh", "best_co2")}
     if r["name"] == "gemini_replay" and "error" not in r["result"]:
@@ -147,8 +152,8 @@ def brief_result(r):
 
 
 def run(brief, free=False):
-    t0, records = time.time(), []
-    results = [] if free else planner.plan(brief)
+    t0, records, exchanges = time.time(), [], []   # exchanges: the repair loop's messages, shown in the run file
+    results = [] if free else planner.plan(brief, lambda m, **o: log.chat(m, model=MODEL, **o), records, exchanges)
     choice = "" if free else planner.plan_message(brief, results)
     content = brief if free else brief + "\n\n" + "\n".join(
         f"{r['name']}({json.dumps(r['args'])}) = {json.dumps(brief_result(r), separators=(',', ':'))}" for r in results) + \
@@ -164,7 +169,7 @@ def run(brief, free=False):
     if a2 is not None and len(p2) > len(p1):   # the re-prompt made the answer worse: keep the first one
         print(f"re-prompt answer has {len(p2)} problems against {len(p1)}: first answer kept")
         a2, p2 = None, p1
-    save(brief, free, msgs, records, results, a1, p1, a2, p2, time.time() - t0)
+    save(brief, free, [msgs[0], *exchanges, *msgs[1:]], records, results, a1, p1, a2, p2, time.time() - t0)   # the repair exchange first
     return a2 or a1, p1, p2, results
 
 
@@ -197,9 +202,11 @@ def iteration_table(results):
     it = next((r["result"] for r in results if r["name"] == "design_iterations"), None)
     if not it:
         return []
-    rows = [f"| {st['candidate']} | {st['verdict']} | {st['reason']} | {st.get('move') or st.get('number')} |" for st in it["steps"]]
-    return ["## Design iterations", "", f"{it['tried']} tried, {it['rejected']} rejected, {it['not_needed']} not needed, {it['moves']} repair moves; "
-            f"chosen {it['chosen']} [C].", "", "| candidate | verdict | reason | number or move |", "|---|---|---|---|", *rows, ""]
+    rows = [f"| {st['candidate']} | {st['verdict']} | {st['reason']} | {st.get('move') or st.get('number') or ''} | "
+            f"{st['by'] + ': ' + str(st['why']) if st.get('by') else ''} |" for st in it["steps"]]
+    return ["## Design iterations", "", f"{it['tried']} tried, {it['rejected']} rejected, {it['not_needed']} not needed, {it['moves']} repair moves "
+            f"({it.get('model_moves', 0)} by the model, {it.get('code_moves', 0)} by the code); chosen {it['chosen']} [C].", "",
+            "| candidate | verdict | reason | number or move | who moved and why |", "|---|---|---|---|---|", *rows, ""]
 
 
 BRIEF = ("District with 30 MW peak heating and 10 MW peak cooling, supply 100 C and 20 C, reservoir at 2500 m. "

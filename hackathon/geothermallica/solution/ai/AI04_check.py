@@ -251,14 +251,25 @@ def check_iterations(it, run_json, reasoning, tool_results):
     moves = [st for st in it.get("steps", []) if st.get("move")]
     checks = [r for r in tool_results if r["name"] == "checks" and "error" not in r["result"]]
     used = lambda k, v: [r for r in tool_results if r["name"] != "design_iterations" and r["args"].get(k) == v]
+    last_per_key = {st["key"]: st for st in moves}   # the last move of each input is the one the final design must carry
     for st in moves:
         k, v = st["key"], st["to"]
-        if k in ("esp_depth_m", "n_doublets") and (not checks or checks[-1]["args"].get(k) != v):
+        if k in ("esp_depth_m", "n_doublets") and st is last_per_key[k] and (not checks or checks[-1]["args"].get(k) != v):
             p.append(f"(i) move {st['move']}: the final checks call does not use {k}={v:g}")
         if not used(k, v):
             p.append(f"(i) move {st['move']}: no tool result has {k}={v:g} in its args")
-    if moves and checks and checks[-1]["result"]["n_fail"] > 0 and not any(st["verdict"] == "still failing" for st in moves):
-        p.append(f"(i) the final checks still fail {checks[-1]['result']['n_fail']} rows but no step says 'still failing'")
+        if st.get("by") not in ("model", "code") or not str(st.get("why", "")).strip():
+            p.append(f"(i) move {st['move']}: no 'by' (model or code) or no 'why' recorded")
+    by = {"model": len([st for st in moves if st.get("by") == "model"]), "code": len([st for st in moves if st.get("by") == "code"])}
+    if moves and (it.get("moves"), it.get("model_moves"), it.get("code_moves")) != (len(moves), by["model"], by["code"]):
+        p.append(f"(i) design_iterations counts moves={it.get('moves')}, model_moves={it.get('model_moves')}, "
+                 f"code_moves={it.get('code_moves')} but the steps hold {len(moves)} ({by['model']} by the model, {by['code']} by the code)")
+    for st in moves:
+        if st.get("by") and not any(f"{st['by']}'s move" in r.lower() for r in reasoning):
+            p.append(f"(i) no reasoning item says that the {st['by']} made the move {st['move']} (copy the plan's 'Violation' line)")
+    ended = any(st["verdict"] in ("still failing", "stopped") for st in it.get("steps", []))
+    if (moves or it.get("stopped")) and checks and checks[-1]["result"]["n_fail"] > 0 and not ended:
+        p.append(f"(i) the final checks still fail {checks[-1]['result']['n_fail']} rows but no step says 'still failing' or 'stopped'")
     return p
 
 

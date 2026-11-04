@@ -1,4 +1,5 @@
-"""The code plan's trace, repair move, optimiser front and checker rules (i) and (j), without Ollama: python -m pytest ai/test_plan.py"""
+"""The code plan's trace, the repair loop (with a fake model), optimiser front and checker rules (i) and (j), without Ollama:
+python -m pytest ai/test_plan.py"""
 import copy
 import sys
 import unittest
@@ -7,12 +8,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import AI03_agent as agent  # noqa: E402
+import AI03_moves as moves  # noqa: E402
 import AI03_plan as planner  # noqa: E402
 import AI04_check as checker  # noqa: E402
 
 BRIEF_F = ("District with 30 MW peak heating and 10 MW peak cooling, supply 100 C and 20 C, reservoir at 2500 m, ESP at 800 m. "
            "How many doublets, what return, boiler needed?")
 PLANS = {}
+
+
+def fake_chat(replies):
+    """A stand-in for AI01_log.chat: returns the next scripted reply with an empty token record."""
+    def chat(messages, **options):
+        text = next(replies)
+        return ({"role": "assistant", "content": text, "tool_calls": []},
+                {"messages": messages, "response": text, "prompt_eval_count": 0, "eval_count": 0, "total_duration": 0})
+    return chat
 
 
 def plan(brief):
@@ -84,10 +95,21 @@ class TestPlan(unittest.TestCase):
             ans = {"n_doublets": other["n"], "t_return_c": other["t_return_c"], "reasoning": [f"Tried {it['tried']} candidates [C]."]}
             self.assertFalse(any("design_iterations chose" in p for p in checker.check_iterations(it, ans, ans["reasoning"], out)))
 
-    def test_brief_f_repair(self):
-        out = plan(BRIEF_F)
-        moves = [s for s in trace(out)["steps"] if s.get("move")]
-        self.assertTrue(any(s["key"] == "esp_depth_m" and s["from"] == 800 and s["to"] == 1100 for s in moves))
+    def test_brief_f_model_move(self):
+        """The model picks the ESP move with its own value (900 m is not enough, then 1100 m): by model, two moves."""
+        replies = iter(['{"move": "free gas at ESP intake", "value": 900, "why": "intake 44.7 bar is below the 62.5 bar bubble point"}',
+                        '{"move": "free gas at ESP intake", "value": 1100, "why": "900 m still fails, so 1100 m"}'])
+        exchanges, records = [], []
+        out = planner.plan(BRIEF_F, chat=fake_chat(replies), records=records, exchanges=exchanges)
+        it = trace(out)
+        moves = [s for s in it["steps"] if s.get("move")]
+        self.assertEqual([(s["by"], s["from"], s["to"], s["verdict"]) for s in moves],
+                         [("model", 800, 900, "still failing"), ("model", 900, 1100, "repaired")])
+        self.assertEqual(moves[0]["why"], "intake 44.7 bar is below the 62.5 bar bubble point")
+        self.assertEqual((it["moves"], it["model_moves"], it["code_moves"], it["stopped"]), (2, 2, 0, False))
+        self.assertEqual(len(records), 2)
+        self.assertEqual([m["role"] for m in exchanges], ["user", "assistant"] * 2)
+        self.assertIn("allowed 850 to 1250 m", exchanges[0]["content"])
         checks = [r for r in out if r["name"] == "checks"]
         self.assertEqual(checks[0]["args"]["esp_depth_m"], 800)
         self.assertGreater(checks[0]["result"]["n_fail"], 0)
@@ -95,6 +117,55 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(checks[-1]["result"]["n_fail"], 0)
         later = [r for r in out if r["name"] in ("heating_year", "economics", "layout_compare", "gas_point", "lifetime_point")]
         self.assertTrue(later and all(r["args"].get("esp_depth_m") == 1100 for r in later))
+        good = answer(it, [f"Tried {it['tried']} candidates [C].", "Model's move left a violation, ESP 800 to 900 m, checks 15/16 [C].",
+                           "Model's move repaired a violation, ESP 900 to 1100 m, checks 16/16 [C]."])
+        self.assertEqual(checker.check_iterations(it, good, good["reasoning"], out), [])
+        bad = answer(it, [f"Tried {it['tried']} candidates [C]."])
+        self.assertTrue(any("the model made the move" in p for p in checker.check_iterations(it, bad, bad["reasoning"], out)))
+        msg = planner.plan_message(BRIEF_F, out)
+        self.assertIn("Model's move left a violation: free gas at ESP intake, 45.2 bar against limit 62.5 bar, so the ESP moved from 800 to 900 m, "
+                      "checks now 15/16 [C].", msg)
+        self.assertIn("Model's move repaired a violation: free gas at ESP intake", msg)
+        self.assertTrue(all(len(line.split(": ", 1)[1].split()) <= 30 for line in msg.splitlines() if line.startswith("Violation")))
+
+    def test_brief_f_code_fallback(self):
+        """Two replies that are no valid move (prose, then a value outside the range): the code takes the suggested move."""
+        replies = iter(["I would move the ESP deeper.", '{"move": "free gas at ESP intake", "value": 2000, "why": "deeper"}'])
+        out = planner.plan(BRIEF_F, chat=fake_chat(replies))
+        it = trace(out)
+        kinds = [(s["verdict"], s["by"]) for s in it["steps"] if s.get("by")]
+        self.assertEqual(kinds, [("invalid reply", "model"), ("invalid reply", "model"), ("repaired", "code")])
+        move = next(s for s in it["steps"] if s.get("move"))
+        self.assertEqual((move["from"], move["to"]), (800, 1100))
+        reasons = [s["reason"] for s in it["steps"] if s["verdict"] == "invalid reply"]
+        self.assertIn("not a JSON object", reasons[0])
+        self.assertIn("outside the allowed 850 to 1250 m", reasons[1])
+        self.assertEqual((it["moves"], it["model_moves"], it["code_moves"]), (1, 0, 1))
+        self.assertEqual(next(r for r in reversed(out) if r["name"] == "checks")["result"]["n_fail"], 0)
+
+    def test_brief_f_stop(self):
+        """A stop is honoured: no move, the design keeps failing, the trace and the checker say so."""
+        out = planner.plan(BRIEF_F, chat=fake_chat(iter(['{"move": "stop", "why": "leave it"}'])))
+        it = trace(out)
+        self.assertEqual((it["moves"], it["stopped"]), (0, True))
+        self.assertEqual([s["verdict"] for s in it["steps"] if s.get("by")], ["stopped"])
+        before = [r for r in out[:next(i for i, r in enumerate(out) if r["name"] == "optimise_point")] if r["name"] == "checks"]
+        self.assertGreater(before[-1]["result"]["n_fail"], 0)   # the design the model stopped on still fails
+        self.assertEqual(next(s for s in it["steps"] if s["verdict"] == "stopped")["checks_after"],
+                         f"{before[-1]['result']['n_pass']}/{before[-1]['result']['n_rows']}")
+        good = answer(it, [f"Tried {it['tried']} candidates [C]."])
+        self.assertEqual(checker.check_iterations(it, good, good["reasoning"], out), [])   # 'stopped' explains a failing design
+        self.assertIn("The model stopped the repair at checks", planner.plan_message(BRIEF_F, out))
+
+    def test_parse(self):
+        options = moves.menu({"n_doublets": 2, "t_return_c": 56.25, "esp_depth_m": 800}, {},
+                             {"14 free gas at ESP intake [D]": "min intake 44.7 bar (limit >= 62.5 bar) -> FAIL", "summary": ""}, 3)
+        self.assertEqual([(o["key"], o["now"], o["new"], o["cap"]) for o in options], [("esp_depth_m", 800, 1100, 1250)])
+        self.assertEqual(moves.parse('{"move": "esp_depth_m", "value": null, "why": "w"}', options)[1], 1100)
+        self.assertEqual(moves.parse('{"move": "free gas at ESP intake", "value": 1230, "why": "w"}', options)[1], 1250)   # rounded to 50 m
+        self.assertIsNone(moves.parse('{"move": "free gas at ESP intake", "value": 800, "why": "w"}', options)[0])
+        self.assertIsNone(moves.parse('{"move": "spacing_m", "value": 1000, "why": "w"}', options)[0])
+        self.assertEqual(moves.parse("no json here", options)[0], None)
 
     def test_rule_i_wrong_tried(self):
         out = copy.deepcopy(plan(agent.BRIEF))

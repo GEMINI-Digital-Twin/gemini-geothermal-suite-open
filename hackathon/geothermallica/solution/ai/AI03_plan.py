@@ -1,12 +1,10 @@
-"""The code plan of the design agent: brief parsing, return sweeps, checks, repair moves, alternatives and their sentences."""
-import math
+"""The code plan of the design agent: brief parsing, return sweeps, checks, the repair loop, alternatives and their sentences."""
 import re
 
+import AI01_log as log
 import AI02_tools as tools
+import AI03_moves as moves_
 import AI04_check as checker
-from geo import lifetime
-from geo.common import Q_MAX_M3H
-from geo.well import ESP_DEPTH_M
 
 brief_peak, brief_site, brief_priority = checker.brief_peak, checker.brief_site, checker.brief_priority
 SITE_DEFAULTS = {"depth_m": 2500.0, "supply_heat_c": 100.0, "supply_cold_c": 20.0}   # the challenge site
@@ -73,73 +71,6 @@ def iterations(sweeps, chosen):
     return steps
 
 
-# repair move per failing check row: (input it changes, unit, how)
-MOVES = {"free gas at ESP intake": ("esp_depth_m", "m", "+300 m, cap 1250 m"),
-         "SodM injection pressure": ("n_doublets", "doublets", "+1, cap the brief's maximum"),
-         "capacity covers the peak": ("n_doublets", "doublets", "+1, cap the brief's maximum"),
-         "thermal breakthrough": ("spacing_m", "m", "spacing for 30 yr at 300 m3/h, rounded up to 50 m"),
-         "doublet interference": ("doublet_spacing_m", "m", "x 1.5, cap 5000 m")}
-START = {"esp_depth_m": ESP_DEPTH_M, "spacing_m": lifetime.SPACING_M}   # tool defaults when the brief gives no value
-
-
-def moved(key, now, max_n):
-    """The new value of key after one move from now."""
-    if key == "esp_depth_m":
-        return min(now + 300.0, 1250.0)
-    if key == "n_doublets":
-        return min(now + 1, max_n)
-    if key == "spacing_m":
-        return max(now, 50.0 * math.ceil(lifetime.spacing_for_yr(30, Q_MAX_M3H) / 50.0))
-    return min(now * 1.5, 5000.0)
-
-
-def failing(checks_result):
-    """[(row name without number and tag, value text, limit text)] for the FAIL rows of a checks result."""
-    rows = []
-    for k, v in checks_result.items():
-        if isinstance(v, str) and "-> FAIL" in v:
-            value, rest = v.split(" (limit ", 1)
-            rows.append((re.sub(r"^\d+ |\s*\[[^\]]*\]$", "", k), value, rest.rsplit(") -> ", 1)[0]))
-    return rows
-
-
-FIRST_NUM = re.compile(r"-?\d+(?:\.\d+)?\s*(?:bar|yr|GWh|MW|m3/h|K|m)\b")
-
-
-def short(value, limit):
-    """'45.2 bar against limit 62.5 bar' from a check row's value and limit text (the full row stays in the checks result)."""
-    v, lim = FIRST_NUM.search(value), FIRST_NUM.search(limit)
-    return f"{v.group(0)} against limit {lim.group(0)}" if v and lim else f"{value} (limit {limit})"
-
-
-def repair(design, life, out, max_n):
-    """Up to 2 moves on the first FAIL row in MOVES; design and life change in place so later tools see the moved value."""
-    steps = []
-    for _ in range(2):
-        chk = next(r["result"] for r in reversed(out) if r["name"] == "checks")
-        hit = next(((row, value, limit) for row, value, limit in failing(chk) if row in MOVES), None)
-        if hit is None:
-            break
-        row, value, limit = hit
-        key, unit, _ = MOVES[row]
-        where = life if key in ("spacing_m", "doublet_spacing_m") else design
-        now = where.get(key, START.get(key, life.get("spacing_m", lifetime.SPACING_M)))
-        new = moved(key, now, max_n)
-        if new == now:   # at its cap: nothing left to move
-            break
-        where[key] = new
-        res = call("checks", dict(design))
-        out.append({"name": "checks", "args": dict(design), "result": res})
-        esp = design.get("esp_depth_m", ESP_DEPTH_M)
-        steps.append({"candidate": name(design["n_doublets"], design["t_return_c"]) + f", ESP {esp:g} m"
-                      + "".join(f", {k} {v:g} m" for k, v in life.items()),
-                      "n_doublets": design["n_doublets"], "t_return_c": design["t_return_c"],
-                      "verdict": "repaired" if res.get("n_fail", 1) == 0 else "still failing",
-                      "reason": f"{row}: {short(value, limit)}", "move": f"{key} {now:g} -> {new:g} {unit} [A, MOVES]",
-                      "key": key, "from": now, "to": new, "checks_after": f"{res.get('n_pass')}/{res.get('n_rows')}", "tag": "[C]"})
-    return steps
-
-
 def optimised(design, out, brief, max_n):
     """Optimise from the repaired design; the design moves to the front row best on the brief's priority. Returns the front steps."""
     pr = brief_priority(brief)
@@ -166,8 +97,11 @@ def optimised(design, out, brief, max_n):
             for p in res["front"]]
 
 
-def plan(brief):
-    """The code plan's tool calls: site, demand, sweeps, checks, repair moves, optimiser, years, economics, alternatives, trace."""
+def plan(brief, chat=log.chat, records=None, exchanges=None):
+    """The code plan's tool calls: site, demand, sweeps, checks, the repair loop, optimiser, years, economics, alternatives, trace.
+
+    chat, records and exchanges go to the repair loop (AI03_moves): the model picks the moves, the run file shows the exchange.
+    """
     ph, pc, _, found = brief_inputs(brief)
     esp = checker.brief_esp(brief)
     site = {k: v for k, v in zip(SITE_DEFAULTS, found) if v is not None}
@@ -185,7 +119,7 @@ def plan(brief):
     chosen = (s["n_doublets"], s["best_return_c"])
     design, life = {"n_doublets": chosen[0], "t_return_c": chosen[1], **peaks}, {}
     out.append({"name": "checks", "args": dict(design), "result": call("checks", dict(design))})
-    moves = repair(design, life, out, max_n)
+    moves = moves_.loop(brief, design, life, out, max_n, chat, records, exchanges)
     front = optimised(design, out, brief, max_n)
     n, t = design["n_doublets"], design["t_return_c"]
     peaks = {k: v for k, v in design.items() if k not in ("n_doublets", "t_return_c")}   # the moved inputs from here on
@@ -206,7 +140,10 @@ def plan(brief):
             by[st["reason"]] = by.get(st["reason"], 0) + 1
     out.append({"name": "design_iterations", "args": {},
                 "result": {"tried": len(trace), "rejected": sum(by.values()), "not_needed": sum(st["verdict"] == "not needed" for st in trace),
-                           "by_reason": by, "moves": len(moves), "chosen": name(n, t), "n_doublets": n, "t_return_c": t,
+                           "by_reason": by, "moves": len([m for m in moves if m.get("move")]),
+                           "model_moves": len([m for m in moves if m.get("move") and m["by"] == "model"]),
+                           "code_moves": len([m for m in moves if m.get("move") and m["by"] == "code"]),
+                           "stopped": any(m["verdict"] == "stopped" for m in moves), "chosen": name(n, t), "n_doublets": n, "t_return_c": t,
                            "optimised": len(front), "steps": trace + moves + front, "tag": "[C]"}})
 
     econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
@@ -276,12 +213,17 @@ def iteration_lines(it, out):
         what = st["reason"].replace(": ", ", ", 1)
         verb = "repaired" if st["verdict"] == "repaired" else "still failing after a move"
         s += (f"\nViolation {verb} (copy as one reasoning string of its own, word for word, ending with its [C] tag): "
-              f"Plan {'repaired' if st['verdict'] == 'repaired' else 'tried to repair'} "
+              f"{st['by'].capitalize()}'s move {'repaired' if st['verdict'] == 'repaired' else 'left'} "
               f"a violation: {what}, so the {SAY[st['key']].format(a=st['from'], b=st['to'])}, checks now {st['checks_after']} [C].")
     last = next(r for r in reversed(out) if r["name"] == "checks")
     if it["moves"]:
         s += (f"\nThe answer describes the design after the move: checks_passed is {last['result']['n_pass']}/{last['result']['n_rows']} "
               "(the last checks result, not the first).")
+    if it.get("stopped"):
+        st = next(x for x in it["steps"] if x["verdict"] == "stopped")
+        s += (f"\nRepair stopped (copy as one reasoning string of its own, word for word, ending with its [C] tag): "
+              f"The model stopped the repair at checks {st['checks_after']}; its reason is in the trace; the optimiser then chose the "
+              f"design with checks {last['result']['n_pass']}/{last['result']['n_rows']} [C].")
     return s
 
 

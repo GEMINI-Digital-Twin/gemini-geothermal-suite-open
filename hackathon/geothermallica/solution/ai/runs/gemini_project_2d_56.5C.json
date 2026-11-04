@@ -265,8 +265,8 @@
     "roughness_m": 4.5e-05,
     "ambient_temperature_c": 49.5,
     "productivity_index_m3h_per_bar": 11.879396165040427,
-    "esp_depth_m": 1100.0,
-    "esp_freq_hz": 58.17943504178402,
+    "esp_depth_m": 1096.9,
+    "esp_freq_hz": 58.1794350409109,
     "esp": {
      "no_stages": 24,
      "head_coeff": [
@@ -322,7 +322,7 @@
    "parameters": {
     "flow_resistance": 0.0,
     "flow_configuration": "counter",
-    "heat_transfer_coefficient": 2908720.960190826,
+    "heat_transfer_coefficient": 2908720.9595118393,
     "fluid_density": 1030.0,
     "specific_heat": 4000.0
    }
@@ -330,7 +330,7 @@
   "heat_pump": {
    "type": "heatpump_lift",
    "parameters": {
-    "Ts_in_minimum": 45.5783932148128,
+    "Ts_in_minimum": 45.578393211417655,
     "Th_out_target": 100.0,
     "eta_lorenz": 0.5,
     "rho_s": 1030.0,
@@ -622,7 +622,7 @@
     ],
     "roughness_m": 4.5e-05,
     "ambient_temperature_c": 49.5,
-    "productivity_index_m3h_per_bar": 6.5152225105206805,
+    "productivity_index_m3h_per_bar": 6.515222510125572,
     "injector_pump": {
      "efficiency_factor": 0.7,
      "electricity_emission_factor": 0.3
@@ -727,12 +727,12 @@
   {
    "component": "producer_well",
    "key": "wellhead_temperature",
-   "value": 85.5783932148128
+   "value": 85.57839321141765
   },
   {
    "component": "absorption_chiller",
    "key": "temperature_floor",
-   "value": 85.5783932148128
+   "value": 85.57839321141765
   },
   {
    "component": "heat_exchanger",
