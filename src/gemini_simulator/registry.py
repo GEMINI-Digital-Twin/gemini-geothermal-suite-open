@@ -13,6 +13,7 @@ from gemini_model.boiler.boiler import Boiler
 from gemini_model.booster_pump.booster_pump import BoosterPump
 from gemini_model.chp.chp import CHP
 from gemini_model.filter.filter import Filter
+from gemini_model.fluid.henry_gas import HenryGasBubblePoint
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP
 from gemini_model.heat_exchanger.heat_exchanger import HeatExchanger
 from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
@@ -23,6 +24,7 @@ from gemini_model.pump.esp import ESP
 from gemini_model.pump.esp_affinity import ESPAffinity
 from gemini_model.reservoir.inflow_performance import IPR
 from gemini_model.reservoir.reservoir_pressuredrop import bottomhole_skin_dp
+from gemini_model.reservoir.thermal_breakthrough import DoubletThermalBreakthrough
 from gemini_model.separator.separator import Separator
 from gemini_model.splitter.splitter import Splitter
 from gemini_model.well.pressure_drop import DPDT
@@ -42,10 +44,12 @@ COMPONENT_REGISTRY = {
     "well": DPDT,
     "reservoir_bottomhole_skin": bottomhole_skin_dp,
     "reservoir_ipr": IPR,
+    "thermal_breakthrough": DoubletThermalBreakthrough,
     "esp": ESP,
     "esp_affinity": ESPAffinity,
     "heatpump": HeatpumpBasic,
     "heatpump_lift": HeatPumpLift,
+    "henry_gas": HenryGasBubblePoint,
     "producer_well": ProducerWell,
     "injector_well": InjectorWell,
 }
