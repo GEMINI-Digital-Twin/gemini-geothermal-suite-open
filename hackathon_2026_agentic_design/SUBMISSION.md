@@ -166,8 +166,25 @@ reservoir temperature inconsistent with the gradient) without sizing the plant u
 Six reproducible exchanges are in `outputs_claude/INTERACTION_EVIDENCE.md` (`python
 demo_interactions.py`). LLM used: Claude (Anthropic, commercial) for the orchestrated run, with
 the API key as a placeholder in the committed code; the rule-based mode reproduces the same
-design with zero LLM tokens. The orchestrated run used 8 decision turns and 7 twin evaluations
-with compact JSON tool results (estimated under 60k tokens).
+design with zero LLM tokens. Number of used tokens: the orchestrated run took 8 decision turns
+and 7 twin evaluations, about 33k tokens in total (770 output tokens of stated hypotheses and
+the final explanation, 4.5k tokens of twin answers, 32k tokens of context re-read across the
+turns). This is an estimate at 4 characters per token over the logged text, because the run was
+driven from a Claude Code session that does not expose API usage; the per-turn table is in
+`outputs_claude/INTERACTION_EVIDENCE.md` section 8 and the totals in `outputs_claude/llm_usage.json`.
+When the agent is run through the API (`--mode claude`), `response.usage` is metered on every
+turn and the exact totals are written to `<out>/llm_usage.json`; the rule-based run writes zero.
+
+Realized capacities of the selected design: heating 30.0 MW delivered on the peak day
+(28.2 MW direct heat exchange + 1.8 MW heat pump; installed 3 x 13.7 MW plate HX + 2.5 MW heat
+pump), cooling 10.0 MW delivered (10 MW absorption chiller installed), 111.7 GWh heat and
+23.7 GWh cooling over the year with nothing unmet. Thermal storage was considered and not added:
+the heat-pump top-up runs through 144- and 110-day cold stretches that a daily buffer cannot
+shift, and at 94 % geothermal share seasonal storage has nothing to displace.
+
+Libraries: Python 3.12; `gemini_model` from the GEMINI suite (imported directly, no Docker or
+database); numpy, pandas, scipy, matplotlib; scikit-learn (ESP monitoring); py-trsqp, petlab and
+stosag (optimiser study, vendored as sibling folders); anthropic SDK (API mode only).
 
 ## 6. How to run
 

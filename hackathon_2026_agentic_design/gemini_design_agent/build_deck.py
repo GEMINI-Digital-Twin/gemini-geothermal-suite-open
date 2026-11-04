@@ -115,9 +115,10 @@ title(s, "The challenge, and what the agent delivered", "A 2,500 m, 87 C reservo
 card(s, Inches(0.6), Inches(1.8), Inches(4.0), Inches(2.5), "Hard caps from the brief", [
     "1-3 doublets, 50-300 m3/h each", "Brine cooled at most 40 C", "330 operating days per doublet",
     "Pump efficiency 70 %, volumes balanced", "100 C heating and 20 C cooling supply"], accent=ORANGE)
-card(s, Inches(0.6), Inches(4.5), Inches(4.0), Inches(2.3), "What is not fixed", [
+card(s, Inches(0.6), Inches(4.5), Inches(4.0), Inches(2.3), "Not fixed, and not needed", [
     "Depth: 'for a different depth use hydrostatic pressure and the 30 C/km gradient'",
-    "Surface plant: GEMINI has no heating or cooling models; they are ours"], accent=TEAL)
+    "Surface plant: GEMINI has no heating or cooling models; they are ours",
+    "Thermal storage: not added. The heat-pump top-up runs through 144- and 110-day cold stretches that a daily buffer cannot shift, and at 94 % geothermal share seasonal storage has nothing to displace"], accent=TEAL, body_size=10.5)
 x0 = Inches(5.0)
 stat(s, x0, Inches(1.8), Inches(2.6), "3", "doublets, 6 wells, 3,500 m TVD")
 stat(s, x0 + Inches(2.7), Inches(1.8), Inches(2.6), "117 C", "reservoir, 114 C at the wellhead")
@@ -152,7 +153,7 @@ text(s, Inches(7.5), by + bh + Inches(0.12), Inches(3.5), Inches(0.4), "repeat u
 card(s, Inches(0.6), Inches(3.85), Inches(4.0), Inches(2.95), "Orchestrator 1: Claude", [
     "Claude Fable 5.1 drives the toolbox (claude_session.py): chooses each move, states the hypothesis before the run, reads the twin's verdict after",
     "Commercial model, documented; API key is a placeholder in the committed code",
-    "8 decision turns, 7 evaluations, ~2 min; compact JSON tool results keep the run under ~60k tokens"], accent=ORANGE)
+    "8 turns, 7 evaluations, ~2 min; ~33k tokens (770 output + 32k context re-read), per-turn table in INTERACTION_EVIDENCE.md"], accent=ORANGE)
 card(s, Inches(4.8), Inches(3.85), Inches(4.0), Inches(2.95), "Orchestrator 2: rule-based", [
     "Same tools, deterministic engineering heuristics, zero LLM tokens, fully offline and reproducible",
     "Explores 16 archetypes, 38 evaluations, ~5 min",
@@ -165,7 +166,7 @@ footer(s, 3)
 
 # ================================================================== 4 GEMINI inside vs built by us
 s = prs.slides.add_slide(BLANK)
-title(s, "GEMINI gives the physics; plant, dispatcher and agent are ours", "No Docker services or databases: the models are imported from the open-source package and called directly")
+title(s, "GEMINI gives the physics; plant, dispatcher and agent are ours", "Python, gemini_model called directly; numpy, pandas, scipy, matplotlib, scikit-learn, py-trsqp, petlab, anthropic SDK")
 table(s, Inches(0.6), Inches(1.8), Inches(6.1), [
     ["GEMINI model (gemini_model)", "Used for"],
     ["bottomhole_skin_dp + IPR", "productivity / injectivity, drawdown vs flow"],
@@ -187,7 +188,9 @@ picture(s, CL / "fig_well_performance.png", Inches(0.6), Inches(4.45), w=Inches(
 text(s, Inches(8.8), Inches(4.5), Inches(3.95), Inches(2.3), [
     [("Well performance from the twin", {"bold": True, "size": 13, "color": DEEP})],
     "ESP head and power across the 50-300 m3/h band; intake pressure stays 40 bar above the 29 bar bubble point, which is why the pump sits at 1,000 m.",
-    "Tubing velocity 2.3 m/s at 300 m3/h, below the API erosional limit in 9-5/8\" casing."], size=12, color=INK)
+    "Tubing velocity 2.3 m/s at 300 m3/h, below the API erosional limit in 9-5/8\" casing.",
+    [("Why these models", {"bold": True, "size": 12, "color": DEEP})],
+    "Single-effect LiBr is the standard chiller for 90-100 C driving heat; 0.5 x Carnot matches published HT heat-pump COPs; 3 C approach is plate-HX practice. Simple enough to run 365 days in seconds, so the agent can iterate."], size=11, color=INK)
 footer(s, 4)
 
 # ================================================================== 5 How the agent got there (native chart)
@@ -233,10 +236,11 @@ table(s, Inches(6.4), Inches(1.75), Inches(6.35), [
     ["ESP power", f"{K['esp_power_at_300_mw'] * 1000:.0f} kW", "< 1,500 kW", "pass"]],
     [Inches(2.3), Inches(1.9), Inches(1.35), Inches(0.8)], font=11)
 text(s, Inches(6.4), Inches(4.85), Inches(6.35), Inches(1.9), [
-    [("Energy balance, year 1", {"bold": True, "size": 13, "color": DEEP})],
+    [("Realized capacities and energy balance, year 1", {"bold": True, "size": 13, "color": DEEP})],
+    "Heating 30.0 MW delivered on the peak day (28.2 MW direct HX + 1.8 MW heat pump; installed 3 x 13.7 MW HX + 2.5 MW HP). Cooling 10.0 MW delivered (10 MW absorption installed).",
     f"Heat {K['heat_delivered_gwh']:.1f} GWh (direct {K['heat_direct_gwh']:.1f}, heat pump {K['heat_hp_gwh']:.1f}); cooling {K['cool_delivered_gwh']:.1f} GWh, all absorption.",
     f"Electricity {K['electricity_gwh']:.1f} GWh: ESP {K['electricity_esp_gwh']:.1f}, injection {K['electricity_injection_gwh']:.1f}, heat pump {K['electricity_heat_pump_gwh']:.1f}, chillers {K['electricity_chillers_gwh']:.1f}. System COP {K['system_cop']:.1f}, geothermal share {K['geothermal_share'] * 100:.0f} %.",
-    f"Associated gas {K['annual_gas_mnm3']:.2f} MNm3/yr handled in a degasser; {K['annual_co2_t']:.0f} t CO2/yr separated."], size=12)
+    f"Associated gas {K['annual_gas_mnm3']:.2f} MNm3/yr handled in a degasser; {K['annual_co2_t']:.0f} t CO2/yr separated."], size=11)
 footer(s, 6)
 
 # ================================================================== 7 Closed loop + uncertainty

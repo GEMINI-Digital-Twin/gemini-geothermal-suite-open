@@ -22,8 +22,9 @@ failed, because once the brine is cooled forty degrees there is nothing left for
 draw on. Three doublets it is. Every step has the reason and the number next to it."
 
 **1:25 - The result (35 s).** Dashboard top tiles and constraint scorecard.
-"Three doublets at thirty-five hundred metres. Every megawatt-hour of heat and cooling delivered,
-zero unmet. System COP seventeen. Ninety-four percent of the energy is geothermal. All eight
+"Three doublets at thirty-five hundred metres. On the peak day, thirty megawatts of heat,
+twenty-eight of them by direct heat exchange and two from the heat pump, and ten megawatts of
+cooling from the absorption chiller. Every megawatt-hour of heat and cooling delivered, zero unmet. System COP seventeen. Ninety-four percent of the energy is geothermal. All eight
 challenge caps pass on every day of the year, plus three engineering guards the brief did not ask
 for: ESP intake forty bar above the gas bubble point, tubing velocity under the API erosional
 limit, injection pressure within limit."
@@ -50,7 +51,8 @@ date to the controller. On synthetic telemetry: ninety-one percent recall, under
 false alarms."
 
 **3:45 - The agent as a colleague (35 s).** Slide 10, interaction evidence.
-"We also tested the agent as a colleague. Give it the heating file without the cooling file and
+"Every move is logged with its prompt, its answer and its token count: eight turns, about
+thirty-three thousand tokens. We also tested the agent as a colleague. Give it the heating file without the cooling file and
 it lists what is missing and asks whether to proceed on heating alone. Ask it for a fifty megawatt
 power plant and it declines: direct use only. Tell it the reservoir is one hundred and forty
 degrees at twenty-five hundred metres and it points out that this contradicts the gradient and

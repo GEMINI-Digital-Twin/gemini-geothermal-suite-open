@@ -112,8 +112,22 @@ Questions back to you:
 
 `outputs_claude/orchestration_log.md` holds the eight design moves Claude made, each with its stated hypothesis before the simulation and the twin's verdict after it (for example: 'two doublets at 3,500 m with a 15 MW heat pump' was proposed, failed on 16 peak days, and the log explains why the heat pump cannot help once the brine is at the 40 C cap). The rule-based run's equivalent is `outputs/agent_log.txt` (16 archetypes, 38 steps).
 
-## 8. Compute and token footprint
+## 8. Number of used tokens
 
-- Claude-orchestrated run: 8 LLM decision turns, 7 twin evaluations of 10-18 s each, about 2 minutes of simulation. Each tool result returned to the LLM is a compact JSON summary (~1-2 kB: feasibility, violations, 12 KPIs, cost), not the 365-day table, so the whole orchestration stays under an estimated 60k tokens. Token counts were not metered by the API in this run (the session ran inside Claude Code); the estimate is from the transcript size.
-- Rule-based run: zero LLM tokens; 38 evaluations, ~5 minutes; fully reproducible offline.
-- Design-space screening for the optimisers used a fast evaluator (every 2nd/3rd day) with a cache keyed on the design signature, which cut the optimiser study from an estimated 6 hours to about 50 minutes.
+LLM: Claude Fable 5.1 (Anthropic, commercial), orchestrating from Claude Code through `claude_session.py`. 8 decision turns, 770 output tokens, 31,848 input tokens read across the turns, about 32,618 tokens in total. This is an estimate at 4 characters per token over the logged text, because the Claude Code session does not expose API usage; it is written to `outputs_claude/llm_usage.json`. Each twin answer is a compact JSON summary (feasibility, violations, 12 KPIs, cost), not the 365-day table, which is what keeps the run this small.
+
+| Turn | Claude's move | Claude output (tokens) | Twin answer (tokens) | Context read (tokens) |
+|---|---|---|---|---|
+| 1 | build base-2dbl-2500m-abs | 70 | 638 | 1500 |
+| 2 | build deep-3dbl-3500m-abs | 72 | 648 | 2208 |
+| 3 | build mid-3dbl-3000m-abs | 44 | 643 | 2929 |
+| 4 | build deeper-3dbl-4000m-abs | 46 | 642 | 3616 |
+| 5 | modify two-2dbl-3500m-abs-hp15 | 54 | 720 | 4304 |
+| 6 | modify deep-3dbl-3500m-electric | 36 | 649 | 5077 |
+| 7 | modify final-3dbl-3500m-abs-trim | 96 | 594 | 5762 |
+| 8 | finalize final-3dbl-3500m-abs-trim | 352 | 15 | 6452 |
+| | **total** | **770** | **4549** | **31848** |
+
+- API mode (`python -m gemini_design_agent.cli --mode claude` with `ANTHROPIC_API_KEY` set) meters `response.usage` on every turn, logs `[tokens] turn n: in/out`, and writes the exact totals to `<out>/llm_usage.json`.
+- Rule-based run (`--mode rule`): zero LLM tokens; 38 twin evaluations, ~5 minutes; fully reproducible offline. Its `llm_usage.json` records that.
+- Design-space screening for the optimisers used a fast evaluator (every 2nd/3rd day) with a cache keyed on the design signature, which cut the optimiser study from an estimated 6 hours to about 50 minutes; no LLM tokens.

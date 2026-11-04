@@ -390,6 +390,9 @@ class ClaudeDesignAgent:
         self.log = log
         self.final_name: str | None = None
         self.final_summary = ""
+        # metered from the API's response.usage; written to llm_usage.json by the CLI
+        self.usage = {"model": model, "turns": 0, "input_tokens": 0, "output_tokens": 0,
+                      "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}
 
     def _call_tool(self, name: str, inp: dict) -> str:
         tb = self.tb
@@ -433,6 +436,13 @@ class ClaudeDesignAgent:
                 thinking={"type": "adaptive"},
             ) as stream:
                 resp = stream.get_final_message()
+            u = getattr(resp, "usage", None)
+            if u is not None:
+                self.usage["turns"] += 1
+                for k in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"):
+                    self.usage[k] += int(getattr(u, k, 0) or 0)
+                self.log(f"[tokens] turn {self.usage['turns']}: in {getattr(u, 'input_tokens', 0)} out {getattr(u, 'output_tokens', 0)} "
+                         f"(cumulative in {self.usage['input_tokens']} out {self.usage['output_tokens']})")
             messages.append({"role": "assistant", "content": resp.content})
             if resp.stop_reason == "refusal":
                 self.log("Claude declined the request; falling back to the rule-based agent.")
@@ -458,7 +468,10 @@ class ClaudeDesignAgent:
             raise RuntimeError("Claude agent produced no feasible design")
         self.tb.steps.append(AgentStep(len(self.tb.steps) + 1, "claude", "finalize", self.final_summary,
                                        final.design.name, final.feasible))
-        return {"final": final, "ranked": ranked, "steps": self.tb.steps, "results": self.tb.results}
+        self.usage["total_tokens"] = self.usage["input_tokens"] + self.usage["output_tokens"]
+        self.log(f"[tokens] total: {self.usage['turns']} turns, {self.usage['input_tokens']} input + "
+                 f"{self.usage['output_tokens']} output = {self.usage['total_tokens']} tokens")
+        return {"final": final, "ranked": ranked, "steps": self.tb.steps, "results": self.tb.results, "usage": self.usage}
 
 
 def make_agent(demand: DemandProfile, spec: HackathonSpec = SPEC, log=print, mode: str = "auto", **kw):

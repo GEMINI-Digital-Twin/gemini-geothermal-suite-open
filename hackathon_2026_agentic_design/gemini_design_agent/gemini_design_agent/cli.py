@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import json
 import time
 from pathlib import Path
 
@@ -71,6 +72,9 @@ def main(argv=None) -> int:
         closed = loop.run(year1_result=final)
 
     path = write_report(run, closed, demand.summary(), out, SPEC, mode=mode_name)
+    usage = run.get("usage") or {"model": None, "turns": 0, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0,
+                                 "note": "rule-based orchestration: no LLM calls"}
+    (out / "llm_usage.json").write_text(json.dumps(usage, indent=2), encoding="utf-8")
     (out / "agent_log.txt").write_text("\n".join(log_lines), encoding="utf-8")
     log(f"\nReport written to {path}  ({time.time() - t0:.0f} s)")
     return 0
