@@ -2,6 +2,13 @@
 
 GEMINI is a composable geothermal digital-twin package. Preserve captured numerical behaviour.
 
+## Read both: `.claude/` for agents, `docs/` for people
+
+`.claude/` is written for agents: start with [.claude/README.md](.claude/README.md) (its
+`docs/` reference, `notes/` current work, `archive/` history). `docs/` is written for people.
+Read both, and the project-wide context in the project root `geomind-spe-hackathon-2026/`: its
+`AGENTS.md`, the shared memory `.claude/memory/MEMORY.md` and `docs/`.
+
 ## Start here
 
 Read [docs/rules.md](docs/rules.md) first: it holds every rule of the project. This page is orientation.
