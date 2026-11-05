@@ -12,6 +12,22 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.18] - 2026-11-05
+
+### Fixed
+- `gm.schedule` solves the flow of the heating and the cooling grid for the temperature that
+  reaches the consumers after the supply pipes (their `UA` and the air of each step), so the
+  supply unit makes up what the pipes lose or gain while it has capacity: a 1000 m supply pipe
+  no longer leaves its loss unmet on every step, and a cold pipe in winter no longer counts
+  extra cold as delivered (geomind QA-225, QA-226).
+- `gm.evaluate.daily_coverage` counts the cold of a compression chiller (a `HeatPump` of the
+  role `chiller`, driven by electricity) as backup, not geothermal (geomind QA-238).
+
+### Added
+- `gm.evaluate.report` also holds `annualised_cost` and the KPIs of `totals`
+  (`heating_coverage`, `cooling_coverage`, `cop`, `peak_heat`, `peak_cold`), so `compare` and a
+  study rank by every metric `gm.study.metrics` offers (geomind QA-240).
+
 ## [0.6.17] - 2026-11-05
 
 ### Fixed

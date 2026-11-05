@@ -28,12 +28,12 @@ from gemini.errors import ValidationError
 from gemini.modules.environment import Atmosphere
 from gemini.modules.grids import CoolingGrid, HeatingGrid
 from gemini.modules.heating import Boiler, ElectricBoiler
-from gemini.modules.piping import Splitter
-from gemini.physics import constants, energy
+from gemini.modules.piping import Pipe, Splitter
+from gemini.physics import constants, energy, hydraulics
 from gemini.physics.fluid import mixture_mass_flow
 from gemini.plants._utils.plan import members, split_end
 from gemini.plants.doublet import Doublet
-from gemini.plants.roles import remembered, units_of
+from gemini.plants.roles import SUPPLY, remembered, units_of
 
 RULES = {"dispatch": "least_cost", "outages": "lowest_demand"}
 """The rules the plant states (`control.dispatch`, `control.outages`), each with its one value:
@@ -214,13 +214,92 @@ def _bypass_splits(plant, consumer, chiller, heat, generator):
     return columns
 
 
-def _return_flow(path, grid, heat, supply):
-    """Return the ``flow`` column of a grid whose return carries ``heat`` up to ``supply``."""
+def _return_flow(path, grid, heat, supply, conductance=0.0, air=None):
+    """Return the ``flow`` column of a grid whose return carries ``heat`` up to ``supply``.
+
+    ``conductance`` [W/K] is the ``UA`` of the pipes between the unit that holds ``supply`` and
+    the grid, and ``air`` [K] the air around them at each step: the water reaches the grid at
+    ``air + (supply - air) exp(-UA / (m cp))``, so the flow is solved for that temperature and the
+    grid gets ``heat`` while the unit makes up what the pipes lose or gain (geomind QA-225: a
+    1000 m supply pipe left 0.115 MW of the heat demand unmet on every step while the boiler had
+    spare capacity).
+    """
     if path is None or grid.return_temperature is None:
         return {}
     specific_heat = grid.fluid.properties(0, 0).cp_l
     difference = abs(supply - grid.return_temperature)
-    return {f"{path}.flow": energy.circuit_flow(heat, specific_heat, difference)}
+    flow = energy.circuit_flow(heat, specific_heat, difference)
+    if air is None or not np.any(conductance):
+        return {f"{path}.flow": flow}
+    return {
+        f"{path}.flow": _through_pipes(
+            flow, heat, specific_heat, supply, grid.return_temperature, conductance, air
+        )
+    }
+
+
+PIPE_ITERATIONS = 50
+"""The fixed-point passes that solve the flow of a circuit for the loss of its supply pipes."""
+
+
+def _through_pipes(flow, heat, specific_heat, supply, returned, conductance, air):
+    """Return the flow [kg/s] that gives ``heat`` at the grid after the supply pipes.
+
+    A fixed point on ``m = Q / (cp |T_grid(m) - T_return|)`` from the flow without the pipes; a
+    step whose pipes leave the water at or past the return temperature keeps that flow, since no
+    flow gives it the heat.
+    """
+    sign = 1.0 if supply >= returned else -1.0
+    air = np.broadcast_to(np.asarray(air, dtype=float), np.shape(heat))
+    flow = np.asarray(flow, dtype=float)
+    found = flow.copy()
+    for _ in range(PIPE_ITERATIONS):
+        rate = np.where(found > 0, found * specific_heat, np.inf)
+        reached = air + (supply - air) * np.exp(-conductance / rate)
+        difference = sign * (reached - returned)
+        found = np.where(
+            difference > 0, heat / (specific_heat * np.maximum(difference, 1e-12)), flow
+        )
+    return np.where(heat > 0, found, flow)
+
+
+def _supply_conductance(plant, units, grid_path):
+    """Return the ``UA`` [W/K] of the pipes between the supply unit nearest a grid and the grid.
+
+    ``units`` is ``[(path, outlet)]``; the unit whose outlet reaches ``grid_path`` through the
+    fewest modules holds the supply temperature. A pipe without a heat transfer coefficient adds
+    nothing.
+    """
+    best = None
+    for path, port in units:
+        fed = plant.feeds(join_path(path, port))
+        if grid_path in fed:
+            before = fed[: fed.index(grid_path)]
+            if best is None or len(before) < len(best):
+                best = before
+    total = 0.0
+    for item in best or ():
+        pipe = plant.get_submodule(item)
+        if isinstance(pipe, Pipe):
+            total += _pipe_conductance(pipe)
+    return total
+
+
+def _pipe_conductance(pipe):
+    """Return the ``UA`` [W/K] of a pipe, zero while its size or coefficient has no value."""
+    try:
+        values = (pipe.heat_transfer_coefficient, pipe.inner_diameter, pipe.length)
+    except ValidationError:
+        return 0.0
+    if any(value is None for value in values):
+        return 0.0
+    return hydraulics.pipe_conductance(*values)
+
+
+def _air_of(case):
+    """Return the air temperature [K] of the case, a value or one per step, or ``None``."""
+    air = case.site.air.temperature if case.site and case.site.air else None
+    return None if air is None else np.asarray(air, dtype=float)
 
 
 def _demand_columns(demand):
@@ -341,26 +420,28 @@ def _doublet_columns(plant, limits, takes, off):
     return flows, columns
 
 
-def _heating_columns(plant, heat, carried):
+def _heating_columns(plant, heat, carried, air=None):
     """Return the columns of the heat users, the heat pump, the boilers and the return flow.
 
-    The users take ``heat``; ``carried`` is the heat of the water that passes them.
+    The users take ``heat``; ``carried`` is the heat of the water that passes them. ``air`` [K]
+    is the air around the supply pipes, which the flow makes up for.
     """
     columns, supply = {}, None
     path, grid = _single(plant, HeatingGrid)
     if path is not None:
         columns[f"{path}.heat_demand"] = heat
     units = (
-        fleet.heat_pumps(plant)[0],
-        _single(plant, Boiler)[0],
-        _single(plant, ElectricBoiler)[0],
+        (fleet.heat_pumps(plant)[0], "sink_out"),
+        (_single(plant, Boiler)[0], "fluid_out"),
+        (_single(plant, ElectricBoiler)[0], "fluid_out"),
     )
-    for unit_path in units:
-        if unit_path is not None:
-            supply = fleet.setpoint(plant, unit_path)
-            columns[f"{unit_path}.temperature_setpoint"] = np.full_like(heat, supply)
-    if supply is not None:
-        columns |= _return_flow(path, grid, carried, supply)
+    units = [(unit_path, port) for unit_path, port in units if unit_path is not None]
+    for unit_path, _ in units:
+        supply = fleet.setpoint(plant, unit_path)
+        columns[f"{unit_path}.temperature_setpoint"] = np.full_like(heat, supply)
+    if supply is not None and path is not None:
+        conductance = _supply_conductance(plant, units, path)
+        columns |= _return_flow(path, grid, carried, supply, conductance, air)
     return columns
 
 
@@ -388,8 +469,11 @@ def _unit_setpoints(path, grid, chain, taken, cool, supply):
     return setpoints
 
 
-def _cooling_columns(plant, cool, taken):
-    """Return the columns of the cooling users, the cooling units and the return flow."""
+def _cooling_columns(plant, cool, taken, air=None):
+    """Return the columns of the cooling users, the cooling units and the return flow.
+
+    ``air`` [K] is the air around the supply pipes, whose gain or loss the flow makes up for.
+    """
     columns = {}
     path, grid = _single(plant, CoolingGrid)
     if path is not None:
@@ -403,7 +487,14 @@ def _cooling_columns(plant, cool, taken):
     by_path = {units[kind]: taken.get(kind, np.zeros_like(cool)) for kind in units}
     for unit, setpoint in _unit_setpoints(path, grid, chain, by_path, cool, supply).items():
         columns[f"{unit}.temperature_setpoint"] = setpoint
-    return columns | _return_flow(path, grid, cool, supply)
+    if path is None:
+        return columns
+    last = plant.get_submodule(chain[-1])
+    ports = [
+        port for cls, port, _, service in SUPPLY if service == "cooling" and isinstance(last, cls)
+    ]
+    conductance = _supply_conductance(plant, [(chain[-1], port) for port in ports], path)
+    return columns | _return_flow(path, grid, cool, supply, conductance, air)
 
 
 def schedule(plant, case):
@@ -528,7 +619,7 @@ def _scheduled(plant, case):
     outages = _lowest_demand_outages(demand, step, limits)
     costs = sources.Costs(case)
     with runtime.settings(backend=ARRAY_BACKEND):
-        columns = _plan_columns(plant, demand, limits, outages, costs)
+        columns = _plan_columns(plant, demand, limits, outages, costs, _air_of(case))
         columns |= _air_columns(plant, case)
         return _frame(plant, demand, columns, outages, check_only)
 
@@ -545,7 +636,7 @@ def _air_columns(plant, case):
     }
 
 
-def _plan_columns(plant, demand, limits, outages, costs):
+def _plan_columns(plant, demand, limits, outages, costs, air=None):
     """Return the columns of the plan, computed on arrays over the steps."""
     heat, cool = _demand_columns(demand)
     index = to_utc_index(demand.index)
@@ -563,11 +654,11 @@ def _plan_columns(plant, demand, limits, outages, costs):
     consumer, _ = _single(plant, HeatingGrid)
     bypass = _bypass_splits(plant, consumer, _first_driven(plant), heat, generator)
     columns |= bypass
-    columns |= _heating_columns(plant, heat, heat if bypass else heat + generator)
+    columns |= _heating_columns(plant, heat, heat if bypass else heat + generator, air)
     heat_pump = fleet.heat_pumps(plant)[0]
     if heat_pump is not None:
         columns[f"{heat_pump}.is_running"] = ~stopped
-    columns |= _cooling_columns(plant, cool, taken)
+    columns |= _cooling_columns(plant, cool, taken, air)
     columns["boiler_duty"] = _boiler_duty(plant, takes, heat + generator, flows, limits)
     return columns
 

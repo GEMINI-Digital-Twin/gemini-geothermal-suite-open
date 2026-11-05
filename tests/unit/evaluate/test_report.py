@@ -33,6 +33,12 @@ KEYS = {
     "failed_steps",
     "failures",
     "services",
+    "annualised_cost",
+    "heating_coverage",
+    "cooling_coverage",
+    "cop",
+    "peak_heat",
+    "peak_cold",
 }
 
 
@@ -375,3 +381,15 @@ def test_comparison_to_dict_shows_display_units_or_the_metrics_given():
     assert found.to_dict(units="si") == found.to_dict()
     with raises(gm.errors.ValidationError, "invalid_value"):
         found.to_dict(units="field")
+
+
+def test_reports_rank_by_a_coverage_the_study_offers():
+    """Every metric of gm.study.metrics is a key of the report, so compare ranks by it.
+
+    geomind QA-240: a sample study offered heating_coverage and failed in compare.
+    """
+    report = gm.evaluate.report(heating_plant(), case(), day())
+    assert {item["name"] for item in gm.study.metrics()} <= set(report)
+    assert report["heating_coverage"].value == pytest.approx(1.0)
+    found = gm.evaluate.compare([report, report], {"heating_coverage": "max"})
+    assert len(found) == 2

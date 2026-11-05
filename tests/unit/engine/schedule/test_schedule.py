@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 import gemini as gm
-from gemini.engine.schedule.schedule import _doublets_above
+from gemini.engine.schedule.schedule import _doublets_above, _return_flow, _through_pipes
 from gemini.physics import constants
 from gemini.runtime import settings
 from gemini.units import Quantity
@@ -706,3 +706,38 @@ def test_a_plant_with_a_storage_module_has_the_schedule_of_the_plant_without():
         plant.connect(f"tank.{port}", port)
     plant.set_params("tank", STORAGE)
     assert list(gm.schedule(plant, case).columns) == list(plain.columns)
+
+
+class _Grid:
+    """A grid stand-in with a water fluid and a return temperature."""
+
+    def __init__(self, returned):
+        self.fluid = gm.Fluid(density=Quantity(1000.0, "kg/m3"), viscosity=Quantity(1e-3, "Pa.s"))
+        self.return_temperature = returned
+
+
+@pytest.mark.parametrize(
+    ("supply", "returned", "air"),
+    [(363.15, 323.15, 278.15), (293.15, 298.15, 263.15), (293.15, 298.15, 303.15)],
+)
+def test_the_flow_makes_up_for_what_the_supply_pipes_lose_or_gain(supply, returned, air):
+    """The grid gets its demand after the supply pipe, heating or cooling (geomind QA-225)."""
+    heat = np.array([0.0, 4.5e6, 30e6])
+    grid = _Grid(returned)
+    cp = grid.fluid.properties(0, 0).cp_l
+    conductance = np.pi * 0.4 * 1000.0 * 1.0
+    flow = _return_flow("grid", grid, heat, supply, conductance, np.full(3, air))["grid.flow"]
+    reached = air + (supply - air) * np.exp(-conductance / np.maximum(flow * cp, 1e-30))
+    np.testing.assert_allclose(flow[1:] * cp * abs(reached[1:] - returned), heat[1:], rtol=1e-9)
+    assert flow[0] == 0.0
+    plain = _return_flow("grid", grid, heat, supply)["grid.flow"]
+    np.testing.assert_array_equal(
+        _return_flow("grid", grid, heat, supply, 0.0, air)["grid.flow"], plain
+    )
+
+
+def test_a_pipe_that_takes_the_water_past_the_return_keeps_the_plain_flow():
+    """No flow gives the heat when the pipe cools the supply to the return: the plan stays."""
+    heat, plain = np.array([1e3]), np.array([1e-3])
+    found = _through_pipes(plain, heat, 4180.0, 330.0, 329.9, 1e6, np.array([280.0]))
+    np.testing.assert_array_equal(found, plain)

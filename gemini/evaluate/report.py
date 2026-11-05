@@ -20,9 +20,9 @@ from gemini.evaluate._utils.display import (
 from gemini.evaluate._utils.ratings import rating_of
 from gemini.evaluate._utils.series import energy
 from gemini.evaluate._utils.tally import tally
-from gemini.evaluate.costs import capex, lcoc, lcoh, lcts, opex
+from gemini.evaluate.costs import annualised_cost, capex, lcoc, lcoh, lcts, opex
 from gemini.evaluate.emissions import co2
-from gemini.evaluate.summary import capacities, totals
+from gemini.evaluate.summary import KPI_NAMES, capacities, totals
 from gemini.evaluate.verdict import failures, judged, requirements
 from gemini.units import Quantity, si_unit
 from gemini.units.display import by_si_unit
@@ -94,7 +94,10 @@ def report(plant, case, results):
         else ``None``), ``verdict`` (``gm.evaluate.verdict``, the one answer ``compare`` reads),
         ``failed_steps`` (the number of steps that failed), ``failures`` (the failed
         and skipped rows grouped by module path and code, see ``failures``; empty when nothing
-        failed) and ``services`` (the services the case asks for, ``"heating"`` and ``"cooling"``).
+        failed), ``services`` (the services the case asks for, ``"heating"`` and ``"cooling"``),
+        ``annualised_cost`` (a value) and the KPIs of ``totals`` (``heating_coverage``,
+        ``cooling_coverage``, ``cop``, ``peak_heat``, ``peak_cold``), so that ``compare`` and a
+        study rank by every metric ``gm.study.metrics`` offers (geomind QA-240).
         ``to_dict(units=None)`` gives plain JSON in display units.
     """
     sited = apply_case(plant, case)
@@ -119,6 +122,8 @@ def report(plant, case, results):
         failed_steps=len(results.errors()),
         failures=failures(results),
         services=_services(case),
+        annualised_cost=annualised_cost(sited, case, results, on_error="record"),
+        **{name: edge[name] for name in KPI_NAMES},
     )
 
 

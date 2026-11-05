@@ -6,7 +6,7 @@ import pandas as pd
 from gemini.evaluate._utils.columns import series
 from gemini.evaluate._utils.series import leaf_total, useful_cold, useful_heat
 from gemini.modules.grids import CoolingGrid, HeatingGrid
-from gemini.modules.heating import ElectricBoiler
+from gemini.modules.heating import ElectricBoiler, HeatPump
 from gemini.plants.roles import delivery_ports, units_of
 from gemini.units.display import by_si_unit, shown
 from gemini.units.shapes import measure
@@ -18,8 +18,10 @@ TOLERANCE = 1e-6
 
 BACKUP_ROLES = {"heating": ("boiler", "chp"), "cooling": ()}
 """The roles of ``gm.plants.roles()`` whose units are the backup of a service; the rest of what
-the service received is the geothermal plant's. No role is a backup of cooling. An
-``ElectricBoiler`` (no role: it burns no fuel) is a backup of heating too, found by its class."""
+the service received is the geothermal plant's. No role is a backup of cooling as a whole. An
+``ElectricBoiler`` (no role: it burns no fuel) is a backup of heating too, found by its class,
+and a compression chiller (a ``HeatPump`` of the role ``chiller``, driven by electricity) is a
+backup of cooling (geomind QA-238); an absorption or adsorption chiller stays geothermal."""
 
 KEYS = ("demand", "geothermal", "backup", "short")
 """The energies of a day, in the display unit of energy."""
@@ -55,6 +57,14 @@ def _backup_power(plant, frame, service):
         for path, module in plant.named_modules():
             if isinstance(module, ElectricBoiler):
                 total += _delivered(plant, frame, path, *ELECTRIC_PORTS)
+    if service == "cooling":
+        for path in units_of(plant, "chiller"):
+            module = plant.get_submodule(path)
+            if isinstance(module, HeatPump):
+                first, second = (
+                    f"{port}.enthalpy_flow" for port in delivery_ports(module, "chiller")
+                )
+                total += _delivered(plant, frame, path, first, second)
     return total
 
 
@@ -148,8 +158,9 @@ def daily_coverage(plant, case, results):
         energy (``gm.units.display.DISPLAY_UNITS``, MWh) and ``failed_steps`` a count (unit
         ``-``). ``date`` is ``YYYY-MM-DD``; ``demand`` is the heat (or cold) the
         consumers asked for, which is ``geothermal + backup + short``; ``backup`` is the part
-        given by the units whose role is ``boiler`` or ``chp`` (heating only; no role is a backup
-        of cooling), ``geothermal`` the rest of what was delivered and ``short`` the unmet demand.
+        given by the units whose role is ``boiler`` or ``chp`` and by an electric boiler (heating),
+        or by a compression chiller (cooling), ``geothermal`` the rest of what was delivered
+        and ``short`` the unmet demand.
         ``failed_steps`` is the number of ticks of the day that failed, were skipped, or show no
         demand; they add no energy, as in ``gm.evaluate.totals``, but a day with one is ``short``.
         ``source`` is the one the day is drawn with: ``short`` when a step failed or the unmet

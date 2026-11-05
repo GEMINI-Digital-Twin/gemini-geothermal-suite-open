@@ -21,7 +21,7 @@ def plant_of_boiler():
     return plant
 
 
-def run(boiler, unmet, failed=(), cold=1000.0):
+def run(boiler, unmet, failed=(), cold=1000.0, extra=None):
     """Return three days: 5 kW delivered, ``unmet`` W short and ``boiler`` W from the boiler.
 
     ``boiler`` and ``unmet`` are functions of the hour; ``failed`` lists hours with no value.
@@ -40,7 +40,7 @@ def run(boiler, unmet, failed=(), cold=1000.0):
         },
     }
     errors = [(hour, problem("boiler", "out_of_range", "no")) for hour in failed]
-    return make_results(columns, errors=errors)
+    return make_results(columns | (extra or {}), errors=errors)
 
 
 def by_hour(values):
@@ -122,3 +122,26 @@ def test_an_electric_boiler_s_heat_is_backup():
     assert first["source"] == "backup"
     assert first["backup"].value == pytest.approx(24 * 2000 / 1e6)
     assert first["geothermal"].value == pytest.approx(24 * 3000 / 1e6)
+
+
+def test_a_compression_chiller_s_cold_is_backup():
+    """A HeatPump that chills the cooling grid runs on electricity: its cold is not geothermal.
+
+    geomind QA-238: the days covered showed cooling 100 % geothermal while the compression chiller
+    delivered up to 4.1 MW.
+    """
+    plant = plant_of_boiler()
+    plant.add("HeatPump", "chiller")
+    plant.connect("chiller.source_out", "cool.supply_in")
+    chiller = {
+        "chiller": {
+            "operating": [1.0] * HOURS,
+            "source_in.enthalpy_flow": [1e6 + 400.0] * HOURS,
+            "source_out.enthalpy_flow": [1e6] * HOURS,
+        }
+    }
+    results = run(by_hour([0.0] * 3), by_hour([0.0] * 3), extra=chiller)
+    found = gm.evaluate.daily_coverage(plant, None, results)["cooling"][0]
+    assert found["source"] == "short"
+    assert found["backup"].value == pytest.approx(24 * 400 / 1e6)
+    assert found["geothermal"].value == pytest.approx(24 * 600 / 1e6)
