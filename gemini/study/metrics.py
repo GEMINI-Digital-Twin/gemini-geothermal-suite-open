@@ -19,10 +19,17 @@ _WORDS = {
         "The cold delivered over the cold demanded in the period, between 0 and 1.",
     ),
     "cop": (
-        "Coefficient of performance",
+        "Heat per bought electricity",
         "-",
         "higher",
-        "The heat delivered over the electricity consumed in the period.",
+        "The heat delivered over the electricity the plant bought in the period: a plant ratio, "
+        "not the coefficient of performance of a machine (heat_pump_cop is the heat pumps').",
+    ),
+    "heat_pump_cop": (
+        "Heat pump COP",
+        "-",
+        "higher",
+        "The heat the heating heat pumps gave over the electricity they took in the period.",
     ),
     "peak_heat": (
         "Peak heat demand",

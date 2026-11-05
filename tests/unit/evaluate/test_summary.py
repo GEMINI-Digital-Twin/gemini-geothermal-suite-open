@@ -40,8 +40,15 @@ def results():
 
 
 def test_names_are_fixed():
-    """The five required names come in the documented order."""
-    assert KPI_NAMES == ("heating_coverage", "cooling_coverage", "cop", "peak_heat", "peak_cold")
+    """The six names come in the documented order; ``heat_pump_cop`` came after ``cop`` (QA-322)."""
+    assert KPI_NAMES == (
+        "heating_coverage",
+        "cooling_coverage",
+        "cop",
+        "heat_pump_cop",
+        "peak_heat",
+        "peak_cold",
+    )
 
 
 def test_values_equal_the_hand_computed_ratios(plant, results):
@@ -248,3 +255,28 @@ def test_a_heat_pump_is_read_on_the_side_its_mode_makes_useful():
     )
     found = gm.evaluate.capacities(plant, make_case(count=2), run)["pump"]
     assert found["kind"] == "heat_pump" and found["share"].value == pytest.approx(0.6)
+
+
+def test_the_heat_pump_cop_is_the_heat_pumps_heat_over_their_work():
+    """QA-322: ``cop`` is the plant's heat per bought electricity; this is the machines' own."""
+    plant = gm.Plant()
+    plant.add("HeatingGrid", "heat")
+    plant.add("HeatPump", "pump")
+    plant.connect("pump.sink_out", "heat.supply_in")
+    hours = 3
+    columns = {
+        "heat": heat_ports([4000.0] * hours) | {"unmet_demand": [0.0] * hours},
+        "pump": {
+            "operating": [1.0] * hours,
+            "power_in": [1000.0] * hours,
+            "sink_in.enthalpy_flow": [1e6] * hours,
+            "sink_out.enthalpy_flow": [1e6 + 4000.0] * hours,
+        },
+    }
+    totals = gm.evaluate.totals(plant, None, make_results(columns))
+    assert totals["heat_pump_cop"].value == pytest.approx(4.0)
+    alone = gm.Plant()
+    alone.add("HeatingGrid", "heat")
+    none = gm.evaluate.totals(alone, None, make_results({"heat": columns["heat"]}))
+    assert none["heat_pump_cop"].value is None
+    assert none["heat_pump_cop"].reason == "the plant has no heat pump that heats"

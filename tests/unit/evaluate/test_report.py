@@ -37,6 +37,7 @@ KEYS = {
     "heating_coverage",
     "cooling_coverage",
     "cop",
+    "heat_pump_cop",
     "peak_heat",
     "peak_cold",
 }

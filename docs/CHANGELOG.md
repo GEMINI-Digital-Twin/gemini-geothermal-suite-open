@@ -12,6 +12,28 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.31] - 2026-11-05
+
+### Added
+- `heat_pump_cop` among the KPIs of `gm.evaluate.totals`, `report` and the study metrics: the
+  heat the heating heat pumps give over the electricity they take (geomind QA-322: `cop`,
+  shown as "Cop 18.86", read as an impossible heat pump COP).
+- Each day of `gm.evaluate.daily_coverage` has `no_demand` (true when the consumers asked for
+  nothing and no step failed, so the day is neither the plant nor the backup) and `labels`
+  `{main, other}`, the names of what `geothermal` and `backup` are in the plant (cooling:
+  `Absorption chiller (geothermal)`, `Electric chiller`, `Peak boiler (chiller drive)`), so a
+  compression chiller is not shown as a backup gemini does not have (QA-322).
+
+### Changed
+- The study metric `cop` keeps its key and value; its title is "Heat per bought electricity",
+  a plant ratio, not a machine's COP.
+
+### Fixed
+- `gm.study.size` rates each air `Cooler` for the peak heat it rejects in one run of the sized
+  plant, instead of keeping the plant file's capacity (the range maximum); HeatingCoolingPlant
+  on the hackathon case: coolers 40/10/20 MW → 8.1/9.4/3.6 MW, capex −4.9 MEUR, LCTS
+  50.27 → 46.99 EUR/MWh (geomind QA-324).
+
 ## [0.6.30] - 2026-11-05
 
 ### Fixed

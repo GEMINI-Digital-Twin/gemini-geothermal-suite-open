@@ -185,3 +185,18 @@ def test_a_backup_that_heats_the_water_of_users_and_chiller_is_shared_over_both(
     assert heating["backup"].value == pytest.approx(24 * 1000 / 1e6)
     assert heating["geothermal"].value == pytest.approx(24 * 4000 / 1e6)
     assert cooling["backup"].value == pytest.approx(24 * 200 / 1e6)
+
+
+def test_each_day_names_its_sources_from_the_plant_and_flags_a_day_with_no_demand():
+    """QA-322: the electric chiller's cold read as backup, and days with no cooling as plant."""
+    plant = plant_of_boiler()
+    plant.add("HeatPump", "chiller")
+    plant.connect("chiller.source_out", "cool.supply_in")
+    idle = {"unmet_sensible": [0.0] * HOURS, "unmet_latent": [0.0] * HOURS}
+    extra = {"cool": cold_ports([0.0] * HOURS) | idle}
+    results = run(by_hour([0.0] * 3), by_hour([0.0] * 3), extra=extra)
+    found = gm.evaluate.daily_coverage(plant, None, results)
+    heating, cooling = found["heating"][0], found["cooling"][0]
+    assert heating["labels"] == {"main": "Geothermal", "other": "Peak boiler"}
+    assert cooling["labels"] == {"main": "Geothermal", "other": "Electric chiller"}
+    assert cooling["no_demand"] is True and heating["no_demand"] is False

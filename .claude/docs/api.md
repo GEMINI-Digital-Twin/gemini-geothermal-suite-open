@@ -944,6 +944,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.6.31 | 2026-11-05 | **Addition, no break** (geomind QA-322). The KPI `heat_pump_cop` (the heating heat pumps' heat over their electricity) beside `cop`, whose key and value stay and whose metric title is "Heat per bought electricity"; each day of `gm.evaluate.daily_coverage` adds `no_demand` and `labels` `{main, other}`, the names of what `geothermal` and `backup` are in the plant. |
 | 0.6.28 | 2026-11-05 | **Fix, no break.** The ESP keeps its negative-curve cache outside the module state, so a call leaves the module unchanged; the case schema states the units a fraction takes (`-`, `%`, and for a gas fraction `mol%`, `ppm`, `Nm3/m3`); no name removed. |
 | 0.6.27 | 2026-11-05 | **Addition, no break.** The API snapshot moves from 0.6.4 to 0.6.27: `gm.study.sample(..., percentiles=)` (QA-299) and the study file key `percentiles` (a list of numbers 0-100), and `gm.study.structure_plant`; no name removed. |
 | 0.6.4 | 2026-11-04 | **Fix, no break.** `H2S` is a gas species of `gemini.physics.gas.SPECIES` (34.081 g/mol, LHV 518.07 kJ/mol, no carbon), the one list `site.fluid.dissolved_gas` and `utilities.gas.composition` take theirs from: a case with `dissolved_gas.H2S` now builds and simulates instead of failing late. Every number of `examples/hackathon.py` is the same. |

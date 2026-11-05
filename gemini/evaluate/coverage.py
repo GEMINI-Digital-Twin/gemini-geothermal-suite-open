@@ -192,7 +192,37 @@ def _source(day):
     return "backup" if day["backup"] > margin else "geothermal"
 
 
-def _per_day(table, failed):
+BACKUP_NAMES = {"boiler": "Peak boiler", "chp": "CHP"}
+"""The name a day's ``labels`` give the units of each backup role of heating."""
+
+
+def _labels(plant, service):
+    """Return ``{main, other}``: what the ``geothermal`` and the ``backup`` of a day are (QA-322).
+
+    Named from the plant's units: heating ``Geothermal`` and its peak units; cooling the
+    heat-driven chillers (``Absorption chiller (geothermal)``), and in ``other`` the compression
+    chillers (``Electric chiller``) and the peak units' share of the chillers' drive heat, which
+    the ``backup`` of cooling counts. ``other`` is ``None`` for a plant with no such unit.
+    """
+    heating = [BACKUP_NAMES[role] for role in BACKUP_ROLES["heating"] if units_of(plant, role)]
+    if any(isinstance(module, ElectricBoiler) for _, module in plant.named_modules()):
+        heating.append("Electric boiler")
+    if service == "heating":
+        return {"main": "Geothermal", "other": " and ".join(heating) or None}
+    driven = [plant.get_submodule(path) for path in _heat_driven(plant)]
+    main = [
+        f"{name} chiller (geothermal)"
+        for cls, name in ((AdsorptionChiller, "Adsorption"), (AbsorptionUnit, "Absorption"))
+        if any(isinstance(module, cls) for module in driven)
+    ]
+    other = ["Electric chiller"] if any(
+        isinstance(plant.get_submodule(path), HeatPump) for path in units_of(plant, "chiller")
+    ) else []
+    other += [f"{name} (chiller drive)" for name in heating] if driven else []
+    return {"main": " and ".join(main) or "Geothermal", "other": " and ".join(other) or None}
+
+
+def _per_day(table, failed, labels):
     """Return the days of ``table`` summed, with their failed ticks, as rows in display units."""
     days = table.groupby(_days(table.index)).sum()
     counts = pd.Series(1, index=_days(failed)).groupby(level=0).sum()
@@ -202,6 +232,7 @@ def _per_day(table, failed):
     for date, day in days.sort_index().iterrows():
         row = {"date": date, "source": _source(day)}
         row |= {key: measure(float(day[key]), "J") for key in KEYS}
+        row |= {"no_demand": bool(not day["failed_steps"] and day["demand"] <= 0), "labels": labels}
         rows.append(row | {"failed_steps": measure(int(day["failed_steps"]), "-")})
     return shown(rows, by_si_unit())
 
@@ -226,7 +257,8 @@ def daily_coverage(plant, case, results):
     -------
     dict
         ``{service: [day, ...]}`` for ``"heating"`` and ``"cooling"``, the days in time order,
-        each ``{date, source, demand, geothermal, electricity, backup, short, failed_steps}``;
+        each ``{date, source, demand, geothermal, electricity, backup, short, failed_steps,
+        no_demand, labels}``;
         ``to_plain``
         gives the JSON. The energies are ``gm.units.Quantity`` values in the display unit of
         energy (``gm.units.display.DISPLAY_UNITS``, MWh) and ``failed_steps`` a count (unit
@@ -242,7 +274,11 @@ def daily_coverage(plant, case, results):
         demand; they add no energy, as in ``gm.evaluate.totals``, but a day with one is ``short``.
         ``source`` is the one the day is drawn with: ``short`` when a step failed or the unmet
         demand is above a millionth of the day's demand, else ``backup`` when the backup gave more
-        than that, else ``geothermal``.
+        than that, else ``geothermal``. ``no_demand`` is true for a day whose consumers asked
+        for nothing (and no step failed): it is drawn as neither the plant nor the backup.
+        ``labels`` ``{main, other}`` name what ``geothermal`` and ``backup`` are in this plant,
+        from its units (heating ``Geothermal`` and ``Peak boiler``; cooling ``Absorption chiller
+        (geothermal)`` and ``Electric chiller``), ``other`` ``None`` when the plant has none.
 
         The sum of ``geothermal + electricity + backup`` over the days is the
         ``heat_useful`` (``cold_useful``) of ``gm.evaluate.totals``, and over ``demand`` it gives
@@ -258,5 +294,5 @@ def daily_coverage(plant, case, results):
             continue
         table, unknown = _energies(plant, frame, seconds, service, useful, unmet)
         failed = unknown.union(stamps).unique()
-        covered[service] = _per_day(table, failed)
+        covered[service] = _per_day(table, failed, _labels(plant, service))
     return covered

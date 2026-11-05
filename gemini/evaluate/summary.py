@@ -22,6 +22,7 @@ from gemini.evaluate._utils.series import (
 )
 from gemini.modules.environment import Atmosphere, Formation
 from gemini.modules.grids import ChemicalGrid, CoolingGrid, ElectricityGrid, HeatingGrid, WasteGrid
+from gemini.plants.roles import delivery_ports, units_of
 from gemini.units.shapes import measure
 
 __all__ = ["KPI_NAMES", "totals"]
@@ -37,6 +38,8 @@ class _Series:
     cold: Any
     cold_unmet: Any
     electricity: Any
+    pump_heat: Any = None
+    pump_work: Any = None
 
 
 def _read(plant, results):
@@ -51,7 +54,26 @@ def _read(plant, results):
         cold=useful_cold(plant, frame),
         cold_unmet=None if sensible is None or latent is None else sensible + latent,
         electricity=leaf_total(plant, frame, "power_out", ElectricityGrid),
+        **_heat_pumps(plant, frame),
     )
+
+
+def _heat_pumps(plant, frame):
+    """Return ``{pump_heat, pump_work}``: the heat [W] the heating heat pumps give and their work.
+
+    Each is the sum over the units of the role ``heat_pump`` whose run holds the columns, or
+    ``None`` when there is none.
+    """
+    heat, work = [], []
+    for path in units_of(plant, "heat_pump"):
+        ports = delivery_ports(plant.get_submodule(path), "heat_pump") or ()
+        names = [f"{path}.{port}.enthalpy_flow" for port in ports] + [f"{path}.power_in"]
+        if len(names) == 3 and all(name in frame for name in names):
+            heat.append(frame[names[0]] - frame[names[1]])
+            work.append(frame[names[2]])
+    if not heat:
+        return {"pump_heat": None, "pump_work": None}
+    return {"pump_heat": sum(heat), "pump_work": sum(work)}
 
 
 def _coverage(series, delivered, unmet, consumer):
@@ -76,6 +98,21 @@ def _peak(series, delivered, consumer):
     return float(delivered.max()), None
 
 
+def _heat_pump_cop(series):
+    """Return the heat the heating heat pumps gave over the electricity they took (QA-322).
+
+    ``cop`` is the plant's heat over all the electricity it bought, which reads as no machine's
+    COP (18.9 for a plant whose heat is mostly geothermal); this is the heat pumps' own.
+    """
+    if series.pump_heat is None:
+        return None, "the plant has no heat pump that heats"
+    known = series.pump_heat.notna() & series.pump_work.notna()
+    work = energy(series.pump_work.where(known), series.seconds)
+    if work <= 0:
+        return None, "the heat pumps took no electricity over the window"
+    return energy(series.pump_heat.where(known), series.seconds) / work, None
+
+
 def _cop(series):
     if series.heat is None:
         return None, "the plant has no HeatingGrid"
@@ -97,6 +134,7 @@ _KPIS = {
         partial(_coverage, delivered="cold", unmet="cold_unmet", consumer="CoolingGrid"),
     ),
     "cop": ("-", _cop),
+    "heat_pump_cop": ("-", _heat_pump_cop),
     "peak_heat": ("W", partial(_peak, delivered="heat", consumer="HeatingGrid")),
     "peak_cold": ("W", partial(_peak, delivered="cold", consumer="CoolingGrid")),
 }
