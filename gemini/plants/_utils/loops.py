@@ -109,6 +109,26 @@ def _entering(run, step):
     return [value for value in arguments if isinstance(value, Stream)]
 
 
+def _closing_hint(loop):
+    """Return the modules of a loop that close it once set, such as a cooler's offered outlet.
+
+    A cooler offers its ``fluid_out`` on a closed loop only with ``loop_pressure`` and ``flow``;
+    without them the loop has no start (QA-148). Each such outlet is named with its module.
+    """
+    found = [
+        join_path(step.path, name)
+        for step in loop.steps
+        for name, outlet in step.module.outlets().items()
+        if outlet.offered and not step.module._offers()
+    ]
+    if not found:
+        return ""
+    return (
+        f", or a module that offers its outlet on a closed loop: {', '.join(found)} offers once "
+        "its loop values are set (a Cooler: loop_pressure and flow)"
+    )
+
+
 def _start(run, loop, tear, lower, upper):
     """Return the first guess of a tear stream: no flow, at what its source module expects.
 
@@ -124,7 +144,7 @@ def _start(run, loop, tear, lower, upper):
         name = join_path(*tear.source)
         raise ValidationError(
             f"{run.plant.path}: tear stream {name} has no first guess; expected a module of the "
-            "loop that gives one",
+            f"loop that gives one{_closing_hint(loop)}",
             path=name,
             code="invalid_design",
         )

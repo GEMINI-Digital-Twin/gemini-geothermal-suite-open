@@ -12,6 +12,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.17] - 2026-11-05
+
+### Fixed
+- A plant file whose `inlets` or `outlets` entry is not a port name (such as a stream state)
+  no longer raises `TypeError: unhashable type` in the reader (geomind QA-148).
+- A tear stream with no first guess names the modules of the loop that would offer their
+  outlet once set (a Cooler: `loop_pressure` and `flow`), so a closed chiller condenser loop
+  says what it lacks (geomind QA-148).
+- A module call whose inlet or outlet value is invalid says `inlet 'X': <the error>`; it no
+  longer says "invalid inlet" and lists the valid names when the name is valid (geomind QA-149).
+
 ## [0.6.16] - 2026-11-05
 
 ### Fixed

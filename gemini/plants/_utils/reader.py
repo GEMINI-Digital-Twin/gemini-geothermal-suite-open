@@ -186,8 +186,9 @@ def _ends(data):
     connections = [item for item in data.get("connections", []) if isinstance(item, dict)]
     ends = {item.get(end) for item in connections for end in ("source", "target")}
     for side in ("inlets", "outlets"):
-        for named in data.get(side, {}).values():
-            ends |= set(named) if isinstance(named, list) else {named}
+        for named in (data.get(side) or {}).values():
+            names = named if isinstance(named, list) else [named]
+            ends |= {name for name in names if isinstance(name, str)}
     return ends
 
 

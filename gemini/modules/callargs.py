@@ -169,10 +169,7 @@ class CallArguments:
             try:
                 validated.append((name, declaration.validate(value)))
             except (TypeError, ValueError, PhysicsError) as exc:
-                raise error(
-                    f"{self.path}: invalid {kind} {name!r}; "
-                    f"valid names: {join_names(declarations)}: {exc}"
-                ) from exc
+                raise error(f"{self.path}: {kind} {name!r}: {exc}") from exc
         return Ports(validated, path=self.path)
 
     def _check_outlet_names(self, returned):

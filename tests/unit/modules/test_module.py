@@ -134,7 +134,7 @@ def test_a_wrong_call_names_the_inlets():
     with raises(
         gm.errors.ValidationError,
         "invalid_call",
-        match="pass_through.*invalid inlet 'fluid_in'.*valid names: fluid_in",
+        match="pass_through.*: inlet 'fluid_in': ",
     ):
         module(fluid_in=1)
     with raises(
@@ -174,7 +174,7 @@ def test_outlet_dict_names_and_flow_types_are_checked(monkeypatch):
         module(fluid_in=stream)
     monkeypatch.setattr(module, "forward", lambda inputs, inlets, state: ({}, {"fluid_out": 1}))
     with pytest.raises(
-        gm.errors.DefinitionError, match="pass_through.*invalid outlet 'fluid_out'.*valid names"
+        gm.errors.DefinitionError, match="pass_through.*: outlet 'fluid_out': "
     ):
         module(fluid_in=stream)
 
