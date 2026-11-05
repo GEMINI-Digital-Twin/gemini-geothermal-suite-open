@@ -62,9 +62,11 @@ python agent.py --interactive --session ask   # agent may ask you questions
 | A: 2 doublets 2,500 m, preheat + heat pump, gas engine | 11.0% | 13.7 GWh | 12.8 kt | -51% |
 | B: 3 doublets 2,500 m, preheat + heat pump, gas engine | 0.0% | 12.3 GWh | 11.1 kt | -57% |
 | E: 3 doublets 3,400 m, direct heating, gas engine | 0.0% | 0.0 GWh | 5.7 kt | -78% |
+| **E2 (recommended): 3 doublets 3,400 m, direct heating, gas engine, electric chiller, outages from day 80/160/240** | 0.0% | 3.9 GWh | 5.5 kt | -79% |
 | F: 3 doublets 3,400 m, direct heating, gas reinjected | 0.1% | 5.3 GWh | 1.6 kt | -94% |
 
 Reference: all heat from a gas boiler, all cooling from an electric chiller = 25.9 kt CO2/yr.
+Recommended design: E2. An absorption chiller needs more brine flow, which brings up more associated gas and CO2, so the electric chiller is cleaner unless the gas is reinjected.
 
 ## Key assumptions (ours)
 
