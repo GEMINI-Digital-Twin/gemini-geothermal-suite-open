@@ -132,6 +132,15 @@ class PortResolver:
 
     def _locate(self, value, field, explicit):
         path, port = self._from_handle(value, field)
+        if not path:
+            paths = [item for item, _ in members(self)]
+            raise ValidationError(
+                f"{value!r}: expected '<module>.<port>' of a module of the plant, such as "
+                f"'{paths[0] + '.' if paths else ''}<port>'; a bare name is no port",
+                path=field,
+                code="invalid_connection",
+                suggestions=close_matches(str(value), paths),
+            )
         module = self._find_submodule(path)
         if module is None:
             paths = [item for item, _ in members(self)]
