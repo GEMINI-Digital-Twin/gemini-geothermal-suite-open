@@ -42,6 +42,22 @@ def _float32():
     return runtime.get_precision() == "float32"
 
 
+
+CURVE_STEPS = 200
+"""The flows from zero to ``maximum_flow`` the curves are read at to name where they are negative."""
+
+
+def _below_zero(flows, values):
+    """Return ``[(first, last), ...]``: the runs of ``flows`` where ``values`` are below zero."""
+    ranges, start = [], None
+    for index, (flow, value) in enumerate(zip(flows, values, strict=True)):
+        if value < 0 and start is None:
+            start = flow
+        if start is not None and (value >= 0 or index == len(flows) - 1):
+            ranges.append((float(start), float(flows[index - 1] if value >= 0 else flow)))
+            start = None
+    return ranges
+
 class ESP(Module):
     """Electrical submersible pump installed inside a production well."""
 
@@ -253,9 +269,10 @@ class ESP(Module):
             "{path}: flow = {flow} m3/s gives head = {head} Pa and power = {power} W; expected "
             "flow at most {largest} m3/s (maximum_flow at this speed) and head and power at "
             "least 0, the range the curves are valid for; intake pressure = {intake} Pa and gas "
-            "volume fraction = {gas}",
+            "volume fraction = {gas}{curves}",
             code="out_of_range",
             path=self.path,
+            curves=self._negative_curves(),
             flow=flow,
             head=head,
             power=power,
@@ -263,6 +280,40 @@ class ESP(Module):
             intake=intake,
             gas=gas,
         )
+
+    def _negative_curves(self):
+        """Return where the head or power curve is below zero, from 0 to ``maximum_flow``, as text.
+
+        Named in the ``out_of_range`` message, so the row says where the curves are valid, not one
+        flow (geomind request 35). The sign of the polynomials does not depend on the speed, so
+        they are read at the reference frequency on ``CURVE_STEPS`` flows, once per set of
+        curves; a pump whose curves cannot be read (unset, or in a trace) gives no text.
+        """
+        try:
+            key = (
+                float(self.maximum_flow),
+                int(self.stage_count),
+                tuple(np.ravel(self.head_coefficients).tolist()),
+                tuple(np.ravel(self.power_coefficients).tolist()),
+            )
+        except Exception:  # an unset or traced parameter: the message stays as it is
+            return ""
+        cached = self.__dict__.get("_negative_curves_cache")
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        largest = key[0]
+        flows = np.linspace(0.0, largest, CURVE_STEPS + 1)
+        frequency = float(constants.ESP_REFERENCE_FREQUENCY)
+        parts = []
+        for name, curve in (("head", self.head_function), ("power", self.power_function)):
+            values = np.asarray(curve(flows, frequency), dtype=float)
+            ranges = _below_zero(flows, values)
+            if ranges:
+                said = ", ".join(f"{low:.4g} to {high:.4g}" for low, high in ranges)
+                parts.append(f"negative {name} at flows {said} m3/s")
+        text = f"; the curves give {' and '.join(parts)} (0 to {largest:.4g} m3/s)" if parts else ""
+        self.__dict__["_negative_curves_cache"] = (key, text)
+        return text
 
     def head_function(self, flow: float, frequency: float) -> float:
         """Return pump head [Pa] for flow [m3/s] and frequency [Hz]."""
