@@ -1,7 +1,6 @@
 """A case reads the daily demand of the hackathon with dates and a ``time_zone``."""
 
 import pandas as pd
-import pytest
 
 import gemini as gm
 from tests.fixtures.paths import EXAMPLES
@@ -29,10 +28,13 @@ def test_dates_in_utc_give_the_demand_of_the_sample():
     assert dated.to_dict()["demand"]["heating"]["power"]["time_zone"] == "UTC"
 
 
-def test_dates_in_a_zone_east_of_utc_start_the_hour_before():
-    """In ``Europe/Oslo`` the day 2027-01-01 starts at 23:00 UTC the day before.
+def test_daily_dates_in_a_zone_east_of_utc_are_matched_by_their_local_date():
+    """In ``Europe/Oslo`` each row of a daily series is one local calendar date (gemini 0.6.5).
 
-    The case runs in UTC from 2027-01-01, so the local days no longer cover its last hour.
+    Since request 37 (QA-039) a daily series read in a zone is matched to the case's days by
+    date, not by UTC instants, so a zone with summer time (days of 23 or 25 hours) still gives
+    each day its own row: the dated demand is the sample's, day by day.
     """
-    with pytest.raises(gm.errors.ValidationError, match="covers 2026-12-31T23:00:00"):
-        _dated("Europe/Oslo")
+    case, dated = _dated("Europe/Oslo")
+    expected = case.demand.frame
+    pd.testing.assert_frame_equal(dated.demand.frame, expected, check_exact=False)

@@ -70,7 +70,8 @@ PROBLEM_SCHEMA = {
     "title": "GEMINI problem",
     "description": (
         "Every error, validation result and failed run row: the shape of 422 details and agent "
-        "tool results. code is one of gm.errors.CODES or gm.errors.ROW_CODES; a run row adds time."
+        "tool results. code is one of gm.errors.CODES or gm.errors.ROW_CODES; a run row adds time; "
+        "a unit problem adds quantity and accepted, the units the value takes (gemini 0.6.5)."
     ),
     "type": "object",
     "required": ["path", "code", "message", "suggestions"],
@@ -81,6 +82,8 @@ PROBLEM_SCHEMA = {
         "message": {"type": "string"},
         "suggestions": {"type": "array", "items": {"type": "string"}},
         "time": {"type": "string"},
+        "quantity": {"type": "string"},
+        "accepted": {"type": "array", "items": {"type": "string"}},
     },
 }
 
