@@ -389,8 +389,18 @@ class Module(ModuleTree, ModuleValues, CallArguments, Stateful):
         parameter = self._parameters[name]
         if not parameter.initialized:
             root = self._root()
-            raise root._missing_error(root._missing_paths())
+            paths = root._missing_paths() or [self._own_path(root, name, parameter)]
+            raise root._missing_error(paths)
         return parameter.value
+
+    def _own_path(self, root, name, parameter):
+        """Return the dotted path of ``parameter`` from ``root``, for an error that names it.
+
+        A parameter a missing design value would derive is left out of ``_missing_paths``; when
+        that list is empty its own read names it, never an empty list (QA-254).
+        """
+        found = (path for path, value in root.named_parameters() if value is parameter)
+        return next(found, name)
 
     def _input_value(self, name):
         call = active_call(self)

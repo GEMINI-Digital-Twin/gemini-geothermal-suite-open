@@ -12,6 +12,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.19] - 2026-11-05
+
+### Fixed
+- QA-254: reading an unset parameter that no missing path lists (a value a missing design value
+  would derive) raised an IndexError; the error now names that parameter.
+
 ## [0.6.18] - 2026-11-05
 
 ### Fixed
