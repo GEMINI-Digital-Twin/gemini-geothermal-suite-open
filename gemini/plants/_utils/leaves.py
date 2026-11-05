@@ -250,14 +250,15 @@ def _located(plant, path):
     """Return ``(declaration or None, choices)`` of a search path, or raise ``unknown_name``."""
     if path.startswith("size."):
         name = path[len("size.") :]
-        if name in plant._size:
+        if name in plant._size or (name == "doublets" and _free_count(plant) is not None):
             return None, plant.size_choices.get(name)
     else:
         found = declaration_of(plant, path)
         if found is not None:
             choices = description._enum(found)
             return found, tuple(choices) if choices else None
-    names = [f"size.{name}" for name in plant._size] + [
+    sizes = [*plant._size, *(["doublets"] if _free_count(plant) is not None else [])]
+    names = [f"size.{name}" for name in sizes] + [
         file_path(name) for name, _ in plant.named_parameters()
     ]
     raise ValidationError(
@@ -333,3 +334,11 @@ def set_options(plant, path, options):
     found = inputs.from_options(list(options), f"{path}.options", choices, issues)
     raise_issues(issues)
     _store(plant, path, plant._search.get(path), options=found)
+
+
+def _free_count(plant):
+    """Return the doublet count a plant without a class can vary, else ``None`` (``resize``)."""
+    from gemini.plants._utils.resize import free_doublets
+    from gemini.plants.plant import Plant
+
+    return free_doublets(plant) if type(plant) is Plant else None

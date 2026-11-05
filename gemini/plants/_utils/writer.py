@@ -124,6 +124,9 @@ def structure_dict(plant):
         data["outputs"] = deepcopy(plant._output_entries)
     if plant._constraints:
         data["constraints"] = [item.as_dict() for item in plant._constraints]
+    if "size.doublets" in plant._search and not plant._size:
+        # A plant without a class with a range on its doublet count (``resize.free_doublets``)
+        data["size"] = {"doublets": 1}
     plant._baselines[""] = tree_params(plant._fresh())
     own = {name: v for name, v in params_entry(plant, "", plant).items() if "." not in name}
     if own:
