@@ -171,6 +171,11 @@ def _kpis(daily, cfg, econ, offline, spacing):
     k["heat_share_no_purchased_fuel"] = (k["heat_direct_gwh"] + k["heat_hp_gwh"]
                                          + k["heat_chp_gwh"]) / heat_total
     k["geothermal_cool_share"] = k["cool_sorption_gwh"] / k["cool_demand_gwh"]
+    # CO2 (P7), kt/yr: GWh x kg/kWh = kt. Net electricity < 0 (CHP export) counts as avoided.
+    k["co2_grid_kt"] = k["net_electricity_gwh"] * cfg.elec_co2_kg_kwh
+    k["co2_natural_gas_kt"] = k["natural_gas_gwh"] * cfg.ng_co2_kg_per_mwh / 1000
+    k["co2_associated_gas_kt"] = e("assoc_gas_used_mw") * cfg.assoc_gas_co2_kg_per_mwh / 1000
+    k["co2_total_kt"] = k["co2_grid_kt"] + k["co2_natural_gas_kt"] + k["co2_associated_gas_kt"]
     return {a: (round(b, 3) if isinstance(b, float) else b) for a, b in k.items()}
 
 
@@ -252,6 +257,8 @@ def summarize(result):
         f"unmet {k['cool_unmet_gwh']:.2f} GWh of {k['cool_demand_gwh']:.1f}",
         f"Net electricity {k['net_electricity_gwh']:.1f} GWh, natural gas {k['natural_gas_gwh']:.1f} GWh, "
         f"breakthrough {k['breakthrough_years']:.0f} years",
+        f"CO2 {k['co2_total_kt']:.1f} kt/yr (grid {k['co2_grid_kt']:.1f}, natural gas "
+        f"{k['co2_natural_gas_kt']:.1f}, associated gas {k['co2_associated_gas_kt']:.1f})",
         f"Violations: {len(hard)} hard, {len(v) - len(hard)} other",
     ]
     lines += [f"  [{x['severity']}] {x['constraint']}: {x['detail']}" for x in v]

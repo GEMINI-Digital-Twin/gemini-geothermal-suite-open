@@ -243,6 +243,7 @@ class Session:
                 "heat_boiler": "heat_boiler_ng_gwh", "heat_unmet": "heat_unmet_gwh",
                 "cool_absorption": "cool_sorption_gwh", "cool_electric": "cool_electric_gwh",
                 "cool_unmet": "cool_unmet_gwh", "net_elec_import": "net_electricity_gwh",
+                "co2_kt": "co2_total_kt",
                 "breakthrough_yr": "breakthrough_years"}
         return _r({"id": cid, "kpis_gwh_eur_mwh": {a: k[b] for a, b in keep.items()},
                    "violations": [f"{v['severity']}:{v['constraint']}: {v['detail']}"
@@ -258,6 +259,7 @@ class Session:
                    "failures": r["failure_counts"], "P10_P50_P90 (P90 conservative)": {
                        "lcoh": p(r["lcoh_eur_per_mwh"]), "net_elec_import_gwh": p(r["net_electricity_gwh"]),
                        "geo_heat_share_pct": [100 * x for x in p(r["heat_share_geothermal"])],
+                       "co2_kt": p(r["co2_total_kt"]),
                        "breakthrough_yr": p(r["breakthrough_years"])}}, 1)
 
     def return_temperature_sensitivity(self, candidate_id):
@@ -290,7 +292,7 @@ class Session:
                 "lcoh_P10_P50_P90": [rb["lcoh_eur_per_mwh"][p] for p in ("P10", "P50", "P90")] if rb else None,
                 "feasible_share": rb["feasible_share"] if rb else None,
                 "net_elec_import_gwh": k["net_electricity_gwh"], "nat_gas_gwh": k["natural_gas_gwh"],
-                "geo_heat_share": k["heat_share_geothermal_direct_and_hp"],
+                "co2_kt": k["co2_total_kt"], "geo_heat_share": k["heat_share_geothermal_direct_and_hp"],
                 "geo_cool_share": k["geothermal_cool_share"]}))
         return {"candidates": rows,
                 "note": "metrics only; the choice and its justification are yours"}
@@ -406,7 +408,8 @@ TOOL_SCHEMAS = [
         {"depth_m": NUM, "target_flow_m3h": NUM, "esp_stages": {"type": "integer"}},
         ["depth_m", "target_flow_m3h"]),
     _fn("evaluate_design", "Runs a full design over 365 days: KPIs (GWh/yr; net_elec_import > 0 means electricity bought from the "
-        "grid, < 0 means sold), LCOH (ThermoGIS economics), breakthrough "
+        "grid, < 0 means sold), LCOH (ThermoGIS economics), CO2 (kt/yr: grid, natural gas boiler, associated gas burned in the "
+        "CHP), breakthrough "
         "time and constraint violations. Returns which supplementary models to load if any are missing. "
         "Equipment capacities (heat pump, chillers, boiler) default to 0, meaning not installed.",
         {"depth_m": NUM, "n_doublets": {"type": "integer"}, "spacing_m": NUM, "max_flow_m3h": NUM,

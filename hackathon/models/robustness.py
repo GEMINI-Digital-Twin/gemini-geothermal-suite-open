@@ -72,7 +72,7 @@ def run_robustness(design, n_samples=100, seed=2027):
             "lcoh": k["lcoh_eur_per_mwh"], "net_elec": k["net_electricity_gwh"],
             "gas": k["natural_gas_gwh"], "geo_share": k["heat_share_geothermal_direct_and_hp"],
             "unmet": k["heat_unmet_gwh"] + k["cool_unmet_gwh"],
-            "breakthrough": k["breakthrough_years"],
+            "breakthrough": k["breakthrough_years"], "co2": k["co2_total_kt"],
         })
 
     def less_better(key):
@@ -99,6 +99,7 @@ def run_robustness(design, n_samples=100, seed=2027):
         "net_electricity_gwh": less_better("net_elec"),
         "natural_gas_gwh": less_better("gas"),
         "unmet_gwh": less_better("unmet"),
+        "co2_total_kt": less_better("co2"),
         "breakthrough_years": more_better("breakthrough"),
         "heat_share_geothermal": more_better("geo_share"),
         "convention": "P90 = conservative case (90% confidence of at least this good)",

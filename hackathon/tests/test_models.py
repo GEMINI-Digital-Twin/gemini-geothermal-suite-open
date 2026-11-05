@@ -195,3 +195,13 @@ def test_rate_limit_waits_and_retries(tmp_path, monkeypatch):
     m._sleep = waits.append
     assert m.chat([{"role": "user", "content": "hi"}])["content"] == "ok"
     assert waits == [7.0, 30.0]
+
+
+def test_co2_factors_from_sourced_values(cfg):
+    """P7: combustion factors are derived from sourced densities and heating value (stoichiometry)."""
+    assert cfg.ng_co2_kg_per_mwh == pytest.approx(1.976 / (50 * 0.7168) * 3600)       # ~198.5
+    assert cfg.assoc_gas_co2_kg_per_mwh == pytest.approx(cfg.ng_co2_kg_per_mwh / 0.8)  # 20 % CO2 carried along
+    k = evaluate_design(_dh_design())["kpis"]
+    assert k["co2_total_kt"] == pytest.approx(
+        k["co2_grid_kt"] + k["co2_natural_gas_kt"] + k["co2_associated_gas_kt"], abs=2e-3)
+    assert k["co2_grid_kt"] == pytest.approx(k["net_electricity_gwh"] * 0.3, abs=2e-3)  # KPIs rounded

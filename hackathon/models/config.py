@@ -64,6 +64,7 @@ class Config:
     rock_density: float
     porosity: float
     boiler_eff: float
+    elec_co2_kg_kwh: float
     economics: dict = field(default_factory=dict)
     assumption_status: dict = field(default_factory=dict)
     uncertainty_ranges: dict = field(default_factory=dict)
@@ -72,6 +73,18 @@ class Config:
     def ch4_lhv_mj_nm3(self):
         """Derived: GEMINI's 50 MJ/kg x methane density at 0 C, 1 atm."""
         return self.ch4_lhv_mj_kg * self.ch4_density
+
+    # CO2 from combustion (P7). Derived, no new value: CH4 + 2 O2 -> CO2 + 2 H2O gives one mole
+    # of CO2 per mole of CH4, i.e. one Nm3 of CO2 per Nm3 of CH4 (ideal gas, same 0 C, 1 atm).
+    @property
+    def ng_co2_kg_per_mwh(self):
+        """Natural gas taken as methane: CO2 density / CH4 heating value per Nm3, per MWh of fuel."""
+        return self.co2_density / self.ch4_lhv_mj_nm3 * 3600
+
+    @property
+    def assoc_gas_co2_kg_per_mwh(self):
+        """Associated gas burned: CO2 from its CH4 plus the CO2 it already carries, per MWh of fuel."""
+        return (self.x_ch4 + self.x_co2) * self.co2_density / (self.x_ch4 * self.ch4_lhv_mj_nm3) * 3600
 
     def demand_path(self, kind):
         """Absolute path of the heating or cooling demand CSV."""
@@ -134,6 +147,7 @@ def load_config(path=DEFAULT_CONFIG, overrides=None):
         rock_density=a["rock_grain_density_kg_m3"],
         porosity=a["porosity"],
         boiler_eff=a["boiler_efficiency"],
+        elec_co2_kg_kwh=a["electricity_emission_factor_kg_per_kwh"],
         economics=raw["economics"],
         assumption_status={k: v["status"] for k, v in raw["assumptions"].items()},
         uncertainty_ranges={k: v["uncertainty"] for k, v in raw["assumptions"].items()

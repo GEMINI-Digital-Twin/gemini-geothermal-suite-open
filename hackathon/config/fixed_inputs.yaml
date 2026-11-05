@@ -139,6 +139,10 @@ assumptions:
     value: 0.8
     source: "GEMINI doublet_plant.json boiler.parameters.efficiency_factor = 0.8"
     status: confirmed
+  electricity_emission_factor_kg_per_kwh:
+    value: 0.3
+    source: "Organisers, hackathon Discord Q&A (5 Nov 2026): reference value electricity_emission_factor 0.3 kg/kWh"
+    status: confirmed
 
 economics:
   # TNO pythermogis documentation, 'UTC Properties ThermoGIS NL' (all four scenarios identical),
