@@ -234,7 +234,7 @@ def _entry(module, rating, frame, path):
     used = rating.use(frame, path)
     entry = {"kind": module.equipment_kind, "capacity": measure(capacity, rating.unit)}
     if used is None or not used.notna().any():
-        reason = "the run shows no use of this module"
+        reason = _no_use_reason(rating, frame, path, used)
         return entry | {
             "peak": measure(None, rating.unit, reason),
             "share": measure(None, "-", reason),
@@ -244,3 +244,21 @@ def _entry(module, rating, frame, path):
         "peak": measure(peak, rating.unit),
         "share": measure(peak / capacity, "-"),
     }
+
+
+def _no_use_reason(rating, frame, path, used):
+    """Return why a module has no peak use: its rating is not measured, or it did not run.
+
+    A conductance, a volume or a length is no use a step measures, so a module rated by one (an
+    exchanger, a tank, a pipe) has no peak even when it worked; the reason then says how many
+    steps it ran, from its ``operating`` column, so that no reader takes it as idle (geomind
+    QA-123: an exchanger that ran all year was reported as unused).
+    """
+    column = f"{path}.operating"
+    ran = int(frame[column].fillna(False).astype(bool).sum()) if column in frame else None
+    if used is None:
+        steps = "" if ran is None else f"; the module ran {ran} of {len(frame)} steps"
+        return f"a rating in {rating.unit} is not a use the run measures{steps}"
+    if ran:
+        return f"the run measures no use of this rating; the module ran {ran} of {len(frame)} steps"
+    return "the run shows no use of this module"

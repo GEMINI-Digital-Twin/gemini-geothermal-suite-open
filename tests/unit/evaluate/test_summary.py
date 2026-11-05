@@ -222,7 +222,7 @@ def test_a_module_whose_use_the_run_does_not_show_has_a_capacity_only():
     pipe = found["pipe"]
     assert pipe["capacity"].value == 120.0 and pipe["capacity"].unit == "m"
     assert pipe["peak"].value is None and pipe["share"].value is None
-    assert pipe["peak"].reason == "the run shows no use of this module"
+    assert pipe["peak"].reason.startswith("a rating in m is not a use the run measures")
 
 
 def test_the_grids_and_a_fixed_item_are_not_listed():
