@@ -142,6 +142,23 @@ def _known(name, path, issues):
     return name
 
 
+PERCENTILES_SCHEMA = {
+    "type": "array",
+    "items": {"type": "number", "minimum": 0, "maximum": 100},
+    "minItems": 1,
+}
+"""The JSON Schema of a study's ``percentiles``."""
+STOP_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "minProperties": 1,
+    "properties": {
+        "generations": {"type": "integer", "minimum": 1},
+        "seconds": {"type": "number", "exclusiveMinimum": 0},
+    },
+}
+"""The JSON Schema of a study's ``stop``: generations, seconds or both."""
+
 class Study:
     """What to run and how, as a file: the arguments of the functions of ``gm.study``.
 
@@ -324,20 +341,8 @@ class Study:
             "objectives": {"anyOf": [{"type": "string"}, names]},
             "population": {"type": "integer", "minimum": 2},
             "polish": {"type": "integer", "minimum": 0},
-            "percentiles": {
-                "type": "array",
-                "items": {"type": "number", "minimum": 0, "maximum": 100},
-                "minItems": 1,
-            },
-            "stop": {
-                "type": "object",
-                "additionalProperties": False,
-                "minProperties": 1,
-                "properties": {
-                    "generations": {"type": "integer", "minimum": 1},
-                    "seconds": {"type": "number", "exclusiveMinimum": 0},
-                },
-            },
+            "percentiles": PERCENTILES_SCHEMA,
+            "stop": STOP_SCHEMA,
         }
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",

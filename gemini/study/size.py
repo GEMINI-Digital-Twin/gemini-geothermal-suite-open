@@ -208,22 +208,13 @@ def _capacities(design, case, notes, backup, cover):
         _skip(notes, units_of(design, role), "not sized from the demand")
 
 
-def _injection_head(applied, case, path):
-    """Return the pressure rise [Pa] that the doublet at ``path`` asks of an injection pump.
-
-    The wellhead pressure that injects the nominal flow, less the pressure of the production
-    wellhead (``nominal_wellhead_pressure``), which the pump suction can be at best; zero when the
-    column of brine injects the flow alone. The brine is injected at the reservoir temperature
-    less the brine cooling limit.
-    """
-    return _injection_pressure(applied, case, path)[0]
-
-
 def _injection_pressure(applied, case, path):
     """Return ``(head, discharge)`` [Pa] the doublet at ``path`` asks of an injection pump.
 
-    ``discharge`` is the wellhead pressure that injects the nominal flow, never below the
-    production wellhead pressure; ``head`` is its rise over that pressure (``_injection_head``).
+    ``discharge`` is the wellhead pressure that injects the nominal flow, never below the pressure
+    of the production wellhead (``nominal_wellhead_pressure``), which the pump suction can be at
+    best; ``head`` is its rise over that pressure, zero when the column of brine injects the flow
+    alone. The brine is injected at the reservoir temperature less the brine cooling limit.
     """
     doublet = applied.get_submodule(path)
     cooling = _limit(case, "brine_cooling", "max")
@@ -258,7 +249,7 @@ def _injection_pumps(design, case, notes):
 
     A pump serves the doublets that its brine reaches in the plant, found from the wiring. The
     nominal flow is the sum of their nominal flows and the nominal head the largest head one of
-    them asks (``_injection_head``), floored at zero. A pump that serves no doublet of the plant,
+    them asks (``_injection_pressure``), floored at zero. A pump that serves no doublet of the plant,
     or whose doublets lack a design value, is left unsized with a note.
     """
     pumps = [path for path, module in design.named_modules() if isinstance(module, InjectionPump)]

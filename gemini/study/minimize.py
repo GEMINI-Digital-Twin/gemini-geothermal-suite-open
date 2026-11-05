@@ -261,28 +261,41 @@ def _polish(evaluated, found, best, budget):
     """
     ranked, centre = best
     moving = [index for index, item in enumerate(found) if item.options is None]
-    step, tried = FIRST_STEP, {centre.tobytes()}
-    while budget > 0 and moving and step >= SMALLEST_STEP:
+    step, tried, left = FIRST_STEP, {centre.tobytes()}, [budget]
+    while left[0] > 0 and moving and step >= SMALLEST_STEP:
         better = False
         for index in moving:
-            variable = found[index]
-            span = variable.high - variable.low
-            delta = max(1.0, round(step * span)) if variable.integer else step * span
-            for sign in (-1.0, 1.0):
-                point = centre.copy()
-                point[index] = min(max(centre[index] + sign * delta, variable.low), variable.high)
-                if variable.integer:
-                    point[index] = float(round(point[index]))
-                if point.tobytes() in tried or budget <= 0:
-                    continue
-                tried.add(point.tobytes())
-                budget -= 1
-                value = evaluated(point)
-                if value < ranked:
-                    ranked, centre, better = value, point, True
-                    break
+            trial = (evaluated, found[index], index, step)
+            moved = _polish_variable(trial, ranked, centre, tried, left)
+            if moved is not None:
+                (ranked, centre), better = moved, True
         if not better:
             step /= 2
+
+
+def _polish_variable(trial, ranked, centre, tried, left):
+    """Return ``(value, point)`` of the first step along one variable better than ``ranked``.
+
+    ``trial`` is ``(evaluated, variable, index, step)``. The centre steps down, then up, by the
+    step's share of the variable's range; a point tried before is skipped. ``tried`` and the
+    budget ``left`` (a one-item list) are spent here; ``None`` when no step is better.
+    """
+    evaluated, variable, index, step = trial
+    span = variable.high - variable.low
+    delta = max(1.0, round(step * span)) if variable.integer else step * span
+    for sign in (-1.0, 1.0):
+        point = centre.copy()
+        point[index] = min(max(centre[index] + sign * delta, variable.low), variable.high)
+        if variable.integer:
+            point[index] = float(round(point[index]))
+        if point.tobytes() in tried or left[0] <= 0:
+            continue
+        tried.add(point.tobytes())
+        left[0] -= 1
+        value = evaluated(point)
+        if value < ranked:
+            return value, point
+    return None
 
 
 class _Population:

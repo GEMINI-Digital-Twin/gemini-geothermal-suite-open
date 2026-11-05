@@ -155,21 +155,23 @@ def _free_connections(connections, doublets):
         elif target == "d0.return_in":
             found += _split_chain(item, doublets)
         else:
-            found.append(item)
-            for number in range(1, doublets):
-                if _index(source) == 0 or _index(target) == 0:
-                    copy = deepcopy(item)
-                    copy["source"] = (
-                        _DOUBLET.sub(f"d{number}", source, count=1)
-                        if _index(source) == 0
-                        else source
-                    )
-                    copy["target"] = (
-                        _DOUBLET.sub(f"d{number}", target, count=1)
-                        if _index(target) == 0
-                        else target
-                    )
-                    found.append(copy)
+            found += [item, *_repeated(item, doublets)]
+    return found
+
+
+def _repeated(item, doublets):
+    """Return a connection of ``d0`` repeated for each copy ``d1`` ...; ``[]`` for any other."""
+    source, target = item["source"], item["target"]
+    if _index(source) != 0 and _index(target) != 0:
+        return []
+    found = []
+    for number in range(1, doublets):
+        copy = deepcopy(item)
+        if _index(source) == 0:
+            copy["source"] = _DOUBLET.sub(f"d{number}", source, count=1)
+        if _index(target) == 0:
+            copy["target"] = _DOUBLET.sub(f"d{number}", target, count=1)
+        found.append(copy)
     return found
 
 

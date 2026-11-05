@@ -171,7 +171,8 @@ assert inside.children["pump"].outputs.head == alone.outputs.head
 A run is the same call over time. The plan holds one row per step, with a column for each plant
 inlet field (`suction_in.m_dot`, `.T`, `.p`) and each control that changes (`pump.frequency`); the
 case holds the period. The pump is stateless, so the engine evaluates all the rows at once as
-arrays, eager or compiled, with the same numbers.
+arrays, eager or compiled, with the same numbers. A plant states its rules (`dispatch`,
+`outages`, `backup`) before it runs; they have no default.
 
 ```python
 TIMES = pd.date_range("2024-01-01", periods=4, freq="1h", tz="UTC")
@@ -190,7 +191,9 @@ plan = pd.DataFrame(
     },
     index=TIMES,
 )
+RULES = {"dispatch": "least_cost", "outages": "lowest_demand", "backup": "none"}
 lift.fluid = gm.BRINE
+lift.set_params("", RULES)
 results = gm.simulate(lift, gm.Case.from_dict(HOURLY), plan=gm.Dataset.from_frame(plan))
 assert results.errors() == []
 assert results.to_frame()["pump.head"].is_monotonic_increasing
@@ -308,7 +311,7 @@ class Loop(Plant):
         self.controller = Regulator()
 
 
-loop = Loop().set_params("controller", TUNING)
+loop = Loop().set_params("controller", TUNING).set_params("", RULES)
 loop.set_inputs({"controller.setpoint": 5.0, "controller.measurement": 3.0})
 by_hand = loop.step({"controller": FRESH}, 3600, {})[0]
 assert by_hand["controller"]["previous_step"] == 3600.0

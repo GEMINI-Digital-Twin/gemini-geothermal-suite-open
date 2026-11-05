@@ -52,7 +52,7 @@ def priced_steps(plant, case, results):
     methane as CO2-equivalent. The CO2 of grid electricity is counted in ``emitted_steps`` but
     not priced again: the generators pay for it (the EU ETS covers power generation) and the
     electricity price carries it (geomind QA-128: 0.45 of 0.71 MEUR/yr of carbon cost came from
-    grid electricity in the hackathon sample).
+    grid electricity in a sample case).
     """
     direct, _, equivalent, _ = emissions_steps(plant, case, results)
     return direct + equivalent
