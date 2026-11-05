@@ -2,104 +2,92 @@
 
 Team Geothermallica, SPE Europe Energy GeoHackathon 2026, Express Edition.
 
-Tags on numbers: [C] computed by our code, [D] data from the brief, [L] literature, [A] our assumption, [TBC] to be confirmed.
-
 ## 1. What this branch is
 
 This branch is a pull request to TNO's GEMINI `development` branch.
-It adds five new GEMINI models, one fix to GEMINI's solver, and unit tests for all six.
-It also holds our hackathon solution, which uses those models.
-The solution is an agentic design tool for the challenge brief.
-The brief asks for a district with 30 MW of heat and 10 MW of cold [D].
-Heat is supplied at 100 C and cold at 20 C [D].
-The source is 1 to 3 geothermal doublets in a reservoir at 2 500 m [D].
+It adds five GEMINI models, one fix to GEMINI's solver and unit tests for all six; `GEMINI_MODELS.md` describes them.
+It also holds our hackathon solution under `hackathon/geothermallica/solution/`, which imports those models from `src/`.
+The solution is an agentic design tool for the challenge brief: a district with 30 MW of heat and 10 MW of cold,
+supplied at 100 C and 20 C, from 1 to 3 geothermal doublets in a reservoir at 2 500 m.
 Nothing outside `src/`, `unit_test/` and `hackathon/geothermallica/` is changed.
 
-## 2. What changed in GEMINI's source
-
-| Model (registry name) | File in `src/` | What it does | Tests |
-|---|---|---|---|
-| `ESPAffinity` (`esp_affinity`) | `gemini_model/pump/esp_affinity.py` | ESP that reads the 60 Hz curve at q x 60/f (pump similarity laws) | 4 |
-| `HeatPumpLift` (`heatpump_lift`) | `gemini_model/heatpump/heatpump_lift.py` | `HeatpumpBasic` with a brine floor per call, COP capped at 8 | 8 |
-| `HenryGasBubblePoint` (`henry_gas`) | `gemini_model/fluid/henry_gas.py` | Bubble point of dissolved CH4 and CO2 by Henry's law, with salt | 6 |
-| `DoubletThermalBreakthrough` (`thermal_breakthrough`) | `gemini_model/reservoir/thermal_breakthrough.py` | Thermal breakthrough time and pressure interference of doublets | 8 |
-| `AbsorptionChiller` (`absorption_chiller`) | `gemini_model/chiller/absorption_chiller.py` | Brine heat above a drive floor turned into cold at COP 0.75 | 7 |
-| Injector friction sign (fix) | `gemini_simulator/nodal_solver.py` | Injection flow passed to DPDT as negative, so friction opposes it | 5 |
-
-The tests live in `unit_test/gemini_model/{pump,heatpump,fluid,reservoir,chiller}/` and `unit_test/gemini_simulator/test_injector_sign.py`.
-`HeatpumpBasic` (TNO's own) is also added to the registry as `heatpump`.
-`PATCH.md` shows the solver fix line by line.
-`GEMINI_MODELS.md` lists the inputs, the sources and the cross-checks of each model.
-
-## 3. Run the tests
+## 2. Run the tests
 
 From the root of this repository, after TNO's normal install:
 
 ```
 pip install -e .
-pip install "mcp>=2"
 pytest unit_test/gemini_model unit_test/gemini_simulator hackathon -q
 ```
 
-You should see `174 passed` [C].
-That is 91 of TNO's tests, 38 for our models and the fix, and 45 for the solution [C].
+You should see `176 passed`: 91 of TNO's tests, 38 for our models and the fix, 47 for the solution.
 A few `RuntimeWarning` lines from `heatpump_basic.py` are normal.
-A bare `pytest` from the root runs `unit_test/` only (`testpaths` in `pyproject.toml`), as TNO's CI does.
-Lint: `flake8 src unit_test --max-line-length=100` gives the same 31 findings as TNO's `development` and `black --check src unit_test` is clean.
-The `hackathon/` folder is not linted by TNO's CI and does not keep the 100-character limit.
+A bare `pytest` from the root runs `unit_test/` only, as TNO's CI does.
+`flake8 src unit_test --max-line-length=100` gives the same 31 findings as `development`; `black --check src unit_test` is clean.
+The `hackathon/` folder is not linted by TNO's CI.
+The MCP server alone needs `pip install "mcp>=2"`.
 
-## 4. How the solution works
+## 3. The overall workflow
 
-**`solution/geo/`: the physics.**
-It builds one year of plant operation on GEMINI's own components (IPR, DPDT, ESP, PVT, HeatpumpBasic).
-`well.py` is the producer and the injector.
-`plant.py` gives one doublet's heat, electricity and lift against flow.
-`year.py` dispatches the heat day by day over 2027; `cooling.py` the cold, `checks.py` the 17 constraint checks, `demand.py` reads the demand files.
-`cost.py` prices it: CAPEX, operation, electricity, gas, CO2, LCoH and LCoC.
-`outage.py` places the 35-day outage of each doublet in the quietest weeks.
-`gas.py` handles the dissolved gas, `lifetime.py` the breakthrough, `storage.py` a heat tank.
-`optimise.py` searches doublets, return temperature and ESP depth for the best cost and CO2.
-`rule.py` holds the one rule that picks a design.
-`gemini_project.py` writes our design as a native GEMINI project file and runs GEMINI's own solver on it.
-`gemini_compare.py` compares that replay with our numbers.
-`gemini_path.py` puts this branch's `src/` first on the Python path, so the solution keeps no copies of the models.
+The chain runs from the brief to a checked answer in these steps.
 
-**`solution/ai/`: the agent.**
-`AI02_tools.py` is the registry of the 17 typed tools; the tools themselves live in `AI02_tools_site.py`, `AI02_tools_year.py`, `AI02_tools_economics.py` and `AI02_tools_gemini.py`.
-`SOURCES.md` in `solution/` lists the source of every constant used in the code.
-`AI03_plan.py` is the code plan.
-It reads the brief, sweeps 18 candidate designs, picks one, prices the alternatives and calls the GEMINI replay.
-`AI03_moves.py` is the repair loop: when a check fails, the model picks one move from a short menu.
-`AI03_agent.py` runs the whole chain and writes a run file.
-`AI04_check.py` checks the model's answer with rules (a) to (k).
-`AI05_eval.py` runs six briefs end to end.
-`AI06_rag.py` answers questions about GEMINI's modules from their docstrings, with the module cited.
-`AI10_mcp.py` serves the same 17 tools over MCP.
-Every prompt is a plain file in `ai/prompts/`.
+1. **Brief.** The code reads the peaks, the supply temperatures and the reservoir depth from the brief text and scales
+   the daily heat and cold demand files to them.
+2. **Physics** (`solution/geo/`). One year of plant operation is built on GEMINI's own components (IPR, DPDT, ESP, PVT,
+   HeatpumpBasic and the five new models). `well.py` is the producer and the injector, `plant.py` one doublet's heat,
+   electricity and lift against flow, `year.py` the day-by-day heat dispatch of 2027, `cooling.py` the cold, `checks.py`
+   the 17 constraint checks, `outage.py` the 35-day outage of each doublet placed in the quietest weeks, `cost.py` the
+   CAPEX, operation, electricity, gas, CO2, LCoH and LCoC, `gas.py` the dissolved gas and its handling, `lifetime.py`
+   the thermal breakthrough, `storage.py` a heat tank against the backup boiler.
+3. **Plan** (`solution/ai/AI03_plan.py`). The code sweeps 1 to 3 doublets by six return temperatures through the physics,
+   18 candidates with a verdict each, and applies the one rule in `geo/rule.py`: the fewest doublets that meet the heat
+   with the boiler at most 5 % of the heat and the peak covered. `geo/optimise.py` then searches return temperature and
+   ESP depth for the front of LCoH against CO2, and the plan prices the alternatives: the next doublet, a boiler-lift
+   layout without heat pump, a storage tank, a lower return, burning the associated gas instead of reinjecting it.
+4. **GEMINI replay** (`geo/gemini_project.py`, `geo/gemini_compare.py`). The chosen design is written as a native GEMINI
+   project file and GEMINI's own solver re-runs it on three days of the year; the replay compares ESP head, injection
+   wellhead pressure, heat-pump COP, bubble point and breakthrough time with the plan's numbers.
+5. **Answer.** The plan, the tool results and the replay verdict go to a local language model that writes the answer
+   as a fixed JSON; a checker verifies it; the run file holds the answer, the checks and the transcript.
+
+`geo/gemini_path.py` puts this branch's `src/` first on the Python path, so the solution keeps no copies of the models.
+`solution/SOURCES.md` lists the source of every constant in the code.
+
+## 4. The agentic workflow
+
+**Tools.** `ai/AI02_tools.py` is a registry of 17 typed tools; the tools live in `AI02_tools_site.py`, `AI02_tools_year.py`,
+`AI02_tools_economics.py` and `AI02_tools_gemini.py`. Every tool returns numbers with the GEMINI classes that ran and
+the GEMINI commit. `ai/AI10_mcp.py` serves the same 17 tools to any MCP client.
 
 **Who does what.**
-The code builds the design plan, calls the tools and runs the checks.
-The local model (qwen3 4b instruct on Ollama) reads the plan and writes the answer in a fixed JSON.
-It also picks one design from the cost and CO2 front, and picks repair moves from a menu.
-The model never computes a number.
-The checker rules verify every number in the answer against the tool results of that run.
-A bad answer gets one re-prompt with the list of problems.
+- The code builds the design plan, calls the tools, runs the checks and the GEMINI replay.
+- The model (qwen3 4b instruct on Ollama, local, zero cost) reads the plan and writes the answer in a fixed JSON with a
+  provenance tag on every number. It picks one design from the LCoH-CO2 front, saying what it gives up, and when a check
+  fails it picks one repair move from a short menu (`AI03_moves.py`, for example: free gas at the pump intake moves the
+  ESP deeper). The model never computes a number.
+- The checker (`AI04_check.py`, rules a to k) verifies every number in the answer against the tool results of that run
+  and rejects untagged or untraceable numbers, conclusions that disagree with the sweeps, brief values that never reached
+  a tool, a missing iteration trace and an answer that drops what the replay said. A bad answer gets one re-prompt with
+  the list of problems.
+
+**Around it.** `AI03_agent.py` runs the chain and writes a run file. `AI05_eval.py` runs six briefs end to end.
+`AI06_rag.py` answers questions about GEMINI's modules from their docstrings, with the module cited.
+Every prompt is a plain file in `ai/prompts/`.
 
 ## 5. Run it yourself
 
 Run these from `hackathon/geothermallica/solution`.
 
-**(a) The design plan, no model needed.**
+**(a) The design plan, no model needed** (about 25 s):
 
 ```
 python -c "import sys; sys.path.insert(0, 'ai'); import AI03_agent as a, AI03_plan as p; print(p.plan_message(a.BRIEF, p.plan(a.BRIEF)))"
 ```
 
-You should see `Plan choice: 2 doublets at a 56.5 C return`, the 18 design iterations, the gas, outage and GEMINI replay lines, and seven rejected alternatives.
-It takes about 25 s on a laptop [C].
-It writes the GEMINI project file `ai/runs/gemini_project_2d_56.5C.json`.
+You should see `Plan choice: 2 doublets at a 56.5 C return`, the 18 design iterations, the gas, outage and GEMINI
+replay lines, and seven rejected alternatives. It writes the GEMINI project file `ai/runs/gemini_project_2d_56.5C.json`.
 
-**(b) The agent, with a local model.**
+**(b) The agent, with a local model:**
 
 ```
 ollama pull qwen3:4b-instruct-2507-q4_K_M
@@ -107,76 +95,24 @@ python ai/AI03_agent.py "District with 30 MW peak heating and 10 MW peak cooling
 ```
 
 You should see the recommendation in plain text, then `checker problems: ...`, then `wrote ai/runs/<date>_plan_<brief>.md`.
-The run file holds the answer JSON, the checks (17/17), the full transcript and the token count.
 With no brief, `python ai/AI03_agent.py` is interactive: Enter runs the challenge brief, `q` quits.
 `AGENT_MODEL=<name>` swaps the model.
 
-**(c) The MCP server.**
+**(c) The MCP server:**
 
 ```
 python ai/AI10_mcp_check.py
 ```
 
-You should see `17 tools match AI02.FUNCS`, two tool calls, one deliberate error (`q_m3h=400.0 outside 50.0-300.0`), one resource (`notes://readme`, this file; the findings note is not on this branch) and one prompt.
-No model is needed.
-To use it from an MCP client, point the client at `python <absolute path>/ai/AI10_mcp.py` over stdio.
-Claude Code: `claude mcp add geohack -- python <absolute path>/ai/AI10_mcp.py`. Inspector: `npx @modelcontextprotocol/inspector python <absolute path>/ai/AI10_mcp.py`.
+You should see `17 tools match AI02.FUNCS`, two tool calls, one deliberate error (`q_m3h=400.0 outside 50.0-300.0`),
+one resource and one prompt. To use it from an MCP client, point the client at `python <absolute path>/ai/AI10_mcp.py`
+over stdio; with Claude Code, `claude mcp add geohack -- python <absolute path>/ai/AI10_mcp.py`.
 
-## 6. The design answer for the brief
+## 6. The answer for the brief
 
-All numbers below are [C] from the tools, for 2 doublets at a 56.5 C network return, ESP at 1 100 m, reservoir at 2 500 m,
-associated gas reinjected.
-
-| quantity | value |
-|---|---|
-| LCoH | 61.93 EUR/MWh [C] |
-| CO2 | 5.49 kt/yr, all from grid electricity at 0.3 kg/kWh [C, D] |
-| gas handling | reinjected: under the 1 % gas rule (+0.13 EUR/MWh, +0.2 %), compression 0.08 GWh/yr, permit assumed [C, A] |
-| same design with a gas engine (rejected) | LCoH 61.8 EUR/MWh, CO2 9.43 kt/yr [C] |
-| electricity | 18.31 GWh/yr [C] |
-| geothermal share of heat | 91.25 % [C] |
-| boiler energy | 0 GWh; 16 MW backup boiler installed [C] |
-| cooling | 76.7 % free, 6.3 % absorption, 17.1 % electric [C] |
-| checks | 17/17 pass (13 computed + 4 declared) [C] |
-| outages | staggered, days 177-211 and 212-246 [C] |
-| one doublet out on the coldest day | 31.0 MW available against 30 MW [C] |
-| unplanned 7-day outage in January | +2.23 GWh boiler, 0.17 MEUR, 0.34 kt CO2 [C, A] |
-
-**Why 2 doublets and not 1 or 3.**
-One doublet needs a boiler for 21.74 % of the heat and is 48 % short at the peak [C].
-A third doublet adds 8.98 EUR/MWh and 9.86 MEUR of CAPEX when two already meet the heat [C].
-
-**Why a 56.5 C return.**
-The optimiser finds it as the lowest LCoH [C].
-A 55 C return needs 3.06 GWh of boiler energy [C], and the 60 C of our first sweeps costs 66.5 EUR/MWh [C].
-
-**Why reinject the gas and not burn it in an engine.**
-The optimiser prices every design both ways; our rule reinjects when that adds under 1 % to the LCoH [A, our choice].
-Here it adds 0.13 EUR/MWh (0.2 %) and cuts CO2 from 9.43 to 5.49 kt a year [C].
-The compression is a lower bound and the permit is assumed; above 1 % the rule keeps the engine [A].
-
-**Why a heat pump and not a boiler.**
-The exchanger alone gives water below 100 C, so something must lift it.
-The boiler-lift layout costs 76.1 against 61.93 EUR/MWh [C].
-It burns 51.64 GWh of gas and emits 11.97 kt CO2 against 5.49 kt [C].
-
-**GEMINI checks our design.**
-GEMINI's own solver re-runs the design on 3 days of 2027.
-ESP head agrees within 0.2 bar, the injection wellhead within 0.1 bar [C].
-Heat-pump COP, bubble point and breakthrough time agree [C].
-On TNO's unpatched tree the injection wellhead is 7 to 25 bar off, which is how the replay finds the sign bug [C].
-
-## 7. What we are not sure about
-
-- Doublet CAPEX: the LCoH rests on the ThermoGIS well-cost curve, 9.33 MEUR per doublet [L]; other sources say 23.6-37.2 MEUR [L, TBC].
-  At 23.6 MEUR per doublet the LCoH is 91.7 EUR/MWh instead of 61.93, at 37.2 MEUR 120.1 (`geo.cost.economics(2, 56.5, 30, 10, doublet_MEUR=23.6)`) [C].
-- Peak margin: 2 doublets give 30.04 MW against the 30 MW peak, a margin of 0.14 % [C]; a small loss of flow or temperature puts the backup boiler on at the peak.
-- ESP frequency: GEMINI's own ESP needs up to 8.4 Hz less for the same flow, because it reads the 60 Hz curve at the actual flow [C].
-- Heat-pump COP is capped at 8 at small lifts [A].
-- The salted bubble point is 45.6 or 62.5 bar, depending on a log base the source does not state [TBC]; the check uses the worse.
-- The agent and most commands were run by Claude, not yet by a team member by hand.
-
-## 8. Where the numbers come from
-
-`GEMINI_MODELS.md` (models and sources), `PATCH.md` (the solver fix), and the run files the agent writes in `solution/ai/runs/`.
-Each tool result carries its tag, the GEMINI classes that ran and the GEMINI commit.
+Two doublets at a 56.5 C network return, ESP at 1 100 m, associated gas reinjected: LCoH 61.93 EUR/MWh, 5.49 kt CO2 a
+year, no boiler energy with a 16 MW backup boiler installed, 17 of 17 checks pass.
+One doublet needs a boiler for 22 % of the heat and is 48 % short at the peak; a third doublet adds 8.98 EUR/MWh when
+two already meet the heat. A boiler lift instead of the heat pump costs 76.1 EUR/MWh and 11.97 kt CO2.
+The gas engine alternative gives 61.8 EUR/MWh and 9.43 kt CO2. GEMINI's own solver agrees with the design within 0.2 bar
+on the ESP head and 0.1 bar on the injection wellhead.

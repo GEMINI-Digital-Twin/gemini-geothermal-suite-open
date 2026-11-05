@@ -1,9 +1,8 @@
 # Our GEMINI models
 
-Five model classes and one bug fix, written for TNO's GEMINI and living in its source tree on the fork
-github.com/barteksarwa/gemini-geothermal-suite-open, branch `geothermallica`. The solution has no copies: it imports
-them from that tree (`geo/gemini_path.py`: `GEMINI_DEV_SRC`, else the fork's own `src/` when the solution sits inside
-it, else `~/src/gemini-geothermallica/src`). The diff against TNO's `development` branch is in `PATCH.md`.
+Five model classes and one bug fix, written for TNO's GEMINI and living in its source tree on this branch. The
+solution has no copies: it imports them from `src/` (`geo/gemini_path.py`: `GEMINI_DEV_SRC` if set, else this
+branch's own `src/`).
 
 | Model (registry name) | File in `src/` | What it does | Inputs | Tests |
 |---|---|---|---|---|
@@ -16,10 +15,31 @@ it, else `~/src/gemini-geothermallica/src`). The diff against TNO's `development
 
 `HeatpumpBasic` (TNO's) is also added to the registry as `heatpump`.
 
-Run the cross-checks from this folder:
+## The solver fix
+
+`_well_bottomhole_pressure_injection` in `src/gemini_simulator/nodal_solver.py` passed the injection flow to DPDT as a
+positive number with `direction = "down"`, so friction was added to the injection pressure instead of opposing the flow.
+`solve_injection_flow_rate`, `solve_injection_wellhead_pressure` and `well_flow.solve_injector_wellhead_pressure_bar`
+all go through this helper, so one line fixes all three:
+
+```diff
+         "temperature_ambient": wellhead_temperature,
+-        "flowrate": flow_rate,
++        "flowrate": -flow_rate,  # signed: injection flows down, friction opposes it
+         "direction": "down",
+```
+
+`unit_test/gemini_model/well/test_pressure_drop.py::test_calculate_bottomhole` (TNO's own) injects with a negative
+flow rate and `direction = "down"`. `unit_test/gemini_simulator/test_injector_sign.py` fails on the old line and passes
+on the new one. The DPDT docstring in `src/gemini_model/well/pressure_drop.py` now states the sign convention:
+positive flow is upward (production), negative is downward (injection); `direction` only sets the walk order.
+
+## Cross-checks against the solution
+
+From `hackathon/geothermallica/solution`:
 
 ```bash
-GEMINI_DEV_SRC=~/src/gemini-geothermallica/src ../../.venv/bin/python -m unittest geo.test_gemini_models -v
+PYTHONPATH=../../../src python -m unittest geo.test_gemini_models -v
 ```
 
 Sources: Guelich (2014) Centrifugal Pumps, DOI 10.1007/978-3-642-40114-5; Ommen et al. (2015) Int. J. Refrig. 55,
