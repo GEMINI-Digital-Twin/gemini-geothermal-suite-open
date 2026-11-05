@@ -417,3 +417,16 @@ def test_a_pump_without_a_setpoint_or_curves_gets_the_injection_pressure():
     assert setpoint == pytest.approx(head + float(sized.get_submodule("d0").nominal_wellhead_pressure))
     assert "injection_pump.pressure_setpoint" not in {item.path for item in gm.check(sized, case)}
     assert sized.sizing["simulation"] == "simulated"
+
+
+def test_an_air_cooler_is_rated_for_the_heat_it_rejects_never_its_range_maximum():
+    """QA-324: the coolers kept the plant file's 40, 10 and 20 MW, 4.9 MEUR of capex too much."""
+    from pathlib import Path
+
+    folder = Path(__file__).parents[3] / "examples" / "hackathon_2026"
+    case = gm.Case.from_json(folder / "case.json")
+    plant = gm.Plant.from_json(folder / "plants" / "HeatingCoolingPlant.json")
+    sized = gm.study.size(plant, case)
+    rated = {item["path"] for item in sized.sizing["sized"]}
+    assert "compression_cooler.capacity" in rated
+    assert sized.compression_cooler.capacity < 20e6 and sized.sizing["broken"] == []
