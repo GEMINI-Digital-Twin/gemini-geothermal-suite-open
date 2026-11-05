@@ -1,0 +1,80 @@
+# GeoHackathon 2026 design brief (fixed technical inputs from the challenge document,
+# "Required Inputs for Hackathon", 28 Oct 2026, plus organizer clarifications on Discord).
+# Values marked `source: assumption` are NOT given by the brief; the agent must flag them.
+
+demand:
+  heating_csv: dataset/geohackathon2026/GEMINI_Heating_Demand_Daily_2027.csv
+  cooling_csv: dataset/geohackathon2026/GEMINI_Cooling_Demand_Daily_2027.csv
+  heating_supply_temperature_c: 100.0   # fixed
+  cooling_supply_temperature_c: 20.0    # fixed
+
+reservoir:
+  reference_depth_m: 2500.0            # midpoint TVD
+  gross_thickness_m: 100.0
+  geothermal_gradient_c_per_km: 30.0
+  surface_temperature_c: 12.0
+  reference_pressure_bar: 250.0        # bar(g) at reference depth; hydrostatic for other depths
+  permeability_md: 200.0
+
+brine:
+  density_kg_m3: 1030.0
+  viscosity_pa_s: 0.0004               # 0.40 mPa.s
+  gas_liquid_ratio_nm3_per_m3: 0.8     # potentially liberated gas at 0 C, 1.01325 bar(a)
+  gas_ch4_mol_frac: 0.8
+  gas_co2_mol_frac: 0.2
+
+constraints:
+  n_doublets_min: 1
+  n_doublets_max: 3
+  max_flow_m3h_per_doublet: 300.0      # hard cap
+  min_flow_m3h_per_doublet: 50.0       # hard cap while active
+  max_brine_cooling_k: 40.0            # producer -> injector, hard cap
+  pump_efficiency: 0.70
+  volume_balance: true                 # production = injection, same reservoir
+  geothermal_operating_days: 330       # source availability; system must meet demand 365 days
+
+references:
+  electricity_emission_factor_kg_per_kwh: 0.3   # organizer reference value (Discord, 3 Nov)
+
+# Inputs the brief does NOT specify. The agent must surface these as assumptions
+# (or ask the user in interactive mode). Each carries a short justification.
+assumptions:
+  default_site_latitude:
+    value: 52.01
+    why: the brief gives no site; Delft (NL) is used as a proxy for a Dutch geothermal district (weather only)
+  default_site_longitude:
+    value: 4.36
+    why: see default_site_latitude
+  default_weather_year:
+    value: 2023
+    why: recent complete year in the ERA5 archive; the 2027 demand year has no weather record yet
+  brine_specific_heat_j_per_kgk:
+    value: 4000.0
+    why: saline formation brine (~100 g/L TDS) has cp ~3.9-4.1 kJ/kgK vs 4.18 for fresh water
+  network_water_density_kg_m3:
+    value: 975.0
+    why: district heating water at 60-100 C
+  network_water_specific_heat_j_per_kgk:
+    value: 4190.0
+    why: liquid water at 60-100 C
+  well_tubing_inner_diameter_m:
+    value: 0.2
+    why: 8-5/8 to 9-5/8 in production string, typical for 300 m3/h geothermal wells (NL practice)
+  well_roughness_m:
+    value: 4.5e-5
+    why: commercial steel tubing (0.045 mm); GEMINI default 0.01 m is ~200x rougher
+  wellbore_radius_m:
+    value: 0.108
+    why: 8.5 in open hole across the reservoir
+  doublet_well_spacing_m:
+    value: 1500.0
+    why: typical Dutch doublet spacing at reservoir level; checked against thermal breakthrough
+  skin:
+    value: 0.0
+    why: undamaged well; uncertainty analysis varies it
+  min_wellhead_pressure_bar:
+    value: 10.0
+    why: keeps surface loop pressurised (limits degassing / scaling, gives filter & HEX pressure margin)
+  min_esp_intake_pressure_bar:
+    value: 20.0
+    why: NPSH and gas-breakout margin at the pump intake

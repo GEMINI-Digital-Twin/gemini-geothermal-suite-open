@@ -1,0 +1,130 @@
+{
+ "model": "qwen3:4b-instruct-2507-q4_K_M",
+ "score": 6,
+ "n": 8,
+ "complete": true,
+ "mean_latency_s": 39.6,
+ "prompt_tokens": 25426,
+ "completion_tokens": 323,
+ "tasks": [
+  {
+   "task": "T1_plan_starts_with_requirements",
+   "skill": "tool selection / planning",
+   "pass": true,
+   "latency_s": 155.3,
+   "prompt_tokens": 3106,
+   "completion_tokens": 17,
+   "tool_calls": [
+    {
+     "name": "get_brief",
+     "args": {}
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T2_exact_parameter_extraction",
+   "skill": "structured tool call",
+   "pass": false,
+   "latency_s": 15.6,
+   "prompt_tokens": 3136,
+   "completion_tokens": 17,
+   "tool_calls": [
+    {
+     "name": "get_brief",
+     "args": {}
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T3_refuse_infeasible_flow",
+   "skill": "constraint awareness",
+   "pass": false,
+   "latency_s": 23.0,
+   "prompt_tokens": 3113,
+   "completion_tokens": 34,
+   "tool_calls": [
+    {
+     "name": "well_performance",
+     "args": {
+      "depth_m": 500,
+      "flow_m3h": 500
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T4_off_topic",
+   "skill": "scope guard",
+   "pass": true,
+   "latency_s": 9.6,
+   "prompt_tokens": 3103,
+   "completion_tokens": 19,
+   "tool_calls": [],
+   "text": "Weather queries are outside the scope of geothermal system design. I cannot provide weather forecasts.",
+   "error": null
+  },
+  {
+   "task": "T5_missing_input_question",
+   "skill": "missing-input detection",
+   "pass": true,
+   "latency_s": 7.0,
+   "prompt_tokens": 3097,
+   "completion_tokens": 17,
+   "tool_calls": [
+    {
+     "name": "get_brief",
+     "args": {}
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T6_grounded_numbers",
+   "skill": "no hallucination",
+   "pass": true,
+   "latency_s": 25.2,
+   "prompt_tokens": 3258,
+   "completion_tokens": 44,
+   "tool_calls": [],
+   "text": "The LCOE is 43.18 EUR/MWh [F7], and the annual CO2 emissions are 6,190.0 t [F7]. The design is feasible.",
+   "error": null
+  },
+  {
+   "task": "T7_compare_alternatives",
+   "skill": "engineering reasoning",
+   "pass": true,
+   "latency_s": 65.4,
+   "prompt_tokens": 3414,
+   "completion_tokens": 143,
+   "tool_calls": [],
+   "text": "Design \"45efd720d9\" is cheaper at 43.18 EUR/MWh (fact ID: F7) and emits more CO2 at 6,190.0 t/year (fact ID: F7). Design \"f5949cdcf5\" is more expensive at 53.46 EUR/MWh (fact ID: F8) but emits less CO2 at 5,046.0 t/year (fact ID: F8). \n\nThus, \"45efd720d9\" is cheaper per MWh, and \"f5949cdcf5\" emits less CO2.",
+   "error": null
+  },
+  {
+   "task": "T8_react_to_failed_stress_test",
+   "skill": "self-correction",
+   "pass": true,
+   "latency_s": 16.0,
+   "prompt_tokens": 3199,
+   "completion_tokens": 32,
+   "tool_calls": [
+    {
+     "name": "add_capacity_margin",
+     "args": {
+      "design_id": "D12",
+      "margin_pct": 20
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  }
+ ]
+}

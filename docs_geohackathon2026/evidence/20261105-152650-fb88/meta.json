@@ -1,0 +1,12 @@
+{
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "profile": "lean",
+  "mode": "interactive",
+  "harness": "lean",
+  "inputs": "default",
+  "weather": "Open-Meteo ERA5 archive (openmeteo_52.01_4.36_2023.csv)",
+  "llm_host": "http://127.0.0.1:11435",
+  "router": null,
+  "memory_at_start": "# GeoDesign agent memory\n\nPersistent lessons learned across sessions. Append short, dated, factual notes with `edit_file`.\n\n- (seed) Numbers must come from tools; cite fact IDs [F#]. The verifier rejects untraceable numbers.",
+  "scenario": "S2"
+}

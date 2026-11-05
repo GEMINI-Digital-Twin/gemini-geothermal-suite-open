@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>GeoDesign architecture</title>
+<style>
+  :root { --ink:#0b0b0b; --ink2:#52514e; --line:#d9d8d3; --surf:#fcfcfb; --blue:#2a78d6; --orange:#eb6834;
+          --aqua:#1baf7a; --violet:#6250d6; --green:#008300; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#fff; font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif; color:var(--ink); }
+  .wrap { width:1500px; padding:28px 32px; }
+  h1 { font-size:24px; margin:0 0 4px; font-weight:650; }
+  .sub { color:var(--ink2); font-size:14px; margin-bottom:20px; }
+  .layer { display:grid; grid-template-columns:150px 1fr; gap:14px; margin-bottom:12px; align-items:stretch; }
+  .tag { border-radius:10px; padding:12px; font-size:13px; font-weight:650; color:#fff; display:flex; flex-direction:column; justify-content:center; }
+  .tag small { font-weight:400; opacity:.9; margin-top:4px; font-size:11.5px; line-height:1.3; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .box { background:var(--surf); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12.5px; line-height:1.35; flex:1; min-width:150px; }
+  .box b { display:block; font-size:13px; margin-bottom:3px; }
+  .box .m { color:var(--ink2); }
+  .accent { border-left:4px solid var(--blue); }
+  .acc-o { border-left:4px solid var(--orange); }
+  .acc-a { border-left:4px solid var(--aqua); }
+  .acc-v { border-left:4px solid var(--violet); }
+  .acc-g { border-left:4px solid var(--green); }
+  .flow { font-size:12px; color:var(--ink2); margin:2px 0 12px 164px; }
+  .pill { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:2px 8px; margin:2px 3px 0 0; font-size:11.5px; background:#fff; }
+</style></head>
+<body><div class="wrap">
+  <h1>GEMINI GeoDesign Agent — architecture</h1>
+  <div class="sub">Open-weight LLMs (local, CPU-only via Ollama) orchestrate GEMINI digital-twin physics. <b>The LLM decides, the code computes, the verifier signs off.</b></div>
+
+  <div class="layer">
+    <div class="tag" style="background:#52514e">Interfaces<small>one engine, thin front-ends</small></div>
+    <div class="row">
+      <div class="box"><b>Web cockpit (Gradio)</b><span class="m">chat with live plan &amp; tool steps, token meter, KPI cards, verifier checklist, charts, design explorer, Pareto comparison</span></div>
+      <div class="box"><b>CLI</b><span class="m">batch <code>run</code> (documented defaults), <code>chat</code>, physics-only <code>search</code>, <code>bakeoff</code></span></div>
+      <div class="box"><b>GEMINI plug-in</b><span class="m">agent packaged in the GEMINI code base; exports native GEMINI project JSON</span></div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <div class="tag" style="background:var(--blue)">Agents<small>deepagents / LangGraph</small></div>
+    <div class="row">
+      <div class="box accent"><b>Orchestrator</b><span class="m">plans with todos, delegates via <code>task</code>, asks the human at 2 checkpoints, writes the cited answer</span></div>
+      <div class="box accent"><b>Requirements analyst</b><span class="m">brief, demand, GEMINI model coverage &amp; gaps, missing inputs → <code>ask_user</code></span></div>
+      <div class="box accent"><b>Design engineer</b><span class="m">depth &amp; well screening (GEMINI), design search, alternatives</span></div>
+      <div class="box accent"><b>Risk &amp; verifier</b><span class="m">N-1 trip, demand growth, Monte Carlo, margins, GEMINI-solver check, number provenance</span></div>
+    </div>
+  </div>
+  <div class="flow">Knowledge: <span class="pill">6 skills (SKILL.md, read on demand)</span><span class="pill">persistent memory AGENTS.md</span><span class="pill">token-lean harness: −40–46 % prompt per call</span><span class="pill">model router: any Ollama / OpenAI-compatible open-weight model</span></div>
+
+  <div class="layer">
+    <div class="tag" style="background:var(--violet)">Governance<small>anti-hallucination &amp; evidence</small></div>
+    <div class="row">
+      <div class="box acc-v"><b>Fact ledger</b><span class="m">every tool result gets an ID [F#]; answers must cite them</span></div>
+      <div class="box acc-v"><b>Provenance check</b><span class="m">every number in an answer is matched to a fact or the brief; untraceable numbers are flagged</span></div>
+      <div class="box acc-v"><b>Trace &amp; token meter</b><span class="m">prompt/completion tokens, latency and tool calls per LLM call (JSONL → evidence appendix)</span></div>
+      <div class="box acc-v"><b>Result cache</b><span class="m">designs hashed; what-ifs reuse simulations instead of tokens</span></div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <div class="tag" style="background:var(--orange)">Tools<small>15 typed, compact (23–312 tokens)</small></div>
+    <div class="row">
+      <div class="box acc-o"><b>Understand</b><span class="m">get_brief · analyze_demand · list_gemini_models · ask_user</span></div>
+      <div class="box acc-o"><b>Subsurface</b><span class="m">reservoir_at_depth · well_performance</span></div>
+      <div class="box acc-o"><b>Design</b><span class="m">evaluate_design · search_designs · compare_designs · add_capacity_margin</span></div>
+      <div class="box acc-o"><b>Verify &amp; deliver</b><span class="m">stress_test_design · uncertainty_analysis · export_gemini_project · check_numbers · save_design_package</span></div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <div class="tag" style="background:var(--aqua)">Physics<small>deterministic, tested (107 tests)</small></div>
+    <div class="row">
+      <div class="box acc-a"><b>GEMINI models</b><span class="m">DPDT wells, IPR, ESP, heat exchanger, heat pump (fixed), boiler, separator, filters, mixer/splitter</span></div>
+      <div class="box acc-a"><b>New models</b><span class="m">absorption &amp; electric chillers · PI from permeability · thermal breakthrough · duty-matched ESP generator</span></div>
+      <div class="box acc-a"><b>Annual driver</b><span class="m">365 daily steps, brine cascade dispatch, 40 K / 50–300 m³/h limits, 330-day source availability</span></div>
+      <div class="box acc-a"><b>Two fidelities</b><span class="m">screening year (1 s) ↔ GEMINI Solver on compiled project JSON (0.0 % deviation)</span></div>
+    </div>
+  </div>
+</div></body></html>

@@ -3,6 +3,11 @@
 [![Docs workflow status](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/docs.yaml/badge.svg)](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/docs.yaml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
+> **GeoHackathon 2026 submission (team DeepLayers)** — the open-weight agentic design workflow built on this fork lives in
+> [`docs_geohackathon2026/README.md`](docs_geohackathon2026/README.md) (what it does, evidence at a glance, how to run it),
+> with the agent code in `src/gemini_agent/`, the new models in `src/gemini_model/chiller/`, the evidence sessions and
+> Appendix A in `docs_geohackathon2026/evidence/`, and the GEMINI fixes listed in `CHANGELOG.md`.
+
 # GEMINI Geothermal Suite (Open Source)
 
 Open-source repository for the GEMINI Geothermal Digital Twin platform, developed in the

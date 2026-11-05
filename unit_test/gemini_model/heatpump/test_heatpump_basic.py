@@ -61,7 +61,9 @@ class TestHeatpumpBasic(unittest.TestCase):
         self.assertAlmostEqual(output["Th_out"], 80.0, delta=1e-3)
         self.assertAlmostEqual(output["Ts_out"], 20.6633, delta=1e-3)
         self.assertAlmostEqual(output["Thermal_production"], 580694.44, delta=0.1)
-        self.assertAlmostEqual(output["electrical_consumption"], 131546.03, delta=0.1)
+        # exact: Qh / COP_carnot = 580694.44 / (0.5 * 353.15 / 40) = 131546.24 W
+        # (was 131546.03 with the former Nelder-Mead solver's convergence error)
+        self.assertAlmostEqual(output["electrical_consumption"], 131546.24, delta=0.1)
 
     def test_calculate_output_lorenz_mode(self):
         """Test HeatpumpBasic output calculation in Lorenz mode."""
@@ -80,7 +82,8 @@ class TestHeatpumpBasic(unittest.TestCase):
         self.assertAlmostEqual(output["Th_out"], 80.0, delta=1e-3)
         self.assertAlmostEqual(output["Ts_out"], 18.8279, delta=1e-3)
         self.assertAlmostEqual(output["Thermal_production"], 580694.44, delta=0.1)
-        self.assertAlmostEqual(output["electrical_consumption"], 88913.32, delta=0.1)
+        # bracketed root (was 88913.32 with the former Nelder-Mead convergence error)
+        self.assertAlmostEqual(output["electrical_consumption"], 88913.17, delta=0.1)
 
     def test_flow_and_pressure_passthrough(self):
         """Test that flow rates and pressures are echoed back as outputs."""
@@ -111,3 +114,34 @@ class TestHeatpumpBasic(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_source_limited_branch_is_physical():
+    """Source outlet pinned at its minimum: energy balance closes, Th_out stays bounded.
+
+    Regression test (GeoHackathon 2026): the previous unbracketed Nelder-Mead
+    could return Th_out ~ 837 C with COP ~ 1.
+    """
+    from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
+
+    hp = HeatpumpBasic()
+    hp.update_parameters(
+        {
+            "mode": "lorenz",
+            "eta_lorenz": 0.5,
+            "Th_out_target": 100,
+            "Ts_in_minimum": 45,
+            "Cp_h": 4190,
+            "rho_h": 975,
+            "Cp_s": 4000,
+            "rho_s": 1030,
+        }
+    )
+    u = {"Th_in": 60, "Ts_in": 63, "hot_flow_rate": 528 / 3600, "source_flow_rate": 300 / 3600}
+    hp.calculate_output(u)
+    y = hp.get_output()
+    qs = 4000 * (63 - 45) * 300 / 3600 * 1030
+    assert abs(y["Ts_out"] - 45.0) < 1e-9
+    assert 60.0 < y["Th_out"] <= 100.0
+    assert abs((y["Thermal_production"] - y["electrical_consumption"]) - qs) < 1.0
+    assert y["COP"] > 1.0

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Selected plant</title>
+<style>
+  body { margin:0; background:#fff; font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .wrap { width:1500px; padding:22px 26px 10px; }
+  h1 { font-size:22px; margin:0 0 2px; color:#0b0b0b; font-weight:650; }
+  .sub { color:#52514e; font-size:13.5px; margin-bottom:6px; }
+  text { font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .lbl { font-size:15px; font-weight:650; fill:#0b0b0b; }
+  .val { font-size:13px; fill:#52514e; }
+  .pipe { stroke-width:4; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .box { fill:#fcfcfb; stroke:#9a998f; stroke-width:1.5; }
+</style></head><body><div class="wrap">
+<h1>Selected system — 2 geothermal doublets at 3.1 km, direct heat, electric cooling</h1>
+<div class="sub">Peak heating day 28 Jan 2027 (30 MW): both doublets at 300 m³/h. Values from the GEMINI-verified dispatch. The brine loop is kept above the gas bubble point, so the associated gas stays dissolved and is re-injected.</div>
+<svg width="1450" height="500" viewBox="0 0 1450 500">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#52514e"/></marker>
+  </defs>
+
+  <!-- subsurface -->
+  <line x1="20" y1="250" x2="600" y2="250" stroke="#c9c8c2" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="24" y="242" class="val">ground level</text>
+  <rect x="40" y="420" width="560" height="56" fill="#f3efe6" stroke="#c9b98f"/>
+  <text x="58" y="444" class="lbl">Reservoir at 3,100 m TVD</text>
+  <text x="58" y="464" class="val">105 °C · 313 bar · 200 mD · 100 m thick · PI ≈ 11.7 m³/h/bar</text>
+
+  <!-- producer -->
+  <path class="pipe" stroke="#eb6834" d="M150 420 L150 170 L300 170" marker-end="url(#a)"/>
+  <text x="164" y="300" class="val">2 producers</text>
+  <text x="164" y="318" class="val">ESP ≈ 700 m, 57 Hz</text>
+  <!-- injector -->
+  <path class="pipe" stroke="#2a78d6" d="M560 210 L460 210 L460 420" marker-end="url(#a)"/>
+  <text x="474" y="300" class="val">2 injectors</text>
+  <text x="474" y="318" class="val">1.5 km spacing</text>
+  <text x="474" y="336" class="val">breakthrough ≈ 57 yr</text>
+
+  <!-- brine loop box -->
+  <rect class="box" x="300" y="40" width="300" height="78" rx="10"/>
+  <text x="316" y="66" class="lbl">Pressurised brine loop ≥ 30 bar</text>
+  <text x="316" y="88" class="val">gas (80 % CH₄, 20 % CO₂) stays dissolved</text>
+  <text x="316" y="106" class="val">filters · pumps 1.62 MW (both doublets)</text>
+
+  <!-- hot brine to HEX -->
+  <path class="pipe" stroke="#eb6834" d="M300 170 L690 170" marker-end="url(#a)"/>
+  <text x="320" y="160" class="val">102.6 °C · 2 × 300 m³/h</text>
+  <!-- cooled brine back -->
+  <path class="pipe" stroke="#2a78d6" d="M690 210 L560 210"/>
+  <text x="478" y="236" class="val">62.6 °C · ΔT = 40 K (limit)</text>
+
+  <!-- HEX -->
+  <rect class="box" x="690" y="140" width="190" height="104" rx="10"/>
+  <text x="706" y="166" class="lbl">Plate heat exchangers</text>
+  <text x="706" y="188" class="val">2 × 2.06 MW/K</text>
+  <text x="706" y="206" class="val">27.5 MW to district</text>
+  <text x="706" y="224" class="val">3-way valve on DH side</text>
+
+  <!-- DH return -->
+  <path class="pipe" stroke="#6250d6" d="M1330 300 L1260 300 L1260 290 L775 290 L775 244" marker-end="url(#a)"/>
+  <text x="900" y="312" class="val">district heating return 45 °C · ≈ 480 m³/h</text>
+  <!-- DH to boiler -->
+  <path class="pipe" stroke="#d03b3b" d="M775 140 L775 90 L930 90" marker-end="url(#a)"/>
+  <text x="790" y="80" class="val">≈ 99 °C</text>
+  <rect class="box" x="930" y="44" width="220" height="92" rx="10"/>
+  <text x="946" y="70" class="lbl">Gas boiler 17.5 MW</text>
+  <text x="946" y="92" class="val">N-1 backup · 2.5 MW on 28 Jan</text>
+  <text x="946" y="110" class="val">0.9 GWh/yr = 0.8 % of heat</text>
+  <path class="pipe" stroke="#d03b3b" d="M1150 90 L1330 90" marker-end="url(#a)"/>
+  <text x="1166" y="80" class="val">100 °C supply · 30 MW</text>
+
+  <!-- district -->
+  <rect class="box" x="1330" y="40" width="90" height="440" rx="10" style="fill:#f0efec"/>
+  <text x="1384" y="330" class="lbl" transform="rotate(-90 1384 330)">Urban district</text>
+
+  <!-- cooling -->
+  <rect class="box" x="930" y="360" width="260" height="104" rx="10"/>
+  <text x="946" y="386" class="lbl">Electric chillers 11.5 MW</text>
+  <text x="946" y="408" class="val">COP ≈ 7.5 at 20 °C chilled water</text>
+  <text x="946" y="426" class="val">peak 10 MW (19 Jul) · 23.7 GWh/yr</text>
+  <text x="946" y="444" class="val">+15 % margin: meets +10 % demand</text>
+  <path class="pipe" stroke="#1baf7a" d="M1190 385 L1330 385" marker-end="url(#a)"/>
+  <text x="1206" y="376" class="val">chilled 20 °C</text>
+  <path class="pipe" stroke="#1baf7a" stroke-dasharray="8 6" d="M1330 445 L1190 445" marker-end="url(#a)"/>
+  <text x="1206" y="468" class="val">return 26 °C</text>
+  <!-- cooling tower -->
+  <rect class="box" x="690" y="372" width="170" height="80" rx="10"/>
+  <text x="706" y="398" class="lbl">Cooling tower</text>
+  <text x="706" y="420" class="val">rejects ≈ 11.3 MW</text>
+  <path class="pipe" stroke="#9a998f" d="M930 412 L860 412" marker-end="url(#a)"/>
+  <text x="690" y="490" class="val">Grid electricity for pumps and chillers: 9.3 GWh/yr (0.3 kg CO₂/kWh)</text>
+</svg>
+</div></body></html>

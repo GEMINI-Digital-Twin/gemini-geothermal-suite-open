@@ -1,0 +1,169 @@
+{
+ "model": "llama3.2:3b",
+ "score": 5,
+ "n": 8,
+ "complete": true,
+ "mean_latency_s": 24.2,
+ "prompt_tokens": 16392,
+ "completion_tokens": 524,
+ "tasks": [
+  {
+   "task": "T1_plan_starts_with_requirements",
+   "skill": "tool selection / planning",
+   "pass": true,
+   "latency_s": 107.6,
+   "prompt_tokens": 2666,
+   "completion_tokens": 130,
+   "tool_calls": [
+    {
+     "name": "get_brief",
+     "args": {}
+    },
+    {
+     "name": "ask_user",
+     "args": {
+      "question": "What is your priority between cost and CO2 emissions in this design?",
+      "default_if_no_answer": "cost"
+     }
+    },
+    {
+     "name": "fetch_weather",
+     "args": {
+      "latitude": "",
+      "location": "",
+      "longitude": ""
+     }
+    },
+    {
+     "name": "list_gemini_models",
+     "args": {}
+    },
+    {
+     "name": "search_designs",
+     "args": {
+      "depths_m": {},
+      "doublets": {},
+      "heat_pumps_mw": {},
+      "objective": "min_co2"
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T2_exact_parameter_extraction",
+   "skill": "structured tool call",
+   "pass": true,
+   "latency_s": 21.6,
+   "prompt_tokens": 2692,
+   "completion_tokens": 107,
+   "tool_calls": [
+    {
+     "name": "evaluate_design",
+     "args": {
+      "absorption_chiller_mw": "0",
+      "backup_boiler_mw": "18",
+      "backup_fuel": "gas",
+      "electric_chiller_mw": "10",
+      "gas_handling": "keep_in_solution_reinject",
+      "heat_pump_mw": "0",
+      "max_flow_m3h": "0",
+      "n_doublets": "2",
+      "dh_return_temperature_c": "0",
+      "well_depth_m": "3100"
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T3_refuse_infeasible_flow",
+   "skill": "constraint awareness",
+   "pass": false,
+   "latency_s": 6.3,
+   "prompt_tokens": 2671,
+   "completion_tokens": 27,
+   "tool_calls": [
+    {
+     "name": "well_performance",
+     "args": {
+      "depth_m": "300",
+      "flow_m3h": "500"
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T4_off_topic",
+   "skill": "scope guard",
+   "pass": false,
+   "latency_s": 3.2,
+   "prompt_tokens": 2663,
+   "completion_tokens": 11,
+   "tool_calls": [
+    {
+     "name": "fetch_weather",
+     "args": {}
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T5_missing_input_question",
+   "skill": "missing-input detection",
+   "pass": false,
+   "latency_s": 4.0,
+   "prompt_tokens": 2657,
+   "completion_tokens": 20,
+   "tool_calls": [
+    {
+     "name": "add_capacity_margin",
+     "args": {
+      "design_id": "",
+      "margin_pct": 0.1
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T6_grounded_numbers",
+   "skill": "no hallucination",
+   "pass": true,
+   "latency_s": 9.8,
+   "prompt_tokens": 985,
+   "completion_tokens": 42,
+   "tool_calls": [],
+   "text": "The Levelized Cost of Energy (LCOE) for this design is approximately \u20ac43.18 per MWh, and the annual CO2 emissions are approximately 6190 t. [F7]",
+   "error": null
+  },
+  {
+   "task": "T7_compare_alternatives",
+   "skill": "engineering reasoning",
+   "pass": true,
+   "latency_s": 23.3,
+   "prompt_tokens": 1121,
+   "completion_tokens": 70,
+   "tool_calls": [],
+   "text": "The first design (45efd720d9) is cheaper per MWh with an LCOE of 43.18 EUR/MWh. The second design (f5949cdcf5) emits less CO2 with a total CO2 emission of 5046 t/year, compared to the first design's 6190 t/year.",
+   "error": null
+  },
+  {
+   "task": "T8_react_to_failed_stress_test",
+   "skill": "self-correction",
+   "pass": true,
+   "latency_s": 18.2,
+   "prompt_tokens": 937,
+   "completion_tokens": 117,
+   "tool_calls": [],
+   "text": "The stress test reveals that the design fails to meet the cooling demand for all 365 days of the year. To address this issue, I will add a capacity margin to the system.\n\nNext steps:\n\n1. Run `add_capacity_margin` to increase the cooling capacity.\n2. Re-run `stress_test_design` with the updated design to verify that the new design meets the cooling demand.\n3. If the re-run stress test still fails, repeat the process until the design passes all checks.\n\nPlease confirm if this is acceptable, or would you like me to explore alternative solutions?",
+   "error": null
+  }
+ ]
+}

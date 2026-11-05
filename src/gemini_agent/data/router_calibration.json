@@ -1,0 +1,8 @@
+{
+ "model": "qwen3:4b-instruct-2507-q4_K_M",
+ "temperature": 8.623,
+ "threshold": 0.8,
+ "fitted_on": 40,
+ "date": "2026-11-04",
+ "eval": "runs/router_eval.json"
+}

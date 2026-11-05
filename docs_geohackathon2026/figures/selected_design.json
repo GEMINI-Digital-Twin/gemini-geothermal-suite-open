@@ -1,0 +1,636 @@
+{
+ "selected": {
+  "design_id": "94913e7a7b",
+  "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 11.5 MW, gas boiler 17.5 MW, DH 100/45 C, gas reinjected",
+  "feasible": true,
+  "violations": [],
+  "geothermal_share_of_heat_pct": 99.18,
+  "heat_supply_gwh": {
+   "hex": 110.752,
+   "heat_pump": 0.0,
+   "boiler": 0.916
+  },
+  "cooling_supply_gwh": {
+   "absorption": 0.0,
+   "electric": 23.743
+  },
+  "unmet_mwh": {
+   "heat": 0.0,
+   "cool": 0.0
+  },
+  "electricity_gwh": 9.273,
+  "grid_gas_gwh": 0.996,
+  "co2_t_per_year": 2983.1,
+  "hp_spf": null,
+  "max_brine_dt_k": 40.0,
+  "doublet_operating_days": [
+   330,
+   242
+  ],
+  "capex_meur": 49.17,
+  "lcoe_eur_per_mwh": 44.0,
+  "co2_intensity_kg_per_mwh": 22.03
+ },
+ "economics": {
+  "capex_eur": {
+   "wells": 36520000.0,
+   "surface_doublets": 7000000.0,
+   "heat_exchangers": 1373333.0,
+   "heat_pump": 0.0,
+   "absorption_chiller": 0.0,
+   "electric_chiller": 2875000.0,
+   "backup_boiler": 1400000.0
+  },
+  "capex_total_meur": 49.17,
+  "opex_eur_per_year": {
+   "electricity": 1390950.0,
+   "grid_gas": 44820.0,
+   "co2": 268479.0,
+   "fixed_om": 681408.0
+  },
+  "opex_total_meur_per_year": 2.386,
+  "annualised_capex_meur": 3.572,
+  "lcoe_eur_per_mwh": 44.0,
+  "co2_intensity_kg_per_mwh": 22.03,
+  "assumptions": {
+   "discount_rate": 0.06,
+   "lifetime_years": 30,
+   "electricity_eur_per_mwh": 150.0,
+   "natural_gas_eur_per_mwh": 45.0,
+   "co2_eur_per_t": 90.0,
+   "well_md_to_tvd": 1.15
+  }
+ },
+ "checks": {
+  "passed": true,
+  "n_checks": 9,
+  "checks": [
+   {
+    "check": "flow_within_50_300_m3h_per_active_doublet",
+    "passed": true,
+    "value": [
+     100.0,
+     300.0
+    ],
+    "limit": [
+     50.0,
+     300.0
+    ],
+    "detail": ""
+   },
+   {
+    "check": "brine_cooling_le_40K",
+    "passed": true,
+    "value": 40.0,
+    "limit": 40.0,
+    "detail": ""
+   },
+   {
+    "check": "heating_demand_met_all_365_days",
+    "passed": true,
+    "value": 0,
+    "limit": 0,
+    "detail": ""
+   },
+   {
+    "check": "cooling_demand_met_all_365_days",
+    "passed": true,
+    "value": 0,
+    "limit": 0,
+    "detail": ""
+   },
+   {
+    "check": "geothermal_operating_days_le_330_per_doublet",
+    "passed": true,
+    "value": [
+     330,
+     242
+    ],
+    "limit": 330,
+    "detail": ""
+   },
+   {
+    "check": "production_equals_injection_volume",
+    "passed": true,
+    "value": "by construction",
+    "limit": "equal",
+    "detail": "each doublet re-injects its own produced volume into the same reservoir"
+   },
+   {
+    "check": "n_doublets_1_to_3",
+    "passed": true,
+    "value": 2,
+    "limit": [
+     1,
+     3
+    ],
+    "detail": ""
+   },
+   {
+    "check": "thermal_breakthrough_after_lifetime",
+    "passed": true,
+    "value": 57.1,
+    "limit": 30.0,
+    "detail": "Gringarten-Sauty doublet breakthrough at maximum flow and design spacing"
+   },
+   {
+    "check": "heat_pump_cop_physical",
+    "passed": true,
+    "value": null,
+    "limit": "(1, 20)",
+    "detail": ""
+   }
+  ],
+  "violations": []
+ },
+ "n_evaluated": 111,
+ "search_best": {
+  "design_id": "2bc0849d0d",
+  "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/45 C, gas reinjected",
+  "feasible": true,
+  "violations": [],
+  "geothermal_share_of_heat_pct": 99.18,
+  "heat_supply_gwh": {
+   "hex": 110.752,
+   "heat_pump": 0.0,
+   "boiler": 0.916
+  },
+  "cooling_supply_gwh": {
+   "absorption": 0.0,
+   "electric": 23.743
+  },
+  "unmet_mwh": {
+   "heat": 0.0,
+   "cool": 0.0
+  },
+  "electricity_gwh": 9.273,
+  "grid_gas_gwh": 0.996,
+  "co2_t_per_year": 2983.1,
+  "hp_spf": null,
+  "max_brine_dt_k": 40.0,
+  "doublet_operating_days": [
+   330,
+   242
+  ],
+  "capex_meur": 48.79,
+  "lcoe_eur_per_mwh": 43.73,
+  "co2_intensity_kg_per_mwh": 22.03
+ },
+ "selected_spec": {
+  "well_depth_m": 3100.0,
+  "n_doublets": 2,
+  "max_flow_m3h": 300.0,
+  "dh_return_temperature_c": 45.0,
+  "hex_approach_k": 3.0,
+  "heat_pump_mw": 0.0,
+  "absorption_chiller_mw": 0.0,
+  "electric_chiller_mw": 11.5,
+  "backup_boiler_mw": 17.5,
+  "backup_fuel": "gas",
+  "gas_handling": "keep_in_solution_reinject",
+  "maintenance_start_days": "auto",
+  "cooling_supply_temperature_c": 20.0,
+  "heating_supply_temperature_c": 100.0
+ },
+ "search_best_spec": {
+  "well_depth_m": 3100.0,
+  "n_doublets": 2,
+  "max_flow_m3h": 300.0,
+  "dh_return_temperature_c": 45.0,
+  "hex_approach_k": 3.0,
+  "heat_pump_mw": 0.0,
+  "absorption_chiller_mw": 0.0,
+  "electric_chiller_mw": 10.0,
+  "backup_boiler_mw": 17.5,
+  "backup_fuel": "gas",
+  "gas_handling": "keep_in_solution_reinject",
+  "maintenance_start_days": "auto",
+  "cooling_supply_temperature_c": 20.0,
+  "heating_supply_temperature_c": 100.0
+ },
+ "robustness_gate": {
+  "rule": "agent session: +10 % load failed, add_capacity_margin on cooling",
+  "source": "runs/20261105-151955-ba06/design_94913e7a7b/spec.json",
+  "electric_chiller_mw": [
+   10.0,
+   11.5
+  ]
+ },
+ "weather": "Open-Meteo ERA5 archive (openmeteo_52.01_4.36_2023.csv)",
+ "alternatives": [
+  {
+   "design_id": "c82a014a37",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/50 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.15,
+   "heat_supply_gwh": {
+    "hex": 110.724,
+    "heat_pump": 0.0,
+    "boiler": 0.944
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 9.276,
+   "grid_gas_gwh": 1.026,
+   "co2_t_per_year": 2989.9,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    241
+   ],
+   "capex_meur": 48.79,
+   "lcoe_eur_per_mwh": 43.74,
+   "co2_intensity_kg_per_mwh": 22.08
+  },
+  {
+   "design_id": "886ba2dc8f",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/55 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.12,
+   "heat_supply_gwh": {
+    "hex": 110.687,
+    "heat_pump": 0.0,
+    "boiler": 0.98
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 9.278,
+   "grid_gas_gwh": 1.066,
+   "co2_t_per_year": 2998.6,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    240
+   ],
+   "capex_meur": 48.79,
+   "lcoe_eur_per_mwh": 43.77,
+   "co2_intensity_kg_per_mwh": 22.14
+  },
+  {
+   "design_id": "6e323072cd",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/45 C, gas burned",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 94.18,
+   "heat_supply_gwh": {
+    "hex": 105.165,
+    "heat_pump": 0.0,
+    "boiler": 6.503
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 7.147,
+   "grid_gas_gwh": 0.683,
+   "co2_t_per_year": 6052.8,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    282
+   ],
+   "capex_meur": 47.79,
+   "lcoe_eur_per_mwh": 42.59,
+   "co2_intensity_kg_per_mwh": 44.7
+  },
+  {
+   "design_id": "447e678502",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/50 C, gas burned",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 94.14,
+   "heat_supply_gwh": {
+    "hex": 105.119,
+    "heat_pump": 0.0,
+    "boiler": 6.549
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 7.15,
+   "grid_gas_gwh": 0.727,
+   "co2_t_per_year": 6062.5,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    276
+   ],
+   "capex_meur": 47.79,
+   "lcoe_eur_per_mwh": 42.61,
+   "co2_intensity_kg_per_mwh": 44.77
+  },
+  {
+   "design_id": "9174b801f5",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/55 C, gas burned",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 94.4,
+   "heat_supply_gwh": {
+    "hex": 105.416,
+    "heat_pump": 0.0,
+    "boiler": 6.251
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 7.208,
+   "grid_gas_gwh": 0.565,
+   "co2_t_per_year": 6128.9,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    275
+   ],
+   "capex_meur": 47.79,
+   "lcoe_eur_per_mwh": 42.67,
+   "co2_intensity_kg_per_mwh": 45.26
+  }
+ ],
+ "pareto": [
+  {
+   "design_id": "3a96ad9c0f",
+   "label": "3x doublet @ 3400 m (<= 300 m3/h), HP 5 MW, ElCh 10 MW, gas boiler 3 MW, DH 100/50 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.83,
+   "heat_supply_gwh": {
+    "hex": 111.24,
+    "heat_pump": 0.242,
+    "boiler": 0.186
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 8.72,
+   "grid_gas_gwh": 0.202,
+   "co2_t_per_year": 2656.8,
+   "hp_spf": 6.284,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    317,
+    216
+   ],
+   "capex_meur": 76.66,
+   "lcoe_eur_per_mwh": 60.25,
+   "co2_intensity_kg_per_mwh": 19.62
+  },
+  {
+   "design_id": "80e45f5bec",
+   "label": "3x doublet @ 3400 m (<= 300 m3/h), ElCh 10 MW, gas boiler 3 MW, DH 100/50 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.76,
+   "heat_supply_gwh": {
+    "hex": 111.397,
+    "heat_pump": 0.0,
+    "boiler": 0.271
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 8.72,
+   "grid_gas_gwh": 0.294,
+   "co2_t_per_year": 2675.6,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    287,
+    154
+   ],
+   "capex_meur": 73.66,
+   "lcoe_eur_per_mwh": 58.13,
+   "co2_intensity_kg_per_mwh": 19.76
+  },
+  {
+   "design_id": "3fbc24719d",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), HP 5 MW, ElCh 10 MW, gas boiler 17.5 MW, DH 100/45 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.45,
+   "heat_supply_gwh": {
+    "hex": 110.61,
+    "heat_pump": 0.441,
+    "boiler": 0.617
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 9.309,
+   "grid_gas_gwh": 0.67,
+   "co2_t_per_year": 2928.2,
+   "hp_spf": 5.674,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    263
+   ],
+   "capex_meur": 51.79,
+   "lcoe_eur_per_mwh": 45.79,
+   "co2_intensity_kg_per_mwh": 21.62
+  },
+  {
+   "design_id": "d145460835",
+   "label": "2x doublet @ 3400 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/50 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.41,
+   "heat_supply_gwh": {
+    "hex": 111.011,
+    "heat_pump": 0.0,
+    "boiler": 0.657
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 9.313,
+   "grid_gas_gwh": 0.714,
+   "co2_t_per_year": 2938.2,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    269
+   ],
+   "capex_meur": 51.55,
+   "lcoe_eur_per_mwh": 45.33,
+   "co2_intensity_kg_per_mwh": 21.7
+  },
+  {
+   "design_id": "2b0d3c55dc",
+   "label": "2x doublet @ 3400 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/45 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.41,
+   "heat_supply_gwh": {
+    "hex": 111.011,
+    "heat_pump": 0.0,
+    "boiler": 0.657
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 9.313,
+   "grid_gas_gwh": 0.714,
+   "co2_t_per_year": 2938.2,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    269
+   ],
+   "capex_meur": 51.55,
+   "lcoe_eur_per_mwh": 45.33,
+   "co2_intensity_kg_per_mwh": 21.7
+  },
+  {
+   "design_id": "2bc0849d0d",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/45 C, gas reinjected",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 99.18,
+   "heat_supply_gwh": {
+    "hex": 110.752,
+    "heat_pump": 0.0,
+    "boiler": 0.916
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 9.273,
+   "grid_gas_gwh": 0.996,
+   "co2_t_per_year": 2983.1,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    242
+   ],
+   "capex_meur": 48.79,
+   "lcoe_eur_per_mwh": 43.73,
+   "co2_intensity_kg_per_mwh": 22.03
+  },
+  {
+   "design_id": "6e323072cd",
+   "label": "2x doublet @ 3100 m (<= 300 m3/h), ElCh 10 MW, gas boiler 17.5 MW, DH 100/45 C, gas burned",
+   "feasible": true,
+   "violations": [],
+   "geothermal_share_of_heat_pct": 94.18,
+   "heat_supply_gwh": {
+    "hex": 105.165,
+    "heat_pump": 0.0,
+    "boiler": 6.503
+   },
+   "cooling_supply_gwh": {
+    "absorption": 0.0,
+    "electric": 23.743
+   },
+   "unmet_mwh": {
+    "heat": 0.0,
+    "cool": 0.0
+   },
+   "electricity_gwh": 7.147,
+   "grid_gas_gwh": 0.683,
+   "co2_t_per_year": 6052.8,
+   "hp_spf": null,
+   "max_brine_dt_k": 40.0,
+   "doublet_operating_days": [
+    330,
+    282
+   ],
+   "capex_meur": 47.79,
+   "lcoe_eur_per_mwh": 42.59,
+   "co2_intensity_kg_per_mwh": 44.7
+  }
+ ],
+ "gemini_verification_peak_day": {
+  "date": "2027-01-28",
+  "screening": {
+   "flow_m3h": 300.0,
+   "hex_mw": 13.733333333333333,
+   "hp_mw": 0.0,
+   "injection_t_c": 62.56202552203251
+  },
+  "gemini_solver": {
+   "flow_m3h": 299.9999712498254,
+   "hex_mw": 13.733333564988216,
+   "hp_mw": 0.0,
+   "injection_t_c": 62.56202101395251,
+   "esp_kw": 762.4536383327862,
+   "injection_pump_kw": 15.798523743196363,
+   "esp_freq_hz": 57.189410134690874,
+   "esp_stages": 55
+  },
+  "deviation": {
+   "flow_pct": -9.583391526272559e-06,
+   "hex_pct": 1.6868074057282401e-06,
+   "hp_pct": 0.0,
+   "injection_t_k": -4.508080003517989e-06
+  },
+  "consistent": "True"
+ }
+}

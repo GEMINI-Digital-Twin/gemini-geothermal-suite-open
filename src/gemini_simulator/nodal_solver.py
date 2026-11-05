@@ -142,6 +142,15 @@ def _well_bottomhole_pressure_injection(dpdt, flow_rate, wellhead_pressure, well
 
     Injection flows *down* the well from a fixed wellhead pressure; no
     ESP is involved on the injection side.
+
+    ``DPDT``'s ``"down"`` walk adds the friction loss to the pressure, which
+    is correct when walking *against* the flow (production wells walked
+    from the wellhead to bottomhole). During injection the fluid flows in
+    the walking direction, so friction *reduces* the pressure:
+    ``p_bh = p_wh + dp_grav - dp_fric``. The friction term DPDT added is
+    therefore removed twice here (GeoHackathon 2026 fix: previously the
+    required injection wellhead pressure was underestimated by
+    ``2 * dp_fric``).
     """
     u = {
         "pressure": wellhead_pressure,
@@ -151,7 +160,8 @@ def _well_bottomhole_pressure_injection(dpdt, flow_rate, wellhead_pressure, well
         "direction": "down",
     }
     dpdt.calculate_output(u, None)
-    return dpdt.get_output()["pressure_output"]
+    y = dpdt.get_output()
+    return y["pressure_output"] - 2.0 * y["pressuredrop_fric_output"]
 
 
 def solve_injection_flow_rate(

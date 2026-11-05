@@ -1,0 +1,12 @@
+{
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "profile": "lean",
+  "mode": "interactive",
+  "harness": "lean",
+  "inputs": "default",
+  "weather": "Open-Meteo ERA5 archive (openmeteo_52.01_4.36_2023.csv)",
+  "llm_host": "http://127.0.0.1:11435",
+  "router": null,
+  "memory_at_start": "# GeoDesign agent memory\n\nPersistent lessons learned across sessions. Append short, dated, factual notes with `edit_file`.\n\n- (seed) Numbers must come from tools; cite fact IDs [F#]. The verifier rejects untraceable numbers.\n- (2026-11-05, session 20261105-152650-fb88, verifier rejection) When the user specifies a design, simulate and present exactly that design (every stated capacity, depth and temperature).\n- (2026-11-05, session 20261105-152650-fb88, verifier rejection) Write each number with the unit of its fact field (e.g. EUR/MWh, t CO2/yr, MW).\n- (2026-11-05, session 20261105-153710-2e45, verifier rejection) Every number must come from a tool result or the brief; never quote a number that is not in a recorded fact.\n- (2026-11-05, session 20261105-154853-e96a, verifier rejection) Recommend only the latest design of the turn, and only after verify_design (stress tests, uncertainty, GEMINI solver) has passed on it.",
+  "scenario": "S6"
+}

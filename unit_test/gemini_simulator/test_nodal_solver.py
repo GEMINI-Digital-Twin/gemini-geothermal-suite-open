@@ -188,8 +188,24 @@ def test_solve_injection_flow_rate_balances_pressures():
         },
         None,
     )
-    p_well = well.get_output()["pressure_output"]
+    y = well.get_output()
+    # injection: fluid flows down, so friction reduces bottomhole pressure
+    p_well = y["pressure_output"] - 2.0 * y["pressuredrop_fric_output"]
     ipr.calculate_output({"flow": flow_rate}, None)
     p_reservoir = ipr.get_output()["bottomhole_pressure"]
 
     assert abs(p_well - p_reservoir) < 1.0
+
+
+def test_injection_bottomhole_pressure_subtracts_friction():
+    """Injection BHP = wellhead + hydrostatic - friction (fluid flows downward)."""
+    from gemini_simulator.nodal_solver import _well_bottomhole_pressure_injection
+
+    well = _make_well()
+    q = 0.05  # m3/s
+    p_bh = _well_bottomhole_pressure_injection(well, q, 10e5, 50 + 273.15)
+    y = well.get_output()
+    hydrostatic = y["pressuredrop_grav_output"]
+    friction = y["pressuredrop_fric_output"]
+    assert friction > 0
+    assert abs(p_bh - (10e5 + hydrostatic - friction)) < 1.0

@@ -1,0 +1,235 @@
+{
+ "model": "qwen3:4b-instruct-2507-q4_K_M",
+ "n": 40,
+ "date": "2026-11-04",
+ "router_prompt_tokens_mean": 356,
+ "router_latency_s_mean": 1.44,
+ "cv_temperatures": [
+  9.313,
+  8.623
+ ],
+ "raw": {
+  "accuracy": 0.7,
+  "nll": 4.561,
+  "ece": 0.304,
+  "thresholds": [
+   {
+    "threshold": 0.5,
+    "router_answers": 10,
+    "false_acts": 2,
+    "missed": 8
+   },
+   {
+    "threshold": 0.6,
+    "router_answers": 10,
+    "false_acts": 2,
+    "missed": 8
+   },
+   {
+    "threshold": 0.7,
+    "router_answers": 10,
+    "false_acts": 2,
+    "missed": 8
+   },
+   {
+    "threshold": 0.8,
+    "router_answers": 10,
+    "false_acts": 2,
+    "missed": 8
+   },
+   {
+    "threshold": 0.9,
+    "router_answers": 10,
+    "false_acts": 2,
+    "missed": 8
+   },
+   {
+    "threshold": 0.95,
+    "router_answers": 10,
+    "false_acts": 2,
+    "missed": 8
+   },
+   {
+    "threshold": 0.99,
+    "router_answers": 10,
+    "false_acts": 2,
+    "missed": 8
+   }
+  ],
+  "confusion": [
+   [
+    "incomplete",
+    "design",
+    1.0
+   ],
+   [
+    "incomplete",
+    "design",
+    0.841
+   ],
+   [
+    "incomplete",
+    "design",
+    1.0
+   ],
+   [
+    "incomplete",
+    "off_topic",
+    0.992
+   ],
+   [
+    "incomplete",
+    "design",
+    1.0
+   ],
+   [
+    "incomplete",
+    "off_topic",
+    1.0
+   ],
+   [
+    "incomplete",
+    "design",
+    1.0
+   ],
+   [
+    "incomplete",
+    "design",
+    1.0
+   ],
+   [
+    "infeasible",
+    "design",
+    0.885
+   ],
+   [
+    "infeasible",
+    "design",
+    1.0
+   ],
+   [
+    "infeasible",
+    "follow_up",
+    1.0
+   ],
+   [
+    "infeasible",
+    "follow_up",
+    1.0
+   ]
+  ]
+ },
+ "calibrated_cv": {
+  "accuracy": 0.7,
+  "nll": 0.836,
+  "ece": 0.14,
+  "thresholds": [
+   {
+    "threshold": 0.5,
+    "router_answers": 9,
+    "false_acts": 1,
+    "missed": 8
+   },
+   {
+    "threshold": 0.6,
+    "router_answers": 9,
+    "false_acts": 1,
+    "missed": 8
+   },
+   {
+    "threshold": 0.7,
+    "router_answers": 8,
+    "false_acts": 0,
+    "missed": 8
+   },
+   {
+    "threshold": 0.8,
+    "router_answers": 8,
+    "false_acts": 0,
+    "missed": 8
+   },
+   {
+    "threshold": 0.9,
+    "router_answers": 0,
+    "false_acts": 0,
+    "missed": 16
+   },
+   {
+    "threshold": 0.95,
+    "router_answers": 0,
+    "false_acts": 0,
+    "missed": 16
+   },
+   {
+    "threshold": 0.99,
+    "router_answers": 0,
+    "false_acts": 0,
+    "missed": 16
+   }
+  ],
+  "confusion": [
+   [
+    "incomplete",
+    "design",
+    0.678
+   ],
+   [
+    "incomplete",
+    "design",
+    0.397
+   ],
+   [
+    "incomplete",
+    "design",
+    0.619
+   ],
+   [
+    "incomplete",
+    "off_topic",
+    0.393
+   ],
+   [
+    "incomplete",
+    "design",
+    0.631
+   ],
+   [
+    "incomplete",
+    "off_topic",
+    0.61
+   ],
+   [
+    "incomplete",
+    "design",
+    0.727
+   ],
+   [
+    "incomplete",
+    "design",
+    0.624
+   ],
+   [
+    "infeasible",
+    "design",
+    0.359
+   ],
+   [
+    "infeasible",
+    "design",
+    0.533
+   ],
+   [
+    "infeasible",
+    "follow_up",
+    0.722
+   ],
+   [
+    "infeasible",
+    "follow_up",
+    0.818
+   ]
+  ]
+ },
+ "temperature_all": 8.623,
+ "threshold": 0.8
+}

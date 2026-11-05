@@ -1,0 +1,28 @@
+=== 1. Resource
+  2.5 km: reservoir 87.0 °C, hydrostatic 253 bar
+  3.1 km: reservoir 105.0 °C, hydrostatic 313 bar
+  wellhead at 3.1 km ≈ 102.5 °C (agent: 102.6 °C)
+=== 2. Heat per doublet: Q = rho * q * cp * dT
+  cp 3.90 kJ/kgK -> 13.39 MW per doublet, 26.78 MW for two (agent: 13.73 / 27.47)
+  cp 4.00 kJ/kgK -> 13.73 MW per doublet, 27.47 MW for two (agent: 13.73 / 27.47)
+  cp 4.18 kJ/kgK -> 14.35 MW per doublet, 28.70 MW for two (agent: 13.73 / 27.47)
+  brine out 62.5 °C vs DH return 45.0 °C: 17.5 K margin at the cold end
+=== 3. Daily balance, 2 doublets, each offline 35 days in summer (staggered)
+  summer heat during maintenance ≤ 7.6 MW (one doublet gives 13.7) -> covered
+  boiler energy 0.17 GWh, geothermal share 99.8 % (agent: 0.92 GWh, 99.2 %)
+  peak day boiler 2.53 MW; one doublet out: boiler 16.27 MW (agent: 2.53 / 16.27; installed 17.5)
+  heating + cooling max on any day: 30.0 MW
+=== 4. Pumping (producer ESP), keep loop ≥ 30 bar so gas stays dissolved
+  drawdown 25.6 bar, pump head 64 bar -> 758 kW per doublet at full flow (agent ESP: 762 kW)
+  pump electricity ≈ 6.2 GWh/yr (crude: flow ∝ load) (agent: 6.08)
+=== 5. Cooling
+  23.74 GWh cooling / COP 7.5 = 3.17 GWh electricity; peak 1.33 MWe
+=== 6. CO2 (grid 0.3 kg/kWh; gas 0.202 kg/kWh LHV, boiler 92 %)
+  electricity 9.3 GWh -> 2795 t; boiler gas -> 37 t; total ≈ 2832 t/yr (agent: 2,983)
+=== 7. Cost (assumptions as in economics_assumptions.yaml)
+  4 wells                             36.52 M€
+  surface 2 doublets (pressurised)     7.00 M€
+  heat exchangers                      1.37 M€
+  chillers 11.5 MW                     2.88 M€
+  boiler 17.5 MW                       1.40 M€
+  CAPEX 49.2 M€ (agent 49.2); LCOE 43.7 €/MWh (agent 44.0)

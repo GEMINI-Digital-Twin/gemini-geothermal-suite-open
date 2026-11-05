@@ -1,0 +1,159 @@
+{
+ "model": "qwen2.5:7b",
+ "score": 5,
+ "n": 8,
+ "complete": true,
+ "mean_latency_s": 48.0,
+ "prompt_tokens": 21494,
+ "completion_tokens": 514,
+ "tasks": [
+  {
+   "task": "T1_plan_starts_with_requirements",
+   "skill": "tool selection / planning",
+   "pass": true,
+   "latency_s": 184.0,
+   "prompt_tokens": 2612,
+   "completion_tokens": 17,
+   "tool_calls": [
+    {
+     "name": "get_brief",
+     "args": {}
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T2_exact_parameter_extraction",
+   "skill": "structured tool call",
+   "pass": true,
+   "latency_s": 32.5,
+   "prompt_tokens": 2642,
+   "completion_tokens": 117,
+   "tool_calls": [
+    {
+     "name": "evaluate_design",
+     "args": {
+      "max_flow_m3h": 300,
+      "backup_fuel": "gas",
+      "gas_handling": "keep_in_solution_reinject",
+      "n_doublets": 2,
+      "well_depth_m": 3100,
+      "absorption_chiller_mw": 0,
+      "backup_boiler_mw": 18,
+      "dh_return_temperature_c": 50,
+      "electric_chiller_mw": 10,
+      "heat_pump_mw": 0
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T3_refuse_infeasible_flow",
+   "skill": "constraint awareness",
+   "pass": false,
+   "latency_s": 12.3,
+   "prompt_tokens": 2619,
+   "completion_tokens": 35,
+   "tool_calls": [
+    {
+     "name": "well_performance",
+     "args": {
+      "depth_m": 2500,
+      "flow_m3h": 500
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T4_off_topic",
+   "skill": "scope guard",
+   "pass": false,
+   "latency_s": 32.3,
+   "prompt_tokens": 2609,
+   "completion_tokens": 111,
+   "tool_calls": [
+    {
+     "name": "fetch_weather",
+     "args": {
+      "latitude": 52.0833,
+      "longitude": 4.3333
+     }
+    }
+   ],
+   "text": "This tool provides past-year daily weather data for setting cooling-tower water temperatures, not future forecasts. For today's actual weather in Delft, I would recommend checking a weather website or app instead. However, since we don't need current weather but historical data for simulations, I will proceed with fetching the relevant ERA5 archive data for the site location you provide.\n\n",
+   "error": null
+  },
+  {
+   "task": "T5_missing_input_question",
+   "skill": "missing-input detection",
+   "pass": true,
+   "latency_s": 5.9,
+   "prompt_tokens": 2603,
+   "completion_tokens": 17,
+   "tool_calls": [
+    {
+     "name": "get_brief",
+     "args": {}
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T6_grounded_numbers",
+   "skill": "no hallucination",
+   "pass": true,
+   "latency_s": 22.9,
+   "prompt_tokens": 2769,
+   "completion_tokens": 48,
+   "tool_calls": [],
+   "text": "The Levelized Cost of Energy (LCOE) for this design is [F7] 43.18 EUR/MWh and the annual CO2 emissions are [F7] 6,190 t.",
+   "error": null
+  },
+  {
+   "task": "T7_compare_alternatives",
+   "skill": "engineering reasoning",
+   "pass": false,
+   "latency_s": 46.3,
+   "prompt_tokens": 2930,
+   "completion_tokens": 40,
+   "tool_calls": [
+    {
+     "name": "compare_designs",
+     "args": {
+      "design_ids": [
+       "45efd720d9",
+       "f5949cdcf5"
+      ]
+     }
+    }
+   ],
+   "text": "",
+   "error": null
+  },
+  {
+   "task": "T8_react_to_failed_stress_test",
+   "skill": "self-correction",
+   "pass": true,
+   "latency_s": 47.7,
+   "prompt_tokens": 2710,
+   "completion_tokens": 129,
+   "tool_calls": [
+    {
+     "name": "add_capacity_margin",
+     "args": {
+      "design_id": "F9",
+      "margin_pct": 10
+     }
+    }
+   ],
+   "text": "The stress test with a 10% increase in demand has shown that the cooling demand is not fully met over all 365 days, with an unmet cooling demand of 92.4 MWh. This indicates we need to add capacity margin for the cooling system.\n\nNext, I will scale up the chillers and boiler by a margin to ensure robustness against such demand fluctuations. Let's increase the chiller capacity by 10% as a conservative approach.\n",
+   "error": null
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+# Techno-economic assumptions (NOT given by the brief). Indicative 2026 NW-European values,
+# rounded; every figure is an assumption the agent must disclose. Ranges feed the
+# uncertainty analysis.
+finance:
+  discount_rate: {value: 0.06, range: [0.04, 0.08], why: "utility-scale heat project WACC"}
+  lifetime_years: {value: 30, range: [25, 30], why: "doublet design life"}
+
+prices:
+  electricity_eur_per_mwh: {value: 150.0, range: [100.0, 220.0], why: "industrial tariff incl. grid fees"}
+  natural_gas_eur_per_mwh: {value: 45.0, range: [30.0, 70.0], why: "TTF + transport, LHV basis"}
+  co2_eur_per_t: {value: 90.0, range: [60.0, 150.0], why: "EU ETS / ETS2 band"}
+
+emission_factors:
+  electricity_kg_per_kwh: {value: 0.3, why: "organizer reference value (Discord, 3 Nov 2026)"}
+  natural_gas_kg_per_kwh: {value: 0.202, why: "56.1 t CO2/TJ (IPCC 2006), LHV"}
+
+capex:
+  well_fixed_eur: {value: 2.0e+6, why: "rig mobilisation, wellhead, completion"}
+  well_per_m_eur: {value: 2000.0, range: [1600.0, 2600.0], why: "Dutch geothermal wells ~6-8 MEUR at 2.5 km"}
+  surface_per_doublet_eur: {value: 3.0e+6, why: "ESP, degasser/filters, piping, controls"}
+  pressurised_loop_extra_per_doublet_eur: {value: 0.5e+6, why: "higher pressure rating to keep gas in solution"}
+  heat_exchanger_eur_per_mw: {value: 50.0e+3, why: "plate HEX incl. installation"}
+  heat_pump_eur_per_mw_th: {value: 600.0e+3, range: [450.0e+3, 800.0e+3], why: "large high-temp HP (100 C supply)"}
+  absorption_chiller_eur_per_mw_c: {value: 400.0e+3, why: "LiBr single effect incl. cooling-tower share"}
+  electric_chiller_eur_per_mw_c: {value: 250.0e+3, why: "centrifugal/screw incl. cooling-tower share"}
+  gas_boiler_eur_per_mw: {value: 80.0e+3, why: "gas boiler incl. flue"}
+  electric_boiler_eur_per_mw: {value: 100.0e+3, why: "electrode boiler"}
+
+opex:
+  wells_fixed_fraction_per_year: {value: 0.01, why: "well maintenance, workovers"}
+  surface_fixed_fraction_per_year: {value: 0.025, why: "O&M of surface equipment"}
+
+technology:
+  boiler_efficiency_lhv: {value: 0.92, why: "condensing-capable gas boiler at 100 C supply"}
+  electric_boiler_efficiency: {value: 0.99, why: "electrode boiler"}
+  heat_pump_eta_lorenz: {value: 0.5, range: [0.45, 0.55], why: "Lorenz efficiency of industrial HPs"}
+  cooling_water_temperature_c: {value: 27.0, why: "cooling-tower outlet, summer design (no weather data given)"}
+  cooling_return_temperature_c: {value: 26.0, why: "high-temperature cooling network 20/26 C"}
+  gas_bubble_point_bar: {value: 30.0, range: [20.0, 40.0], why: "Henry's law estimate for 0.64 Nm3 CH4/m3 at ~85 C"}

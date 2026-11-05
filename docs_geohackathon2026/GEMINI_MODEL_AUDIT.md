@@ -1,0 +1,26 @@
+# GEMINI model audit (GeoHackathon 2026)
+
+Problems found while building the design agent on the `development` branch. Each entry says where it is,
+what goes wrong, and what we did.
+
+We fixed every problem that changed our results (entries 1, 4, 5, 5b, 6). The others are reported, not changed: they do not
+touch our design (the gas stays dissolved, so no two-phase flow; we set the roughness ourselves; our pressures stay far
+above zero; heat always flows from the hot brine to the colder district water), and changing GEMINI's defaults would
+change results for every other GEMINI user and its existing tests, so they are better fixed with the maintainers.
+
+| # | Where | Issue | Consequence | Status |
+|---|---|---|---|---|
+| 1 | `gemini_simulator/nodal_solver.py` `_well_bottomhole_pressure_injection` | Uses DPDT `"down"` walk, which **adds** friction (correct only when walking against the flow). For injection the fluid flows down, so friction must be **subtracted**. | Required injection wellhead pressure underestimated by 2·Δp_fric (13.4 bar at 300 m³/h, 2.5 km, 0.2 m ID; injection pump power ~2× too low). | **Fixed** + regression test `test_injection_bottomhole_pressure_subtracts_friction`; existing test updated. |
+| 2 | `gemini_model/well/pressure_drop.py` (DPDT) | Superficial gas velocity `us_g = gmf / rho_g / A` uses the gas **mass fraction** instead of the gas **mass flow** `mg` (units m/kg instead of m/s). | Wrong two-phase (Beggs-Brill) pressure drop whenever gas is present (gmf > 0). Inactive with the default PVT (gmf = 0). | Reported (fix: `mg / rho_g / A`). |
+| 3 | `gemini_simulator/well_flow.py` `_build_dpdt` default `roughness=0.01` | Darcy-Weisbach takes roughness in **m**; 0.01 m = 10 mm is ~200× commercial steel (0.045 mm). DPDT comment labels it "mm". | Well friction overestimated several-fold for default configs. | Reported; our configs pass `roughness_m` explicitly. |
+| 4 | `gemini_simulator/well_flow.py` | Fluid properties hard-wired to `PVTConstantSTP` (1000 kg/m³, 1 mPa·s); no way to pass brine properties. | Brief brine (1030 kg/m³, 0.4 mPa·s) could not be modelled. | **Fixed**: optional `"pvt"` key in well configs (backward compatible). |
+| 5 | `gemini_model/heatpump/heatpump_basic.py` source-limited branch (`carnot_model2`/`lorenz_model2`) | When the source outlet hits `Ts_in_minimum`, an unbracketed Nelder-Mead on (COP, Th_out) converges to a spurious asymptote (COP → 1, Th_out → ∞). | Example: sink 60 °C in, source 63→45 °C, 300 m³/h → returned Th_out = 837 °C, 466 MW, COP 1.01. | **Fixed**: 1-D bracketed `brentq` on Th_out with Qs fixed (unique physical root; energy balance exact) + regression test. |
+| 5b | `HeatpumpBasic._calculate` main branch | Same unbracketed Nelder-Mead on the unconstrained problem returns Ts_out below the source minimum for some inputs (55 °C source, 400 m³/h, sink 61→100 °C), which then triggers branch 5 → Th_out 140.8 °C, COP 8·10⁷. | Non-physical heat-pump output on ordinary operating points. | **Fixed**: 1-D bracketed `brentq` on Ts_out with Qh fixed; 35× faster (4.4 → 0.12 ms/call); two existing tests updated to the exact values (differences ≤0.2 W, the old solver's convergence error). |
+| 6 | `gemini_simulator/registry.py` | `HeatpumpBasic` existed but was not registered, so plants could not include a heat pump. | — | **Fixed**: registered `heat_pump`, plus new `absorption_chiller`, `electric_chiller`. |
+| 7 | `gemini_model/heat_exchanger/heat_exchanger.py` (ε-NTU), `heat_duty_max` | The maximum duty is built from the magnitude of the inlet temperature difference, so the sign of the driving temperature difference is lost. | If the primary inlet is the colder one, the model still returns a positive duty in the primary-to-secondary direction (second-law violation). | Reported. Our dispatch always has the brine (102.6 °C) above the DH return (45–50 °C). |
+| 8 | `gemini_model/well/pressure_drop.py`, section loop | Each section result is passed through `max(0.001, …)`. | A well that cannot lift its column still returns a complete profile at ~0 bar instead of signalling an infeasible operating point. | Reported. Every design we evaluate must keep ≥ 20 bar at the ESP intake and ≥ 30 bar at the wellhead (gas bubble point); both are checked. |
+| 9 | `gemini_simulator/nodal_solver.py`, intake pressure (`max(0.0, …)`) and default `flow_bracket` up to 0.2 m³/s | The pump-intake pressure is clipped at zero, and the search interval extends to ~720 m³/h. | The root finder can settle on a flow the pump could only deliver with a vacuum at its intake. | Reported. We evaluate wells at the brief's 300 m³/h cap and reject designs that violate the intake constraint above. |
+| 10 | `gemini_model/well/pressure_drop.py`, `Uvalue = 10 * np.ones(Ngrid)` | The tubing-to-formation heat-loss coefficient is a fixed constant, not a parameter. | Wellhead temperature cannot be calibrated to a measured value. | Reported; our 102.6 °C wellhead at 3,100 m is stated as an assumption. |
+
+_Candidates still to verify:_ KPI density 1050 kg/m³ hard-coded (brief 1030); boiler/CHP caloric value
+50 MJ/kg assumes pure CH4 (brief gas mix ≈ 29.6 MJ/kg LHV); injector wellhead pressure clamps to the 0.001 bar bracket bound.

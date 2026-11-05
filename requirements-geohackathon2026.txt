@@ -1,0 +1,19 @@
+# GeoHackathon 2026 design agent (DeepLayers) -- exact versions used for every result in the report.
+# Install into the project venv after the GEMINI dependencies (numpy/scipy/pandas pins per pyproject).
+deepagents==0.7.32
+langchain==1.4.8
+langchain-core==1.7.4
+langgraph==1.2.19
+langchain-ollama==1.1.0
+langchain-openai==1.7.3
+ollama==0.6.3
+gradio==6.31.0
+plotly==7.1.0
+pydantic==2.14.2
+numpy==2.2.6
+scipy==1.13.1
+pandas==2.3.3
+PyYAML==6.0.3
+matplotlib==3.10.7
+requests==2.34.2
+pytest>=8

@@ -1,0 +1,261 @@
+{
+ "tornado": {
+  "design_id": "94913e7a7b",
+  "base_lcoe": 44.0,
+  "base_co2_t": 2983.1,
+  "rows": [
+   {
+    "input": "discount_rate",
+    "label": "Discount rate (-)",
+    "low": 0.04,
+    "high": 0.08,
+    "lcoe_low": 38.62,
+    "lcoe_high": 49.87,
+    "co2_low": 2983.1,
+    "co2_high": 2983.1,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 11.25
+   },
+   {
+    "input": "well_cost_eur_per_m",
+    "label": "Drilling cost (\u20ac/m)",
+    "low": 1600.0,
+    "high": 2600.0,
+    "lcoe_low": 40.52,
+    "lcoe_high": 49.22,
+    "co2_low": 2983.1,
+    "co2_high": 2983.1,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 8.699999999999996
+   },
+   {
+    "input": "electricity_eur_per_mwh",
+    "label": "Electricity price (\u20ac/MWh)",
+    "low": 100.0,
+    "high": 220.0,
+    "lcoe_low": 40.55,
+    "lcoe_high": 48.73,
+    "co2_low": 2963.5,
+    "co2_high": 3090.6,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 8.18
+   },
+   {
+    "input": "gradient_c_per_km",
+    "label": "Geothermal gradient (\u00b0C/km)",
+    "low": 27.0,
+    "high": 33.0,
+    "lcoe_low": 51.53,
+    "lcoe_high": 43.77,
+    "co2_low": 6518.6,
+    "co2_high": 2901.7,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 7.759999999999998
+   },
+   {
+    "input": "demand_scale",
+    "label": "Demand level (\u00d7)",
+    "low": 0.9,
+    "high": 1.1,
+    "lcoe_low": 47.24,
+    "lcoe_high": 41.62,
+    "co2_low": 2638.7,
+    "co2_high": 3487.1,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 5.6200000000000045
+   },
+   {
+    "input": "permeability_md",
+    "label": "Permeability (mD)",
+    "low": 100.0,
+    "high": 400.0,
+    "lcoe_low": 47.87,
+    "lcoe_high": 42.65,
+    "co2_low": 4068.1,
+    "co2_high": 2651.5,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 5.219999999999999
+   },
+   {
+    "input": "co2_eur_per_t",
+    "label": "CO\u2082 price (\u20ac/t)",
+    "low": 60.0,
+    "high": 150.0,
+    "lcoe_low": 43.34,
+    "lcoe_high": 45.32,
+    "co2_low": 2991.8,
+    "co2_high": 2977.4,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 1.9799999999999969
+   },
+   {
+    "input": "gas_eur_per_mwh",
+    "label": "Gas price (\u20ac/MWh)",
+    "low": 30.0,
+    "high": 70.0,
+    "lcoe_low": 43.86,
+    "lcoe_high": 44.15,
+    "co2_low": 3057.5,
+    "co2_high": 2963.5,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 0.28999999999999915
+   },
+   {
+    "input": "heat_pump_capex_eur_per_mw",
+    "label": "Heat-pump CAPEX (\u20ac/MW)",
+    "low": 450000.0,
+    "high": 800000.0,
+    "lcoe_low": 44.0,
+    "lcoe_high": 44.0,
+    "co2_low": 2983.1,
+    "co2_high": 2983.1,
+    "feasible_low": true,
+    "feasible_high": true,
+    "lcoe_swing": 0.0
+   }
+  ]
+ },
+ "break_even": {
+  "deep_vs_hp_drilling": {
+   "input": "well_cost_eur_per_m",
+   "label": "Drilling cost (\u20ac/m)",
+   "range": [
+    1000,
+    6000
+   ],
+   "a_minus_b_at_low": -10.4,
+   "a_minus_b_at_high": -1.98,
+   "break_even": null,
+   "note": "A is better over the whole range"
+  },
+  "deep_vs_hp_hpcapex": {
+   "input": "heat_pump_capex_eur_per_mw",
+   "label": "Heat-pump CAPEX (\u20ac/MW)",
+   "range": [
+    100000.0,
+    800000.0
+   ],
+   "a_minus_b_at_low": -5.1,
+   "a_minus_b_at_high": -10.15,
+   "break_even": null,
+   "note": "A is better over the whole range"
+  },
+  "electric_vs_absorption_elec_price": {
+   "input": "electricity_eur_per_mwh",
+   "label": "Electricity price (\u20ac/MWh)",
+   "range": [
+    50,
+    600
+   ],
+   "a_minus_b_at_low": -3.8,
+   "a_minus_b_at_high": -1.94,
+   "break_even": null,
+   "note": "A is better over the whole range"
+  },
+  "two_vs_one_doublet_co2_price": {
+   "input": "co2_eur_per_t",
+   "label": "CO\u2082 price (\u20ac/t)",
+   "range": [
+    0,
+    400
+   ],
+   "a_minus_b_at_low": 7.34,
+   "a_minus_b_at_high": -14.59,
+   "break_even": 134.0805
+  }
+ },
+ "weather_effect": {
+  "constant_27c": {
+   "lcoe_eur_per_mwh": 44.59,
+   "co2_t": 3120.2,
+   "electricity_gwh": 9.73,
+   "feasible": true
+  },
+  "era5": {
+   "lcoe_eur_per_mwh": 44.0,
+   "co2_t": 2983.1,
+   "electricity_gwh": 9.273,
+   "feasible": true
+  },
+  "cooling_water_c": {
+   "min": 12.0,
+   "max": 27.2,
+   "mean": 16.3
+  },
+  "source": "Open-Meteo ERA5 archive (openmeteo_52.01_4.36_2023.csv)"
+ },
+ "designs": {
+  "selected": {
+   "well_depth_m": 3100.0,
+   "n_doublets": 2,
+   "max_flow_m3h": 300.0,
+   "dh_return_temperature_c": 45.0,
+   "hex_approach_k": 3.0,
+   "heat_pump_mw": 0.0,
+   "absorption_chiller_mw": 0.0,
+   "electric_chiller_mw": 11.5,
+   "backup_boiler_mw": 17.5,
+   "backup_fuel": "gas",
+   "gas_handling": "keep_in_solution_reinject",
+   "maintenance_start_days": "auto",
+   "cooling_supply_temperature_c": 20.0,
+   "heating_supply_temperature_c": 100.0
+  },
+  "hp": {
+   "well_depth_m": 2500.0,
+   "n_doublets": 2,
+   "max_flow_m3h": 300.0,
+   "dh_return_temperature_c": 45.0,
+   "hex_approach_k": 3.0,
+   "heat_pump_mw": 10.0,
+   "absorption_chiller_mw": 0.0,
+   "electric_chiller_mw": 11.5,
+   "backup_boiler_mw": 17.0,
+   "backup_fuel": "gas",
+   "gas_handling": "keep_in_solution_reinject",
+   "maintenance_start_days": "auto",
+   "cooling_supply_temperature_c": 20.0,
+   "heating_supply_temperature_c": 100.0
+  },
+  "abs": {
+   "well_depth_m": 3100.0,
+   "n_doublets": 2,
+   "max_flow_m3h": 300.0,
+   "dh_return_temperature_c": 45.0,
+   "hex_approach_k": 3.0,
+   "heat_pump_mw": 0.0,
+   "absorption_chiller_mw": 6.0,
+   "electric_chiller_mw": 7.0,
+   "backup_boiler_mw": 17.5,
+   "backup_fuel": "gas",
+   "gas_handling": "keep_in_solution_reinject",
+   "maintenance_start_days": "auto",
+   "cooling_supply_temperature_c": 20.0,
+   "heating_supply_temperature_c": 100.0
+  },
+  "one": {
+   "well_depth_m": 3100.0,
+   "n_doublets": 1,
+   "max_flow_m3h": 300.0,
+   "dh_return_temperature_c": 45.0,
+   "hex_approach_k": 3.0,
+   "heat_pump_mw": 0.0,
+   "absorption_chiller_mw": 0.0,
+   "electric_chiller_mw": 11.5,
+   "backup_boiler_mw": 31.5,
+   "backup_fuel": "gas",
+   "gas_handling": "separate_and_burn",
+   "maintenance_start_days": "auto",
+   "cooling_supply_temperature_c": 20.0,
+   "heating_supply_temperature_c": 100.0
+  }
+ }
+}

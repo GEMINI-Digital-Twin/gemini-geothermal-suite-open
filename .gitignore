@@ -9,4 +9,5 @@ poetry.lock
 .coverage
 codedocumentation
 build
-.env
+.env.venv/
+runs/

@@ -1,0 +1,42 @@
+# Labelled turns for router calibration (python -m gemini_agent.router_eval).
+# None of these is one of the few-shot examples in router.SYSTEM. design: a design exists already.
+- {label: design, design: false, message: "Design a geothermal heating and cooling system for the supplied 2027 demand profiles. Balance cost and CO2 and explain every major decision."}
+- {label: design, design: false, message: "Find the cheapest system that meets all heating and cooling demand."}
+- {label: design, design: false, message: "We want the lowest possible CO2. Design the plant."}
+- {label: design, design: false, message: "Evaluate 3 doublets at 2800 m with a 5 MW heat pump and an electric backup boiler."}
+- {label: design, design: false, message: "Design the system for minimum LCOE, district heating return 45 C."}
+- {label: design, design: false, message: "Please size wells, heat pump and chillers for the given demand, prioritising low emissions at reasonable cost."}
+- {label: design, design: false, message: "Run the full design workflow with a balanced cost/CO2 objective."}
+- {label: design, design: false, message: "Simulate 2 doublets at 3400 m with absorption cooling and gas reinjection."}
+- {label: follow_up, design: true, previous: "Design the system for minimum LCOE.", message: "Why did you choose electric chillers instead of absorption?"}
+- {label: follow_up, design: true, previous: "Design the system for minimum LCOE.", message: "What happens to the LCOE if the gas price doubles?"}
+- {label: follow_up, design: true, previous: "Evaluate 2 doublets at 3100 m.", message: "What happens if one doublet trips on the coldest day of the year?"}
+- {label: follow_up, design: true, previous: "Evaluate 2 doublets at 3100 m.", message: "Why not use 2500 m wells with a heat pump instead of drilling to 3100 m?"}
+- {label: follow_up, design: true, previous: "Design the plant.", message: "How sure are you about these numbers? Run an uncertainty analysis."}
+- {label: follow_up, design: true, previous: "Design the plant.", message: "Can you export this design to GEMINI and check it on the peak day?"}
+- {label: follow_up, design: true, previous: "Design the plant.", message: "Add a 10 percent capacity margin and show the new cost."}
+- {label: follow_up, design: true, previous: "Design the plant.", message: "Compare it with a single-doublet option."}
+- {label: off_topic, design: false, message: "What will the weather be in Delft tomorrow?"}
+- {label: off_topic, design: false, message: "What is the capital of Australia?"}
+- {label: off_topic, design: false, message: "Write a Python function that reverses a string."}
+- {label: off_topic, design: false, message: "Translate 'good morning' into Dutch."}
+- {label: off_topic, design: true, previous: "Design the plant.", message: "Tell me a joke about engineers."}
+- {label: off_topic, design: false, message: "Which stock should I buy this week?"}
+- {label: off_topic, design: true, previous: "Design the plant.", message: "Recommend a good restaurant in Amsterdam."}
+- {label: off_topic, design: false, message: "How many goals did Messi score in 2022?"}
+- {label: incomplete, design: false, message: "Design a heating and cooling system for our district."}
+- {label: incomplete, design: false, message: "We need an energy system. Can you help?"}
+- {label: incomplete, design: false, message: "Plan the geothermal project for us."}
+- {label: incomplete, design: false, message: "Build something for the district heating."}
+- {label: incomplete, design: false, message: "Can you do the design?"}
+- {label: incomplete, design: false, message: "Help me with geothermal heating and cooling."}
+- {label: incomplete, design: false, message: "Start the design."}
+- {label: incomplete, design: false, message: "What system should we build?"}
+- {label: infeasible, design: false, message: "Run each doublet at 500 m3/h so we need fewer wells, and evaluate that design."}
+- {label: infeasible, design: false, message: "Design it with 5 doublets to be safe."}
+- {label: infeasible, design: false, message: "One doublet at 650 m3/h should be enough, evaluate that."}
+- {label: infeasible, design: true, previous: "Design the plant.", message: "Increase the flow to 350 m3/h per doublet and re-run."}
+- {label: infeasible, design: false, message: "Use 4 doublets at 3 km depth."}
+- {label: infeasible, design: true, previous: "Design the plant.", message: "Lower each doublet to 20 m3/h to save pumping power."}
+- {label: design, design: false, message: "Optimise depth, doublets and cooling technology for the lowest cost of energy."}
+- {label: follow_up, design: true, previous: "Design the plant.", message: "Which input drives the cost most?"}

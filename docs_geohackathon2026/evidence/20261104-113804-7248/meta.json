@@ -1,0 +1,7 @@
+{
+  "model": "qwen2.5:7b",
+  "profile": "lean",
+  "mode": "interactive",
+  "harness": "lean",
+  "scenario": "S5"
+}
