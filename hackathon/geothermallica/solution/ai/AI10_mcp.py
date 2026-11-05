@@ -43,14 +43,9 @@ def note_path(name):
     return next((q for q in (HERE.parent / name, HERE.parents[1] / name) if q.exists()), None)
 
 
-FINDINGS, README = note_path("NOTES_findings.md"), note_path("README.md")
+README = note_path("README.md")
 
-# a resource is registered only when its file is in this checkout, so no client sees a dead resource
-if FINDINGS:
-    @server.resource("notes://findings", name="findings", description="The GEMINI findings (jury material)", mime_type="text/markdown")
-    def findings():
-        return FINDINGS.read_text()
-
+# the resource is registered only when the file is in this checkout, so no client sees a dead resource
 if README:
     @server.resource("notes://readme", name="readme", description="README.md: the map of the deliverable", mime_type="text/markdown")
     def readme():

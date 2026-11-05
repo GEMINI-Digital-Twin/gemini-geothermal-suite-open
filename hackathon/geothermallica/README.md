@@ -9,7 +9,8 @@ It adds five GEMINI models, one fix to GEMINI's solver and unit tests for all si
 It also holds our hackathon solution under `hackathon/geothermallica/solution/`, which imports those models from `src/`.
 The solution is an agentic design tool for the challenge brief: a district with 30 MW of heat and 10 MW of cold,
 supplied at 100 C and 20 C, from 1 to 3 geothermal doublets in a reservoir at 2 500 m.
-Nothing outside `src/`, `unit_test/` and `hackathon/geothermallica/` is changed.
+Outside `src/`, `unit_test/` and `hackathon/geothermallica/` only two files change: `CHANGELOG.md` gains an Unreleased
+entry and `pyproject.toml` gains `testpaths = ["unit_test"]`.
 
 ## 2. Run the tests
 
@@ -22,7 +23,7 @@ pytest unit_test/gemini_model unit_test/gemini_simulator hackathon -q
 
 You should see `176 passed`: 91 of TNO's tests, 38 for our models and the fix, 47 for the solution.
 A few `RuntimeWarning` lines from `heatpump_basic.py` are normal.
-A bare `pytest` from the root runs `unit_test/` only, as TNO's CI does.
+A bare `pytest` from the root runs `unit_test/` only, as TNO's CI does (`testpaths` in `pyproject.toml`).
 `flake8 src unit_test --max-line-length=100` gives the same 31 findings as `development`; `black --check src unit_test` is clean.
 The `hackathon/` folder is not linted by TNO's CI.
 The MCP server alone needs `pip install "mcp>=2"`.
@@ -78,7 +79,7 @@ Every prompt is a plain file in `ai/prompts/`.
 
 Run these from `hackathon/geothermallica/solution`.
 
-**(a) The design plan, no model needed** (about 25 s):
+**(a) The design plan, no model needed** (15 to 25 s):
 
 ```
 python -c "import sys; sys.path.insert(0, 'ai'); import AI03_agent as a, AI03_plan as p; print(p.plan_message(a.BRIEF, p.plan(a.BRIEF)))"
@@ -111,8 +112,9 @@ over stdio; with Claude Code, `claude mcp add geohack -- python <absolute path>/
 ## 6. The answer for the brief
 
 Two doublets at a 56.5 C network return, ESP at 1 100 m, associated gas reinjected: LCoH 61.93 EUR/MWh, 5.49 kt CO2 a
-year, no boiler energy with a 16 MW backup boiler installed, 17 of 17 checks pass.
+year, no boiler energy with a 16 MW backup boiler installed, 17 of 17 checks pass (13 computed, 4 declared).
 One doublet needs a boiler for 22 % of the heat and is 48 % short at the peak; a third doublet adds 8.98 EUR/MWh when
 two already meet the heat. A boiler lift instead of the heat pump costs 76.1 EUR/MWh and 11.97 kt CO2.
-The gas engine alternative gives 61.8 EUR/MWh and 9.43 kt CO2. GEMINI's own solver agrees with the design within 0.2 bar
+Burning the associated gas in an engine instead gives 61.8 EUR/MWh and 9.43 kt CO2; reinjection is chosen because it
+cuts CO2 by 3.94 kt for 0.13 EUR/MWh more, under the 1 % cost rule the plan applies to that choice. GEMINI's own solver agrees with the design within 0.2 bar
 on the ESP head and 0.1 bar on the injection wellhead.

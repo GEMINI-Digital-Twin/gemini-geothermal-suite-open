@@ -33,6 +33,9 @@ all go through this helper, so one line fixes all three:
 flow rate and `direction = "down"`. `unit_test/gemini_simulator/test_injector_sign.py` fails on the old line and passes
 on the new one. The DPDT docstring in `src/gemini_model/well/pressure_drop.py` now states the sign convention:
 positive flow is upward (production), negative is downward (injection); `direction` only sets the walk order.
+TNO's `unit_test/gemini_simulator/test_nodal_solver.py::test_solve_injection_flow_rate_balances_pressures` built its
+reference with the old positive flow, so its reference DPDT call now passes `-flow_rate`; it fails otherwise.
+`pyproject.toml` gains `testpaths = ["unit_test"]` so a bare `pytest` runs TNO's tests only.
 
 ## Cross-checks against the solution
 
@@ -42,6 +45,6 @@ From `hackathon/geothermallica/solution`:
 PYTHONPATH=../../../src python -m unittest geo.test_gemini_models -v
 ```
 
-Sources: Guelich (2014) Centrifugal Pumps, DOI 10.1007/978-3-642-40114-5; Ommen et al. (2015) Int. J. Refrig. 55,
+Sources (each module docstring cites its own): Guelich (2014) Centrifugal Pumps, DOI 10.1007/978-3-642-40114-5; Ommen et al. (2015) Int. J. Refrig. 55,
 DOI 10.1016/j.ijrefrig.2015.02.012; Arpagaus et al. (2018) Energy 152, DOI 10.1016/j.energy.2018.03.166;
 US DOE (2017) Absorption Chillers fact sheet, https://www.energy.gov/sites/prod/files/2017/06/f35/CHP-Absorption%20Chiller-compliant.pdf
