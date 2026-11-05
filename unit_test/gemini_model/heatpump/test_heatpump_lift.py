@@ -75,6 +75,14 @@ class TestHeatPumpLift(unittest.TestCase):
             self.assertAlmostEqual(y[key], ref[key], delta=1e-9 * abs(ref[key]), msg=key)
         self.assertEqual(y["source_pressure_out"], 9.5)
 
+    def test_parameters_stay_as_loaded(self):
+        """A call with a floor in u leaves the loaded mode and floor parameters unchanged."""
+        hp = HeatPumpLift()
+        hp.update_parameters({"mode": "carnot", "Ts_in_minimum": 30.0})
+        hp.calculate_output(CASE)
+        self.assertEqual((hp.parameters["mode"], hp.parameters["Ts_in_minimum"]), ("carnot", 30.0))
+        self.assertAlmostEqual(hp.get_output()["COP"], _run(CASE)["COP"], delta=1e-12)
+
     def test_cop_cap(self):
         """A 5 K lift on 80 C brine: Lorenz COP above 8 uncapped, 8 capped, duty held, balance."""
         u = {
@@ -104,7 +112,6 @@ class TestHeatPumpLift(unittest.TestCase):
         cop, th_out, ts_out, q_h, _ = hp._at_target(
             100.0 + K, CASE["T_water_in_C"] + K, ts_in, ts_floor, mh, ms
         )
-        print(f"  _at_target: COP {cop:.4f}, brine out {ts_out - K:.4f} C, {q_h / 1e6:.3f} MW")
         self.assertAlmostEqual(th_out, 100.0 + K, delta=1e-9)
         self.assertTrue(ts_floor < ts_out < ts_in)
         brine = p["Cp_s"] * ms * (ts_in - ts_out)

@@ -16,5 +16,6 @@ if DEV_SRC not in sys.path:
 try:
     import gemini_model.heatpump.heatpump_lift  # noqa: F401,E402
 except ImportError as err:
-    raise ImportError(f"GEMINI tree {DEV_SRC} has no geothermallica models; point GEMINI_DEV_SRC at the fork "
+    raise ImportError(f"GEMINI tree {DEV_SRC} has no geothermallica models; looked in order at GEMINI_DEV_SRC, {_REPO_SRC} "
+                      "and ~/src/gemini-geothermallica/src; point GEMINI_DEV_SRC at the fork's src "
                       "(github.com/barteksarwa/gemini-geothermal-suite-open, branch geothermallica)") from err

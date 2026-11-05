@@ -19,7 +19,11 @@ class DoubletThermalBreakthrough(StaticModel):
     """Compute breakthrough and interference for a homogeneous confined aquifer, steady flow."""
 
     def __init__(self):
-        """Set the defaults: ThermoGIS rock, brine 1030 kg/m3 and 4000 J/kg/K, one doublet."""
+        """Set the defaults: ThermoGIS rock, brine 1030 kg/m3 and 4000 J/kg/K, one doublet.
+
+        The reservoir defaults (100 m, porosity 0.20, 200 mD, 0.40 mPa s) are an example
+        sandstone; a project file sets its own through update_parameters.
+        """
         super().__init__()
         self.parameters = {
             "rock_density": 2700.0,  # kg/m3; source: TNO ThermoGIS defaults
@@ -29,6 +33,10 @@ class DoubletThermalBreakthrough(StaticModel):
             "well_spacing": 1500.0,  # producer to injector in the reservoir, m; ThermoGIS default
             "number_of_doublets": 1,  # doublets side by side
             "doublet_spacing": None,  # injector to injector, m; None means well_spacing
+            "reservoir_thickness": 100.0,  # m
+            "porosity": 0.20,  # -
+            "reservoir_permeability": 200 * 9.869233e-16,  # 200 mD in m2
+            "viscosity": 0.40e-3,  # brine, Pa s
         }
 
     def heat_capacity_aquifer(self):
@@ -72,11 +80,13 @@ class DoubletThermalBreakthrough(StaticModel):
         )
         return [
             sum(
-                unit * math.log(math.hypot(spacing, (i - j) * d) / (abs(i - j) * d))
-                for j in range(n)
-                if j != i
+                (
+                    unit * math.log(math.hypot(spacing, (i - j) * d) / (abs(i - j) * d))
+                    for j in range(n)
+                    if j != i
+                ),
+                0.0,
             )
-            + 0.0
             for i in range(n)
         ]
 

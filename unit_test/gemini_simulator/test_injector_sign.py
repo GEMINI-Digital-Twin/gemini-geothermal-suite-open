@@ -19,7 +19,12 @@ def test_injection_friction_lowers_bottomhole_pressure():
 
 
 def test_injector_wellhead_pressure_includes_friction():
-    """300 m3/h into 250 bar at 10 m3/h/bar needs 47.25 bar at the wellhead, friction included."""
+    """300 m3/h into 250 bar at 10 m3/h/bar needs 47.25 bar at the wellhead, friction included.
+
+    Friction in the tubing is 12.5 bar. With friction added (fixed sign) the wellhead needs
+    47.25 bar; with friction subtracted (old sign) it needs 22.25 bar, so
+    47.25 = 22.25 + 2 x 12.5 bar.
+    """
     cfg = {
         "reservoir_pressure_bar": 250.0,
         "productivity_index_m3h_per_bar": 10.0,

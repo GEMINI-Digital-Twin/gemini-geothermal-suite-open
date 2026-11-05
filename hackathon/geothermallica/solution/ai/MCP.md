@@ -2,7 +2,7 @@
 
 `AI10_mcp.py` serves the 17 tools of `AI02_tools.FUNCS` over stdio with the same names, schemas, docstrings and JSON
 results; every call goes through `AI02_tools.call`, so an out-of-range argument comes back as a tool error with
-AI02's message (e.g. `q_m3h=400.0 outside 50.0-300.0`). Also: resources `notes://findings`, `notes://readme`, and
+AI02's message (e.g. `q_m3h=400.0 outside 50.0-300.0`). Also: resources `notes://findings`, `notes://readme` (each only when its file is in the checkout), and
 the prompt `design_brief` (the challenge brief, `AI03.BRIEF`). mcp 2.3.0 (`MCPServer`, the renamed FastMCP). No Ollama.
 
 PY=/Users/bartlomiejsarwa/Documents/reservoir_eng/.venv/bin/python, SRV=/Users/bartlomiejsarwa/Documents/reservoir_eng/geohackathon_2026/solution/ai/AI10_mcp.py

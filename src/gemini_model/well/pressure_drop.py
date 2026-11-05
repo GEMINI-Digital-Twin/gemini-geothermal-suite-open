@@ -64,9 +64,8 @@ class DPDT(StaticModel):
         direction = str(u["direction"]).strip().lower()  # down for injection and up for production
         pressure = u["pressure"]  # Pa
         temperature = u["temperature"]  # K
-        flowRate = u[
-            "flowrate"
-        ]  # m3/s, signed: positive = upward (production), negative = downward (injection)
+        # m3/s, signed: positive = upward (production), negative = downward (injection)
+        flowRate = u["flowrate"]
         T_ambient = u["temperature_ambient"]  # K
 
         section_pressure = []

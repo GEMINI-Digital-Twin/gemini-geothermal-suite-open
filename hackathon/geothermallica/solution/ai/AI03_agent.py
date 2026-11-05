@@ -149,6 +149,12 @@ def tidy(j, results):
         j["gemini_verification"] = moved[0].replace("[C]", "").strip()
         j["reasoning"] = [r for r in j["reasoning"] if r not in moved]
         j["code_moved"] = "gemini_verification taken from reasoning"
+    it = next((r["result"] for r in results if r["name"] == "design_iterations" and isinstance(r["result"], dict)), None)
+    for st in (x for x in (it or {}).get("steps", []) if x.get("move") and x.get("by")):
+        if isinstance(j.get("reasoning"), list) and not any(f"{st['by']}'s move" in str(r).lower() for r in j["reasoning"]):
+            import AI03_plan
+            j["reasoning"].append(AI03_plan.violation_sentence(st).replace("[C].", "[C; code]"))
+            j["code_added"] = j.get("code_added", []) + ["reasoning[-1]"]
     ec = {r["args"].get("gas_handling", "engine"): r["result"] for r in results if r["name"] == "economics"
           and "error" not in r["result"] and r["args"].get("n_doublets") == j.get("n_doublets")
           and r["args"].get("t_return_c") == j.get("t_return_c")}

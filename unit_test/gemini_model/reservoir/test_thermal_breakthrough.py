@@ -3,6 +3,7 @@
 import unittest
 
 from gemini_model.reservoir.thermal_breakthrough import YEAR, DoubletThermalBreakthrough
+from gemini_simulator.registry import create_component
 
 Q = 300 / 3600  # m3/s
 BAR = 1e5  # Pa
@@ -64,6 +65,12 @@ class TestDoubletThermalBreakthrough(unittest.TestCase):
         y = _run()
         self.assertEqual(y["interference_pressure"], [0.0])
         self.assertEqual(y["interference_pressure_max"], 0.0)
+
+    def test_defaults_from_registry(self):
+        """A component made by the registry runs on its default parameters."""
+        model = create_component("thermal_breakthrough")
+        model.calculate_output({"flowrate": Q})
+        self.assertAlmostEqual(model.get_output()["breakthrough_time"] / YEAR, 64.9, delta=0.5)
 
     def test_zero_doublets_rejected(self):
         """Fewer than one doublet raises ValueError."""

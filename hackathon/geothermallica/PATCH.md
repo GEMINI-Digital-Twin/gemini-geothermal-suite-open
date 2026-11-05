@@ -23,11 +23,12 @@ Evidence: `unit_test/gemini_model/well/test_pressure_drop.py::test_calculate_bot
 `unit_test/gemini_simulator/test_injector_well.py` (its wellhead floors at 0.001 bar either way, so it should still pass)
 and any nodal-solver test that compares injection numbers.
 
-## 2. Docstring for DPDT — `src/gemini_model/well/pressure_drop.py`, line 65
+## 2. Docstring for DPDT — `src/gemini_model/well/pressure_drop.py`, line 67
 
 ```diff
 -        flowRate = u["flowrate"]  # m3/s
-+        flowRate = u["flowrate"]  # m3/s, signed: positive = upward (production), negative = downward (injection)
++        # m3/s, signed: positive = upward (production), negative = downward (injection)
++        flowRate = u["flowrate"]
 ```
 
 and in `calculate_output`'s docstring:

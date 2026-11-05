@@ -38,20 +38,23 @@ for name in tools.SIG:
     server._tool_manager.get_tool(name).parameters = SCHEMA[name]["parameters"]   # clients see AI02's schema verbatim
 
 
-def note(name):
-    """The markdown note next to solution/, or one line saying this checkout does not carry it."""
-    path = next((q for q in (HERE.parent / name, HERE.parents[2] / name) if q.exists()), None)   # solution/ or the fork's hackathon folder
-    return path.read_text() if path else f"{name} is not in this checkout (the design notes live in the working repository)."
+def note_path(name):
+    """The markdown note in solution/ or in the folder above it (the fork's hackathon/geothermallica), else None."""
+    return next((q for q in (HERE.parent / name, HERE.parents[1] / name) if q.exists()), None)
 
 
-@server.resource("notes://findings", name="findings", description="The GEMINI findings (jury material)", mime_type="text/markdown")
-def findings():
-    return note("NOTES_findings.md")
+FINDINGS, README = note_path("NOTES_findings.md"), note_path("README.md")
 
+# a resource is registered only when its file is in this checkout, so no client sees a dead resource
+if FINDINGS:
+    @server.resource("notes://findings", name="findings", description="The GEMINI findings (jury material)", mime_type="text/markdown")
+    def findings():
+        return FINDINGS.read_text()
 
-@server.resource("notes://readme", name="readme", description="solution/README.md: the map of the deliverable", mime_type="text/markdown")
-def readme():
-    return note("README.md")
+if README:
+    @server.resource("notes://readme", name="readme", description="README.md: the map of the deliverable", mime_type="text/markdown")
+    def readme():
+        return README.read_text()
 
 
 @server.prompt(name="design_brief", description="The challenge brief (AI03.BRIEF), ready to send to the model")

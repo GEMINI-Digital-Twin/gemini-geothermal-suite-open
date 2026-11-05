@@ -20,9 +20,9 @@ Nothing outside `src/`, `unit_test/` and `hackathon/geothermallica/` is changed.
 | Model (registry name) | File in `src/` | What it does | Tests |
 |---|---|---|---|
 | `ESPAffinity` (`esp_affinity`) | `gemini_model/pump/esp_affinity.py` | ESP that reads the 60 Hz curve at q x 60/f (pump similarity laws) | 4 |
-| `HeatPumpLift` (`heatpump_lift`) | `gemini_model/heatpump/heatpump_lift.py` | `HeatpumpBasic` with a brine floor per call, COP capped at 8 | 7 |
+| `HeatPumpLift` (`heatpump_lift`) | `gemini_model/heatpump/heatpump_lift.py` | `HeatpumpBasic` with a brine floor per call, COP capped at 8 | 8 |
 | `HenryGasBubblePoint` (`henry_gas`) | `gemini_model/fluid/henry_gas.py` | Bubble point of dissolved CH4 and CO2 by Henry's law, with salt | 6 |
-| `DoubletThermalBreakthrough` (`thermal_breakthrough`) | `gemini_model/reservoir/thermal_breakthrough.py` | Thermal breakthrough time and pressure interference of doublets | 7 |
+| `DoubletThermalBreakthrough` (`thermal_breakthrough`) | `gemini_model/reservoir/thermal_breakthrough.py` | Thermal breakthrough time and pressure interference of doublets | 8 |
 | `AbsorptionChiller` (`absorption_chiller`) | `gemini_model/chiller/absorption_chiller.py` | Brine heat above a drive floor turned into cold at COP 0.75 | 7 |
 | Injector friction sign (fix) | `gemini_simulator/nodal_solver.py` | Injection flow passed to DPDT as negative, so friction opposes it | 5 |
 
@@ -41,9 +41,12 @@ pip install "mcp>=2"
 pytest unit_test/gemini_model unit_test/gemini_simulator hackathon -q
 ```
 
-You should see `168 passed` [C].
-That is 91 of TNO's tests, 36 for our models and the fix, and 41 for the solution [C].
+You should see `174 passed` [C].
+That is 91 of TNO's tests, 38 for our models and the fix, and 45 for the solution [C].
 A few `RuntimeWarning` lines from `heatpump_basic.py` are normal.
+A bare `pytest` from the root runs `unit_test/` only (`testpaths` in `pyproject.toml`), as TNO's CI does.
+Lint: `flake8 src unit_test --max-line-length=100` gives the same 31 findings as TNO's `development` and `black --check src unit_test` is clean.
+The `hackathon/` folder is not linted by TNO's CI and does not keep the 100-character limit.
 
 ## 4. How the solution works
 
@@ -91,8 +94,8 @@ Run these from `hackathon/geothermallica/solution`.
 python -c "import sys; sys.path.insert(0, 'ai'); import AI03_agent as a, AI03_plan as p; print(p.plan_message(a.BRIEF, p.plan(a.BRIEF)))"
 ```
 
-You should see `Plan choice: 2 doublets at a 56.5 C return`, the 18 design iterations, the gas, outage and GEMINI replay lines, and six rejected alternatives.
-It took 12 s on our laptop [C].
+You should see `Plan choice: 2 doublets at a 56.5 C return`, the 18 design iterations, the gas, outage and GEMINI replay lines, and seven rejected alternatives.
+It takes about 25 s on a laptop [C].
 It writes the GEMINI project file `ai/runs/gemini_project_2d_56.5C.json`.
 
 **(b) The agent, with a local model.**
@@ -113,7 +116,7 @@ With no brief, `python ai/AI03_agent.py` is interactive: Enter runs the challeng
 python ai/AI10_mcp_check.py
 ```
 
-You should see `17 tools match AI02.FUNCS`, two tool calls, one deliberate error (`q_m3h=400.0 outside 50.0-300.0`), two resources and one prompt.
+You should see `17 tools match AI02.FUNCS`, two tool calls, one deliberate error (`q_m3h=400.0 outside 50.0-300.0`), one resource (`notes://readme`, this file; the findings note is not on this branch) and one prompt.
 No model is needed.
 To use it from an MCP client, point the client at `python <absolute path>/ai/AI10_mcp.py` over stdio.
 Claude Code: `claude mcp add geohack -- python <absolute path>/ai/AI10_mcp.py`. Inspector: `npx @modelcontextprotocol/inspector python <absolute path>/ai/AI10_mcp.py`.
@@ -156,7 +159,9 @@ On TNO's unpatched tree the injection wellhead is 7 to 25 bar off, which is how 
 
 ## 7. What we are not sure about
 
-- Doublet CAPEX: the ThermoGIS curve gives 9.33 MEUR per doublet [L]; other sources say 23.6-37.2 MEUR [TBC]. LCoH moves a lot with it.
+- Doublet CAPEX: the LCoH rests on the ThermoGIS well-cost curve, 9.33 MEUR per doublet [L]; other sources say 23.6-37.2 MEUR [L, TBC].
+  At 23.6 MEUR per doublet the LCoH is 91.6 EUR/MWh instead of 61.8, at 37.2 MEUR 120.0 (`geo.cost.economics(2, 56.5, 30, 10, doublet_MEUR=23.6)`) [C].
+- Peak margin: 2 doublets give 30.04 MW against the 30 MW peak, a margin of 0.14 % [C]; a small loss of flow or temperature puts the backup boiler on at the peak.
 - ESP frequency: GEMINI's own ESP needs up to 8.4 Hz less for the same flow, because it reads the 60 Hz curve at the actual flow [C].
 - Heat-pump COP is capped at 8 at small lifts [A].
 - The salted bubble point is 45.6 or 62.5 bar, depending on a log base the source does not state [TBC]; the check uses the worse.

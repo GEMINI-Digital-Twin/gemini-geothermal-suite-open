@@ -210,6 +210,13 @@ SAY = {"esp_depth_m": "ESP moved from {a:g} to {b:g} m", "n_doublets": "doublet 
        "spacing_m": "producer-injector spacing went from {a:g} to {b:g} m", "doublet_spacing_m": "doublet spacing went from {a:g} to {b:g} m"}
 
 
+def violation_sentence(st):
+    """One sentence on a repair move: who made it, what it changed, the checks after it."""
+    what = st["reason"].replace(": ", ", ", 1)
+    return (f"{st['by'].capitalize()}'s move {'repaired' if st['verdict'] == 'repaired' else 'left'} "
+            f"a violation: {what}, so the {SAY[st['key']].format(a=st['from'], b=st['to'])}, checks now {st['checks_after']} [C].")
+
+
 def iteration_lines(it, out):
     """The copy-ready 'Design iterations' sentence and one sentence per repair move."""
     why = ", ".join(f"{k} {SHORT.get(r, r)}" for r, k in it["by_reason"].items())
@@ -218,11 +225,9 @@ def iteration_lines(it, out):
          + (f": {why}" if why else "") + (f"; {it['not_needed']} not needed" if it["not_needed"] else "")
          + f"; chose {it['chosen']} [C].")
     for st in (x for x in it["steps"] if x.get("move")):
-        what = st["reason"].replace(": ", ", ", 1)
         verb = "repaired" if st["verdict"] == "repaired" else "still failing after a move"
         s += (f"\nViolation {verb} (copy as one reasoning string of its own, word for word, ending with its [C] tag): "
-              f"{st['by'].capitalize()}'s move {'repaired' if st['verdict'] == 'repaired' else 'left'} "
-              f"a violation: {what}, so the {SAY[st['key']].format(a=st['from'], b=st['to'])}, checks now {st['checks_after']} [C].")
+              + violation_sentence(st))
     last = next(r for r in reversed(out) if r["name"] == "checks")
     if it["moves"]:
         s += (f"\nThe answer describes the design after the move: checks_passed is {last['result']['n_pass']}/{last['result']['n_rows']} "

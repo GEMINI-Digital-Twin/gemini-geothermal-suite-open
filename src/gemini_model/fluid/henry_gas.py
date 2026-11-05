@@ -1,8 +1,14 @@
 """Bubble point and gas rates of a brine with dissolved methane and CO2, by Henry's law.
 
 Henry constants: Sander (2023), https://www.henrys-law.org (methane 74-82-8, CO2 124-38-9).
-Parameter sources are in the inline comments. Output: bubble point (Pa), dissolved
-concentrations (mol/m3) and, with a flowrate, gas rate (Nm3/s), methane power (W), CO2 (kg/s).
+Methane salting-out: Sun et al. (2024), J. Chem. Eng. Data,
+https://pmc.ncbi.nlm.nih.gov/articles/PMC11472311/. The paper does not state the log base of its
+Setschenow coefficient, so both readings are offered (salting_out_convention): "ln" gives the
+factor exp(k m), "log10" gives 10^(k m) and a higher bubble point. "ln" is the default; a design
+that must keep gas in solution (pump intake above the bubble point) should check the "log10"
+reading as well, since it is the worse case. Parameter sources are in the inline comments.
+Output: bubble point (Pa), dissolved concentrations (mol/m3) and, with a flowrate, gas rate
+(Nm3/s), methane power (W), CO2 (kg/s).
 """
 
 import math

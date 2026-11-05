@@ -87,6 +87,7 @@ line_length = 100
 
 [tool.pytest.ini_options]
 pythonpath = "src"
+testpaths = ["unit_test"]
 
 [build-system]
 requires = ["poetry-core"]

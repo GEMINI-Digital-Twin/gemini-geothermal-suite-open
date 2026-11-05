@@ -27,8 +27,10 @@ async def main():
         r = await s.call_tool("economics", {"n_doublets": 2, "t_return_c": 56.5, "gas_handling": "reinject"})   # a text argument
         assert not r.is_error and '"gas_handling": "reinject"' in r.content[0].text, r.content[0].text[:300]
         print("\neconomics with gas_handling reinject: not an error")
-        print("\nresources:", [str(x.uri) for x in (await s.list_resources()).resources])
-        print("findings first line:", (await s.read_resource("notes://findings")).contents[0].text.splitlines()[0])
+        uris = [str(x.uri) for x in (await s.list_resources()).resources]
+        print("\nresources:", uris)
+        for uri in uris:   # each listed resource must read; a checkout without the notes lists none
+            print(f"{uri} first line:", (await s.read_resource(uri)).contents[0].text.splitlines()[0])
         print("prompts:", [p.name for p in (await s.list_prompts()).prompts])
         print("design_brief:", (await s.get_prompt("design_brief")).messages[0].content.text)
 
