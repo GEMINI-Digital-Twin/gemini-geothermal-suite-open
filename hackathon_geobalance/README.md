@@ -33,6 +33,7 @@ cd hackathon_geobalance
 
 python run_designs.py                         # no LLM: comparison + charts
 python agent.py --provider mock               # no LLM: tests the tool plumbing
+pip install pytest && python -m pytest tests   # 12 tests: document totals, hand calcs, limit warnings
 
 export GROQ_API_KEY=...                       # free key: console.groq.com
 python agent.py --session main_design         # open-weight gpt-oss-120b on Groq
