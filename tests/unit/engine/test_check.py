@@ -326,3 +326,25 @@ def test_a_pressure_drop_on_a_closed_loop_with_no_pump_is_refused():
     other = filled_plant("HeatingPlant")
     other.set_params("heat_exchanger", {"cold_nominal_pressure_drop": Quantity(0.5, "bar")})
     assert [item for item in gm.check(other, case) if "pressure_drop" in item.path] == []
+
+
+def test_a_doublet_without_depth_lists_its_depth_not_the_children_its_design_derives():
+    """QA-359: 59 values were listed; the engineers set the segments by hand and nothing ran."""
+    plant = gm.plants.HeatingPlant(doublets=1).set_params("", RULES)
+    found = [item.path for item in gm.check(plant, sample_case()) if ".d0." in item.path]
+    assert "params.d0.depth" in found
+    derived = ("well.segment", "riser.segment", "well.section_length", "esp.setting_depth")
+    assert not [path for path in found if path.endswith(derived)]
+
+
+def test_a_producer_whose_well_and_riser_are_both_full_is_refused():
+    """QA-359: both 'full' modelled the producer twice; every step failed at the ESP."""
+    from tests.fixtures.sample_cases import filled_plant
+
+    plant = filled_plant("HeatingPlant")
+    case = sample_case()
+    assert [item for item in gm.check(plant, case) if item.path.endswith("segment")] == []
+    plant._set_si_params("d0", {"well.segment": "full", "riser.segment": "full"})
+    found = [item for item in gm.check(plant, case) if item.path.endswith("segment")]
+    paths = [(item.path, item.kind) for item in found]
+    assert paths == [("params.d0.riser.segment", "incompatible")]

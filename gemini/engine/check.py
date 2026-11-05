@@ -94,10 +94,11 @@ def issues_of(applied, case):
     """Return the issues of ``check`` for a plant that already carries the values of ``case``."""
     with remembered():
         depths = _depths(applied)
-        named = {item.path for item in depths}
+        named = {item.path for item in depths} | _derived(applied)
         return [
             *depths,
             *(item for item in _parameters(applied) if item.path not in named),
+            *_double_paths(applied),
             *_rules(applied),
             *_pump_setpoints(applied),
             *_closed_coolers(applied),
@@ -484,6 +485,61 @@ def _depths(plant):
                     f"{where} is missing; with it the doublet takes its reservoir temperature and "
                     "pressure from the case (site.ground, site.reservoir)",
                     code="missing_value",
+                )
+            )
+    return issues
+
+
+def _derived(plant):
+    """Return the issue paths of the child values a doublet's design derives, while it has none.
+
+    A doublet without a depth (and with no reservoir stated by hand) listed every child its
+    design gives: the section lists and segments of its wells, the ESP's curves and setting
+    depth, its reservoirs' values (QA-359). The engineers filled them by hand, both wells
+    ``full`` with no pump depth, and every step failed. The depth and the design values are the
+    ones to give; the children follow from them.
+    """
+    from gemini.plants._utils.doublet_design import COLUMN_VALUES, FLOW_PATH_VALUES, PUMP_VALUES
+    from gemini.plants.doublet import Doublet
+
+    found = set()
+    for path, module in plant.named_modules():
+        if not isinstance(module, Doublet) or _set_value(module, "depth") is not None:
+            continue
+        if _stated(module):
+            continue
+        for child in (*COLUMN_VALUES, *FLOW_PATH_VALUES, *PUMP_VALUES):
+            found.add(join_path("params", form.file_path(join_path(path, child))))
+    return found
+
+
+def _double_paths(plant):
+    """Return an ``incompatible`` issue for a producer whose well and riser are both ``full``.
+
+    The riser and the well are one path cut at the pump (``esp_depth``): both ``full`` model the
+    producer twice with the pump between two whole columns, and every step failed with an ESP
+    flow of 8.8e6 m3/s (QA-359).
+    """
+    from gemini.plants.doublet import Doublet
+
+    issues = []
+    for path, module in plant.named_modules():
+        if not isinstance(module, Doublet):
+            continue
+        well, riser = (getattr(module, name, None) for name in ("well", "riser"))
+        if well is None or riser is None:
+            continue
+        if _set_value(well, "segment") == "full" and _set_value(riser, "segment") == "full":
+            where = join_path("params", form.file_path(join_path(path, "riser.segment")))
+            issues.append(
+                Issue(
+                    where,
+                    "incompatible",
+                    f"{where} = 'full' with the well 'full' too: the riser and the well are one "
+                    "path cut at the pump; expected the well 'below_esp' and the riser "
+                    "'above_esp' with esp_depth, or neither stated (the doublet's depth derives "
+                    "them)",
+                    code="invalid_design",
                 )
             )
     return issues
