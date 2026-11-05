@@ -12,6 +12,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.11] - 2026-11-05
+
+### Changed
+- An ESP's `out_of_range` message names where its head or power curve is below zero, from 0 to
+  `maximum_flow` ("the curves give negative head at flows 0 to 0.012 m3/s"), not only the one
+  flow of the row (geomind request 35). Read once per set of curves at the reference frequency;
+  a pump whose curves cannot be read gives the message as before.
+
 ## [0.6.10] - 2026-11-05
 
 ### Fixed
