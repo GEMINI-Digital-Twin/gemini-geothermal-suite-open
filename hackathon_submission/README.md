@@ -64,7 +64,7 @@ the best design is **8,324 t** (3 doublets; grid search).
 | Best 2-doublet design | 8,760 |
 | Best 3-doublet design (3,500 m) | 6,725 |
 | Best design with depth fixed at the 2,500 m reservoir midpoint | 8,324 |
-| **LLM agent, run 3** (16 simulations) | **6,626** (−1.5 % vs. the grid: found 3,300 m with 45 stages, which is outside the grid) |
+| **LLM agent, run 3** (14 simulations) | **6,626** (−1.5 % vs. the grid: found 3,300 m with 45 stages, which is outside the grid) |
 | Offline rule-based agent (22 simulations) | 6,721 (−0.1 %) |
 
 ## Agent runs (`agent_runs/`)
