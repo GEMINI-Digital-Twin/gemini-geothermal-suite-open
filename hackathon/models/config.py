@@ -1,8 +1,8 @@
-"""Load the hackathon's fixed inputs, assumptions and economics.
+"""Reads config/fixed_inputs.yaml (fact sheet, assumptions, economics).
 
-``load_config()`` returns a flat, typed view the models use, so no model
-reads the YAML directly. Every assumption keeps its source and status so the
-agent and the report can trace each number (see notes/decisions.md).
+The models only use the Config object from load_config(), never the YAML
+itself. Each assumption in the YAML has its source next to it; see also
+notes/decisions.md.
 """
 
 from dataclasses import dataclass, field
@@ -18,7 +18,7 @@ MD_TO_M2 = 9.869233e-16
 
 @dataclass
 class Config:
-    """Flat view of fixed_inputs.yaml."""
+    """Values from fixed_inputs.yaml in one flat object."""
 
     raw: dict
     # reservoir
@@ -71,31 +71,31 @@ class Config:
 
     @property
     def ch4_lhv_mj_nm3(self):
-        """Derived: GEMINI's 50 MJ/kg x methane density at 0 C, 1 atm."""
+        """Methane heating value per Nm3: GEMINI's 50 MJ/kg times the density at 0 C, 1 atm."""
         return self.ch4_lhv_mj_kg * self.ch4_density
 
-    # CO2 from combustion (P7). Derived, no new value: CH4 + 2 O2 -> CO2 + 2 H2O gives one mole
-    # of CO2 per mole of CH4, i.e. one Nm3 of CO2 per Nm3 of CH4 (ideal gas, same 0 C, 1 atm).
+    # CO2 from burning gas. No new input: CH4 + 2 O2 -> CO2 + 2 H2O, so one Nm3 of CH4
+    # gives one Nm3 of CO2 (ideal gas, both at 0 C and 1 atm).
     @property
     def ng_co2_kg_per_mwh(self):
-        """Natural gas taken as methane: CO2 density / CH4 heating value per Nm3, per MWh of fuel."""
+        """kg CO2 per MWh of natural gas burned (natural gas taken as pure methane)."""
         return self.co2_density / self.ch4_lhv_mj_nm3 * 3600
 
     @property
     def assoc_gas_co2_kg_per_mwh(self):
-        """Associated gas burned: CO2 from its CH4 plus the CO2 it already carries, per MWh of fuel."""
+        """kg CO2 per MWh of associated gas burned: from its CH4, plus the CO2 already in it."""
         return (self.x_ch4 + self.x_co2) * self.co2_density / (self.x_ch4 * self.ch4_lhv_mj_nm3) * 3600
 
     def demand_path(self, kind):
-        """Absolute path of the heating or cooling demand CSV."""
+        """Path to the heating or cooling demand CSV."""
         return HACKATHON_DIR / self.raw["fact_sheet"]["demand_files"][kind]
 
 
 def load_config(path=DEFAULT_CONFIG, overrides=None):
     """Read fixed_inputs.yaml and return a Config.
 
-    ``overrides`` maps assumption names (e.g. ``"porosity"``) to new values;
-    the agent and the robustness check use it instead of editing the YAML.
+    overrides changes assumptions for one run, e.g. {"porosity": 0.17}. The
+    robustness check uses this instead of editing the YAML.
     """
     with open(path, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)

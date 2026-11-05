@@ -1,4 +1,4 @@
-"""Three-way check of the doublet model at the 2,500 m baseline.
+"""Checks the doublet model three ways at the 2,500 m baseline.
 
   A  GEMINI project mode: native project .json solved by gemini_simulator
      (ESP tuned to the target flow; GEMINI's example ESP, so <= ~240 m3/h)
@@ -21,7 +21,7 @@ DEPTH = 2500
 
 
 def quick_estimate(cfg, q, spacing=None):
-    """Leg C: textbook formulas only."""
+    """Check C: textbook formulas, no GEMINI code."""
     spacing = spacing or cfg.well_spacing_m
     k, h, mu, rw = cfg.permeability_m2, cfg.thickness_m, cfg.mu, cfg.well_id_m / 2
     pi = lambda s: 2 * math.pi * k * h / (mu * (math.log(spacing / rw) + s)) * 3600 * 1e5

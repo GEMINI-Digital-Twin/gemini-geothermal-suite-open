@@ -1,0 +1,34 @@
+[
+ {
+  "run": "Run 2",
+  "calls": 20,
+  "minutes": 28.396166666666666,
+  "prompt_ktok": 114.579,
+  "est_api_usd": 0.0701505,
+  "final": "D4"
+ },
+ {
+  "run": "Run 3",
+  "calls": 35,
+  "minutes": 36.68816666666667,
+  "prompt_ktok": 281.82,
+  "est_api_usd": 0.164814,
+  "final": "none"
+ },
+ {
+  "run": "Run 4",
+  "calls": 31,
+  "minutes": 73.50399999999999,
+  "prompt_ktok": 272.786,
+  "est_api_usd": 0.164728,
+  "final": "D5"
+ },
+ {
+  "run": "Run 5",
+  "calls": 30,
+  "minutes": 56.8015,
+  "prompt_ktok": 263.051,
+  "est_api_usd": 0.1566595,
+  "final": "D10"
+ }
+]

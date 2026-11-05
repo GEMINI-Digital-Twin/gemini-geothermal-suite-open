@@ -1,12 +1,11 @@
-"""One chat client for a local model (Ollama) and an API model (Gemini).
+"""Chat client for the local model (Ollama) and the API model (Gemini).
 
-Both speak the OpenAI-compatible ``/chat/completions`` format with tool calls,
-so the agent does not care which one answers. Every call is appended to a
-JSONL log with the full prompt, the answer, token counts and estimated cost:
-that log is the "prompts, answers and tokens" deliverable.
+Both use the OpenAI-style /chat/completions endpoint with tool calls, so the
+same code talks to either. Every call is written to a JSONL log with the
+prompt, the answer, token counts and estimated cost. That log is what we hand
+in as the prompts/answers/tokens record.
 
-``ScriptedLLM`` replays a fixed list of answers. It lets the loop and tools be
-tested offline at zero cost.
+ScriptedLLM plays back fixed answers so the loop can be tested offline.
 """
 
 import json
@@ -23,7 +22,7 @@ HACKATHON_DIR = AGENT_DIR.parent
 
 
 def load_env(path=HACKATHON_DIR / ".env"):
-    """Read KEY=VALUE lines from hackathon/.env into os.environ (no extra package)."""
+    """Put the KEY=VALUE lines of hackathon/.env into os.environ."""
     if not Path(path).exists():
         return
     for line in Path(path).read_text(encoding="utf-8").splitlines():
@@ -39,7 +38,7 @@ def load_llm_config(path=AGENT_DIR / "llm_config.yaml"):
 
 
 class TokenLog:
-    """Append-only JSONL log of every LLM call, with running totals."""
+    """Writes each LLM call to the JSONL log and keeps running totals."""
 
     def __init__(self, path):
         self.path = Path(path)
@@ -64,7 +63,7 @@ class TokenLog:
 
 
 def _retry_after_s(response, default):
-    """Seconds to wait from a Retry-After header (seconds form), else the default."""
+    """Wait time from the Retry-After header if the server sent one, else the default."""
     try:
         return max(1.0, float(response.headers.get("Retry-After")))
     except (TypeError, ValueError):
@@ -72,15 +71,15 @@ def _retry_after_s(response, default):
 
 
 class ChatModel:
-    """OpenAI-compatible chat endpoint (Ollama or Gemini)."""
+    """One route (Ollama or Gemini) behind the OpenAI-style chat endpoint."""
 
     def __init__(self, route_name, route, log, temperature=0.2, timeout=None, retries=1):
         self.name, self.route, self.log = route_name, route, log
         self.temperature = temperature
         self.timeout = timeout or route.get("timeout_s", 300)  # per-route, from llm_config.yaml
         self.retries = retries
-        self.max_429_retries = 3   # method choice: give the free-tier window time to reset
-        self.wait_429_s = 30       # method choice: used when the server sends no Retry-After
+        self.max_429_retries = 3   # our choice; the free-tier limit resets within a minute or so
+        self.wait_429_s = 30       # our choice, if the server gives no Retry-After
         self._sleep = time.sleep   # replaceable in tests
 
     def chat(self, messages, tools=None, step=None):
@@ -107,7 +106,7 @@ class ChatModel:
                     if attempt == self.retries:
                         raise RuntimeError(f"{self.name} did not answer after {attempt + 1} attempts "
                                            f"({self.timeout} s timeout each): {exc}") from exc
-            # P5c: 429 = rate limit (free tier). Wait and retry instead of stopping the run.
+            # 429 means rate limit (free tier): wait and try again rather than stop the run
             if r.status_code != 429 or n_429 == self.max_429_retries:
                 break
             wait = _retry_after_s(r, self.wait_429_s)
@@ -132,7 +131,7 @@ class ChatModel:
 
 
 class ScriptedLLM:
-    """Replays prepared assistant messages; logs them like a real call (0 tokens)."""
+    """Plays back prepared answers and logs them like real calls (0 tokens)."""
 
     def __init__(self, script, log, name="scripted"):
         self.script, self.log, self.name = list(script), log, name
@@ -151,7 +150,7 @@ class ScriptedLLM:
 
 
 def tool_call(name, args, call_id=None):
-    """Build an assistant message that calls one tool (for scripts and tests)."""
+    """Assistant message calling one tool. Used by the demo script and the tests."""
     call_id = call_id or f"call_{name}_{abs(hash(json.dumps(args, sort_keys=True))) % 10**6}"
     return {"role": "assistant", "content": None, "tool_calls": [
         {"id": call_id, "type": "function",

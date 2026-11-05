@@ -1,14 +1,14 @@
-"""Subsurface and doublet model built on GEMINI's own physics.
+"""Reservoir and doublet calculations, using GEMINI's own physics where it has them.
 
-Layer A (resource assessment) and layer B (doublet) of the architecture.
+This covers layer A (resource) and layer B (doublet).
 
-From GEMINI (``src/gemini_model``, ``src/gemini_simulator``):
+Taken from GEMINI (src/gemini_model, src/gemini_simulator):
   * ``bottomhole_skin_dp``  reservoir pressure drop, Darcy radial flow + skin
                             (reservoir/reservoir_pressuredrop.py)
   * ``DPDT``                well pressure and temperature march
   * ``solve_injector_wellhead_pressure_bar``  injector solve (reported as-is)
 
-Added here because GEMINI lacks it (see notes/gemini_gaps.md):
+Added by us because GEMINI doesn't have it (see notes/gemini_gaps.md):
   * T and P vs depth (fact sheet gradient; anchored hydrostatic pressure)
   * drainage radius r_e = well spacing L (DoubletCalc 1.4 manual, Eq. 7, p. 27)
   * wellhead temperature by marching DPDT upward (gap 1)
@@ -57,7 +57,7 @@ def _brine_pvt_class(cfg):
 
 @contextmanager
 def brine_properties(cfg):
-    """Make GEMINI well models built inside this block use brine, not water."""
+    """Inside this block, GEMINI well models use the brine properties instead of water."""
     brine = _brine_pvt_class(cfg)
     old_wf = gemini_well_flow.PVTConstantSTP
     old_hook = gemini_registry._POST_INIT_HOOKS.get("well")
@@ -78,16 +78,16 @@ def reservoir_temperature_c(cfg, depth_m):
 
 
 def reservoir_pressure_bar(cfg, depth_m):
-    """Fact-sheet 250 bar at 2,500 m, hydrostatic gradient elsewhere (A3)."""
+    """250 bar at 2,500 m (fact sheet), hydrostatic above and below."""
     return cfg.ref_pressure_bar + cfg.rho * G * (depth_m - cfg.ref_depth_m) / 1e5
 
 
 def productivity_index_m3h_bar(cfg, spacing_m=None, skin=None):
     """PI from GEMINI's bottomhole_skin_dp with r_e = well spacing L.
 
-    Steady-state radial Darcy flow with skin (pengtools; skin term as in
-    Whitson): dP = Q mu [ln(L/r_w) + S] / (2 pi k h). L as drainage radius
-    follows DoubletCalc 1.4 (TNO 2014), Eq. 7. Evaluated at a unit flow.
+    Radial Darcy flow with skin: dP = Q mu [ln(L/r_w) + S] / (2 pi k h)
+    (pengtools; skin as in Whitson). Using the spacing L as drainage radius
+    follows DoubletCalc 1.4 (TNO 2014), Eq. 7. Computed at unit flow.
     """
     spacing_m = spacing_m or cfg.well_spacing_m
     skin = cfg.skin_producer if skin is None else skin
@@ -122,8 +122,8 @@ def _vertical_dpdt(cfg, length_m, n_seg=1):
 def wellhead_temperature_c(cfg, depth_m, flow_m3h, n_seg=25):
     """Brine temperature at the wellhead: GEMINI DPDT marched upward (gap 1).
 
-    Each segment uses the formation temperature at its midpoint as ambient.
-    GEMINI's DPDT heat-loss coefficient (U = 10 W/m2K) is used unchanged.
+    Each segment sees the formation temperature at its midpoint. We keep
+    GEMINI's heat-loss coefficient (U = 10 W/m2K).
     """
     t = reservoir_temperature_c(cfg, depth_m)
     seg = depth_m / n_seg
@@ -143,7 +143,7 @@ def wellhead_temperature_c(cfg, depth_m, flow_m3h, n_seg=25):
 
 # ------------------------------------------------------------------- doublet
 def producer_hydraulics(cfg, depth_m, flow_m3h, spacing_m=None):
-    """Pump duty to produce ``flow_m3h`` to the wellhead pressure."""
+    """Producer pump duty to deliver flow_m3h at the wellhead pressure."""
     p_res = reservoir_pressure_bar(cfg, depth_m)
     pi = productivity_index_m3h_bar(cfg, spacing_m, cfg.skin_producer)
     p_bh_reservoir = p_res - flow_m3h / pi
@@ -167,9 +167,9 @@ def producer_hydraulics(cfg, depth_m, flow_m3h, spacing_m=None):
 
 def _injector_wellhead_pressure_corrected_bar(cfg, depth_m, flow_m3h, injection_temp_c,
                                               spacing_m=None):
-    """Injector WHP with friction against the downward flow (gap 11 correction).
+    """Injector wellhead pressure with friction acting against the flow (fix for gap 11).
 
-    DarcyWeisbach uses |u|*u, so a negative flow gives friction the right sign.
+    GEMINI's DarcyWeisbach uses |u|*u, so passing a negative flow flips the friction sign.
     """
     ii = productivity_index_m3h_bar(cfg, spacing_m, cfg.skin_injector)
     p_bh = reservoir_pressure_bar(cfg, depth_m) + flow_m3h / ii
@@ -186,8 +186,8 @@ def injector_hydraulics(cfg, depth_m, flow_m3h, injection_temp_c, spacing_m=None
                         use_gemini_as_is=False):
     """Injector wellhead pressure and injection pump duty.
 
-    Surface pressure entering the injection pump = wellhead pressure minus
-    the GEMINI template's surface loss (1.55 bar).
+    Pressure at the injection pump inlet is the wellhead pressure minus the
+    surface loss from GEMINI's template (1.55 bar).
     """
     surface_p = cfg.wellhead_pressure_bar - cfg.surface_loss_bar
     ii = productivity_index_m3h_bar(cfg, spacing_m, cfg.skin_injector)
@@ -218,7 +218,7 @@ def injector_hydraulics(cfg, depth_m, flow_m3h, injection_temp_c, spacing_m=None
 def gas_properties(cfg):
     """Associated-gas mixture (gap 9): density and heating value.
 
-    GEMINI's 50 MJ/kg is methane; with 20 mol% CO2 the mixture is leaner.
+    GEMINI's 50 MJ/kg is for methane. With 20 mol% CO2 the gas has less energy per kg.
     """
     rho_mix = cfg.x_ch4 * cfg.ch4_density + cfg.x_co2 * cfg.co2_density
     lhv_nm3 = cfg.x_ch4 * cfg.ch4_lhv_mj_nm3
@@ -227,7 +227,7 @@ def gas_properties(cfg):
 
 
 def doublet_performance(cfg, depth_m, flow_m3h, spacing_m=None, injection_temp_c=None):
-    """One doublet at one operating point: temperatures, pumps, heat and gas."""
+    """Temperatures, pump power, heat and gas of one doublet at one flow."""
     spacing_m = spacing_m or cfg.well_spacing_m
     t_wh = wellhead_temperature_c(cfg, depth_m, flow_m3h)
     if injection_temp_c is None:
@@ -255,9 +255,9 @@ def doublet_performance(cfg, depth_m, flow_m3h, spacing_m=None, injection_temp_c
 def thermal_breakthrough_years(cfg, spacing_m, flow_m3h):
     """Doublet thermal breakthrough time (Gringarten & Sauty 1975).
 
-    t_b = pi * h * L^2 * (rho c)_res / (3 * Q * (rho c)_brine); confined
-    homogeneous layer, no heat from confining layers (conservative), as stated
-    by Wallmeier, Vardon & Daniilidis (2025), Eq. 9, p. 4-5.
+    t_b = pi * h * L^2 * (rho c)_res / (3 * Q * (rho c)_brine), for a uniform
+    layer with no heat coming in from above or below (conservative). Formula as
+    given by Wallmeier, Vardon & Daniilidis (2025), Eq. 9, p. 4-5.
     (rho c)_res = (1 - phi) rho_grain c_grain + phi rho_brine c_brine.
     """
     if flow_m3h <= 0:

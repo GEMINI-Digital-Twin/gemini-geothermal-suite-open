@@ -1,8 +1,8 @@
-"""Fixed tool sequence for an offline run (no LLM, 0 tokens).
+"""A fixed list of tool calls for running the loop without any LLM.
 
-Tests the loop and tools, and serves as a fallback demo if no model is
-reachable. It is NOT the agent's reasoning: real runs decide each step with
-an LLM. The scripted pick is the robust candidate with the lowest P50 LCOH.
+We use it in the tests and as a fallback demo when no model is available.
+This is not the agent deciding anything: in real runs the LLM picks every
+step. Here the pick is simply the robust candidate with the lowest P50 LCOH.
 """
 
 import json

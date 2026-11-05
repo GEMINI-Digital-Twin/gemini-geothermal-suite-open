@@ -1,4 +1,4 @@
-"""Slide figures (PNG) from our models and the agent run logs. Adds no values of its own.
+"""Figures for the slides, made from our models and the agent run logs.
 
 Run from the repo root:
     PYTHONPATH=. python -m hackathon.figures.make_figures            # all figures
@@ -63,7 +63,7 @@ DESIGN_KEYS = {"depth_m", "n_doublets", "spacing_m", "max_flow_m3h", "outage", "
 
 
 def make_design(args):
-    """Same mapping as the agent's evaluate_design tool (unknown keys such as label are ignored)."""
+    """Turn evaluate_design arguments into a Design, as the tool does (label is ignored)."""
     d = {k: v for k, v in args.items() if k in DESIGN_KEYS}
     s = {k: v for k, v in args.items() if k in SURFACE_KEYS}
     d["n_doublets"] = int(d["n_doublets"])
@@ -140,7 +140,7 @@ def fig_dispatch_and_split(cfg):
 
 
 def agent_candidates(run_dirs, cfg):
-    """Every distinct in-range evaluate_design call the agent made, re-evaluated with current models."""
+    """All different, in-range evaluate_design calls from the given runs."""
     out = {}
     for label, folder in run_dirs.items():
         log = RUNS / folder / "llm_log.jsonl"

@@ -1,14 +1,14 @@
-"""365-day dispatch of a candidate design, KPIs, economics and constraint checks.
+"""Runs a design through all 365 days and checks it.
 
-``evaluate_design`` runs every day of 2027 and returns
-{"design", "kpis", "economics", "violations", "daily", "doublet_table"}.
-Each violation has ``severity``: "hard" (brief or lifetime constraint broken),
-"warning" (engineering concern) or "info".
+evaluate_design simulates each day of 2027 and returns the design, KPIs,
+economics, violations and the daily table. Violations are "hard" (a rule from
+the brief or the 30-year lifetime is broken), "warning" (something an engineer
+should look at) or "info".
 
-Method choices (not data, documented in notes/decisions.md): flow grid from
-the brief's minimum in steps of 25 m3/h; each day the lowest flow whose
-backup use is within 1% of the least backup on the grid; all active doublets
-at the same depth and daily flow.
+Our own modelling choices (see notes/decisions.md): flows are tried in steps
+of 25 m3/h from the brief's minimum; each day we take the lowest flow that
+needs no more than 1% extra backup compared with the best flow; all active
+doublets run at the same flow.
 """
 
 from dataclasses import asdict, dataclass, field
@@ -27,7 +27,7 @@ FLOW_STEP_M3H = 25.0
 
 @dataclass
 class Design:
-    """Hardware and operating plan of one candidate system."""
+    """One candidate system: wells, flows, outages and surface equipment."""
 
     depth_m: float = 2500.0
     n_doublets: int = 2
@@ -53,7 +53,7 @@ def load_demand(cfg):
 
 
 def doublet_table(cfg, depth_m, max_flow_m3h, spacing_m):
-    """Per-doublet performance on the flow grid (brief minimum to max flow)."""
+    """Performance of one doublet at each flow step, from the brief's minimum to max flow."""
     flows = np.arange(cfg.q_min, max_flow_m3h + 1e-9, FLOW_STEP_M3H)
     if flows[-1] < max_flow_m3h:
         flows = np.append(flows, max_flow_m3h)
@@ -61,7 +61,7 @@ def doublet_table(cfg, depth_m, max_flow_m3h, spacing_m):
 
 
 def auto_outage_starts(demand, n, mode, outage_days):
-    """Place each doublet's outage window where combined demand is lowest."""
+    """Put each doublet's 35-day outage where total demand is lowest."""
     load = (demand["heat_mw"] + demand["cool_mw"]).to_numpy()
     sums = np.array([load[s:s + outage_days].sum() for s in range(365 - outage_days + 1)])
     order = list(np.argsort(sums))
@@ -77,7 +77,7 @@ def auto_outage_starts(demand, n, mode, outage_days):
 
 
 def evaluate_design(design, cfg=None, demand=None):
-    """Run 365 days for ``design``; return KPIs, economics, violations and tables."""
+    """Simulate the design for 365 days and collect KPIs, costs and violations."""
     if cfg is None:
         over = {"heating_return_c": design.heating_return_c} if design.heating_return_c else None
         cfg = load_config(overrides=over)
@@ -171,7 +171,7 @@ def _kpis(daily, cfg, econ, offline, spacing):
     k["heat_share_no_purchased_fuel"] = (k["heat_direct_gwh"] + k["heat_hp_gwh"]
                                          + k["heat_chp_gwh"]) / heat_total
     k["geothermal_cool_share"] = k["cool_sorption_gwh"] / k["cool_demand_gwh"]
-    # CO2 (P7), kt/yr: GWh x kg/kWh = kt. Net electricity < 0 (CHP export) counts as avoided.
+    # CO2 in kt/yr (GWh x kg/kWh = kt). Negative net electricity (CHP export) counts as avoided.
     k["co2_grid_kt"] = k["net_electricity_gwh"] * cfg.elec_co2_kg_kwh
     k["co2_natural_gas_kt"] = k["natural_gas_gwh"] * cfg.ng_co2_kg_per_mwh / 1000
     k["co2_associated_gas_kt"] = e("assoc_gas_used_mw") * cfg.assoc_gas_co2_kg_per_mwh / 1000
@@ -180,7 +180,7 @@ def _kpis(daily, cfg, econ, offline, spacing):
 
 
 def check_constraints(design, cfg, daily, table, offline, spacing, kpis):
-    """Brief and lifetime constraints (hard) and engineering checks (warning/info)."""
+    """Hard rules from the brief and lifetime, plus engineering warnings."""
     v = []
     dv = cfg.raw["design_variables"]
 
@@ -203,7 +203,7 @@ def check_constraints(design, cfg, daily, table, offline, spacing, kpis):
         on = int((~offline[i]).sum())
         if on > cfg.op_days:
             add("hard", "operating_days", f"doublet {i + 1} runs {on} days > {cfg.op_days}")
-    s = design.surface  # P5b: state what is installed, so the cause of a shortfall is visible
+    s = design.surface  # we print installed capacities so a 0 MW chiller is obvious (run 1c)
     bad = daily[daily.heat_unmet > 1e-3]
     if len(bad):
         add("hard", "heating_demand", f"heating not met on {len(bad)} days, max shortfall "
@@ -246,7 +246,7 @@ def check_constraints(design, cfg, daily, table, offline, spacing, kpis):
 
 
 def summarize(result):
-    """Short text summary for logs and for the agent's context."""
+    """A few lines of text summarising a result."""
     k, v = result["kpis"], result["violations"]
     hard = [x for x in v if x["severity"] == "hard"]
     lines = [

@@ -1,4 +1,4 @@
-"""Evaluate one hand-picked design over 365 days: KPIs, LCOH, violations.
+"""Run one hand-picked design for 365 days and print KPIs, LCOH and violations.
 
 Run from the repo root:
     PYTHONPATH=. python hackathon/run_design.py            # deterministic run

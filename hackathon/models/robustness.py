@@ -1,20 +1,16 @@
 """Robustness check: Monte Carlo over the sourced uncertainty ranges.
 
-Reports P10 / P50 / P90 with **P90 as the conservative case** for every KPI
-(SPE/WPC Petroleum Reserves Definitions 1997: 'at least a 90% probability
-that the quantities actually recovered will equal or exceed the estimate'):
+We report P10/P50/P90 with P90 as the conservative case, as in the SPE/WPC
+reserves definitions (1997): 90% probability the real value is at least this good.
+So for LCOH, electricity and gas (lower is better) P90 is the 90th percentile,
+and for the geothermal heat share (higher is better) it is the 10th percentile.
 
-  * less-is-better KPIs (LCOH, net electricity, natural gas): P90 = value not
-    exceeded in 90% of samples (90th percentile)
-  * more-is-better KPIs (geothermal heat share): P90 = value exceeded in 90%
-    of samples (10th percentile)
+Feasible share is the fraction of samples without a hard violation. We call a
+design robust at 90% or more.
 
-Feasible share = fraction of samples with no hard violation. A design is
-robust when feasible share >= 0.90 (owner decision).
-
-Uncertain inputs and their sourced ranges (sampled uniformly and
-independently; uniform sampling and the seed are method choices):
-  porosity 0.146-0.189 (owner, Slochteren studies) | skin producer and
+Uncertain inputs and where the ranges come from (sampled uniformly and
+independently; the uniform distribution and the seed are our choice):
+  porosity 0.146-0.189 (Slochteren studies) | skin producer and
   injector 0-5 (DoubletCalc 1.4 p.18; TNO 2012 p.29) | heat pump eta_Lorenz
   0.42-0.61 (Pieper et al. 2020) | absorption COP 0.65-0.84 (CIBSE 2016) |
   heat exchanger approach 3-5 C (Slihte et al. 2016) | CHP between EPA
@@ -47,7 +43,7 @@ def _sample(rng):
 
 
 def run_robustness(design, n_samples=100, seed=2027):
-    """Evaluate ``design`` under ``n_samples`` draws; return P10/P50/P90 and feasibility."""
+    """Run the design n_samples times with sampled inputs; return P10/P50/P90 and feasible share."""
     rng = np.random.default_rng(seed)
     base_over = {"heating_return_c": design.heating_return_c} if design.heating_return_c else {}
     demand = load_demand(load_config())
@@ -107,7 +103,7 @@ def run_robustness(design, n_samples=100, seed=2027):
 
 
 def return_temperature_sensitivity(design, temps=(45, 50, 55, 60, 65, 70)):
-    """Re-run ``design`` at each heating return temperature (owner decision A5)."""
+    """Run the design again at each heating return temperature (45-70 C)."""
     out = []
     for t in temps:
         r = evaluate_design(replace(design, heating_return_c=float(t)))

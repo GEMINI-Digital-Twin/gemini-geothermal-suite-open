@@ -1,12 +1,12 @@
-"""Tools the agent can call. Each returns a compact JSON-able dict.
+"""The tools the agent can call. Each one returns a small dict that is sent
+back to the model as JSON.
 
-The LLM decides *what* to run and *which* design to choose; every number
-comes from these tools. Tools return metrics, never a winner. ``finish``
-verifies the agent's choice against the stated objective (autonomous
-verification) and returns a finding the agent must address.
+The model decides what to run and which design to pick. The numbers all come
+from here, and no tool says which design is best. finish checks the final
+choice against the goal before accepting it.
 
-Usage guidance lives in the tool descriptions (the tools' documentation),
-identical for every model; the system prompt states goals only.
+How to use each tool is explained in its description (TOOL_SCHEMAS below).
+The system prompt only states the goal.
 """
 
 import json
@@ -90,7 +90,7 @@ WARNING_KEYWORDS = {  # words that count as addressing a warning in the justific
 
 
 class Session:
-    """State shared by the tools during one agent run."""
+    """Everything the tools remember during one run: config, loaded models, candidates."""
 
     def __init__(self, run_dir):
         self.cfg = load_config()
@@ -211,7 +211,8 @@ class Session:
                         outage="staggered", heating_return_c=None, hp_capacity_mw=0,
                         chiller_type="absorption_rated", sorption_capacity_mw=0,
                         elec_chiller_capacity_mw=0, boiler_capacity_mw=0, label=None):
-        # P8: reject out-of-range inputs before simulating (they could only produce hard violations)
+        # Check the inputs against the allowed ranges first. In run 4 the model sent
+        # 600 m3/h per doublet 16 times; such designs can only fail.
         given = {"depth_m": depth_m, "n_doublets": n_doublets, "max_flow_m3h": max_flow_m3h,
                  "spacing_m": spacing_m, "heating_return_c": heating_return_c,
                  "hp_capacity_mw": hp_capacity_mw, "sorption_capacity_mw": sorption_capacity_mw,
@@ -249,7 +250,7 @@ class Session:
                                                                       "violations")}}
         res["daily"].to_csv(self.run_dir / f"{cid}_daily.csv", index=False)
         k = res["kpis"]
-        # compact result (P3): key KPIs only, short names, 1 decimal, to keep prompts small
+        # Only the main KPIs, short names, 1 decimal. Full results stay in the run folder.
         keep = {"lcoh": "lcoh_eur_per_mwh", "capex_meur": "capex_total_meur",
                 "heat_direct": "heat_direct_gwh", "heat_hp": "heat_hp_gwh", "heat_chp": "heat_chp_gwh",
                 "heat_boiler": "heat_boiler_ng_gwh", "heat_unmet": "heat_unmet_gwh",
@@ -309,8 +310,9 @@ class Session:
         return {"candidates": rows,
                 "note": "metrics only; the choice and its justification are yours"}
 
-    # F3 (P6): dimensions named in the system prompt's exploration rule. Each must take at least
-    # two values across the evaluated designs. Says nothing about which value is better.
+    # Check F3. The system prompt asks for genuinely different alternatives; these are the
+    # dimensions we check. Each needs at least two different values among the evaluated
+    # designs. It does not say which value is better.
     COVERAGE = {
         "depth": lambda d: d.depth_m,
         "number of doublets": lambda d: d.n_doublets,
@@ -340,13 +342,14 @@ class Session:
             problems.append("run return_temperature_sensitivity on the chosen design first")
         if not any(ch.isdigit() for ch in justification) or "D" not in justification:
             problems.append("justification must cite candidate ids and numbers from the tools")
-        # F3: coverage - the alternatives must vary the dimensions the goal asks to explore
+        # F3: were the alternatives really different?
         unexplored = self._unexplored_dimensions()
         if unexplored:
             problems.append("alternatives are not genuinely different yet; every evaluated design "
                             "has the same " + ", ".join(unexplored)
                             + ". Evaluate designs that vary these before finishing")
-        # F2: every warning on the chosen design must be addressed in the justification
+        # F2: each warning on the chosen design has to be mentioned in the justification
+        # (keyword match only, so it checks that a warning is mentioned, not how well)
         text = justification.lower()
         for v in self.candidates[candidate_id]["violations"]:
             if v["severity"] == "warning":
@@ -360,7 +363,7 @@ class Session:
         # verification against the objective
         findings = []
         chosen_base = self.candidates[candidate_id]["kpis"]["lcoh_eur_per_mwh"]
-        # F1: cheaper feasible candidates that were never robustness-checked
+        # F1: cheaper feasible designs that never got a robustness check
         unchecked = sorted(
             (c["kpis"]["lcoh_eur_per_mwh"], cid) for cid, c in self.candidates.items()
             if cid != candidate_id and cid not in self.robustness
@@ -371,7 +374,7 @@ class Session:
                 "verification: feasible candidates with a lower base LCOH than "
                 f"{candidate_id} ({chosen_base:.1f} EUR/MWh) were not robustness-checked: "
                 + ", ".join(f"{cid} ({l:.1f})" for l, cid in unchecked))
-        # lowest P50 LCOH among robust, feasible candidates
+        # is there a robust design with a lower P50 than the chosen one?
         robust = {cid: r["lcoh_eur_per_mwh"]["P50"] for cid, r in self.robustness.items()
                   if r["robust"] and not any(v["severity"] == "hard"
                                              for v in self.candidates[cid]["violations"])}
@@ -403,8 +406,8 @@ def _fn(name, desc, props, required=()):
 
 NUM = {"type": "number"}
 
-# P8: evaluate_design arguments -> (design_variables key in fixed_inputs.yaml, meaning). Bounds are
-# read from the yaml, so the schema shows the same sourced ranges the brief does.
+# evaluate_design argument -> (key under design_variables in fixed_inputs.yaml, meaning).
+# The ranges come from the yaml, so the model sees the same bounds as in the brief.
 DESIGN_ARGS = {
     "depth_m": ("well_depth_m", "well depth, m"),
     "n_doublets": ("n_doublets", "number of doublets"),
@@ -481,7 +484,7 @@ TOOL_SCHEMAS = [
 
 
 def call_tool(session, name, args):
-    """Dispatch a tool call; errors come back as data so the agent can recover."""
+    """Run one tool call. Errors are returned to the model instead of crashing the loop."""
     fn = getattr(session, name, None)
     if fn is None or name.startswith("_"):
         return {"error": f"unknown tool {name}"}

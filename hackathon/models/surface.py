@@ -1,8 +1,8 @@
-"""Surface plant models for one day of steady (daily-average) operation.
+"""Surface plant, simulated one day at a time with daily averages (layer C).
 
-Layer C. Pure functions: temperatures in C, powers in MW, flows in kg/s.
+Units: temperatures in C, power in MW, flows in kg/s.
 
-Brine cascade (hottest use first), on the combined stream of active doublets:
+The brine from all active doublets is used hottest-first:
 
     wellhead -> [absorption generator] -> [direct heating HX]
              -> [CHP heat from associated gas, network side]
@@ -11,7 +11,7 @@ Brine cascade (hottest use first), on the combined stream of active doublets:
 Heating network (return -> 100 C): direct HX -> CHP -> heat pump -> boiler
 Cooling network (-> 20 C):          absorption chiller -> electric chiller
 
-Every parameter has a source; see SOURCES below and notes/decisions.md.
+Where each parameter comes from is listed in SOURCES below and in notes/decisions.md.
 """
 
 import math
@@ -41,7 +41,7 @@ SOURCES = {
 
 @dataclass
 class SurfaceParams:
-    """Technology parameters (sources in SOURCES) and design capacities."""
+    """Equipment parameters (see SOURCES) and installed capacities."""
 
     hx_approach_k: float = 3.0
     hp_eta_lorenz: float = 0.5
@@ -69,8 +69,8 @@ ABSORPTION_LIMITS = {  # (min drive inlet C, max brine drop K, min drive outlet 
 def lorenz_cop(eta, t_sink_in, t_sink_out, t_src_in, t_src_out):
     """Lorenz COP from log-mean sink/source temperatures (GEMINI's formula, no cap).
 
-    Numerical guard only: the log-mean lift is floored at 1 K so the formula
-    stays finite when sink and source temperatures cross (method choice).
+    The lift is kept at 1 K minimum so the formula doesn't blow up when the
+    temperatures cross. That's only a numerical safeguard.
     """
     def lm(a, b):
         a, b = a + K0, b + K0
@@ -80,7 +80,7 @@ def lorenz_cop(eta, t_sink_in, t_sink_out, t_src_in, t_src_out):
 
 
 def gemini_heatpump_cop(eta, t_sink_in, t_sink_out, t_src_in, sink_m3s, src_m3s):
-    """Run GEMINI's own HeatpumpBasic (Lorenz) for cross-checking lorenz_cop."""
+    """GEMINI's own HeatpumpBasic, used to check lorenz_cop."""
     from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
 
     hp = HeatpumpBasic()
@@ -93,9 +93,9 @@ def gemini_heatpump_cop(eta, t_sink_in, t_sink_out, t_src_in, sink_m3s, src_m3s)
 def simulate_day(cfg, p, heat_mw, cool_mw, brine_kg_s, t_wellhead_c, gas_fuel_mw=0.0):
     """Meet one day's heating and cooling demand. Returns energy flows in MW.
 
-    ``brine_kg_s`` is the combined flow of active doublets (0 on outage days).
-    ``gas_fuel_mw`` is associated-gas fuel available that day; it runs a CHP
-    whenever doublets produce (flaring is excluded).
+    brine_kg_s is the total flow of the active doublets (0 when all are down).
+    gas_fuel_mw is the associated gas available that day. It always goes to the
+    CHP when the doublets run; we don't flare it.
     """
     cpb = cfg.cp
     t_floor = t_wellhead_c - cfg.dt_brine_max          # 40 C cap, producer -> injector

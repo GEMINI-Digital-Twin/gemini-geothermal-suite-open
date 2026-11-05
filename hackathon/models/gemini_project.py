@@ -1,13 +1,13 @@
-"""Configure and run native GEMINI simulator projects (.json) for a doublet.
+"""Build and run real GEMINI simulator projects (.json) for one doublet.
 
-This is the agent's direct interface to the GEMINI digital twin:
-``configure_doublet_project`` writes a project file from the design
-variables, ``run_project`` solves it with ``gemini_simulator`` and returns
-the KPIs. The template is GEMINI's own ``simulator_examples/projects/doublet_plant.json``.
+This is where the agent uses the GEMINI digital twin directly.
+configure_doublet_project fills in GEMINI's own template
+(simulator_examples/projects/doublet_plant.json) and run_project solves it
+with gemini_simulator.
 
-In a GEMINI project the flow rate is *solved* (nodal analysis), not set.
-To reach a target flow the ESP frequency is tuned with a root search, which
-is how an operator would set the plant.
+GEMINI solves the flow rate itself (nodal analysis), so we can't just set it.
+To get a target flow we adjust the ESP frequency until the solved flow matches,
+the same way an operator would.
 """
 
 import copy
@@ -38,10 +38,9 @@ def configure_doublet_project(cfg, depth_m, esp_freq_hz, esp_stages=20,
                               flow_for_wellhead_t_m3h=300.0):
     """Return a GEMINI project dict for one doublet with hackathon inputs.
 
-    Values we set from the resource assessment: reservoir pressure (both
-    wells, same reservoir), PI, trajectories to ``depth_m``, wellhead
-    temperature (GEMINI takes it as a boundary input), separator gas ratio
-    from the GLR, and the gas heating value of the 80/20 CH4/CO2 mixture.
+    We change: reservoir pressure (same for both wells), PI, well depth,
+    wellhead temperature (GEMINI needs it as an input), the separator gas
+    ratio from the GLR and the heating value of the 80/20 CH4/CO2 gas.
     """
     with open(TEMPLATE, "r", encoding="utf-8") as f:
         p = copy.deepcopy(json.load(f))
@@ -130,7 +129,7 @@ def run_project(cfg, project):
 
 
 def tune_esp_for_flow(cfg, depth_m, target_flow_m3h, esp_stages=20, f_bounds=(30.0, 90.0), **kw):
-    """Find the ESP frequency at which GEMINI's nodal solve gives the target flow."""
+    """ESP frequency at which GEMINI's solve gives the target flow."""
     kw.setdefault("flow_for_wellhead_t_m3h", target_flow_m3h)
 
     def resid(f):

@@ -1,15 +1,17 @@
-"""Agent loop: plan -> tool call -> observe -> revise -> compare -> finish.
+"""The agent loop. The model picks a tool, we run it, the result goes back
+into the conversation, and this repeats until the model calls finish (or
+we hit the step limit).
 
 Run from the repo root:
     PYTHONPATH=. python -m hackathon.agent.agent                 # routing from llm_config.yaml
     PYTHONPATH=. python -m hackathon.agent.agent --routing local_only
     PYTHONPATH=. python -m hackathon.agent.agent --scripted      # offline demo, 0 tokens
 
-Each run writes to hackathon/runs/<timestamp>/:
-    llm_log.jsonl      every call: full prompt, answer, tokens, cost
-    transcript.md      readable step-by-step record
-    D*_daily.csv       daily tables of each evaluated design
-    final_design.json  chosen design with the agent's justification
+Output of a run goes to hackathon/runs/<timestamp>/:
+    llm_log.jsonl      every LLM call with prompt, answer, tokens and cost
+    transcript.md      the same run in readable form
+    D*_daily.csv       daily results of each design the agent evaluated
+    final_design.json  the chosen design and the agent's justification
 """
 
 import argparse
@@ -44,7 +46,11 @@ Rules:
 
 
 class Router:
-    """Chooses the route per step: API for planning, recovery and the final step."""
+    """Decides per step whether the local model or the API model answers.
+
+    In hybrid mode the API takes the first step, the step after a problem
+    (hard violation, rejection, repeat, error) and the last few steps.
+    """
 
     def __init__(self, routing, models):
         self.routing, self.models = routing, models
@@ -65,7 +71,7 @@ class Router:
             (v.get("severity") == "hard") if isinstance(v, dict) else str(v).startswith("hard")
             for v in result.get("violations", []))
         rejected = isinstance(result, dict) and result.get("accepted") is False
-        repeat = isinstance(result, dict) and result.get("repeat") is True   # L2
+        repeat = isinstance(result, dict) and result.get("repeat") is True   # repeats also go to the API in hybrid mode
         if hard or rejected or repeat or (isinstance(result, dict) and "error" in result) \
                 or tool_name in ("compare_candidates", "robustness_check"):
             self.force_api_next = True
@@ -89,15 +95,16 @@ def run(llm_by_route, routing="hybrid", max_steps=20, budget_usd=0.5, task=None,
     return session, run_dir
 
 
-# Loop guard (P4). Tools whose output can legitimately change for the same arguments are
-# exempt from repeat detection.
+# Loop guard. The 4B model sometimes sends the same call again and again (run 1c).
+# compare_candidates and finish can give a different answer for the same arguments,
+# so they are not treated as repeats.
 REPEAT_EXEMPT = {"compare_candidates", "finish"}
-MAX_REPEAT_STEPS = 3  # method choice: stop after this many consecutive all-repeat steps
+MAX_REPEAT_STEPS = 3  # our choice: stop after 3 steps in a row that only repeat
 
 
 def _loop(session, log, router, messages, md, max_steps, budget_usd):
-    seen = {}          # (tool, canonical args) -> compact result text (L1)
-    repeat_steps = 0   # consecutive steps in which every call was a repeat (L3)
+    seen = {}          # (tool, args) -> result text, to spot repeated calls
+    repeat_steps = 0   # steps in a row where every call was a repeat
     for step in range(max_steps):
         model = router.pick(step, max_steps)
         msg = model.chat(messages, tools=TOOL_SCHEMAS, step=step)
@@ -122,7 +129,7 @@ def _loop(session, log, router, messages, md, max_steps, budget_usd):
                 key = None
             else:
                 key = (name, json.dumps(args, sort_keys=True))
-                if name not in REPEAT_EXEMPT and key in seen:   # L1: do not re-run, point back
+                if name not in REPEAT_EXEMPT and key in seen:   # repeated call: don't run it again
                     n_repeats += 1
                     result = {"repeat": True,
                               "note": f"identical {name} call already made; the result is unchanged. "
@@ -132,13 +139,13 @@ def _loop(session, log, router, messages, md, max_steps, budget_usd):
                 else:
                     result = call_tool(session, name, args)
             router.observe(name, result)
-            text = json.dumps(result, default=str, separators=(",", ":"))  # compact (P3)
+            text = json.dumps(result, default=str, separators=(",", ":"))  # no spaces, keeps prompts shorter
             if key is not None and not (isinstance(result, dict) and result.get("repeat")):
                 seen[key] = text
             messages.append({"role": "tool", "tool_call_id": tc["id"], "content": text})
             md.append(f"- **Tool** `{name}({json.dumps(args)})`\n\n  ```json\n  {text[:1500]}\n  ```\n")
         repeat_steps = repeat_steps + 1 if n_repeats == len(calls) else 0
-        if repeat_steps >= MAX_REPEAT_STEPS:                       # L3
+        if repeat_steps >= MAX_REPEAT_STEPS:                       # stuck in a loop
             md.append(f"\n**Stopped: loop detected ({repeat_steps} consecutive steps repeating "
                       f"earlier tool calls).**\n")
             break

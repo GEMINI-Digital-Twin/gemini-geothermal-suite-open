@@ -1,16 +1,16 @@
-"""Simple levelised cost of delivered energy (heat + cooling).
+"""Levelised cost of the energy delivered (heat plus cooling).
 
-Cost structure and values: TNO ThermoGIS NL defaults (pythermogis 'Cost
-Model' and 'UTC Properties ThermoGIS NL'), used as they are, without
-inflation or other adjustment. Items ThermoGIS does not cover use the
-sources listed in config/fixed_inputs.yaml -> economics.other_sources.
+Costs follow the TNO ThermoGIS NL defaults (pythermogis 'Cost Model' and
+'UTC Properties ThermoGIS NL'), taken as they are, no inflation correction.
+For equipment ThermoGIS doesn't cover we use the sources listed under
+economics.other_sources in config/fixed_inputs.yaml.
 
 LCOH = (CRF * CAPEX + OPEX + electricity + gas - CHP electricity value)
        / (heat delivered + cooling delivered)          [EUR/MWh]
 
-The economics compare designs consistently; they are not a cost forecast.
-Simplifications (stated in the report): vertical wells (ThermoGIS s_curve = 1),
-no tax, no inflation, CHP electricity valued at the purchase price.
+This is for comparing designs with each other, not a cost forecast.
+Simplifications: vertical wells (ThermoGIS s_curve = 1), no tax, no
+inflation, CHP electricity valued at the purchase price.
 """
 
 HOURS = 24.0
@@ -28,7 +28,7 @@ def well_pair_capex_eur(tg, depth_m):
 
 
 def design_economics(cfg, design, daily, doublet_power_mw):
-    """CAPEX, OPEX, energy costs and LCOH for one evaluated design."""
+    """CAPEX, OPEX, energy cost and LCOH of one evaluated design."""
     econ = cfg.economics
     tg, oth = econ["thermogis"], econ["other_sources"]
     p = design.surface
