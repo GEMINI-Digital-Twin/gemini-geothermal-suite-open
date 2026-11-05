@@ -1,8 +1,6 @@
-"""Gas dissolved in the brine: rates, fuel power and CO2 per doublet, a Henry's-law bubble point, and five ways to handle the gas.
+"""Gas dissolved in the brine: rates, fuel power and CO2 per doublet, a Henry's-law bubble point, and five ways to handle it.
 
-Henry's-law constants: Sander 2023, Atmos. Chem. Phys. 23, 10901, https://www.henrys-law.org . Parameter sources are in the inline comments.
-gas_at() returns gas rates (Nm3/h), methane fuel power (MW), CO2 (kg/h) and bubble points (bar); handling_options() returns one dict
-per handling option (vent, flare, engine, boiler, reinject) with CO2 per year, energy credit or duty, and a note. Run: python -m geo.gas
+Run: python -m geo.gas
 """
 import math
 
@@ -10,42 +8,30 @@ import numpy as np
 
 from geo.common import DEPTH_M, RHO, t_reservoir_c
 
-GLR = 0.8                      # gas-liquid ratio (GLR), Nm3 gas per m3 brine (Nm3 = normal cubic metre at 0 C, 1.01325 bar); challenge brief
-Y_CH4, Y_CO2 = 0.80, 0.20      # mole fractions of methane and CO2 in the gas; from the challenge brief
-M_CO2 = 44.0095e-3             # CO2 molar mass, kg/mol; source: NIST Chemistry WebBook, entry C124389
-M_CH4 = 16.0425e-3             # methane molar mass, kg/mol; source: NIST Chemistry WebBook, entry C74828
-R_GAS = 8.314462618            # molar gas constant, J/(mol K), exact; source: NIST CODATA, https://physics.nist.gov/cgi-bin/cuu/Value?r
+GLR = 0.8                      # gas-liquid ratio, Nm3 gas (0 C, 1.01325 bar) per m3 brine; challenge input
+Y_CH4, Y_CO2 = 0.80, 0.20      # mole fractions of methane and CO2; challenge input
+M_CO2 = 44.0095e-3             # CO2 molar mass, kg/mol; NIST WebBook, see SOURCES.md
+M_CH4 = 16.0425e-3             # methane molar mass, kg/mol; NIST WebBook
+R_GAS = 8.314462618            # molar gas constant, J/(mol K); NIST CODATA
 V_M = R_GAS * 273.15 / 101325.0   # ideal-gas molar volume at 0 C and 1.01325 bar, m3/mol (22.414 L/mol)
-# methane lower calorific value (LHV), kJ/mol: NIST gross value 890.7 (WebBook entry C74828,
-# https://webbook.nist.gov/cgi/cbook.cgi?ID=C74828&Mask=1) minus 2 x the latent heat of water (WebBook entry C7732185)
-LHV_CH4 = 890.7 - 2 * (285.830 - 241.826)
-SALT_G_L, M_NACL = 45.0, 58.44e-3      # NaCl in the brine, g/L (assumed, matches the 1 030 kg/m3 density); NaCl molar mass, kg/mol
-# methane salting-out (Setschenow) constant, kg/mol; source: Table 2 reference value in Fang et al. (2023), J. Chem. Eng. Data 69, 3330-3346, DOI 10.1021/acs.jced.3c00225
-K_SALT_CH4 = 0.319
-# Henry constants: Sander 2023, Atmos. Chem. Phys. 23, 10901, https://www.henrys-law.org
-# H^cp at 298.15 K in mol/(m3 Pa) and its temperature slope dlnH/d(1/T) in K; values from Burkholder et al. 2019 on those pages
+LHV_CH4 = 890.7 - 2 * (285.830 - 241.826)   # methane LHV, kJ/mol: NIST gross value minus 2 x latent heat of water
+SALT_G_L, M_NACL = 45.0, 58.44e-3      # NaCl in the brine, g/L (assumed, fits 1 030 kg/m3); NaCl molar mass, kg/mol
+K_SALT_CH4 = 0.319   # methane Setschenow salting-out constant, kg/mol; Fang 2023
+# Henry H^cp at 298.15 K, mol/(m3 Pa), and dlnH/d(1/T), K; Sander 2023 (Burkholder 2019 values)
 VANT_HOFF = {"CH4": (1.4e-5, 1600.0), "CO2": (3.4e-4, 2300.0)}
-# H^cp = exp(A + B/T + C ln T): six CH4 and five CO2 measured fits from the same pages
+# H^cp = exp(A + B/T + C ln T): measured fits, Sander 2023
 FITS = {"CH4": [(-133.87698, 6629.95765, 17.62619), (-206.41149, 10058.76380, 28.34414), (-201.05778, 9920.37989, 27.48020),
                 (-195.92029, 9624.35229, 26.74970), (-203.15923, 9951.76163, 27.82682), (-185.72813, 9197.97398, 25.21142)],
         "CO2": [(-144.44445, 8071.06256, 19.20040), (-167.86796, 9146.18176, 22.67310), (-126.83006, 7302.88057, 16.55553),
                 (-140.70031, 7951.74051, 18.60965), (-138.54127, 7859.16691, 18.28487)]}
-OPERATING_DAYS = 330           # days a doublet runs per year; from the challenge brief
-# global warming potential over 100 years (GWP100) of fossil methane, kg CO2-equivalent per kg; source: GHG Protocol, IPCC Global
-# Warming Potential Values, August 2024, AR6 column (IPCC Sixth Assessment Report, WG1 7.6.1.1), the value for "methane emissions
-# from fossil fuel fugitive emission sources",
-# https://ghgprotocol.org/sites/default/files/2024-08/Global-Warming-Potential-Values%20%28August%202024%29.pdf
-GWP100_CH4_FOSSIL = 29.8
-# electrical share of the fuel power in a gas engine with heat recovery, a combined heat and power (CHP) unit; source: GEMINI,
-# CHP.ELECTRICAL_POWER_FRACTION in src/gemini_model/chp/chp.py (development branch, commit d86e8bb)
-CHP_EL_SHARE = 1 / 3
-CHP_TOTAL_EFF = 0.90           # CHP electricity plus recovered heat per unit of fuel power on LHV; assumed, no source
-P_SEPARATOR_BAR = 10.0         # pressure of the degasser that releases the gas at the surface, bar; assumed, no source
-# default handling of one doublet in this module: the engine burns the methane, so it emits the same CO2 as a flare, and its
-# electricity covers the pumps' load; the organisers allow any option (organiser answer on Discord, 3 Nov 2026).
-# The plant's choice between the engine and reinjection is geo.rule.gas_choice, applied by geo.cost.economics.
+OPERATING_DAYS = 330           # days a doublet runs per year; challenge input
+GWP100_CH4_FOSSIL = 29.8      # fossil methane, kg CO2e per kg over 100 years; GHG Protocol 2024 (IPCC AR6)
+CHP_EL_SHARE = 1 / 3           # electrical share of fuel power in a gas engine (CHP); GEMINI chp.py
+CHP_TOTAL_EFF = 0.90           # CHP electricity plus heat per unit of fuel power (LHV); assumed
+P_SEPARATOR_BAR = 10.0         # surface degasser pressure, bar; assumed
+# default per-doublet handling: same CO2 as a flare, electricity covers the pumps; the plant choice is geo.rule.gas_choice
 GAS_HANDLING = "engine"
-OPTIONS = ("vent", "flare", "engine", "boiler", "reinject")   # the handling options, in the order handling_options() returns them
+OPTIONS = ("vent", "flare", "engine", "boiler", "reinject")   # in the order handling_options() returns them
 BASIS = ("GLR 0.8 Nm3/m3, 80/20 CH4/CO2 [D]; 22.414 L/mol ideal [C]; CH4 LHV 802.7 kJ/mol = NIST 890.7 - 2 x 44.0 [L, C]; bubble point "
          "= Henry's law at reservoir T (Sander compilation, henrys-law.org): central = mean of 6 CH4 / 5 CO2 measured fits, "
          "upper = van 't Hoff from 298 K; CH4 salted out by exp(0.319 x 0.77) = 1.28 (ln reading) or 1.76 (log10 reading) [L, A, TBC]; "
@@ -68,7 +54,7 @@ def henry_cp(gas, t_c, method="fits"):
 
 
 def salting_factor(convention="ln"):
-    """Factor by which 45 g/L NaCl raises the CH4 bubble point: exp(k m) or 10^(k m); the paper's log base is unconfirmed."""
+    """Factor by which 45 g/L NaCl raises the CH4 bubble point: exp(k m) or 10^(k m) (log base unconfirmed)."""
     km = K_SALT_CH4 * SALT_G_L / 1000 / M_NACL
     return 10 ** km if convention == "log10" else math.exp(km)
 
@@ -99,7 +85,7 @@ def compression_kWh_per_Nm3(p_from_bar, p_to_bar, t_c):
 
 def handling_options(q_m3h, depth_m=DEPTH_M, days=OPERATING_DAYS, esp_kW=None, p_inj_wh_bar=None, t_inj_c=None):
     """One dict per gas handling option at q_m3h over days: CO2 and CO2-equivalent t/yr, energy credit or duty MWh/yr, a note."""
-    from geo.cost import BOILER_EFF                          # imported here: cost imports this module through year
+    from geo.cost import BOILER_EFF   # here: cost imports this module
     if p_inj_wh_bar is None or t_inj_c is None:
         from geo import year
         rows = year.injector_rows(depth_m)

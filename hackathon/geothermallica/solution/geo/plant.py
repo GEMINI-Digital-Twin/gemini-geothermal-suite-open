@@ -1,8 +1,6 @@
-"""Heat one doublet delivers at 100 C against flow, from the GEMINI well models: a heat exchanger then a heat-pump lift, or a boiler lift.
+"""Heat one doublet delivers at 100 C against flow: exchanger then heat-pump lift (or boiler lift), on the GEMINI well models.
 
-Parameter sources are in the inline comments.
-doublet_at() returns a dict for one flow: heat by source (MW), heat-pump electricity and COP (coefficient of performance),
-pump power, wellhead temperature. DoubletTable holds the same keys as arrays over flow; at_output() returns one operating point.
+doublet_at() gives one flow; DoubletTable holds the same keys over flow and at_output() one operating point.
 """
 import numpy as np
 
@@ -11,20 +9,15 @@ from geo.well import ESP_DEPTH_M, Producer
 
 CP = 4.0          # brine heat capacity, kJ/kg/K; assumed
 APPROACH_K = 3.0  # heat-exchanger approach (smallest brine-to-water temperature difference), K; assumed
-# heat-pump Lorenz efficiency (real COP over ideal COP on log-mean temperatures); source: IEA Heat Pumping Technologies,
-# Annex 58 Task 1 report HPT-AN58-2 (2023), range 35-59 %,
-# https://heatpumpingtechnologies.org/content/uploads/sites/70/2023/09/annex-58-task-1-technologies-task-report.pdf
-LORENZ_EFF = 0.50
-# cap on the heat-pump COP: high-temperature heat pumps reach COP 6-8 at small lifts; source: Arpagaus et al. 2018, Energy 152,
-# 985-1010, https://doi.org/10.1016/j.energy.2018.03.166; the cap itself is assumed
-COP_MAX = 8.0
-Q_FLOOR_M3H = 160.0   # lowest flow inside the pump's operating range, m3/h (rounded up from the stretched example curve)
-T_ABS_MIN_C = 78.0    # coldest brine a single-effect absorption chiller can use, C; assumed (such chillers want about 80 C)
-Q_CAP_M3H = 300.0     # maximum flow per doublet, m3/h; from the challenge brief
+LORENZ_EFF = 0.50    # heat-pump COP over Lorenz COP; IEA HPT Annex 58 2023 (35-59 %), see SOURCES.md
+COP_MAX = 8.0        # heat-pump COP cap at small lifts; Arpagaus 2018 (COP 6-8), cap assumed
+Q_FLOOR_M3H = 160.0   # lowest flow inside the pump's operating range, m3/h
+T_ABS_MIN_C = 78.0    # coldest brine a single-effect absorption chiller can use, C; assumed
+Q_CAP_M3H = 300.0     # maximum flow per doublet, m3/h; challenge input
 
 
 def _abs_drive(t_wh, mcp, t_return_c, hx):
-    """Brine heat above T_ABS_MIN_C left for absorption chillers, MW: brine at t_wh, heat capacity flow mcp (MW/K), hx MW to the exchanger."""
+    """Brine heat above T_ABS_MIN_C left for absorption chillers, MW (mcp in MW/K, hx = exchanger MW)."""
     return max(0.0, mcp * (t_wh - max(T_ABS_MIN_C, t_return_c + APPROACH_K + hx / mcp)))
 
 
@@ -52,7 +45,7 @@ def doublet_at(w: Producer, q_m3h: float, t_return_c: float, heat_pump: bool = T
     q_hx = m * CP * (t_wh - t_brine_hx) / 1000
     q_evap = m * CP * (t_brine_hx - t_floor) / 1000 if heat_pump else 0.0   # heat-pump evaporator duty, MW; none with a boiler lift
     if q_evap > 0:
-        # network water runs exchanger -> heat pump, so the exchanger outlet (the heat-pump inlet) depends on the COP: iterate
+        # water runs exchanger -> heat pump, so the heat-pump inlet depends on the COP: iterate
         for _ in range(8):
             cop = min(COP_MAX, LORENZ_EFF * _tlm(T_SUPPLY_HEAT_C, t_net_hx)
                       / (_tlm(T_SUPPLY_HEAT_C, t_net_hx) - _tlm(t_brine_hx, t_floor)))
@@ -72,14 +65,13 @@ def doublet_at(w: Producer, q_m3h: float, t_return_c: float, heat_pump: bool = T
 
 
 def _lift_cop(t_hx, t_evap_in, t_evap_out):
-    """Lorenz COP, capped at COP_MAX, of the heat pump lifting the water from t_hx to the supply, brine glide t_evap_in to t_evap_out (C)."""
+    """Lorenz COP (capped at COP_MAX) lifting water from t_hx to the supply on brine from t_evap_in to t_evap_out, C."""
     t_sink = _tlm(T_SUPPLY_HEAT_C, t_hx)
     return min(COP_MAX, LORENZ_EFF * t_sink / (t_sink - _tlm(t_evap_in, t_evap_out)))
 
 
 def _chiller_first(floor, mw_out, t_return_c):
-    """Part load with the absorption chiller taking the brine from the wellhead down to T_ABS_MIN_C first, the exchanger heating
-    the water to APPROACH_K below that, the heat pump lifting the rest to the supply; None when the approach or the 40 K cap breaks."""
+    """Part load: chiller to T_ABS_MIN_C, exchanger, then heat pump; None when the approach or the 40 K cap breaks."""
     t_wh, mcp = floor["T_wh_C"], floor["mcp_MW_per_K"]
     if t_wh - APPROACH_K <= T_ABS_MIN_C:
         return None
@@ -93,7 +85,7 @@ def _chiller_first(floor, mw_out, t_return_c):
     t_evap_out = t_evap_in - hp / mcp
     for _ in range(4):
         cop = _lift_cop(t_hx, t_evap_in, t_evap_out)
-        t_evap_out = t_evap_in - hp * (cop - 1) / cop / mcp          # the evaporator takes the heat the compressor does not add
+        t_evap_out = t_evap_in - hp * (cop - 1) / cop / mcp          # evaporator heat = output minus compressor work
     if t_evap_out < t_wh - DT_BRINE_MAX_K:
         return None
     pt = {**floor, "MW_hx": hx, "MW_hp": hp, "MW_el_hp": hp / cop, "MW_boiler_lift": 0.0, "MW_out": mw_out, "cop": cop,
@@ -103,8 +95,7 @@ def _chiller_first(floor, mw_out, t_return_c):
 
 
 def _hold_split(floor, mw_out, t_return_c):
-    """Part load holding the floor point's split of exchanger, heat pump and boiler lift (scaled together); the heat pump's COP
-    is recomputed at the smaller lift (the brine leaves the exchanger warmer than at the floor point)."""
+    """Part load holding the floor point's split of exchanger, heat pump and boiler; COP recomputed at the smaller lift."""
     f = mw_out / floor["MW_out"]
     hx, hp, mcp = f * floor["MW_hx"], f * floor["MW_hp"], floor["mcp_MW_per_K"]
     pt = {**floor, "MW_hx": hx, "MW_hp": hp, "MW_el_hp": f * floor["MW_el_hp"], "MW_boiler_lift": f * floor["MW_boiler_lift"],
@@ -134,9 +125,7 @@ class DoubletTable:
         self.out_min, self.out_max = self.cols["MW_out"][0], self.cols["MW_out"][-1]
 
     def at_output(self, mw_out: float) -> dict:
-        """Operating-point dict for mw_out MW per doublet. Below the floor output the flow stays at the floor and every MWh is still
-        lifted to the supply temperature: chiller first where the brine allows it, else the floor point's split held; with a boiler
-        lift the boiler's share of the output is constant. Above it, the full-draw sweep is interpolated."""
+        """Operating point for mw_out MW per doublet: part load at the floor flow below out_min, else interpolated."""
         c = self.cols
         floor = {k: float(v[0]) for k, v in c.items()}
         t_ret = self.t_return_c

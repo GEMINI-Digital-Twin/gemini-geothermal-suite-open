@@ -1,10 +1,6 @@
-"""Production and injection wells on the challenge inputs, built from GEMINI models.
+"""Production well (inflow, tubing, ESP, tubing) and injection well (tubing, reservoir) built from GEMINI models.
 
-Producer: reservoir inflow (IPR, inflow performance relationship) -> tubing below the pump -> electrical submersible pump (ESP)
--> tubing above. Injector: tubing down -> reservoir. Tubing uses DPDT, GEMINI's pipe-flow pressure-drop model.
-Parameter sources are in the inline comments.
-Producer.run() returns a dict of pressures, wellhead temperature and pump power; injector_at() a dict of injection pressures,
-injection-pump power and the margin to the injection-pressure limit of SodM (Dutch State Supervision of Mines).
+Producer.run() gives pressures, wellhead temperature and pump power; injector_at() injection pressures and the SodM margin.
 """
 from functools import lru_cache
 
@@ -18,28 +14,22 @@ from gemini_model.reservoir.inflow_performance import IPR
 from gemini_model.well.pressure_drop import DPDT
 
 BAR = 1e5                     # Pa per bar
-Z_TOP_M = 2450.0              # reservoir top, m: the brief's 2 500 m midpoint minus half the 100 m thickness
-# SodM maximum bottomhole injection pressure, bar: 0.135 bar per m of depth to the reservoir top; source: Mijnlieff 2015,
-# TNO note AGE 15-10.072, quoting the SodM protocol for maximum injection pressures,
-# https://acc.nlog.nl/sites/default/files/begeleidende%20notitie%20geomech.pdf
-P_SODM_BAR = 0.135 * Z_TOP_M
-TUBING_ID_M = 0.1778          # tubing inner diameter, m (7 inch); assumed, no source
+Z_TOP_M = 2450.0              # reservoir top, m: 2 500 m midpoint minus half the 100 m thickness
+P_SODM_BAR = 0.135 * Z_TOP_M   # SodM injection limit, 0.135 bar/m to the reservoir top; Mijnlieff 2015, see SOURCES.md
+TUBING_ID_M = 0.1778          # tubing inner diameter, m (7 inch); assumed
 ROUGHNESS_M = 4.5e-5          # tubing wall roughness, m, commercial steel; assumed, textbook value
-# well spacing used as the drainage radius, and wellbore radius, m; values assumed. Using the spacing as the drainage
-# radius follows the DoubletCalc 1.4 manual (TNO 2014, report R11396),
-# https://acc.nlog.nl/sites/default/files/6ab98fc3-1ca1-4bbe-b0a2-c5a9658a3597_doubletcalc%20v143%20manual.pdf
-SPACING_M, R_W_M = 1300.0, 0.108
+SPACING_M, R_W_M = 1300.0, 0.108   # drainage radius = well spacing (TNO 2014, DoubletCalc) and wellbore radius, m; assumed
 CELL_M = 50.0                 # length of one DPDT pipe segment, m
-ESP_DEPTH_M = 1100.0          # pump setting depth, m; design choice: deep enough that the pump intake stays above the gas bubble point
-PUMP_EFF = 0.70               # pump efficiency (ESP and injection pump); from the challenge brief
-# GEMINI example pump: head polynomial per stage; flow axis stretched so the best-efficiency point (BEP) sits at Q_BEP_M3H
+ESP_DEPTH_M = 1100.0          # pump setting depth, m; keeps the intake above the gas bubble point
+PUMP_EFF = 0.70               # pump efficiency, ESP and injection pump; challenge input
+# GEMINI example pump head per stage; flow axis stretched to put the best-efficiency point (BEP) at Q_BEP_M3H
 EXAMPLE_HEAD_COEFF = [125.518426, -0.0020852856, 2.28955651e-07, -1.45640214e-11, 2.37859645e-16, -1.18258356e-21]
 EXAMPLE_BEP_M3H, EXAMPLE_QMIN_M3H, EXAMPLE_QMAX_M3H = 129.98, 82.0, 178.0   # example pump BEP and operating range, m3/h
 Q_BEP_M3H = 250.0             # BEP of our pump, m3/h; design choice
 
 
 def sodm_limit_bar(depth_m=DEPTH_M):
-    """SodM limit, bar: 0.135 bar/m times the reservoir top 50 m above depth_m (compared with pressure at depth_m: ~5 bar conservative)."""
+    """SodM limit, bar: 0.135 bar/m times the depth of the reservoir top, 50 m above depth_m."""
     return 0.135 * (depth_m - (DEPTH_M - Z_TOP_M))
 
 
@@ -70,8 +60,7 @@ def _well(length_m):
 
 
 def _pump(stages, q_bep=Q_BEP_M3H, affinity=True):
-    """ESPAffinity (or GEMINI's ESP if affinity is False) with the example head curve stretched to put its BEP at q_bep;
-    power curve unused (zeros)."""
+    """ESPAffinity (or GEMINI's ESP) with the example head curve stretched to its BEP at q_bep."""
     s = EXAMPLE_BEP_M3H / q_bep
     p = ESPAffinity() if affinity else ESP()
     p.update_parameters({"no_stages": stages, "head_coeff": [c * s ** i for i, c in enumerate(EXAMPLE_HEAD_COEFF)],
@@ -84,8 +73,7 @@ class Producer:
 
     def __init__(self, depth_m=DEPTH_M, stages=30, esp_depth_m=ESP_DEPTH_M, affinity=True, q_bep=Q_BEP_M3H, pi=None):
         """Build the GEMINI models; pi overrides the productivity index (m3/h per bar)."""
-        # affinity=True uses ESPAffinity, which reads the 60 Hz head curve at q x 60/f (pump similarity law);
-        # affinity=False uses GEMINI's ESP, which reads it at q
+        # affinity: ESPAffinity reads the 60 Hz curve at q x 60/f; GEMINI's ESP reads it at q
         self.depth_m, self.stages, self.esp_depth_m, self.affinity = depth_m, stages, esp_depth_m, affinity
         self.t_res_c = t_reservoir_c(depth_m)
         self.p_res_bar = reservoir_pressure(depth_m)
@@ -144,7 +132,7 @@ class Injector:
 
     def __init__(self, depth_m=DEPTH_M, gemini_sign=False, ii=None):
         """Set up the injector; ii overrides the injectivity index (m3/h per bar)."""
-        # gemini_sign=True passes +q to DPDT "down" as GEMINI's simulator does (friction adds); False passes -q (physical)
+        # gemini_sign passes +q downward as GEMINI does (friction adds); default -q is physical
         self.depth_m, self.gemini_sign, self.ii = depth_m, gemini_sign, ii
         self.t_res_c = t_reservoir_c(depth_m)
         self.p_res_bar = reservoir_pressure(depth_m)
@@ -153,7 +141,7 @@ class Injector:
 
     def run(self, q_m3h, t_inj_c):
         """Dict of required bottomhole and wellhead pressure (bar) and injection-pump power (kW) at q_m3h and t_inj_c."""
-        # injectivity = productivity scaled by viscosity, with the whole drainage area at the injection temperature
+        # injectivity = productivity scaled by viscosity, whole drainage area at the injection temperature
         ii = self.ii if self.ii is not None else self.pi * water_viscosity(self.t_res_c) / water_viscosity(t_inj_c)
         ipr = IPR()
         ipr.update_parameters({"type": "injection_reservoir", "reservoir_pressure": self.p_res_bar,
@@ -179,7 +167,7 @@ def _injector_wells(depth_m=DEPTH_M):
 
 
 def injector_at(q, depth_m=DEPTH_M):
-    """Injector dict at q m3/h, brine at the producer's wellhead temperature minus 40 K; adds GEMINI-sign wellhead pressure and SodM margin."""
+    """Injector dict at q m3/h, brine at wellhead T minus 40 K, with GEMINI-sign wellhead pressure and SodM margin."""
     prod, inj, inj_g = _injector_wells(depth_m)
     f = prod.freq_for_wellhead(q)
     t_inj = prod.run(q, f if f is not None else 60.0)["T_wellhead_C"] - DT_BRINE_MAX_K

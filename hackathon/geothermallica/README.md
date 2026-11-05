@@ -54,7 +54,7 @@ The `hackathon/` folder is not linted by TNO's CI and does not keep the 100-char
 It builds one year of plant operation on GEMINI's own components (IPR, DPDT, ESP, PVT, HeatpumpBasic).
 `well.py` is the producer and the injector.
 `plant.py` gives one doublet's heat, electricity and lift against flow.
-`year.py` dispatches the plant day by day over 2027 and runs the constraint checks.
+`year.py` dispatches the heat day by day over 2027; `cooling.py` the cold, `checks.py` the 17 constraint checks, `demand.py` reads the demand files.
 `cost.py` prices it: CAPEX, operation, electricity, gas, CO2, LCoH and LCoC.
 `outage.py` places the 35-day outage of each doublet in the quietest weeks.
 `gas.py` handles the dissolved gas, `lifetime.py` the breakthrough, `storage.py` a heat tank.
@@ -65,7 +65,8 @@ It builds one year of plant operation on GEMINI's own components (IPR, DPDT, ESP
 `gemini_path.py` puts this branch's `src/` first on the Python path, so the solution keeps no copies of the models.
 
 **`solution/ai/`: the agent.**
-`AI02_tools.py` turns the physics into 17 typed tools.
+`AI02_tools.py` is the registry of the 17 typed tools; the tools themselves live in `AI02_tools_site.py`, `AI02_tools_year.py`, `AI02_tools_economics.py` and `AI02_tools_gemini.py`.
+`SOURCES.md` in `solution/` lists the source of every constant used in the code.
 `AI03_plan.py` is the code plan.
 It reads the brief, sweeps 18 candidate designs, picks one, prices the alternatives and calls the GEMINI replay.
 `AI03_moves.py` is the repair loop: when a check fails, the model picks one move from a short menu.
