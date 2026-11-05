@@ -27,15 +27,15 @@ CHALLENGE CONSTRAINTS
 
 ANNUAL PERFORMANCE
 ----------------------------------------
-  Annual heating delivered (MW-day): 5478.6
-  Annual cooling delivered (MW-day): 1459.5
-  Geothermal heat extracted (MW-day): 2577.8
-  Heat pump contribution (MW-day): 4594.6
-  Gas thermal (boiler+CHP) (MW-day): 435.7
-  Additional backup boiler (MW-day): 191.4
+  Annual heating delivered (MW-day): 4652.8
+  Annual cooling delivered (MW-day): 989.3
+  Geothermal heat extracted (MW-day): 2438.7
+  Heat pump contribution (MW-day): 4346.6
+  Gas thermal (boiler+CHP) (MW-day): 439.7
+  Additional backup boiler (MW-day): 130.0
   Geothermal+HP share of heating (%): 100
-  Total CO2 emissions (tonnes/year): 33255.1
-  Net electricity consumption (MW-day): 1397.1
+  Total CO2 emissions (tonnes/year): 25765.0
+  Net electricity consumption (MW-day): 1302.0
   Geothermal operating days: 330
   Number of doublets: 2
   Flow per doublet (m3/h): 106.2

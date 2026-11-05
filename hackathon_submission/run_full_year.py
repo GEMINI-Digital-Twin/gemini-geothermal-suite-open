@@ -57,12 +57,12 @@ NUM_DOUBLETS = 2              # design choice: 2 doublets
 # ═══════════════════════════════════════════════════════════════════
 script_dir = Path(__file__).resolve().parent
 
-heating_path = script_dir / "heating_demand.csv"
-cooling_path = script_dir / "cooling_demand.csv"
+heating_path = script_dir / "GEMINI_Heating_Demand_Daily_2027.csv"
+cooling_path = script_dir / "GEMINI_Cooling_Demand_Daily_2027.csv"
 
 if not heating_path.exists() or not cooling_path.exists():
-    print("ERROR: heating_demand.csv and cooling_demand.csv required.")
-    print("Run generate_demand.py first, or place official challenge CSVs here.")
+    print("ERROR: official GEMINI demand CSVs (2027) required.")
+    print("Place GEMINI_Heating/Cooling_Demand_Daily_2027.csv in this folder.")
     sys.exit(1)
 
 df_heat = pd.read_csv(heating_path)

@@ -65,13 +65,13 @@ Boiler/CHP (gas backup) → covers peak demand + 35 outage days
 | Geo operating days | 330 | 330 | ✓ PASS |
 | Volume balance | Enforced | = | ✓ PASS |
 
-## Annual Results
+## Annual Results (official 2027 demand profiles)
 
-- **Heating delivered:** ~5,479 MW-day
-- **Cooling delivered:** ~1,460 MW-day
+- **Heating delivered:** 4,653 MW-day
+- **Cooling delivered:** 989 MW-day
 - **Geothermal share:** ~100% (geo + heat pump)
 - **Heat pump COP:** 3.92
-- **CO₂ emissions:** ~33,255 tonnes/year
+- **CO₂ emissions:** 25,765 tonnes/year
 - **Constraint violations:** 0
 
 ## Files
@@ -80,9 +80,8 @@ Boiler/CHP (gas backup) → covers peak demand + 35 outage days
 |---|---|
 | `run_full_year.py` | Main simulation — 365-day dispatch loop |
 | `challenge_plant.json` | GEMINI plant definition with corrected challenge inputs |
-| `generate_demand.py` | Creates synthetic demand profiles (placeholder) |
-| `heating_demand.csv` | 365-day heating demand time series (MW) |
-| `cooling_demand.csv` | 365-day cooling demand time series (MW) |
+| `GEMINI_Heating_Demand_Daily_2027.csv` | Official 2027 daily heating demand (MWth) |
+| `GEMINI_Cooling_Demand_Daily_2027.csv` | Official 2027 daily cooling demand (MWcool) |
 | `results_daily.csv` | Daily simulation outputs (365 rows) |
 | `results_summary.csv` | Annual KPI summary |
 | `validation_report.txt` | Constraint pass/fail report |
