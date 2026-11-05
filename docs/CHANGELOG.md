@@ -12,6 +12,16 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.6] - 2026-11-05
+
+### Added
+- `gm.study.structure_plant(plant, structure, parameters)`: the ordinary plant of one structure
+  of an `evolve` study, built as `evolve` built it (doublet count, the values the search set,
+  then the bypass), from the superstructure and a design's `structure` and `parameters` as
+  `Evolution.to_dict` gives them (display units) or as a `Design` holds them. `structures` in
+  `to_dict` keeps no plant, so every listed structure can now be opened (evolve structures view).
+  A front design's plant built so equals the one `to_dict` gives.
+
 ## [0.6.5] - 2026-11-05
 
 ### Added

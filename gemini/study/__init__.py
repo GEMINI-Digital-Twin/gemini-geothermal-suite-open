@@ -1,7 +1,7 @@
 """Search and sample plant designs through the public run functions."""
 
 from .calibrate import CalibrationResult, calibrate
-from .evolve import Design, Evolution, evolve
+from .evolve import Design, Evolution, evolve, structure_plant
 from .kinds import kinds
 from .metrics import metrics
 from .minimize import Search, minimize
@@ -16,6 +16,7 @@ __all__ = [
     "kinds",
     "metrics",
     "evolve",
+    "structure_plant",
     "Evolution",
     "Design",
     "CalibrationResult",

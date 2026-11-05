@@ -126,6 +126,91 @@ class Evolution(dict):
         return evolution.explained(self.to_dict())
 
 
+def structure_plant(plant, structure, parameters):
+    """Return the ordinary plant of one structure of an ``evolve`` study, with its parameters.
+
+    ``plant`` is the superstructure the study searched (as given to ``evolve``), ``structure`` a
+    design's ``structure`` and ``parameters`` its ``parameters``, both as ``Evolution.to_dict``
+    gives them (a quantity as ``{value, unit}`` in display units, an option as itself) or as the
+    ``Design`` holds them. The plant is built as ``evolve`` built it: the structure's doublet count,
+    each value the search set, then the modules the structure leaves out bypassed. It is a new
+    plant; ``plant`` is not changed.
+
+    Parameters
+    ----------
+    plant : Plant
+        The superstructure of the study.
+    structure : dict
+        ``{optional module or choice: value}``, as ``Design["structure"]``.
+    parameters : dict
+        ``{name: quantity or option}``, as ``Design["parameters"]``; a value the structure does not
+        use may be absent.
+
+    Returns
+    -------
+    Plant
+        The plant of that structure.
+
+    Raises
+    ------
+    ValidationError
+        ``invalid_value`` for a structure the superstructure does not have, ``missing_value`` for
+        a parameter the structure uses that ``parameters`` lacks.
+    """
+    space = _Space(plant)
+    names = space.structure_names
+    if set(structure) != set(names):
+        raise ValidationError(
+            f"structure_plant: structure = {sorted(structure)}; expected the keys {names}",
+            code="invalid_value",
+        )
+    for index, name in enumerate(names):
+        if structure[name] not in space.sides[index][0]:
+            raise ValidationError(
+                f"structure_plant: structure.{name} = {structure[name]!r}; expected one of "
+                f"{list(space.sides[index][0])}",
+                code="invalid_value",
+            )
+    count = None
+    if space.counted:
+        count = int(round(_si(parameters, DOUBLETS)))
+    design, found = space.base(count)
+    off = superstructure.off(plant, structure)
+    values = {}
+    for _, variable in found:
+        staying = [path for path in variable.paths if _stays(path, off)]
+        if not staying:
+            continue
+        if variable.options is not None:
+            if variable.name not in parameters:
+                raise ValidationError(
+                    f"structure_plant: parameters.{variable.name} is missing; expected one of "
+                    f"{list(variable.options)}",
+                    code="missing_value",
+                )
+            chosen = parameters[variable.name]
+        else:
+            chosen = _si(parameters, variable.name)
+            chosen = int(round(chosen)) if variable.integer else chosen
+        values.update({path: chosen for path in staying})
+    return _built(design, values, structure)
+
+
+def _si(parameters, name):
+    """Return the SI number of one parameter: a ``Quantity``, its dict, or a plain number."""
+    if name not in parameters:
+        raise ValidationError(
+            f"structure_plant: parameters.{name} is missing; expected the value the study set",
+            code="missing_value",
+        )
+    value = parameters[name]
+    if isinstance(value, dict):
+        value = units.Quantity.from_dict(value)
+    if isinstance(value, units.Quantity):
+        return float(value.si)
+    return float(value)
+
+
 def _summary(item):
     """Return the plain form of the summary of one structure, its best design without a plant."""
     best = None if item["best"] is None else item["best"].to_dict() | {"plant": None}
