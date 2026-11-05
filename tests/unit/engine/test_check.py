@@ -308,3 +308,21 @@ def test_an_injection_pump_without_setpoint_or_curves_is_named():
     plant._set_si_inputs({"injection_pump.pressure_setpoint": None})
     found = [item for item in gm.check(plant, case) if item.path == path]
     assert [item.code for item in found] == ["missing_value"]
+
+
+def test_a_pressure_drop_on_a_closed_loop_with_no_pump_is_refused():
+    """QA-356: the drive loop's pressure fell on every pass to -9e19 Pa; check names the drop."""
+    from tests.fixtures.sample_cases import filled_plant
+
+    plant = filled_plant("HeatingAbsorptionCoolingPlant")
+    case = sample_case()
+    assert [item for item in gm.check(plant, case) if "pressure_drop" in item.path] == []
+    plant.set_params("heat_exchanger", {"cold_nominal_pressure_drop": Quantity(0.5, "bar")})
+    found = [item for item in gm.check(plant, case) if "pressure_drop" in item.path]
+    assert [(item.path, item.kind) for item in found] == [
+        ("params.heat_exchanger.cold_nominal_pressure_drop", "incompatible")
+    ]
+    assert "closed loop with no pump" in found[0].message
+    other = filled_plant("HeatingPlant")
+    other.set_params("heat_exchanger", {"cold_nominal_pressure_drop": Quantity(0.5, "bar")})
+    assert [item for item in gm.check(other, case) if "pressure_drop" in item.path] == []

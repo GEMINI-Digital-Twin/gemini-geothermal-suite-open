@@ -101,6 +101,7 @@ def issues_of(applied, case):
             *_rules(applied),
             *_pump_setpoints(applied),
             *_closed_coolers(applied),
+            *_loop_drops(applied),
             *_split_paths(applied),
             *_frozen_paths(applied),
             *_kinds(applied, case),
@@ -246,6 +247,54 @@ def _pump_drive(plant, path, module, curves):
                 code="missing_value",
             )
         )
+    return issues
+
+
+PRESSURE_DROPS = {
+    "HeatExchanger": (
+        ("hot_nominal_pressure_drop", "hot_out"),
+        ("cold_nominal_pressure_drop", "cold_out"),
+    ),
+    "Degasser": (("nominal_pressure_drop", "liquid_out"),),
+    "Filter": (("nominal_pressure_drop", "fluid_out"),),
+    "Desander": (("nominal_pressure_drop", "fluid_out"),),
+}
+"""The nominal pressure drops of each class, with the outlet whose circuit the drop is on."""
+PUMPS = ("ESP", "InjectionPump", "CentrifugalPump", "CirculationPump", "LineShaftPump")
+"""The classes that raise the pressure of a circuit."""
+
+
+def _loop_drops(plant):
+    """Return an ``incompatible`` issue for each pressure drop on a closed loop with no pump.
+
+    A loop such as the drive water of an absorption plant (exchanger, boiler, generator and
+    back through a mixer) has nothing that sets its pressure: the mixer takes the lower inlet
+    pressure, so the drop comes back lower on every pass and the loop pressure falls without end
+    (geomind QA-356: 365 of 365 steps failed at -9e19 Pa with a 0.5 bar drop that the sample
+    plant states as 0). No pump on such a loop exists to make up for it, so the drop is refused.
+    """
+    issues = []
+    modules = dict(plant.named_modules())
+    for path, module in modules.items():
+        for name, outlet in PRESSURE_DROPS.get(type(module).__name__, ()):
+            drop = _set_value(module, name)
+            if not drop:
+                continue
+            loop = plant.feeds(f"{path}.{outlet}")
+            pumped = any(type(modules.get(item)).__name__ in PUMPS for item in loop)
+            if path not in loop or pumped:
+                continue
+            where = join_path("params", form.file_path(join_path(path, name)))
+            issues.append(
+                Issue(
+                    where,
+                    "incompatible",
+                    f"{where} = {float(drop):g} Pa is on a closed loop with no pump "
+                    f"({', '.join(loop)}): the loop's pressure would fall on every pass and no "
+                    "step runs; expected 0, or a pump on the loop",
+                    code="invalid_design",
+                )
+            )
     return issues
 
 
