@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.14] - 2026-11-05
+
+### Fixed
+- `gm.evaluate.capacities`: a module rated by conductance, volume or length (an exchanger, a tank,
+  a pipe) gets the reason "a rating in W/K is not a use the run measures; the module ran n of m
+  steps" instead of "the run shows no use of this module" (geomind QA-123).
+
 ## [0.6.13] - 2026-11-05
 
 ### Fixed
