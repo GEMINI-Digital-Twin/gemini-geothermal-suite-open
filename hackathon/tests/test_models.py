@@ -133,6 +133,12 @@ def test_finish_verification_flags_non_best_choice(tmp_path):
     s.evaluate_design(depth_m=2500, n_doublets=3, spacing_m=1600, hp_capacity_mw=12,
                       chiller_type="absorption_dh", sorption_capacity_mw=10,
                       elec_chiller_capacity_mw=4, boiler_capacity_mw=10)  # D3
+    # F3: until heat pump (with/without) and chiller type vary, finish is refused
+    r = s.finish("D1", "Choose D1: 2 doublets at 2500 m, LCOH 60 EUR/MWh.")
+    assert r["accepted"] is False and any("not genuinely different" in p and "chiller type" in p
+                                          and "heat pump" in p for p in r["problems"])
+    s.evaluate_design(depth_m=2500, n_doublets=2, spacing_m=1600, hp_capacity_mw=0,
+                      chiller_type="electric", elec_chiller_capacity_mw=10)  # D4: infeasible (heat)
     s.robustness_check("D1", n_samples=4)
     s.return_temperature_sensitivity("D1")
     # F2: D1 carries an N-1 warning that the justification must address

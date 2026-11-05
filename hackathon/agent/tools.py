@@ -242,7 +242,7 @@ class Session:
                 "heat_direct": "heat_direct_gwh", "heat_hp": "heat_hp_gwh", "heat_chp": "heat_chp_gwh",
                 "heat_boiler": "heat_boiler_ng_gwh", "heat_unmet": "heat_unmet_gwh",
                 "cool_absorption": "cool_sorption_gwh", "cool_electric": "cool_electric_gwh",
-                "cool_unmet": "cool_unmet_gwh", "net_elec": "net_electricity_gwh",
+                "cool_unmet": "cool_unmet_gwh", "net_elec_import": "net_electricity_gwh",
                 "breakthrough_yr": "breakthrough_years"}
         return _r({"id": cid, "kpis_gwh_eur_mwh": {a: k[b] for a, b in keep.items()},
                    "violations": [f"{v['severity']}:{v['constraint']}: {v['detail']}"
@@ -256,7 +256,7 @@ class Session:
         p = lambda d: [d["P10"], d["P50"], d["P90"]]
         return _r({"id": candidate_id, "feasible_share": r["feasible_share"], "robust": r["robust"],
                    "failures": r["failure_counts"], "P10_P50_P90 (P90 conservative)": {
-                       "lcoh": p(r["lcoh_eur_per_mwh"]), "net_elec_gwh": p(r["net_electricity_gwh"]),
+                       "lcoh": p(r["lcoh_eur_per_mwh"]), "net_elec_import_gwh": p(r["net_electricity_gwh"]),
                        "geo_heat_share_pct": [100 * x for x in p(r["heat_share_geothermal"])],
                        "breakthrough_yr": p(r["breakthrough_years"])}}, 1)
 
@@ -265,7 +265,7 @@ class Session:
             return {"error": f"unknown candidate {candidate_id}", "known": list(self.designs)}
         r = return_temperature_sensitivity(self.designs[candidate_id])
         self.sensitivity[candidate_id] = r
-        return _r({"id": candidate_id, "return_c: [lcoh, net_elec_gwh, hard_violations]": {
+        return _r({"id": candidate_id, "return_c: [lcoh, net_elec_import_gwh, hard_violations]": {
             x["heating_return_c"]: [x["lcoh_eur_per_mwh"], x["net_electricity_gwh"],
                                     x["hard_violations"]] for x in r}}, 1)
 
@@ -289,11 +289,24 @@ class Session:
                 "lcoh_base": k["lcoh_eur_per_mwh"],
                 "lcoh_P10_P50_P90": [rb["lcoh_eur_per_mwh"][p] for p in ("P10", "P50", "P90")] if rb else None,
                 "feasible_share": rb["feasible_share"] if rb else None,
-                "net_elec_gwh": k["net_electricity_gwh"], "nat_gas_gwh": k["natural_gas_gwh"],
+                "net_elec_import_gwh": k["net_electricity_gwh"], "nat_gas_gwh": k["natural_gas_gwh"],
                 "geo_heat_share": k["heat_share_geothermal_direct_and_hp"],
                 "geo_cool_share": k["geothermal_cool_share"]}))
         return {"candidates": rows,
                 "note": "metrics only; the choice and its justification are yours"}
+
+    # F3 (P6): dimensions named in the system prompt's exploration rule. Each must take at least
+    # two values across the evaluated designs. Says nothing about which value is better.
+    COVERAGE = {
+        "depth": lambda d: d.depth_m,
+        "number of doublets": lambda d: d.n_doublets,
+        "chiller type": lambda d: d.surface.chiller_type,
+        "heat pump (with vs without)": lambda d: d.surface.hp_capacity_mw > 0,
+    }
+
+    def _unexplored_dimensions(self):
+        return [name for name, f in self.COVERAGE.items()
+                if len({f(d) for d in self.designs.values()}) < 2]
 
     def finish(self, candidate_id, justification, acknowledge_verification=False):
         if candidate_id not in self.candidates:
@@ -313,6 +326,12 @@ class Session:
             problems.append("run return_temperature_sensitivity on the chosen design first")
         if not any(ch.isdigit() for ch in justification) or "D" not in justification:
             problems.append("justification must cite candidate ids and numbers from the tools")
+        # F3: coverage - the alternatives must vary the dimensions the goal asks to explore
+        unexplored = self._unexplored_dimensions()
+        if unexplored:
+            problems.append("alternatives are not genuinely different yet; every evaluated design "
+                            "has the same " + ", ".join(unexplored)
+                            + ". Evaluate designs that vary these before finishing")
         # F2: every warning on the chosen design must be addressed in the justification
         text = justification.lower()
         for v in self.candidates[candidate_id]["violations"]:
@@ -386,7 +405,8 @@ TOOL_SCHEMAS = [
         "flow (ESP frequency tuned). Use it to verify a doublet against the GEMINI simulator; max ~240 m3/h.",
         {"depth_m": NUM, "target_flow_m3h": NUM, "esp_stages": {"type": "integer"}},
         ["depth_m", "target_flow_m3h"]),
-    _fn("evaluate_design", "Runs a full design over 365 days: KPIs, LCOH (ThermoGIS economics), breakthrough "
+    _fn("evaluate_design", "Runs a full design over 365 days: KPIs (GWh/yr; net_elec_import > 0 means electricity bought from the "
+        "grid, < 0 means sold), LCOH (ThermoGIS economics), breakthrough "
         "time and constraint violations. Returns which supplementary models to load if any are missing. "
         "Equipment capacities (heat pump, chillers, boiler) default to 0, meaning not installed.",
         {"depth_m": NUM, "n_doublets": {"type": "integer"}, "spacing_m": NUM, "max_flow_m3h": NUM,
@@ -407,7 +427,8 @@ TOOL_SCHEMAS = [
         "Returns metrics only, not a recommendation.",
         {"candidate_ids": {"type": "array", "items": {"type": "string"}}}),
     _fn("finish", "Submits the final design with your justification. Accepted only if: at least 3 alternatives "
-        "were evaluated, the chosen design has no hard violation, robustness_check shows >= 90% feasible, "
+        "were evaluated and together they vary depth, number of doublets, chiller type and heat pump (with "
+        "and without), the chosen design has no hard violation, robustness_check shows >= 90% feasible, "
         "return_temperature_sensitivity was run on it, the justification cites candidate ids and numbers, and "
         "it addresses every warning on the chosen design. Then verifies the choice against the objective: it "
         "flags robust candidates with a lower P50 LCOH and feasible candidates with a lower base LCOH that "
