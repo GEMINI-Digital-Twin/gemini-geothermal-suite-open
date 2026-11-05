@@ -41,6 +41,18 @@ Benchmarks from the exhaustive search over 72 designs (`optimize_design.py`):
 | 3 doublets, depth fixed at the 2,500 m reservoir midpoint | 9,075 |
 | **Agent (offline rule-based run)** | **7,192** (−0.4 % vs. the grid, because it found a combination outside the grid) |
 
+## Agent runs (`agent_runs/`)
+
+| Run | Agent | Best CO₂ | What happened |
+|---|---|---|---|
+| 1 | Ollama qwen2.5:7b, 12 iterations | 10,596 t (2 doublets) | Loop works and the validator caught heating and cooling shortfalls, but the model repeated a failing design 5× and believed fewer doublets lower CO₂ |
+| — | offline rule agent, 24 iterations | 7,192 t | reference policy |
+
+The workflow itself was improved after run 1: exact repeats are now rejected
+without simulation, the feedback shows the effect of the last change versus the
+best design, untried directions are listed, and the prompt states the
+key engineering facts (geothermal heat is almost CO₂-free, gas backup is not).
+
 ## How to run
 
 ```bash
@@ -50,7 +62,7 @@ pip install numpy scipy pandas matplotlib
 cd hackathon_submission
 
 # 1. agentic design loop  (needs Ollama:  ollama pull qwen2.5:7b)
-python agent.py --model qwen2.5:7b --iterations 12
+python agent.py --model qwen2.5:7b --iterations 20
 #    no LLM available? deterministic rule-based agent:
 python agent.py --offline --iterations 30
 
@@ -151,6 +163,7 @@ All cases stay feasible.
 | `optimize_design.py` | exhaustive benchmark (72 designs) + sensitivity |
 | `challenge_plant.json` | GEMINI project with challenge inputs |
 | `GEMINI_*_Demand_Daily_2027.csv` | official demand profiles |
-| `agent_log.md`, `agent_history.csv`, `agent_best_design.json` | agent run: reasoning, designs, verdicts |
+| `agent_log.md`, `agent_history.csv`, `agent_best_design.json` | latest agent run: reasoning, designs, verdicts |
+| `agent_runs/` | archived agent runs |
 | `results_daily.csv`, `results_summary.csv`, `validation_report.txt`, `plots/` | full-year results |
 | `design_comparison.csv`, `sensitivity.csv`, `best_design.json` | benchmark outputs |

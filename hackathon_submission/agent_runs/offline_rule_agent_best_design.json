@@ -1,0 +1,29 @@
+{
+  "design": {
+    "n_doublets": 3,
+    "hex_ua_w_per_k": 2000000.0,
+    "esp_stages": 50,
+    "esp_depth_m": 1000.0,
+    "well_depth_m": 3500.0,
+    "backup_boiler_mw": 4.5,
+    "electric_chiller_mw": 10.5,
+    "absorption_chiller_mw": 9.0
+  },
+  "assumptions": {
+    "t_return": 40.0,
+    "eta_lorenz": 0.5,
+    "cop_electric_chiller": 4.0,
+    "cop_absorption": 0.7,
+    "grid_ef_kg_per_kwh": 0.3,
+    "gas_ef_kg_per_gj": 56.6,
+    "backup_boiler_eff": 0.9,
+    "min_esp_intake_bar": 10.0,
+    "skin": 2.0,
+    "wellbore_heat_loss_c": 7.0,
+    "cp": 4186.0
+  },
+  "agent": "rule-based agent (offline)",
+  "iteration": 22,
+  "co2_t_per_year": 7191.9,
+  "reasoning": "Right-size boiler and chillers to 105 % of their real peak use."
+}

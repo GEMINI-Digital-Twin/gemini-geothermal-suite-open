@@ -15,7 +15,7 @@ Every proposal, its reasoning and its verdict are logged in agent_log.md.
 
 Usage
 -----
-    python agent.py                         # Ollama, model qwen2.5:7b, 12 iterations
+    python agent.py                         # Ollama, model qwen2.5:7b, 20 iterations
     python agent.py --model qwen2.5:3b --iterations 15
     python agent.py --offline               # rule-based agent, no LLM needed
     python agent.py --api-base https://api.openai.com/v1 --model gpt-4o-mini   # key in OPENAI_API_KEY
@@ -168,10 +168,19 @@ Objective, in this order:
 Design variables (all required, numbers only):
 {vars}
 
-Engineering hints: hotter (deeper) brine raises heat-pump COP or removes the need for it;
-more doublets add geothermal capacity; the backup boiler and electric chiller must cover the
-whole demand during the maintenance block and any peak the geothermal plant cannot;
-"peak_..._used_MW" tells you how much of an installed unit was really needed.
+Engineering facts (use them):
+- Geothermal heat is almost CO2-free; every MWh from the backup gas boiler emits about 226 kg CO2.
+  So MORE geothermal capacity (more doublets) normally LOWERS CO2. Fewer doublets makes the
+  plant smaller but RAISES CO2 - only remove a doublet if CO2 stays about the same.
+- Hotter (deeper) brine raises heat-pump COP; from about 3000 m the brine heats the water to
+  100 C without the heat pump.
+- Produced gas releases about 1.6 kg CO2 per m3 of brine: a fixed cost of producing brine.
+- The backup boiler and the electric chiller alone must cover the demand during the 35-day
+  maintenance block (it can fall in summer, with up to about 10 MW cooling) and any peak
+  geothermal cannot cover. Size them from "peak_..._used_MW" plus 5-10 %.
+- The absorption chiller turns spare summer geothermal heat into cooling.
+- Change one or two variables per step so you learn what each one does.
+- NEVER propose a design that is already in the history.
 
 Reply with ONE JSON object and nothing else:
 {{"reasoning": "<max 80 words: what you learned from the last result and why this change>",
@@ -208,9 +217,27 @@ def user_prompt(brief, hist, best):
                   "Validator: " + ("ALL CHECKS PASS" if last["feasible"] else "FAILED -> " + " | ".join(last["failed"])),
                   "KPIs: " + json.dumps(last["kpi"])]
     elif last:
-        parts += ["", "Your last reply was rejected: " + "; ".join(last["errors"]) + ". Fix the JSON."]
+        parts += ["", "Your last reply was rejected: " + "; ".join(last["errors"]) + ". Correct it."]
     if best:
         parts += ["", f"Best passing design so far: #{best['iter']} with CO2 {best['kpi']['co2_t_per_year']} t."]
+        if last and last.get("design") is not None and last is not best:
+            changed = [f"{k} {best['design'][k]} -> {last['design'][k]}" for k in VARS
+                       if best["design"][k] != last["design"][k]]
+            co2 = last["kpi"].get("co2_t_per_year")
+            if changed and co2 is not None:
+                delta = co2 - best["kpi"]["co2_t_per_year"]
+                parts.append(f"Effect of your last change versus the best design: {', '.join(changed)} "
+                             f"=> CO2 {delta:+.0f} t, {'PASS' if last['feasible'] else 'FAIL'}.")
+        tried = [h["design"] for h in hist if h.get("design") is not None]
+        untried = []
+        for k, (lo, hi, _, _) in VARS.items():
+            b = best["design"][k]
+            if b < hi and not any(d[k] > b for d in tried):
+                untried.append(f"higher {k}")
+            if b > lo and not any(d[k] < b for d in tried):
+                untried.append(f"lower {k}")
+        if untried:
+            parts.append("Directions never tried yet from the best design: " + ", ".join(untried) + ".")
     else:
         parts += ["", "No design has passed all checks yet."]
     parts += ["", "Propose the next design as JSON."]
@@ -405,6 +432,16 @@ def run(args):
             print(f"[{it:2d}] rejected: {'; '.join(errors)}")
             continue
 
+        twin = next((p for p in hist if p.get("design") == clean), None)
+        if twin is not None:
+            msg = (f"identical to design #{twin['iter']} (already simulated: "
+                   f"{'PASS' if twin['feasible'] else 'FAIL'}, CO2 {twin['kpi'].get('co2_t_per_year')} t) - "
+                   f"propose a design that is NOT in the history")
+            hist.append(dict(iter=it, design=None, errors=[msg], feasible=False, kpi={}, reasoning=reasoning))
+            log += [f"## Iteration {it} — repeat rejected", f"> {reasoning}", "", f"Rejected: {msg}.", ""]
+            print(f"[{it:2d}] repeat of #{twin['iter']} rejected")
+            continue
+
         res = ev(clean)
         h = dict(iter=it, design=clean, reasoning=reasoning, feasible=res["feasible"],
                  failed=res["failed"], kpi=res["kpi"], repeated=res.get("repeated", False))
@@ -459,7 +496,7 @@ def main():
     p.add_argument("--model", default="qwen2.5:7b")
     p.add_argument("--host", default="http://localhost:11434", help="Ollama server")
     p.add_argument("--api-base", default=None, help="OpenAI-compatible endpoint instead of Ollama")
-    p.add_argument("--iterations", type=int, default=12)
+    p.add_argument("--iterations", type=int, default=20)
     p.add_argument("--offline", action="store_true", help="rule-based agent, no LLM")
     run(p.parse_args())
 
