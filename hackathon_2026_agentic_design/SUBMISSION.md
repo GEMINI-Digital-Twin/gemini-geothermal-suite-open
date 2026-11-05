@@ -2,7 +2,7 @@
 
 **Participant:** Ramdhan Ari Wibawa (ramdhan@zanskar.us)
 **Submission date:** 3 November 2026
-**Deliverables (per the kick-off instructions):** technical report `GEMINI_Hackathon_Report_Ramdhan_Wibawa.pptx` (10 slides); 5-minute video pitch (script in `PITCH_SCRIPT_5MIN.md`); code pushed to the GEMINI repository and attached as a zip; agent-interaction evidence in `gemini_design_agent/outputs_claude/INTERACTION_EVIDENCE.md`. This document is the long-form companion to the deck.
+**Deliverables (per the kick-off instructions):** technical report `GEMINI_Hackathon_Report_Ramdhan_Wibawa.pptx` (10 slides); 5-minute video pitch with `GEMINI_Hackathon_Pitch_Ramdhan_Wibawa.pptx`; code pushed to the GEMINI repository and attached as a zip; agent-interaction evidence in `gemini_design_agent/outputs_claude/INTERACTION_EVIDENCE.md`. This document is the long-form companion to the deck.
 
 ## 1. What we built
 

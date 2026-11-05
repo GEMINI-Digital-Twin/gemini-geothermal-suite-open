@@ -5,7 +5,7 @@ deep-geothermal heating and cooling system for the supplied 2027 demand profiles
 GEMINI `gemini_model` physics directly and adding the surface component models GEMINI lacks.
 
 - `SUBMISSION.md` - long-form technical write-up; `GEMINI_Hackathon_Report_Ramdhan_Wibawa.pptx` - 10-slide report
-- `ARCHITECTURE.md` - system diagram; `PITCH_SCRIPT_5MIN.md`, `DEMO_SCRIPT.md` - pitch and demo
+- `ARCHITECTURE.md` - system diagram
 - `gemini_design_agent/` - package, tests and generated outputs (design reports, optimiser study, ESP monitoring, dashboard data)
 
 Run from `gemini_design_agent/`:
