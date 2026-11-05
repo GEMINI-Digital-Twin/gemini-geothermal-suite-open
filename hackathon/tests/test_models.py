@@ -205,3 +205,16 @@ def test_co2_factors_from_sourced_values(cfg):
     assert k["co2_total_kt"] == pytest.approx(
         k["co2_grid_kt"] + k["co2_natural_gas_kt"] + k["co2_associated_gas_kt"], abs=2e-3)
     assert k["co2_grid_kt"] == pytest.approx(k["net_electricity_gwh"] * 0.3, abs=2e-3)  # KPIs rounded
+
+
+def test_out_of_range_input_rejected_with_bounds(tmp_path):
+    """P8: per-doublet flow above 300 is rejected before simulating, with the allowed range."""
+    from hackathon.agent.tools import TOOL_SCHEMAS, Session
+
+    s = Session(tmp_path)
+    s.load_supplementary_model("annual_dispatch")
+    r = s.evaluate_design(depth_m=3300, n_doublets=2, max_flow_m3h=600)
+    assert "max_flow_m3h" in r["out_of_range"] and "PER DOUBLET" in r["out_of_range"]["max_flow_m3h"]
+    assert not s.candidates
+    ev = next(t for t in TOOL_SCHEMAS if t["function"]["name"] == "evaluate_design")
+    assert "allowed 50-300" in ev["function"]["parameters"]["properties"]["max_flow_m3h"]["description"]

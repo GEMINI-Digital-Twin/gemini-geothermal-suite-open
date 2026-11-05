@@ -211,6 +211,18 @@ class Session:
                         outage="staggered", heating_return_c=None, hp_capacity_mw=0,
                         chiller_type="absorption_rated", sorption_capacity_mw=0,
                         elec_chiller_capacity_mw=0, boiler_capacity_mw=0, label=None):
+        # P8: reject out-of-range inputs before simulating (they could only produce hard violations)
+        given = {"depth_m": depth_m, "n_doublets": n_doublets, "max_flow_m3h": max_flow_m3h,
+                 "spacing_m": spacing_m, "heating_return_c": heating_return_c,
+                 "hp_capacity_mw": hp_capacity_mw, "sorption_capacity_mw": sorption_capacity_mw,
+                 "elec_chiller_capacity_mw": elec_chiller_capacity_mw, "boiler_capacity_mw": boiler_capacity_mw}
+        bad = {}
+        for name, value in given.items():
+            lo, hi = self.cfg.raw["design_variables"][DESIGN_ARGS[name][0]]
+            if value is not None and not lo <= value <= hi:
+                bad[name] = f"{value} outside allowed {lo}-{hi} ({DESIGN_ARGS[name][1]})"
+        if bad:
+            return {"error": "input out of range; design not evaluated", "out_of_range": bad}
         missing = []
         if "annual_dispatch" not in self.loaded:
             missing.append("annual_dispatch")
@@ -390,6 +402,30 @@ def _fn(name, desc, props, required=()):
 
 
 NUM = {"type": "number"}
+
+# P8: evaluate_design arguments -> (design_variables key in fixed_inputs.yaml, meaning). Bounds are
+# read from the yaml, so the schema shows the same sourced ranges the brief does.
+DESIGN_ARGS = {
+    "depth_m": ("well_depth_m", "well depth, m"),
+    "n_doublets": ("n_doublets", "number of doublets"),
+    "max_flow_m3h": ("flow_m3h_per_doublet", "maximum flow PER DOUBLET (not total), m3/h"),
+    "spacing_m": ("well_spacing_m", "producer-injector spacing, m"),
+    "heating_return_c": ("heating_return_c", "heating network return temperature, C"),
+    "hp_capacity_mw": ("heat_pump_capacity_mwth", "heat pump heat output capacity, MW (0 = none)"),
+    "sorption_capacity_mw": ("chiller_capacity_mwcool", "absorption chiller cooling capacity, MW (0 = none)"),
+    "elec_chiller_capacity_mw": ("electric_chiller_capacity_mwcool",
+                                 "electric chiller cooling capacity, MW (0 = none)"),
+    "boiler_capacity_mw": ("backup_boiler_capacity_mwth", "natural gas boiler capacity, MW (0 = none)"),
+}
+_DV = load_config().raw["design_variables"]
+
+
+def _arg(name, integer=False):
+    key, meaning = DESIGN_ARGS[name]
+    lo, hi = _DV[key]
+    return {"type": "integer" if integer else "number", "description": f"{meaning}; allowed {lo}-{hi}"}
+
+
 TOOL_SCHEMAS = [
     _fn("get_problem_brief", "Objective, demand statistics, reservoir and brine data, hard constraints and "
         "the design variables you may choose (with bounds). A good first call.", {}),
@@ -412,12 +448,14 @@ TOOL_SCHEMAS = [
         "CHP), breakthrough "
         "time and constraint violations. Returns which supplementary models to load if any are missing. "
         "Equipment capacities (heat pump, chillers, boiler) default to 0, meaning not installed.",
-        {"depth_m": NUM, "n_doublets": {"type": "integer"}, "spacing_m": NUM, "max_flow_m3h": NUM,
+        {"depth_m": _arg("depth_m"), "n_doublets": _arg("n_doublets", integer=True),
+         "spacing_m": _arg("spacing_m"), "max_flow_m3h": _arg("max_flow_m3h"),
          "outage": {"type": "string", "enum": ["staggered", "simultaneous"]},
-         "heating_return_c": NUM, "hp_capacity_mw": NUM,
+         "heating_return_c": _arg("heating_return_c"), "hp_capacity_mw": _arg("hp_capacity_mw"),
          "chiller_type": {"type": "string", "enum": ["absorption_rated", "absorption_dh", "electric"]},
-         "sorption_capacity_mw": NUM, "elec_chiller_capacity_mw": NUM, "boiler_capacity_mw": NUM,
-         "label": {"type": "string"}},
+         "sorption_capacity_mw": _arg("sorption_capacity_mw"),
+         "elec_chiller_capacity_mw": _arg("elec_chiller_capacity_mw"),
+         "boiler_capacity_mw": _arg("boiler_capacity_mw"), "label": {"type": "string"}},
         ["depth_m", "n_doublets"]),
     _fn("robustness_check", "Monte Carlo over the sourced uncertainty ranges for one evaluated candidate. "
         "Returns feasible share (robust if >= 90%) and P10/P50/P90 (P90 = conservative) for LCOH, net "
