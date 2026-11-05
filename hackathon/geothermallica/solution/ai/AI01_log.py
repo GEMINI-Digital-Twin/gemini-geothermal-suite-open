@@ -8,7 +8,7 @@ from pathlib import Path
 import ollama
 
 DEFAULT_MODEL = os.environ.get("AGENT_MODEL", "qwen3:4b-instruct-2507-q4_K_M")   # AGENT_MODEL=... swaps the model
-DEFAULT_OPTIONS = {"temperature": 0, "seed": 0, "num_ctx": 24576, "num_predict": 2048}
+DEFAULT_OPTIONS = {"temperature": 0, "seed": 0, "num_ctx": 24576, "num_predict": 4096}   # 4096: the planned answer can pass 2048
 RUNS = Path(__file__).parent / "runs"
 LOG = RUNS / "ai_log.jsonl"
 TIMES = ("prompt_eval_count", "eval_count", "total_duration", "load_duration", "prompt_eval_duration", "eval_duration")

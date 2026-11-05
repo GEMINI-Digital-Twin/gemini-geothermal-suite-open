@@ -145,10 +145,24 @@ def tidy(j, results):
     if not isinstance(j, dict):
         return j
     moved = [r for r in j.get("reasoning", []) if isinstance(r, str) and r.startswith("GEMINI's solver re-ran")]
-    if moved and len(str(j.get("gemini_verification", "")).split()) < 4:
-        j["gemini_verification"] = moved[0].replace("[C]", "").strip()
+    if moved:
+        if len(str(j.get("gemini_verification", "")).split()) < 4:
+            j["gemini_verification"] = moved[0].replace("[C]", "").strip()
         j["reasoning"] = [r for r in j["reasoning"] if r not in moved]
-        j["code_moved"] = "gemini_verification taken from reasoning"
+        j["code_moved"] = "gemini_verification taken out of reasoning"
+    opt = next((r["result"] for r in results if r["name"] == "optimise_point" and isinstance(r["result"], dict)
+                and "error" not in r["result"]), None)
+    c = j.get("chosen_design")
+    if opt and isinstance(c, dict):
+        import AI03_plan
+        near = lambda a, b, tol: a is not None and b is not None and abs(float(a) - float(b)) <= tol
+        row = next((p for p in opt.get("front", []) if near(c.get("n"), p["n"], 0.1) and near(c.get("t_return_c"), p["t_return_c"], 0.01)
+                    and near(c.get("esp_depth_m"), p["esp_depth_m"], 1.0) and c.get("gas_handling") == p.get("gas_handling")), None)
+        words = AI03_plan.GAS_WORDS.get(row.get("gas_handling")) if row else None
+        if row and row.get("versus") and (row["versus"] not in str(j.get("trade_off", "")) or words not in str(j.get("trade_off", ""))):
+            j["trade_off"] = (f"LCoH {row['lcoh_EUR_MWh']} EUR/MWh, CO2 {row['co2_total_kt']} kt with the {words}, "
+                              f"{row['versus']} [C; code]")
+            j["code_moved"] = (j.get("code_moved", "") + "; " if j.get("code_moved") else "") + "trade_off phrase taken from the chosen front row"
     it = next((r["result"] for r in results if r["name"] == "design_iterations" and isinstance(r["result"], dict)), None)
     for st in (x for x in (it or {}).get("steps", []) if x.get("move") and x.get("by")):
         if isinstance(j.get("reasoning"), list) and not any(f"{st['by']}'s move" in str(r).lower() for r in j["reasoning"]):

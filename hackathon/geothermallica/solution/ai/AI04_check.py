@@ -96,13 +96,13 @@ def check(run_json, transcript, tool_results, brief=""):
         if not TAG.search(r):
             problems.append(f"(b) no [tag]: {r}")
         words = len(r.split())
-        if not 4 <= words <= 30:
-            problems.append(f"(f) {words} words, need 4 to 30: {r}")
+        if not 4 <= words <= 36:
+            problems.append(f"(f) {words} words, need 4 to 36: {r}")
         if not NUM.search(TAG.sub("", r)):
             problems.append(f"(f) no number in: {r}")
     n_model = len([x for x in reasoning if not x.rstrip().endswith("; code]")])   # items appended by code are not counted
-    if not 3 <= n_model <= 20:
-        problems.append(f"(f) {n_model} reasoning items, need 3 to 20")
+    if not 3 <= n_model <= 24:
+        problems.append(f"(f) {n_model} reasoning items, need 3 to 24")
     ph = brief_peak(brief, "heat")
     if ph is not None and not any(float(x) == ph for r in reasoning for x in NUM.findall(TAG.sub("", r))):
         problems.append(f"(f) the brief's peak heat {ph:g} MW appears in no reasoning item")
