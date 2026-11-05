@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.16] - 2026-11-05
+
+### Fixed
+- The carbon price applies to the plant's own CO2 and methane (CO2e), not again to grid
+  electricity, whose price carries its CO2 (EU ETS); the co2 metric still counts it. Cost and
+  the schedule's merit order both (geomind QA-128).
+
 ## [0.6.15] - 2026-11-05
 
 ### Fixed
