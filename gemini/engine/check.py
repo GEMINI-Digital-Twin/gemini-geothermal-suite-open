@@ -156,14 +156,14 @@ def _rules(plant):
     issues = []
     for name, expected in PLANT_RULES.items():
         attribute = name.rsplit(".", 1)[-1]
-        if hasattr(plant, attribute) and getattr(plant, attribute) is None:
+        if _declares(plant, attribute) and _set_value(plant, attribute) is None:
             path = f"params.{name}"
             issues.append(
                 Issue(path, "missing", f"{path} is missing; expected {expected}", code="missing_value")
             )
     for path, module in plant.named_modules():
-        split = getattr(module, "segment", None) in ("below_esp", "above_esp")
-        if isinstance(module, ProductionWell) and split and module.esp_depth is None:
+        split = _set_value(module, "segment") in ("below_esp", "above_esp")
+        if isinstance(module, ProductionWell) and split and _set_value(module, "esp_depth") is None:
             where = join_path("params", form.file_path(join_path(path, "esp_depth")))
             issues.append(
                 Issue(
@@ -174,6 +174,32 @@ def _rules(plant):
                 )
             )
     return issues
+
+
+def _declares(module, name):
+    """Return whether ``module`` has a parameter or attribute ``name``, without reading it."""
+    if name in module.__dict__.get("_parameters", {}):
+        return True
+    try:
+        return hasattr(module, name)
+    except ValidationError:
+        return True
+
+
+def _set_value(module, name):
+    """Return the value of a parameter, or ``None`` when it is unset or absent.
+
+    Reading an unset parameter (``module.segment``) raises ``uninitialized parameters`` for the
+    whole plant, so a check of an incomplete plant raised instead of returning its issues
+    (geomind QA-076, gemini 0.6.5).
+    """
+    parameter = module.__dict__.get("_parameters", {}).get(name)
+    if parameter is not None:
+        return parameter.value if parameter.initialized else None
+    try:
+        return getattr(module, name, None)
+    except ValidationError:
+        return None
 
 
 def _missing(path, message):

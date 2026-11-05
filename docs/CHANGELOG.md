@@ -12,6 +12,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.7] - 2026-11-05
+
+### Fixed
+- `gm.check` returns the issues of a plant with unset parameters again instead of raising
+  `uninitialized parameters`: the 0.6.5 rules for `params.backup`, `params.control.*` and a split
+  well's `esp_depth` read `module.segment` and the plant options through attribute access, which
+  raises for an unset parameter (geomind QA-076: every check of an incomplete plant failed, so
+  read_plant, build_plant and patch_plant returned errors instead of the missing values).
+
 ## [0.6.6] - 2026-11-05
 
 ### Added
