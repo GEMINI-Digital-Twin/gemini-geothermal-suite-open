@@ -12,7 +12,7 @@ cost, ``gemini/engine/schedule/sources.py``. The plant states the two rules the 
 raises ``missing_value``.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 import pandas as pd
@@ -425,7 +425,8 @@ def schedule(plant, case):
     the heat need, and the compression chiller adds electricity, its condenser heat going to its
     cooler. Doublets, in plant order, each run at the flow that gives their heat at no more than
     the maximum brine cooling, clipped to the flow range, and below the minimum at the minimum
-    with less cooling.
+    with less cooling. A doublet that states ``nominal_flow`` runs at most at that flow (its pump
+    is designed for it), never below the minimum of the range.
 
     The schedule enforces the requirements it knows by role and quantity (``_utils/limits.py``),
     each applying to every ``doublet``: a flow range (``production_flow``, ``over="each"``,
@@ -502,6 +503,19 @@ def scheduled(plant, case):
         return _scheduled(plant, case)
 
 
+def _pump_capped(plant, path, item):
+    """Return the limits of one doublet with its maximum flow at most its pump's design flow.
+
+    A doublet that states ``nominal_flow`` has a pump designed and priced for that flow, so the
+    schedule runs it no faster, never below the minimum flow of the case (geomind QA-130: a pump
+    designed for 162.6 m3/h ran at 300 m3/h while every check passed).
+    """
+    nominal = getattr(plant.get_submodule(path), "nominal_flow", None)
+    if nominal is None or nominal >= item.maximum_flow:
+        return item
+    return replace(item, maximum_flow=max(float(nominal), item.minimum_flow))
+
+
 def _scheduled(plant, case):
     """Return the plan of ``scheduled``, the roles of the plant read once."""
     plant._check_design()
@@ -509,6 +523,7 @@ def _scheduled(plant, case):
     demand = case.demand.frame
     doublets = units_of(plant, "doublet")
     limits, check_only = limit_forms.split(case.requirements, doublets)
+    limits = {path: _pump_capped(plant, path, item) for path, item in limits.items()}
     step = pd.Timedelta(seconds=case.time.step)
     outages = _lowest_demand_outages(demand, step, limits)
     costs = sources.Costs(case)
