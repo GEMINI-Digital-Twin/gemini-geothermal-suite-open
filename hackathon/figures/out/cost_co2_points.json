@@ -1,0 +1,104 @@
+[
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 2",
+  "lcoh": 91.068,
+  "co2_kt": 7.956
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 2",
+  "lcoh": 95.502,
+  "co2_kt": 7.956
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 3",
+  "lcoh": 91.596,
+  "co2_kt": 4.252
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 3",
+  "lcoh": 97.375,
+  "co2_kt": 7.969
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 3",
+  "lcoh": 93.513,
+  "co2_kt": 4.252
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 3",
+  "lcoh": 83.54,
+  "co2_kt": 7.0
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 4",
+  "lcoh": 86.626,
+  "co2_kt": 8.136
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 5",
+  "lcoh": 81.499,
+  "co2_kt": 6.661
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 5",
+  "lcoh": 67.225,
+  "co2_kt": 4.711
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 5",
+  "lcoh": 69.892,
+  "co2_kt": 9.668
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 5",
+  "lcoh": 67.97,
+  "co2_kt": 7.014
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 5",
+  "lcoh": 67.945,
+  "co2_kt": 7.003
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 5",
+  "lcoh": 67.871,
+  "co2_kt": 5.39
+ },
+ {
+  "group": "Agent runs (feasible designs)",
+  "name": "Run 5",
+  "lcoh": 63.008,
+  "co2_kt": 7.327
+ },
+ {
+  "group": "Our exploration",
+  "name": "2 x 3300 m (recommended)",
+  "lcoh": 58.143,
+  "co2_kt": 5.084
+ },
+ {
+  "group": "Our exploration",
+  "name": "2 x 2500 m + HP 15",
+  "lcoh": 59.982,
+  "co2_kt": 7.508
+ },
+ {
+  "group": "Our exploration",
+  "name": "1 x 2500 m + gas boiler",
+  "lcoh": 51.48,
+  "co2_kt": 12.2
+ }
+]

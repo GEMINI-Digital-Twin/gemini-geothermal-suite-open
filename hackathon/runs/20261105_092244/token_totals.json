@@ -1,0 +1,14 @@
+{
+  "calls": 31,
+  "prompt_tokens": 272786,
+  "completion_tokens": 9445,
+  "cost_usd": 0.0,
+  "by_model": {
+    "qwen3.5-4b-32k": {
+      "calls": 31,
+      "prompt_tokens": 272786,
+      "completion_tokens": 9445,
+      "cost_usd": 0.0
+    }
+  }
+}
