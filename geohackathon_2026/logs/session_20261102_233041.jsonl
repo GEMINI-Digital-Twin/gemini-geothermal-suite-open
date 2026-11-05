@@ -1,0 +1,3 @@
+{"event": "question", "model": "qwen3:8b", "text": "What is the best pizza place in Padova?"}
+{"event": "llm", "round": 1, "seconds": 2.0, "tokens_in": 1942, "tokens_out": 20, "content": "The question about the best pizza place in Padova is unrelated to the geothermal design task.", "tool_calls": null}
+{"event": "tokens", "tokens_in": 1942, "tokens_out": 20, "rounds": 1}

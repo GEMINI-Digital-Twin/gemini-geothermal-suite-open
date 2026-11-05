@@ -1,0 +1,4 @@
+# Python 3.11. The versions tested; GEMINI's model and simulator need only numpy and scipy.
+numpy==2.2.6
+scipy==1.13.1
+pytest==8.4.2

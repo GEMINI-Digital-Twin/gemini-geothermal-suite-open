@@ -27,7 +27,7 @@ Lorenz COP equation:
 """
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import brentq, minimize
 
 from gemini_model.model_abstract import StaticModel
 
@@ -270,6 +270,9 @@ class HeatpumpBasic(StaticModel):
 
             return J
 
+        if self.parameters["mode"] == "carnot":
+            return self._calculate_carnot(Th_out, Th_in, Ts_in, mh, ms)
+
         x0 = [self.parameters["COP_0"], Ts_in - 10]
         if self.parameters["mode"] == "carnot":
             result = minimize(
@@ -307,6 +310,48 @@ class HeatpumpBasic(StaticModel):
         thermal_production = self.parameters["Cp_h"] * (Th_out - Th_in) * mh
         electrical_consumption = thermal_production / COP
 
+        return COP, Th_out, Ts_out, thermal_production, electrical_consumption
+
+    def _calculate_carnot(self, Th_out, Th_in, Ts_in, mh, ms):
+        """Solve the Carnot-efficiency model directly.
+
+        In Carnot mode the COP depends only on the fixed sink outlet and source
+        inlet temperatures, COP = eta_carnot * Th_out / (Th_out - Ts_in), so no
+        optimizer is needed. The source outlet then follows from the energy
+        balance Qs = Qh * (1 - 1 / COP). If it falls below Ts_in_minimum, the
+        source outlet is fixed at that minimum and Th_out is found with a
+        bracketed root search instead.
+
+        Nelder-Mead on the absolute residuals could stop away from the
+        solution, returning a COP that does not satisfy the Carnot equation
+        (for example 3.25 instead of 4.60 for Th_out 100 C, Ts_in 59.4 C).
+
+        Parameters and returns are as for `_calculate`.
+        """
+        eta = self.parameters["eta_carnot"]
+        cp_h = self.parameters["Cp_h"]
+        cp_s = self.parameters["Cp_s"]
+        Ts_minimum = self.parameters["Ts_in_minimum"] + 273.15
+
+        def cop_at(Th):
+            return eta * Th / (Th - Ts_in)
+
+        COP = cop_at(Th_out)
+        thermal_production = cp_h * (Th_out - Th_in) * mh
+        Ts_out = Ts_in - thermal_production * (1.0 - 1.0 / COP) / (cp_s * ms)
+
+        if Ts_out < Ts_minimum:
+            source_heat = cp_s * ms * (Ts_in - Ts_minimum)
+
+            def residual(Th):
+                return cp_h * (Th - Th_in) * mh * (1.0 - 1.0 / cop_at(Th)) - source_heat
+
+            Th_out = brentq(residual, Th_in, Th_out)
+            COP = cop_at(Th_out)
+            thermal_production = cp_h * (Th_out - Th_in) * mh
+            Ts_out = Ts_minimum
+
+        electrical_consumption = thermal_production / COP
         return COP, Th_out, Ts_out, thermal_production, electrical_consumption
 
     def get_output(self):
