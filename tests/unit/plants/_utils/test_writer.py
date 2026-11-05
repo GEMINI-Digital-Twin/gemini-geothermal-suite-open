@@ -39,3 +39,19 @@ def test_a_group_writes_its_children_and_a_plant_its_registered_name():
 def test_baseline_is_the_starting_values_of_the_tree():
     """A nested plant's baseline holds its dotted parameter names."""
     assert "reservoir.skin" in tree_params(with_values(gm.plants.get("Doublet")))
+
+
+def test_a_doublet_depth_the_plant_gives_stays_linked_after_a_round_trip():
+    """QA-278: ``d0.depth`` was written whole, so a reloaded plant's depth left its wells."""
+    from pathlib import Path
+
+    import gemini as gm
+
+    folder = Path(__file__).parents[4] / "examples" / "hackathon_2026" / "plants"
+    plant = gm.Plant.from_json(folder / "HeatingCoolingPlant.json")
+    again = gm.Plant.from_dict(plant.to_dict(structure=True))
+    again._set_si_params("", {"depth": 2200.0})
+    assert again.d0.depth == 2200.0
+    own = gm.Plant.from_dict(plant.to_dict(structure=True))
+    own._set_si_params("", {"d0.depth": 2100.0})
+    assert gm.Plant.from_dict(own.to_dict(structure=True)).d0.depth == 2100.0

@@ -37,7 +37,7 @@ def params_entry(plant, key, module):
     """
     stated = plant._stated.get(key) or {}
     baseline = plant._baselines.get(key, {})
-    derived = design.derived_names(module)
+    derived = design.derived_names(module) | _inherited(plant, key)
     owned = {name for name, parameter in module.named_parameters() if parameter.case}
     result = {}
     for name, value in tree_params(module).items():
@@ -51,6 +51,21 @@ def params_entry(plant, key, module):
     return {
         name: design.quantity_form(design.parameter(module, name), value)
         for name, value in result.items()
+    }
+
+
+def _inherited(plant, key):
+    """Return the names of ``key``'s parameters the plant gives from one of its own (QA-278).
+
+    A plant-level ``depth`` goes to every doublet; written as ``d0.depth`` it was read back as a
+    value of the doublet's own, so a later plant ``depth`` (a search, a sensitivity) no longer
+    moved the wells. A value the doublet states itself is no derived one and is written.
+    """
+    prefix = f"{key}." if key else ""
+    return {
+        name.removeprefix(prefix)
+        for name in getattr(plant, "_derived_params", ())
+        if name.startswith(prefix) and "." not in name.removeprefix(prefix)
     }
 
 
