@@ -12,8 +12,7 @@ from gemini.engine.check import _set_value, check
 from gemini.engine.simulate import simulate
 from gemini.errors import PhysicsError, RunError, ValidationError
 from gemini.errors.base import raise_issues
-from gemini.evaluate import capacities, requirements
-from gemini.modules.exchangers.cooler import Cooler
+from gemini.evaluate import requirements
 from gemini.modules.pumps import InjectionPump
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
 from gemini.plants._utils.resize import resized
@@ -326,36 +325,6 @@ def _lift_share(design, case):
     return min(1.0, max(0.0, (supply - reservoir) / (supply - back)))
 
 
-def _coolers(design, case, notes):
-    """Rate each air cooler for the peak heat it rejects in a run of the sized plant (QA-324).
-
-    The heat a cooler rejects is the chiller's duty and its drive, which only a run of the sized
-    chillers gives; the plant files' capacities (the range maximum) were kept, about 1 to 4 MEUR
-    of capex too much. A run that fails, or a cooler whose run shows no use, keeps its capacity,
-    with a note; a cooler that ran at its capacity (``is_capped``) keeps it too, as its need is
-    larger than it shows.
-    """
-    paths = [path for path, module in design.named_modules() if isinstance(module, Cooler)]
-    paths = [path for path in paths if design.get_submodule(path).capacity is not None]
-    if not paths:
-        return
-    try:
-        used = capacities(design, case, simulate(design, case))
-    except (ValidationError, PhysicsError, RunError) as error:
-        _skip(notes, paths, f"the sized plant did not run ({error.code})")
-        return
-    for path in paths:
-        peak = (used.get(path) or {}).get("peak")
-        value = None if peak is None else float(peak.value)
-        if not value or value >= design.get_submodule(path).capacity:
-            _skip(notes, [path], "its run shows no peak below its capacity")
-            continue
-        design._set_si_params(path, {"capacity": value})
-        shown = display_text(value, "W")
-        reason = f"the peak heat it rejects in a run of the sized plant, {shown}"
-        _note(notes, f"{path}.capacity", value, "W", reason)
-
-
 def _check(design, case, notes):
     """Simulate the sized plant once and note each requirement it breaks."""
     notes["broken"] = []
@@ -426,9 +395,6 @@ def size(plant, case):
       unsized with a note. A rated pump that has neither a ``pressure_setpoint`` nor head
       curves gets the setpoint too: the wellhead pressure that injects that flow (geomind
       QA-287), so a plant without one runs once sized;
-    - the ``capacity`` of each air ``Cooler``: the peak heat it rejects in one run of the plant
-      sized so far (the chillers' duty and drive), unless the run fails or the cooler ran at its
-      capacity, which it then keeps (geomind QA-324);
 
     The heat pump share assumes an ideal exchanger: a finite approach leaves the water colder at
     the heat pump, which a boiler downstream makes up; a plant with a heat pump and no boiler may
@@ -486,7 +452,6 @@ def size(plant, case):
         design, cover = _doublets(plant, case, _peak(case, "heating"), notes)
     _capacities(design, case, notes, backup, cover)
     _injection_pumps(design, case, notes)
-    _coolers(design, case, notes)
     _check(design, case, notes)
     design.sizing = notes
     return design

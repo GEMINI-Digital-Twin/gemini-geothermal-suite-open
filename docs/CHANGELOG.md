@@ -12,6 +12,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.33] - 2026-11-05
+
+### Fixed
+- Revert 0.6.31's cooler sizing (QA-335): coolers keep the plant file's capacity again. Rated
+  for the exact peak of one run of the sized plant, a cooler capped once a search moved the
+  chillers, and the compression-chiller designs missed the cooling supply temperature by a few
+  mK at the peak (HeatingCoolingPlant and HeatingFullCoolingPlant infeasible; 10 structures of
+  the superstructure refused instead of 7). The search results of 0.6.30 are back.
+
 ## [0.6.32] - 2026-11-05
 
 ### Fixed
