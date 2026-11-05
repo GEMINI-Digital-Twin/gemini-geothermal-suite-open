@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.26] - 2026-11-05
+
+### Fixed
+- `gm.study.size` gives a rated `InjectionPump` with no `pressure_setpoint` and no head curves the
+  wellhead pressure that injects its doublets' nominal flow, with a sizing note; the check's
+  pressure_setpoint issue says size sets it (geomind QA-287).
+
 ## [0.6.25] - 2026-11-05
 
 ### Fixed

@@ -401,3 +401,19 @@ def test_a_case_with_no_demand_leaves_the_boiler_heat_pump_and_chiller_unsized(t
     for path in ("peak_boiler", "heat_pump", "compression_chiller"):
         assert "no" in skipped[path] and "demand" in skipped[path]
     assert notes["sized"] == []
+
+
+def test_a_pump_without_a_setpoint_or_curves_gets_the_injection_pressure():
+    """QA-287: size sets the setpoint the run needs; a stated setpoint stays as it is."""
+    from tests.fixtures.sample_cases import sample_case, template_plant
+
+    plant, case = template_plant("HeatingHeatPumpCoolingPlant"), sample_case()
+    stated = gm.study.size(plant, case).input_value("injection_pump.pressure_setpoint")
+    assert stated == pytest.approx(plant.input_value("injection_pump.pressure_setpoint"))
+    plant._set_si_inputs({"injection_pump.pressure_setpoint": None})
+    sized = gm.study.size(plant, case)
+    setpoint = sized.input_value("injection_pump.pressure_setpoint")
+    head = sized.get_submodule("injection_pump").nominal_head
+    assert setpoint == pytest.approx(head + float(sized.get_submodule("d0").nominal_wellhead_pressure))
+    assert "injection_pump.pressure_setpoint" not in {item.path for item in gm.check(sized, case)}
+    assert sized.sizing["simulation"] == "simulated"

@@ -204,7 +204,8 @@ def _pump_setpoints(plant):
                 where,
                 "missing",
                 f"{where} is missing; expected the discharge pressure the injection pump "
-                "delivers (the injection well's need), or head_coefficients and stage_count",
+                "delivers (the injection well's need), or head_coefficients and stage_count; "
+                "gm.study.size sets it from the doublets the pump serves (derived by size)",
                 code="missing_value",
             )
         )

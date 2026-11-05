@@ -8,7 +8,7 @@ from gemini import units
 from gemini.analysis.nodal import WELLHEAD_PRESSURES, solve_injection_pressure
 from gemini.case._utils.access import require
 from gemini.engine.apply import apply_case
-from gemini.engine.check import check
+from gemini.engine.check import _set_value, check
 from gemini.engine.simulate import simulate
 from gemini.errors import PhysicsError, RunError, ValidationError
 from gemini.errors.base import raise_issues
@@ -216,6 +216,15 @@ def _injection_head(applied, case, path):
     column of brine injects the flow alone. The brine is injected at the reservoir temperature
     less the brine cooling limit.
     """
+    return _injection_pressure(applied, case, path)[0]
+
+
+def _injection_pressure(applied, case, path):
+    """Return ``(head, discharge)`` [Pa] the doublet at ``path`` asks of an injection pump.
+
+    ``discharge`` is the wellhead pressure that injects the nominal flow, never below the
+    production wellhead pressure; ``head`` is its rise over that pressure (``_injection_head``).
+    """
     doublet = applied.get_submodule(path)
     cooling = _limit(case, "brine_cooling", "max")
     temperature = case.site.temperature_at(doublet.depth) - cooling
@@ -227,7 +236,9 @@ def _injection_head(applied, case, path):
     needed = solve_injection_pressure(
         doublet.injector, doublet.sink, stream, (low, WELLHEAD_PRESSURES[1])
     )
-    return 0.0 if needed is None else needed - low
+    if needed is None or needed < low:
+        return 0.0, low
+    return needed - low, needed
 
 
 def _lacking(applied, served):
@@ -262,11 +273,30 @@ def _injection_pumps(design, case, notes):
             _skip(notes, [path], f"not sized: {reason}")
             continue
         flow = sum(applied.get_submodule(item).nominal_flow for item in served)
-        head = max(_injection_head(applied, case, item) for item in served)
+        rated = [_injection_pressure(applied, case, item) for item in served]
+        head = max(item[0] for item in rated)
         design._set_si_params(path, {"nominal_flow": flow, "nominal_head": head})
         why = f"the flow of {len(served)} doublet(s) it serves, and the head that injects it"
         _note(notes, f"{path}.nominal_flow", flow, "m3/s", why)
         _note(notes, f"{path}.nominal_head", head, "Pa", why)
+        _injection_setpoint(design, path, max(item[1] for item in rated), notes)
+
+
+def _injection_setpoint(design, path, discharge, notes):
+    """Set the ``pressure_setpoint`` of a pump that has neither one nor head curves (QA-287).
+
+    Such a pump cannot run: its head comes from the curves or the setpoint. The setpoint is the
+    wellhead pressure that injects the nominal flow of the doublets it serves; a stated setpoint
+    or a pump with curves is left as it is.
+    """
+    module = design.get_submodule(path)
+    if _set_value(module, "head_coefficients") is not None:
+        return
+    if design.input_value(f"{path}.pressure_setpoint") is not None:
+        return
+    design._set_si_inputs({f"{path}.pressure_setpoint": discharge})
+    why = "the wellhead pressure that injects the nominal flow of the doublets it serves"
+    _note(notes, f"{path}.pressure_setpoint", discharge, "Pa", why)
 
 
 def _skip(notes, paths, reason):
@@ -371,7 +401,9 @@ def size(plant, case):
       suction, floored at zero (the injection well and aquifer of the case, ``gm.analysis``'s
       ``solve_injection_pressure``). A pump that serves no doublet of the plant, such as the one
       of a ``NodalDoublet``, or whose doublet lacks a depth or a wellhead pressure, is left
-      unsized with a note.
+      unsized with a note. A rated pump that has neither a ``pressure_setpoint`` nor head
+      curves gets the setpoint too: the wellhead pressure that injects that flow (geomind
+      QA-287), so a plant without one runs once sized;
 
     The heat pump share assumes an ideal exchanger: a finite approach leaves the water colder at
     the heat pump, which a boiler downstream makes up; a plant with a heat pump and no boiler may
