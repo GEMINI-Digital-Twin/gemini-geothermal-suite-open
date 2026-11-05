@@ -12,6 +12,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.13] - 2026-11-05
+
+### Fixed
+- `gm.evaluate.requirements`: `unmet_share` of a run with failed steps is undecided (`passed`
+  `None`) with the reason `no_value: N steps of the run failed, so the unmet energy of the period
+  is unknown`; it was `passed` `False` with "no value" and read as a missing rule (geomind QA-104).
+- `gm.evaluate.daily_coverage`: an `ElectricBoiler`'s heat is backup, found by its class; it was
+  counted as geothermal (geomind QA-107).
+
 ## [0.6.12] - 2026-11-05
 
 ### Added
