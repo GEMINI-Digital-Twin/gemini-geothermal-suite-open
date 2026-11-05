@@ -376,6 +376,9 @@ def run(args):
             except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
                 print(f"\nCannot reach the LLM ({e}).\nIs Ollama running and is the model pulled? "
                       f"Try: ollama pull {args.model}   or run: python agent.py --offline")
+                if not hist:
+                    print("Nothing was run; existing agent files are left unchanged.")
+                    return
                 break
             except (ValueError, KeyError, json.JSONDecodeError) as e:
                 hist.append(dict(iter=it, design=None, errors=[f"unreadable reply: {e}"], feasible=False, kpi={}))
