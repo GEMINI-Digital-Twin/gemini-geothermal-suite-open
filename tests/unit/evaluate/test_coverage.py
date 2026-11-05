@@ -108,3 +108,17 @@ def test_no_role_is_a_backup_of_cooling(found):
     """All the cold delivered is the geothermal plant's."""
     days = found[0]["cooling"]
     assert {day["backup"].value for day in days} == {0.0} and days[0]["short"].value > 0
+
+
+def test_an_electric_boiler_s_heat_is_backup():
+    """An ElectricBoiler has no role but backs up the heating: its heat is not geothermal."""
+    from tests.unit.evaluate.test_summary import heating_plant
+
+    plant = heating_plant(costed=False)
+    plant.add("ElectricBoiler", name="boiler", params={"capacity": {"value": 10, "unit": "kW"}})
+    plant.add("CoolingGrid", "cool")
+    results = run(by_hour([2000.0, 2000.0, 2000.0]), by_hour([0.0, 0.0, 0.0]))
+    first = gm.evaluate.daily_coverage(plant, None, results)["heating"][0]
+    assert first["source"] == "backup"
+    assert first["backup"].value == pytest.approx(24 * 2000 / 1e6)
+    assert first["geothermal"].value == pytest.approx(24 * 3000 / 1e6)

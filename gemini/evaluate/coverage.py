@@ -6,6 +6,7 @@ import pandas as pd
 from gemini.evaluate._utils.columns import series
 from gemini.evaluate._utils.series import leaf_total, useful_cold, useful_heat
 from gemini.modules.grids import CoolingGrid, HeatingGrid
+from gemini.modules.heating import ElectricBoiler
 from gemini.plants.roles import delivery_ports, units_of
 from gemini.units.display import by_si_unit, shown
 from gemini.units.shapes import measure
@@ -17,7 +18,8 @@ TOLERANCE = 1e-6
 
 BACKUP_ROLES = {"heating": ("boiler", "chp"), "cooling": ()}
 """The roles of ``gm.plants.roles()`` whose units are the backup of a service; the rest of what
-the service received is the geothermal plant's. No role is a backup of cooling."""
+the service received is the geothermal plant's. No role is a backup of cooling. An
+``ElectricBoiler`` (no role: it burns no fuel) is a backup of heating too, found by its class."""
 
 KEYS = ("demand", "geothermal", "backup", "short")
 """The energies of a day, in the display unit of energy."""
@@ -48,11 +50,28 @@ def _backup_power(plant, frame, service):
             first, second = (
                 f"{port}.enthalpy_flow" for port in delivery_ports(plant.get_submodule(path), role)
             )
-            one, _ = series(plant, frame, path, first)
-            other, _ = series(plant, frame, path, second)
-            if one.size and other.size:
-                total += np.nan_to_num(one - other)
+            total += _delivered(plant, frame, path, first, second)
+    if service == "heating":
+        for path, module in plant.named_modules():
+            if isinstance(module, ElectricBoiler):
+                total += _delivered(plant, frame, path, *ELECTRIC_PORTS)
     return total
+
+
+ELECTRIC_PORTS = ("fluid_out.enthalpy_flow", "fluid_in.enthalpy_flow")
+"""The ports whose enthalpy flows, first less second, give an electric boiler's heat."""
+
+
+def _delivered(plant, frame, path, first, second):
+    """Return the power [W] a unit gives its water: the enthalpy flow of ``first`` less ``second``.
+
+    A unit whose run holds neither flow gives zeros.
+    """
+    one, _ = series(plant, frame, path, first)
+    other, _ = series(plant, frame, path, second)
+    if one.size and other.size:
+        return np.nan_to_num(one - other)
+    return np.zeros(len(frame))
 
 
 def _energies(plant, frame, seconds, service, useful, unmet):
