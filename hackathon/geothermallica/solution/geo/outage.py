@@ -1,7 +1,7 @@
 """Where the 35 outage days of each doublet fall, and what an unplanned outage in the coldest week costs.
 
 The source runs 330 days, the system serves 365, and the placement of the outage days is the designer's choice
-(organiser Q&A, 1 Nov 2026, in research/07_organiser_qa.md).
+(organiser answer of 1 Nov 2026 on the hackathon Discord).
 windows() returns {doublet: (start date, end date)}; unplanned() returns a dict of the extra boiler gas, cost and CO2 of one
 doublet out for a week over the heat peak; summary() collects both for the heating_year tool.
 """
