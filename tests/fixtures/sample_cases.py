@@ -60,14 +60,19 @@ def template_plant(name):
     return apply_case(gm.Plant.from_dict(template_dict(name)), sample_case())
 
 
+RULES = {"dispatch": "least_cost", "outages": "lowest_demand", "backup": "none"}
+"""The plant rules a run needs (``gm.check`` names each unset one); ``backup`` acts only in a
+sizing, so ``none`` leaves every run as it was."""
+
+
 def filled_plant(name):
     """Return plant ``name`` with values: of the sample case for a template, else its example.
 
-    A plant to schedule states the two rules of the schedule; the example of a plant that is not
-    scheduled does not, so they are set here.
+    A plant to run states the rules of its schedule and its sizing (gemini 0.6.5: none has a
+    default); the example of a plant that is not scheduled does not, so they are set here.
     """
     plant = template_plant(name) if name in (SAMPLE_PLANT, *TEMPLATES) else example_plant(name)
-    return plant.set_params("", {"dispatch": "least_cost", "outages": "lowest_demand"})
+    return plant.set_params("", RULES)
 
 
 def example_plant(name):

@@ -15,6 +15,7 @@ from gemini.plants.plant import Plant
 from gemini.streams.energy import Energy
 from gemini.streams.fluid import BRINE, Fluid
 from gemini.streams.kinds import Direction, Flow, Level, Phase
+from tests.fixtures.sample_cases import RULES
 from tests.fixtures import si
 
 START = pd.Timestamp("2024-01-01", tz="UTC")
@@ -35,7 +36,7 @@ LOOP_START = 330.0
 
 def buffer_plant():
     """Return the plant: a tank with the plant ports ``charge``, ``discharge`` and ``air``."""
-    plant = gm.Plant("Buffer")
+    plant = gm.Plant("Buffer").set_params("", RULES)
     plant.add("ThermalStorage", "tank")
     for port in ("charge_in", "discharge_in", "air_in"):
         plant.connect(port, f"tank.{port}")

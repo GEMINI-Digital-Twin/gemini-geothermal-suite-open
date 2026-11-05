@@ -104,7 +104,7 @@
             },
             "indoor_relative_humidity": {
               "additionalProperties": false,
-              "description": "The relative humidity of the indoor air, between 0 and 1.",
+              "description": "The relative humidity of the indoor air, between 0 and 1 (no unit, or a unit of a fraction: -, %).",
               "properties": {
                 "range": {
                   "additionalProperties": false,
@@ -151,6 +151,16 @@
                   ],
                   "type": "object"
                 },
+                "unit": {
+                  "description": "The unit of the value and of its range and uncertainty.",
+                  "enum": [
+                    "%",
+                    "-",
+                    "Nm3/m3",
+                    "mol%",
+                    "ppm"
+                  ]
+                },
                 "value": {
                   "description": "The value, in its unit.",
                   "type": "number"
@@ -164,7 +174,14 @@
               "x-limits": {
                 "max": 1.0,
                 "min": 0.0
-              }
+              },
+              "x-units": [
+                "%",
+                "-",
+                "Nm3/m3",
+                "mol%",
+                "ppm"
+              ]
             },
             "indoor_temperature": {
               "additionalProperties": false,
@@ -7479,6 +7496,16 @@
                       ],
                       "type": "object"
                     },
+                    "unit": {
+                      "description": "The unit of the value and of its range and uncertainty.",
+                      "enum": [
+                        "%",
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
+                    },
                     "value": {
                       "description": "The value, in its unit.",
                       "type": "number"
@@ -7518,21 +7545,39 @@
                     "time_zone": {
                       "description": "The IANA time zone (such as Europe/Oslo) of the timestamps of the file that have no offset; without it every timestamp needs its offset.",
                       "type": "string"
+                    },
+                    "unit": {
+                      "description": "The unit of the value and of its range and uncertainty.",
+                      "enum": [
+                        "%",
+                        "-",
+                        "Nm3/m3",
+                        "mol%",
+                        "ppm"
+                      ]
                     }
                   },
                   "required": [
                     "file",
-                    "column"
+                    "column",
+                    "unit"
                   ],
                   "type": "object"
                 }
               ],
-              "description": "The relative humidity of the outside air, between 0 and 1, a constant or a series.",
+              "description": "The relative humidity of the outside air, between 0 and 1 (no unit, or a unit of a fraction: -, %), a constant or a series.",
               "x-fraction": true,
               "x-limits": {
                 "max": 1.0,
                 "min": 0.0
-              }
+              },
+              "x-units": [
+                "%",
+                "-",
+                "Nm3/m3",
+                "mol%",
+                "ppm"
+              ]
             },
             "temperature": {
               "anyOf": [
@@ -7807,6 +7852,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -7828,6 +7874,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -7886,6 +7933,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -7907,6 +7955,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -7965,6 +8014,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -7986,6 +8036,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -8044,6 +8095,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -8065,6 +8117,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -8080,6 +8133,7 @@
                 "min": 0.0
               },
               "x-units": [
+                "%",
                 "-",
                 "Nm3/m3",
                 "mol%",
@@ -8138,6 +8192,7 @@
                 "unit": {
                   "description": "The unit of the value and of its range and uncertainty.",
                   "enum": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -8156,6 +8211,7 @@
               "type": "object",
               "x-quantity": "gas_liquid_ratio",
               "x-units": [
+                "%",
                 "-",
                 "Nm3/m3",
                 "mol%",
@@ -9379,6 +9435,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -9400,6 +9457,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -9458,6 +9516,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -9479,6 +9538,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -9537,6 +9597,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -9558,6 +9619,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -9616,6 +9678,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -9637,6 +9700,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -9695,6 +9759,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -9716,6 +9781,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -9774,6 +9840,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -9795,6 +9862,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -9853,6 +9921,7 @@
                     "unit": {
                       "description": "The unit of the value and of its range and uncertainty.",
                       "enum": [
+                        "%",
                         "-",
                         "Nm3/m3",
                         "mol%",
@@ -9874,6 +9943,7 @@
                     "min": 0.0
                   },
                   "x-units": [
+                    "%",
                     "-",
                     "Nm3/m3",
                     "mol%",
@@ -9889,6 +9959,7 @@
                 "min": 0.0
               },
               "x-units": [
+                "%",
                 "-",
                 "Nm3/m3",
                 "mol%",
@@ -10029,6 +10100,7 @@
       "yr"
     ],
     "gas_liquid_ratio": [
+      "%",
       "-",
       "Nm3/m3",
       "mol%",

@@ -16,6 +16,7 @@ from tests.fixtures.designs import WELL
 from tests.fixtures.esp_design import ESP_DESIGN
 from tests.fixtures.plant_files import leaves, tree
 from tests.fixtures.reading import reading
+from tests.fixtures.sample_cases import RULES
 
 
 @pytest.fixture
@@ -379,7 +380,7 @@ def test_a_doublet_may_have_no_nominal_flow():
 
 def _holder(values):
     """Return a plant holding one doublet ``d0`` of ``values``, its ports wired to the plant's."""
-    plant = gm.Plant("Holder")
+    plant = gm.Plant("Holder").set_params("", RULES)
     si.add(plant, "Doublet", name="d0", values=values)
     plant.connect("return_in", "d0.return_in")
     plant.connect("power_in", "d0.power_in")

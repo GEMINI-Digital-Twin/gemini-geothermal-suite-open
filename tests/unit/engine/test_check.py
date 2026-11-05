@@ -4,7 +4,13 @@ import gemini as gm
 from gemini.engine.apply import apply_case, started
 from gemini.units import Quantity
 from tests.fixtures.errors import raises
-from tests.fixtures.sample_cases import HACKATHON_2026, SHALLOW_DISTRICT, sample_case, shallow_case
+from tests.fixtures.sample_cases import (
+    HACKATHON_2026,
+    RULES,
+    SHALLOW_DISTRICT,
+    sample_case,
+    shallow_case,
+)
 
 SHALLOW_PLANT = SHALLOW_DISTRICT / "plants/HeatingHeatPumpCoolingPlant.json"
 
@@ -40,7 +46,7 @@ def physics():
 
 def storage_plant():
     """Return a plant of one thermal storage, a stateful module."""
-    plant = gm.Plant()
+    plant = gm.Plant().set_params("", RULES)
     plant.add("ThermalStorage", name="storage")
     values = {"service": "hot", "volume": Quantity(2, "m3"), "charge_effectiveness": 1.0}
     values |= {"discharge_effectiveness": 1.0, "heat_loss_conductance": Quantity(10, "W/K")}
@@ -240,7 +246,7 @@ def test_a_fixed_opex_per_capacity_needs_the_power_size_of_the_module():
 
 def ice_plant():
     """Return a plant of one ice store of 50 t, a stateful module of kind ``ice_storage``."""
-    plant = gm.Plant()
+    plant = gm.Plant().set_params("", RULES)
     plant.add("IceStorage", name="ice")
     values = {"water_mass": Quantity(50, "t"), "thermal_conductance": Quantity(20000, "W/K")}
     return plant.set_params("ice", values)

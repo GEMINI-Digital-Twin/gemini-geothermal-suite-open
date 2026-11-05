@@ -172,7 +172,9 @@ def plant_of_two(names=("d0", "d1")):
 
 def scheduling(plant):
     """Return ``plant`` stating the rules the schedule applies, as a plant file does."""
-    return plant.set_params("", {"dispatch": "least_cost", "outages": "lowest_demand"})
+    return plant.set_params(
+        "", {"dispatch": "least_cost", "outages": "lowest_demand", "backup": "none"}
+    )
 
 
 def wire(plant, names=("d0", "d1")):

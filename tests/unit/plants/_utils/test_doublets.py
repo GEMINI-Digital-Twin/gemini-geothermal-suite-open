@@ -63,7 +63,7 @@ GEOTHERM = {
 }
 
 
-RULES = {"dispatch": "least_cost", "outages": "lowest_demand"}
+RULES = {"dispatch": "least_cost", "outages": "lowest_demand", "backup": "none"}
 """The rules a plant states for the schedule of a run without a plan."""
 
 
