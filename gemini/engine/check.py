@@ -100,6 +100,7 @@ def issues_of(applied, case):
             *(item for item in _parameters(applied) if item.path not in named),
             *_rules(applied),
             *_pump_setpoints(applied),
+            *_closed_coolers(applied),
             *_split_paths(applied),
             *_kinds(applied, case),
             *_sizes(applied, case),
@@ -197,6 +198,7 @@ def _pump_setpoints(plant):
         if not isinstance(module, InjectionPump):
             continue
         curves = _set_value(module, "head_coefficients") is not None
+        issues += _pump_drive(plant, path, module, curves)
         if curves or plant.input_value(join_path(path, "pressure_setpoint")) is not None:
             continue
         where = join_path("params", form.file_path(join_path(path, "pressure_setpoint")))
@@ -210,6 +212,74 @@ def _pump_setpoints(plant):
                 code="missing_value",
             )
         )
+    return issues
+
+
+def _pump_drive(plant, path, module, curves):
+    """Return ``missing`` issues for an injection pump's ``frequency`` and ``efficiency`` (QA-343).
+
+    Both were found one run at a time after sizing: the frequency is a control with no default
+    (an ``invalid_binding`` at the run), and a pump without both curves needs its efficiency.
+    """
+    issues = []
+    if plant.input_value(join_path(path, "frequency")) is None:
+        where = join_path("params", form.file_path(join_path(path, "frequency")))
+        issues.append(
+            Issue(
+                where,
+                "missing",
+                f"{where} is missing; expected the pump motor's frequency; gm.study.size sets "
+                "gemini's reference frequency for a pump without curves",
+                code="missing_value",
+            )
+        )
+    power = curves and _set_value(module, "power_coefficients") is not None
+    if not power and module.efficiency is None:
+        where = join_path("params", form.file_path(join_path(path, "efficiency")))
+        issues.append(
+            Issue(
+                where,
+                "missing",
+                f"{where} is missing; expected the pump's efficiency, or head and power curves; "
+                "gm.study.size takes the pump_efficiency of the doublets it serves",
+                code="missing_value",
+            )
+        )
+    return issues
+
+
+def _closed_coolers(plant):
+    """Return a ``missing`` issue for each air cooler on a closed loop without its first guess.
+
+    A cooler whose outlet comes back to its own inlet (a chiller's condenser loop) offers the
+    loop's first guess from ``loop_pressure`` and ``flow``; without them the run stopped with an
+    ``invalid_design`` after every other value was fixed (QA-343). No size derives them.
+    """
+    from gemini.modules.exchangers.cooler import Cooler
+
+    issues = []
+    for path, module in plant.named_modules():
+        if not isinstance(module, Cooler) or path not in plant.feeds(f"{path}.fluid_out"):
+            continue
+        absent = [
+            name
+            for name, value in (
+                ("loop_pressure", module.loop_pressure),
+                ("flow", plant.input_value(join_path(path, "flow"))),
+            )
+            if value is None
+        ]
+        for name in absent:
+            where = join_path("params", form.file_path(join_path(path, name)))
+            issues.append(
+                Issue(
+                    where,
+                    "missing",
+                    f"{where} is missing; expected the closed loop's {name.replace('_', ' ')}: "
+                    "the cooler offers the loop's first guess from loop_pressure and flow",
+                    code="missing_value",
+                )
+            )
     return issues
 
 

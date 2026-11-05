@@ -428,3 +428,30 @@ def test_a_plant_without_a_class_is_sized_on_the_doublet_count_its_range_allows(
     sized = gm.study.size(plant, sample_case())
     assert "d1" in dict(sized.named_children()) and "d2" not in dict(sized.named_children())
     assert sized.sizing["sized"][0]["value"].value == 2
+
+
+def test_a_sized_plant_needs_no_value_named_one_run_at_a_time():
+    """QA-343: frequency, the cooler loop and efficiency came one run at a time after sizing.
+
+    ``gm.check`` names them all at once; size sets the pump's two, and the loop's first guess,
+    which nothing derives, is named together; given it, the sized plant runs.
+    """
+    import json
+    from pathlib import Path
+
+    folder = Path(__file__).parents[3] / "examples" / "hackathon_2026"
+    case = gm.Case.from_json(folder / "case.json")
+    data = json.loads((folder / "plants" / "HeatingHeatPumpCoolingPlant.json").read_text())
+    pump, cooler = data["params"]["injection_pump"], data["params"]["compression_cooler"]
+    for name in ("frequency", "efficiency", "pressure_setpoint"):
+        pump.pop(name)
+    loop = {name: cooler.pop(name) for name in ("loop_pressure", "flow")}
+    plant = gm.Plant.from_dict(data)
+    named = {item.path.rsplit(".", 1)[-1] for item in gm.check(plant, case)}
+    assert {"frequency", "efficiency", "pressure_setpoint", "loop_pressure", "flow"} <= named
+    sized = gm.study.size(plant, case)
+    left = sorted(item.path for item in gm.check(sized, case))
+    assert left == ["params.compression_cooler.flow", "params.compression_cooler.loop_pressure"]
+    data = sized.to_dict(structure=True)
+    data["params"]["compression_cooler"] = {**data["params"]["compression_cooler"], **loop}
+    assert gm.check(gm.Plant.from_dict(data), case) == []

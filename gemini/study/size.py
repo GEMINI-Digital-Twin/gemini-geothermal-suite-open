@@ -14,6 +14,7 @@ from gemini.errors import PhysicsError, RunError, ValidationError
 from gemini.errors.base import raise_issues
 from gemini.evaluate import requirements
 from gemini.modules.pumps import InjectionPump
+from gemini.physics import constants
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
 from gemini.plants._utils.resize import free_doublets, resized
 from gemini.plants.roles import units_of
@@ -277,6 +278,37 @@ def _injection_pumps(design, case, notes):
         _note(notes, f"{path}.nominal_flow", flow, "m3/s", why)
         _note(notes, f"{path}.nominal_head", head, "Pa", why)
         _injection_setpoint(design, path, max(item[1] for item in rated), notes)
+        _injection_drive(design, applied, path, served, notes)
+
+
+def _injection_drive(design, applied, path, served, notes):
+    """Set the ``efficiency`` and ``frequency`` of a pump without curves when unset (QA-343).
+
+    Without head and power curves the power is the hydraulic power over ``efficiency``, and the
+    motor ``frequency`` is a control with no default: a sized plant then failed on one, then on
+    the other. The efficiency is the doublets' own ``pump_efficiency`` (the design value of the
+    pumps of the doublets it serves, when they agree); the frequency is gemini's reference
+    frequency of pump curves (``ESP_REFERENCE_FREQUENCY``), which a pump without curves never
+    reads. A stated value, a pump with curves, or doublets of several efficiencies stay as they
+    are, with a note.
+    """
+    module = design.get_submodule(path)
+    if _set_value(module, "head_coefficients") is not None:
+        return
+    if module.efficiency is None and _set_value(module, "power_coefficients") is None:
+        found = {applied.get_submodule(item).pump_efficiency for item in served}
+        if len(found) == 1 and None not in found:
+            value = float(found.pop())
+            design._set_si_params(path, {"efficiency": value})
+            why = "the pump_efficiency of the doublets it serves"
+            _note(notes, f"{path}.efficiency", value, "-", why)
+        else:
+            _skip(notes, [f"{path}.efficiency"], "the doublets it serves state no one efficiency")
+    if design.input_value(f"{path}.frequency") is None:
+        value = float(constants.ESP_REFERENCE_FREQUENCY)
+        design._set_si_inputs({f"{path}.frequency": value})
+        why = "gemini's reference frequency of pump curves; a pump without curves does not read it"
+        _note(notes, f"{path}.frequency", value, "Hz", why)
 
 
 def _injection_setpoint(design, path, discharge, notes):
