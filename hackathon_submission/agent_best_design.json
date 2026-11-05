@@ -2,28 +2,47 @@
   "design": {
     "n_doublets": 3,
     "hex_ua_w_per_k": 2000000.0,
-    "esp_stages": 20,
+    "esp_stages": 45,
     "esp_depth_m": 1000.0,
-    "well_depth_m": 3200.0,
-    "backup_boiler_mw": 15.0,
-    "electric_chiller_mw": 10.0,
-    "absorption_chiller_mw": 5.0
+    "well_depth_m": 3300.0,
+    "backup_boiler_mw": 35.0,
+    "electric_chiller_mw": 15.0,
+    "absorption_chiller_mw": 8.0
   },
   "assumptions": {
     "t_return": 40.0,
+    "t_cool_return": 26.0,
     "eta_lorenz": 0.5,
-    "cop_electric_chiller": 4.0,
+    "hp_cop_max": 15.0,
+    "chiller_eta_carnot": 0.4,
+    "chiller_condensing_c": 35.0,
+    "chiller_evap_approach_c": 3.0,
     "cop_absorption": 0.7,
     "grid_ef_kg_per_kwh": 0.3,
     "gas_ef_kg_per_gj": 56.6,
     "backup_boiler_eff": 0.9,
-    "min_esp_intake_bar": 10.0,
+    "chp_eff": 0.8,
+    "produced_gas_to_boiler": 0.8,
     "skin": 2.0,
+    "r_drainage_m": 600.0,
+    "r_well_m": 0.1,
+    "tubing_id_m": 0.15,
+    "survey_stations_m": [
+      300.0,
+      500.0,
+      1000.0
+    ],
     "wellbore_heat_loss_c": 7.0,
+    "wellhead_pressure_bar": 3.0,
+    "min_esp_intake_bar": 10.0,
+    "esp_freq_min_hz": 15.0,
+    "esp_freq_max_hz": 70.0,
+    "esp_freq_step_hz": 2.5,
+    "pvt_t_max_c": 200.0,
     "cp": 4186.0
   },
   "agent": "Ollama qwen2.5:7b",
-  "iteration": 9,
-  "co2_t_per_year": 8080.1,
-  "reasoning": "The last design (#8) already performs well, but we can try increasing the well depth to see if it further improves COP and CO2 emissions, as deeper wells can provide hotter brine."
+  "iteration": 20,
+  "co2_t_per_year": 6626.4,
+  "reasoning": "Design #15 achieved the lowest CO2 emissions with 3 doublets at 3300 m depth. Increasing the well depth to 3400 m might further improve the geothermal heat, but the increase in CO2 emissions from the backup boiler could offset this benefit. Instead, we will increase the heat exchanger size to 2000 kW/K to maximize the heat recovery from the geothermal fluid, potentially reducing the need for the backup boiler and lowering CO2 emissions."
 }

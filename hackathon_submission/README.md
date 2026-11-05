@@ -20,28 +20,40 @@ numbers. No check reads a typed-in value: supply temperatures are computed from
 the heat actually delivered, and every heat-pump day is re-solved with GEMINI's
 own `HeatpumpBasic`.
 
-## Result — designed by the LLM agent (Ollama qwen2.5:7b)
+## Result — designed by the LLM agent (Ollama qwen2.5:7b, run 3)
 
 | | Agent's design (`agent_best_design.json`) |
 |---|---|
-| Doublets | **3**, wells 3,200 m TVD (108 °C reservoir) |
-| Heat exchanger | 2,000 kW/K per doublet + heat pump to 100 °C (mean COP 5.1) |
-| ESP | 20 stages at 1,000 m, variable speed → 56–145 m³/h per doublet |
-| Backup gas boiler | 15 MW (peak use 8.5 MW) |
-| Chillers (20 °C) | 10 MW electric (COP 6.45) + 5 MW absorption |
-| **CO₂** | **7,502 t/year**, against **26,386 t** for the same demand without geothermal (**−71.6 %**) |
-| Heat from geothermal | 82.5 % (produced gas 9.9 %, backup boiler 7.6 %) |
-| Constraint checks | **18/18 PASS** (`python run_full_year.py`) |
+| Doublets | **3**, wells 3,300 m TVD (111 °C reservoir, 104 °C at the wellhead) |
+| Heat exchanger | 2,000 kW/K per doublet. The brine is hot enough to heat the water to 100 °C directly, so the heat pump is not needed |
+| ESP | 45 stages at 1,000 m, variable speed → 55–202 m³/h per doublet |
+| Backup gas boiler | 35 MW installed, **peak use 3.5 MW** |
+| Chillers (20 °C) | 15 MW electric (COP 6.45, peak use 10 MW) + 8 MW absorption (peak use 3.7 MW) |
+| **CO₂** | **6,626 t/year**, against **26,386 t** for the same demand without geothermal (**−74.9 %**) |
+| Heat from geothermal | 87.1 % (produced gas 10.5 %, backup boiler 2.4 %) |
+| Constraint checks | **18/18 PASS** (reproduced with `python run_full_year.py`) |
 
-How the agent got there (`agent_log.md`): it started with 1 doublet at 2,000 m → the validator
-reported 13.6 MW heating and 5 MW cooling shortfall → the agent added doublets and chiller
-capacity → first PASS at iteration 3 → deeper wells and a larger HEX step by step →
-best design at iteration 9. One out-of-range proposal (HEX 2,500 kW/K) was rejected by the
-schema check, and the agent corrected itself.
+How the agent got there (`agent_log.md`, 20 iterations):
+1. It started with 1 doublet at 2,000 m. The validator reported FAIL, with a heating supply of only 92.8 °C, cooling at 23 °C, and shortfalls of 3.6 MW heating and 5 MW cooling.
+2. It added doublets and chiller capacity and got its first PASS at iteration 2 (11,223 t). 3 doublets brought it to 8,396 t.
+3. It deepened the wells step by step (2,800 → 3,000 → 3,100 → 3,200 → 3,300 m) and added ESP stages, reaching 6,626 t.
+4. It tested 3,400 m, saw CO₂ rise (6,693 t), and kept 3,300 m.
+5. It tried to stop four times too early. The workflow refused each time because directions were still untried, and each refusal led to a better design.
+6. Two exact repeats were rejected without a simulation.
 
-*This run (run 2) was made before the model update described under "Model
-versions" below. Its log shows 8,080 t, the value under the earlier model; the same
-design re-simulated with the current model gives 7,502 t.*
+**Engineering review of the agent's design.** The plant is valid and its CO₂ is the
+lowest found. However, the LLM **oversized the backup units**: the boiler is used at most
+3.5 MW of its 35 MW, the electric chiller 10 of 15 MW, and the absorption chiller 3.7 of 8 MW.
+Oversizing does not change CO₂; a right-sized plant would install about 4 MW boiler, 10.5 MW
+electric chiller and 4 MW absorption chiller. The LLM's written reasoning is not always exact
+either (iteration 20 says it enlarges the HEX, but the HEX was already at its maximum and the
+actual change was a smaller boiler). This is why the design is judged only by the deterministic
+validator, never by the LLM's text.
+
+**Depth.** The challenge allows other depths ("use hydrostatic pressure … and the geothermal
+gradient"). Going to 3,300 m assumes the official reservoir properties (200 mD, 100 m) also hold
+there, and drilling cost is not counted. If the depth must stay at the 2,500 m reservoir midpoint,
+the best design is **8,324 t** (3 doublets; grid search).
 
 ## Benchmarks
 
@@ -52,25 +64,24 @@ design re-simulated with the current model gives 7,502 t.*
 | Best 2-doublet design | 8,760 |
 | Best 3-doublet design (3,500 m) | 6,725 |
 | Best design with depth fixed at the 2,500 m reservoir midpoint | 8,324 |
-| **LLM agent, run 2** (9 simulations) | **7,502** (+11.6 % vs. grid) |
-| Offline rule-based agent (22 simulations) | 6,721 (−0.1 %: found a combination outside the grid) |
-
-The LLM stopped by its own decision at 3,200 m. Since then the agent may no
-longer stop while untried directions remain.
+| **LLM agent, run 3** (16 simulations) | **6,626** (−1.5 % vs. the grid: found 3,300 m with 45 stages, which is outside the grid) |
+| Offline rule-based agent (22 simulations) | 6,721 (−0.1 %) |
 
 ## Agent runs (`agent_runs/`)
 
-| Run | Agent | Best CO₂ | What happened |
+| Run | Agent / model version | Best CO₂ | What happened |
 |---|---|---|---|
-| 1 | Ollama qwen2.5:7b, 12 iterations | 10,596 t (old model) | Loop worked and the validator caught heating and cooling shortfalls, but the model repeated a failing design 5× and believed fewer doublets lower CO₂ |
-| 2 | Ollama qwen2.5:7b, after workflow fix | 8,080 t (old model) / 7,502 t (current) | Repaired violations, improved monotonically, no repeats, stopped itself after 9 simulations |
-| — | offline rule agent | 6,721 t (current) | deterministic reference policy |
+| 1 | qwen2.5:7b, 12 it., earlier model | 10,596 t | Loop worked and the validator caught shortfalls, but the model repeated a failing design 5× and believed fewer doublets lower CO₂ |
+| 2 | qwen2.5:7b, after workflow fix, earlier model | 8,080 t (7,502 t re-simulated now) | Repaired violations, improved monotonically, stopped itself too early at 3,200 m |
+| **3** | **qwen2.5:7b, current model and workflow** | **6,626 t** | Finish refused 4× while directions were untried; explored depth to 3,400 m and back; beat the grid |
+| — | offline rule agent, current model | 6,721 t | deterministic reference policy |
 
-Workflow fixes between runs: exact repeats are rejected without simulation; the feedback shows
-the effect of the last change versus the best design; untried directions are listed; "finish"
-is refused while untried directions remain; the prompt states key engineering facts, each
-**computed from the model** (226 kg CO₂ per MWh of backup gas heat, 1.58 kg CO₂ per m³ of
-brine, ≈ 3,233 m depth beyond which the brine alone reaches 100 °C, 10 MW peak cooling).
+Workflow fixes between runs: exact repeats are rejected without simulation (after run 1);
+the feedback shows the effect of the last change versus the best design and lists untried
+directions (after run 1); "finish" is refused while untried directions remain (after run 2);
+the prompt states key engineering facts, each **computed from the model** (226 kg CO₂ per MWh
+of backup gas heat, 1.58 kg CO₂ per m³ of brine, ≈ 3,233 m depth beyond which the brine alone
+reaches 100 °C, 10 MW peak cooling).
 
 ## How to run
 
@@ -130,9 +141,9 @@ The checks do fail when they should. An undersized plant (1 doublet, 5 MW boiler
 
 1. **The number of doublets matters most.** Going from 1 to 3 doublets cuts CO₂ by 55 %, because one doublet cannot carry the 30 MW winter peak.
 2. **Depth pays off through temperature.** Below ≈ 3,233 m the brine reaches the heat exchanger above 100 °C and the heat pump is no longer needed. The heat per m³ is capped by the 40 °C brine-cooling limit, so depth does not add capacity. There is no cost data, so the extra drilling is not priced in. The best design at the fixed 2,500 m reservoir depth (8,324 t) is reported too.
-3. **Produced gas is a large, unavoidable CO₂ source:** 1.58 kg CO₂ per m³ of brine (≈ 3,400 t/yr for the agent's design).
+3. **Produced gas is now the largest CO₂ source:** 1.58 kg CO₂ per m³ of brine (≈ 3,600 t/yr for the agent's design, more than half of its total). It is unavoidable once brine is produced.
 4. **The maintenance block sits in July–August**, when heating demand is lowest. On those 35 days the electric chiller carries the full 10 MW cooling peak alone.
-5. **Equipment right-sizing:** with 3 doublets the backup boiler is needed only at 4–8.5 MW (not 30 MW).
+5. **Equipment right-sizing:** with 3 doublets at 3,300 m the backup boiler is needed only at 3.5 MW (not 30 MW); the electric chiller needs 10 MW, because it carries the cooling alone during maintenance.
 
 ## Sensitivity (benchmark design, `sensitivity.csv`)
 
@@ -204,7 +215,7 @@ are listed there under `_set_by_code`.
 | `optimize_design.py` | exhaustive benchmark (72 designs) + sensitivity |
 | `challenge_plant.json` | GEMINI project at the 2,500 m baseline (fields set by code listed inside) |
 | `GEMINI_*_Demand_Daily_2027.csv` | official demand profiles |
-| `agent_log.md`, `agent_history.csv`, `agent_best_design.json` | latest LLM agent run |
+| `agent_log.md`, `agent_history.csv`, `agent_best_design.json` | LLM agent run 3 (submitted design) |
 | `agent_runs/` | archived agent runs |
 | `results_daily.csv`, `results_summary.csv`, `validation_report.txt`, `plots/` | full-year results |
 | `design_comparison.csv`, `sensitivity.csv`, `best_design.json` | benchmark outputs |
