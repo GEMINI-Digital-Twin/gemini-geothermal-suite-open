@@ -12,7 +12,8 @@ from gemini.engine.check import _set_value, check
 from gemini.engine.simulate import simulate
 from gemini.errors import PhysicsError, RunError, ValidationError
 from gemini.errors.base import raise_issues
-from gemini.evaluate import requirements
+from gemini.evaluate import capacities, requirements
+from gemini.modules.exchangers.cooler import Cooler
 from gemini.modules.pumps import InjectionPump
 from gemini.physics import constants
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
@@ -328,6 +329,47 @@ def _injection_setpoint(design, path, discharge, notes):
     _note(notes, f"{path}.pressure_setpoint", discharge, "Pa", why)
 
 
+COOLER_MARGIN = 0.5
+"""The share above the peak heat a sized air cooler is rated for (geomind QA-324, QA-335).
+
+Rated at the exact peak of one run, a cooler left the chilled water 3 mK above its 20 degC
+setpoint on the peak day once a search moved the plant (gemini 0.6.32), and the search judged
+those designs infeasible; the margin keeps most of the capex saved (40 MW -> 21 MW for a 14 MW
+peak) and leaves the search room.
+"""
+
+
+def _coolers(design, case, notes):
+    """Rate each air cooler for the peak heat it rejects in a sized run, with a margin.
+
+    The heat a cooler rejects is the chiller's duty and its drive, which only a run of the sized
+    chillers gives; the plant files' capacities (the range maximum) were kept, about 1 to 4 MEUR
+    of capex too much (QA-324). The rating is the peak times ``1 + COOLER_MARGIN``, never above
+    the plant's own capacity. A run that fails, or a cooler whose run shows no use, keeps its
+    capacity, with a note.
+    """
+    paths = [path for path, module in design.named_modules() if isinstance(module, Cooler)]
+    paths = [path for path in paths if _set_value(design.get_submodule(path), "capacity")]
+    if not paths:
+        return
+    try:
+        used = capacities(design, case, simulate(design, case))
+    except (ValidationError, PhysicsError, RunError) as error:
+        _skip(notes, paths, f"the sized plant did not run ({error.code})")
+        return
+    for path in paths:
+        peak = (used.get(path) or {}).get("peak")
+        value = None if peak is None or peak.value is None else float(peak.value)
+        rated = None if not value else value * (1.0 + COOLER_MARGIN)
+        if rated is None or rated >= design.get_submodule(path).capacity:
+            _skip(notes, [path], "its run shows no peak well below its capacity")
+            continue
+        design._set_si_params(path, {"capacity": rated})
+        shown = display_text(value, "W")
+        reason = f"the peak heat it rejects in a run of the sized plant, {shown}, plus 50 %"
+        _note(notes, f"{path}.capacity", rated, "W", reason)
+
+
 def _skip(notes, paths, reason):
     """Record the units a size was not computed for."""
     notes["unchanged"].extend({"path": path, "reason": reason} for path in paths)
@@ -433,6 +475,9 @@ def size(plant, case):
       unsized with a note. A rated pump that has neither a ``pressure_setpoint`` nor head
       curves gets the setpoint too: the wellhead pressure that injects that flow (geomind
       QA-287), so a plant without one runs once sized;
+    - the ``capacity`` of each air ``Cooler``: the peak heat it rejects in one run of the plant
+      sized so far, plus ``COOLER_MARGIN`` (50 %), never above the plant's own capacity; a run
+      that fails keeps every cooler's capacity (geomind QA-324);
 
     The heat pump share assumes an ideal exchanger: a finite approach leaves the water colder at
     the heat pump, which a boiler downstream makes up; a plant with a heat pump and no boiler may
@@ -490,6 +535,7 @@ def size(plant, case):
         design, cover = _doublets(plant, case, _peak(case, "heating"), notes)
     _capacities(design, case, notes, backup, cover)
     _injection_pumps(design, case, notes)
+    _coolers(design, case, notes)
     _check(design, case, notes)
     design.sizing = notes
     return design

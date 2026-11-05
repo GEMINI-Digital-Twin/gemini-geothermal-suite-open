@@ -414,7 +414,9 @@ def test_a_pump_without_a_setpoint_or_curves_gets_the_injection_pressure():
     sized = gm.study.size(plant, case)
     setpoint = sized.input_value("injection_pump.pressure_setpoint")
     head = sized.get_submodule("injection_pump").nominal_head
-    assert setpoint == pytest.approx(head + float(sized.get_submodule("d0").nominal_wellhead_pressure))
+    assert setpoint == pytest.approx(
+        head + float(sized.get_submodule("d0").nominal_wellhead_pressure)
+    )
     assert "injection_pump.pressure_setpoint" not in {item.path for item in gm.check(sized, case)}
     assert sized.sizing["simulation"] == "simulated"
 
@@ -455,3 +457,24 @@ def test_a_sized_plant_needs_no_value_named_one_run_at_a_time():
     data = sized.to_dict(structure=True)
     data["params"]["compression_cooler"] = {**data["params"]["compression_cooler"], **loop}
     assert gm.check(gm.Plant.from_dict(data), case) == []
+
+
+def test_an_air_cooler_is_rated_for_its_peak_heat_with_a_margin_never_its_range_maximum():
+    """QA-324: a cooler is rated for its peak heat plus ``COOLER_MARGIN``, not the file's 20 MW.
+
+    Rated at the exact peak, coolers broke the cooling supply under search (QA-335).
+    """
+    from pathlib import Path
+
+    from gemini.study.size import COOLER_MARGIN
+
+    folder = Path(__file__).parents[3] / "examples" / "hackathon_2026"
+    case = gm.Case.from_json(folder / "case.json")
+    plant = gm.Plant.from_json(folder / "plants" / "HeatingCoolingPlant.json")
+    sized = gm.study.size(plant, case)
+    rated = {item["path"] for item in sized.sizing["sized"]}
+    assert {"compression_cooler.capacity", "absorption_cooler.capacity"} <= rated
+    assert sized.compression_cooler.capacity < 20e6 and sized.sizing["broken"] == []
+    used = gm.evaluate.capacities(sized, case, gm.simulate(sized, case))
+    peak = used["compression_cooler"]["peak"].value
+    assert sized.compression_cooler.capacity >= peak * (1 + COOLER_MARGIN) * 0.99
