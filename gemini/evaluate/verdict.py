@@ -421,7 +421,9 @@ def _values(plant, case, results, frame, requirement, unit_path):
 def _share(plant, case, results, frame, requirement, unit_path):
     """Return the check of the unmet energy over the demand of the case for one supply unit.
 
-    A service that demands nothing has nothing unmet: its share is 0.
+    A service that demands nothing has nothing unmet: its share is 0. A run with a failed step
+    (no value of the unmet power there) has no share: the check is undecided and says how many
+    steps failed, not a missing value of the rule.
     """
     read = reads(requirement.on, requirement.quantity)
     unmet, _ = series(plant, frame, unit_path, read.path)
@@ -429,6 +431,13 @@ def _share(plant, case, results, frame, requirement, unit_path):
         return _undecided(requirement, unit_path, NO_VALUE, "-")
     column = DEMANDED[read.path]
     demand = case.demand.frame[column].to_numpy(dtype=float)
+    failed = int(np.count_nonzero(~np.isfinite(unmet)))
+    if failed:
+        reason = (
+            f"no_value: {failed} steps of the run failed, so the unmet energy of the period is "
+            "unknown"
+        )
+        return _undecided(requirement, unit_path, reason, "-")
     wanted = float((demand * results.durations).sum())
     spent = float((unmet * results.durations).sum())
     measured = spent / wanted if wanted > 0 else 0.0

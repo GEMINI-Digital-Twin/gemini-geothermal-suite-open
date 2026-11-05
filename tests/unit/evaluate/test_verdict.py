@@ -461,6 +461,14 @@ def test_a_service_with_no_demand_has_no_unmet_share():
     assert result["passed"] is True and result["value"].value == 0.0
 
 
+def test_a_run_with_a_failed_step_has_no_unmet_share_and_says_why():
+    """A failed step leaves the unmet energy unknown: undecided, with the failed steps named."""
+    result = share(0.1, unmet=(0.5, float("nan"), 0.25, 0.0))
+    assert result["passed"] is None
+    assert result["value"].value is None
+    assert "1 steps of the run failed" in result["value"].reason
+
+
 def test_a_simulated_run_gives_the_share_left_unmet_when_the_heat_falls_short(tmp_path):
     """A shallow plant with small heat sources, two days: the share of heat and none of cold."""
     plant = shallow_plant()
