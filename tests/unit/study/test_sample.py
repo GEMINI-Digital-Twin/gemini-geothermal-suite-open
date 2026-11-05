@@ -285,3 +285,29 @@ def test_the_flags_are_the_same_with_worker_processes(runs):
     with gm.runtime.settings(processes=2):
         two = gm.study.sample(shallow_plant(), case, ["co2"], 4, 3)
     assert [i["feasible"] for i in two["samples"]] == [i["feasible"] for i in one["samples"]]
+
+
+def test_the_percentiles_asked_for_join_the_summary(runs):
+    """QA-299: P10 and P90 beside p5, p50 and p95, by the same method; without them, as before."""
+    case = declared_case()
+    plain = gm.study.sample(shallow_plant(), case, ["lcts"], 6, 3)
+    asked = gm.study.sample(shallow_plant(), case, ["lcts"], 6, 3, percentiles=[10, 90, 50])
+    assert set(plain["summary"]["lcts"]) == {"mean", "p5", "p50", "p95", "failed"}
+    spread = asked["summary"]["lcts"]
+    assert set(spread) == {"mean", "p5", "p50", "p95", "p10", "p90", "failed"}
+    assert spread["p5"].si <= spread["p10"].si <= spread["p50"].si <= spread["p90"].si
+    assert spread["p90"].si <= spread["p95"].si
+    numbers = [item["metrics"]["lcts"].value for item in asked["samples"]]
+    assert spread["p10"].value == pytest.approx(np.percentile(numbers, 10))
+    for name in ("mean", "p5", "p50", "p95"):
+        assert spread[name].si == pytest.approx(plain["summary"]["lcts"][name].si)
+    again = gm.study.Sample.from_dict(json.loads(json.dumps(asked.to_dict())))
+    assert again["summary"]["lcts"]["p90"].si == pytest.approx(spread["p90"].si)
+
+
+@pytest.mark.parametrize("percentiles", [[101], [-1], ["10"], [True], 10])
+def test_a_percentile_outside_0_to_100_is_refused(percentiles, runs):
+    """QA-299: before any run."""
+    with pytest.raises(gm.errors.ValidationError, match="percentiles"):
+        gm.study.sample(shallow_plant(), declared_case(), ["co2"], 2, 0, percentiles=percentiles)
+    assert runs == []

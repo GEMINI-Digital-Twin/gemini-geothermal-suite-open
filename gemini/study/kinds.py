@@ -61,6 +61,11 @@ SETTINGS = {
         "Number of draws",
         "How many random draws are run; more draws give steadier figures and take longer.",
     ),
+    "percentiles": (
+        "More percentiles",
+        "Percentiles of each figure to report beside p5, p50 and p95, such as 10 and 90; leave "
+        "it out for those three.",
+    ),
     "objectives": (
         "Figures to minimise",
         "One figure, or several that the search weighs against each other.",
@@ -127,7 +132,8 @@ def kinds():
         ``"prepare"``, an entry of its ``prepare`` list). ``title`` and ``description`` are plain
         words for a user. ``settings`` is the JSON Schema (draft 2020-12) of the keys the kind
         reads besides ``cases`` and ``plants``: ``objective``, ``evaluations`` and ``seed`` for
-        ``minimize``, ``metrics``, ``samples`` and ``seed`` for ``sample``, ``metrics`` for
+        ``minimize``, ``metrics``, ``samples``, ``seed`` and an optional ``percentiles`` for
+        ``sample``, ``metrics`` for
         ``sensitivity``, ``objectives``, ``evaluations``, ``population``, ``seed`` and ``polish``
         for ``evolve``,
         none for the others. ``required`` lists those the kind cannot do without; ``objective``

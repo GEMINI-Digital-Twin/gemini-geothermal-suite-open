@@ -12,6 +12,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.27] - 2026-11-05
+
+### Added
+- `gm.study.sample(..., percentiles=[10, 90])`: more percentiles of each metric in the summary,
+  each `p<n>` beside `p5`, `p50` and `p95`, computed the same way over the same draws; without
+  it the summary is as before. A study file of method `sample` may give `percentiles` (study
+  schema and the kinds' settings list it); a number outside 0 to 100 is refused before any run
+  (geomind QA-299: P10 and P90 were asked for and only p5, p50 and p95 existed).
+
 ## [0.6.26] - 2026-11-05
 
 ### Fixed

@@ -56,6 +56,15 @@
         }
       ]
     },
+    "percentiles": {
+      "items": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "number"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
     "plants": {
       "items": {
         "type": "string"

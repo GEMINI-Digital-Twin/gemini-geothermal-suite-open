@@ -28,8 +28,9 @@ PREPARE = ("size",)
 """The actions that can run before the method."""
 KEYS = (*HEADER, "cases", "plants", "prepare", "method", "objective", "metrics")
 KEYS += ("evaluations", "samples", "seed", "objectives", "population", "polish", "stop")
+KEYS += ("percentiles",)
 SETTING_KEYS = ("objective", "metrics", "evaluations", "samples", "seed")
-SETTING_KEYS += ("objectives", "population", "polish", "stop")
+SETTING_KEYS += ("objectives", "population", "polish", "stop", "percentiles")
 """The settings of the methods, each ``None`` when the file does not give it."""
 REQUIRED = {
     "run": (),
@@ -42,6 +43,7 @@ REQUIRED = {
 OWN = {
     "evaluations": ("minimize", "evolve"),
     "samples": ("sample",),
+    "percentiles": ("sample",),
     "seed": ("minimize", "sample", "evolve"),
     "objectives": ("evolve",),
     "population": ("evolve",),
@@ -77,6 +79,24 @@ def _whole(data, key, issues):
         _issue(issues, key, "incompatible", f"{key} = {found!r}; expected {want}")
         return None
     return found
+
+
+def _percentiles(data, issues):
+    """Return the tuple of ``percentiles`` (numbers 0 to 100) or ``None`` with an issue."""
+    found = data["percentiles"]
+    good = (
+        isinstance(found, list)
+        and found
+        and all(
+            isinstance(item, (int, float)) and not isinstance(item, bool) and 0 <= item <= 100
+            for item in found
+        )
+    )
+    if not good:
+        message = f"percentiles = {found!r}; expected a list of numbers 0 to 100, such as [10, 90]"
+        _issue(issues, "percentiles", "incompatible", message)
+        return None
+    return tuple(found)
 
 
 def _metrics(data, issues):
@@ -129,7 +149,8 @@ class Study:
     file), an optional ``prepare`` (``["size"]``, an action before the method, whose criterion
     ``backup`` is the plant's), the ``method`` (``run``, ``minimize``, ``sample`` or
     ``sensitivity`` or ``evolve``), the ``objective`` and ``metrics`` and the settings the method
-    needs: ``evaluations`` and ``seed`` for ``minimize``, ``samples`` and ``seed`` for ``sample``,
+    needs: ``evaluations`` and ``seed`` for ``minimize``, ``samples`` and ``seed`` for ``sample``
+    (with an optional ``percentiles``, more percentiles for its summary, such as ``[10, 90]``),
     ``objectives`` (a metric or a list), ``evaluations``, ``population``, ``seed`` and ``polish``
     for ``evolve``, which also reads an optional ``stop``. A
     setting has no default: one that the method needs and the file lacks is a ``missing`` issue,
@@ -142,7 +163,7 @@ class Study:
     Attributes
     ----------
     name, cases, plants, prepare, method, objective, metrics, evaluations, samples, seed,
-    objectives, population, polish, stop
+    objectives, population, polish, stop, percentiles
         As in the file; absent settings are ``None``.
     """
 
@@ -254,6 +275,8 @@ class Study:
                 found[key] = _whole(data, key, issues)
         if "stop" in data:
             found["stop"] = _stop(data, issues)
+        if "percentiles" in data:
+            found["percentiles"] = _percentiles(data, issues)
         budget, population = found["evaluations"], found["population"]
         if method == "evolve" and budget and population and budget < population:
             message = f"evaluations = {budget}; expected at least the population, {population}"
@@ -270,7 +293,8 @@ class Study:
         for key in SETTING_KEYS:
             if getattr(self, key) is not None:
                 value = getattr(self, key)
-                data[key] = list(value) if key in ("metrics", "objectives") else value
+                listed = key in ("metrics", "objectives", "percentiles")
+                data[key] = list(value) if listed else value
                 data[key] = dict(value) if key == "stop" else data[key]
         return data
 
@@ -300,6 +324,11 @@ class Study:
             "objectives": {"anyOf": [{"type": "string"}, names]},
             "population": {"type": "integer", "minimum": 2},
             "polish": {"type": "integer", "minimum": 0},
+            "percentiles": {
+                "type": "array",
+                "items": {"type": "number", "minimum": 0, "maximum": 100},
+                "minItems": 1,
+            },
             "stop": {
                 "type": "object",
                 "additionalProperties": False,

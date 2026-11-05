@@ -215,3 +215,14 @@ def test_an_evolve_study_too_small_for_its_polish_is_named_by_check(folder):
     assert "raise population to" in issue.message and "or set polish 0" in issue.message
     quiet = gm.Study.from_dict(data | {"polish": 0}, folder=folder).check()
     assert all(item.path != "population" for item in quiet)
+
+
+def test_a_sample_study_may_ask_for_more_percentiles():
+    """QA-299: ``percentiles`` is read by ``sample`` alone and round-trips; a bad one is refused."""
+    data = without(settings(method="sample", samples=4), "objective", "evaluations")
+    asked = gm.Study.from_dict(data | {"percentiles": [10, 90]})
+    assert asked.percentiles == (10, 90)
+    assert asked.to_dict() == data | {"percentiles": [10, 90]}
+    assert gm.Study.from_dict(data).percentiles is None
+    assert issues_of(settings(percentiles=[10])) == {"percentiles": "incompatible"}
+    assert issues_of(data | {"percentiles": [150]}) == {"percentiles": "incompatible"}

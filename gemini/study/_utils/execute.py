@@ -48,7 +48,10 @@ def _evolved(study, plant, case):
 
 def _drawn(study, plant, case):
     """Return ``(design, found, note)`` of ``sample``: the spread of the metrics."""
-    return plant, sample(plant, case, study.names, study.samples, study.seed), None
+    asked = getattr(study, "percentiles", None)
+    extra = {} if asked is None else {"percentiles": list(asked)}
+    found = sample(plant, case, study.names, study.samples, study.seed, **extra)
+    return plant, found, None
 
 
 def _moved(study, plant, case):

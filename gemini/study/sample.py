@@ -110,21 +110,60 @@ def _is_number(value):
     return value is not None and bool(np.isfinite(value))
 
 
-def _spread(samples, name):
-    """Return ``{mean, p5, p50, p95}``, each a ``Value``, of a metric over the samples giving it."""
+def percentile_key(number):
+    """Return the summary key of a percentile: ``p10``, ``p2.5``."""
+    return f"p{float(number):g}"
+
+
+def checked_percentiles(percentiles):
+    """Return the extra percentiles asked for, each 0 to 100, without those a summary has."""
+    if percentiles is None:
+        return ()
+    if isinstance(percentiles, (str, bytes)) or not hasattr(percentiles, "__iter__"):
+        raise ValidationError(
+            f"study.sample: percentiles = {percentiles!r}; expected a list of numbers 0 to 100, "
+            "such as [10, 90]",
+            path="percentiles",
+        )
+    found = []
+    for number in percentiles:
+        if isinstance(number, bool) or not isinstance(number, (int, float)):
+            raise ValidationError(
+                f"study.sample: percentiles = {list(percentiles)}; {number!r} is no number; "
+                "expected numbers 0 to 100, such as [10, 90]",
+                path="percentiles",
+            )
+        if not 0 <= number <= 100:
+            raise ValidationError(
+                f"study.sample: percentiles = {list(percentiles)}; {number} is outside 0 to 100",
+                path="percentiles",
+            )
+        key = percentile_key(number)
+        if key not in SUMMARY and number not in found:
+            found.append(number)
+    return tuple(found)
+
+
+def _spread(samples, name, percentiles=()):
+    """Return ``{mean, p5, p50, p95}``, each a ``Value``, of a metric over the samples giving it.
+
+    ``percentiles`` adds ``p<n>`` for each extra percentile asked for, by the same method.
+    """
     metrics = [item["metrics"][name] for item in samples if name in item["metrics"]]
     numbers = [item.value for item in metrics if _is_number(item.value)]
     unit = next((item.unit for item in metrics if _is_number(item.value)), "-")
     failed = measure(len([item for item in samples if "reason" in item]), "-")
+    keys = (*SUMMARY, *(percentile_key(number) for number in percentiles))
     if not numbers:
         reason = "no sample gives this metric"
-        return {key: measure(None, unit, reason) for key in SUMMARY} | {"failed": failed}
+        return {key: measure(None, unit, reason) for key in keys} | {"failed": failed}
     low, middle, high = np.percentile(numbers, (5, 50, 95))
     spread = {"mean": np.mean(numbers), "p5": low, "p50": middle, "p95": high}
+    spread |= {percentile_key(number): np.percentile(numbers, number) for number in percentiles}
     return {key: measure(number, unit) for key, number in spread.items()} | {"failed": failed}
 
 
-def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None):
+def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None, percentiles=None):
     """Return the spread of metrics when the uncertain values of the case are drawn at random.
 
     ``gm.check`` runs first and raises its issues. The distributions are only those the case
@@ -158,6 +197,10 @@ def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None):
     on_progress : callable, optional
         ``on_progress(done, total)`` after each finished draw, as for ``minimize``; ``total`` is
         ``samples``. Raising ``gm.errors.Cancelled`` from it stops the study.
+    percentiles : list of float, optional
+        More percentiles of each metric for the summary, each 0 to 100, such as ``[10, 90]``;
+        each adds ``p<n>`` (``p10``, ``p90``) beside ``p5``, ``p50`` and ``p95``, computed the
+        same way. Without it the summary is as before.
 
     Returns
     -------
@@ -181,6 +224,7 @@ def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None):
     if seed < 0:
         raise ValidationError(f"study.sample: seed = {seed}; expected 0 or more", path="seed")
     names = [checked_metric(name) for name in metrics]
+    extra_percentiles = checked_percentiles(percentiles)
     found = declared(case, "sample")
     generator = np.random.default_rng(seed)
     draws = [
@@ -202,7 +246,7 @@ def sample(plant, case, metrics, samples, seed, *, plan=None, on_progress=None):
                 "feasible": feasible,
             }
         )
-    summary = {name: _spread(drawn_runs, name) for name in names}
+    summary = {name: _spread(drawn_runs, name, extra_percentiles) for name in names}
     lifts = difference_names(
         quantities(plant, case, draws[0]), lambda name: quantity_of(plant, case, name)
     )

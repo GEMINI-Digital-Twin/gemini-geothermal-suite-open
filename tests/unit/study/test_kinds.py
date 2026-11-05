@@ -19,7 +19,7 @@ def test_the_settings_are_the_keys_the_method_reads():
     """Objective, evaluations and seed for a search; none for a run."""
     settings = {item["kind"]: item["settings"] for item in gm.study.kinds()}
     assert list(settings["minimize"]["properties"]) == ["objective", "evaluations", "seed"]
-    assert list(settings["sample"]["properties"]) == ["metrics", "samples", "seed"]
+    assert list(settings["sample"]["properties"]) == ["metrics", "samples", "seed", "percentiles"]
     assert list(settings["sensitivity"]["properties"]) == ["metrics"]
     assert settings["run"]["properties"] == {} == settings["size"]["properties"]
     for method in METHODS:
