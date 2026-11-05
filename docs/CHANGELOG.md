@@ -12,6 +12,26 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.30] - 2026-11-05
+
+### Fixed
+- `gm.check` names a producer whose `riser` and `well` hold different paths (`incompatible`,
+  code `invalid_design`, at `params.<doublet>.riser.section_length`): the two are the segments
+  of ONE path cut at `esp_depth`, each reading only its side of the pump, so a riser given only
+  its own part and a well only the rest ran and costed a shorter producer than meant (geomind
+  QA-321: riser [1500] m and well [2000] m with the pump at 1500 m simulated and costed a
+  2000 m producer, 5500 m drilled for the 7000 m meant). No API change; the costing was right.
+
+## [0.6.29] - 2026-11-05
+
+### Fixed
+- `Plant.to_dict` no longer writes a doublet's value that the plant gives from its own (the
+  plant-level `depth` as `d0.depth`): read back, it was the doublet's own value, so the plant
+  `depth` of a reloaded plant (a search, a sensitivity) no longer moved the wells. A design
+  stored and loaded again now searches the same space as the plant itself; HeatingCoolingPlant
+  sized, minimize lcts 20 evaluations seed 0: 45.04 EUR/MWh with the stuck depth, 46.47 as the
+  in-memory plant gives (geomind QA-278). A depth a doublet states itself is still written.
+
 ## [0.6.28] - 2026-11-05
 
 ### Fixed

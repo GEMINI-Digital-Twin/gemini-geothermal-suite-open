@@ -100,6 +100,7 @@ def issues_of(applied, case):
             *(item for item in _parameters(applied) if item.path not in named),
             *_rules(applied),
             *_pump_setpoints(applied),
+            *_split_paths(applied),
             *_kinds(applied, case),
             *_sizes(applied, case),
             *_roles(applied, case),
@@ -207,6 +208,56 @@ def _pump_setpoints(plant):
                 "delivers (the injection well's need), or head_coefficients and stage_count; "
                 "gm.study.size sets it from the doublets the pump serves (derived by size)",
                 code="missing_value",
+            )
+        )
+    return issues
+
+
+PATH_LISTS = ("section_length", "section_inclination", "section_diameter", "section_roughness")
+"""The lists of a well path; a producer's ``well`` and ``riser`` share all of them."""
+
+
+def _split_paths(plant):
+    """Return an ``incompatible`` issue for each producer whose riser and well paths differ.
+
+    A producer with a pump inside is one path cut at ``esp_depth``: its ``well`` reads the part
+    below the pump (``segment`` ``below_esp``) and its ``riser`` the part above (``above_esp``),
+    both on the WHOLE path. A riser given only its own part and a well only the rest ran a
+    shorter producer than the doublet's depth and drilled less than was meant (geomind QA-321:
+    riser [1500] m and well [2000] m with the pump at 1500 m simulated and costed a 2000 m
+    producer, 5500 m drilled for 7000 m meant).
+    """
+    from gemini.modules.wells import ProductionWell
+
+    modules = dict(plant.named_modules())
+    issues = []
+    for path, module in modules.items():
+        if not isinstance(module, ProductionWell) or _set_value(module, "segment") != "below_esp":
+            continue
+        riser_path = join_path(path.rsplit(".", 1)[0], "riser") if "." in path else "riser"
+        riser = modules.get(riser_path)
+        if not isinstance(riser, ProductionWell) or _set_value(riser, "segment") != "above_esp":
+            continue
+        differing = [
+            name
+            for name in PATH_LISTS
+            if None not in (_set_value(module, name), _set_value(riser, name))
+            and list(_set_value(module, name)) != list(_set_value(riser, name))
+        ]
+        if not differing:
+            continue
+        where = join_path("params", form.file_path(join_path(riser_path, differing[0])))
+        issues.append(
+            Issue(
+                where,
+                "incompatible",
+                f"{where}: the riser and the well of one producer are the two segments of ONE "
+                f"path cut at esp_depth, but their {', '.join(differing)} differ (riser "
+                f"{list(_set_value(riser, differing[0]))}, well "
+                f"{list(_set_value(module, differing[0]))}); expected both to hold the whole "
+                "path, from the wellhead to the reservoir: the run and the drilling cost read "
+                "only the part of each path on its side of the pump",
+                code="invalid_design",
             )
         )
     return issues
