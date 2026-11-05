@@ -12,6 +12,16 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.8] - 2026-11-05
+
+### Fixed
+- A schedule reads a doublet's flow range over all its `production_flow` requirements
+  (`over="each"`, `when="running"`): the largest `min` and the smallest `max`, so a minimum and a
+  maximum stated as two rules make one range, and one rule with both works as before (geomind
+  QA-080: every simulate failed with "no requirement on doublet gives a flow range"). The brine
+  cooling limit is the smallest `max` of its rules. A range whose largest min is above its
+  smallest max is refused (`invalid_value`), naming the rules.
+
 ## [0.6.7] - 2026-11-05
 
 ### Fixed
