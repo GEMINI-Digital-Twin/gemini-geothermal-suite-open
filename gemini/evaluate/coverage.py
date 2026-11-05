@@ -23,7 +23,7 @@ the service received is the geothermal plant's. No role is a backup of cooling a
 and a compression chiller (a ``HeatPump`` of the role ``chiller``, driven by electricity) is a
 backup of cooling (geomind QA-238); an absorption or adsorption chiller stays geothermal."""
 
-KEYS = ("demand", "geothermal", "backup", "short")
+KEYS = ("demand", "geothermal", "electricity", "backup", "short")
 """The energies of a day, in the display unit of energy."""
 
 
@@ -68,6 +68,22 @@ def _backup_power(plant, frame, service):
     return total
 
 
+def _pump_work(plant, frame, service):
+    """Return the electricity [W] the heating heat pumps take, tick by tick; cooling has none.
+
+    A heat pump's heat is its brine heat plus its compressor work: the work is no geothermal heat
+    (geomind QA-228, QA-270), so a day shows it apart.
+    """
+    total = np.zeros(len(frame))
+    if service != "heating":
+        return total
+    for path in units_of(plant, "heat_pump"):
+        work, _ = series(plant, frame, path, "power_in")
+        if work.size:
+            total += np.nan_to_num(work)
+    return total
+
+
 ELECTRIC_PORTS = ("fluid_out.enthalpy_flow", "fluid_in.enthalpy_flow")
 """The ports whose enthalpy flows, first less second, give an electric boiler's heat."""
 
@@ -94,10 +110,12 @@ def _energies(plant, frame, seconds, service, useful, unmet):
     known = np.isfinite(delivered + short)
     given = np.where(known, np.maximum(delivered, 0.0), 0.0)
     backup = np.minimum(_backup_power(plant, frame, service), given)
+    work = np.minimum(_pump_work(plant, frame, service), given - backup)
     table = pd.DataFrame(
         {
             "demand": np.where(known, delivered + short, 0.0) * seconds,
-            "geothermal": (given - backup) * seconds,
+            "geothermal": (given - backup - work) * seconds,
+            "electricity": work * seconds,
             "backup": backup * seconds,
             "short": np.where(known, short, 0.0) * seconds,
         },
@@ -153,11 +171,14 @@ def daily_coverage(plant, case, results):
     -------
     dict
         ``{service: [day, ...]}`` for ``"heating"`` and ``"cooling"``, the days in time order,
-        each ``{date, source, demand, geothermal, backup, short, failed_steps}``; ``to_plain``
+        each ``{date, source, demand, geothermal, electricity, backup, short, failed_steps}``;
+        ``to_plain``
         gives the JSON. The energies are ``gm.units.Quantity`` values in the display unit of
         energy (``gm.units.display.DISPLAY_UNITS``, MWh) and ``failed_steps`` a count (unit
         ``-``). ``date`` is ``YYYY-MM-DD``; ``demand`` is the heat (or cold) the
-        consumers asked for, which is ``geothermal + backup + short``; ``backup`` is the part
+        consumers asked for, which is ``geothermal + electricity + backup + short``;
+        ``electricity`` is the compressor work of the heating heat pumps (zero for cooling), so
+        that ``geothermal`` is the brine's heat alone; ``backup`` is the part
         given by the units whose role is ``boiler`` or ``chp`` and by an electric boiler (heating),
         or by a compression chiller (cooling), ``geothermal`` the rest of what was delivered
         and ``short`` the unmet demand.
@@ -167,9 +188,9 @@ def daily_coverage(plant, case, results):
         demand is above a millionth of the day's demand, else ``backup`` when the backup gave more
         than that, else ``geothermal``.
 
-        The sum of ``geothermal + backup`` over the days is the ``heat_useful`` (``cold_useful``)
-        of ``gm.evaluate.totals``, and over ``demand`` it gives ``heating_coverage``
-        (``cooling_coverage``) as their ratio.
+        The sum of ``geothermal + electricity + backup`` over the days is the
+        ``heat_useful`` (``cold_useful``) of ``gm.evaluate.totals``, and over ``demand`` it gives
+        ``heating_coverage`` (``cooling_coverage``) as their ratio.
     """
     frame = results.to_frame()
     seconds = results.durations

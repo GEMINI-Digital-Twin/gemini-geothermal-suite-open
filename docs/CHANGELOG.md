@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.22] - 2026-11-05
+
+### Added
+- `gm.evaluate.daily_coverage` gives each day an `electricity` energy: the compressor work of
+  the heating heat pumps (zero for cooling). `geothermal` is the brine's heat alone, and
+  `demand = geothermal + electricity + backup + short` (geomind QA-228, QA-270).
+
 ## [0.6.21] - 2026-11-05
 
 ### Fixed

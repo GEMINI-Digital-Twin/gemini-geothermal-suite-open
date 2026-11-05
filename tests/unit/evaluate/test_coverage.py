@@ -145,3 +145,17 @@ def test_a_compression_chiller_s_cold_is_backup():
     assert found["source"] == "short"
     assert found["backup"].value == pytest.approx(24 * 400 / 1e6)
     assert found["geothermal"].value == pytest.approx(24 * 600 / 1e6)
+
+
+def test_a_heat_pump_s_compressor_work_is_shown_apart_from_the_geothermal_heat():
+    """QA-270: geothermal is the brine's heat alone; the heat pump's electricity is its own key."""
+    plant = plant_of_boiler()
+    plant.add("HeatPump", "pump")
+    plant.connect("pump.sink_out", "heat.supply_in")
+    pump = {"pump": {"operating": [1.0] * HOURS, "power_in": [1000.0] * HOURS}}
+    results = run(by_hour([0.0] * 3), by_hour([0.0] * 3), extra=pump)
+    first = gm.evaluate.daily_coverage(plant, None, results)["heating"][0]
+    assert first["electricity"].value == pytest.approx(24 * 1000 / 1e6)
+    assert first["geothermal"].value == pytest.approx(24 * 4000 / 1e6)
+    parts = sum(first[key].value for key in ("geothermal", "electricity", "backup", "short"))
+    assert parts == pytest.approx(first["demand"].value)
