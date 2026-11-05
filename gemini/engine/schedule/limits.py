@@ -3,8 +3,10 @@
 A requirement of the case applies to every unit of its role on its own. The schedule reads three
 forms of the role ``doublet``:
 
-- flow range: ``production_flow``, ``over="each"``, ``when="running"``, ``min`` and ``max``;
-- maximum brine cooling: ``brine_cooling``, ``over="each"``, ``max``;
+- flow range: ``production_flow``, ``over="each"``, ``when="running"``, ``min`` and ``max``,
+  in one requirement or over several: the range is the largest ``min`` and the smallest ``max``
+  of them all, so a minimum and a maximum stated as two rules make one range;
+- maximum brine cooling: ``brine_cooling``, ``over="each"``, ``max``, the smallest of them all;
 - operating duration: ``production_flow``, ``over="duration"``, ``when="running"``, ``max``.
 
 Every other requirement, a duration with only ``min``, and a bound of a requirement that the form
@@ -46,8 +48,10 @@ def _forms(requirement):
     forms = []
     flow = requirement.quantity == FLOW
     if flow and requirement.over == "each" and requirement.when == "running":
-        if requirement.min is not None and requirement.max is not None:
-            forms.append("range")
+        if requirement.min is not None:
+            forms.append("flow_min")
+        if requirement.max is not None:
+            forms.append("flow_max")
     if requirement.quantity == COOLING and requirement.over == "each":
         if requirement.max is not None:
             forms.append("cooling")
@@ -81,9 +85,8 @@ def _missing(doublet, name, form):
     )
 
 
-def _enforced(form):
-    """Return the names of the bounds of a requirement a schedule enforces in ``form``."""
-    return ("min", "max") if form == "range" else ("max",)
+ENFORCED = {"flow_min": ("min",), "flow_max": ("max",), "cooling": ("max",), "duration": ("max",)}
+"""The bounds of a requirement a schedule enforces in each form."""
 
 
 def _left_over(requirement, enforced):
@@ -94,13 +97,26 @@ def _left_over(requirement, enforced):
     return rest
 
 
+TIGHTEST = {"flow_min": max, "flow_max": min, "cooling": min}
+"""How the bounds of several requirements of one form combine: the tightest wins (QA-080)."""
+
+
 def _found(requirements):
-    """Return ``{form: (index, requirement)}``, the first requirement of each form."""
+    """Return ``{form: [(index, requirement), ...]}``: every requirement of the flow and cooling
+    forms, and the first of a duration."""
     found = {}
     for index, requirement in enumerate(requirements):
         for form in _forms(requirement):
-            found.setdefault(form, (index, requirement))
+            if form == "duration" and form in found:
+                continue
+            found.setdefault(form, []).append((index, requirement))
     return found
+
+
+def _bound(found, form):
+    """Return the tightest bound of ``form`` over its requirements."""
+    side = ENFORCED[form][0]
+    return TIGHTEST[form](getattr(requirement, side) for _, requirement in found[form])
 
 
 def of_doublet(found, doublet):
@@ -110,16 +126,35 @@ def of_doublet(found, doublet):
     enforces of it. A flow range or a brine cooling that no requirement gives raises
     ``ValidationError`` (code ``missing_value``).
     """
-    if "range" not in found:
-        raise _missing(doublet, FLOW, "a flow range (over='each', when='running', min and max)")
+    if "flow_min" not in found or "flow_max" not in found:
+        raise _missing(
+            doublet,
+            FLOW,
+            "a flow range (over='each', when='running', min and max, in one requirement or two)",
+        )
     if "cooling" not in found:
         raise _missing(doublet, COOLING, "a maximum (over='each', max)")
-    flow, cooling = found["range"][1], found["cooling"][1]
+    minimum, maximum = _bound(found, "flow_min"), _bound(found, "flow_max")
+    if minimum > maximum:
+        names = ", ".join(item.name for form in ("flow_min", "flow_max") for _, item in found[form])
+        raise ValidationError(
+            f"schedule: the flow range of {join_path(doublet, FLOW)} is empty: the largest min "
+            f"({minimum} m3/s) is above the smallest max ({maximum} m3/s) of {names}",
+            path="requirements",
+            code="invalid_value",
+        )
     duration = found.get("duration")
     limits = DoubletLimits(
-        flow.min, flow.max, cooling.max, None if duration is None else _duration(duration[1])
+        minimum,
+        maximum,
+        _bound(found, "cooling"),
+        None if duration is None else _duration(duration[0][1]),
     )
-    return limits, {index: _enforced(form) for form, (index, _) in found.items()}
+    used = {}
+    for form, items in found.items():
+        for index, _ in items:
+            used[index] = tuple(sorted({*used.get(index, ()), *ENFORCED[form]}))
+    return limits, used
 
 
 def split(requirements, doublets):
