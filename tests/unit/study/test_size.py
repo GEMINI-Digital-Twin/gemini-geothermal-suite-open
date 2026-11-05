@@ -417,3 +417,14 @@ def test_a_pump_without_a_setpoint_or_curves_gets_the_injection_pressure():
     assert setpoint == pytest.approx(head + float(sized.get_submodule("d0").nominal_wellhead_pressure))
     assert "injection_pump.pressure_setpoint" not in {item.path for item in gm.check(sized, case)}
     assert sized.sizing["simulation"] == "simulated"
+
+
+def test_a_plant_without_a_class_is_sized_on_the_doublet_count_its_range_allows():
+    """QA-260: a free plant on ``d0`` with ``size.doublets`` 2 to 2 was sized on one doublet."""
+    from tests.fixtures.sample_cases import sample_case
+    from tests.unit.plants._utils.test_free_resize import free_plant
+
+    plant = free_plant().set_range("size.doublets", 2, 2)
+    sized = gm.study.size(plant, sample_case())
+    assert "d1" in dict(sized.named_children()) and "d2" not in dict(sized.named_children())
+    assert sized.sizing["sized"][0]["value"].value == 2

@@ -15,7 +15,7 @@ from gemini.errors.base import raise_issues
 from gemini.evaluate import requirements
 from gemini.modules.pumps import InjectionPump
 from gemini.physics.fluid import FluidProperties, heat_capacity_rate
-from gemini.plants._utils.resize import resized
+from gemini.plants._utils.resize import free_doublets, resized
 from gemini.plants.roles import units_of
 from gemini.streams.flows import Stream
 from gemini.study._utils.shown import display_quantity, display_text
@@ -57,8 +57,14 @@ def _note(notes, path, value, unit, reason):
 
 
 def _takes_doublets(plant):
-    """Whether the class of the plant takes the structural size ``doublets``."""
-    return "doublets" in plant.size
+    """Whether the plant's number of doublets can be sized: its class takes ``doublets``.
+
+    A plant without a class takes it too when it can vary its doublets (``free_doublets``) and
+    states a ``range`` of ``size.doublets``: it kept one doublet whatever its range (QA-260).
+    """
+    if "doublets" in plant.size:
+        return True
+    return "size.doublets" in plant.ranges and free_doublets(plant) is not None
 
 
 def _doublet_range(plant):
