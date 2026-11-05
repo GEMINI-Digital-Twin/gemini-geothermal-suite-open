@@ -1,0 +1,11 @@
+case,doublet_outages,days_without_geothermal,boiler_mw,unmet_heating_mwh,unmet_cooling_mwh,purchased_gas_mwh,peak_boiler_mw,boiler_headroom_mw,co2_t_per_year,lcoe_eur_per_mwh,all_hard_rules
+"S1 headline: staggered planned stops, 33 MW boiler",05-26..06-29 (1 on); 07-09..08-12 (1 on),0,33.0,0.0,0.0,0,0.0,33.0,4617,35.98,True
+"S1b staggered, best summer pair (doublet 1 from day 120)",05-01..06-04 (1 on); 07-09..08-12 (1 on),0,33.0,0.0,0.0,0,0.0,33.0,4617,35.98,True
+"S1c staggered, 30 MW boiler (= peak)",05-26..06-29 (1 on); 07-09..08-12 (1 on),0,30.0,0.0,0.0,0,0.0,30.0,4617,35.77,True
+S2 whole source planned in the lowest-load window,07-09..08-12 (0 on),35,33.0,0.0,0.0,3180,3.47,29.53,5053,37.23,True
+S3 one doublet fails at the winter peak,01-01..02-04 (1 on); 07-09..08-12 (1 on),0,33.0,0.0,0.0,10397,14.75,18.25,6462,40.19,True
+S4 both doublets fail at the winter peak,01-01..02-04 (0 on),35,33.0,0.0,0.0,24349,30.0,3.0,8859,45.54,True
+"S5 both fail at the winter peak, heating +6 %",01-01..02-04 (0 on),35,33.0,0.0,0.0,25773,31.8,1.2,9313,44.13,True
+S5b same with a 30 MW boiler,01-01..02-04 (0 on),35,30.0,97.6,0.0,25611,30.0,0.0,9280,43.9,False
+S6 whole-source sweep: costliest start day,01-01..02-04 (0 on),35,33.0,0.0,0.0,24349,30.0,3.0,8859,45.54,True
+S6 whole-source sweep: least boiler headroom,01-01..02-04 (0 on),35,33.0,0.0,0.0,24349,30.0,3.0,8859,45.54,True

@@ -1,0 +1,8 @@
+E:\Github Repos\SPEHackathon\wt-pitstore\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\wt-pitstore\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+
+=== 10_design_with_objective: Open design with the client's objective stated: cost, CO2 and resilience
+user> Design the heating and cooling plant for the district. We want the lowest cost, but CO2 matters to us: count it at 100 EUR per tonne when you weigh options, on top of the 80 already in the cost. The plant must still meet demand if the geothermal wells trip on the coldest days. Use the measured weather.
+agent (failed)> I stopped after 30 steps without a validated answer. Please narrow the question.

@@ -1,0 +1,20 @@
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+E:\Github Repos\SPEHackathon\gh-objective\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+
+=== 10_design_with_objective: Open design with the client's objective stated: cost, CO2 and resilience
+user> Design the heating and cooling plant for the district. We want the lowest cost, but CO2 matters to us: count it at 100 EUR per tonne when you weigh options, on top of the 80 already in the cost. Cost the plant on a normal year; separately, it must still meet demand if the geothermal wells trip on the coldest days. Use the measured weather.
+agent (question)> Can the site supply a 30 MW electric boiler plus plant auxiliaries without extra grid connection cost? Electric backup narrowly wins on normal-year cost [R0564]; if grid capacity is unconfirmed, I would retain gas backup [R0514]. (If you do not know: Treat grid capacity for full electric backup as unconfirmed and retain gas backup..)

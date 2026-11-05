@@ -1,0 +1,11 @@
+case,run_id,design,operating_rules,physics_gate,meets_all_hard_rules,unmet_cooling_mwh,free_cooling_mwh,ates_cooling_mwh,grid_import_mwh,doublet_starts,co2_t_per_year,capex_meur,lcoe_eur_per_mwh
+final pick,R0001,2D-3100m-boiler-electric-chp-aircooled-fc-ates3,False,pass,True,0.0,10130,13120,854,,4429,45.33,35.05
+"final pick, with operating rules",R0002,2D-3100m-boiler-electric-chp-aircooled-fc-ates3,True,pass,True,0.0,10130,13120,820,2,4298,45.33,35.0
+earlier pick (legacy 12 MW chiller),R0003,2D-3100m-boiler-electric-chp,False,pass,True,0.0,0,0,3694,,5541,43.88,37.25
+earlier pick + free cooling,R0004,2D-3100m-boiler-electric-chp-fc,False,pass,True,0.0,10130,0,2454,,5118,45.08,36.68
+"air-cooled 12 MW + free cooling, no ATES",R0005,2D-3100m-boiler-electric-chp-aircooled-fc,False,pass,True,0.0,10130,0,2254,,5055,44.48,36.06
+"final pick, ATES well pair cost x2",R0006,2D-3100m-boiler-electric-chp-aircooled-fc-ates3,False,pass,True,0.0,10130,13120,854,,4429,47.13,36.28
+"final pick, ATES well pair cost x0.5",R0007,2D-3100m-boiler-electric-chp-aircooled-fc-ates3,False,pass,True,0.0,10130,13120,854,,4429,44.43,34.43
+"final pick, ATES cold losses doubled",R0008,2D-3100m-boiler-electric-chp-aircooled-fc-ates3,False,pass,True,0.0,10130,8614,1296,,4682,45.33,35.59
+"final pick, corrosion mitigation free",R0009,2D-3100m-boiler-electric-chp-aircooled-fc-ates3,False,pass,True,0.0,10130,13120,854,,4429,40.37,31.66
+"final pick, 1 doublet",R0010,1D-3100m-boiler-electric-chp-aircooled-fc-ates3,False,pass,True,0.0,10130,13120,1601,,9072,26.39,33.19

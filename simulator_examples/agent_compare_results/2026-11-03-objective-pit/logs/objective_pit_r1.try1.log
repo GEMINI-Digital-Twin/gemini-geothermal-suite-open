@@ -1,0 +1,23 @@
+
+=== 10_design_with_objective: Open design with the client's objective stated: cost, CO2 and resilience
+user> Design the heating and cooling plant for the district. We want the lowest cost, but CO2 matters to us: count it at 100 EUR per tonne when you weigh options, on top of the 80 already in the cost. The plant must still meet demand if the geothermal wells trip on the coldest days. Use the measured weather.
+agent (answer)> **Recommendation: one doublet at 3000 m, heat pump to 100 °C, electric chillers on a wet cooling tower — R0071.** LCOE 48.31 EUR/MWh with CO2 at 180 EUR/t (80 in cost + your 100), 9933 t CO2/yr, and every hard rule met [R0071].
+
+**Why this one**
+- I screened ~60 designs: 1–3 doublets, 2000–3500 m, boiler vs heat pump, absorption vs electric cooling, CHP on/off, four chiller types, plus pit store, ATES and dry-cooler variants [R0025, R0054 and the individual runs].
+- 3000 m beats 2500 m (reservoir 102 °C vs 87 °C, so more geothermal heat per well) and 3500 m (extra well cost buys almost nothing) [R0033, R0037, R0060].
+- The heat pump beats the boiler at your CO2 price: 9933 vs 11850 t/yr and 48.31 vs 48.99 EUR/MWh, so it dominates [R0071 vs R0060].
+- A wet-tower centrifugal chiller beats the dry cooler (48.31 vs 54.09 EUR/MWh) and absorption cooling fails the cooling-demand rule outright [R0069, R0025].
+- Two doublets cut CO2 further (7057 t/yr) but cost 59.18 EUR/MWh — not worth it at your objective [R0067].
+
+**Outage stress test:** the 35-day geothermal shutdown is placed on the coldest day (day 28, 2027-01-28). The boiler and chillers carry the full 30 MW / 10 MW peak, nothing unmet, and GEMINI's own Solver reproduces the dispatcher's 100 °C supply and 59.5 °C injection temperature exactly [R0071, cross-check R0065].
+
+**Weather:** the measured Amsterdam Schiphol daily temperatures are loaded and used by the free-cooling and ATES options; neither paid off here (ATES: 54.31 EUR/MWh) [R0068].
+
+**CO2 price sensitivity:** 41.00 / 48.31 / 57.10 EUR/MWh at 80 / 180 / 300 EUR/t — the ranking of designs does not change [R0070, R0071, R0072].
+
+**Worth reporting as an alternative:** a 250,000 m³ seasonal pit store cuts CO2 to 7743 t/yr but raises LCOE to 49.18 EUR/MWh — a genuine trade-off if you later value carbon above ~180 EUR/t [R0073].
+
+Key assumptions: heating return 40 °C, cooling return 26 °C, NL 2027 energy prices, assumed cost curves, injector pressure equal to producer side.
+
+Recommended: [R0071]

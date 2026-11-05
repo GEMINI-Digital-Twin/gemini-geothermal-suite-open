@@ -1,0 +1,17 @@
+{
+  "pythermogis_version": "3.0.3",
+  "python": "3.12.10",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "matched_settings": {
+    "surface_temperature": 12.0,
+    "temperature_gradient": 30.0,
+    "pump_efficiency": 0.7,
+    "max_cooling_temperature_range": 40.0,
+    "dh_return_temp": 40.0,
+    "producer_skin": 0.0,
+    "injector_skin": 0.0,
+    "roughness": 1.7716535433070866,
+    "max_flow": 300.0
+  },
+  "porosity_assumed": 0.2
+}

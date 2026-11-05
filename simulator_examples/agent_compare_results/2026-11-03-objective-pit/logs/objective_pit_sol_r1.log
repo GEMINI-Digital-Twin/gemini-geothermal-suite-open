@@ -1,0 +1,14 @@
+
+=== 10_design_with_objective: Open design with the client's objective stated: cost, CO2 and resilience
+user> Design the heating and cooling plant for the district. We want the lowest cost, but CO2 matters to us: count it at 100 EUR per tonne when you weigh options, on top of the 80 already in the cost. The plant must still meet demand if the geothermal wells trip on the coldest days. Use the measured weather.
+agent (answer)> The lowest-cost tested design meeting your winter-outage requirement is a geothermal doublet at about 3062 m, a 30 MW backup boiler, a 10 MW electric screw chiller with dry cooler, associated-gas CHP and operating controls [R0193].
+
+Its cost is 47.29 EUR/MWh, including the total carbon valuation of 180 EUR/t. Capital cost is 24.29 million EUR and annual emissions are 11,670 tonnes CO2 [R0193].
+
+It meets heating and cooling demand throughout all 365 days, including a common 35-day geothermal shutdown covering the coldest day. Every hard rule passes. GEMINI’s native Solver also agrees on the checked operating day [R0193].
+
+The search covered doublet counts, depths, heating upgrades, cooling technologies and CHP in screening grids of 48 configurations, followed by controls, sizing and storage refinements. Measured-weather free cooling and aquifer cold storage were tested but cost more [R0188, R0189]. Seasonal pit storage offers lower emissions at 48.67 EUR/MWh [R0192].
+
+Key assumptions are the default energy prices and cost curves, heating/cooling returns of 40/26 degC, and Amsterdam Schiphol measured weather. Lower permeability also remained feasible, with higher cost [R0207].
+
+Recommended: [R0193]

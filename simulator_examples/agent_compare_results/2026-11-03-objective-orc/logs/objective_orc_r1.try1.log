@@ -1,0 +1,21 @@
+
+=== 10_design_with_objective: Open design with the client's objective stated: cost, CO2 and resilience
+user> Design the heating and cooling plant for the district. We want the lowest cost, but CO2 matters to us: count it at 100 EUR per tonne when you weigh options, on top of the 80 already in the cost. The plant must still meet demand if the geothermal wells trip on the coldest days. Use the measured weather.
+agent (answer)> **Recommended plant: one 3000 m doublet + gas boiler + electric screw-dry-cooler chiller with free cooling + CHP on the co-produced gas + a 250,000 m³ pit heat store — LCOE 49.15 EUR/MWh, 9,701 t CO₂/yr [R0111].** It meets every day of heating and cooling demand, including a full geothermal trip on the coldest day.
+
+**How I counted CO₂:** at 180 EUR/t (your 100 on top of the 80 already in the cost), set as an override in every run. That is why the pit store wins: it is dearer than the cheapest compliant plant (49.15 vs 47.88 EUR/MWh [R0111 vs R0110]) but emits less (9,701 vs 11,790 t CO₂/yr), and at your CO₂ price the store is the better trade.
+
+**What I searched:** four screens of 36, 36, 12 and 16 designs (1–3 doublets, 2000–4000 m, boiler/heat pump, absorption/electric, three chiller types, ORC 0–2 MW, CHP on/off) plus targeted single runs on store size, CHP size and outage timing.
+
+**Key results (all hard rules met, physics gate pass):**
+- Cheapest compliant: 1 doublet 3000 m, boiler, screw-dry-cooler chiller, CHP, free cooling — 47.88 EUR/MWh, 11,790 t/yr [R0110].
+- + 250,000 m³ pit store: 49.15 EUR/MWh, 9,701 t/yr, geothermal share 75 % [R0111]. A 150,000 m³ pit is worse on both counts (49.87 EUR/MWh, 10,580 t/yr [R0113]).
+- Second doublet at 3500 m: 51.50 EUR/MWh for 8,150 t/yr [R0105] — rejected.
+- ORC on the brine, heat-pump upgrade and larger CHP all cost more than they save [R0085 49.28 EUR/MWh, R0090 52.54 EUR/MWh, R0115 50.84 EUR/MWh].
+- Absorption cooling fails the cooling-demand rule at every size tried (screen R0037).
+
+**Outage and weather:** the 35-day outage is a common outage of all doublets starting on day 28, the heating peak (2027-01-28) — the worst case. Moving it to summer gives 41.88 EUR/MWh [R0112], so the peak case is what sizes the boiler and store. Free cooling uses the measured Amsterdam Schiphol daily temperatures (0.0–35.8 °C). GEMINI's own Solver reproduces the peak day of the CHP design exactly (supply 100.0 °C, injection 59.53 °C, injector wellhead 27.37 bar) [cross-check on R0084].
+
+**Assumptions:** return temperatures 40 °C heating / 26 °C cooling, NL 2027 prices (electricity 120, gas 40, export 60 EUR/MWh), assumed cost curves, injector pressure equal to producer side. Reservoir: 102 °C at 3000 m, 300.5 bar; Fimbul shows no thermal breakthrough over 30 years.
+
+Recommended: R0111

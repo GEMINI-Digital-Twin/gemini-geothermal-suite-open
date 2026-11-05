@@ -1,0 +1,12 @@
+
+=== 10_design_with_objective: Open design with the client's objective stated: cost, CO2 and resilience
+user> Design the heating and cooling plant for the district. We want the lowest cost, but CO2 matters to us: count it at 100 EUR per tonne when you weigh options, on top of the 80 already in the cost. The plant must still meet demand if the geothermal wells trip on the coldest days. Use the measured weather.
+agent (answer)> Recommend one geothermal doublet at 3000 m, a 30 MW backup boiler, a 10 MW electric screw chiller, associated-gas CHP and a 0.1 MW electric ORC, with operating rules enabled [R0152].
+
+Modeled cost is 47.17 EUR/MWh with your additional carbon valuation included. Capital cost is 24.34 million EUR and annual emissions are 11,770 tonnes CO2 [R0152].
+
+The daily simulation meets all heating and cooling demand during the winter geothermal outage, including the coldest day, and passes every hard rule. GEMINI’s Solver agrees on the operating days checked; sudden-trip transients remain unverified [R0152].
+
+The search covered grids of 48, 48, 15 and 24 combinations, followed by sizing refinements. Measured Amsterdam Schiphol weather was used for weather-dependent cooling options. Free cooling reduced emissions but increased cost [R0154]. Other key assumptions are the brief’s district return temperatures and supplied cost curves.
+
+Recommended: [R0152]

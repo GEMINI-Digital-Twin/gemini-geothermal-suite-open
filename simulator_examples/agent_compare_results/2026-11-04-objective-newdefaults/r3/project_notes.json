@@ -1,0 +1,26 @@
+[
+ {
+  "time": "2026-11-04T22:03:58",
+  "kind": "lesson",
+  "text": "3000 m doublets instead of 2900 m (2D-3000m-boiler-electric-screw-2xB-retref/28, R0090): alternative. 3000 m costs 42.06 EUR/MWh vs 41.68 and emits 5438 vs 5526 t CO2/yr: slightly lower CO2, slightly higher cost.",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-04T22:03:58",
+  "kind": "lesson",
+  "text": "11 MW chiller (N-1 on cooling) (2D-3000m-boiler-electric-screw-2xB-retref/28, R0100): alternative. One extra MW of chiller costs 42.25 vs 41.68 EUR/MWh but keeps cooling met in the +10 % demand stress case (R0110).",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-04T22:04:26",
+  "kind": "decision",
+  "text": "Recommended district plant (CO2 at 180 EUR/t = 80 + 100): 2 doublets x 2900 m, gas boiler upgrade in 2 units, electric screw dry-cooler chiller, heating return 40 degC, cooling return 28 degC, operating rules on -> R0118, LCOE 41.68 EUR/MWh, 5526 t CO2/yr, capex 41.46 MEUR, 92.5 % geothermal heat. Meets all rules incl. trip at peak (R0127).",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-04T22:04:26",
+  "kind": "lesson",
+  "text": "Staggering the two 35-day geothermal stops into the lowest-load windows is worth ~10 EUR/MWh: a common January outage (R0133) gives 52.18 EUR/MWh and 9146 t CO2/yr vs 41.68 and 5526 t (R0118). Absorption cooling fails the cooling demand rule; ORC, pit store, heat-recovery HP and electric boiler all raise LCOE without cutting CO2.",
+  "source": "agent"
+ }
+]

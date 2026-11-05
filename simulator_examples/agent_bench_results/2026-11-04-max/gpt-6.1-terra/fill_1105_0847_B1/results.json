@@ -1,0 +1,40 @@
+[
+ {
+  "backend": "gpt-6.1-terra",
+  "case": "B1",
+  "group": "design",
+  "variant": {},
+  "total": 0.437,
+  "passed": false,
+  "critical": false,
+  "correctness": 0.0,
+  "judgement": null,
+  "honesty": 1.0,
+  "efficiency": 1.0,
+  "failure": "infrastructure",
+  "notes": [
+   "no final answer"
+  ],
+  "metrics": {},
+  "replies": [
+   "failed"
+  ],
+  "questions": [],
+  "final_reply": "The language model could not be reached: codex exec failed (1): tarted\",\"thread_id\":\"01a1ab5a-53b8-76c1-addf-2616222dc293\"}\n{\"type\":\"turn.started\"}\n{\"type\":\"error\",\"message\":\"You\u2019ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit https://chatgpt.com/settings/usage to purchase more credits or try again at 12:59 PM.\"}\n{\"type\":\"turn.failed\",\"error\":{\"message\":\"You\u2019ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit https://chatgpt.com/settings/usage to purchase more credits or try again at 12:59 PM.\"}}\n",
+  "model": "gpt-6.1-terra",
+  "reasoning_effort": "max",
+  "max_tokens": 0,
+  "llm_calls": 0,
+  "tool_calls": 214,
+  "invalid_tool_calls": 1,
+  "gate_rejections": 0,
+  "prompt_tokens": 3413516,
+  "completion_tokens": 86417,
+  "cached_tokens": 1890560,
+  "reasoning_tokens": 69920,
+  "billed_usd": 0.0,
+  "wall_seconds": 7726.4,
+  "repeat": 1,
+  "cost_usd": 2.1441
+ }
+]

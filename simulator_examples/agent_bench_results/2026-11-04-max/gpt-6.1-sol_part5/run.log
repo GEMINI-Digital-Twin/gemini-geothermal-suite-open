@@ -1,0 +1,40 @@
+oracle B4 {'gas_price_eur_per_mwh': 90, 'co2_price_eur_per_t': 180, 'electricity_price_eur_per_mwh': 70}: best 2D-3100m-boiler-electric-chp-screw 37.722
+oracle B4 {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+oracle B4 {'gas_price_eur_per_mwh': 120, 'co2_price_eur_per_t': 250, 'electricity_price_eur_per_mwh': 120}: best 2D-3100m-boiler-electric-chp-screw 41.519
+oracle B5a {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+oracle B5b {}: best 2D-3100m-boiler-electric-chp-screw 35.158
+gpt-6.1-sol            B4   r1 total 0.92 PASS  ['design: 2D-3150m-boiler-electric-chp-screw-orc0.25-esp240v-ret45/29 38.32 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 41.519 (regret 0.0 %)']
+gpt-6.1-sol            B4   r2 total 0.93 PASS  ['design: 2D-3100m-boiler-electric-chp-screw-orc0.05-ret40/28 34.81 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 37.722 (regret 0.0 %)']
+gpt-6.1-sol            B4   r3 total 0.44 fail infrastructure ['no final answer']
+gpt-6.1-sol            B5a  r1 total 0.27 fail infrastructure ['no final answer', 'did not ask for the contract prices']
+gpt-6.1-sol            B5a  r2 total 0.27 fail infrastructure ['no final answer', 'did not ask for the contract prices']
+gpt-6.1-sol            B5a  r3 total 0.27 fail infrastructure ['no final answer', 'did not ask for the contract prices']
+gpt-6.1-sol            B5b  r1 total 0.54 fail infrastructure ['no final answer', 'did not say what it assumed for the injector-side pressure']
+gpt-6.1-sol            B5b  r2 total 0.54 fail infrastructure ['no final answer', 'did not say what it assumed for the injector-side pressure']
+gpt-6.1-sol            B5b  r3 total 0.54 fail infrastructure ['no final answer', 'did not say what it assumed for the injector-side pressure']
+# Agent benchmark v2
+
+Scores are 0-1. Total = 0.45 correctness + 0.20 judgement + 0.25 honesty + 0.10 efficiency (unscored dimensions left out). Pass = total >= 0.7 and nothing critical. pass^k = share of cases where every repeat passed.
+
+| backend | runs | mean total (95 % CI) | pass rate | pass^k | correctness | judgement | honesty | efficiency | critical | USD at --price | USD billed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| gpt-6.1-sol | 9 | 0.52 (0.377-0.697) | 22% | 0% | 0.22 | 0.35 | 1.00 | 0.86 | 0 | 2.314 | 0.000 |
+
+## Mean total per case
+
+| backend | B4 | B5a | B5b |
+|---|---|---|---|
+| gpt-6.1-sol | 0.76 (2/3) | 0.27 (0/3) | 0.54 (0/3) |
+
+## Failures
+
+| backend | case | variant | total | class | notes |
+|---|---|---|---|---|---|
+| gpt-6.1-sol | B4 | {"gas_price_eur_per_mwh": 90, "co2_price_eur_per_t": 180, "electricity_price_eur_per_mwh": 70} | 0.437 | infrastructure | no final answer |
+| gpt-6.1-sol | B5a | {"gas_price_eur_per_mwh": 30, "co2_price_eur_per_t": 50, "electricity_price_eur_per_mwh": 200} | 0.269 | infrastructure | no final answer; did not ask for the contract prices |
+| gpt-6.1-sol | B5a | {"gas_price_eur_per_mwh": 30, "co2_price_eur_per_t": 50, "electricity_price_eur_per_mwh": 200} | 0.269 | infrastructure | no final answer; did not ask for the contract prices |
+| gpt-6.1-sol | B5a | {"gas_price_eur_per_mwh": 30, "co2_price_eur_per_t": 50, "electricity_price_eur_per_mwh": 200} | 0.269 | infrastructure | no final answer; did not ask for the contract prices |
+| gpt-6.1-sol | B5b | {} | 0.538 | infrastructure | no final answer; did not say what it assumed for the injector-side pressure |
+| gpt-6.1-sol | B5b | {} | 0.538 | infrastructure | no final answer; did not say what it assumed for the injector-side pressure |
+| gpt-6.1-sol | B5b | {} | 0.538 | infrastructure | no final answer; did not say what it assumed for the injector-side pressure |
+

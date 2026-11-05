@@ -3,6 +3,9 @@
 [![Docs workflow status](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/docs.yaml/badge.svg)](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/docs.yaml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
+> **Hackathon submission:** see [HACKATHON.md](HACKATHON.md) for the SPE GeoHackathon 2026
+> heating + cooling design agent built on this suite (what was added, how to run it, tests).
+
 # GEMINI Geothermal Suite (Open Source)
 
 Open-source repository for the GEMINI Geothermal Digital Twin platform, developed in the

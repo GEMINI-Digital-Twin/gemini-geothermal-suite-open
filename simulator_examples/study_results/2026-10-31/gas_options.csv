@@ -1,0 +1,13 @@
+design,option,lcoe_eur_per_mwh,co2_t_per_year,global_co2_t_per_year,co2_saved_t,abatement_eur_per_t,break_even_co2_price_eur_per_t,notes
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,burn,33.99,4009,4009,0,,,"separator at 10 bar, CHP + boiler"
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,keep_dissolved,38.96,2556,2556,1453,463,543,loop held at 48 bar (bubble point 43 bar at 102 degC); ESP set at 741 m
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,co_inject,36.55,1753,1753,2256,154,234,"gas compressed to 43 bar (18 kW), dip tube to ~326 m in the injector"
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,disposal_well,41.42,1806,1806,2203,457,537,"2000 m well, 190 bar (38 kW), storage permit + monitoring"
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,disposal_well_co2_only,40.21,3428,3428,581,1451,1531,membrane splits the CO2 off; the CH4 still goes to the CHP / boiler (approximation: the CH4-rich gas burns as before)
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,export,33.72,2601,5610,-1601,,,"sells 15,230 MWh of CH4 (its CO2 is then emitted by the buyer)"
+2D-3100m-boiler-electric-chp,burn,36.18,5063,5063,0,,,"separator at 10 bar, CHP + boiler"
+2D-3100m-boiler-electric-chp,keep_dissolved,41.2,3466,3466,1598,425,505,loop held at 48 bar (bubble point 43 bar at 102 degC); ESP set at 741 m
+2D-3100m-boiler-electric-chp,co_inject,38.79,2666,2666,2397,147,227,"gas compressed to 43 bar (19 kW), dip tube to ~326 m in the injector"
+2D-3100m-boiler-electric-chp,disposal_well,43.68,2721,2721,2342,433,513,"2000 m well, 190 bar (40 kW), storage permit + monitoring"
+2D-3100m-boiler-electric-chp,disposal_well_co2_only,42.42,4453,4453,611,1382,1462,membrane splits the CO2 off; the CH4 still goes to the CHP / boiler (approximation: the CH4-rich gas burns as before)
+2D-3100m-boiler-electric-chp,export,35.77,3557,6718,-1655,,,"sells 16,005 MWh of CH4 (its CO2 is then emitted by the buyer)"

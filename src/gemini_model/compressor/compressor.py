@@ -80,7 +80,8 @@ class Compressor(StaticModel):
         n = self.parameters["number_of_stages"]
         stage_pressure_ratio = (p2 / p1) ** (1 / n)
 
-        compressor_power = (n * mass_flow * gas_constant * t1 / (k - 1)) * (
+        # isentropic work per stage of an ideal gas: k / (k - 1) * R * T1 * (r^((k-1)/k) - 1)
+        compressor_power = (n * mass_flow * gas_constant * t1 * k / (k - 1)) * (
             stage_pressure_ratio ** ((k - 1) / k) - 1
         )
 

@@ -1,0 +1,601 @@
+design,n_doublets,depth_m,upgrade,chp,cooling_option,meets_all_hard_rules,failed_rules,unmet_heating_mwh,unmet_cooling_mwh,purchased_gas_mwh,electricity_mwh,co2_t_per_year,capex_meur,lcoe_eur_per_mwh
+1D-2500m-boiler-absorption,1,2500,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,35526,6976,12630,24.25,40.77
+1D-2500m-boiler-electric,1,2500,boiler,False,legacy electric,True,,0.0,0.0,32840,7688,11832,21.5,38.22
+1D-2500m-boiler-electric-screw,1,2500,boiler,False,screw + dry cooler,True,,0.0,0.0,32840,6904,11597,21.5,37.38
+1D-2500m-boiler-electric-tower,1,2500,boiler,False,centrifugal + tower,True,,0.0,0.0,32840,6362,11435,21.79,37.57
+1D-2500m-boiler-electric-aircooled,1,2500,boiler,False,air-cooled screw,True,,0.0,0.0,32840,7299,11716,21.0,37.46
+1D-2500m-boiler-electric-fc,1,2500,boiler,False,legacy + free cooling,True,,0.0,0.0,32840,7111,11659,22.5,38.29
+1D-2500m-boiler-electric-screw-fc,1,2500,boiler,False,screw + free cooling,True,,0.0,0.0,32840,6424,11453,22.5,37.56
+1D-2500m-boiler-electric-tower-fc,1,2500,boiler,False,tower + free cooling,True,,0.0,0.0,32840,5972,11318,22.79,37.74
+1D-2500m-boiler-electric-aircooled-fc,1,2500,boiler,False,air-cooled + free cooling,True,,0.0,0.0,32840,6785,11562,22.0,37.6
+1D-2500m-boiler-electric-aircooled-fc-ates3,1,2500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,32840,5349,11131,24.35,37.68
+1D-2500m-boiler-absorption-chp,1,2500,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,37036,6977,12609,24.79,40.6
+1D-2500m-boiler-electric-chp,1,2500,boiler,True,legacy electric,True,,0.0,0.0,34354,7688,11810,22.04,38.04
+1D-2500m-boiler-electric-chp-screw,1,2500,boiler,True,screw + dry cooler,True,,0.0,0.0,34354,6904,11575,22.04,37.21
+1D-2500m-boiler-electric-chp-tower,1,2500,boiler,True,centrifugal + tower,True,,0.0,0.0,34354,6362,11412,22.33,37.4
+1D-2500m-boiler-electric-chp-aircooled,1,2500,boiler,True,air-cooled screw,True,,0.0,0.0,34354,7299,11693,21.54,37.29
+1D-2500m-boiler-electric-chp-fc,1,2500,boiler,True,legacy + free cooling,True,,0.0,0.0,34354,7111,11637,23.04,38.11
+1D-2500m-boiler-electric-chp-screw-fc,1,2500,boiler,True,screw + free cooling,True,,0.0,0.0,34354,6424,11431,23.04,37.38
+1D-2500m-boiler-electric-chp-tower-fc,1,2500,boiler,True,tower + free cooling,True,,0.0,0.0,34354,5972,11295,23.33,37.56
+1D-2500m-boiler-electric-chp-aircooled-fc,1,2500,boiler,True,air-cooled + free cooling,True,,0.0,0.0,34354,6785,11539,22.54,37.42
+1D-2500m-boiler-electric-chp-aircooled-fc-ates3,1,2500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,34354,5349,11108,24.89,37.5
+1D-2500m-heat_pump-absorption,1,2500,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,29282,8749,11591,31.25,44.68
+1D-2500m-heat_pump-electric,1,2500,heat_pump,False,legacy electric,True,,0.0,0.0,27759,9086,11007,28.5,42.25
+1D-2500m-heat_pump-electric-screw,1,2500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,27759,8302,10772,28.5,41.42
+1D-2500m-heat_pump-electric-tower,1,2500,heat_pump,False,centrifugal + tower,True,,0.0,0.0,27759,7760,10609,28.79,41.61
+1D-2500m-heat_pump-electric-aircooled,1,2500,heat_pump,False,air-cooled screw,True,,0.0,0.0,27759,8697,10890,28.0,41.5
+1D-2500m-heat_pump-electric-fc,1,2500,heat_pump,False,legacy + free cooling,True,,0.0,0.0,27759,8509,10834,29.5,42.32
+1D-2500m-heat_pump-electric-screw-fc,1,2500,heat_pump,False,screw + free cooling,True,,0.0,0.0,27759,7822,10628,29.5,41.6
+1D-2500m-heat_pump-electric-tower-fc,1,2500,heat_pump,False,tower + free cooling,True,,0.0,0.0,27759,7370,10492,29.79,41.78
+1D-2500m-heat_pump-electric-aircooled-fc,1,2500,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,27759,8183,10736,29.0,41.64
+1D-2500m-heat_pump-electric-aircooled-fc-ates3,1,2500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,27759,6747,10305,31.35,41.72
+1D-2500m-heat_pump-absorption-chp,1,2500,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,31525,9631,11400,31.79,43.14
+1D-2500m-heat_pump-electric-chp,1,2500,heat_pump,True,legacy electric,True,,0.0,0.0,29879,10013,10947,29.04,41.16
+1D-2500m-heat_pump-electric-chp-screw,1,2500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,29879,9229,10712,29.04,40.33
+1D-2500m-heat_pump-electric-chp-tower,1,2500,heat_pump,True,centrifugal + tower,True,,0.0,0.0,29879,8687,10549,29.33,40.52
+1D-2500m-heat_pump-electric-chp-aircooled,1,2500,heat_pump,True,air-cooled screw,True,,0.0,0.0,29879,9623,10830,28.54,40.4
+1D-2500m-heat_pump-electric-chp-fc,1,2500,heat_pump,True,legacy + free cooling,True,,0.0,0.0,29879,9435,10773,30.04,41.23
+1D-2500m-heat_pump-electric-chp-screw-fc,1,2500,heat_pump,True,screw + free cooling,True,,0.0,0.0,29879,8749,10568,30.04,40.5
+1D-2500m-heat_pump-electric-chp-tower-fc,1,2500,heat_pump,True,tower + free cooling,True,,0.0,0.0,29879,8297,10432,30.33,40.68
+1D-2500m-heat_pump-electric-chp-aircooled-fc,1,2500,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,29879,9110,10676,29.54,40.54
+1D-2500m-heat_pump-electric-chp-aircooled-fc-ates3,1,2500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,29879,7674,10245,31.89,40.62
+1D-2800m-boiler-absorption,1,2800,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,28824,7114,11291,25.45,38.95
+1D-2800m-boiler-electric,1,2800,boiler,False,legacy electric,True,,0.0,0.0,26272,7768,10465,22.7,36.36
+1D-2800m-boiler-electric-screw,1,2800,boiler,False,screw + dry cooler,True,,0.0,0.0,26272,6984,10230,22.7,35.53
+1D-2800m-boiler-electric-tower,1,2800,boiler,False,centrifugal + tower,True,,0.0,0.0,26272,6442,10067,22.99,35.72
+1D-2800m-boiler-electric-aircooled,1,2800,boiler,False,air-cooled screw,True,,0.0,0.0,26272,7378,10348,22.2,35.6
+1D-2800m-boiler-electric-fc,1,2800,boiler,False,legacy + free cooling,True,,0.0,0.0,26272,7190,10292,23.7,36.43
+1D-2800m-boiler-electric-screw-fc,1,2800,boiler,False,screw + free cooling,True,,0.0,0.0,26272,6504,10086,23.7,35.7
+1D-2800m-boiler-electric-tower-fc,1,2800,boiler,False,tower + free cooling,True,,0.0,0.0,26272,6052,9950,23.99,35.88
+1D-2800m-boiler-electric-aircooled-fc,1,2800,boiler,False,air-cooled + free cooling,True,,0.0,0.0,26272,6865,10194,23.2,35.74
+1D-2800m-boiler-electric-aircooled-fc-ates3,1,2800,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,26272,5429,9763,25.55,35.82
+1D-2800m-boiler-absorption-chp,1,2800,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,31191,7124,11260,25.99,38.41
+1D-2800m-boiler-electric-chp,1,2800,boiler,True,legacy electric,True,,0.0,0.0,28628,7799,10446,23.24,35.83
+1D-2800m-boiler-electric-chp-screw,1,2800,boiler,True,screw + dry cooler,True,,0.0,0.0,28628,7014,10210,23.24,34.99
+1D-2800m-boiler-electric-chp-tower,1,2800,boiler,True,centrifugal + tower,True,,0.0,0.0,28628,6473,10048,23.53,35.18
+1D-2800m-boiler-electric-chp-aircooled,1,2800,boiler,True,air-cooled screw,True,,0.0,0.0,28628,7409,10329,22.74,35.07
+1D-2800m-boiler-electric-chp-fc,1,2800,boiler,True,legacy + free cooling,True,,0.0,0.0,28628,7221,10272,24.24,35.9
+1D-2800m-boiler-electric-chp-screw-fc,1,2800,boiler,True,screw + free cooling,True,,0.0,0.0,28628,6535,10066,24.24,35.17
+1D-2800m-boiler-electric-chp-tower-fc,1,2800,boiler,True,tower + free cooling,True,,0.0,0.0,28628,6083,9931,24.53,35.35
+1D-2800m-boiler-electric-chp-aircooled-fc,1,2800,boiler,True,air-cooled + free cooling,True,,0.0,0.0,28628,6896,10175,23.74,35.21
+1D-2800m-boiler-electric-chp-aircooled-fc-ates3,1,2800,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28628,5459,9744,26.09,35.29
+1D-2800m-heat_pump-absorption,1,2800,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,27843,7917,11116,32.45,44.06
+1D-2800m-heat_pump-electric,1,2800,heat_pump,False,legacy electric,True,,0.0,0.0,26406,8161,10492,29.7,41.55
+1D-2800m-heat_pump-electric-screw,1,2800,heat_pump,False,screw + dry cooler,True,,0.0,0.0,26406,7376,10257,29.7,40.72
+1D-2800m-heat_pump-electric-tower,1,2800,heat_pump,False,centrifugal + tower,True,,0.0,0.0,26406,6835,10095,29.99,40.91
+1D-2800m-heat_pump-electric-aircooled,1,2800,heat_pump,False,air-cooled screw,True,,0.0,0.0,26406,7771,10375,29.2,40.8
+1D-2800m-heat_pump-electric-fc,1,2800,heat_pump,False,legacy + free cooling,True,,0.0,0.0,26406,7583,10319,30.7,41.62
+1D-2800m-heat_pump-electric-screw-fc,1,2800,heat_pump,False,screw + free cooling,True,,0.0,0.0,26406,6897,10113,30.7,40.89
+1D-2800m-heat_pump-electric-tower-fc,1,2800,heat_pump,False,tower + free cooling,True,,0.0,0.0,26406,6445,9978,30.99,41.07
+1D-2800m-heat_pump-electric-aircooled-fc,1,2800,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,26406,7258,10222,30.2,40.93
+1D-2800m-heat_pump-electric-aircooled-fc-ates3,1,2800,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,26406,5822,9791,32.55,41.01
+1D-2800m-heat_pump-absorption-chp,1,2800,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,29973,8526,10759,32.99,42.14
+1D-2800m-heat_pump-electric-chp,1,2800,heat_pump,True,legacy electric,True,,0.0,0.0,28439,8787,10256,30.24,40.11
+1D-2800m-heat_pump-electric-chp-screw,1,2800,heat_pump,True,screw + dry cooler,True,,0.0,0.0,28439,8002,10020,30.24,39.27
+1D-2800m-heat_pump-electric-chp-tower,1,2800,heat_pump,True,centrifugal + tower,True,,0.0,0.0,28439,7461,9858,30.53,39.46
+1D-2800m-heat_pump-electric-chp-aircooled,1,2800,heat_pump,True,air-cooled screw,True,,0.0,0.0,28439,8397,10139,29.74,39.35
+1D-2800m-heat_pump-electric-chp-fc,1,2800,heat_pump,True,legacy + free cooling,True,,0.0,0.0,28439,8209,10082,31.24,40.18
+1D-2800m-heat_pump-electric-chp-screw-fc,1,2800,heat_pump,True,screw + free cooling,True,,0.0,0.0,28439,7523,9876,31.24,39.45
+1D-2800m-heat_pump-electric-chp-tower-fc,1,2800,heat_pump,True,tower + free cooling,True,,0.0,0.0,28439,7071,9741,31.53,39.63
+1D-2800m-heat_pump-electric-chp-aircooled-fc,1,2800,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,28439,7884,9985,30.74,39.49
+1D-2800m-heat_pump-electric-chp-aircooled-fc-ates3,1,2800,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28439,6447,9554,33.09,39.57
+1D-3100m-boiler-absorption,1,3100,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,27559,7080,10886,26.65,39.12
+1D-3100m-boiler-electric,1,3100,boiler,False,legacy electric,True,,0.0,0.0,25875,7702,10226,23.9,36.86
+1D-3100m-boiler-electric-screw,1,3100,boiler,False,screw + dry cooler,True,,0.0,0.0,25875,6918,9991,23.9,36.03
+1D-3100m-boiler-electric-tower,1,3100,boiler,False,centrifugal + tower,True,,0.0,0.0,25875,6376,9829,24.19,36.22
+1D-3100m-boiler-electric-aircooled,1,3100,boiler,False,air-cooled screw,True,,0.0,0.0,25875,7312,10110,23.4,36.11
+1D-3100m-boiler-electric-fc,1,3100,boiler,False,legacy + free cooling,True,,0.0,0.0,25875,7124,10053,24.9,36.93
+1D-3100m-boiler-electric-screw-fc,1,3100,boiler,False,screw + free cooling,True,,0.0,0.0,25875,6438,9847,24.9,36.2
+1D-3100m-boiler-electric-tower-fc,1,3100,boiler,False,tower + free cooling,True,,0.0,0.0,25875,5986,9712,25.19,36.39
+1D-3100m-boiler-electric-aircooled-fc,1,3100,boiler,False,air-cooled + free cooling,True,,0.0,0.0,25875,6799,9956,24.4,36.25
+1D-3100m-boiler-electric-aircooled-fc-ates3,1,3100,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25875,5363,9525,26.75,36.32
+1D-3100m-boiler-absorption-chp,1,3100,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,30013,7192,10712,27.19,37.73
+1D-3100m-boiler-electric-chp,1,3100,boiler,True,legacy electric,True,,0.0,0.0,28341,7911,10031,24.44,35.22
+1D-3100m-boiler-electric-chp-screw,1,3100,boiler,True,screw + dry cooler,True,,0.0,0.0,28341,7127,9796,24.44,34.39
+1D-3100m-boiler-electric-chp-tower,1,3100,boiler,True,centrifugal + tower,True,,0.0,0.0,28341,6585,9633,24.73,34.58
+1D-3100m-boiler-electric-chp-aircooled,1,3100,boiler,True,air-cooled screw,True,,0.0,0.0,28341,7522,9914,23.94,34.47
+1D-3100m-boiler-electric-chp-fc,1,3100,boiler,True,legacy + free cooling,True,,0.0,0.0,28341,7334,9859,25.44,35.3
+1D-3100m-boiler-electric-chp-screw-fc,1,3100,boiler,True,screw + free cooling,True,,0.0,0.0,28341,6648,9653,25.44,34.57
+1D-3100m-boiler-electric-chp-tower-fc,1,3100,boiler,True,tower + free cooling,True,,0.0,0.0,28341,6195,9517,25.73,34.75
+1D-3100m-boiler-electric-chp-aircooled-fc,1,3100,boiler,True,air-cooled + free cooling,True,,0.0,0.0,28341,7009,9761,24.94,34.61
+1D-3100m-boiler-electric-chp-aircooled-fc-ates3,1,3100,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28339,5563,9331,27.29,34.71
+1D-3100m-heat_pump-absorption,1,3100,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,27924,7722,11079,33.65,44.71
+1D-3100m-heat_pump-electric,1,3100,heat_pump,False,legacy electric,True,,0.0,0.0,25894,7814,10299,30.9,41.8
+1D-3100m-heat_pump-electric-screw,1,3100,heat_pump,False,screw + dry cooler,True,,0.0,0.0,25894,7030,10064,30.9,40.97
+1D-3100m-heat_pump-electric-tower,1,3100,heat_pump,False,centrifugal + tower,True,,0.0,0.0,25894,6488,9901,31.19,41.16
+1D-3100m-heat_pump-electric-aircooled,1,3100,heat_pump,False,air-cooled screw,True,,0.0,0.0,25894,7424,10182,30.4,41.04
+1D-3100m-heat_pump-electric-fc,1,3100,heat_pump,False,legacy + free cooling,True,,0.0,0.0,25894,7236,10126,31.9,41.87
+1D-3100m-heat_pump-electric-screw-fc,1,3100,heat_pump,False,screw + free cooling,True,,0.0,0.0,25894,6550,9920,31.9,41.14
+1D-3100m-heat_pump-electric-tower-fc,1,3100,heat_pump,False,tower + free cooling,True,,0.0,0.0,25894,6098,9784,32.19,41.32
+1D-3100m-heat_pump-electric-aircooled-fc,1,3100,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,25894,6911,10028,31.4,41.18
+1D-3100m-heat_pump-electric-aircooled-fc-ates3,1,3100,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25894,5475,9597,33.75,41.26
+1D-3100m-heat_pump-absorption-chp,1,3100,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,30001,8018,10642,34.19,42.4
+1D-3100m-heat_pump-electric-chp,1,3100,heat_pump,True,legacy electric,True,,0.0,0.0,28338,7990,10026,31.44,40.01
+1D-3100m-heat_pump-electric-chp-screw,1,3100,heat_pump,True,screw + dry cooler,True,,0.0,0.0,28338,7206,9791,31.44,39.18
+1D-3100m-heat_pump-electric-chp-tower,1,3100,heat_pump,True,centrifugal + tower,True,,0.0,0.0,28338,6664,9628,31.73,39.37
+1D-3100m-heat_pump-electric-chp-aircooled,1,3100,heat_pump,True,air-cooled screw,True,,0.0,0.0,28338,7601,9909,30.94,39.26
+1D-3100m-heat_pump-electric-chp-fc,1,3100,heat_pump,True,legacy + free cooling,True,,0.0,0.0,28338,7412,9854,32.44,40.08
+1D-3100m-heat_pump-electric-chp-screw-fc,1,3100,heat_pump,True,screw + free cooling,True,,0.0,0.0,28338,6726,9648,32.44,39.35
+1D-3100m-heat_pump-electric-chp-tower-fc,1,3100,heat_pump,True,tower + free cooling,True,,0.0,0.0,28338,6274,9512,32.73,39.54
+1D-3100m-heat_pump-electric-chp-aircooled-fc,1,3100,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,28338,7087,9756,31.94,39.4
+1D-3100m-heat_pump-electric-chp-aircooled-fc-ates3,1,3100,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28338,5647,9328,34.29,39.49
+1D-3400m-boiler-absorption,1,3400,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,27411,7071,10700,27.85,39.78
+1D-3400m-boiler-electric,1,3400,boiler,False,legacy electric,True,,0.0,0.0,25884,7754,10236,25.1,37.74
+1D-3400m-boiler-electric-screw,1,3400,boiler,False,screw + dry cooler,True,,0.0,0.0,25884,6970,10001,25.1,36.9
+1D-3400m-boiler-electric-tower,1,3400,boiler,False,centrifugal + tower,True,,0.0,0.0,25884,6428,9838,25.39,37.1
+1D-3400m-boiler-electric-aircooled,1,3400,boiler,False,air-cooled screw,True,,0.0,0.0,25884,7364,10119,24.6,36.98
+1D-3400m-boiler-electric-fc,1,3400,boiler,False,legacy + free cooling,True,,0.0,0.0,25884,7176,10063,26.1,37.81
+1D-3400m-boiler-electric-screw-fc,1,3400,boiler,False,screw + free cooling,True,,0.0,0.0,25884,6490,9857,26.1,37.08
+1D-3400m-boiler-electric-tower-fc,1,3400,boiler,False,tower + free cooling,True,,0.0,0.0,25884,6038,9721,26.39,37.26
+1D-3400m-boiler-electric-aircooled-fc,1,3400,boiler,False,air-cooled + free cooling,True,,0.0,0.0,25884,6851,9965,25.6,37.12
+1D-3400m-boiler-electric-aircooled-fc-ates3,1,3400,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25884,5415,9534,27.95,37.2
+1D-3400m-boiler-absorption-chp,1,3400,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,29870,7216,10536,28.39,38.07
+1D-3400m-boiler-electric-chp,1,3400,boiler,True,legacy electric,True,,0.0,0.0,28337,7844,9892,25.64,35.97
+1D-3400m-boiler-electric-chp-screw,1,3400,boiler,True,screw + dry cooler,True,,0.0,0.0,28337,7060,9656,25.64,35.14
+1D-3400m-boiler-electric-chp-tower,1,3400,boiler,True,centrifugal + tower,True,,0.0,0.0,28337,6518,9494,25.93,35.33
+1D-3400m-boiler-electric-chp-aircooled,1,3400,boiler,True,air-cooled screw,True,,0.0,0.0,28337,7455,9775,25.14,35.22
+1D-3400m-boiler-electric-chp-fc,1,3400,boiler,True,legacy + free cooling,True,,0.0,0.0,28337,7267,9719,26.64,36.05
+1D-3400m-boiler-electric-chp-screw-fc,1,3400,boiler,True,screw + free cooling,True,,0.0,0.0,28337,6581,9513,26.64,35.32
+1D-3400m-boiler-electric-chp-tower-fc,1,3400,boiler,True,tower + free cooling,True,,0.0,0.0,28337,6128,9378,26.93,35.5
+1D-3400m-boiler-electric-chp-aircooled-fc,1,3400,boiler,True,air-cooled + free cooling,True,,0.0,0.0,28337,6942,9622,26.14,35.36
+1D-3400m-boiler-electric-chp-aircooled-fc-ates3,1,3400,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28337,5505,9204,28.49,35.47
+1D-3400m-heat_pump-absorption,1,3400,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,27466,7371,10897,34.85,44.98
+1D-3400m-heat_pump-electric,1,3400,heat_pump,False,legacy electric,True,,0.0,0.0,25884,7754,10236,32.1,42.53
+1D-3400m-heat_pump-electric-screw,1,3400,heat_pump,False,screw + dry cooler,True,,0.0,0.0,25884,6970,10001,32.1,41.69
+1D-3400m-heat_pump-electric-tower,1,3400,heat_pump,False,centrifugal + tower,True,,0.0,0.0,25884,6428,9838,32.39,41.88
+1D-3400m-heat_pump-electric-aircooled,1,3400,heat_pump,False,air-cooled screw,True,,0.0,0.0,25884,7364,10119,31.6,41.77
+1D-3400m-heat_pump-electric-fc,1,3400,heat_pump,False,legacy + free cooling,True,,0.0,0.0,25884,7176,10063,33.1,42.6
+1D-3400m-heat_pump-electric-screw-fc,1,3400,heat_pump,False,screw + free cooling,True,,0.0,0.0,25884,6490,9857,33.1,41.87
+1D-3400m-heat_pump-electric-tower-fc,1,3400,heat_pump,False,tower + free cooling,True,,0.0,0.0,25884,6038,9721,33.39,42.05
+1D-3400m-heat_pump-electric-aircooled-fc,1,3400,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,25884,6851,9965,32.6,41.91
+1D-3400m-heat_pump-electric-aircooled-fc-ates3,1,3400,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25884,5415,9534,34.95,41.99
+1D-3400m-heat_pump-absorption-chp,1,3400,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,29971,7692,10546,35.39,42.86
+1D-3400m-heat_pump-electric-chp,1,3400,heat_pump,True,legacy electric,True,,0.0,0.0,28337,7844,9892,32.64,40.76
+1D-3400m-heat_pump-electric-chp-screw,1,3400,heat_pump,True,screw + dry cooler,True,,0.0,0.0,28337,7060,9656,32.64,39.93
+1D-3400m-heat_pump-electric-chp-tower,1,3400,heat_pump,True,centrifugal + tower,True,,0.0,0.0,28337,6518,9494,32.93,40.12
+1D-3400m-heat_pump-electric-chp-aircooled,1,3400,heat_pump,True,air-cooled screw,True,,0.0,0.0,28337,7455,9775,32.14,40.01
+1D-3400m-heat_pump-electric-chp-fc,1,3400,heat_pump,True,legacy + free cooling,True,,0.0,0.0,28337,7267,9719,33.64,40.84
+1D-3400m-heat_pump-electric-chp-screw-fc,1,3400,heat_pump,True,screw + free cooling,True,,0.0,0.0,28337,6581,9513,33.64,40.11
+1D-3400m-heat_pump-electric-chp-tower-fc,1,3400,heat_pump,True,tower + free cooling,True,,0.0,0.0,28337,6128,9378,33.93,40.29
+1D-3400m-heat_pump-electric-chp-aircooled-fc,1,3400,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,28337,6942,9622,33.14,40.15
+1D-3400m-heat_pump-electric-chp-aircooled-fc-ates3,1,3400,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28337,5505,9204,35.49,40.25
+1D-4000m-boiler-absorption,1,4000,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,27413,7196,10730,30.25,41.56
+1D-4000m-boiler-electric,1,4000,boiler,False,legacy electric,True,,0.0,0.0,25884,7867,10270,27.5,39.5
+1D-4000m-boiler-electric-screw,1,4000,boiler,False,screw + dry cooler,True,,0.0,0.0,25884,7083,10035,27.5,38.67
+1D-4000m-boiler-electric-tower,1,4000,boiler,False,centrifugal + tower,True,,0.0,0.0,25884,6541,9872,27.79,38.86
+1D-4000m-boiler-electric-aircooled,1,4000,boiler,False,air-cooled screw,True,,0.0,0.0,25884,7478,10153,27.0,38.75
+1D-4000m-boiler-electric-fc,1,4000,boiler,False,legacy + free cooling,True,,0.0,0.0,25884,7290,10097,28.5,39.57
+1D-4000m-boiler-electric-screw-fc,1,4000,boiler,False,screw + free cooling,True,,0.0,0.0,25884,6604,9891,28.5,38.84
+1D-4000m-boiler-electric-tower-fc,1,4000,boiler,False,tower + free cooling,True,,0.0,0.0,25884,6151,9755,28.79,39.02
+1D-4000m-boiler-electric-aircooled-fc,1,4000,boiler,False,air-cooled + free cooling,True,,0.0,0.0,25884,6965,9999,28.0,38.88
+1D-4000m-boiler-electric-aircooled-fc-ates3,1,4000,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25884,5528,9568,30.35,38.96
+1D-4000m-boiler-absorption-chp,1,4000,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,29871,7303,10365,30.79,39.29
+1D-4000m-boiler-electric-chp,1,4000,boiler,True,legacy electric,True,,0.0,0.0,28337,7958,9922,28.04,37.74
+1D-4000m-boiler-electric-chp-screw,1,4000,boiler,True,screw + dry cooler,True,,0.0,0.0,28337,7174,9687,28.04,36.91
+1D-4000m-boiler-electric-chp-tower,1,4000,boiler,True,centrifugal + tower,True,,0.0,0.0,28337,6632,9525,28.33,37.1
+1D-4000m-boiler-electric-chp-aircooled,1,4000,boiler,True,air-cooled screw,True,,0.0,0.0,28337,7568,9805,27.54,36.98
+1D-4000m-boiler-electric-chp-fc,1,4000,boiler,True,legacy + free cooling,True,,0.0,0.0,28337,7380,9750,29.04,37.81
+1D-4000m-boiler-electric-chp-screw-fc,1,4000,boiler,True,screw + free cooling,True,,0.0,0.0,28337,6694,9544,29.04,37.08
+1D-4000m-boiler-electric-chp-tower-fc,1,4000,boiler,True,tower + free cooling,True,,0.0,0.0,28337,6242,9408,29.33,37.26
+1D-4000m-boiler-electric-chp-aircooled-fc,1,4000,boiler,True,air-cooled + free cooling,True,,0.0,0.0,28337,7055,9652,28.54,37.12
+1D-4000m-boiler-electric-chp-aircooled-fc-ates3,1,4000,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28337,5618,9234,30.89,37.23
+1D-4000m-heat_pump-absorption,1,4000,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,27413,7196,10730,37.25,46.35
+1D-4000m-heat_pump-electric,1,4000,heat_pump,False,legacy electric,True,,0.0,0.0,25884,7867,10270,34.5,44.29
+1D-4000m-heat_pump-electric-screw,1,4000,heat_pump,False,screw + dry cooler,True,,0.0,0.0,25884,7083,10035,34.5,43.46
+1D-4000m-heat_pump-electric-tower,1,4000,heat_pump,False,centrifugal + tower,True,,0.0,0.0,25884,6541,9872,34.79,43.65
+1D-4000m-heat_pump-electric-aircooled,1,4000,heat_pump,False,air-cooled screw,True,,0.0,0.0,25884,7478,10153,34.0,43.53
+1D-4000m-heat_pump-electric-fc,1,4000,heat_pump,False,legacy + free cooling,True,,0.0,0.0,25884,7290,10097,35.5,44.36
+1D-4000m-heat_pump-electric-screw-fc,1,4000,heat_pump,False,screw + free cooling,True,,0.0,0.0,25884,6604,9891,35.5,43.63
+1D-4000m-heat_pump-electric-tower-fc,1,4000,heat_pump,False,tower + free cooling,True,,0.0,0.0,25884,6151,9755,35.79,43.81
+1D-4000m-heat_pump-electric-aircooled-fc,1,4000,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,25884,6965,9999,35.0,43.67
+1D-4000m-heat_pump-electric-aircooled-fc-ates3,1,4000,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25884,5528,9568,37.35,43.75
+1D-4000m-heat_pump-absorption-chp,1,4000,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,29871,7303,10365,37.79,44.09
+1D-4000m-heat_pump-electric-chp,1,4000,heat_pump,True,legacy electric,True,,0.0,0.0,28337,7958,9922,35.04,42.53
+1D-4000m-heat_pump-electric-chp-screw,1,4000,heat_pump,True,screw + dry cooler,True,,0.0,0.0,28337,7174,9687,35.04,41.7
+1D-4000m-heat_pump-electric-chp-tower,1,4000,heat_pump,True,centrifugal + tower,True,,0.0,0.0,28337,6632,9525,35.33,41.89
+1D-4000m-heat_pump-electric-chp-aircooled,1,4000,heat_pump,True,air-cooled screw,True,,0.0,0.0,28337,7568,9805,34.54,41.77
+1D-4000m-heat_pump-electric-chp-fc,1,4000,heat_pump,True,legacy + free cooling,True,,0.0,0.0,28337,7380,9750,36.04,42.6
+1D-4000m-heat_pump-electric-chp-screw-fc,1,4000,heat_pump,True,screw + free cooling,True,,0.0,0.0,28337,6694,9544,36.04,41.87
+1D-4000m-heat_pump-electric-chp-tower-fc,1,4000,heat_pump,True,tower + free cooling,True,,0.0,0.0,28337,6242,9408,36.33,42.05
+1D-4000m-heat_pump-electric-chp-aircooled-fc,1,4000,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,28337,7055,9652,35.54,41.91
+1D-4000m-heat_pump-electric-chp-aircooled-fc-ates3,1,4000,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28337,5618,9234,37.89,42.02
+2D-2500m-boiler-absorption,2,2500,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,21638,6272,10840,40.25,45.94
+2D-2500m-boiler-electric,2,2500,boiler,False,legacy electric,True,,0.0,0.0,19780,7576,10288,37.5,44.29
+2D-2500m-boiler-electric-screw,2,2500,boiler,False,screw + dry cooler,True,,0.0,0.0,19780,6791,10053,37.5,43.46
+2D-2500m-boiler-electric-tower,2,2500,boiler,False,centrifugal + tower,True,,0.0,0.0,19780,6250,9890,37.79,43.65
+2D-2500m-boiler-electric-aircooled,2,2500,boiler,False,air-cooled screw,True,,0.0,0.0,19780,7186,10171,37.0,43.54
+2D-2500m-boiler-electric-fc,2,2500,boiler,False,legacy + free cooling,True,,0.0,0.0,19780,6998,10115,38.5,44.36
+2D-2500m-boiler-electric-screw-fc,2,2500,boiler,False,screw + free cooling,True,,0.0,0.0,19780,6312,9909,38.5,43.63
+2D-2500m-boiler-electric-tower-fc,2,2500,boiler,False,tower + free cooling,True,,0.0,0.0,19780,5860,9773,38.79,43.81
+2D-2500m-boiler-electric-aircooled-fc,2,2500,boiler,False,air-cooled + free cooling,True,,0.0,0.0,19780,6673,10017,38.0,43.67
+2D-2500m-boiler-electric-aircooled-fc-ates3,2,2500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,19780,5236,9587,40.35,43.75
+2D-2500m-boiler-absorption-chp,2,2500,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,22213,6352,10996,41.33,46.42
+2D-2500m-boiler-electric-chp,2,2500,boiler,True,legacy electric,True,,0.0,0.0,19736,7630,10356,38.58,45.02
+2D-2500m-boiler-electric-chp-screw,2,2500,boiler,True,screw + dry cooler,True,,0.0,0.0,19736,6846,10121,38.58,44.18
+2D-2500m-boiler-electric-chp-tower,2,2500,boiler,True,centrifugal + tower,True,,0.0,0.0,19736,6304,9958,38.87,44.38
+2D-2500m-boiler-electric-chp-aircooled,2,2500,boiler,True,air-cooled screw,True,,0.0,0.0,19736,7240,10239,38.08,44.26
+2D-2500m-boiler-electric-chp-fc,2,2500,boiler,True,legacy + free cooling,True,,0.0,0.0,19736,7052,10183,39.58,45.09
+2D-2500m-boiler-electric-chp-screw-fc,2,2500,boiler,True,screw + free cooling,True,,0.0,0.0,19736,6366,9977,39.58,44.36
+2D-2500m-boiler-electric-chp-tower-fc,2,2500,boiler,True,tower + free cooling,True,,0.0,0.0,19736,5914,9841,39.87,44.54
+2D-2500m-boiler-electric-chp-aircooled-fc,2,2500,boiler,True,air-cooled + free cooling,True,,0.0,0.0,19736,6727,10085,39.08,44.4
+2D-2500m-boiler-electric-chp-aircooled-fc-ates3,2,2500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,19736,5291,9654,41.43,44.48
+2D-2500m-heat_pump-absorption,2,2500,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4193,11194,8050,47.25,48.3
+2D-2500m-heat_pump-electric,2,2500,heat_pump,False,legacy electric,True,,0.0,0.0,2687,11966,7378,44.5,46.2
+2D-2500m-heat_pump-electric-screw,2,2500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2687,11181,7143,44.5,45.37
+2D-2500m-heat_pump-electric-tower,2,2500,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2687,10640,6980,44.79,45.56
+2D-2500m-heat_pump-electric-aircooled,2,2500,heat_pump,False,air-cooled screw,True,,0.0,0.0,2687,11576,7261,44.0,45.45
+2D-2500m-heat_pump-electric-fc,2,2500,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2687,11388,7205,45.5,46.27
+2D-2500m-heat_pump-electric-screw-fc,2,2500,heat_pump,False,screw + free cooling,True,,0.0,0.0,2687,10702,6999,45.5,45.54
+2D-2500m-heat_pump-electric-tower-fc,2,2500,heat_pump,False,tower + free cooling,True,,0.0,0.0,2687,10250,6863,45.79,45.73
+2D-2500m-heat_pump-electric-aircooled-fc,2,2500,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2687,11063,7107,45.0,45.59
+2D-2500m-heat_pump-electric-aircooled-fc-ates3,2,2500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2687,9626,6676,47.35,45.66
+2D-2500m-heat_pump-absorption-chp,2,2500,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4140,13033,7897,48.33,45.68
+2D-2500m-heat_pump-electric-chp,2,2500,heat_pump,True,legacy electric,True,,0.0,0.0,2616,13864,7367,45.58,44.45
+2D-2500m-heat_pump-electric-chp-screw,2,2500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2616,13080,7132,45.58,43.62
+2D-2500m-heat_pump-electric-chp-tower,2,2500,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2616,12538,6970,45.87,43.81
+2D-2500m-heat_pump-electric-chp-aircooled,2,2500,heat_pump,True,air-cooled screw,True,,0.0,0.0,2616,13475,7250,45.08,43.7
+2D-2500m-heat_pump-electric-chp-fc,2,2500,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2616,13287,7194,46.58,44.52
+2D-2500m-heat_pump-electric-chp-screw-fc,2,2500,heat_pump,True,screw + free cooling,True,,0.0,0.0,2616,12601,6988,46.58,43.79
+2D-2500m-heat_pump-electric-chp-tower-fc,2,2500,heat_pump,True,tower + free cooling,True,,0.0,0.0,2616,12148,6853,46.87,43.97
+2D-2500m-heat_pump-electric-chp-aircooled-fc,2,2500,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2616,12962,7097,46.08,43.83
+2D-2500m-heat_pump-electric-chp-aircooled-fc-ates3,2,2500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2616,11525,6666,48.43,43.91
+2D-2800m-boiler-absorption,2,2800,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,5641,6401,7489,42.65,40.99
+2D-2800m-boiler-electric,2,2800,boiler,False,legacy electric,True,,0.0,0.0,4111,7578,6768,39.9,39.23
+2D-2800m-boiler-electric-screw,2,2800,boiler,False,screw + dry cooler,True,,0.0,0.0,4111,6793,6532,39.9,38.39
+2D-2800m-boiler-electric-tower,2,2800,boiler,False,centrifugal + tower,True,,0.0,0.0,4111,6252,6370,40.19,38.58
+2D-2800m-boiler-electric-aircooled,2,2800,boiler,False,air-cooled screw,True,,0.0,0.0,4111,7188,6651,39.4,38.47
+2D-2800m-boiler-electric-fc,2,2800,boiler,False,legacy + free cooling,True,,0.0,0.0,4111,7000,6594,40.9,39.3
+2D-2800m-boiler-electric-screw-fc,2,2800,boiler,False,screw + free cooling,True,,0.0,0.0,4111,6314,6388,40.9,38.57
+2D-2800m-boiler-electric-tower-fc,2,2800,boiler,False,tower + free cooling,True,,0.0,0.0,4111,5862,6253,41.19,38.75
+2D-2800m-boiler-electric-aircooled-fc,2,2800,boiler,False,air-cooled + free cooling,True,,0.0,0.0,4111,6675,6497,40.4,38.61
+2D-2800m-boiler-electric-aircooled-fc-ates3,2,2800,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,4111,5238,6066,42.75,38.69
+2D-2800m-boiler-absorption-chp,2,2800,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,5766,6481,7713,43.73,41.46
+2D-2800m-boiler-electric-chp,2,2800,boiler,True,legacy electric,True,,0.0,0.0,4043,7825,7131,40.98,39.94
+2D-2800m-boiler-electric-chp-screw,2,2800,boiler,True,screw + dry cooler,True,,0.0,0.0,4043,7041,6895,40.98,39.11
+2D-2800m-boiler-electric-chp-tower,2,2800,boiler,True,centrifugal + tower,True,,0.0,0.0,4043,6499,6733,41.27,39.3
+2D-2800m-boiler-electric-chp-aircooled,2,2800,boiler,True,air-cooled screw,True,,0.0,0.0,4043,7435,7014,40.48,39.18
+2D-2800m-boiler-electric-chp-fc,2,2800,boiler,True,legacy + free cooling,True,,0.0,0.0,4043,7247,6957,41.98,40.01
+2D-2800m-boiler-electric-chp-screw-fc,2,2800,boiler,True,screw + free cooling,True,,0.0,0.0,4043,6561,6751,41.98,39.28
+2D-2800m-boiler-electric-chp-tower-fc,2,2800,boiler,True,tower + free cooling,True,,0.0,0.0,4043,6109,6616,42.27,39.46
+2D-2800m-boiler-electric-chp-aircooled-fc,2,2800,boiler,True,air-cooled + free cooling,True,,0.0,0.0,4043,6922,6860,41.48,39.32
+2D-2800m-boiler-electric-chp-aircooled-fc-ates3,2,2800,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,4043,5485,6428,43.83,39.4
+2D-2800m-heat_pump-absorption,2,2800,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,6180,7926,7437,49.65,47.27
+2D-2800m-heat_pump-electric,2,2800,heat_pump,False,legacy electric,True,,0.0,0.0,4753,8539,6813,46.9,45.09
+2D-2800m-heat_pump-electric-screw,2,2800,heat_pump,False,screw + dry cooler,True,,0.0,0.0,4753,7755,6578,46.9,44.25
+2D-2800m-heat_pump-electric-tower,2,2800,heat_pump,False,centrifugal + tower,True,,0.0,0.0,4753,7213,6416,47.19,44.44
+2D-2800m-heat_pump-electric-aircooled,2,2800,heat_pump,False,air-cooled screw,True,,0.0,0.0,4753,8149,6697,46.4,44.33
+2D-2800m-heat_pump-electric-fc,2,2800,heat_pump,False,legacy + free cooling,True,,0.0,0.0,4753,7961,6640,47.9,45.16
+2D-2800m-heat_pump-electric-screw-fc,2,2800,heat_pump,False,screw + free cooling,True,,0.0,0.0,4753,7275,6434,47.9,44.43
+2D-2800m-heat_pump-electric-tower-fc,2,2800,heat_pump,False,tower + free cooling,True,,0.0,0.0,4753,6823,6299,48.19,44.61
+2D-2800m-heat_pump-electric-aircooled-fc,2,2800,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,4753,7636,6543,47.4,44.47
+2D-2800m-heat_pump-electric-aircooled-fc-ates3,2,2800,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,4753,6200,6112,49.75,44.55
+2D-2800m-heat_pump-absorption-chp,2,2800,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4156,10097,6825,50.73,44.39
+2D-2800m-heat_pump-electric-chp,2,2800,heat_pump,True,legacy electric,True,,0.0,0.0,2632,10683,6138,47.98,42.98
+2D-2800m-heat_pump-electric-chp-screw,2,2800,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2632,9899,5903,47.98,42.15
+2D-2800m-heat_pump-electric-chp-tower,2,2800,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2632,9357,5740,48.27,42.34
+2D-2800m-heat_pump-electric-chp-aircooled,2,2800,heat_pump,True,air-cooled screw,True,,0.0,0.0,2632,10294,6021,47.48,42.23
+2D-2800m-heat_pump-electric-chp-fc,2,2800,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2632,10105,5965,48.98,43.05
+2D-2800m-heat_pump-electric-chp-screw-fc,2,2800,heat_pump,True,screw + free cooling,True,,0.0,0.0,2632,9419,5759,48.98,42.32
+2D-2800m-heat_pump-electric-chp-tower-fc,2,2800,heat_pump,True,tower + free cooling,True,,0.0,0.0,2632,8967,5623,49.27,42.51
+2D-2800m-heat_pump-electric-chp-aircooled-fc,2,2800,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2632,9780,5867,48.48,42.37
+2D-2800m-heat_pump-electric-chp-aircooled-fc-ates3,2,2800,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2632,8344,5436,50.83,42.44
+2D-3100m-boiler-absorption,2,3100,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,4211,6050,6701,45.05,41.43
+2D-3100m-boiler-electric,2,3100,boiler,False,legacy electric,True,,0.0,0.0,2673,7227,6015,42.3,39.69
+2D-3100m-boiler-electric-screw,2,3100,boiler,False,screw + dry cooler,True,,0.0,0.0,2673,6442,5780,42.3,38.86
+2D-3100m-boiler-electric-tower,2,3100,boiler,False,centrifugal + tower,True,,0.0,0.0,2673,5901,5617,42.59,39.05
+2D-3100m-boiler-electric-aircooled,2,3100,boiler,False,air-cooled screw,True,,0.0,0.0,2673,6837,5898,41.8,38.93
+2D-3100m-boiler-electric-fc,2,3100,boiler,False,legacy + free cooling,True,,0.0,0.0,2673,6649,5842,43.3,39.76
+2D-3100m-boiler-electric-screw-fc,2,3100,boiler,False,screw + free cooling,True,,0.0,0.0,2673,5963,5636,43.3,39.03
+2D-3100m-boiler-electric-tower-fc,2,3100,boiler,False,tower + free cooling,True,,0.0,0.0,2673,5511,5500,43.59,39.21
+2D-3100m-boiler-electric-aircooled-fc,2,3100,boiler,False,air-cooled + free cooling,True,,0.0,0.0,2673,6324,5744,42.8,39.07
+2D-3100m-boiler-electric-aircooled-fc-ates3,2,3100,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2673,4887,5313,45.15,39.15
+2D-3100m-boiler-absorption-chp,2,3100,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,4164,6521,6266,46.13,38.65
+2D-3100m-boiler-electric-chp,2,3100,boiler,True,legacy electric,True,,0.0,0.0,2642,7895,5589,43.38,37.07
+2D-3100m-boiler-electric-chp-screw,2,3100,boiler,True,screw + dry cooler,True,,0.0,0.0,2642,7104,5353,43.38,36.25
+2D-3100m-boiler-electric-chp-tower,2,3100,boiler,True,centrifugal + tower,True,,0.0,0.0,2642,6557,5189,43.67,36.44
+2D-3100m-boiler-electric-chp-aircooled,2,3100,boiler,True,air-cooled screw,True,,0.0,0.0,2642,7494,5469,42.88,36.33
+2D-3100m-boiler-electric-chp-fc,2,3100,boiler,True,legacy + free cooling,True,,0.0,0.0,2642,7297,5406,44.38,37.19
+2D-3100m-boiler-electric-chp-screw-fc,2,3100,boiler,True,screw + free cooling,True,,0.0,0.0,2642,6608,5199,44.38,36.46
+2D-3100m-boiler-electric-chp-tower-fc,2,3100,boiler,True,tower + free cooling,True,,0.0,0.0,2642,6155,5064,44.67,36.65
+2D-3100m-boiler-electric-chp-aircooled-fc,2,3100,boiler,True,air-cooled + free cooling,True,,0.0,0.0,2642,6968,5307,43.88,36.5
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,2,3100,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2643,5487,4790,46.23,36.57
+2D-3100m-heat_pump-absorption,2,3100,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4453,6931,6842,52.05,47.16
+2D-3100m-heat_pump-electric,2,3100,heat_pump,False,legacy electric,True,,0.0,0.0,2699,7414,6102,49.3,44.7
+2D-3100m-heat_pump-electric-screw,2,3100,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2699,6630,5867,49.3,43.87
+2D-3100m-heat_pump-electric-tower,2,3100,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2699,6088,5704,49.59,44.06
+2D-3100m-heat_pump-electric-aircooled,2,3100,heat_pump,False,air-cooled screw,True,,0.0,0.0,2699,7024,5985,48.8,43.95
+2D-3100m-heat_pump-electric-fc,2,3100,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2699,6836,5929,50.3,44.77
+2D-3100m-heat_pump-electric-screw-fc,2,3100,heat_pump,False,screw + free cooling,True,,0.0,0.0,2699,6150,5723,50.3,44.04
+2D-3100m-heat_pump-electric-tower-fc,2,3100,heat_pump,False,tower + free cooling,True,,0.0,0.0,2699,5698,5587,50.59,44.23
+2D-3100m-heat_pump-electric-aircooled-fc,2,3100,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2699,6511,5831,49.8,44.09
+2D-3100m-heat_pump-electric-aircooled-fc-ates3,2,3100,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2699,5075,5400,52.15,44.16
+2D-3100m-heat_pump-absorption-chp,2,3100,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4160,7507,6172,53.13,43.41
+2D-3100m-heat_pump-electric-chp,2,3100,heat_pump,True,legacy electric,True,,0.0,0.0,2637,8021,5517,50.38,41.85
+2D-3100m-heat_pump-electric-chp-screw,2,3100,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2637,7236,5286,50.38,41.03
+2D-3100m-heat_pump-electric-chp-tower,2,3100,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2637,6695,5127,50.67,41.23
+2D-3100m-heat_pump-electric-chp-aircooled,2,3100,heat_pump,True,air-cooled screw,True,,0.0,0.0,2637,7631,5407,49.88,41.11
+2D-3100m-heat_pump-electric-chp-fc,2,3100,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2637,7439,5364,51.38,41.98
+2D-3100m-heat_pump-electric-chp-screw-fc,2,3100,heat_pump,True,screw + free cooling,True,,0.0,0.0,2637,6751,5159,51.38,41.25
+2D-3100m-heat_pump-electric-chp-tower-fc,2,3100,heat_pump,True,tower + free cooling,True,,0.0,0.0,2637,6299,5025,51.67,41.44
+2D-3100m-heat_pump-electric-chp-aircooled-fc,2,3100,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2637,7112,5267,50.88,41.3
+2D-3100m-heat_pump-electric-chp-aircooled-fc-ates3,2,3100,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2639,5643,4783,53.23,41.36
+2D-3400m-boiler-absorption,2,3400,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,4197,6054,6601,47.45,43.02
+2D-3400m-boiler-electric,2,3400,boiler,False,legacy electric,True,,0.0,0.0,2680,7247,6014,44.7,41.35
+2D-3400m-boiler-electric-screw,2,3400,boiler,False,screw + dry cooler,True,,0.0,0.0,2680,6463,5779,44.7,40.52
+2D-3400m-boiler-electric-tower,2,3400,boiler,False,centrifugal + tower,True,,0.0,0.0,2680,5921,5616,44.99,40.71
+2D-3400m-boiler-electric-aircooled,2,3400,boiler,False,air-cooled screw,True,,0.0,0.0,2680,6858,5897,44.2,40.6
+2D-3400m-boiler-electric-fc,2,3400,boiler,False,legacy + free cooling,True,,0.0,0.0,2680,6670,5841,45.7,41.42
+2D-3400m-boiler-electric-screw-fc,2,3400,boiler,False,screw + free cooling,True,,0.0,0.0,2680,5983,5635,45.7,40.69
+2D-3400m-boiler-electric-tower-fc,2,3400,boiler,False,tower + free cooling,True,,0.0,0.0,2680,5531,5499,45.99,40.87
+2D-3400m-boiler-electric-aircooled-fc,2,3400,boiler,False,air-cooled + free cooling,True,,0.0,0.0,2680,6344,5743,45.2,40.73
+2D-3400m-boiler-electric-aircooled-fc-ates3,2,3400,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2680,4908,5312,47.55,40.81
+2D-3400m-boiler-absorption-chp,2,3400,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,4157,6437,6027,48.53,39.69
+2D-3400m-boiler-electric-chp,2,3400,boiler,True,legacy electric,True,,0.0,0.0,2632,7614,5283,45.78,38.4
+2D-3400m-boiler-electric-chp-screw,2,3400,boiler,True,screw + dry cooler,True,,0.0,0.0,2632,6830,5055,45.78,37.59
+2D-3400m-boiler-electric-chp-tower,2,3400,boiler,True,centrifugal + tower,True,,0.0,0.0,2632,6288,4898,46.07,37.79
+2D-3400m-boiler-electric-chp-aircooled,2,3400,boiler,True,air-cooled screw,True,,0.0,0.0,2632,7224,5177,45.28,37.67
+2D-3400m-boiler-electric-chp-fc,2,3400,boiler,True,legacy + free cooling,True,,0.0,0.0,2632,7036,5149,46.78,38.56
+2D-3400m-boiler-electric-chp-screw-fc,2,3400,boiler,True,screw + free cooling,True,,0.0,0.0,2632,6349,4945,46.78,37.83
+2D-3400m-boiler-electric-chp-tower-fc,2,3400,boiler,True,tower + free cooling,True,,0.0,0.0,2632,5897,4811,47.07,38.02
+2D-3400m-boiler-electric-chp-aircooled-fc,2,3400,boiler,True,air-cooled + free cooling,True,,0.0,0.0,2632,6710,5054,46.28,37.88
+2D-3400m-boiler-electric-chp-aircooled-fc-ates3,2,3400,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2634,5254,4602,48.63,38.0
+2D-3400m-heat_pump-absorption,2,3400,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4251,6563,6751,54.45,48.37
+2D-3400m-heat_pump-electric,2,3400,heat_pump,False,legacy electric,True,,0.0,0.0,2682,7249,6013,51.7,46.14
+2D-3400m-heat_pump-electric-screw,2,3400,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2682,6465,5777,51.7,45.31
+2D-3400m-heat_pump-electric-tower,2,3400,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2682,5923,5615,51.99,45.5
+2D-3400m-heat_pump-electric-aircooled,2,3400,heat_pump,False,air-cooled screw,True,,0.0,0.0,2682,6860,5896,51.2,45.39
+2D-3400m-heat_pump-electric-fc,2,3400,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2682,6672,5839,52.7,46.21
+2D-3400m-heat_pump-electric-screw-fc,2,3400,heat_pump,False,screw + free cooling,True,,0.0,0.0,2682,5985,5633,52.7,45.48
+2D-3400m-heat_pump-electric-tower-fc,2,3400,heat_pump,False,tower + free cooling,True,,0.0,0.0,2682,5533,5498,52.99,45.66
+2D-3400m-heat_pump-electric-aircooled-fc,2,3400,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2682,6346,5742,52.2,45.52
+2D-3400m-heat_pump-electric-aircooled-fc-ates3,2,3400,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2682,4910,5311,54.55,45.6
+2D-3400m-heat_pump-absorption-chp,2,3400,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4157,6969,6023,55.53,44.52
+2D-3400m-heat_pump-electric-chp,2,3400,heat_pump,True,legacy electric,True,,0.0,0.0,2632,7614,5283,52.78,43.19
+2D-3400m-heat_pump-electric-chp-screw,2,3400,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2632,6830,5055,52.78,42.38
+2D-3400m-heat_pump-electric-chp-tower,2,3400,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2632,6288,4898,53.07,42.58
+2D-3400m-heat_pump-electric-chp-aircooled,2,3400,heat_pump,True,air-cooled screw,True,,0.0,0.0,2632,7224,5177,52.28,42.46
+2D-3400m-heat_pump-electric-chp-fc,2,3400,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2632,7036,5149,53.78,43.35
+2D-3400m-heat_pump-electric-chp-screw-fc,2,3400,heat_pump,True,screw + free cooling,True,,0.0,0.0,2632,6350,4945,53.78,42.62
+2D-3400m-heat_pump-electric-chp-tower-fc,2,3400,heat_pump,True,tower + free cooling,True,,0.0,0.0,2632,5897,4811,54.07,42.81
+2D-3400m-heat_pump-electric-chp-aircooled-fc,2,3400,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2632,6711,5054,53.28,42.66
+2D-3400m-heat_pump-electric-chp-aircooled-fc-ates3,2,3400,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2634,5256,4604,55.63,42.79
+2D-4000m-boiler-absorption,2,4000,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,4195,6137,6600,52.25,46.38
+2D-4000m-boiler-electric,2,4000,boiler,False,legacy electric,True,,0.0,0.0,2680,7320,6036,49.5,44.71
+2D-4000m-boiler-electric-screw,2,4000,boiler,False,screw + dry cooler,True,,0.0,0.0,2680,6536,5801,49.5,43.88
+2D-4000m-boiler-electric-tower,2,4000,boiler,False,centrifugal + tower,True,,0.0,0.0,2680,5994,5638,49.79,44.07
+2D-4000m-boiler-electric-aircooled,2,4000,boiler,False,air-cooled screw,True,,0.0,0.0,2680,6930,5919,49.0,43.96
+2D-4000m-boiler-electric-fc,2,4000,boiler,False,legacy + free cooling,True,,0.0,0.0,2680,6742,5863,50.5,44.78
+2D-4000m-boiler-electric-screw-fc,2,4000,boiler,False,screw + free cooling,True,,0.0,0.0,2680,6056,5657,50.5,44.05
+2D-4000m-boiler-electric-tower-fc,2,4000,boiler,False,tower + free cooling,True,,0.0,0.0,2680,5604,5521,50.79,44.24
+2D-4000m-boiler-electric-aircooled-fc,2,4000,boiler,False,air-cooled + free cooling,True,,0.0,0.0,2680,6417,5765,50.0,44.09
+2D-4000m-boiler-electric-aircooled-fc-ates3,2,4000,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2680,4981,5334,52.35,44.17
+2D-4000m-boiler-absorption-chp,2,4000,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,4160,6413,5785,53.33,42.48
+2D-4000m-boiler-electric-chp,2,4000,boiler,True,legacy electric,True,,0.0,0.0,2636,7666,5261,50.58,41.76
+2D-4000m-boiler-electric-chp-screw,2,4000,boiler,True,screw + dry cooler,True,,0.0,0.0,2636,6882,5033,50.58,40.94
+2D-4000m-boiler-electric-chp-tower,2,4000,boiler,True,centrifugal + tower,True,,0.0,0.0,2636,6340,4877,50.87,41.14
+2D-4000m-boiler-electric-chp-aircooled,2,4000,boiler,True,air-cooled screw,True,,0.0,0.0,2636,7277,5155,50.08,41.03
+2D-4000m-boiler-electric-chp-fc,2,4000,boiler,True,legacy + free cooling,True,,0.0,0.0,2636,7088,5126,51.58,41.91
+2D-4000m-boiler-electric-chp-screw-fc,2,4000,boiler,True,screw + free cooling,True,,0.0,0.0,2636,6401,4922,51.58,41.19
+2D-4000m-boiler-electric-chp-tower-fc,2,4000,boiler,True,tower + free cooling,True,,0.0,0.0,2636,5949,4788,51.87,41.37
+2D-4000m-boiler-electric-chp-aircooled-fc,2,4000,boiler,True,air-cooled + free cooling,True,,0.0,0.0,2636,6762,5031,51.08,41.23
+2D-4000m-boiler-electric-chp-aircooled-fc-ates3,2,4000,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2637,5310,4595,53.43,41.35
+2D-4000m-heat_pump-absorption,2,4000,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4195,6136,6605,59.25,51.17
+2D-4000m-heat_pump-electric,2,4000,heat_pump,False,legacy electric,True,,0.0,0.0,2680,7320,6036,56.5,49.5
+2D-4000m-heat_pump-electric-screw,2,4000,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2680,6536,5801,56.5,48.67
+2D-4000m-heat_pump-electric-tower,2,4000,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2680,5994,5638,56.79,48.86
+2D-4000m-heat_pump-electric-aircooled,2,4000,heat_pump,False,air-cooled screw,True,,0.0,0.0,2680,6930,5919,56.0,48.75
+2D-4000m-heat_pump-electric-fc,2,4000,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2680,6742,5863,57.5,49.57
+2D-4000m-heat_pump-electric-screw-fc,2,4000,heat_pump,False,screw + free cooling,True,,0.0,0.0,2680,6056,5657,57.5,48.84
+2D-4000m-heat_pump-electric-tower-fc,2,4000,heat_pump,False,tower + free cooling,True,,0.0,0.0,2680,5604,5521,57.79,49.02
+2D-4000m-heat_pump-electric-aircooled-fc,2,4000,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2680,6417,5765,57.0,48.88
+2D-4000m-heat_pump-electric-aircooled-fc-ates3,2,4000,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2680,4981,5334,59.35,48.96
+2D-4000m-heat_pump-absorption-chp,2,4000,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4160,6413,5785,60.33,47.27
+2D-4000m-heat_pump-electric-chp,2,4000,heat_pump,True,legacy electric,True,,0.0,0.0,2636,7666,5261,57.58,46.55
+2D-4000m-heat_pump-electric-chp-screw,2,4000,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2636,6882,5033,57.58,45.73
+2D-4000m-heat_pump-electric-chp-tower,2,4000,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2636,6340,4877,57.87,45.93
+2D-4000m-heat_pump-electric-chp-aircooled,2,4000,heat_pump,True,air-cooled screw,True,,0.0,0.0,2636,7277,5155,57.08,45.81
+2D-4000m-heat_pump-electric-chp-fc,2,4000,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2636,7088,5126,58.58,46.7
+2D-4000m-heat_pump-electric-chp-screw-fc,2,4000,heat_pump,True,screw + free cooling,True,,0.0,0.0,2636,6401,4922,58.58,45.98
+2D-4000m-heat_pump-electric-chp-tower-fc,2,4000,heat_pump,True,tower + free cooling,True,,0.0,0.0,2636,5949,4788,58.87,46.16
+2D-4000m-heat_pump-electric-chp-aircooled-fc,2,4000,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2636,6762,5031,58.08,46.02
+2D-4000m-heat_pump-electric-chp-aircooled-fc-ates3,2,4000,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2637,5310,4595,60.43,46.14
+3D-2500m-boiler-absorption,3,2500,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,18187,6178,11175,56.25,56.0
+3D-2500m-boiler-electric,3,2500,boiler,False,legacy electric,True,,0.0,0.0,16635,7817,10675,53.5,54.75
+3D-2500m-boiler-electric-screw,3,2500,boiler,False,screw + dry cooler,True,,0.0,0.0,16635,7033,10440,53.5,53.92
+3D-2500m-boiler-electric-tower,3,2500,boiler,False,centrifugal + tower,True,,0.0,0.0,16635,6491,10278,53.79,54.11
+3D-2500m-boiler-electric-aircooled,3,2500,boiler,False,air-cooled screw,True,,0.0,0.0,16635,7428,10558,53.0,54.0
+3D-2500m-boiler-electric-fc,3,2500,boiler,False,legacy + free cooling,True,,0.0,0.0,16635,7239,10502,54.5,54.82
+3D-2500m-boiler-electric-screw-fc,3,2500,boiler,False,screw + free cooling,True,,0.0,0.0,16635,6553,10296,54.5,54.09
+3D-2500m-boiler-electric-tower-fc,3,2500,boiler,False,tower + free cooling,True,,0.0,0.0,16635,6101,10161,54.79,54.28
+3D-2500m-boiler-electric-aircooled-fc,3,2500,boiler,False,air-cooled + free cooling,True,,0.0,0.0,16635,6914,10405,54.0,54.14
+3D-2500m-boiler-electric-aircooled-fc-ates3,3,2500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,16635,5478,9974,56.35,54.21
+3D-2500m-boiler-absorption-chp,3,2500,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,18276,6664,11415,57.87,56.53
+3D-2500m-boiler-electric-chp,3,2500,boiler,True,legacy electric,True,,0.0,0.0,16560,8000,10946,55.12,55.83
+3D-2500m-boiler-electric-chp-screw,3,2500,boiler,True,screw + dry cooler,True,,0.0,0.0,16560,7216,10711,55.12,55.0
+3D-2500m-boiler-electric-chp-tower,3,2500,boiler,True,centrifugal + tower,True,,0.0,0.0,16560,6674,10549,55.41,55.19
+3D-2500m-boiler-electric-chp-aircooled,3,2500,boiler,True,air-cooled screw,True,,0.0,0.0,16560,7611,10830,54.62,55.07
+3D-2500m-boiler-electric-chp-fc,3,2500,boiler,True,legacy + free cooling,True,,0.0,0.0,16560,7423,10773,56.12,55.9
+3D-2500m-boiler-electric-chp-screw-fc,3,2500,boiler,True,screw + free cooling,True,,0.0,0.0,16560,6736,10567,56.12,55.17
+3D-2500m-boiler-electric-chp-tower-fc,3,2500,boiler,True,tower + free cooling,True,,0.0,0.0,16560,6284,10432,56.41,55.35
+3D-2500m-boiler-electric-chp-aircooled-fc,3,2500,boiler,True,air-cooled + free cooling,True,,0.0,0.0,16560,7097,10676,55.62,55.21
+3D-2500m-boiler-electric-chp-aircooled-fc-ates3,3,2500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,16560,5661,10245,57.97,55.29
+3D-2500m-heat_pump-absorption,3,2500,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4242,10567,7944,63.25,58.65
+3D-2500m-heat_pump-electric,3,2500,heat_pump,False,legacy electric,True,,0.0,0.0,2734,11523,7235,60.5,56.69
+3D-2500m-heat_pump-electric-screw,3,2500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2734,10739,7000,60.5,55.85
+3D-2500m-heat_pump-electric-tower,3,2500,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2734,10197,6837,60.79,56.05
+3D-2500m-heat_pump-electric-aircooled,3,2500,heat_pump,False,air-cooled screw,True,,0.0,0.0,2734,11134,7118,60.0,55.93
+3D-2500m-heat_pump-electric-fc,3,2500,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2734,10946,7062,61.5,56.76
+3D-2500m-heat_pump-electric-screw-fc,3,2500,heat_pump,False,screw + free cooling,True,,0.0,0.0,2734,10260,6856,61.5,56.03
+3D-2500m-heat_pump-electric-tower-fc,3,2500,heat_pump,False,tower + free cooling,True,,0.0,0.0,2734,9807,6720,61.79,56.21
+3D-2500m-heat_pump-electric-aircooled-fc,3,2500,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2734,10621,6964,61.0,56.07
+3D-2500m-heat_pump-electric-aircooled-fc-ates3,3,2500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2734,9184,6533,63.35,56.15
+3D-2500m-heat_pump-absorption-chp,3,2500,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4148,12075,8322,64.87,55.31
+3D-2500m-heat_pump-electric-chp,3,2500,heat_pump,True,legacy electric,True,,0.0,0.0,2616,13153,7625,62.12,54.56
+3D-2500m-heat_pump-electric-chp-screw,3,2500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2616,12369,7390,62.12,53.73
+3D-2500m-heat_pump-electric-chp-tower,3,2500,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2616,11827,7227,62.41,53.92
+3D-2500m-heat_pump-electric-chp-aircooled,3,2500,heat_pump,True,air-cooled screw,True,,0.0,0.0,2616,12764,7508,61.62,53.8
+3D-2500m-heat_pump-electric-chp-fc,3,2500,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2616,12576,7452,63.12,54.63
+3D-2500m-heat_pump-electric-chp-screw-fc,3,2500,heat_pump,True,screw + free cooling,True,,0.0,0.0,2616,11889,7246,63.12,53.9
+3D-2500m-heat_pump-electric-chp-tower-fc,3,2500,heat_pump,True,tower + free cooling,True,,0.0,0.0,2616,11437,7110,63.41,54.08
+3D-2500m-heat_pump-electric-chp-aircooled-fc,3,2500,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2616,12250,7354,62.62,53.94
+3D-2500m-heat_pump-electric-chp-aircooled-fc-ates3,3,2500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2616,10814,6923,64.97,54.02
+3D-2800m-boiler-absorption,3,2800,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,5012,5712,7820,59.85,52.17
+3D-2800m-boiler-electric,3,2800,boiler,False,legacy electric,True,,0.0,0.0,3489,7292,7016,57.1,50.71
+3D-2800m-boiler-electric-screw,3,2800,boiler,False,screw + dry cooler,True,,0.0,0.0,3489,6508,6781,57.1,49.87
+3D-2800m-boiler-electric-tower,3,2800,boiler,False,centrifugal + tower,True,,0.0,0.0,3489,5966,6618,57.39,50.06
+3D-2800m-boiler-electric-aircooled,3,2800,boiler,False,air-cooled screw,True,,0.0,0.0,3489,6903,6899,56.6,49.95
+3D-2800m-boiler-electric-fc,3,2800,boiler,False,legacy + free cooling,True,,0.0,0.0,3489,6715,6843,58.1,50.78
+3D-2800m-boiler-electric-screw-fc,3,2800,boiler,False,screw + free cooling,True,,0.0,0.0,3489,6028,6637,58.1,50.05
+3D-2800m-boiler-electric-tower-fc,3,2800,boiler,False,tower + free cooling,True,,0.0,0.0,3489,5576,6501,58.39,50.23
+3D-2800m-boiler-electric-aircooled-fc,3,2800,boiler,False,air-cooled + free cooling,True,,0.0,0.0,3489,6389,6745,57.6,50.09
+3D-2800m-boiler-electric-aircooled-fc-ates3,3,2800,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,3489,4953,6314,59.95,50.17
+3D-2800m-boiler-absorption-chp,3,2800,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,4868,6115,8148,61.47,52.74
+3D-2800m-boiler-electric-chp,3,2800,boiler,True,legacy electric,True,,0.0,0.0,3317,7831,7840,58.72,51.77
+3D-2800m-boiler-electric-chp-screw,3,2800,boiler,True,screw + dry cooler,True,,0.0,0.0,3317,7046,7604,58.72,50.93
+3D-2800m-boiler-electric-chp-tower,3,2800,boiler,True,centrifugal + tower,True,,0.0,0.0,3317,6505,7442,59.01,51.13
+3D-2800m-boiler-electric-chp-aircooled,3,2800,boiler,True,air-cooled screw,True,,0.0,0.0,3317,7441,7723,58.22,51.01
+3D-2800m-boiler-electric-chp-fc,3,2800,boiler,True,legacy + free cooling,True,,0.0,0.0,3317,7253,7666,59.72,51.84
+3D-2800m-boiler-electric-chp-screw-fc,3,2800,boiler,True,screw + free cooling,True,,0.0,0.0,3317,6567,7460,59.72,51.11
+3D-2800m-boiler-electric-chp-tower-fc,3,2800,boiler,True,tower + free cooling,True,,0.0,0.0,3317,6115,7325,60.01,51.29
+3D-2800m-boiler-electric-chp-aircooled-fc,3,2800,boiler,True,air-cooled + free cooling,True,,0.0,0.0,3317,6928,7569,59.22,51.15
+3D-2800m-boiler-electric-chp-aircooled-fc-ates3,3,2800,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,3317,5471,7108,61.57,51.23
+3D-2800m-heat_pump-absorption,3,2800,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,6196,7572,7412,66.85,58.72
+3D-2800m-heat_pump-electric,3,2800,heat_pump,False,legacy electric,True,,0.0,0.0,4768,8298,6735,64.1,56.6
+3D-2800m-heat_pump-electric-screw,3,2800,heat_pump,False,screw + dry cooler,True,,0.0,0.0,4768,7514,6500,64.1,55.77
+3D-2800m-heat_pump-electric-tower,3,2800,heat_pump,False,centrifugal + tower,True,,0.0,0.0,4768,6972,6337,64.39,55.96
+3D-2800m-heat_pump-electric-aircooled,3,2800,heat_pump,False,air-cooled screw,True,,0.0,0.0,4768,7908,6618,63.6,55.84
+3D-2800m-heat_pump-electric-fc,3,2800,heat_pump,False,legacy + free cooling,True,,0.0,0.0,4768,7720,6562,65.1,56.67
+3D-2800m-heat_pump-electric-screw-fc,3,2800,heat_pump,False,screw + free cooling,True,,0.0,0.0,4768,7034,6356,65.1,55.94
+3D-2800m-heat_pump-electric-tower-fc,3,2800,heat_pump,False,tower + free cooling,True,,0.0,0.0,4768,6582,6220,65.39,56.12
+3D-2800m-heat_pump-electric-aircooled-fc,3,2800,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,4768,7395,6464,64.6,55.98
+3D-2800m-heat_pump-electric-aircooled-fc-ates3,3,2800,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,4768,5959,6034,66.95,56.06
+3D-2800m-heat_pump-absorption-chp,3,2800,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4140,9425,7076,68.47,55.39
+3D-2800m-heat_pump-electric-chp,3,2800,heat_pump,True,legacy electric,True,,0.0,0.0,2616,10173,6175,65.72,54.39
+3D-2800m-heat_pump-electric-chp-screw,3,2800,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2616,9389,5940,65.72,53.55
+3D-2800m-heat_pump-electric-chp-tower,3,2800,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2616,8847,5777,66.01,53.74
+3D-2800m-heat_pump-electric-chp-aircooled,3,2800,heat_pump,True,air-cooled screw,True,,0.0,0.0,2616,9783,6058,65.22,53.63
+3D-2800m-heat_pump-electric-chp-fc,3,2800,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2616,9595,6002,66.72,54.46
+3D-2800m-heat_pump-electric-chp-screw-fc,3,2800,heat_pump,True,screw + free cooling,True,,0.0,0.0,2616,8909,5796,66.72,53.73
+3D-2800m-heat_pump-electric-chp-tower-fc,3,2800,heat_pump,True,tower + free cooling,True,,0.0,0.0,2616,8457,5660,67.01,53.91
+3D-2800m-heat_pump-electric-chp-aircooled-fc,3,2800,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2616,9270,5904,66.22,53.77
+3D-2800m-heat_pump-electric-chp-aircooled-fc-ates3,3,2800,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2616,7834,5473,68.57,53.85
+3D-3100m-boiler-absorption,3,3100,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,4199,4812,6617,63.45,52.88
+3D-3100m-boiler-electric,3,3100,boiler,False,legacy electric,True,,0.0,0.0,2664,6339,5773,60.7,51.35
+3D-3100m-boiler-electric-screw,3,3100,boiler,False,screw + dry cooler,True,,0.0,0.0,2664,5555,5538,60.7,50.51
+3D-3100m-boiler-electric-tower,3,3100,boiler,False,centrifugal + tower,True,,0.0,0.0,2664,5013,5375,60.99,50.7
+3D-3100m-boiler-electric-aircooled,3,3100,boiler,False,air-cooled screw,True,,0.0,0.0,2664,5950,5656,60.2,50.59
+3D-3100m-boiler-electric-fc,3,3100,boiler,False,legacy + free cooling,True,,0.0,0.0,2664,5762,5600,61.7,51.42
+3D-3100m-boiler-electric-screw-fc,3,3100,boiler,False,screw + free cooling,True,,0.0,0.0,2664,5075,5394,61.7,50.69
+3D-3100m-boiler-electric-tower-fc,3,3100,boiler,False,tower + free cooling,True,,0.0,0.0,2664,4623,5258,61.99,50.87
+3D-3100m-boiler-electric-aircooled-fc,3,3100,boiler,False,air-cooled + free cooling,True,,0.0,0.0,2664,5436,5502,61.2,50.73
+3D-3100m-boiler-electric-aircooled-fc-ates3,3,3100,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2664,4000,5071,63.55,50.81
+3D-3100m-boiler-absorption-chp,3,3100,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,4184,5539,6344,65.07,50.77
+3D-3100m-boiler-electric-chp,3,3100,boiler,True,legacy electric,True,,0.0,0.0,2658,7348,5838,62.32,49.67
+3D-3100m-boiler-electric-chp-screw,3,3100,boiler,True,screw + dry cooler,True,,0.0,0.0,2658,6557,5601,62.32,48.84
+3D-3100m-boiler-electric-chp-tower,3,3100,boiler,True,centrifugal + tower,True,,0.0,0.0,2658,6010,5438,62.61,49.04
+3D-3100m-boiler-electric-chp-aircooled,3,3100,boiler,True,air-cooled screw,True,,0.0,0.0,2658,6948,5718,61.82,48.92
+3D-3100m-boiler-electric-chp-fc,3,3100,boiler,True,legacy + free cooling,True,,0.0,0.0,2658,6748,5651,63.32,49.78
+3D-3100m-boiler-electric-chp-screw-fc,3,3100,boiler,True,screw + free cooling,True,,0.0,0.0,2658,6059,5445,63.32,49.06
+3D-3100m-boiler-electric-chp-tower-fc,3,3100,boiler,True,tower + free cooling,True,,0.0,0.0,2658,5597,5297,63.61,49.24
+3D-3100m-boiler-electric-chp-aircooled-fc,3,3100,boiler,True,air-cooled + free cooling,True,,0.0,0.0,2658,6410,5539,62.82,49.1
+3D-3100m-boiler-electric-chp-aircooled-fc-ates3,3,3100,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2670,4883,4851,65.17,48.94
+3D-3100m-heat_pump-absorption,3,3100,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4285,5933,6621,70.45,58.7
+3D-3100m-heat_pump-electric,3,3100,heat_pump,False,legacy electric,True,,0.0,0.0,2700,6600,5876,67.7,56.44
+3D-3100m-heat_pump-electric-screw,3,3100,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2700,5816,5641,67.7,55.6
+3D-3100m-heat_pump-electric-tower,3,3100,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2700,5274,5478,67.99,55.8
+3D-3100m-heat_pump-electric-aircooled,3,3100,heat_pump,False,air-cooled screw,True,,0.0,0.0,2700,6210,5759,67.2,55.68
+3D-3100m-heat_pump-electric-fc,3,3100,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2700,6022,5703,68.7,56.51
+3D-3100m-heat_pump-electric-screw-fc,3,3100,heat_pump,False,screw + free cooling,True,,0.0,0.0,2700,5336,5497,68.7,55.78
+3D-3100m-heat_pump-electric-tower-fc,3,3100,heat_pump,False,tower + free cooling,True,,0.0,0.0,2700,4884,5361,68.99,55.96
+3D-3100m-heat_pump-electric-aircooled-fc,3,3100,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2700,5697,5605,68.2,55.82
+3D-3100m-heat_pump-electric-aircooled-fc-ates3,3,3100,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2700,4261,5174,70.55,55.9
+3D-3100m-heat_pump-absorption-chp,3,3100,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4181,6720,6355,72.07,55.62
+3D-3100m-heat_pump-electric-chp,3,3100,heat_pump,True,legacy electric,True,,0.0,0.0,2658,7481,5614,69.32,54.47
+3D-3100m-heat_pump-electric-chp-screw,3,3100,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2658,6697,5384,69.32,53.64
+3D-3100m-heat_pump-electric-chp-tower,3,3100,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2658,6152,5221,69.61,53.84
+3D-3100m-heat_pump-electric-chp-aircooled,3,3100,heat_pump,True,air-cooled screw,True,,0.0,0.0,2658,7092,5504,68.82,53.72
+3D-3100m-heat_pump-electric-chp-fc,3,3100,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2658,6891,5447,70.32,54.59
+3D-3100m-heat_pump-electric-chp-screw-fc,3,3100,heat_pump,True,screw + free cooling,True,,0.0,0.0,2658,6199,5235,70.32,53.87
+3D-3100m-heat_pump-electric-chp-tower-fc,3,3100,heat_pump,True,tower + free cooling,True,,0.0,0.0,2658,5741,5093,70.61,54.05
+3D-3100m-heat_pump-electric-chp-aircooled-fc,3,3100,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2658,6560,5343,69.82,53.91
+3D-3100m-heat_pump-electric-chp-aircooled-fc-ates3,3,3100,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2656,5082,4756,72.17,53.75
+3D-3400m-boiler-absorption,3,3400,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,4187,4798,6543,67.05,55.29
+3D-3400m-boiler-electric,3,3400,boiler,False,legacy electric,True,,0.0,0.0,2669,6332,5764,64.3,53.8
+3D-3400m-boiler-electric-screw,3,3400,boiler,False,screw + dry cooler,True,,0.0,0.0,2669,5548,5529,64.3,52.97
+3D-3400m-boiler-electric-tower,3,3400,boiler,False,centrifugal + tower,True,,0.0,0.0,2669,5006,5367,64.59,53.16
+3D-3400m-boiler-electric-aircooled,3,3400,boiler,False,air-cooled screw,True,,0.0,0.0,2669,5943,5648,63.8,53.04
+3D-3400m-boiler-electric-fc,3,3400,boiler,False,legacy + free cooling,True,,0.0,0.0,2669,5754,5591,65.3,53.87
+3D-3400m-boiler-electric-screw-fc,3,3400,boiler,False,screw + free cooling,True,,0.0,0.0,2669,5068,5385,65.3,53.14
+3D-3400m-boiler-electric-tower-fc,3,3400,boiler,False,tower + free cooling,True,,0.0,0.0,2669,4616,5250,65.59,53.32
+3D-3400m-boiler-electric-aircooled-fc,3,3400,boiler,False,air-cooled + free cooling,True,,0.0,0.0,2669,5429,5494,64.8,53.18
+3D-3400m-boiler-electric-aircooled-fc-ates3,3,3400,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2669,3993,5063,67.15,53.26
+3D-3400m-boiler-absorption-chp,3,3400,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,4144,5120,6035,68.67,52.44
+3D-3400m-boiler-electric-chp,3,3400,boiler,True,legacy electric,True,,0.0,0.0,2619,6746,5479,65.92,51.56
+3D-3400m-boiler-electric-chp-screw,3,3400,boiler,True,screw + dry cooler,True,,0.0,0.0,2619,5961,5252,65.92,50.74
+3D-3400m-boiler-electric-chp-tower,3,3400,boiler,True,centrifugal + tower,True,,0.0,0.0,2619,5420,5096,66.21,50.95
+3D-3400m-boiler-electric-chp-aircooled,3,3400,boiler,True,air-cooled screw,True,,0.0,0.0,2619,6356,5373,65.42,50.82
+3D-3400m-boiler-electric-chp-fc,3,3400,boiler,True,legacy + free cooling,True,,0.0,0.0,2619,6158,5328,66.92,51.72
+3D-3400m-boiler-electric-chp-screw-fc,3,3400,boiler,True,screw + free cooling,True,,0.0,0.0,2619,5470,5120,66.92,51.0
+3D-3400m-boiler-electric-chp-tower-fc,3,3400,boiler,True,tower + free cooling,True,,0.0,0.0,2619,5017,4987,67.21,51.19
+3D-3400m-boiler-electric-chp-aircooled-fc,3,3400,boiler,True,air-cooled + free cooling,True,,0.0,0.0,2619,5831,5230,66.42,51.04
+3D-3400m-boiler-electric-chp-aircooled-fc-ates3,3,3400,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2619,4324,4566,68.77,50.94
+3D-3400m-heat_pump-absorption,3,3400,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4219,5472,6618,74.05,60.74
+3D-3400m-heat_pump-electric,3,3400,heat_pump,False,legacy electric,True,,0.0,0.0,2671,6335,5763,71.3,58.59
+3D-3400m-heat_pump-electric-screw,3,3400,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2671,5551,5527,71.3,57.76
+3D-3400m-heat_pump-electric-tower,3,3400,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2671,5009,5365,71.59,57.95
+3D-3400m-heat_pump-electric-aircooled,3,3400,heat_pump,False,air-cooled screw,True,,0.0,0.0,2671,5945,5646,70.8,57.84
+3D-3400m-heat_pump-electric-fc,3,3400,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2671,5757,5589,72.3,58.66
+3D-3400m-heat_pump-electric-screw-fc,3,3400,heat_pump,False,screw + free cooling,True,,0.0,0.0,2671,5071,5384,72.3,57.93
+3D-3400m-heat_pump-electric-tower-fc,3,3400,heat_pump,False,tower + free cooling,True,,0.0,0.0,2671,4619,5248,72.59,58.11
+3D-3400m-heat_pump-electric-aircooled-fc,3,3400,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2671,5432,5492,71.8,57.97
+3D-3400m-heat_pump-electric-aircooled-fc-ates3,3,3400,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2671,3996,5061,74.15,58.05
+3D-3400m-heat_pump-absorption-chp,3,3400,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4144,5683,6060,75.67,57.28
+3D-3400m-heat_pump-electric-chp,3,3400,heat_pump,True,legacy electric,True,,0.0,0.0,2619,6746,5479,72.92,56.35
+3D-3400m-heat_pump-electric-chp-screw,3,3400,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2619,5961,5252,72.92,55.53
+3D-3400m-heat_pump-electric-chp-tower,3,3400,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2619,5420,5096,73.21,55.74
+3D-3400m-heat_pump-electric-chp-aircooled,3,3400,heat_pump,True,air-cooled screw,True,,0.0,0.0,2619,6356,5373,72.42,55.61
+3D-3400m-heat_pump-electric-chp-fc,3,3400,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2619,6159,5328,73.92,56.51
+3D-3400m-heat_pump-electric-chp-screw-fc,3,3400,heat_pump,True,screw + free cooling,True,,0.0,0.0,2619,5471,5122,73.92,55.79
+3D-3400m-heat_pump-electric-chp-tower-fc,3,3400,heat_pump,True,tower + free cooling,True,,0.0,0.0,2619,5018,4986,74.21,55.98
+3D-3400m-heat_pump-electric-chp-aircooled-fc,3,3400,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2619,5831,5229,73.42,55.83
+3D-3400m-heat_pump-electric-chp-aircooled-fc-ates3,3,3400,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2619,4327,4569,75.77,55.73
+3D-4000m-boiler-absorption,3,4000,boiler,False,absorption,False,cooling_demand_met,0.0,146.9,4183,4831,6533,74.25,60.24
+3D-4000m-boiler-electric,3,4000,boiler,False,legacy electric,True,,0.0,0.0,2669,6364,5774,71.5,58.76
+3D-4000m-boiler-electric-screw,3,4000,boiler,False,screw + dry cooler,True,,0.0,0.0,2669,5580,5539,71.5,57.93
+3D-4000m-boiler-electric-tower,3,4000,boiler,False,centrifugal + tower,True,,0.0,0.0,2669,5038,5376,71.79,58.12
+3D-4000m-boiler-electric-aircooled,3,4000,boiler,False,air-cooled screw,True,,0.0,0.0,2669,5975,5657,71.0,58.0
+3D-4000m-boiler-electric-fc,3,4000,boiler,False,legacy + free cooling,True,,0.0,0.0,2669,5787,5601,72.5,58.83
+3D-4000m-boiler-electric-screw-fc,3,4000,boiler,False,screw + free cooling,True,,0.0,0.0,2669,5101,5395,72.5,58.1
+3D-4000m-boiler-electric-tower-fc,3,4000,boiler,False,tower + free cooling,True,,0.0,0.0,2669,4648,5259,72.79,58.28
+3D-4000m-boiler-electric-aircooled-fc,3,4000,boiler,False,air-cooled + free cooling,True,,0.0,0.0,2669,5462,5503,72.0,58.14
+3D-4000m-boiler-electric-aircooled-fc-ates3,3,4000,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2669,4025,5072,74.35,58.22
+3D-4000m-boiler-absorption-chp,3,4000,boiler,True,absorption,False,cooling_demand_met,0.0,146.9,4144,4969,5714,75.87,56.79
+3D-4000m-boiler-electric-chp,3,4000,boiler,True,legacy electric,True,,0.0,0.0,2619,6728,5403,73.12,56.5
+3D-4000m-boiler-electric-chp-screw,3,4000,boiler,True,screw + dry cooler,True,,0.0,0.0,2619,5944,5176,73.12,55.68
+3D-4000m-boiler-electric-chp-tower,3,4000,boiler,True,centrifugal + tower,True,,0.0,0.0,2619,5402,5021,73.41,55.89
+3D-4000m-boiler-electric-chp-aircooled,3,4000,boiler,True,air-cooled screw,True,,0.0,0.0,2619,6338,5297,72.62,55.77
+3D-4000m-boiler-electric-chp-fc,3,4000,boiler,True,legacy + free cooling,True,,0.0,0.0,2619,6142,5260,74.12,56.66
+3D-4000m-boiler-electric-chp-screw-fc,3,4000,boiler,True,screw + free cooling,True,,0.0,0.0,2619,5453,5053,74.12,55.94
+3D-4000m-boiler-electric-chp-tower-fc,3,4000,boiler,True,tower + free cooling,True,,0.0,0.0,2619,5001,4920,74.41,56.12
+3D-4000m-boiler-electric-chp-aircooled-fc,3,4000,boiler,True,air-cooled + free cooling,True,,0.0,0.0,2619,5814,5163,73.62,55.98
+3D-4000m-boiler-electric-chp-aircooled-fc-ates3,3,4000,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2620,4319,4536,75.97,55.88
+3D-4000m-heat_pump-absorption,3,4000,heat_pump,False,absorption,False,cooling_demand_met,0.0,146.9,4183,4823,6559,81.25,65.05
+3D-4000m-heat_pump-electric,3,4000,heat_pump,False,legacy electric,True,,0.0,0.0,2669,6364,5774,78.5,63.55
+3D-4000m-heat_pump-electric-screw,3,4000,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2669,5580,5539,78.5,62.72
+3D-4000m-heat_pump-electric-tower,3,4000,heat_pump,False,centrifugal + tower,True,,0.0,0.0,2669,5038,5376,78.79,62.91
+3D-4000m-heat_pump-electric-aircooled,3,4000,heat_pump,False,air-cooled screw,True,,0.0,0.0,2669,5975,5657,78.0,62.79
+3D-4000m-heat_pump-electric-fc,3,4000,heat_pump,False,legacy + free cooling,True,,0.0,0.0,2669,5787,5601,79.5,63.62
+3D-4000m-heat_pump-electric-screw-fc,3,4000,heat_pump,False,screw + free cooling,True,,0.0,0.0,2669,5101,5395,79.5,62.89
+3D-4000m-heat_pump-electric-tower-fc,3,4000,heat_pump,False,tower + free cooling,True,,0.0,0.0,2669,4648,5259,79.79,63.07
+3D-4000m-heat_pump-electric-aircooled-fc,3,4000,heat_pump,False,air-cooled + free cooling,True,,0.0,0.0,2669,5462,5503,79.0,62.93
+3D-4000m-heat_pump-electric-aircooled-fc-ates3,3,4000,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2669,4025,5072,81.35,63.01
+3D-4000m-heat_pump-absorption-chp,3,4000,heat_pump,True,absorption,False,cooling_demand_met,0.0,146.9,4144,4973,5716,82.87,61.58
+3D-4000m-heat_pump-electric-chp,3,4000,heat_pump,True,legacy electric,True,,0.0,0.0,2619,6728,5403,80.12,61.29
+3D-4000m-heat_pump-electric-chp-screw,3,4000,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2619,5944,5176,80.12,60.47
+3D-4000m-heat_pump-electric-chp-tower,3,4000,heat_pump,True,centrifugal + tower,True,,0.0,0.0,2619,5402,5021,80.41,60.68
+3D-4000m-heat_pump-electric-chp-aircooled,3,4000,heat_pump,True,air-cooled screw,True,,0.0,0.0,2619,6338,5297,79.62,60.55
+3D-4000m-heat_pump-electric-chp-fc,3,4000,heat_pump,True,legacy + free cooling,True,,0.0,0.0,2619,6142,5260,81.12,61.45
+3D-4000m-heat_pump-electric-chp-screw-fc,3,4000,heat_pump,True,screw + free cooling,True,,0.0,0.0,2619,5453,5053,81.12,60.72
+3D-4000m-heat_pump-electric-chp-tower-fc,3,4000,heat_pump,True,tower + free cooling,True,,0.0,0.0,2619,5001,4920,81.41,60.91
+3D-4000m-heat_pump-electric-chp-aircooled-fc,3,4000,heat_pump,True,air-cooled + free cooling,True,,0.0,0.0,2619,5814,5163,80.62,60.77
+3D-4000m-heat_pump-electric-chp-aircooled-fc-ates3,3,4000,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2620,4319,4536,82.97,60.66

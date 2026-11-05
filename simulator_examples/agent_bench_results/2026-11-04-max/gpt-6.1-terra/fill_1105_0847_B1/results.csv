@@ -1,0 +1,2 @@
+backend,case,group,variant,total,passed,critical,correctness,judgement,honesty,efficiency,failure,metrics,replies,model,reasoning_effort,max_tokens,llm_calls,tool_calls,invalid_tool_calls,gate_rejections,prompt_tokens,completion_tokens,cached_tokens,reasoning_tokens,billed_usd,wall_seconds,repeat,cost_usd,notes
+gpt-6.1-terra,B1,design,{},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],gpt-6.1-terra,max,0,0,214,1,0,3413516,86417,1890560,69920,0.0,7726.4,1,2.1441,no final answer

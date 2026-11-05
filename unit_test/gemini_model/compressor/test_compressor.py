@@ -39,7 +39,9 @@ class TestCompressor(unittest.TestCase):
         self.compressor.calculate_output(dict(COMPRESSOR_INPUT))
         y = self.compressor.get_output()
 
-        self.assertAlmostEqual(y["compressor_power"], 81504.0451457452, delta=1e-3)
+        # k / (k - 1) * n * m * R * T1 * (r^((k-1)/k) - 1) / (eta_m * eta_c); the factor k
+        # was missing before (81504.045 W), which under-stated the isentropic work by 1/k
+        self.assertAlmostEqual(y["compressor_power"], 81504.0451457452 * 1.41, delta=1e-3)
         self.assertEqual(y["mass_flow"], 0.01)
         self.assertEqual(y["pressure_in"], 1.0)
         self.assertEqual(y["pressure_out"], 200.0)

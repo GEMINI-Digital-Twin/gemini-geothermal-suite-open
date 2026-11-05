@@ -1,0 +1,23 @@
+# Realistic cooling and well choices, weather: NLD_Amsterdam.062400_IWEC.epw
+
+| case | run_id | design | physics_gate | meets_all_hard_rules | unmet_cooling_mwh | free_cooling_mwh | ates_cooling_mwh | ates_imbalance | electricity_mwh | tower_water_m3 | co2_t_per_year | capex_meur | well_integrity_meur | lcoe_eur_per_mwh |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| pick as reported (fixed 30 degC, no corrosion costs) | R0001 | 2D-3100m-boiler-electric-chp | pass | True | 0.0 | 0 | 0 |  | 8774 | 0 | 5363 | 38.92 | 0.0 | 33.85 |
+| pick, fixed 30 degC, corrosion mitigation priced | R0002 | 2D-3100m-boiler-electric-chp | pass | True | 0.0 | 0 | 0 |  | 8774 | 0 | 5363 | 43.88 | 4.96 | 37.24 |
+| pick, Amsterdam weather | R0003 | 2D-3100m-boiler-electric-chp | pass | True | 0.0 | 0 | 0 |  | 7771 | 0 | 5063 | 43.88 | 4.96 | 36.18 |
+| screw_dry_cooler | R0004 | 2D-3100m-boiler-electric-chp-screw | pass | True | 0.0 | 0 | 0 |  | 7148 | 0 | 4877 | 43.88 | 4.96 | 35.53 |
+| screw_dry_cooler + free cooling | R0005 | 2D-3100m-boiler-electric-chp-screw-fc | pass | True | 0.0 | 10130 | 0 |  | 6000 | 0 | 4525 | 45.08 | 4.96 | 35.21 |
+| centrifugal_tower | R0006 | 2D-3100m-boiler-electric-chp-tower | pass | True | 0.0 | 0 | 0 |  | 6604 | 51501 | 4716 | 44.23 | 4.96 | 35.77 |
+| centrifugal_tower + free cooling | R0007 | 2D-3100m-boiler-electric-chp-tower-fc | pass | True | 0.0 | 10130 | 0 |  | 5665 | 29521 | 4423 | 45.43 | 4.96 | 35.42 |
+| air_cooled_screw | R0008 | 2D-3100m-boiler-electric-chp-aircooled | pass | True | 0.0 | 0 | 0 |  | 7398 | 0 | 4953 | 43.28 | 4.96 | 35.39 |
+| air_cooled_screw + free cooling | R0009 | 2D-3100m-boiler-electric-chp-aircooled-fc | pass | True | 0.0 | 10130 | 0 |  | 6179 | 0 | 4578 | 44.48 | 4.96 | 34.99 |
+| tower + free cooling + ATES x2 | R0010 | 2D-3100m-boiler-electric-chp-tower-fc-ates2 | pass | True | 0.0 | 10130 | 8819 | 0.1 | 4989 | 10425 | 4164 | 47.19 | 4.96 | 35.7 |
+| tower + free cooling + ATES x3 | R0011 | 2D-3100m-boiler-electric-chp-tower-fc-ates3 | pass | True | 0.0 | 10130 | 13120 | 0.1 | 4619 | 1086 | 4005 | 48.07 | 4.96 | 35.86 |
+| tower + free cooling + ATES x4 | R0012 | 2D-3100m-boiler-electric-chp-tower-fc-ates4 | pass | True | 0.0 | 10130 | 13612 | 0.049 | 4570 | 0 | 3983 | 48.97 | 4.96 | 36.44 |
+| air-cooled + free cooling + ATES x3, 6 MW backup chiller | R0013 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | pass | True | 0.0 | 10130 | 13120 | 0.1 | 4632 | 0 | 4009 | 45.33 | 4.96 | 33.99 |
+| same, ATES well pair cost x2 | R0014 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | pass | True | 0.0 | 10130 | 13120 | 0.1 | 4632 | 0 | 4009 | 47.13 | 4.96 | 35.22 |
+| same, ATES well pair cost x0.5 | R0015 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | pass | True | 0.0 | 10130 | 13120 | 0.1 | 4632 | 0 | 4009 | 44.43 | 4.96 | 33.37 |
+| same, ATES cold losses doubled | R0016 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | pass | True | 0.0 | 10130 | 8614 | 0.1 | 5202 | 0 | 4226 | 45.33 | 4.96 | 34.53 |
+| air-cooled + free cooling + ATES x4, 4 MW backup chiller | R0017 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates4 | pass | True | 0.0 | 10130 | 13612 | 0.049 | 4570 | 0 | 3983 | 45.61 | 4.96 | 34.14 |
+| 1 doublet, air-cooled + free cooling + ATES x3, 6 MW | R0018 | 1D-3100m-boiler-electric-chp-aircooled-fc-ates3 | pass | True | 0.0 | 10130 | 13120 | 0.1 | 4704 | 0 | 9072 | 26.39 | 2.48 | 33.19 |
+| 2 doublets at 3400 m, tower + free cooling | R0019 | 2D-3400m-boiler-electric-chp-tower-fc | pass | True | 0.0 | 10130 | 0 |  | 5387 | 29521 | 4135 | 47.83 | 5.44 | 36.78 |

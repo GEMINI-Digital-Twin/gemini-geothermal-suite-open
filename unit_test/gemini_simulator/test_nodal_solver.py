@@ -188,8 +188,26 @@ def test_solve_injection_flow_rate_balances_pressures():
         },
         None,
     )
-    p_well = well.get_output()["pressure_output"]
+    # injection flows down, so friction opposes the gravity gain
+    y = well.get_output()
+    p_well = 1e5 + y["pressuredrop_grav_output"] - y["pressuredrop_fric_output"]
     ipr.calculate_output({"flow": flow_rate}, None)
     p_reservoir = ipr.get_output()["bottomhole_pressure"]
 
     assert abs(p_well - p_reservoir) < 1.0
+
+
+def test_injection_friction_raises_required_wellhead_pressure():
+    """Higher injection rates need more wellhead pressure (friction opposes downflow)."""
+    from gemini_simulator.nodal_solver import solve_injection_wellhead_pressure
+
+    ipr = _make_ipr("injection_reservoir", reservoir_pressure_pa=21.0e6, index_value=7e-8)
+    pressures = []
+    for flow_rate in (0.02, 0.04, 0.06):
+        well = _make_well()
+        pressures.append(
+            solve_injection_wellhead_pressure(
+                ipr, well, flow_rate, wellhead_temperature=60 + 273.15, pressure_bracket=(1e3, 1e8)
+            )
+        )
+    assert pressures[0] < pressures[1] < pressures[2]
