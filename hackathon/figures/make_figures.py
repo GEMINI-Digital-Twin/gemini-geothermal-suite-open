@@ -35,7 +35,7 @@ AGENT_RUNS = {"Run 2": "20261104_192033", "Run 3": "20261105_083545", "Run 4": "
 # Owner's choices for the slides (designs evaluated with the same tools as the agent).
 RECOMMENDED = ("2 x 3300 m (recommended)", dict(
     depth_m=3300, n_doublets=2, spacing_m=1600, hp_capacity_mw=4, chiller_type="absorption_dh",
-    sorption_capacity_mw=10, elec_chiller_capacity_mw=4, boiler_capacity_mw=10))
+    sorption_capacity_mw=10, elec_chiller_capacity_mw=4, boiler_capacity_mw=15))  # 15 MW: covers N-1 on the peak day
 REFERENCES = [
     RECOMMENDED,
     ("2 x 2500 m + HP 15", dict(depth_m=2500, n_doublets=2, spacing_m=1600, hp_capacity_mw=15,
