@@ -77,18 +77,30 @@ def variables(plant):
     """
     groups = {}
     for path, spread in plant.ranges.items():
-        if path == DOUBLETS:
+        if path == DOUBLETS or _later(plant, path):
             continue
         flat = form.flat_name(path)
         owner, name = _owner(plant, flat)
         key = (_split(flat)[1], owner, _whole(path, spread), None)
         groups.setdefault(key, (path, name, []))[2].append(flat)
     for path, options in plant.options.items():
+        if _later(plant, path):
+            continue
         flat = form.flat_name(path)
         owner, name = _owner(plant, flat)
         key = (_split(flat)[1], owner, None, tuple(options))
         groups.setdefault(key, (path, name, []))[2].append(flat)
     return [_variable(plant, key, *group) for key, group in groups.items()]
+
+
+def _later(plant, path):
+    """Return whether ``path`` is a leaf of a doublet this design does not have (geomind QA-253).
+
+    Its range waits for a search on more doublets: ``resized`` gives that doublet the range.
+    """
+    module, _ = _split(form.flat_name(path))
+    head = module.split(".", 1)[0]
+    return head.startswith("d") and head[1:].isdigit() and head not in dict(plant.named_children())
 
 
 def _variable(plant, key, path, name, members):

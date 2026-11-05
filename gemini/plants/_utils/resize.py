@@ -17,7 +17,11 @@ def _index(key):
 
 
 def _renumbered(section, old, new):
-    """Return ``section`` without the doublets from ``new`` on, and with the new ones as ``d0``."""
+    """Return ``section`` without the doublets from ``new`` on, and with the new ones as ``d0``.
+
+    A new doublet that the section already names (a range stated for a doublet the plant did not
+    have yet, geomind QA-253) takes ``d0``'s values with what it states on top.
+    """
     kept = {
         key: value for key, value in section.items() if _index(key) is None or _index(key) < new
     }
@@ -25,8 +29,32 @@ def _renumbered(section, old, new):
         if _index(key) == 0:
             for number in range(old, new):
                 copy = _DOUBLET.sub(f"d{number}", key, count=1)
-                kept.setdefault(copy, deepcopy(value))
+                kept[copy] = _overlaid(deepcopy(value), kept.get(copy))
     return kept
+
+
+def _overlaid(base, stated):
+    """Return ``base`` with the nodes of ``stated`` on top; a leaf keeps its value and unit."""
+    if not isinstance(stated, dict) or not isinstance(base, dict):
+        return base if stated is None else stated
+    if "value" in base:
+        return base | _in_unit(stated, base.get("unit"))
+    for key, item in stated.items():
+        base[key] = _overlaid(base[key], item) if key in base else item
+    return base
+
+
+def _in_unit(stated, unit):
+    """Return the ``range`` and ``options`` of a stated leaf, a range in ``unit``."""
+    from gemini.units import Quantity
+
+    found = {key: stated[key] for key in ("range", "options") if key in stated}
+    given = stated.get("unit")
+    if "range" in found and given is not None and unit is not None and given != unit:
+        found["range"] = {
+            side: Quantity(value, given).to(unit).value for side, value in found["range"].items()
+        }
+    return found
 
 
 def resized(plant, doublets):
@@ -73,7 +101,9 @@ def free_doublets(plant):
     children = dict(plant.named_children())
     if not isinstance(children.get("d0"), Doublet) or "d1" in children:
         return None
-    if any(len(list(children[name].children())) for name in (MIXERS, SPLITTERS) if name in children):
+    if any(
+        len(list(children[name].children())) for name in (MIXERS, SPLITTERS) if name in children
+    ):
         return None
     return 1
 
@@ -129,8 +159,16 @@ def _free_connections(connections, doublets):
             for number in range(1, doublets):
                 if _index(source) == 0 or _index(target) == 0:
                     copy = deepcopy(item)
-                    copy["source"] = _DOUBLET.sub(f"d{number}", source, count=1) if _index(source) == 0 else source
-                    copy["target"] = _DOUBLET.sub(f"d{number}", target, count=1) if _index(target) == 0 else target
+                    copy["source"] = (
+                        _DOUBLET.sub(f"d{number}", source, count=1)
+                        if _index(source) == 0
+                        else source
+                    )
+                    copy["target"] = (
+                        _DOUBLET.sub(f"d{number}", target, count=1)
+                        if _index(target) == 0
+                        else target
+                    )
                     found.append(copy)
     return found
 
@@ -143,8 +181,16 @@ def _mix_chain(item, doublets):
     ]
     for index in range(1, doublets - 1):
         found += [
-            {**item, "source": f"{MIXERS}.{index - 1}.fluid_out", "target": f"{MIXERS}.{index}.branch1_in"},
-            {**item, "source": f"d{index + 1}.supply_out", "target": f"{MIXERS}.{index}.branch2_in"},
+            {
+                **item,
+                "source": f"{MIXERS}.{index - 1}.fluid_out",
+                "target": f"{MIXERS}.{index}.branch1_in",
+            },
+            {
+                **item,
+                "source": f"d{index + 1}.supply_out",
+                "target": f"{MIXERS}.{index}.branch2_in",
+            },
         ]
     found.append({**item, "source": f"{MIXERS}.{doublets - 2}.fluid_out", "target": item["target"]})
     return found

@@ -1,5 +1,6 @@
 """Read the leaves of a plant file against the declarations of the plant they set."""
 
+import re
 from dataclasses import replace
 
 from gemini import units
@@ -38,6 +39,30 @@ def declaration_of(plant, path, table=None):
     name = flat_name(path)
     found = (table if table is not None else table_of(plant)).get(name)
     return found if found is not None else plant_inputs.declaration(plant, name)
+
+
+_LATER = re.compile(r"d(\d+)\.(.+)")
+"""A leaf path of a doublet by number: ``d2.nominal_flow`` gives 2 and ``nominal_flow``."""
+
+
+def later_doublet(plant, path, search=None):
+    """Return ``(d0 path, most doublets)`` for a leaf of a doublet the plant does not have yet.
+
+    A plant on 2 doublets whose ``size.doublets`` ranges to 3 takes a range on ``d2.<leaf>``: a
+    search that makes ``d2`` gives it ``d0``'s values with that range (geomind QA-253). ``None``
+    for any other path; ``(None, most)`` for a doublet past the most the range allows.
+    """
+    found = _LATER.fullmatch(path)
+    if found is None or "d0" not in dict(plant.named_children()):
+        return None
+    number, rest = int(found.group(1)), found.group(2)
+    if f"d{number}" in dict(plant.named_children()):
+        return None
+    spread = (search if search is not None else plant._search).get("size.doublets")
+    most = None if spread is None or spread.range is None else spread.range.to_json().get("max")
+    if most is None:
+        return None
+    return (f"d0.{rest}" if number < most else None), int(most)
 
 
 def _kind(declaration):
@@ -221,7 +246,11 @@ def _size(plant, name, node, issues):
 
 
 def apply(plant, parsed, issues):
-    """Read every leaf of ``parsed`` against ``plant``; keep the ranges and options it states."""
+    """Read every leaf of ``parsed`` against ``plant``; keep the ranges and options it states.
+
+    A leaf of a doublet the plant does not have yet, within its ``size.doublets`` range, is read
+    against ``d0``'s declaration and kept for the search (``later_doublet``).
+    """
     search = {}
     for name, node in parsed.sizes.items():
         leaf = _size(plant, name, node, issues)
@@ -229,7 +258,11 @@ def apply(plant, parsed, issues):
             search[f"size.{name}"] = leaf
     table = table_of(plant)
     for path, node in parsed.leaves.items():
-        leaf = leaf_at(plant, path, node, issues, table)
+        later = later_doublet(plant, path, search)
+        if later is not None and later[0] is not None and isinstance(node, dict):
+            leaf = _read(node, declaration_of(plant, later[0], table), path, [])
+        else:
+            leaf = leaf_at(plant, path, node, issues, table)
         if leaf is not None and (leaf.range or leaf.options):
             search[path] = leaf
     plant._search = search
@@ -253,10 +286,18 @@ def _located(plant, path):
         if name in plant._size or (name == "doublets" and _free_count(plant) is not None):
             return None, plant.size_choices.get(name)
     else:
-        found = declaration_of(plant, path)
+        later = later_doublet(plant, path)
+        found = declaration_of(plant, path if later is None or later[0] is None else later[0])
         if found is not None:
             choices = description._enum(found)
             return found, tuple(choices) if choices else None
+        if later is not None:
+            raise ValidationError(
+                f"{plant.path}: unknown path {path!r}; size.doublets allows at most {later[1]} "
+                f"doublets, d0 to d{later[1] - 1}",
+                path=path,
+                code="unknown_name",
+            )
     sizes = [*plant._size, *(["doublets"] if _free_count(plant) is not None else [])]
     names = [f"size.{name}" for name in sizes] + [
         file_path(name) for name, _ in plant.named_parameters()

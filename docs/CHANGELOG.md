@@ -12,6 +12,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.21] - 2026-11-05
+
+### Fixed
+- A plant whose `size.doublets` ranges past its doublets takes a range or options on a doublet it
+  does not have yet (`d2.nominal_flow` on 2 doublets with `size.doublets` 1-3) through
+  `set_range`, `set_options` and the plant file: a search that makes the doublet gives it `d0`'s
+  values with that range, one on fewer doublets leaves it out; a doublet past the range is
+  `unknown_name` with "size.doublets allows at most N doublets" (geomind QA-253).
+
 ## [0.6.20] - 2026-11-05
 
 ### Fixed

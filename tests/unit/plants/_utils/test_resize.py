@@ -54,3 +54,25 @@ def test_added_doublets_get_the_esp_limits_of_the_first():
     for name in ("d0", "d1", "d2"):
         esp = plant.get_submodule(f"{name}.esp")
         assert esp.minimum_intake_pressure == 500000.0 and esp.maximum_gas_fraction == 0.1875
+
+
+def test_a_range_on_a_doublet_the_plant_lacks_waits_for_a_search_that_makes_it():
+    """QA-253: on 2 doublets with size.doublets 1-3, d2.nominal_flow takes a range.
+
+    It survives the plant file; a design on 3 doublets gives d2 d0's values with that range, one on
+    fewer drops it, and a doublet past the range is unknown_name with the most it allows.
+    """
+    from gemini.study._utils.variables import variables
+    from gemini.units import Quantity
+
+    plant = gm.Plant.from_json("examples/hackathon_2026/plants/HeatingHeatPumpCoolingPlant.json")
+    plant.set_range("d2.nominal_flow", Quantity(50, "m3/h"), Quantity(250, "m3/h"))
+    with raises(gm.errors.ValidationError, "unknown_name", match="at most 3 doublets"):
+        plant.set_range("d3.nominal_flow", Quantity(50, "m3/h"), Quantity(250, "m3/h"))
+    again = gm.Plant.from_dict(plant.to_dict())
+    assert "d2.nominal_flow" in again.ranges
+    assert all(not item.name.startswith("d2") for item in variables(again))
+    three = resized(again, 3)
+    assert three.get_submodule("d2").nominal_flow == three.get_submodule("d0").nominal_flow
+    assert three.ranges["d2.nominal_flow"].max == Quantity(250, "m3/h").si
+    assert "d2.nominal_flow" not in resized(again, 1).ranges
