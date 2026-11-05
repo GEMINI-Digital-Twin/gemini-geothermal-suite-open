@@ -230,3 +230,24 @@ class SplitJoined(unittest.TestCase):
         j = agent.split_joined({"reasoning": [one, "short item 2 MW [C]"]})
         self.assertEqual(len(j["reasoning"]), 11)
         self.assertEqual(j["code_split"], 1)
+
+    def test_single_tag_string_is_not_split(self):
+        import AI03_agent as agent
+        s = "GEMINI's solver re-ran 3 days: a; b; c; d " + "word " * 30 + "[C]"
+        self.assertEqual(len(agent.split_joined({"reasoning": [s]})["reasoning"]), 1)
+
+
+class Tidy(unittest.TestCase):
+    def test_verdict_moved_and_reinjection_added(self):
+        import AI03_agent as agent
+        e = {"co2_total_kt": 9.429, "lcoh_EUR_MWh": 61.8}
+        r = {"co2_total_kt": 5.492, "lcoh_EUR_MWh": 61.93, "associated_gas_compression_GWh": 0.08}
+        results = [{"name": "economics", "args": {"n_doublets": 2, "t_return_c": 56.5}, "result": e},
+                   {"name": "economics", "args": {"n_doublets": 2, "t_return_c": 56.5, "gas_handling": "reinject"}, "result": r}]
+        j = {"n_doublets": 2, "t_return_c": 56.5, "reasoning": ["GEMINI's solver re-ran 3 days: ESP head within 0.2 bar [C]", "2 doublets [C]"],
+             "rejected_alternatives": ["1 doublet leaves 3 GWh unmet [C]"]}
+        j = agent.tidy(j, results)
+        self.assertTrue(j["gemini_verification"].startswith("GEMINI's solver"))
+        self.assertEqual(len(j["reasoning"]), 1)
+        self.assertIn("Reinjecting", j["rejected_alternatives"][-1])
+        self.assertTrue(j["rejected_alternatives"][-1].endswith("; code]."))

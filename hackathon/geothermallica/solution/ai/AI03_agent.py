@@ -102,6 +102,8 @@ def prose(j, results=(), free=False, problems=()):
             if st.get("by"):
                 warn.append(f"Repair step by the {st['by']}: {st.get('move') or st['verdict']}, {st['verdict']}"
                             + (f" (checks {st['checks_after']})" if st.get("checks_after") else "") + f"; why: {st['why']}")
+    if isinstance(j, dict) and (j.get("code_moved") or j.get("code_added")):
+        warn.append("Code repairs: " + "; ".join([j["code_moved"]] * bool(j.get("code_moved")) + [f"added {a}" for a in j.get("code_added", [])]) + ".")
     if isinstance(j, dict) and j.get("code_split"):
         warn.append(f"The model joined its reasoning items into {j['code_split']} string(s); code split them on '; '.")
     head = "\n".join([first] + warn) + "\n\n"
@@ -128,7 +130,7 @@ def split_joined(j):
         return j
     out = []
     for r in j["reasoning"]:
-        if isinstance(r, str) and len(r.split()) > 30 and r.count("; ") >= 2:
+        if isinstance(r, str) and len(r.split()) > 30 and r.count("; ") >= 2 and r.count("[") >= 3:   # several tagged items in one
             out += [x.strip() for x in r.split("; ") if x.strip()]
             j["code_split"] = j.get("code_split", 0) + 1
         else:
@@ -137,15 +139,36 @@ def split_joined(j):
     return j
 
 
+def tidy(j, results):
+    """Two repairs the run file records: a replay verdict the model wrote into reasoning moves to its field; the reinjection
+    alternative the plan priced is appended when the model left it out. Both use the tools' own words."""
+    if not isinstance(j, dict):
+        return j
+    moved = [r for r in j.get("reasoning", []) if isinstance(r, str) and r.startswith("GEMINI's solver re-ran")]
+    if moved and len(str(j.get("gemini_verification", "")).split()) < 4:
+        j["gemini_verification"] = moved[0].replace("[C]", "").strip()
+        j["reasoning"] = [r for r in j["reasoning"] if r not in moved]
+        j["code_moved"] = "gemini_verification taken from reasoning"
+    ec = {r["args"].get("gas_handling", "engine"): r["result"] for r in results if r["name"] == "economics"
+          and "error" not in r["result"] and r["args"].get("n_doublets") == j.get("n_doublets")
+          and r["args"].get("t_return_c") == j.get("t_return_c")}
+    alts = j.get("rejected_alternatives")
+    if "reinject" in ec and "engine" in ec and isinstance(alts, list) and not any("reinject" in str(a).lower() for a in alts):
+        import AI03_plan
+        alts.append(AI03_plan.reinject_sentence(ec["engine"], ec["reinject"]).replace("[C, A].", "[C, A; code]."))
+        j["code_added"] = j.get("code_added", []) + ["rejected_alternatives[-1]"]
+    return j
+
+
 def declare(j, results):
     """Code, not the model, adds the 'not supported' line when site_inputs rejects the setpoints (small models forget it)."""
-    j = split_joined(j)
+    j = tidy(split_joined(j), results)
     bad = [r["result"] for r in results if r["name"] == "site_inputs" and isinstance(r["result"], dict) and not r["result"].get("supported", True)]
     said = lambda x: "not supported" in x.lower() or "cannot be trusted" in x.lower()
     if bad and isinstance(j, dict) and "reasoning" in j and not any(said(x) for x in j["reasoning"]):
         j["reasoning"].append(f"Not supported: supply {bad[0].get('supply_heat_c', 0):g} C heat / {bad[0].get('supply_cold_c', 0):g} C cold "
                               "is outside the design tables built for 100 C / 20 C, so the design above cannot be trusted [D, site_inputs; code]")
-        j["code_added"] = ["reasoning[-1]"]
+        j["code_added"] = j.get("code_added", []) + ["reasoning[-1]"]
     return j
 
 

@@ -420,11 +420,22 @@ def gemini_traps():
                             "(92 % with daily mean).",
             "esp_head_law": "GEMINI's ESP reads the head curve at the actual flow, not q*60/f (similarity law); it overstates head "
                             "at reduced speed, 9 % at 57 Hz and 300 m3/h; corrected in ESPAffinity.",
-            "injector_sign": "GEMINI's well model is right (signed flow), but its simulator passes a positive flow for the injector, "
-                             "so friction is added going down and the injector wellhead is understated by 25 bar at 300 m3/h; "
-                             "one-sign fix in src/gemini_simulator/nodal_solver.py on the fork.",
-            "heatpump_root": "GEMINI's HeatpumpBasic finds an unphysical root (COP 1.0, water out 796 C, 602 MW) when the source floor "
-                             "binds; HeatPumpLift brackets the solve and gets 91 C.",
+            "injector_sign": "nodal_solver.py:150 passes a positive injection flow, so friction adds pressure going down. The 0.001 "
+                             "bar injection wellhead others see at 300 m3/h is this bug: TNO 38.3 bar at 0.045 mm roughness, 0.001 at "
+                             "the 10 mm default, our fork 63.3. Fixed on the fork [C, reproduced 5 Nov; reported by PR #58/#59].",
+            "heatpump_floor_branch": "heatpump_basic.py:286-305: when the source floor binds, HeatpumpBasic has two roots and Nelder-Mead "
+                                     "may pick the unphysical one (COP 1.01, water out 796 C at 720 m3/h); it flips root at 398.66 and "
+                                     "534.48 m3/h. Our HeatPumpLift brackets the solve, swept 100-720 m3/h: never above 100 C, not "
+                                     "exposed [C, reproduced 5 Nov; reported by PR #58/#59].",
+            "exchanger_abs": "heat_exchanger.py:107 takes abs() of the temperature difference, so 2.15 MW flows from a 50 C primary to "
+                             "a 56.5 C secondary. Our chain feeds the exchanger at 78 C or more against a 56.5 C return and never "
+                             "enters that case [C, reproduced 5 Nov; reported by PR #58].",
+            "esp_intake_clamp": "nodal_solver.py:67 and well_flow.py:295 floor the ESP intake at 0 bar without a warning: 168.9 m3/h "
+                                "reported with intake 0.00 bar where discharge minus head is -36.2 bar. Our check 14 needs the intake "
+                                "above the gas bubble point, so a clamped intake fails, not passes [C, reproduced 5 Nov; reported by PR #58/#59].",
+            "roughness_default": "well_flow.py defaults roughness to 0.01, read as metres (10 mm): 61.7 bar vs 12.5 bar of friction at "
+                                 "300 m3/h in 7 in tubing over 2 500 m. We set 0.045 mm in geo/well.py and write it into every "
+                                 "generated project [C, reproduced 5 Nov; reported by PR #58].",
             "tag": "[C]"}
 
 
