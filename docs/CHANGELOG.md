@@ -12,6 +12,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.12] - 2026-11-05
+
+### Added
+- Units `m/s2` (spelled also `m/s^2`, `m/s²`, `N/kg`) and `kg/m2`, so a density times an
+  acceleration times a depth gives a pressure (geomind QA-074).
+
 ## [0.6.11] - 2026-11-05
 
 ### Changed
