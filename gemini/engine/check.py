@@ -93,8 +93,11 @@ def _known_states(plant, case):
 def issues_of(applied, case):
     """Return the issues of ``check`` for a plant that already carries the values of ``case``."""
     with remembered():
+        depths = _depths(applied)
+        named = {item.path for item in depths}
         return [
-            *_parameters(applied),
+            *depths,
+            *(item for item in _parameters(applied) if item.path not in named),
             *_rules(applied),
             *_kinds(applied, case),
             *_sizes(applied, case),
@@ -170,6 +173,31 @@ def _rules(plant):
                     where,
                     "missing",
                     f"{where} is missing; a well split at its pump ({module.segment}) needs it",
+                    code="missing_value",
+                )
+            )
+    return issues
+
+
+def _depths(plant):
+    """Return a ``missing`` issue for each doublet without a depth, before its other values.
+
+    A doublet takes its reservoir temperature and pressure from the case only at its own depth
+    (``apply_case``); without one, those values are listed as missing although the case has them
+    (geomind QA-049, QA-082), so the depth is named first, as the one value to give.
+    """
+    from gemini.plants.doublet import Doublet
+
+    issues = []
+    for path, module in plant.named_modules():
+        if isinstance(module, Doublet) and _set_value(module, "depth") is None:
+            where = join_path("params", form.file_path(join_path(path, "depth")))
+            issues.append(
+                Issue(
+                    where,
+                    "missing",
+                    f"{where} is missing; with it the doublet takes its reservoir temperature and "
+                    "pressure from the case (site.ground, site.reservoir)",
                     code="missing_value",
                 )
             )
