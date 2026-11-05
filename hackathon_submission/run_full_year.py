@@ -1,7 +1,7 @@
 """GEMINI GeoHackathon 2026 — full-year simulation of the selected design.
 
-Reads best_design.json (written by optimize_design.py; defaults used if
-missing), simulates all 365 days with the official 2027 demand profiles,
+Reads agent_best_design.json (agent.py), else best_design.json (optimize_design.py), else
+the built-in default) and simulates all 365 days with the official 2027 demand profiles,
 runs the independent validator and writes:
 
     results_daily.csv       365 rows, every flow/temperature/power per day
@@ -24,12 +24,17 @@ from dispatch import Plant, load_demand, summarize, validate
 HERE = Path(__file__).resolve().parent
 
 
-def load_design():
-    f = HERE / "best_design.json"
-    if f.exists():
-        j = json.loads(f.read_text())
-        return Design(**j["design"]), Assumptions(**j["assumptions"])
-    return Design(n_doublets=3, hex_ua_w_per_k=1.6e6, esp_stages=30), Assumptions()
+def load_design(path=None):
+    """Design to report: --design file, else the agent's choice, else the grid-search best."""
+    candidates = [Path(path)] if path else [HERE / "agent_best_design.json", HERE / "best_design.json"]
+    for f in candidates:
+        if f.exists():
+            j = json.loads(f.read_text())
+            print(f"Design source: {f.name}" + (f" ({j['agent']}, iteration {j['iteration']})" if "agent" in j else ""))
+            return Design(**j["design"]), Assumptions(**j["assumptions"])
+    print("Design source: built-in default")
+    return Design(n_doublets=3, well_depth_m=3500, hex_ua_w_per_k=2.0e6, esp_stages=50,
+                  backup_boiler_mw=4.5, electric_chiller_mw=10.5, absorption_chiller_mw=9), Assumptions()
 
 
 def make_plots(df, out, cop_abs=0.7):
@@ -91,7 +96,10 @@ def make_plots(df, out, cop_abs=0.7):
 
 
 def main():
-    design, a = load_design()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--design", help="JSON file with a design (default: agent_best_design.json)")
+    design, a = load_design(ap.parse_args().design)
     dates, H, C = load_demand(HERE)
     print(f"Simulating {design.label()} for 365 days ...")
     df = Plant(design, a).simulate_year(dates, H, C)

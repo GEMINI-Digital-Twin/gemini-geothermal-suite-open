@@ -109,10 +109,14 @@ class Design:
     esp_stages: int = 40
     esp_depth_m: float = 1000.0
     well_depth_m: float = 2500.0        # TVD of both wells (reservoir midpoint)
+    backup_boiler_mw: float = 35.0      # installed gas backup boiler (100 C)
+    electric_chiller_mw: float = 12.0   # installed electric chiller (20 C)
+    absorption_chiller_mw: float = 12.0 # installed absorption chiller (20 C, 100 C drive)
 
     def label(self):
         return (f"N={self.n_doublets} depth={self.well_depth_m:.0f}m UA={self.hex_ua_w_per_k/1e3:.0f}kW/K "
-                f"stages={self.esp_stages}")
+                f"stages={self.esp_stages} boiler={self.backup_boiler_mw:g}MW "
+                f"chillers={self.electric_chiller_mw:g}+{self.absorption_chiller_mw:g}MW")
 
 
 # ─────────────────────────── GEMINI well/gas layer ──────────────────────────

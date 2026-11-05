@@ -50,13 +50,18 @@ class Plant:
         w_hp = float(np.interp(m_w_run, c["grid"], c["w_hp"]))
         t_inj = float(np.interp(m_w_run, c["grid"], c["t_inj"]))
         geo_chain = m_w_run * self.a.cp * self.dT                             # HEX + HP heat
-        backup = n * max(0.0, per - r["gas_heat_w"] - geo_chain)
+        if f_abs * cool_w > self.d.absorption_chiller_mw * 1e6 + 1e-6:
+            return None
+        backup_need = n * max(0.0, per - r["gas_heat_w"] - geo_chain)
+        backup = min(backup_need, self.d.backup_boiler_mw * 1e6)
         gas_used = n * min(r["gas_heat_w"], per)                       # surplus gas heat is dumped
-        chiller_el = (1 - f_abs) * cool_w / self.a.cop_electric_chiller
+        cool_el = min((1 - f_abs) * cool_w, self.d.electric_chiller_mw * 1e6)
+        short = (backup_need - backup) + ((1 - f_abs) * cool_w - cool_el)
+        chiller_el = cool_el / self.a.cop_electric_chiller
         elec = n * (r["esp_power_w"] + r["inj_pump_w"] + w_hp - r["chp_el_w"]) + chiller_el
         co2 = (max(elec, 0.0) * self.co2_el + n * r["gas_co2_kg_s"] + backup * self.co2_gas) * 86400
-        return dict(co2=co2, n=n, i=i, f_abs=f_abs, m_w=m_w_run, w_hp=w_hp, t_inj=t_inj,
-                    geo_chain=n * geo_chain, gas_used=gas_used, backup=backup,
+        return dict(co2=co2, short=short, n=n, i=i, f_abs=f_abs, m_w=m_w_run, w_hp=w_hp, t_inj=t_inj,
+                    geo_chain=n * geo_chain, gas_used=gas_used, backup=backup, cool_el=cool_el,
                     chiller_el=chiller_el, elec=elec)
 
     def best_geo(self, heat_w, cool_w):
@@ -67,21 +72,28 @@ class Plant:
                     if f > 0 and cool_w <= 0:
                         continue
                     o = self._option(n, i, heat_w, cool_w, f)
-                    if best is None or o["co2"] < best["co2"] - 1e-9:
+                    if o is None:
+                        continue
+                    if (best is None or o["short"] < best["short"] - 1e-3
+                            or (abs(o["short"] - best["short"]) <= 1e-3 and o["co2"] < best["co2"] - 1e-9)):
                         best = o
         return best
 
     def geo_off(self, heat_w, cool_w):
-        chiller_el = cool_w / self.a.cop_electric_chiller
-        co2 = (chiller_el * self.co2_el + heat_w * self.co2_gas) * 86400
-        return dict(co2=co2, n=0, i=None, f_abs=0.0, m_w=0.0, w_hp=0.0, t_inj=float("nan"),
-                    geo_chain=0.0, gas_used=0.0, backup=heat_w, chiller_el=chiller_el, elec=chiller_el)
+        backup = min(heat_w, self.d.backup_boiler_mw * 1e6)
+        cool_el = min(cool_w, self.d.electric_chiller_mw * 1e6)
+        chiller_el = cool_el / self.a.cop_electric_chiller
+        co2 = (chiller_el * self.co2_el + backup * self.co2_gas) * 86400
+        return dict(co2=co2, short=(heat_w - backup) + (cool_w - cool_el), n=0, i=None, f_abs=0.0,
+                    m_w=0.0, w_hp=0.0, t_inj=float("nan"), geo_chain=0.0, gas_used=0.0, backup=backup,
+                    cool_el=cool_el, chiller_el=chiller_el, elec=chiller_el)
 
     # ── full year ───────────────────────────────────────────────────────────
     def simulate_year(self, dates, heat_mw, cool_mw):
         on = [self.best_geo(h * 1e6, c * 1e6) for h, c in zip(heat_mw, cool_mw)]
         off = [self.geo_off(h * 1e6, c * 1e6) for h, c in zip(heat_mw, cool_mw)]
-        penalty = np.array([f["co2"] - o["co2"] for o, f in zip(on, off)])
+        # cost of switching geothermal off on a day; unmet demand weighs 1e6 kg per MW
+        penalty = np.array([f["co2"] - o["co2"] + 1.0 * (f["short"] - o["short"]) for o, f in zip(on, off)])
         k = TOTAL_DAYS - GEO_OPERATING_DAYS
         window = np.convolve(penalty, np.ones(k), "valid")
         start = int(np.argmin(window))
@@ -122,7 +134,7 @@ class Plant:
                 heat_backup_boiler_MW=o["backup"] / 1e6,
                 absorption_share=o["f_abs"],
                 cooling_absorption_MW=o["f_abs"] * cool_mw[day],
-                cooling_electric_MW=(1 - o["f_abs"]) * cool_mw[day],
+                cooling_electric_MW=o["cool_el"] / 1e6,
                 chiller_elec_MW=o["chiller_el"] / 1e6,
                 esp_elec_MW=n * r["esp_power_w"] / 1e6 if r else 0.0,
                 esp_hydraulic_MW=n * r["esp_dp_bar"] * 1e5 * r["q_m3h"] / 3600 / 1e6 if r else 0.0,
@@ -181,6 +193,11 @@ def summarize(df, design: Design):
         "mean_hp_COP": round(float(df.hp_COP.mean()), 2),
         "max_brine_cooling_C": round(float(df.brine_cooling_C.max()), 2),
         "geo_days": int(df.geothermal_active.sum()),
+        "peak_backup_boiler_MW": round(float(df.heat_backup_boiler_MW.max()), 2),
+        "peak_electric_chiller_MW": round(float(df.cooling_electric_MW.max()), 2),
+        "peak_absorption_chiller_MW": round(float(df.cooling_absorption_MW.max()), 2),
+        "unmet_heating_MWh": round(float((df.heating_demand_MW - df.heating_delivered_MW).clip(lower=0).sum() * 24), 1),
+        "unmet_cooling_MWh": round(float((df.cooling_demand_MW - df.cooling_delivered_MW).clip(lower=0).sum() * 24), 1),
         "maintenance_block": f"{df[df.maintenance].date.min()} .. {df[df.maintenance].date.max()}",
     }
 

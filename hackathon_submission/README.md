@@ -1,164 +1,156 @@
-# GEMINI GeoHackathon 2026 — Submission
+# GEMINI GeoHackathon 2026 — Agentic geothermal design
 
 **Author:** Mahdi Izadi
 
-A full-year (2027, 365 days) design and dispatch study of a geothermal
-district heating **and** cooling plant built on the GEMINI simulator, with an
-automatic design search over 1–3 doublets and an independent validator that
-recomputes every challenge constraint from the daily results.
+An agentic AI workflow that designs a deep-geothermal district heating **and**
+cooling plant for the official 2027 demand profiles. An LLM agent (Ollama, local)
+proposes designs. GEMINI and complementary component models simulate all
+365 days. A deterministic validator checks every challenge constraint and sends
+the violations back to the agent, which repairs and improves the design.
 
-## Result in one line
+```
+ demand CSVs ─► agent (LLM) ─► design JSON ─► schema check ─► GEMINI wells/ESP/separator/injector
+                  ▲                                            + HEX + heat pump + chillers
+                  │                                            365-day lowest-CO2 dispatch
+                  └──── violations + KPIs + history ◄──── deterministic validator (16 checks)
+```
 
-**3 doublets + 1.6 MW/K plate HEX per doublet + Lorenz heat pump to 100 °C,
-absorption/electric chillers for 20 °C cooling → 8,708 t CO₂/year, 87 % of
-100 °C heat from the geothermal chain, 12/12 constraint checks passed.**
+The LLM never decides PASS/FAIL. Only the validator does, from the simulated
+numbers.
 
-| Design (best of each) | Annual CO₂ | Backup gas boiler share |
-|---|---|---|
-| 1 doublet  | 15,330 t | 33 % |
-| 2 doublets |  9,721 t |  3 % |
-| **3 doublets (selected)** | **8,708 t** | **2 %** |
+## Result
+
+| | Agent's design (`agent_best_design.json`) |
+|---|---|
+| Doublets | **3**, wells 3,500 m TVD (117 °C reservoir) |
+| Heat exchanger | 2,000 kW/K per doublet. At this depth the brine heats the water to 100 °C directly, so the heat pump is not needed |
+| ESP | 50 stages at 1,000 m, variable speed → 58–196 m³/h per doublet |
+| Backup gas boiler | 4.5 MW (peak use 3.9 MW) |
+| Chillers (20 °C) | 10.5 MW electric + 9 MW absorption (geothermal heat) |
+| **CO₂** | **7,192 t/year** |
+| Heat from geothermal | 88.3 % (produced gas 9.7 %, backup boiler 2.0 %) |
+| Constraint checks | **16/16 PASS** |
+
+Benchmarks from the exhaustive search over 72 designs (`optimize_design.py`):
+
+| Best design with … | CO₂ t/yr |
+|---|---|
+| 1 doublet | 15,724 |
+| 2 doublets | 9,486 |
+| 3 doublets | 7,221 |
+| 3 doublets, depth fixed at the 2,500 m reservoir midpoint | 9,075 |
+| **Agent (offline rule-based run)** | **7,192** (−0.4 % vs. the grid, because it found a combination outside the grid) |
 
 ## How to run
 
 ```bash
-# from the repository root (development branch + this folder)
 python -m venv .venv
-.venv\Scripts\activate          # Windows   (Linux/Mac: source .venv/bin/activate)
+.venv\Scripts\activate            # Windows   (Linux/Mac: source .venv/bin/activate)
 pip install numpy scipy pandas matplotlib
-
 cd hackathon_submission
-python optimize_design.py       # ~30 s: 45 designs + sensitivity -> best_design.json
-python run_full_year.py         # full year of the selected design + validation + plots
+
+# 1. agentic design loop  (needs Ollama:  ollama pull qwen2.5:7b)
+python agent.py --model qwen2.5:7b --iterations 12
+#    no LLM available? deterministic rule-based agent:
+python agent.py --offline --iterations 30
+
+# 2. full-year report of the agent's design (16 checks, CSVs, plots)
+python run_full_year.py
+
+# 3. optional benchmark + sensitivity study (~1 min)
+python optimize_design.py
 ```
 
-## Plant
+## Official requirements → where they are met
 
-```
-reservoir 2500 m TVD, 250 bar, 87 C
-  └─ producer well + ESP (1000 m, variable speed)       [GEMINI ProducerWell]
-       └─ separator (GLR 0.8) ─ gas ─> boiler 80 % / CHP 20 %   [GEMINI]
-       └─ filter A ─> plate HEX ─> heat-pump evaporator ─> filter B
-                                                          └─ injector well [GEMINI InjectorWell, pump eta 0.70]
-district return 40 C ─> HEX (secondary) ─> heat-pump condenser ─> 100 C supply
-                                  100 C heat ─> absorption chiller ─> 20 C cooling
-                                 electricity ─> electric chiller   ─> 20 C cooling
-backup gas boiler (100 C) covers what geothermal cannot (maintenance block, peaks)
-```
-
-The brine always cools in two stages: first directly in the HEX, then in the
-heat-pump evaporator, never below **40 °C injection** (80 °C wellhead − 40 °C
-limit), so the 40 °C brine-cooling limit is a hard physical bound in the model.
-
-## Method
-
-1. **GEMINI physics layer** (`plant_model.build_well_table`). For each ESP
-   frequency (15–70 Hz) the GEMINI project (`challenge_plant.json`) is solved:
-   nodal producer well with ESP, separator gas, filters, injector well and
-   pump, produced-gas boiler/CHP. Operating points outside 50–300 m³/h or with
-   ESP intake < 10 bar are discarded.
-2. **HEX** — GEMINI `HeatExchanger` class (counter-flow ε-NTU) with brine
-   density 1030 kg/m³.
-3. **Heat pump** — Lorenz model, η = 0.50, identical equations to GEMINI
-   `HeatpumpBasic` (now registered in the component registry). Solved by
-   bisection on the source outlet temperature; verified to match
-   `HeatpumpBasic` exactly where its solver converges (COP 6.129 vs 6.129).
-4. **Daily dispatch** (`dispatch.py`). Every day, all combinations of active
-   doublets (1..N), ESP frequency and absorption-chiller share
-   (0/25/50/75/100 %) are evaluated; the lowest-CO₂ option that meets demand
-   is chosen.
-5. **330 operating days** — geothermal is off for one contiguous 35-day
-   maintenance block, placed where it costs the least CO₂
-   (selected: 9 Jul – 12 Aug 2027). Backup boiler + electric chiller serve
-   those days.
-6. **Design search** (`optimize_design.py`) — 3 doublet counts × 5 HEX sizes
-   × 3 ESP stage counts = 45 full-year simulations; infeasible candidates are
-   rejected; the lowest-CO₂ feasible design is selected
-   (`design_comparison.csv`).
-7. **Sensitivity** on the selected design (`sensitivity.csv`).
-
-## Constraint compliance (from `validation_report.txt`)
-
-| Check | Result |
+| Requirement (challenge PDF, 28 Oct 2026) | Implementation |
 |---|---|
-| Doublets in [1,3] | 3 |
-| Flow per active doublet 50–300 m³/h | 51–186 m³/h |
-| No flow when inactive | ✓ |
-| Volume balance produced = injected | exact (GEMINI connection) |
-| Brine cooling ≤ 40 °C | max 40.00 °C |
-| Pump efficiency 0.70 | ESP and injector power = Δp·Q / 0.70 |
-| Heating supply 100 °C | HP condenser outlet solved at 100 °C |
-| Heating demand met every day | max shortfall 0 MW |
-| Cooling demand met at 20 °C | max shortfall 0 MW |
-| Geothermal operating days | 330 |
-| Energy balance HEX + HP closes | residual < 1 kW |
+| Agentic AI: interpret demand, generate configurations, run checks, detect violations, iterate | `agent.py`: the LLM gets a demand summary, rules, history, violations and KPIs; proposes JSON; schema check; simulation; validator; repeat. Every step and reason is in `agent_log.md` |
+| Use GEMINI for subsurface/well engineering; complementary models for heating/cooling | GEMINI: producer well + ESP (nodal), separator, filters, injector well + pump, produced-gas boiler/CHP, `HeatExchanger`. Complementary: Lorenz heat pump, chillers, dispatch |
+| Demand: 365 daily MW; MWh = MW × 24 | 111.67 GWh heat / 23.74 GWh cooling reproduced |
+| Reservoir 2,500 m, 100 m, 30 °C/km, 12 °C, 250 bar, 200 mD | T = 12 + 30·z/1000; p hydrostatic (250 bar at 2,500 m); PI from Darcy with k = 200 mD, h = 100 m, μ = 0.40 mPa·s → 11.2 m³/h/bar |
+| Other well depths via hydrostatic pressure and gradient | Depth is a design variable (2,000–3,500 m) |
+| Brine 1,030 kg/m³, 0.40 mPa·s | Used in GEMINI well hydraulics (new optional `pvt` input), HEX and heat pump |
+| GLR 0.8 Nm³/m³, 80 % CH₄ / 20 % CO₂, Nm³ at 0 °C, 1.01325 bar | Gas density 0.969 kg/Nm³; heat from CH₄ only (35.88 MJ/Nm³); CO₂ = combustion + native CO₂ (checked within 1 %) |
+| 1–3 doublets | Design variable |
+| 50–300 m³/h per active doublet | ESP speed chosen daily within the range; checked |
+| Brine cooling ≤ 40 °C, producer → injector | Heat pump and HEX can never cool the brine below T_producer − 40 °C; checked |
+| Pump hydraulic efficiency 70 % | ESP and injector power = Δp·Q/0.70; checked |
+| Production = injection volume | GEMINI injector receives the producer flow; checked |
+| 330 daily steps, daily power and energy balance | One 35-day maintenance block placed at least CO₂ cost; heat, electricity and gas balances checked every day |
+| 100 °C heating supply | HEX/heat-pump outlet solved at 100 °C (HEX bypass when the brine is hotter) |
+| 20 °C cooling supply | Absorption (COP 0.7, 100 °C drive) and electric (COP 4) chillers at 20 °C; demand met every day |
+| Explain every major engineering decision | Agent reasoning per iteration (`agent_log.md`), assumptions and sensitivities below |
 
-## Annual results (selected design, official 2027 demand)
+## Validator — 16 checks (from `validation_report.txt`)
 
-| KPI | Value |
+Doublets in [1,3] · active ≤ installed · flow 50–300 m³/h · no flow when off ·
+produced = injected · brine cooling ≤ 40 °C · pump efficiency 0.70 ·
+heating supply 100 °C · heating met every day · cooling met every day at 20 °C ·
+330 geothermal days · HEX + heat-pump energy balance · whole-plant heat balance ·
+electricity balance · gas mass balance · produced-gas CO₂ = CH₄ burned + native CO₂.
+
+## Engineering findings
+
+1. **The number of doublets matters most.** Going from 1 to 3 doublets cuts CO₂ by 54 %, because one doublet cannot carry the 30 MW winter peak.
+2. **Depth pays off through temperature.** At 3,500 m (117 °C, 110 °C at the wellhead) the brine heats the district water to 100 °C on its own, and the heat pump's electricity disappears. With the brine-cooling cap of 40 °C, the heat per m³ stays the same, so depth does not add capacity. There is no cost data, so the extra 6 × 1,000 m of drilling is not priced in. The best design at the fixed 2,500 m reservoir depth (9,075 t) is reported too.
+3. **Produced gas is now the largest CO₂ source** (≈ 4,250 t/yr): 1.58 kg CO₂ per m³ of brine, unavoidable once brine is produced.
+4. **Summer geothermal heat makes cooling.** The absorption chiller turns spare brine heat into cooling. The 35-day maintenance block sits in July–August, when the plant is needed least.
+5. **Equipment right-sizing:** the backup boiler is needed only at 3.9 MW (not 30 MW) and the electric chiller at 10 MW. The electric chiller carries the full cooling peak during the maintenance block.
+
+## Sensitivity (benchmark design, `sensitivity.csv`)
+
+| Parameter | Values → CO₂ t/yr |
 |---|---|
-| Heating delivered | 111,668 MWh |
-| Cooling delivered | 23,743 MWh |
-| Share of 100 °C heat from geothermal chain (HEX + HP) | 87.2 % |
-| … from produced gas (boiler/CHP) | 10.7 % |
-| … from backup gas boiler | 2.1 % |
-| Net electricity use | 15,681 MWh |
-| Mean heat-pump COP | 4.38 |
-| CO₂ emissions | 8,708 t/year |
+| Specific heat 3,900 / 4,186 J/kg/K | 7,803 / 7,221 |
+| Well skin 0 / 2 / 5 / 10 (PI 14.0 / 11.2 / 8.6 / 6.2 m³/h/bar) | 7,130 / 7,221 / 7,334 / 7,545 |
+| Grid factor 0.1 / 0.3 / 0.5 kg/kWh | 5,297 / 7,221 / 8,724 |
+| Electric chiller COP 3 / 4 / 5 | 7,426 / 7,221 / 7,052 |
+| Return temperature 35–50 °C, heat-pump η 0.4–0.6, wellbore loss 4–10 °C | no change: the heat pump is unused at 3,500 m and the 40 °C cooling cap binds |
 
-## Sensitivity (selected design)
+All cases stay feasible.
 
-| Parameter | Values → CO₂ (t/yr) |
+## Assumptions (not given in the challenge)
+
+| Item | Value |
 |---|---|
-| District return temperature 35 / 40 / 45 / 50 °C | 8,560 / 8,708 / 8,875 / 9,066 |
-| Heat-pump Lorenz efficiency 0.40 / 0.50 / 0.60 | 9,240 / 8,708 / 8,324 |
-| Electric chiller COP 3 / 4 / 5 | 8,959 / 8,708 / 8,365 |
-| Grid emission factor 0.1 / 0.3 / 0.5 kg/kWh | 5,459 / 8,708 / 11,608 |
+| Specific heat brine/water | 4,186 J/kg/K (sensitivity above) |
+| Well skin / drainage radius / well radius (PI) | 2 / 600 m / 0.1 m |
+| Wellbore heat loss reservoir → wellhead | 7 °C (87 → 80 °C, as in the GEMINI example) |
+| District heating return | 40 °C |
+| Heat pump | Lorenz, η = 0.50 (same equations as GEMINI `HeatpumpBasic`) |
+| Chillers | absorption COP 0.7, electric COP 4.0 |
+| Grid emission factor | 0.3 kg CO₂/kWh (GEMINI example) |
+| Purchased natural gas | 56.6 kg CO₂/GJ, backup boiler η 0.90 |
+| ESP depth | 1,000 m; intake kept > 10 bar |
+| Costs | not modelled: no data given, none invented |
 
-All sensitivity cases stay feasible (12/12 checks).
+## Changes to GEMINI and issues found
 
-## Assumptions (not supplied by the challenge)
-
-| Item | Value | Why |
-|---|---|---|
-| Brine/water specific heat | 4186 J/kg/K | water at ~80 °C |
-| District return temperature | 40 °C | typical; see sensitivity |
-| Wellhead temperature | 80 °C | GEMINI boundary (87 °C reservoir − well losses) |
-| Productivity/injectivity index | 10 m³/h/bar | GEMINI example value |
-| ESP depth | 1000 m | keeps intake > 10 bar at high flow |
-| Heat pump | Lorenz, η = 0.50 | GEMINI default |
-| Electric chiller COP (20 °C supply) | 4.0 | see sensitivity |
-| Absorption chiller COP (100 °C drive) | 0.7 | single-effect |
-| Grid emission factor | 0.3 kg CO₂/kWh | GEMINI example value |
-| Natural gas | 56.6 kg CO₂/GJ, boiler η 0.90 | standard |
-| Produced gas | burned on site (GEMINI boiler/CHP); its CO₂ is counted | no venting |
-| Economics | not modelled | challenge gives no costs; we do not invent them. Without costs a bigger HEX is always slightly better, so a cost study would mainly decide HEX size and 2 vs 3 doublets. |
-
-## Known GEMINI issues found
-
-* `HeatpumpBasic` was not in the component registry → added (one line in
-  `src/gemini_simulator/registry.py`).
-* `HeatpumpBasic` fallback branch (used when the source-outlet minimum is
-  active) returns non-physical results (e.g. hot outlet > 700 °C, COP ≈ 1).
-  We therefore solve the same Lorenz equations directly and cross-check them
-  against `HeatpumpBasic` in its valid range.
-* Example JSON values contradicting the challenge (240 bar injector, 2400/3100 m
-  wells, 0.8 pump efficiency, GLR 0.5) are corrected in `challenge_plant.json`.
+* `src/gemini_simulator/registry.py`: `HeatpumpBasic` was not registered; now added.
+* `src/gemini_simulator/well_flow.py`: wells always used plain water (1,000 kg/m³,
+  1.0 mPa·s). There is now an optional `pvt` entry in a well's parameters
+  (e.g. `{"RHOL": 1030, "VISL": 0.0004}`). Default behaviour is unchanged, and all 91
+  GEMINI unit tests pass.
+* `HeatpumpBasic`'s fallback branch, used when the source-outlet minimum is
+  active, returns non-physical results (hot outlet > 700 °C, COP ≈ 1). Its
+  Nelder-Mead solve has no bounds and no convergence check. We solve the same
+  Lorenz equations by bisection and match `HeatpumpBasic` exactly in its valid
+  range (COP 6.129 = 6.129).
+* Example JSON values that contradict the challenge (240 bar injector, 2,400/3,100 m wells,
+  0.8 pump efficiency, GLR 0.5, gas density 0.7) are replaced.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `plant_model.py` | GEMINI well/gas layer, HEX, heat pump, per-doublet physics |
-| `dispatch.py` | daily optimal dispatch, maintenance block, summary, validator |
-| `optimize_design.py` | design search + sensitivity |
-| `run_full_year.py` | full-year run of selected design, reports, plots |
+| `agent.py` | agentic loop (Ollama / OpenAI-compatible / `--offline` rule agent) |
+| `plant_model.py` | GEMINI well/gas layer, reservoir from depth, HEX, heat pump |
+| `dispatch.py` | daily lowest-CO₂ dispatch, maintenance block, KPIs, 16-check validator |
+| `run_full_year.py` | full-year report of the chosen design + plots |
+| `optimize_design.py` | exhaustive benchmark (72 designs) + sensitivity |
 | `challenge_plant.json` | GEMINI project with challenge inputs |
 | `GEMINI_*_Demand_Daily_2027.csv` | official demand profiles |
-| `best_design.json` | selected design + assumptions |
-| `design_comparison.csv` | all 45 candidates |
-| `sensitivity.csv` | sensitivity study |
-| `results_daily.csv` | 365 days × all flows, temperatures, powers, CO₂ |
-| `results_summary.csv` | annual KPIs |
-| `validation_report.txt` | pass/fail of every constraint |
-| `plots/` | heating & cooling dispatch, operating envelope, design comparison |
+| `agent_log.md`, `agent_history.csv`, `agent_best_design.json` | agent run: reasoning, designs, verdicts |
+| `results_daily.csv`, `results_summary.csv`, `validation_report.txt`, `plots/` | full-year results |
+| `design_comparison.csv`, `sensitivity.csv`, `best_design.json` | benchmark outputs |

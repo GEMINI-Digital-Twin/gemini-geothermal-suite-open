@@ -1,14 +1,14 @@
 GEMINI GeoHackathon 2026 — Validation Report
 ================================================================
 
-Design: N=3 UA=1600kW/K stages=30  (ESP depth 1000 m)
+Design: N=3 depth=3500m UA=2000kW/K stages=50 boiler=4.5MW chillers=10.5+9MW  (ESP depth 1000 m)
 All checks below are recomputed from results_daily.csv — none are hard-coded.
 
 CHALLENGE CONSTRAINTS
 ----------------------------------------------------------------
   PASS  Doublets installed in [1,3]                3
   PASS  Active doublets <= installed               max 3
-  PASS  Flow per active doublet 50-300 m3/h        51.1 - 186.2 m3/h
+  PASS  Flow per active doublet 50-300 m3/h        58.4 - 196.1 m3/h
   PASS  No flow on inactive days                   q = 0
   PASS  Volume balance produced = injected         max |diff| 0.00e+00 m3/h
   PASS  Brine cooling <= 40 C                      max 40.00 C
@@ -18,27 +18,40 @@ CHALLENGE CONSTRAINTS
   PASS  Cooling demand met every day at 20 C       max shortfall 0.0000 MW
   PASS  Geothermal operating days = 330            330 days
   PASS  Energy balance closes (HEX+HP)             max residual 0.000 kW
+  PASS  Whole-plant daily heat balance             max residual 0.000 kW
+  PASS  Electricity balance                        max residual 0.0000 kW
+  PASS  Gas mass balance separated = burned        max |diff| 2.8e-17 kg/s
+  PASS  Produced-gas CO2 = CH4 burned + native CO2 max deviation 0.00 %
 
 ANNUAL PERFORMANCE
 ----------------------------------------------------------------
-  design: N=3 UA=1600kW/K stages=30
+  design: N=3 depth=3500m UA=2000kW/K stages=50 boiler=4.5MW chillers=10.5+9MW
   n_doublets: 3
-  hex_ua_kW_per_K: 1600.0
-  esp_stages: 30
-  co2_t_per_year: 8707.9
+  hex_ua_kW_per_K: 2000.0
+  esp_stages: 50
+  well_depth_m: 3500.0
+  reservoir_T_C: 117.0
+  productivity_index_m3h_bar: 11.22
+  drilled_m_total: 21000.0
+  co2_t_per_year: 7191.9
   heating_delivered_MWh: 111668.0
-  absorption_drive_heat_MWh: 6457.0
+  absorption_drive_heat_MWh: 20821.0
   cooling_delivered_MWh: 23743.0
-  geothermal_chain_share_pct: 87.2
-  produced_gas_share_pct: 10.7
-  backup_boiler_share_pct: 2.1
-  backup_boiler_MWh: 2426.0
-  net_electricity_MWh: 15681.0
-  mean_hp_COP: 4.38
+  geothermal_chain_share_pct: 88.3
+  produced_gas_share_pct: 9.7
+  backup_boiler_share_pct: 2.0
+  backup_boiler_MWh: 2657.0
+  net_electricity_MWh: 7797.0
+  mean_hp_COP: nan
   max_brine_cooling_C: 40.0
   geo_days: 330
-  maintenance_block: 2027-07-09 .. 2027-08-12
-  constraint_checks_passed: 12/12
+  peak_backup_boiler_MW: 3.89
+  peak_electric_chiller_MW: 10.0
+  peak_absorption_chiller_MW: 8.55
+  unmet_heating_MWh: 0.0
+  unmet_cooling_MWh: 0.0
+  maintenance_block: 2027-07-15 .. 2027-08-18
+  constraint_checks_passed: 16/16
 
 ASSUMPTIONS (not supplied by the challenge)
 ----------------------------------------------------------------
@@ -50,3 +63,6 @@ ASSUMPTIONS (not supplied by the challenge)
   gas_ef_kg_per_gj: 56.6
   backup_boiler_eff: 0.9
   min_esp_intake_bar: 10.0
+  skin: 2.0
+  wellbore_heat_loss_c: 7.0
+  cp: 4186.0
