@@ -704,15 +704,22 @@ def test_the_repository_has_no_datasets_folder():
     assert [path for path in tracked_files() if path.startswith("datasets/")] == []
 
 
+ARCHIVE = (".claude/archive/",)
+"""Historical records, never edited: what they named then stays as it was written."""
+
+
 def test_no_framework_names_in_tracked_text_files():
     """Concepts are described directly, without naming the framework the design resembles.
 
     Only files containing ``FRAMEWORK_STEM`` are searched line by line: every match contains it,
     so the result is the same, and the case-insensitive regex over the 17 MB of example CSVs no
-    longer pushes the test past the one-second budget on CI runners.
+    longer pushes the test past the one-second budget on CI runners. The archive is left out:
+    historical records keep what they named.
     """
     found = []
     for path in tracked_files():
+        if path.startswith(ARCHIVE):
+            continue
         try:
             text = (ROOT / path).read_text(encoding="utf-8")
         except UnicodeDecodeError:

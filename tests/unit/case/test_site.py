@@ -121,3 +121,12 @@ def test_the_schema_of_the_dissolved_gas_offers_an_optional_unit():
     leaf = fluid["dissolved_gas"]["properties"]["CH4"]
     assert leaf["required"] == ["value"] and "mol%" in leaf["properties"]["unit"]["enum"]
     assert fluid["dissolved_gas"]["x-fraction"] is True
+
+
+def test_a_humidity_series_without_a_unit_is_read_as_fractions(data, files):
+    """As in 0.5.0, a series of the relative humidity needs no unit: its values are 0 to 1."""
+    rows = ["time,rh"] + [f"2027-01-{day:02d}T00:00:00Z,0.{day}" for day in range(1, 8)]
+    files = dict(files) | {"rh.csv": ("\n".join(rows) + "\n").encode()}
+    data["site"]["air"]["relative_humidity"] = {"file": "rh.csv", "column": "rh"}
+    humidity = gm.Case.from_dict(data, files=files).site.air.relative_humidity
+    assert list(humidity) == pytest.approx([day / 10 for day in range(1, 8)])

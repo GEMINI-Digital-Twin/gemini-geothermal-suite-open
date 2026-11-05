@@ -12,6 +12,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.32] - 2026-11-05
+
+### Fixed
+- The case schema's series form of a dimensionless value that may state a unit (the relative
+  humidity of `site.air`) no longer requires `unit`: without one the values are fractions 0 to
+  1, as in 0.5.0, whose schema the API keeps (0.6.5 had made it required). Reading was not
+  changed.
+- `gm.check` names a doublet's missing `depth` only when the doublet does not state its
+  reservoir temperature and pressure itself: a measured doublet (`DoubletHeatPlant`) takes
+  nothing from the case and needs no depth (since 0.6.9 it could not run).
+
 ## [0.6.31] - 2026-11-05
 
 ### Added

@@ -7559,8 +7559,7 @@
                   },
                   "required": [
                     "file",
-                    "column",
-                    "unit"
+                    "column"
                   ],
                   "type": "object"
                 }

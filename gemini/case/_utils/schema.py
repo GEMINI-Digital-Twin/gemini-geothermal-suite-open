@@ -120,7 +120,12 @@ def accepted_units(field):
 
 
 def leaf(field):
-    """Return the schema of the leaf of one ``Field``."""
+    """Return the schema of the leaf of one ``Field``.
+
+    A series of a dimensionless field that may state a unit (``unit_of``, the relative humidity)
+    needs no ``unit``: without one its values are fractions 0 to 1, as in 0.5.0, whose schema the
+    API keeps (0.6.5 had made it required).
+    """
     if field.keys is not None:
         items = {
             key: leaf(
@@ -154,7 +159,8 @@ def leaf(field):
     }
     series = {key: item for key, item in series.items() if item is not None}
     optional = {"range": RANGE, "time_zone": {"type": "string"}}
-    return {"anyOf": [form, closed(described(series | optional), list(series))]} | marks(field)
+    required = [key for key in series if key != "unit" or field.quantity is not None]
+    return {"anyOf": [form, closed(described(series | optional), required)]} | marks(field)
 
 
 def closed(properties, required=()):

@@ -268,13 +268,16 @@ def _depths(plant):
 
     A doublet takes its reservoir temperature and pressure from the case only at its own depth
     (``apply_case``); without one, those values are listed as missing although the case has them
-    (geomind QA-049, QA-082), so the depth is named first, as the one value to give.
+    (geomind QA-049, QA-082), so the depth is named first, as the one value to give. A doublet
+    that states both by hand (``_stated``) needs no depth.
     """
     from gemini.plants.doublet import Doublet
 
     issues = []
     for path, module in plant.named_modules():
-        if isinstance(module, Doublet) and _set_value(module, "depth") is None:
+        if not isinstance(module, Doublet):
+            continue
+        if _set_value(module, "depth") is None and not _stated(module):
             where = join_path("params", form.file_path(join_path(path, "depth")))
             issues.append(
                 Issue(
@@ -286,6 +289,18 @@ def _depths(plant):
                 )
             )
     return issues
+
+
+def _stated(doublet):
+    """Return whether a doublet states its reservoir's temperature and pressure by hand.
+
+    A measured doublet (``DoubletHeatPlant``) gives its reservoir directly and takes nothing from
+    the case, so it needs no depth.
+    """
+    reservoir = getattr(doublet, "reservoir", None)
+    if reservoir is None:
+        return False
+    return all(_set_value(reservoir, name) is not None for name in ("temperature", "pressure"))
 
 
 def _declares(module, name):
