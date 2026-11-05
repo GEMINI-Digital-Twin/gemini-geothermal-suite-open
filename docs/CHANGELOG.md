@@ -12,6 +12,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.28] - 2026-11-05
+
+### Fixed
+- A call of `ESP` no longer writes module state: the negative-curve text is cached by the curves
+  in `gemini.modules.pumps._physics`, so module calls stay pure.
+
 ## [0.6.27] - 2026-11-05
 
 ### Added
