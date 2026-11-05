@@ -131,8 +131,9 @@ The agent responds to a missing input in one of three ways:
   value (judges' test i). `--remove NAME[,NAME]` or `--remove all` removes inputs for the demo.
 - **`--interactive`:** it asks for each value in the terminal, validates the answer against the range and asks
   again if the answer is out of range. It then continues with the answers logged and timestamped. The recorded run
-  is `outputs/agent/interactive/`, in which the user answered 40 °C. That run predates gas handling, so its pick
-  (a 3 250 m design) is not the final one.
+  is `outputs/agent/interactive/` (re-run 2026-11-05 on the final model, `--remove heating_return_T`). The agent
+  refused `abc` (not a number) and `95` (outside 40–80 °C) and accepted `60`. It then reached the same pick as the
+  rules run, n2_q300_s1.8_ua1000_z3500_co2ri, in 14 evaluations with all four judges' tests passing.
 - **Out-of-range value:** it refuses the value and gives the plausible range.
 
 ## 4. Sensitivity (one input at a time, 10 cases)
@@ -276,9 +277,6 @@ repository and is not included above.
 - **Free gas at the ESP intake is not modelled.** The well model has a gas mass fraction of 0 at GLR 0.8.
 - **Gas solubility.** The salting-out fit (273–363 K) is extrapolated to 117 °C, and the partial molar volumes and
   k_ij are ASSUMED. The pick's margins (7.3 and 148) leave a wide buffer for this uncertainty.
-- **Older agent run.** The interactive run (`outputs/agent/interactive/`) predates gas handling and the 0.1 GWh tie
-  tolerance. It shows the human-in-the-loop exchange, not the final design. The rules and claude_cli runs are both on
-  the final model.
 
 ## 10. GEMINI issues found
 

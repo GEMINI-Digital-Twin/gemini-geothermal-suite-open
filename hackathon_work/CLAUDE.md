@@ -182,6 +182,8 @@ Cascade per active doublet:
   decision_log.jsonl and agent_trace.md), accepts only a number in the plausible range, re-asks otherwise,
   'q' or no stdin halts; answers go to `project_with_user_answers.json` / `settings_with_user_answers.json`
   and the design loop continues. Outputs in `outputs/agent/interactive/`; the default run needs no input.
+  Console (not logs): colours (`--no-color`; off when stdout is not a terminal), a progress line per annual
+  evaluation, HeatpumpBasic RuntimeWarnings counted in one line instead of printed.
 - `sensitivity.py`: one-at-a-time sensitivity of the final pick (heating return 50/70 °C, HP η 0.40/0.50,
   absorption COP 0.6/0.8, gradient 27/33 °C/km, brine cp 4000/4200) + a fresh agent run per case →
   `outputs/sensitivity/{summary.json, sensitivity.md}` (tornado in dashboard panel 10).

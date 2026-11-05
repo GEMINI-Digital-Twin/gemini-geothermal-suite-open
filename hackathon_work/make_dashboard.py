@@ -1007,7 +1007,7 @@ function renderReplay() {
   // export / first view: the step where the final pick is found
   rpGo(EXPORT ? Math.max(0, R.findIndex(r => r.candidate === rpIncumbent(R.length - 1))) : 0);
   const chat = D.agent.chat, esc = t => String(t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  document.getElementById("chat").innerHTML = `<div class="hdr">Human-in-the-loop run (<code>--interactive --remove heating_return_T</code>, outputs/agent/interactive/). Recorded at an earlier model state; the user's 40 °C answer, not the 60 °C base, drives its result.</div>` +
+  document.getElementById("chat").innerHTML = `<div class="hdr">Human-in-the-loop run (<code>--interactive --remove heating_return_T</code>, outputs/agent/interactive/). Re-run 2026-11-05 on the final model: the agent refuses the invalid answers, accepts 60 °C and reaches the same pick as the rules run.</div>` +
     chat.map(c => `<div class="bubble ${c.who}"><span class="tag">${esc(c.tag)}</span>${esc(c.text)}${c.note ? `<br><span class="small" style="color:inherit;opacity:.8">${esc(c.note)}</span>` : ""}</div>`).join("") +
     (chat.length ? "" : `<div class="hdr">No interactive run found.</div>`);
 }

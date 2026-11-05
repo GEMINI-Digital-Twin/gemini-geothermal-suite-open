@@ -39,7 +39,9 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -202,6 +204,95 @@ def saturation_pressure_bar(t_c: float) -> float:
     """Water vapour pressure (Antoine; two coefficient sets, 1-374 C)."""
     a, b, c = (8.07131, 1730.63, 233.426) if t_c < 99 else (8.14019, 1810.94, 244.485)
     return 10 ** (a - b / (c + t_c)) * 0.00133322
+
+
+# --- console (colours and progress on the terminal only; logs stay plain text) --------
+class Paint:
+    """ANSI styles for console text; off until ``enable`` (so importers such as sensitivity.py print plain text)."""
+
+    CODES = {"bold": "1", "red": "31", "green": "32", "yellow": "33", "cyan": "36", "grey": "90"}
+
+    def __init__(self):
+        self.on = False
+
+    def enable(self, wanted: bool):
+        self.on = wanted and sys.stdout.isatty() and "NO_COLOR" not in os.environ
+        if self.on:
+            try:
+                import colorama
+                colorama.just_fix_windows_console()  # legacy Windows consoles; VS Code's terminal reads ANSI as is
+            except ImportError:
+                pass
+
+    def __call__(self, text: str, *styles: str) -> str:
+        if not self.on or not styles:
+            return text
+        return f"\033[{';'.join(self.CODES[s] for s in styles)}m{text}\033[0m"
+
+
+paint = Paint()
+
+# HeatpumpBasic's Nelder-Mead cross-check emits RuntimeWarnings (known GEMINI issue, outputs/evidence/heatpumpbasic_issue.md);
+# they are counted here and reported in one line instead of cluttering the console.
+SUPPRESSED_WARNINGS = {"HeatpumpBasic": 0}
+_WARNING_REGISTRY = {}
+
+
+def simulate_year(plant: Plant, heating: dict, cooling: dict) -> dict:
+    """``plant.simulate_year`` with HeatpumpBasic's RuntimeWarnings counted, not printed; other warnings pass through."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = plant.simulate_year(heating, cooling)
+    for w in caught:
+        if issubclass(w.category, RuntimeWarning) and Path(w.filename).stem == "heatpump_basic":
+            SUPPRESSED_WARNINGS["HeatpumpBasic"] += 1
+        else:
+            warnings.warn_explicit(w.message, w.category, w.filename, w.lineno, registry=_WARNING_REGISTRY)
+    return result
+
+
+GAS_TEXT = {"chp": "all produced gas to CHP", "co2_reinject": "CO2 separated and reinjected, CH4 to CHP",
+            "reinject_all": "all produced gas reinjected, no combustion"}
+
+
+def spaced(x: float) -> str:
+    return f"{x:,.0f}".replace(",", " ")
+
+
+def describe_candidate(c: dict) -> str:
+    """'2 doublets, 2 750 m, 300 m3/h, ESP s1.8, HEX 1000 kW/K, all produced gas to CHP' for the progress line."""
+    n = c["n_doublets"]
+    return (f"{n} doublet{'s' if n != 1 else ''}, {spaced(c['depth_m'])} m, {c['flow_cap_m3h']:g} m3/h, ESP {c['esp']}, "
+            f"HEX {c['hex_ua_W_K'] / 1e3:.0f} kW/K, {GAS_TEXT.get(c.get('gas_handling', 'chp'), c.get('gas_handling'))}")
+
+
+def paint_table_row(row: str) -> str:
+    """Console colours for an evaluation_table row: ACCEPTED green, REJECTED grey, infeasible (hard-limit FAIL) red."""
+    row = re.sub(r"ACCEPTED \(rank \d+\)", lambda m: paint(m.group(0), "green", "bold"), row)
+    row = re.sub(r"REJECTED \(rank \d+\)", lambda m: paint(m.group(0), "grey"), row)
+    return re.sub(r"\| no \([^)]*\)", lambda m: "| " + paint(m.group(0)[2:], "red"), row)
+
+
+def final_box(pick: dict, reduction: float, ref: dict, tests: list[dict]) -> str:
+    """Boxed summary of the final pick for the console."""
+    c, s = pick["candidate"], pick["summary"]
+    failing = sorted(set([x["check"] for x in s["annual_checks"] if x["status"] != "PASS"] + s["failing_checks"]))
+    passed = sum(t["pass"] for t in tests)
+    lines = [f"FINAL PICK   {candidate_id(c)}",
+             f"Design       {c['n_doublets']} doublet(s) x {c['flow_cap_m3h']:g} m3/h, ESP {c['esp']}, HEX {c['hex_ua_W_K'] / 1e3:.0f} kW/K",
+             f"Depth        {spaced(c['depth_m'])} m ({s['reservoir_temperature_C']:.0f} C reservoir)",
+             f"Gas          {c.get('gas_handling', 'chp')}: {GAS_TEXT.get(c.get('gas_handling', 'chp'), '')}",
+             f"CO2          {spaced(s['emissions_t'])} t/yr, {reduction * 100:.1f}% below the conventional reference ({spaced(ref['emissions_t'])} t/yr)",
+             f"External gas {s['external_gas_fuel_GWh']:.3f} GWh/yr (reference {ref['gas_fuel_GWh']:.1f} GWh/yr)",
+             "Checks       " + ("all hard constraints PASS" if not failing else f"FAIL: {', '.join(failing)}")
+             + f"; judges' tests {passed}/{len(tests)} PASS"]
+    width = max(len(x) for x in lines)
+    border = "+" + "-" * (width + 2) + "+"
+    ok = not failing and passed == len(tests)
+    style = ("green",) if ok else ("red",)
+    body = [paint("| ", *style) + paint(x.ljust(width), *style, *(("bold",) if i == 0 else ())) + paint(" |", *style)
+            for i, x in enumerate(lines)]
+    return "\n".join([paint(border, *style)] + body + [paint(border, *style)])
 
 
 # --- logging -------------------------------------------------------------------
@@ -454,12 +545,13 @@ def dissolution_row(d: dict | None) -> dict | None:
 
 # --- agent -------------------------------------------------------------------------
 class DesignAgent:
-    def __init__(self, backend, log: DecisionLog, out_dir: Path, budget: int = 16, interactive: bool = False):
+    def __init__(self, backend, log: DecisionLog, out_dir: Path, budget: int = 16, interactive: bool = False, progress: bool = False):
         self.backend = backend
         self.log = log
         self.out_dir = out_dir
         self.budget = budget
         self.interactive = interactive
+        self.progress = progress  # one console line per annual evaluation (CLI runs)
         self.project_path = PROJECT_PATH  # replaced by the completed project once the user answers
         self.challenge_path = CHALLENGE_PATH  # replaced only by sensitivity runs (e.g. the geothermal gradient)
         self.settings = load_json(CANDIDATES_PATH)
@@ -550,11 +642,13 @@ class DesignAgent:
                 attempt += 1
                 self.log.event(scenario, "ask", "AGENT ASKED", rationale=question,
                                data={"input": m["input"], "attempt": attempt, "range": [spec["min"], spec["max"]], "unit": spec["unit"]})
-                print(f"\nAGENT ASKED: {question}", flush=True)
+                print(f"\n{paint('AGENT ASKED:', 'bold', 'cyan')} {paint(question, 'cyan')}", flush=True)
                 try:
-                    raw = input(f"USER ANSWER ({m['input']}, {spec['unit']}) > ").strip().lstrip("﻿")  # BOM from a PowerShell pipe
+                    raw = input(paint(f"USER ANSWER ({m['input']}, {spec['unit']}) >", "bold", "yellow") + " ").strip().lstrip("﻿")  # BOM from a PowerShell pipe
                 except EOFError:
                     raw = "q"
+                if not sys.stdin.isatty():  # piped answers are not echoed by the terminal
+                    print(raw, flush=True)
                 value, reason = self.validate_answer(raw, spec)
                 if raw.lower() in ("q", "quit", "stop"):
                     self.log.event(scenario, "answer", "USER ANSWERED", rationale=f"'{raw}': the user stopped the run; the agent halts without the value.",
@@ -564,9 +658,9 @@ class DesignAgent:
                 self.log.event(scenario, "answer", "USER ANSWERED", rationale=f"'{raw}': " + (f"accepted, {value:g}{unit_text(spec['unit'])}." if value is not None else f"rejected - {reason}"),
                                data={"input": m["input"], "raw": raw, "valid": value is not None, "value": value, "reason": reason})
                 if value is not None:
-                    print(f"AGENT: thank you - using {spec['name']} = {value:g}{unit_text(spec['unit'])}.", flush=True)
+                    print(paint(f"AGENT: thank you - using {spec['name']} = {value:g}{unit_text(spec['unit'])}.", "green"), flush=True)
                     break
-                print(f"AGENT: I cannot use '{raw}': {reason}. Let me ask again.", flush=True)
+                print(paint(f"AGENT: I cannot use '{raw}': {reason}. Let me ask again.", "red"), flush=True)
             set_input(roots, spec, value)
             stamp = f"USER ANSWER (interactive, {datetime.now(timezone.utc).isoformat()})"
             for where in {w for w, _ in spec["targets"]}:
@@ -578,7 +672,7 @@ class DesignAgent:
         if "settings" in answered:  # self.settings is used directly (and is part of the cache key); saved for the record
             (self.out_dir / "settings_with_user_answers.json").write_text(json.dumps(self.settings, indent=2), encoding="utf-8")
         if answered:
-            print("AGENT: all missing inputs answered - continuing the design loop.", flush=True)
+            print(paint("AGENT: all missing inputs answered - continuing the design loop.", "green", "bold") + "\n", flush=True)
         return bool(answered)
 
     @staticmethod
@@ -719,7 +813,7 @@ class DesignAgent:
         if cached:
             summary = json.loads(cache_path.read_text(encoding="utf-8"))
         else:
-            summary = annual_summary({"name": candidate_id(candidate), **candidate}, plant, plant.simulate_year(self.heating, self.cooling))
+            summary = annual_summary({"name": candidate_id(candidate), **candidate}, plant, simulate_year(plant, self.heating, self.cooling))
             CACHE.mkdir(parents=True, exist_ok=True)
             cache_path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
         wall = time.perf_counter() - start
@@ -783,6 +877,8 @@ class DesignAgent:
             while violations:
                 self.log.event(scenario, "validate", f"Rejected before simulation: {candidate_id(candidate)}", data={"violations": violations},
                                rationale="; ".join(v["reason"] for v in violations))
+                if self.progress:
+                    print(paint(f"      FAIL before simulation: {candidate_id(candidate)}: " + "; ".join(v["reason"] for v in violations), "red"), flush=True)
                 n_calls = len(self.backend.calls)
                 revision = self.backend.revise(candidate, violations, ctx)
                 candidate = revision["candidate"]
@@ -799,6 +895,8 @@ class DesignAgent:
             repeats = 0
 
             self.evaluations += 1
+            if self.progress:
+                print(f"[{self.evaluations:>2}/{self.budget}] simulating {describe_candidate(candidate)} ...", end=" ", flush=True)
             result = self.evaluate(candidate)
             s = result["summary"]
             self.log.event(scenario, "build_json", f"GEMINI JSON for {candidate_id(candidate)}", data=result["json_check"],
@@ -832,6 +930,12 @@ class DesignAgent:
             accepted = [h for h in history if h["verdict"]["status"] == "ACCEPTED"]
             previous = incumbent
             incumbent = accepted[0] if accepted else None
+            if self.progress:
+                verdict = history[-1]["verdict"]
+                status = (paint(f"FAIL ({', '.join(failing)})", "red") if not s["feasible"]
+                          else paint("ACCEPTED (new incumbent)", "green") if incumbent is history[-1]
+                          else paint(f"REJECTED (ranked out, rank {verdict['rank']})", "grey"))
+                print(f"{result['wall_s']:.1f} s{' (cached)' if result['cached'] else ''}  {status}", flush=True)
             self.log.event(scenario, "rank", "Ranking after evaluation", data={candidate_id(h["candidate"]): h["verdict"] for h in history},
                            rationale=("Incumbent: " + candidate_id(incumbent["candidate"]) if incumbent else "No feasible candidate yet.")
                            + (f" (was {candidate_id(previous['candidate'])})" if previous and incumbent and previous is not incumbent else ""))
@@ -857,7 +961,12 @@ class DesignAgent:
             self.log.event(scenario, "final", "No feasible design found", rationale="Budget or design space exhausted without a feasible candidate.")
             return {"status": "no_feasible_design", "history": history, "runtime_s": runtime}
         final = self.conclude(scenario, history, incumbent, runtime)
+        if self.progress:
+            print(f"[final] writing daily rows for {candidate_id(incumbent['candidate'])} ...", end=" ", flush=True)
+        start = time.perf_counter()
         self.write_final_design(incumbent)
+        if self.progress:
+            print(f"{time.perf_counter() - start:.1f} s\n", flush=True)
         return {"status": "selected", "pick": incumbent, "history": history, "runtime_s": runtime, **final}
 
     def conclude(self, scenario, history, incumbent, runtime):
@@ -954,7 +1063,7 @@ class DesignAgent:
         folder.mkdir(parents=True, exist_ok=True)
         candidate = {"name": candidate_id(incumbent["candidate"]), **incumbent["candidate"]}
         plant = Plant(candidate, self.settings, self.project_path, self.challenge_path)
-        result = plant.simulate_year(self.heating, self.cooling)
+        result = simulate_year(plant, self.heating, self.cooling)
         with (folder / "daily.csv").open("w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=list(result["rows"][0]))
             writer.writeheader()
@@ -1235,7 +1344,9 @@ def main():
                         help=f"required input(s) removed in scenario A (judges' test i), default heating_return_T; 'all' removes every one. "
                              f"Names: {', '.join(REQUIRED_BY_NAME)}")
     parser.add_argument("--retrace", metavar="NOTE", help="only rebuild agent_trace.md from the saved decision_log.jsonl, with this note")
+    parser.add_argument("--no-color", action="store_true", help="plain console output (colours are also off when stdout is not a terminal)")
     args = parser.parse_args()
+    paint.enable(not args.no_color)
     removed = [n.strip() for arg in (args.remove or ["heating_return_T"]) for n in arg.split(",") if n.strip()]
     if "all" in removed:
         removed = list(REQUIRED_BY_NAME)
@@ -1261,10 +1372,10 @@ def main():
     for name in removed:
         remove_input(roots_missing, REQUIRED_BY_NAME[name])
     design_scenario = "A_missing_input" if args.interactive else "B_design"
-    results["A_missing_input"] = DesignAgent(backend, log, out_dir, args.budget, interactive=args.interactive).run(
+    results["A_missing_input"] = DesignAgent(backend, log, out_dir, args.budget, interactive=args.interactive, progress=True).run(
         "A_missing_input", roots_missing["project"], roots_missing["settings"], removed)
     if not args.interactive:
-        results["B_design"] = DesignAgent(backend, log, out_dir, args.budget).run("B_design")
+        results["B_design"] = DesignAgent(backend, log, out_dir, args.budget, progress=True).run("B_design")
     total = time.perf_counter() - start
 
     tests = write_trace(out_dir / "agent_trace.md", log.entries, backend.name, results, design_scenario=design_scenario)
@@ -1281,12 +1392,17 @@ def main():
     if not args.interactive:
         print(f"[{backend.name}] Scenario A: {results['A_missing_input']['status']}")
     print(f"[{backend.name}] Scenario {design_scenario[0]}: {b['status']}, {len(b.get('history', []))} annual evaluations, total runtime {total:.1f} s")
-    print("\n".join(evaluation_table(log.entries, design_scenario)))
+    print("\n".join(paint_table_row(row) for row in evaluation_table(log.entries, design_scenario)))
     if b.get("status") == "selected":
         print(f"FINAL: {b['conclusion']}")
         print(f"TIMING: {json.dumps(b['timing'])}")
     for t in tests:
-        print(f"  {'PASS' if t['pass'] else 'FAIL'} {t['test']}")
+        print(f"  {paint('PASS', 'green') if t['pass'] else paint('FAIL', 'red', 'bold')} {t['test']}")
+    if b.get("status") == "selected":
+        print(final_box(b["pick"], b["emissions_reduction"], b["reference"], tests))
+    if SUPPRESSED_WARNINGS["HeatpumpBasic"]:
+        print(paint(f"HeatpumpBasic cross-check warnings suppressed: {SUPPRESSED_WARNINGS['HeatpumpBasic']} "
+                    f"(known GEMINI issue, see outputs/evidence/heatpumpbasic_issue.md)", "grey"))
     print(f"LOGS: {(out_dir / 'decision_log.jsonl').relative_to(REPO)}, {(out_dir / 'agent_trace.md').relative_to(REPO)}")
 
 
