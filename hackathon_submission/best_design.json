@@ -1,0 +1,19 @@
+{
+  "design": {
+    "n_doublets": 3,
+    "hex_ua_w_per_k": 1600000.0,
+    "esp_stages": 30,
+    "esp_depth_m": 1000.0
+  },
+  "assumptions": {
+    "t_return": 40.0,
+    "eta_lorenz": 0.5,
+    "cop_electric_chiller": 4.0,
+    "cop_absorption": 0.7,
+    "grid_ef_kg_per_kwh": 0.3,
+    "gas_ef_kg_per_gj": 56.6,
+    "backup_boiler_eff": 0.9,
+    "min_esp_intake_bar": 10.0
+  },
+  "co2_t_per_year": 8707.9
+}

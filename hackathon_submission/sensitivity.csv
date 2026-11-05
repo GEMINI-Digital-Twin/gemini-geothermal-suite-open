@@ -1,0 +1,14 @@
+parameter,value,co2_t_per_year,backup_boiler_share_pct,geothermal_chain_share_pct,net_electricity_MWh,feasible
+t_return,35.0,8560.2,2.0,87.2,14670.0,True
+t_return,40.0,8707.9,2.1,87.2,15681.0,True
+t_return,45.0,8874.9,2.1,87.2,16733.0,True
+t_return,50.0,9065.5,2.2,87.3,17572.0,True
+eta_lorenz,0.4,9239.7,2.1,87.3,18255.0,True
+eta_lorenz,0.5,8707.9,2.1,87.2,15681.0,True
+eta_lorenz,0.6,8323.8,1.9,87.2,13384.0,True
+cop_electric_chiller,3.0,8959.4,1.8,87.4,14707.0,True
+cop_electric_chiller,4.0,8707.9,2.1,87.2,15681.0,True
+cop_electric_chiller,5.0,8364.7,2.2,87.0,15072.0,True
+grid_ef_kg_per_kwh,0.1,5458.5,2.2,87.1,16359.0,True
+grid_ef_kg_per_kwh,0.3,8707.9,2.1,87.2,15681.0,True
+grid_ef_kg_per_kwh,0.5,11608.4,1.9,87.4,14124.0,True

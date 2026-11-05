@@ -1,48 +1,52 @@
 GEMINI GeoHackathon 2026 — Validation Report
-============================================================
+================================================================
 
-Plant design: 2 doublets, heat pump + boiler/CHP backup
-Geothermal operating days: 330 / 365
-
-GEMINI BASELINE (per doublet)
-----------------------------------------
-  Flow rate: 106.20 m3/h
-  Wellhead temperature: 80.0 C
-  HEX secondary outlet: 52.4 C
-  Injector inlet temp: 42.8 C
-  Brine cooling: 37.2 C
-  Geo heat extracted: 4.347 MW
-  ESP power: 157.2 kW
+Design: N=3 UA=1600kW/K stages=30  (ESP depth 1000 m)
+All checks below are recomputed from results_daily.csv — none are hard-coded.
 
 CHALLENGE CONSTRAINTS
-----------------------------------------
-  PASS — Flow per doublet: 106.2 m3/h
-  PASS — Brine cooling: 37.2 C <= 40.0 C
-  PASS — Heating supply: 100.0 C (target 100 C)
-  PASS — Cooling supply: 20.0 C (target 20 C)
-  PASS — Pump efficiency: 0.7
-  PASS — Doublets: 2 in [1,3]
-  PASS — Geo operating days: 330
-  PASS — Volume balance: produced=injected (GEMINI enforced)
+----------------------------------------------------------------
+  PASS  Doublets installed in [1,3]                3
+  PASS  Active doublets <= installed               max 3
+  PASS  Flow per active doublet 50-300 m3/h        51.1 - 186.2 m3/h
+  PASS  No flow on inactive days                   q = 0
+  PASS  Volume balance produced = injected         max |diff| 0.00e+00 m3/h
+  PASS  Brine cooling <= 40 C                      max 40.00 C
+  PASS  Pump efficiency = 0.70                     [0.7]
+  PASS  Heating supply >= 100 C                    HP condenser outlet solved at 100 C; boilers set to 100 C
+  PASS  Heating demand met every day               max shortfall 0.0000 MW
+  PASS  Cooling demand met every day at 20 C       max shortfall 0.0000 MW
+  PASS  Geothermal operating days = 330            330 days
+  PASS  Energy balance closes (HEX+HP)             max residual 0.000 kW
 
 ANNUAL PERFORMANCE
-----------------------------------------
-  Annual heating delivered (MW-day): 4652.8
-  Annual cooling delivered (MW-day): 989.3
-  Geothermal heat extracted (MW-day): 2438.7
-  Heat pump contribution (MW-day): 4346.6
-  Gas thermal (boiler+CHP) (MW-day): 439.7
-  Additional backup boiler (MW-day): 130.0
-  Geothermal+HP share of heating (%): 100
-  Total CO2 emissions (tonnes/year): 25765.0
-  Net electricity consumption (MW-day): 1302.0
-  Geothermal operating days: 330
-  Number of doublets: 2
-  Flow per doublet (m3/h): 106.2
-  Brine cooling (C): 37.2
-  Heat pump COP: 3.92
-  Constraint violations: 0
+----------------------------------------------------------------
+  design: N=3 UA=1600kW/K stages=30
+  n_doublets: 3
+  hex_ua_kW_per_K: 1600.0
+  esp_stages: 30
+  co2_t_per_year: 8707.9
+  heating_delivered_MWh: 111668.0
+  absorption_drive_heat_MWh: 6457.0
+  cooling_delivered_MWh: 23743.0
+  geothermal_chain_share_pct: 87.2
+  produced_gas_share_pct: 10.7
+  backup_boiler_share_pct: 2.1
+  backup_boiler_MWh: 2426.0
+  net_electricity_MWh: 15681.0
+  mean_hp_COP: 4.38
+  max_brine_cooling_C: 40.0
+  geo_days: 330
+  maintenance_block: 2027-07-09 .. 2027-08-12
+  constraint_checks_passed: 12/12
 
-DAILY VIOLATIONS (0 days)
-----------------------------------------
-  None — all constraints satisfied.
+ASSUMPTIONS (not supplied by the challenge)
+----------------------------------------------------------------
+  t_return: 40.0
+  eta_lorenz: 0.5
+  cop_electric_chiller: 4.0
+  cop_absorption: 0.7
+  grid_ef_kg_per_kwh: 0.3
+  gas_ef_kg_per_gj: 56.6
+  backup_boiler_eff: 0.9
+  min_esp_intake_bar: 10.0
