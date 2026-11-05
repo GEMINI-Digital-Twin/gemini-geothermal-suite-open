@@ -19,7 +19,9 @@ found on the way are described in `notes/gemini_gaps.md` and in the pull request
 The recommended design was found with the same tools the agent uses
 (`run_design.py`, `figures/make_figures.py`); it meets the heating (111.7 GWh,
 100 C) and cooling (23.7 GWh, 20 C) demand on all 365 days, also on the peak day
-with one doublet out (15 MW backup boiler). LCOH uses TNO ThermoGIS cost defaults
+with one doublet out (15 MW backup boiler). Full calculation (KPIs, CAPEX/OPEX
+breakdown, P10/P50/P90, return-temperature sensitivity, all 365 days):
+`results/recommended_design.json` and `results/recommended_daily.csv`. LCOH uses TNO ThermoGIS cost defaults
 and compares designs; it is not a cost forecast. CO2 is reported, not priced.
 
 ## Architecture
@@ -67,7 +69,7 @@ printf 'FROM qwen3.5:4b\nPARAMETER num_ctx 32768\n' > Modelfile && ollama create
 ```bash
 PYTHONPATH=. pytest hackathon/tests -q                        # 21 tests
 PYTHONPATH=. python hackathon/validation/validate_doublet.py  # GEMINI project vs design model vs hand formulas
-PYTHONPATH=. python hackathon/run_design.py --robust          # one design, with P10/P50/P90
+PYTHONPATH=. python hackathon/run_design.py --robust          # recommended design + P10/P50/P90 -> results/
 PYTHONPATH=. python -m hackathon.figures.make_figures         # slide figures -> figures/out/
 
 PYTHONPATH=. python -m hackathon.agent.agent --scripted       # offline replay, no LLM, 0 tokens
