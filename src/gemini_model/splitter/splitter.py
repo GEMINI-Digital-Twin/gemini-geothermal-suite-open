@@ -11,7 +11,7 @@ from gemini_model.model_abstract import StaticModel
 
 
 class Splitter(StaticModel):
-    """Splits a single input into N outputs by fixed fractions."""
+    """Splits a single input into N outputs by fixed (or per-step) fractions."""
 
     def __init__(self):
         """Model initialization."""
@@ -27,6 +27,12 @@ class Splitter(StaticModel):
             Parameters dict as defined by the model. ``split_fractions``
             is a list of N fractions (summing to 1) defining how the
             input is divided across ``output_0`` .. ``output_{N-1}``.
+            This default can be overridden per timestep via
+            ``u["split_fractions"]`` -- see :meth:`calculate_output` --
+            e.g. to drive a time-varying split from a
+            ``boundary_inputs`` time series (a control, not a produced
+            output, consistent with every other time-varying control
+            value in a gemini_simulator project).
         """
         for key, value in parameters.items():
             self.parameters[key] = value
@@ -43,11 +49,13 @@ class Splitter(StaticModel):
         """Calculate output based on input u.
 
         Splits ``u["input"]`` into ``output_0`` .. ``output_{N-1}``
-        using ``split_fractions``. Fractions must sum to 1 (within a
+        using ``u["split_fractions"]`` if given (a per-timestep override,
+        e.g. from a ``boundary_inputs`` time series), otherwise the
+        ``split_fractions`` parameter. Fractions must sum to 1 (within a
         small tolerance).
         """
         value = u["input"]
-        fractions = self.parameters["split_fractions"]
+        fractions = u.get("split_fractions", self.parameters["split_fractions"])
 
         total_fraction = sum(fractions)
         if abs(total_fraction - 1.0) > 1e-6:
