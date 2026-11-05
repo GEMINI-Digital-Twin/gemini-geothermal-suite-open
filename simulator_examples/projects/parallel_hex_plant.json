@@ -1,0 +1,171 @@
+{
+  "_description": "Native gemini_simulator project file for a geothermal doublet with a degasser and three parallel heat exchangers on the primary loop: producer well (with ESP) -> degasser -> filter -> 3 parallel heat exchangers -> filter -> injector well. Every value here is already in the units gemini_model's components expect (see '_units' below); edit this file directly to describe your own plant.",
+  "_units": {
+    "all components": "flow rates in SI [m3/s], pressure [bar] (surface network) or [Pa] (heat exchanger inputs still use bar for pressure -- see each component's own docstring), temperature [C]. The only components still working in m3/h are producer_well/injector_well (well/reservoir models); the surface chain converts to/from m3/h exactly once at each of those two boundaries."
+  },
+  "_assumptions": {
+    "_description": "Values below were common defaults. reservoir_pressure_bar and productivity_index_m3h_per_bar for the producer well (216 bar, 20.75 m3/h/bar) and reservoir_pressure_bar for the injector well (180 bar) were given, not assumed.",
+    "producer_well.parameters.ambient_temperature_c": "20 C; a typical shallow-formation/near-surface ambient temperature (kept within the 15-21 C range) used for the well's heat-loss calculation.",
+    "producer_well.boundary_input.wellhead_pressure": "10.0 bar -- measured value.",
+    "producer_well.boundary_input.wellhead_temperature": "77.0 C -- measured value.",
+    "producer_well.parameters.esp.power_coeff": "reused from the reference example's ESP power curve.",
+    "producer_well.parameters.esp.electricity_emission_factor": "0.3 kg CO2/kWh reused from the reference example.",
+    "producer_well.parameters.esp_freq_hz": "60 Hz; a common ESP drive frequency.",
+    "producer_well_calibration": "reservoir_pressure_bar=216 bar was kept as given. productivity_index_m3h_per_bar was set to 1.76 m3/h/bar -- the value that reproduces the measured 125 m3/h primary flow at the measured 10 bar / 77 C wellhead conditions, with roughness_m left at the given 2e-5 m. ",
+    "injector_well.parameters.reservoir_pressure_bar": "180 bar -- given.",
+    "injector_well.parameters.productivity_index_m3h_per_bar": "set to 2.3 m3/h/bar -- the value that reproduces the measured ~44 bar injector wellhead pressure at the measured 125 m3/h flow, with reservoir_pressure_bar=180 bar kept as given/trusted and roughness_m left at 2e-5 m.",
+    "injector_well.parameters.roughness_m": "2e-5 m assumed the same tubing roughness as the producer well.",
+    "injector_well.parameters.injector_pump.efficiency_factor": "0.8 reused from the reference example.",
+    "injector_well.parameters.injector_pump.electricity_emission_factor": "0.3 kg CO2/kWh reused from the reference example.",
+    "degasser.parameters": "flow_resistance/temperature_drop/gas_water_ratio/gas_density reused from the reference example's separator parameters (a degasser is modeled with the same gas/liquid separation physics as a production separator).",
+    "filter_1.parameters, filter_2.parameters": "reused from the reference example's FilterA/FilterB parameters.",
+    "hex_1/hex_2/hex_3.parameters (sizing, calibrated to match measured injector-inlet temperature)": "heat_transfer_coefficient (UA, W/K) was calibrated to reproduce the measured ~70 C injector-inlet temperature at the real 125 m3/h flow: assuming the secondary side carries the same flow rate as the primary in each branch (capacity ratio Cr=1) at a 20 C supply temperature, the effectiveness needed to cool the primary side from 75 C (filter_1 outlet) to ~71 C (so that filter_2's 1 C drop lands on the measured 70 C) is only ~0.073, i.e. NTU=0.078. Results: hex_1 UA=6010 W/K, hex_2 UA=3606 W/K, hex_3 UA=2404 W/K (asymmetric, matching the 50/30/20 flow split).",
+    "hex_1/hex_2/hex_3 flow split": "the primary flow is split asymmetrically 50/30/20 across hex_1/hex_2/hex_3 (three differently sized parallel units), matching each unit's UA sizing above.",
+    "hex_1/hex_2/hex_3 secondary side": "not described in the plant layout. Secondary total flow is assumed equal to the real primary total flow (125.1 m3/h, split 50/30/20 same as primary) at a 20 C supply temperature.",
+    "filter_2.pressure (inlet)": "taken from hex_1's outlet pressure only, no flow resistance."
+  },
+  "components": {
+    "producer_well": {
+      "type": "producer_well",
+      "_description": "Producer-side reservoir/well/ESP, nodal-solved for its primary flow rate from the fixed wellhead pressure/temperature boundary inputs below. See gemini_simulator.well_components.ProducerWell.",
+      "parameters": {
+        "reservoir_pressure_bar": 216,
+        "productivity_index_m3h_per_bar": 1.76,
+        "ambient_temperature_c": 20,
+        "roughness_m": 0.00002,
+        "_trajectory_table_description": "Cumulative MD (measured depth)/TVD (true vertical depth)/ID (inner diameter) survey stations, station 0 = wellhead (MD=TVD=0). Equivalent deviation-angle-derived TVDs from the original angle/depth/diameter segments.",
+        "trajectory_table": [
+          {"MD": 0, "TVD": 0, "ID": 0.1778},
+          {"MD": 400, "TVD": 400, "ID": 0.1778},
+          {"MD": 550, "TVD": 550, "ID": 0.1778},
+          {"MD": 700, "TVD": 700, "ID": 0.1778},
+          {"MD": 904, "TVD": 900, "ID": 0.273},
+          {"MD": 1062, "TVD": 1050, "ID": 0.273},
+          {"MD": 1243, "TVD": 1200, "ID": 0.273},
+          {"MD": 1348, "TVD": 1300, "ID": 0.273},
+          {"MD": 1634, "TVD": 1500, "ID": 0.273},
+          {"MD": 2152, "TVD": 1900, "ID": 0.273}
+        ],
+        "esp_depth_m": 550,
+        "esp": {
+          "no_stages": 18,
+          "head_coeff": [125.518426, -0.0020852856, 2.28955651e-07, -1.45640214e-11, 2.37859645e-16, -1.18258356e-21],
+          "power_coeff": [10.02089977, -0.000160233, 6.52e-08, -2.13e-12, 1.71e-17, 1.38e-23],
+          "electricity_emission_factor": 0.3
+        },
+        "esp_freq_hz": 60
+      }
+    },
+    "degasser": {
+      "type": "separator",
+      "_description": "Degasser: separates the produced fluid's gas phase from the liquid before it reaches the filters, using the same gas/liquid separation physics as a production separator.",
+      "parameters": {"flow_resistance": 3.6, "temperature_drop": 1, "gas_water_ratio": 0.5, "gas_density": 0.7}
+    },
+    "filter_1": {
+      "type": "filter",
+      "parameters": {"base_resistance": 36.0, "fouling_coeff_a": 18.0, "fouling_coeff_b": 0.036, "temperature_drop": 1}
+    },
+    "hex_splitter": {
+      "type": "splitter",
+      "_description": "Splits the primary flow unevenly across three differently-sized parallel heat exchangers (output_0/1/2 -> hex_1/hex_2/hex_3): hex_1 is the largest unit (50% of flow), hex_2 medium (30%), hex_3 smallest (20%).",
+      "parameters": {"split_fractions": [0.5, 0.3, 0.2]}
+    },
+    "hex_secondary_splitter": {
+      "type": "splitter",
+      "_description": "Splits a shared secondary-side supply across the three heat exchangers' secondary sides in the same proportion as their primary-side flow share (see hex_splitter), so each unit's secondary flow matches its size.",
+      "parameters": {"split_fractions": [0.5, 0.3, 0.2]}
+    },
+    "hex_1": {
+      "type": "heat_exchanger",
+      "_description": "Largest of the three parallel units (50% of primary/secondary flow).",
+      "parameters": {"flow_resistance": 0, "flow_configuration": "counter", "heat_transfer_coefficient": 6010}
+    },
+    "hex_2": {
+      "type": "heat_exchanger",
+      "_description": "Medium-sized unit (30% of primary/secondary flow).",
+      "parameters": {"flow_resistance": 0, "flow_configuration": "counter", "heat_transfer_coefficient": 3606}
+    },
+    "hex_3": {
+      "type": "heat_exchanger",
+      "_description": "Smallest unit (20% of primary/secondary flow).",
+      "parameters": {"flow_resistance": 0, "flow_configuration": "counter", "heat_transfer_coefficient": 2404}
+    },
+    "hex_mixer": {
+      "type": "mixer",
+      "_description": "Recombines the three heat exchangers' primary-side outlets (flow + temperature) into a single flow/temperature, using a flow-weighted average of the three outlet temperatures.",
+      "parameters": {"num_inputs": 3}
+    },
+    "filter_2": {
+      "type": "filter",
+      "parameters": {"base_resistance": 3.6, "fouling_coeff_a": 18.0, "fouling_coeff_b": 0.036, "temperature_drop": 1}
+    },
+    "injector_well": {
+      "type": "injector_well",
+      "_description": "Injector-side reservoir/well, nodal-solved for the wellhead (surface) pressure needed to inject the producer well's (already-solved) flow rate back into the reservoir. See gemini_simulator.well_components.InjectorWell.",
+      "parameters": {
+        "reservoir_pressure_bar": 180,
+        "productivity_index_m3h_per_bar": 2.3,
+        "roughness_m": 0.00002,
+        "_trajectory_table_description": "Cumulative MD/TVD/ID survey stations, station 0 = wellhead (MD=TVD=0). Equivalent deviation-angle-derived TVDs from the original angle/depth/diameter segments.",
+        "trajectory_table": [
+          {"MD": 0, "TVD": 0, "ID": 0.1616964},
+          {"MD": 148, "TVD": 148, "ID": 0.1616964},
+          {"MD": 1097, "TVD": 1034, "ID": 0.25273},
+          {"MD": 2109, "TVD": 1742, "ID": 0.1616964},
+          {"MD": 2327, "TVD": 1883, "ID": 0.0995668}
+        ],
+        "injector_pump": {
+          "efficiency_factor": 0.8,
+          "electricity_emission_factor": 0.3
+        }
+      }
+    }
+  },
+  "boundary_inputs": [
+    {"component": "producer_well", "key": "wellhead_pressure", "value": 10.0},
+    {"component": "producer_well", "key": "wellhead_temperature", "value": 77.0},
+
+    {"component": "hex_secondary_splitter", "key": "input", "_description": "Secondary-side supply flow, assumed equal to the total primary flow (125.1 m3/h -> 125.1/3600 m3/s), split with the same 50/30/20 fractions. See '_assumptions' above.", "value": 0.034750},
+    {"component": "hex_1", "key": "secondary_temperature_in", "value": 20.0},
+    {"component": "hex_2", "key": "secondary_temperature_in", "value": 20.0},
+    {"component": "hex_3", "key": "secondary_temperature_in", "value": 20.0}
+  ],
+  "connections": [
+    {"predecessor": "producer_well", "successor": "degasser",
+     "ports": [["flow_rate_m3s", "flow_rate"], ["pressure_out", "pressure"], ["temperature_out", "temperature"]]},
+
+    {"predecessor": "degasser", "successor": "filter_1",
+     "ports": [["pressure_out", "pressure"], ["temperature_out", "temperature"], ["flow_rate", "flow_rate"]]},
+
+    {"predecessor": "filter_1", "successor": "hex_splitter", "predecessor_output": "flow_rate", "successor_input": "input"},
+
+    {"predecessor": "filter_1", "successor": "hex_1",
+     "ports": [["pressure_out", "pressure_in"], ["temperature_out", "primary_temperature_in"]]},
+    {"predecessor": "hex_splitter", "successor": "hex_1", "predecessor_output": "output_0", "successor_input": "primary_flow_rate"},
+    {"predecessor": "hex_secondary_splitter", "successor": "hex_1", "predecessor_output": "output_0", "successor_input": "secondary_flow_rate"},
+
+    {"predecessor": "filter_1", "successor": "hex_2",
+     "ports": [["pressure_out", "pressure_in"], ["temperature_out", "primary_temperature_in"]]},
+    {"predecessor": "hex_splitter", "successor": "hex_2", "predecessor_output": "output_1", "successor_input": "primary_flow_rate"},
+    {"predecessor": "hex_secondary_splitter", "successor": "hex_2", "predecessor_output": "output_1", "successor_input": "secondary_flow_rate"},
+
+    {"predecessor": "filter_1", "successor": "hex_3",
+     "ports": [["pressure_out", "pressure_in"], ["temperature_out", "primary_temperature_in"]]},
+    {"predecessor": "hex_splitter", "successor": "hex_3", "predecessor_output": "output_2", "successor_input": "primary_flow_rate"},
+    {"predecessor": "hex_secondary_splitter", "successor": "hex_3", "predecessor_output": "output_2", "successor_input": "secondary_flow_rate"},
+
+    {"predecessor": "hex_1", "successor": "hex_mixer",
+     "ports": [["primary_flow_rate", "input_0_flow"], ["primary_temperature_out", "input_0_temperature"]]},
+    {"predecessor": "hex_2", "successor": "hex_mixer",
+     "ports": [["primary_flow_rate", "input_1_flow"], ["primary_temperature_out", "input_1_temperature"]]},
+    {"predecessor": "hex_3", "successor": "hex_mixer",
+     "ports": [["primary_flow_rate", "input_2_flow"], ["primary_temperature_out", "input_2_temperature"]]},
+
+    {"predecessor": "hex_mixer", "successor": "filter_2",
+     "ports": [["flow", "flow_rate"], ["temperature", "temperature"]]},
+    {"predecessor": "hex_1", "successor": "filter_2", "predecessor_output": "pressure_out", "successor_input": "pressure"},
+
+    {"predecessor": "filter_2", "successor": "injector_well",
+     "ports": [["flow_rate_m3h", "flow_rate"], ["temperature_out", "wellhead_temperature"], ["pressure_out_pa", "pressure_in"]]}
+  ]
+}
