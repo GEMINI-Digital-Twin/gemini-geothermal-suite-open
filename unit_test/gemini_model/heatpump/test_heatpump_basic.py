@@ -108,6 +108,44 @@ class TestHeatpumpBasic(unittest.TestCase):
         self.assertAlmostEqual(output["power_th"], output["Thermal_production"])
         self.assertAlmostEqual(output["power_el"], output["electrical_consumption"])
 
+    def test_source_limit_keeps_outlet_physical(self):
+        """Source-outlet limit active: hot outlet stays <= target and energy balances.
+
+        Regression test: the former unbounded Nelder-Mead fallback returned
+        a hot outlet above 700 C with COP ~ 1 for these inputs.
+        """
+        heatpump = HeatpumpBasic()
+        heatpump.update_parameters(
+            {"mode": "lorenz", "eta_lorenz": 0.5, "COP_0": 3.0, "Cp_h": 4186, "Cp_s": 4186,
+             "rho_h": 1030, "rho_s": 1030, "Th_out_target": 100, "Ts_in_minimum": 41}
+        )
+        u = {"Th_in": 72.0, "Ts_in": 55.6, "hot_flow_rate": 30.0 / 1030, "source_flow_rate": 150.0 / 3600.0}
+        heatpump.calculate_output(u, None)
+        out = heatpump.get_output()
+        self.assertLessEqual(out["Th_out"], 100.0 + 1e-9)
+        self.assertGreater(out["Th_out"], u["Th_in"])
+        self.assertAlmostEqual(out["Ts_out"], 41.0, places=6)
+        self.assertGreater(out["COP"], 1.0)
+        q_source = 4186 * 1030 * u["source_flow_rate"] * (u["Ts_in"] - out["Ts_out"])
+        self.assertAlmostEqual(out["Thermal_production"] - out["electrical_consumption"], q_source,
+                               delta=1e-6 * q_source)
+
+    def test_target_reached_when_source_is_sufficient(self):
+        """Enough source heat: hot outlet equals the target and energy balances."""
+        heatpump = HeatpumpBasic()
+        heatpump.update_parameters(
+            {"mode": "lorenz", "eta_lorenz": 0.5, "COP_0": 3.0, "Cp_h": 4186, "Cp_s": 4186,
+             "rho_h": 1030, "rho_s": 1030, "Th_out_target": 100, "Ts_in_minimum": 41}
+        )
+        u = {"Th_in": 77.0, "Ts_in": 62.8, "hot_flow_rate": 18.0 / 1030, "source_flow_rate": 154.0 / 3600.0}
+        heatpump.calculate_output(u, None)
+        out = heatpump.get_output()
+        self.assertAlmostEqual(out["Th_out"], 100.0, places=6)
+        self.assertGreaterEqual(out["Ts_out"], 41.0)
+        q_source = 4186 * 1030 * u["source_flow_rate"] * (u["Ts_in"] - out["Ts_out"])
+        self.assertAlmostEqual(out["Thermal_production"] - out["electrical_consumption"], q_source,
+                               delta=1e-4 * q_source)
+
 
 if __name__ == "__main__":
     unittest.main()

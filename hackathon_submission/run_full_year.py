@@ -1,7 +1,7 @@
 """GEMINI GeoHackathon 2026 — full-year simulation of the selected design.
 
-Reads agent_best_design.json (agent.py), else best_design.json (optimize_design.py), else
-the built-in default) and simulates all 365 days with the official 2027 demand profiles,
+Reads agent_best_design.json (agent.py), else best_design.json (optimize_design.py),
+and simulates all 365 days with the official 2027 demand profiles,
 runs the independent validator and writes:
 
     results_daily.csv       365 rows, every flow/temperature/power per day
@@ -31,10 +31,16 @@ def load_design(path=None):
         if f.exists():
             j = json.loads(f.read_text())
             print(f"Design source: {f.name}" + (f" ({j['agent']}, iteration {j['iteration']})" if "agent" in j else ""))
-            return Design(**j["design"]), Assumptions(**j["assumptions"])
-    print("Design source: built-in default")
-    return Design(n_doublets=3, well_depth_m=3500, hex_ua_w_per_k=2.0e6, esp_stages=50,
-                  backup_boiler_mw=4.5, electric_chiller_mw=10.5, absorption_chiller_mw=9), Assumptions()
+            known = set(Assumptions.__dataclass_fields__)
+            stale = sorted(set(j["assumptions"]) - known)
+            if stale:
+                print(f"  note: ignoring assumptions no longer in the model: {stale}")
+            a = Assumptions(**{k: v for k, v in j["assumptions"].items() if k in known})
+            if isinstance(a.survey_stations_m, list):
+                a.survey_stations_m = tuple(a.survey_stations_m)
+            return Design(**j["design"]), a
+    raise SystemExit("No design file found: run  python agent.py  (or optimize_design.py) first, "
+                     "or pass --design <file.json>.")
 
 
 def make_plots(df, out, cop_abs=0.7):

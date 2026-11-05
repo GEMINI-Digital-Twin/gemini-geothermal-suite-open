@@ -1,47 +1,36 @@
 {
-  "_description": "Challenge-compliant single doublet used by plant_model.py: GEMINI solves producer/ESP, separator, filters, injector and produced-gas boiler/CHP for each ESP frequency. ESP depth/stages/frequency and HEX UA are overridden by the design search; HEX + heat pump + chillers are evaluated per day in plant_model.py / dispatch.py.",
-  "_challenge_assumptions": {
-    "brine_specific_heat": "4186 J/kg/K \u2014 pure water at 80C, documented assumption (not supplied)",
-    "brine_density": "1030 kg/m3 \u2014 official challenge value",
-    "well_depth": "2500 m TVD \u2014 official midpoint depth",
-    "reservoir_pressure": "250 bar(g) \u2014 official at 2500m",
-    "reservoir_temperature": "87 C \u2014 from 12C surface + 30 C/km * 2.5 km",
-    "pump_efficiency": "0.70 \u2014 official challenge constraint",
-    "gas_liquid_ratio": "0.8 Nm3/m3 \u2014 official challenge value",
-    "productivity_index": "10 m3/h/bar \u2014 from example, reasonable assumption",
-    "esp_depth": "1000 m (design choice: keeps ESP intake > 10 bar at high flow)"
-  },
+  "_description": "GEMINI project of one challenge doublet at the official 2,500 m baseline. plant_model.build_well_table loads it and, for each design and ESP speed, sets the fields listed in _set_by_code from the official constants (plant_model.py) and Assumptions; the values shown here are exactly what the code sets at 2,500 m. The heat_exchanger, secondary_splitter and water_mixer only complete GEMINI's example topology: the plant's heat exchanger, heat pump and chillers are evaluated per day in plant_model.py / dispatch.py.",
   "components": {
     "producer_well": {
       "type": "producer_well",
       "parameters": {
-        "reservoir_pressure_bar": 250,
-        "productivity_index_m3h_per_bar": 10,
-        "ambient_temperature_c": 12,
+        "reservoir_pressure_bar": 250.0,
+        "productivity_index_m3h_per_bar": 11.2185,
+        "ambient_temperature_c": 12.0,
         "trajectory_table": [
           {
-            "MD": 0,
-            "TVD": 0,
+            "MD": 0.0,
+            "TVD": 0.0,
             "ID": 0.15
           },
           {
-            "MD": 300,
-            "TVD": 300,
+            "MD": 300.0,
+            "TVD": 300.0,
             "ID": 0.15
           },
           {
-            "MD": 500,
-            "TVD": 500,
+            "MD": 500.0,
+            "TVD": 500.0,
             "ID": 0.15
           },
           {
-            "MD": 1000,
-            "TVD": 1000,
+            "MD": 1000.0,
+            "TVD": 1000.0,
             "ID": 0.15
           },
           {
-            "MD": 2500,
-            "TVD": 2500,
+            "MD": 2500.0,
+            "TVD": 2500.0,
             "ID": 0.15
           }
         ],
@@ -66,44 +55,54 @@
           ],
           "electricity_emission_factor": 0.3
         },
-        "esp_freq_hz": 65
+        "esp_freq_hz": 65,
+        "pvt": {
+          "RHOL": 1030.0,
+          "VISL": 0.0004,
+          "temperature_max": 473.15
+        }
       }
     },
     "injector_well": {
       "type": "injector_well",
       "parameters": {
-        "reservoir_pressure_bar": 250,
-        "productivity_index_m3h_per_bar": 10,
+        "reservoir_pressure_bar": 250.0,
+        "productivity_index_m3h_per_bar": 11.2185,
         "trajectory_table": [
           {
-            "MD": 0,
-            "TVD": 0,
+            "MD": 0.0,
+            "TVD": 0.0,
             "ID": 0.15
           },
           {
-            "MD": 300,
-            "TVD": 300,
+            "MD": 300.0,
+            "TVD": 300.0,
             "ID": 0.15
           },
           {
-            "MD": 500,
-            "TVD": 500,
+            "MD": 500.0,
+            "TVD": 500.0,
             "ID": 0.15
           },
           {
-            "MD": 1000,
-            "TVD": 1000,
+            "MD": 1000.0,
+            "TVD": 1000.0,
             "ID": 0.15
           },
           {
-            "MD": 2500,
-            "TVD": 2500,
+            "MD": 2500.0,
+            "TVD": 2500.0,
             "ID": 0.15
           }
         ],
         "injector_pump": {
           "efficiency_factor": 0.7,
           "electricity_emission_factor": 0.3
+        },
+        "pvt": {
+          "RHOL": 1030.0,
+          "VISL": 0.0004,
+          "temperature_max": 473.15
         }
       }
     },
@@ -113,7 +112,7 @@
         "flow_resistance": 3.6,
         "temperature_drop": 1,
         "gas_water_ratio": 0.8,
-        "gas_density": 0.7
+        "gas_density": 0.96934
       }
     },
     "filter_a": {
@@ -147,17 +146,17 @@
     "boiler": {
       "type": "boiler",
       "parameters": {
-        "caloric_value": 50000000,
-        "efficiency_factor": 0.8,
-        "gas_emission_factor": 56.6
+        "caloric_value": 29611900.9,
+        "efficiency_factor": 0.9,
+        "gas_emission_factor": 68.865
       }
     },
     "chp": {
       "type": "chp",
       "parameters": {
-        "caloric_value": 50000000,
+        "caloric_value": 29611900.9,
         "efficiency_factor": 0.8,
-        "gas_emission_factor": 56.6
+        "gas_emission_factor": 68.865
       }
     },
     "secondary_splitter": {
@@ -375,5 +374,14 @@
         ]
       ]
     }
+  ],
+  "_set_by_code": [
+    "producer_well/injector_well: reservoir_pressure_bar (hydrostatic from depth), productivity_index_m3h_per_bar (Darcy), trajectory_table (depth), pvt (brine 1030 kg/m3, 0.40 mPa s)",
+    "producer_well: esp_freq_hz, esp.no_stages, esp_depth_m (design), ambient_temperature_c",
+    "injector_well: injector_pump.efficiency_factor = 0.70",
+    "separator: gas_water_ratio 0.8, gas_density of the 80/20 CH4/CO2 mixture",
+    "boiler/chp: caloric_value (CH4 LHV per kg mixture), gas_emission_factor (combustion + native CO2), efficiency_factor",
+    "gas_splitter: split_fractions",
+    "boundary producer_well wellhead_temperature (reservoir T - wellbore loss), wellhead_pressure"
   ]
 }

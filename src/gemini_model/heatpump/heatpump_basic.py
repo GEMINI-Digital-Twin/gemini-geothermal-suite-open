@@ -27,7 +27,7 @@ Lorenz COP equation:
 """
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import brentq, minimize
 
 from gemini_model.model_abstract import StaticModel
 
@@ -148,10 +148,12 @@ class HeatpumpBasic(StaticModel):
         `self.parameters['mode']`) together with the energy balance equation
         (Qh = Qs + electrical work, expressed as COP = Qh/(Qh-Qs)).
 
-        If the resulting source outlet temperature `Ts_out` drops below
-        `Ts_in_minimum`, the problem is re-solved with `Ts_out` fixed at that
-        minimum and `Th_out` (the target hot outlet temperature) allowed to
-        drop instead, via `carnot_model2`/`lorenz_model2`.
+        The Nelder-Mead result is accepted only if it satisfies both
+        equations; otherwise ``Ts_out`` is solved by a bracketed root search
+        (``brentq``). If ``Ts_out`` would drop below `Ts_in_minimum`, it is
+        fixed at that minimum and the reachable `Th_out` is solved by a
+        bracketed root search in (Th_in, Th_out_target], so it can never
+        exceed the target.
 
         Parameters
         ----------
@@ -197,28 +199,6 @@ class HeatpumpBasic(StaticModel):
             J = J1 + J2
             return J
 
-        def lorenz_model2(x, Ts_out, Th_in, Ts_in, mh, ms):
-            """Residual function for the Lorenz-efficiency model.
-
-            Solves for (COP, Th_out) given a fixed minimum source outlet
-            temperature Ts_out (used when the unconstrained solution
-            violates Ts_in_minimum). See `lorenz_model` for the underlying
-            equations.
-            """
-            COP = x[0]
-            Th_out = x[1]
-
-            Qh = self.parameters["Cp_h"] * (Th_out - Th_in) * mh
-            Qs = self.parameters["Cp_s"] * (Ts_in - Ts_out) * ms
-
-            Th = (Th_in - Th_out) / np.log(Th_in / Th_out)
-            Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
-
-            J1 = np.abs(COP - (self.parameters["eta_lorenz"] * (Th / (Th - Ts))))
-            J2 = np.abs(COP - Qh / (Qh - Qs))
-            J = J1 + J2
-            return J
-
         def carnot_model(x, Th_out, Th_in, Ts_in, mh, ms):
             """Residual function for the Carnot-efficiency model.
 
@@ -246,30 +226,6 @@ class HeatpumpBasic(StaticModel):
 
             return J
 
-        def carnot_model2(x, Ts_out, Th_in, Ts_in, mh, ms):
-            """Residual function for the Carnot-efficiency model.
-
-            Solves for (COP, Th_out) given a fixed minimum source outlet
-            temperature Ts_out (used when the unconstrained solution
-            violates Ts_in_minimum). See `carnot_model` for the underlying
-            equations.
-            """
-            COP = x[0]
-            Th_out = x[1]
-
-            Qh = self.parameters["Cp_h"] * (Th_out - Th_in) * mh
-            Qs = self.parameters["Cp_s"] * (Ts_in - Ts_out) * ms
-
-            Th = Th_out
-            Ts = Ts_in
-
-            J1 = np.abs(COP - (self.parameters["eta_carnot"] * (Th / (Th - Ts))))
-            J2 = np.abs(COP - Qh / (Qh - Qs))
-
-            J = J1 + J2
-
-            return J
-
         x0 = [self.parameters["COP_0"], Ts_in - 10]
         if self.parameters["mode"] == "carnot":
             result = minimize(
@@ -283,31 +239,73 @@ class HeatpumpBasic(StaticModel):
         COP = result.x[0]
         Ts_out = result.x[1]
 
-        if Ts_out < self.parameters["Ts_in_minimum"] + 273.15:
-            x0 = [self.parameters["COP_0"], Th_out]
-            if self.parameters["mode"] == "carnot":
-                result = minimize(
-                    carnot_model2,
-                    x0,
-                    args=(self.parameters["Ts_in_minimum"] + 273.15, Th_in, Ts_in, mh, ms),
-                    method="Nelder-Mead",
-                )
-            else:
-                result = minimize(
-                    lorenz_model2,
-                    x0,
-                    args=(self.parameters["Ts_in_minimum"] + 273.15, Th_in, Ts_in, mh, ms),
-                    method="Nelder-Mead",
-                )
+        Ts_min = self.parameters["Ts_in_minimum"] + 273.15
+        cop_of = self._cop_function(Th_in, Ts_in)
 
-            COP = result.x[0]
-            Th_out = result.x[1]
-            Ts_out = self.parameters["Ts_in_minimum"] + 273.15
+        def source_residual(ts_out):
+            """Heat taken from the source minus the heat the cycle needs."""
+            qh = self.parameters["Cp_h"] * (Th_out - Th_in) * mh
+            return self.parameters["Cp_s"] * (Ts_in - ts_out) * ms - qh * (1 - 1 / cop_of(Th_out, ts_out))
+
+        # Nelder-Mead has no bounds and no convergence check: accept its result
+        # only if it satisfies both equations, else solve the bracketed problem.
+        if not (result.fun < self._RESIDUAL_TOL and Ts_out < Ts_in):
+            if source_residual(Ts_min) >= 0:
+                Ts_out = brentq(source_residual, Ts_min, Ts_in - 1e-9)
+            else:
+                Ts_out = Ts_min - 1.0  # target unreachable: handled below
+            COP = cop_of(Th_out, Ts_out)
+
+        if Ts_out < Ts_min:
+            # Source outlet limited to Ts_min: solve the reachable hot outlet
+            # temperature Th_out in (Th_in, Th_out_target] (bracketed; the old
+            # unbounded Nelder-Mead returned e.g. Th_out > 700 C, COP ~ 1).
+            qs = self.parameters["Cp_s"] * (Ts_in - Ts_min) * ms
+
+            def sink_residual(th_out):
+                qh = self.parameters["Cp_h"] * (th_out - Th_in) * mh
+                return qh * (1 - 1 / cop_of(th_out, Ts_min)) - qs
+
+            Th_target = Th_out
+            if qs <= 0:
+                Th_out = Th_in
+            elif sink_residual(Th_target) <= 0:
+                Th_out = Th_target
+            else:
+                Th_out = brentq(sink_residual, Th_in + 1e-6, Th_target)
+            Ts_out = Ts_min
+            COP = cop_of(Th_out, Ts_out)
 
         thermal_production = self.parameters["Cp_h"] * (Th_out - Th_in) * mh
         electrical_consumption = thermal_production / COP
 
         return COP, Th_out, Ts_out, thermal_production, electrical_consumption
+
+    _RESIDUAL_TOL = 1e-3  # accepted Nelder-Mead residual (COP units); larger = not converged
+
+    @staticmethod
+    def _log_mean(t_in, t_out):
+        """Logarithmic mean temperature [K]; the arithmetic limit when t_in == t_out."""
+        if abs(t_in - t_out) < 1e-9:
+            return t_in
+        return (t_in - t_out) / np.log(t_in / t_out)
+
+    def _cop_function(self, Th_in, Ts_in):
+        """COP(Th_out, Ts_out) for the configured Carnot or Lorenz mode."""
+        if self.parameters["mode"] == "carnot":
+            eta = self.parameters["eta_carnot"]
+
+            def cop(th_out, ts_out):
+                return eta * th_out / max(th_out - Ts_in, 1e-9)
+        else:
+            eta = self.parameters["eta_lorenz"]
+
+            def cop(th_out, ts_out):
+                th = self._log_mean(Th_in, th_out)
+                ts = self._log_mean(Ts_in, ts_out)
+                return eta * th / max(th - ts, 1e-9)
+
+        return cop
 
     def get_output(self):
         """Get output of the model.

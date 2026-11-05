@@ -13,13 +13,17 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from plant_model import (CP, MAX_BRINE_COOLING, MAX_DOUBLETS, MAX_FLOW_M3H, MIN_FLOW_M3H,
+from plant_model import (FILTER_B_DROP, MAX_BRINE_COOLING, MAX_DOUBLETS, MAX_FLOW_M3H, MIN_FLOW_M3H,
                          PUMP_EFFICIENCY, SUPPLY_TEMP_COOLING, SUPPLY_TEMP_HEATING,
                          GEO_OPERATING_DAYS, TOTAL_DAYS, GLR, RHO_CO2_N, Assumptions, Design,
-                         build_well_table, capacity_curve, doublet_point)
+                         build_well_table, capacity_curve, doublet_point, electric_chiller_cop,
+                         gemini_heat_pump_check)
 
+# dispatcher search grid: share of the cooling made by the absorption chiller
 ABS_FRACTIONS = (0.0, 0.25, 0.5, 0.75, 1.0)
-HEAT_TOL = 1e-6
+# weight of unmet demand when placing the maintenance block (kg CO2 per W unmet) -
+# large enough that the block never moves onto days where switching off causes a shortfall
+SHORTFALL_WEIGHT = 1.0
 
 
 def load_demand(folder):
@@ -39,6 +43,7 @@ class Plant:
         self.dT = SUPPLY_TEMP_HEATING - a.t_return
         self.co2_el = a.grid_ef_kg_per_kwh / 3.6e6            # kg per J
         self.co2_gas = a.gas_ef_kg_per_gj * 1e-9 / a.backup_boiler_eff  # kg per J heat
+        self.cop_ec = electric_chiller_cop(a)
 
     # ── one option ──────────────────────────────────────────────────────────
     def _option(self, n, i, heat_w, cool_w, f_abs):
@@ -57,7 +62,7 @@ class Plant:
         gas_used = n * min(r["gas_heat_w"], per)                       # surplus gas heat is dumped
         cool_el = min((1 - f_abs) * cool_w, self.d.electric_chiller_mw * 1e6)
         short = (backup_need - backup) + ((1 - f_abs) * cool_w - cool_el)
-        chiller_el = cool_el / self.a.cop_electric_chiller
+        chiller_el = cool_el / self.cop_ec
         elec = n * (r["esp_power_w"] + r["inj_pump_w"] + w_hp - r["chp_el_w"]) + chiller_el
         co2 = (max(elec, 0.0) * self.co2_el + n * r["gas_co2_kg_s"] + backup * self.co2_gas) * 86400
         return dict(co2=co2, short=short, n=n, i=i, f_abs=f_abs, m_w=m_w_run, w_hp=w_hp, t_inj=t_inj,
@@ -82,7 +87,7 @@ class Plant:
     def geo_off(self, heat_w, cool_w):
         backup = min(heat_w, self.d.backup_boiler_mw * 1e6)
         cool_el = min(cool_w, self.d.electric_chiller_mw * 1e6)
-        chiller_el = cool_el / self.a.cop_electric_chiller
+        chiller_el = cool_el / self.cop_ec
         co2 = (chiller_el * self.co2_el + backup * self.co2_gas) * 86400
         return dict(co2=co2, short=(heat_w - backup) + (cool_w - cool_el), n=0, i=None, f_abs=0.0,
                     m_w=0.0, w_hp=0.0, t_inj=float("nan"), geo_chain=0.0, gas_used=0.0, backup=backup,
@@ -93,7 +98,8 @@ class Plant:
         on = [self.best_geo(h * 1e6, c * 1e6) for h, c in zip(heat_mw, cool_mw)]
         off = [self.geo_off(h * 1e6, c * 1e6) for h, c in zip(heat_mw, cool_mw)]
         # cost of switching geothermal off on a day; unmet demand weighs 1e6 kg per MW
-        penalty = np.array([f["co2"] - o["co2"] + 1.0 * (f["short"] - o["short"]) for o, f in zip(on, off)])
+        penalty = np.array([f["co2"] - o["co2"] + SHORTFALL_WEIGHT * (f["short"] - o["short"])
+                            for o, f in zip(on, off)])
         k = TOTAL_DAYS - GEO_OPERATING_DAYS
         window = np.convolve(penalty, np.ones(k), "valid")
         start = int(np.argmin(window))
@@ -111,6 +117,17 @@ class Plant:
                 o["w_hp"], o["t_inj"] = pt["w_hp"], pt["t_inj"]
                 o["co2"] = (max(o["elec"], 0.0) * self.co2_el + n * r["gas_co2_kg_s"]
                             + o["backup"] * self.co2_gas) * 86400
+            gem = gemini_heat_pump_check(pt, self.a, r["t_wellhead"] - MAX_BRINE_COOLING + FILTER_B_DROP) if r else None
+            h_w, c_w = heat_mw[day] * 1e6, cool_mw[day] * 1e6
+            drive = o["f_abs"] * c_w / self.a.cop_absorption
+            heat_in = (n * (pt["q_hex"] + pt["q_hp"]) if pt else 0.0) + o["gas_used"] + o["backup"]
+            # district flow is set by the controller for demand at 100 C; the supply
+            # temperature then follows from the heat actually put into that flow
+            m_dh = (h_w + drive) / (self.a.cp * self.dT)
+            t_sup_h = self.a.t_return + heat_in / (m_dh * self.a.cp) if m_dh > 0 else np.nan
+            m_chw = c_w / (self.a.cp * (self.a.t_cool_return - SUPPLY_TEMP_COOLING))
+            cool_made = o["f_abs"] * c_w + o["cool_el"]
+            t_sup_c = self.a.t_cool_return - cool_made / (m_chw * self.a.cp) if m_chw > 0 else np.nan
             recs.append(dict(
                 date=dates[day], day=day + 1,
                 heating_demand_MW=heat_mw[day], cooling_demand_MW=cool_mw[day],
@@ -123,8 +140,11 @@ class Plant:
                 T_producer_C=r["t_wellhead"] if r else np.nan,
                 T_injector_C=o["t_inj"] if r else np.nan,
                 brine_cooling_C=(r["t_wellhead"] - o["t_inj"]) if r else 0.0,
-                T_heating_supply_C=SUPPLY_TEMP_HEATING,
-                T_cooling_supply_C=SUPPLY_TEMP_COOLING,
+                T_heating_supply_C=t_sup_h,
+                T_geo_stream_out_C=pt["t_supply"] if pt else np.nan,
+                T_cooling_supply_C=t_sup_c,
+                hp_Th_out_gemini_C=gem["Th_out"] if gem else np.nan,
+                hp_COP_gemini=gem["COP"] if gem else np.nan,
                 hp_COP=pt["cop"] if pt else np.nan,
                 heat_hex_MW=n * pt["q_hex"] / 1e6 if pt else 0.0,
                 heat_hp_MW=n * pt["q_hp"] / 1e6 if pt else 0.0,
@@ -139,6 +159,7 @@ class Plant:
                 esp_elec_MW=n * r["esp_power_w"] / 1e6 if r else 0.0,
                 esp_hydraulic_MW=n * r["esp_dp_bar"] * 1e5 * r["q_m3h"] / 3600 / 1e6 if r else 0.0,
                 inj_pump_elec_MW=n * r["inj_pump_w"] / 1e6 if r else 0.0,
+                inj_hydraulic_MW=n * r["inj_hydraulic_w"] / 1e6 if r else 0.0,
                 chp_elec_MW=n * r["chp_el_w"] / 1e6 if r else 0.0,
                 net_elec_MW=o["elec"] / 1e6,
                 energy_closure_kW=n * pt["closure_w"] / 1e3 if pt else 0.0,
@@ -150,6 +171,8 @@ class Plant:
             ))
         df = pd.DataFrame(recs)
         df.attrs["pi"] = self.rows[0]["pi_m3h_bar"]
+        df.attrs["cop_electric_chiller"] = self.cop_ec
+        df.attrs["co2_reference_t"] = reference_no_geothermal(heat_mw, cool_mw, self.a)
         heat_out = df.heat_hex_MW + df.heat_hp_MW + df.heat_produced_gas_MW + df.heat_backup_boiler_MW
         df["heating_delivered_MW"] = heat_out - df.absorption_share * df.cooling_demand_MW / self.a.cop_absorption
         df["cooling_delivered_MW"] = df.cooling_absorption_MW + df.cooling_electric_MW
@@ -167,6 +190,16 @@ def self_pi(df):
     return df.attrs.get("pi", float("nan"))
 
 
+def reference_no_geothermal(heat_mw, cool_mw, a):
+    """CO2 [t/yr] of the same demand served without geothermal:
+    gas backup boiler for all heating, electric chiller for all cooling."""
+    heat_j = float(np.sum(heat_mw)) * 1e6 * 86400
+    cool_j = float(np.sum(cool_mw)) * 1e6 * 86400
+    gas = heat_j * a.gas_ef_kg_per_gj * 1e-9 / a.backup_boiler_eff
+    elec = cool_j / electric_chiller_cop(a) * a.grid_ef_kg_per_kwh / 3.6e6
+    return (gas + elec) / 1000
+
+
 def summarize(df, design: Design):
     mwh = lambda col: float(df[col].sum() * 24)
     geo_heat = mwh("heat_hex_MW") + mwh("heat_hp_MW")
@@ -182,6 +215,9 @@ def summarize(df, design: Design):
         "productivity_index_m3h_bar": round(float(self_pi(df)), 2),
         "drilled_m_total": 2 * design.n_doublets * design.well_depth_m,
         "co2_t_per_year": round(df.co2_t.sum(), 1),
+        "co2_reference_no_geothermal_t": round(df.attrs["co2_reference_t"], 1),
+        "co2_saving_vs_no_geothermal_pct": round(100 * (1 - df.co2_t.sum() / df.attrs["co2_reference_t"]), 1),
+        "cop_electric_chiller": round(df.attrs["cop_electric_chiller"], 2),
         "heating_delivered_MWh": round(mwh("heating_delivered_MW"), 0),
         "absorption_drive_heat_MWh": round(heat - mwh("heating_delivered_MW"), 0),
         "cooling_delivered_MWh": round(mwh("cooling_delivered_MW"), 0),
@@ -221,10 +257,28 @@ def validate(df, design: Design, tol=1e-3):
     add("Volume balance produced = injected", vb <= 1e-6, f"max |diff| {vb:.2e} m3/h")
     add("Brine cooling <= 40 C", (act.brine_cooling_C <= MAX_BRINE_COOLING + tol).all(),
         f"max {act.brine_cooling_C.max():.2f} C")
-    eff = (act.esp_hydraulic_MW / act.esp_elec_MW).round(6).unique()
-    add("Pump efficiency = 0.70", np.allclose(eff, PUMP_EFFICIENCY), f"{eff}")
-    add("Heating supply >= 100 C", (df.T_heating_supply_C >= SUPPLY_TEMP_HEATING - tol).all(),
-        "HP condenser outlet solved at 100 C; boilers set to 100 C")
+    eff = act.esp_hydraulic_MW / act.esp_elec_MW
+    inj = act[act.inj_pump_elec_MW > 0]
+    eff_inj = inj.inj_hydraulic_MW / inj.inj_pump_elec_MW
+    ok_eff = np.allclose(eff, PUMP_EFFICIENCY) and (len(inj) == 0 or np.allclose(eff_inj, PUMP_EFFICIENCY))
+    add("Pump efficiency = 0.70 (ESP and injector)", ok_eff,
+        f"ESP {eff.min():.4f}-{eff.max():.4f}; injector "
+        + (f"{eff_inj.min():.4f}-{eff_inj.max():.4f}" if len(inj) else "not needed (gravity injection)"))
+    t_h = df.T_heating_supply_C.dropna()
+    add("Heating supply >= 100 C (from delivered heat)", (t_h >= SUPPLY_TEMP_HEATING - tol).all(),
+        f"min {t_h.min():.3f} C")
+    hp_days = df.dropna(subset=["hp_Th_out_gemini_C"])
+    if len(hp_days):
+        cop_dev = ((hp_days.hp_COP - hp_days.hp_COP_gemini).abs() / hp_days.hp_COP_gemini).max()
+        ok_hp = (hp_days.hp_Th_out_gemini_C >= SUPPLY_TEMP_HEATING - 0.05).all() and cop_dev <= 0.01
+        det = (f"{len(hp_days)} days; GEMINI Th_out min {hp_days.hp_Th_out_gemini_C.min():.2f} C; "
+               f"max COP deviation {100 * cop_dev:.2f} %")
+    else:
+        ok_hp, det = True, "heat pump not used by this design"
+    add("Heat pump re-solved by GEMINI HeatpumpBasic agrees", ok_hp, det)
+    t_c = df.T_cooling_supply_C.dropna()
+    add("Cooling supply <= 20 C (from delivered cooling)", (t_c <= SUPPLY_TEMP_COOLING + tol).all(),
+        f"max {t_c.max():.3f} C on {len(t_c)} cooling days")
     short_h = (df.heating_demand_MW - df.heating_delivered_MW).max()
     add("Heating demand met every day", short_h <= tol, f"max shortfall {max(short_h,0):.4f} MW")
     short_c = (df.cooling_demand_MW - df.cooling_delivered_MW).max()

@@ -68,7 +68,8 @@ def main():
     sens = []
     cases = [("t_return", v) for v in (35.0, 40.0, 45.0, 50.0)] + \
             [("eta_lorenz", v) for v in (0.40, 0.50, 0.60)] + \
-            [("cop_electric_chiller", v) for v in (3.0, 4.0, 5.0)] + \
+            [("chiller_eta_carnot", v) for v in (0.30, 0.40, 0.50)] + \
+            [("chiller_condensing_c", v) for v in (30.0, 35.0, 40.0)] + \
             [("grid_ef_kg_per_kwh", v) for v in (0.10, 0.30, 0.50)] + \
             [("skin", v) for v in (0.0, 2.0, 5.0, 10.0)] + \
             [("cp", v) for v in (3900.0, 4186.0)] + \

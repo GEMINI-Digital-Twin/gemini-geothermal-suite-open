@@ -37,7 +37,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from plant_model import Assumptions, Design, MAX_BRINE_COOLING, MIN_FLOW_M3H, MAX_FLOW_M3H
+from plant_model import (_BASE_JSON, GEO_GRADIENT, GLR, RHO_CO2_N, SUPPLY_TEMP_HEATING, SURFACE_TEMP,
+                         TOTAL_DAYS, GEO_OPERATING_DAYS, Assumptions, Design)
 from dispatch import Plant, load_demand, summarize, validate
 
 HERE = Path(__file__).resolve().parent
@@ -169,14 +170,14 @@ Design variables (all required, numbers only):
 {vars}
 
 Engineering facts (use them):
-- Geothermal heat is almost CO2-free; every MWh from the backup gas boiler emits about 226 kg CO2.
+- Geothermal heat is almost CO2-free; every MWh from the backup gas boiler emits {gas_kg_mwh:.0f} kg CO2.
   So MORE geothermal capacity (more doublets) normally LOWERS CO2. Fewer doublets makes the
   plant smaller but RAISES CO2 - only remove a doublet if CO2 stays about the same.
-- Hotter (deeper) brine raises heat-pump COP; from about 3000 m the brine heats the water to
-  100 C without the heat pump.
-- Produced gas releases about 1.6 kg CO2 per m3 of brine: a fixed cost of producing brine.
-- The backup boiler and the electric chiller alone must cover the demand during the 35-day
-  maintenance block (it can fall in summer, with up to about 10 MW cooling) and any peak
+- Hotter (deeper) brine raises heat-pump COP; below about {depth_no_hp:.0f} m the brine reaches the
+  heat exchanger above 100 C, so the heat exchanger alone can heat the water to 100 C.
+- Produced gas releases {brine_co2:.2f} kg CO2 per m3 of brine: a fixed cost of producing brine.
+- The backup boiler and the electric chiller alone must cover the demand during the {maint}-day
+  maintenance block (it can fall in summer, with up to {peak_cool:.1f} MW cooling) and any peak
   geothermal cannot cover. Size them from "peak_..._used_MW" plus 5-10 %.
 - The absorption chiller turns spare summer geothermal heat into cooling.
 - Change one or two variables per step so you learn what each one does.
@@ -192,6 +193,29 @@ or, only when the best design so far passes every check and you cannot improve i
 
 def vars_text():
     return "\n".join(f"- {k}: {lo}-{hi}{' (integer)' if i else ''}  {m}" for k, (lo, hi, i, m) in VARS.items())
+
+
+def prompt_facts(a, C):
+    """Numbers quoted in the system prompt, computed from the model - not typed in."""
+    comp = _BASE_JSON["components"]
+    drops = comp["separator"]["parameters"]["temperature_drop"] + comp["filter_a"]["parameters"]["temperature_drop"]
+    t_res_needed = SUPPLY_TEMP_HEATING + drops + a.wellbore_heat_loss_c
+    return dict(gas_kg_mwh=a.gas_ef_kg_per_gj * 3.6 / a.backup_boiler_eff,
+                brine_co2=GLR * RHO_CO2_N,            # every CH4 and CO2 molecule leaves as CO2
+                depth_no_hp=(t_res_needed - SURFACE_TEMP) / GEO_GRADIENT * 1000.0,
+                maint=TOTAL_DAYS - GEO_OPERATING_DAYS, peak_cool=float(C.max()))
+
+
+def untried_directions(hist, best):
+    tried = [h["design"] for h in hist if h.get("design") is not None]
+    out = []
+    for k, (lo, hi, _, _) in VARS.items():
+        b = best["design"][k]
+        if b < hi and not any(d[k] > b for d in tried):
+            out.append(f"higher {k}")
+        if b > lo and not any(d[k] < b for d in tried):
+            out.append(f"lower {k}")
+    return out
 
 
 def history_text(hist):
@@ -228,14 +252,7 @@ def user_prompt(brief, hist, best):
                 delta = co2 - best["kpi"]["co2_t_per_year"]
                 parts.append(f"Effect of your last change versus the best design: {', '.join(changed)} "
                              f"=> CO2 {delta:+.0f} t, {'PASS' if last['feasible'] else 'FAIL'}.")
-        tried = [h["design"] for h in hist if h.get("design") is not None]
-        untried = []
-        for k, (lo, hi, _, _) in VARS.items():
-            b = best["design"][k]
-            if b < hi and not any(d[k] > b for d in tried):
-                untried.append(f"higher {k}")
-            if b > lo and not any(d[k] < b for d in tried):
-                untried.append(f"lower {k}")
+        untried = untried_directions(hist, best)
         if untried:
             parts.append("Directions never tried yet from the best design: " + ", ".join(untried) + ".")
     else:
@@ -366,7 +383,7 @@ def run(args):
     a = Assumptions()
     ev = Evaluator(a)
     brief = demand_brief(ev.dates, ev.H, ev.C)
-    system = SYSTEM.format(vars=vars_text())
+    system = SYSTEM.format(vars=vars_text(), **prompt_facts(a, ev.C))
     if args.offline:
         llm, rules = None, RuleAgent()
         agent_name = rules.name
@@ -414,6 +431,13 @@ def run(args):
                 continue
 
         if action == "finish":
+            untried = untried_directions(hist, best) if best else []
+            if best and untried and it < args.iterations and not rules:
+                msg = "finish refused: directions never tried from the best design: " + ", ".join(untried)
+                hist.append(dict(iter=it, design=None, errors=[msg], feasible=False, kpi={}, reasoning=reasoning))
+                log += [f"## Iteration {it} — finish refused", f"> {reasoning}", "", msg + ".", ""]
+                print(f"[{it:2d}] {msg}")
+                continue
             if best:
                 log += [f"## Iteration {it} — agent stops", f"> {reasoning}", ""]
                 print(f"[{it:2d}] agent stops: {reasoning}")
