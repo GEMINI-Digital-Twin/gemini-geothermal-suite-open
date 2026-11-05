@@ -119,7 +119,7 @@ electricity balance · gas mass balance · produced-gas CO₂ = CH₄ burned + n
 2. **Depth pays off through temperature.** At 3,500 m (117 °C, 110 °C at the wellhead) the brine heats the district water to 100 °C on its own, and the heat pump's electricity disappears. With the brine-cooling cap of 40 °C, the heat per m³ stays the same, so depth does not add capacity. There is no cost data, so the extra 6 × 1,000 m of drilling is not priced in. The best design at the fixed 2,500 m reservoir depth (9,075 t) is reported too.
 3. **Produced gas is now the largest CO₂ source** (≈ 4,250 t/yr): 1.58 kg CO₂ per m³ of brine, unavoidable once brine is produced.
 4. **Summer geothermal heat makes cooling.** The absorption chiller turns spare brine heat into cooling. The 35-day maintenance block sits in July–August, when the plant is needed least.
-5. **Equipment right-sizing:** the backup boiler is needed only at 3.9 MW (not 30 MW) and the electric chiller at 10 MW. The electric chiller carries the full cooling peak during the maintenance block.
+5. **Equipment right-sizing:** with 3 doublets the backup boiler is needed only at 3.9–8.7 MW (not 30 MW) and the electric chiller at 10 MW. The electric chiller carries the full cooling peak during the maintenance block.
 
 ## Sensitivity (benchmark design, `sensitivity.csv`)
 
