@@ -140,8 +140,8 @@ def split_joined(j):
 
 
 def tidy(j, results):
-    """Two repairs the run file records: a replay verdict the model wrote into reasoning moves to its field; the reinjection
-    alternative the plan priced is appended when the model left it out. Both use the tools' own words."""
+    """Two repairs the run file records: a replay verdict the model wrote into reasoning moves to its field; the gas option
+    the plan priced and did not choose is appended when the model left it out. Both use the tools' own words."""
     if not isinstance(j, dict):
         return j
     moved = [r for r in j.get("reasoning", []) if isinstance(r, str) and r.startswith("GEMINI's solver re-ran")]
@@ -155,13 +155,15 @@ def tidy(j, results):
             import AI03_plan
             j["reasoning"].append(AI03_plan.violation_sentence(st).replace("[C].", "[C; code]"))
             j["code_added"] = j.get("code_added", []) + ["reasoning[-1]"]
-    ec = {r["args"].get("gas_handling", "engine"): r["result"] for r in results if r["name"] == "economics"
+    ec = {r["result"].get("gas_handling"): r["result"] for r in results if r["name"] == "economics"
           and "error" not in r["result"] and r["args"].get("n_doublets") == j.get("n_doublets")
           and r["args"].get("t_return_c") == j.get("t_return_c")}
+    gas = next((r["result"].get("gas_handling") for r in results if r["name"] == "gas_choice"), None)
+    other = {"engine": "reinject", "reinject": "engine"}.get(gas)
     alts = j.get("rejected_alternatives")
-    if "reinject" in ec and "engine" in ec and isinstance(alts, list) and not any("reinject" in str(a).lower() for a in alts):
+    if gas in ec and other in ec and isinstance(alts, list) and not any(other in str(a).lower() for a in alts):
         import AI03_plan
-        alts.append(AI03_plan.reinject_sentence(ec["engine"], ec["reinject"]).replace("[C, A].", "[C, A; code]."))
+        alts.append(AI03_plan.gas_sentence(ec[gas], ec[other]).replace("[C, A].", "[C, A; code]."))
         j["code_added"] = j.get("code_added", []) + ["rejected_alternatives[-1]"]
     return j
 

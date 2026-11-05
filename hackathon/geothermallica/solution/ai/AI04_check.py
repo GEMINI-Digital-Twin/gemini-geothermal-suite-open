@@ -1,6 +1,6 @@
 """Check a final JSON answer against the tool results the model saw; each problem is prefixed by its rule (a) to (k).
 (a) 'best' needs a sweep (b) tags (c) numbers from tools (d) consistency (e) brief values used (f) shape (g) site (h) alternatives
-(i) trace (j) the chosen design is on the Pareto front and the trade-off quotes its numbers (k) GEMINI verification
+(i) trace (j) the chosen design and its gas option are on the Pareto front and the trade-off quotes its numbers (k) GEMINI verification
 """
 import json
 import re
@@ -27,7 +27,10 @@ FIELDS = {("heating_capacity_MW",): ("heating_year", "capacity_MW"),
           ("electricity_GWh", "heat_pump"): ("heating_year", "heat_pump_electricity_GWh"),
           ("electricity_GWh", "injection_pump"): ("heating_year", "injection_pump_electricity_GWh"),
           ("electricity_GWh", "chillers"): ("cooling_year", "chiller_electricity_GWh")}
-OPTIONAL = {("lcoh_EUR_MWh",): ("economics", "lcoh_EUR_MWh")}   # checked only when the answer has the field
+OPTIONAL = {("lcoh_EUR_MWh",): ("economics", "lcoh_EUR_MWh"),   # checked only when the answer has the field,
+            ("co2_total_kt",): ("economics", "co2_total_kt")}   # against the economics priced with the design's gas option
+GAS_WORDS = {"engine": "gas engine", "reinject": "gas reinjected"}
+OTHER_GAS = {"engine": "reinject", "reinject": "engine"}
 
 
 def norm(brief):
@@ -114,7 +117,7 @@ def check(run_json, transcript, tool_results, brief=""):
             if not any(close(x, p) for p in pool):
                 problems.append(f"(c) {x} not in any tool result of this run: {r}")
     problems += check_alternatives(alts, called)
-    problems += check_reinjection(alts_s, tool_results, run_json.get("n_doublets"), run_json.get("t_return_c"))
+    problems += check_gas_choice(run_json, alts_s, tool_results)
     sweeps = {r["result"]["n_doublets"]: r["result"] for r in tool_results if r["name"] == "return_sweep"}
     n, t, boiler = run_json.get("n_doublets"), run_json.get("t_return_c"), run_json.get("boiler_needed_for_energy")
     met = any(meets_rule(sm["by_return_C"][str(sm["best_return_c"])]) for sm in sweeps.values())
@@ -169,8 +172,9 @@ def check(run_json, transcript, tool_results, brief=""):
             problems.append(f"(d) {name} missing, {tool} gives {w}")
         elif not close(v, w):
             problems.append(f"(d) {name}={v} but {tool} gives {w}")
-    econ = {r["name"]: r["result"] for r in tool_results if r["name"] == "economics" and same(r)
-            and r["args"].get("gas_handling") in (None, "engine")}   # the reinjection economics is an alternative, not the design
+    gas = design_gas(run_json, tool_results)   # the other gas option's economics is an alternative, not the design
+    econ = {r["name"]: r["result"] for r in tool_results if r["name"] == "economics" and same(r) and "error" not in r["result"]
+            and (gas is None or r["result"].get("gas_handling") == gas)}
     for path, (tool, key) in OPTIONAL.items():
         v, w = run_json.get(path[0]), econ.get(tool, {}).get(key)
         if v is None:
@@ -285,9 +289,10 @@ def check_choice(run_json, opt, stated):
         return ["(j) chosen_design missing: copy one row of the Pareto front as {n, t_return_c, esp_depth_m}"]
     near = lambda a, b, tol: isinstance(a, (int, float)) and abs(float(a) - float(b)) <= tol
     row = next((p for p in front if c.get("n") == p["n"] and near(c.get("t_return_c"), p["t_return_c"], 0.01)
-                and near(c.get("esp_depth_m"), p["esp_depth_m"], 1.0)), None)
+                and near(c.get("esp_depth_m"), p["esp_depth_m"], 1.0) and c.get("gas_handling") == p.get("gas_handling")), None)
     if row is None:
-        return [f"(j) chosen_design {c} is not a row of the Pareto front {[(p['n'], p['t_return_c'], p['esp_depth_m']) for p in front]}"]
+        rows = [(p["n"], p["t_return_c"], p["esp_depth_m"], p.get("gas_handling")) for p in front]
+        return [f"(j) chosen_design {c} is not a row (n, t_return_c, esp_depth_m, gas_handling) of the Pareto front {rows}"]
     p = []
     if (run_json.get("n_doublets"), run_json.get("t_return_c")) != (row["n"], row["t_return_c"]):
         p.append(f"(j) chosen_design is {row['n']} doublets at {row['t_return_c']} C but the answer says "
@@ -300,6 +305,9 @@ def check_choice(run_json, opt, stated):
         p.append(f"(j) trade_off needs a [tag]: {tr}")
     if row.get("versus") and (row["versus"] not in str(tr)):
         p.append(f"(j) trade_off does not carry the chosen row's versus phrase '{row['versus']}': {tr}")
+    words = GAS_WORDS.get(row.get("gas_handling"))
+    if words and words not in str(tr).replace(row.get("versus") or "\0", ""):
+        p.append(f"(j) trade_off does not name the chosen row's gas option '{words}': {tr}")
     k = "lcoh_EUR_MWh" if opt["priority"] == "lcoh" else "co2_total_kt"
     best = opt["best_on_priority"][k]
     if row[k] > 1.05 * best:
@@ -328,18 +336,36 @@ def check_alternatives(alts, called):
     return problems
 
 
-def check_reinjection(alts, tool_results, n, t):
-    """(h) when the plan priced the gas reinjected, one alternative names it and its numbers come from the two economics results."""
-    ec = [r for r in tool_results if r["name"] == "economics" and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t
-          and "error" not in r["result"]]
-    if not any(r["args"].get("gas_handling") == "reinject" for r in ec):
+def design_gas(run_json, tool_results):
+    """The gas option of the design: the plan's gas rule record, else chosen_design.gas_handling, else None."""
+    rec = next((r["result"] for r in tool_results if r["name"] == "gas_choice"), None)
+    c = run_json.get("chosen_design")
+    return rec["gas_handling"] if rec else c.get("gas_handling") if isinstance(c, dict) else None
+
+
+def check_gas_choice(run_json, alts, tool_results):
+    """(h, j) when the plan applied the gas rule: chosen_design.gas_handling is the rule's option, and one alternative names the
+    option not chosen with numbers from the two economics results of the design."""
+    rec = next((r["result"] for r in tool_results if r["name"] == "gas_choice"), None)
+    if not rec:
         return []
-    said = [a for a in alts if re.search(r"reinject", a, re.I)]
+    n, t, gas = run_json.get("n_doublets"), run_json.get("t_return_c"), rec["gas_handling"]
+    p = []
+    c = run_json.get("chosen_design")
+    if isinstance(c, dict) and c.get("gas_handling") != gas:
+        p.append(f"(j) chosen_design.gas_handling={c.get('gas_handling')!r} but the gas rule chose {gas!r}: {rec['sentence']}")
+    ec = [r for r in tool_results if r["name"] == "economics" and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t
+          and "error" not in r["result"] and r["result"].get("gas_handling") in (gas, OTHER_GAS[gas])]
+    other = OTHER_GAS[gas]
+    if not any(r["result"]["gas_handling"] == other for r in ec):
+        return p
+    said = [a for a in alts if other in a.lower()]
     if not said:
-        return ["(h) economics priced the gas reinjected but no rejected alternative names reinjection"]
+        return p + [f"(h) economics priced the {GAS_WORDS[other]} but no rejected alternative names '{other}'"]
     pool = [float(x) for r in ec for x in NUM.findall(json.dumps(r["result"]))]
-    return [f"(h) {x} in the reinjection alternative is not in the economics results for {n} doublets at {t} C: {a}"
-            for a in said for x in NUM.findall(TAG.sub("", a)) if not (float(x) < 13 and "." not in x) and not any(close(x, p) for p in pool)]
+    return p + [f"(h) {x} in the {GAS_WORDS[other]} alternative is not in the economics results for {n} doublets at {t} C: {a}"
+                for a in said for x in NUM.findall(TAG.sub("", a))
+                if not (float(x) < 13 and "." not in x) and not any(close(x, q) for q in pool)]
 
 
 def newest_run():

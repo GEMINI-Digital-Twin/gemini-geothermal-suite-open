@@ -41,8 +41,9 @@ GWP100_CH4_FOSSIL = 29.8
 CHP_EL_SHARE = 1 / 3
 CHP_TOTAL_EFF = 0.90           # CHP electricity plus recovered heat per unit of fuel power on LHV; assumed, no source
 P_SEPARATOR_BAR = 10.0         # pressure of the degasser that releases the gas at the surface, bar; assumed, no source
-# default handling: the engine burns the methane, so it emits the same CO2 as a flare, and its electricity covers the pumps' load;
-# the organisers allow any option (organiser answer on Discord, 3 Nov 2026)
+# default handling of one doublet in this module: the engine burns the methane, so it emits the same CO2 as a flare, and its
+# electricity covers the pumps' load; the organisers allow any option (organiser answer on Discord, 3 Nov 2026).
+# The plant's choice between the engine and reinjection is geo.rule.gas_choice, applied by geo.cost.economics.
 GAS_HANDLING = "engine"
 OPTIONS = ("vent", "flare", "engine", "boiler", "reinject")   # the handling options, in the order handling_options() returns them
 BASIS = ("GLR 0.8 Nm3/m3, 80/20 CH4/CO2 [D]; 22.414 L/mol ideal [C]; CH4 LHV 802.7 kJ/mol = NIST 890.7 - 2 x 44.0 [L, C]; bubble point "

@@ -242,19 +242,20 @@ def checks(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m
 
 
 def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None, outage_mode="staggered",
-              gas_handling=gas.GAS_HANDLING):
+              gas_handling=None):
     """Cost of 1-3 doublets at a 30-70 C return over 2027, reservoir at depth_m (default 2500 m; doublet price from the ThermoGIS
     well-cost curve at that depth, 9.33 MEUR at 2500 m), demand scaled to the given peaks: CAPEX in MEUR by item (doublets, heat
     pump, 16 MW backup boiler, chillers, tower, absorption), annual cost in MEUR, levelised cost of heat lcoh_EUR_MWh (doublets,
     heat pump, boiler, ESP and injection electricity, gas, CO2) and of cold lcoc_EUR_MWh, electricity, gas; CO2 kt from the boiler gas
     (co2_kt), grid electricity at 0.3 kg/kWh, the associated gas as handled by gas_handling (vent, flare, engine, boiler or
-    reinject; default engine; reinject adds its compression electricity, associated_gas_compression_GWh, to the bill and the
-    grid CO2) and the total; 5.2 % real, 30/20 yr lives, sourced prices [C, L, A]."""
+    reinject; omit for the plan's choice: the gas rule reinjects when that adds under 1 % to the LCoH, else the engine, and says
+    why in gas_choice; reinject adds its compression electricity, associated_gas_compression_GWh, to the bill and the grid CO2)
+    and the total; 5.2 % real, 30/20 yr lives, sourced prices [C, L, A]."""
     _need("n_doublets", n_doublets, 1, 3)
     _need("t_return_c", t_return_c, 30, 70)
     _peaks(peak_heat_MW, peak_cold_MW)
     _need("depth_m", depth_m, 1500, 4000)
-    if gas_handling not in gas.OPTIONS:
+    if gas_handling is not None and gas_handling not in gas.OPTIONS:
         raise ValueError(f"gas_handling={gas_handling} not one of {gas.OPTIONS}")
     e = cost.economics(int(n_doublets), float(t_return_c), peak_heat_MW, peak_cold_MW, depth_m=float(depth_m), esp_depth_m=_esp(esp_depth_m),
                        outage_mode=_mode(outage_mode), gas_handling=gas_handling)
@@ -265,7 +266,8 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, dept
     keys = ("n_doublets", "heat_served_GWh", "cold_served_GWh", "lcoh_EUR_MWh", "lcoc_EUR_MWh", "electricity_GWh", "gas_GWh", "co2_kt",
             "co2_electricity_kt", "co2_associated_gas_kt", "co2_total_kt", "gas_handling", "associated_gas_q_m3h",
             "associated_gas_electricity_GWh", "associated_gas_heat_GWh", "associated_gas_compression_GWh", "esp_GWh", "outage_mode")
-    return {**r2({**{k: e[k] for k in keys}, **flat}), "tag": "[C]", "basis": e["basis"]}
+    return {**r2({**{k: e[k] for k in keys}, **flat}), **({"gas_choice": e["gas_choice"]} if "gas_choice" in e else {}),
+            "tag": "[C]", "basis": e["basis"]}
 
 
 def layout_compare(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_depth_m=None):
@@ -367,12 +369,13 @@ def lifetime_point(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, s
 
 
 def optimise_point(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, priority="lcoh", esp_depth_m=None, max_doublets=3):
-    """Search doublet count (1-3), network return (50-70 C) and ESP depth (300-1250 m) for the lowest LCoH and the lowest CO2 at
-    once, reservoir at depth_m (default 2500 m), demand scaled to the given peaks: a coarse grid then a pattern search, feasible =
-    all 17 checks pass and the doublet rule (no unmet heat, peak covered, boiler at most 5 %); returns the Pareto front (designs no
-    other beats on both LCoH and CO2, with the breakthrough time and co2_reinject_kt = the row's CO2 with the associated gas
-    reinjected), best_lcoh and best_co2 rows, best_on_priority for priority
-    'lcoh' or 'co2', the number of designs evaluated and the seconds taken [C]."""
+    """Search doublet count (1-3), network return (50-70 C), ESP depth (300-1250 m) and the associated-gas handling (gas engine or
+    reinjection) for the lowest LCoH and the lowest CO2 at once, reservoir at depth_m (default 2500 m), demand scaled to the given
+    peaks: a coarse grid then a pattern search, feasible = all 17 checks pass and the doublet rule (no unmet heat, peak covered,
+    boiler at most 5 %); returns the Pareto front (rows no other beats on both LCoH and CO2, each with gas_handling and the
+    breakthrough time), best_lcoh and best_co2 rows, best_on_priority for priority 'lcoh' (the gas rule's row: reinject when it
+    adds under 1 % to the cheapest LCoH, else the engine) or 'co2', gas_choice = the rule's sentence, the number of designs
+    evaluated and the seconds taken [C]."""
     _peaks(peak_heat_MW, peak_cold_MW)
     _need("depth_m", depth_m, 1500, 4000)
     if priority not in ("lcoh", "co2"):
@@ -381,7 +384,8 @@ def optimise_point(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, priori
     r = optimise.optimise(peak_heat_MW, peak_cold_MW, float(depth_m), _esp(esp_depth_m), n_max=int(max_doublets))
     row = lambda p: None if p is None else r2({k: v for k, v in p.items() if k != "fails"})
     return {"priority": priority, "front": [row(p) for p in r["front"]], "best_lcoh": row(r["best_lcoh"]), "best_co2": row(r["best_co2"]),
-            "best_on_priority": row(r["best_lcoh"] if priority == "lcoh" else r["best_co2"]), "n_evaluated": r["n_evaluated"],
+            "best_on_priority": row((r["best_rule"] or r["best_lcoh"]) if priority == "lcoh" else r["best_co2"]),
+            "gas_choice": r["gas_choice"], "n_evaluated": r["n_evaluated"],
             "n_feasible": r["n_feasible"], "seconds": r["seconds"], "basis": r["basis"], "tag": "[C]"}
 
 
@@ -517,8 +521,9 @@ ARGS = {"depth_m": NUM("reservoir depth in m (omit for the brief's 2500 m); give
                         "description": "where the 35 planned outage days of each doublet fall: staggered (the default, least-demand "
                                        "windows one doublet at a time) or all_at_once (every doublet out together, backup carries it)"},
         "gas_handling": {"type": "string", "enum": list(gas.OPTIONS),
-                         "description": "what happens to the gas dissolved in the brine (omit for engine): vent, flare, engine "
-                                        "(gas engine, the default), boiler (site boiler) or reinject (compressed into the injector)"}}
+                         "description": "what happens to the gas dissolved in the brine (omit for the plan's choice by the gas "
+                                        "rule): vent, flare, engine (gas engine), boiler (site boiler) or reinject (compressed "
+                                        "into the injector)"}}
 PEAKS = ["peak_heat_MW", "peak_cold_MW"]
 OPTIONAL = PEAKS + ["t_brine_floor_c", "depth_m", "outage_days", "spacing_m", "doublet_spacing_m", "esp_depth_m", "extra_return_c",
             "priority", "max_doublets", "outage_mode", "gas_handling"]

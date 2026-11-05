@@ -65,7 +65,10 @@ class TestPlan(unittest.TestCase):
                     self.assertFalse(b["lcoh_EUR_MWh"] < a["lcoh_EUR_MWh"] and b["co2_total_kt"] <= a["co2_total_kt"], (a, b))
         self.assertEqual(o["best_lcoh"]["lcoh_EUR_MWh"], min(p["lcoh_EUR_MWh"] for p in front))
         self.assertTrue(o["best_lcoh"]["feasible"])
-        self.assertEqual(o["best_on_priority"], o["best_lcoh"])   # brief A states no priority: cheapest heat is the default
+        bp, bl = o["best_on_priority"], o["best_lcoh"]   # brief A states no priority: cheapest heat, then the gas rule
+        self.assertEqual((bp["n"], bp["t_return_c"], bp["esp_depth_m"]), (bl["n"], bl["t_return_c"], bl["esp_depth_m"]))
+        self.assertEqual((bl["gas_handling"], bp["gas_handling"]), ("engine", "reinject"))
+        self.assertIn("below the 1 % rule", o["gas_choice"])
 
     def test_priority_parse(self):
         self.assertEqual(checker.brief_priority(agent.BRIEF), "lcoh")
@@ -79,9 +82,14 @@ class TestPlan(unittest.TestCase):
         o, it = opt(out), trace(out)
         row = o["best_on_priority"]
         good = {"n_doublets": row["n"], "t_return_c": row["t_return_c"],
-                "chosen_design": {"n": row["n"], "t_return_c": row["t_return_c"], "esp_depth_m": row["esp_depth_m"]},
-                "trade_off": f"LCoH {row['lcoh_EUR_MWh']} EUR/MWh, CO2 {row['co2_total_kt']} kt, {row['versus']} [C]"}
+                "chosen_design": {"n": row["n"], "t_return_c": row["t_return_c"], "esp_depth_m": row["esp_depth_m"],
+                                  "gas_handling": row["gas_handling"]},
+                "trade_off": f"LCoH {row['lcoh_EUR_MWh']} EUR/MWh, CO2 {row['co2_total_kt']} kt with the "
+                             f"{planner.GAS_WORDS[row['gas_handling']]}, {row['versus']} [C]"}
         self.assertEqual(checker.check_choice(good, o, stated=False), [])
+        nogas = copy.deepcopy(good)
+        nogas["trade_off"] = f"LCoH {row['lcoh_EUR_MWh']} EUR/MWh, CO2 {row['co2_total_kt']} kt, {row['versus']} [C]"
+        self.assertTrue(any("gas option" in p for p in checker.check_choice(nogas, o, False)))
         off = copy.deepcopy(good)
         off["chosen_design"]["t_return_c"] = 60.0   # not a front row
         self.assertTrue(any(p.startswith("(j)") and "not a row" in p for p in checker.check_choice(off, o, False)))
@@ -162,30 +170,42 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(checker.check_iterations(it, good, good["reasoning"], out), [])   # 'stopped' explains a failing design
         self.assertIn("The model stopped the repair at checks", planner.plan_message(BRIEF_F, out))
 
-    def test_reinjection_line(self):
-        """The plan prices the gas reinjected, says it in the message, and an answer carrying the sentence passes the checker."""
+    def test_gas_choice_line(self):
+        """The 1 % rule picks reinjection for brief A; the plan says it, the engine is the rejected alternative, the checker
+        holds the answer to the rule's option and to the economics priced with it."""
         out = plan(agent.BRIEF)
         it = trace(out)
         n, t = it["n_doublets"], it["t_return_c"]
-        ri = planner.reinjection(out, n, t)
-        self.assertEqual(ri["gas_handling"], "reinject")
+        gc = planner.gas_record(out)
+        self.assertEqual((gc["gas_handling"], gc["rule_choice"], it["gas_handling"]), ("reinject", "reinject", "reinject"))
+        self.assertLess(gc["lcoh_penalty_pct"], gc["lcoh_penalty_max_pct"])
+        ri, en = planner.economics_of(out, n, t, "reinject"), planner.economics_of(out, n, t, "engine")
         self.assertGreater(ri["associated_gas_compression_GWh"], 0)
+        self.assertLess(ri["co2_total_kt"], en["co2_total_kt"])
         msg = planner.plan_message(agent.BRIEF, out)
-        line = next(x[2:] for x in msg.splitlines() if x.startswith("- Reinjecting the associated gas instead of the engine"))
-        self.assertIn(f"-> {ri['co2_total_kt']} kt", line)
-        self.assertIn("Gas choice: the engine is kept", msg)
+        self.assertIn("Gas choice: reinject the associated gas: CO2 9.43 -> 5.49 kt for +0.13 EUR/MWh (+0.2 %), below the 1 % "
+                      "rule, permit assumed [C, A].", msg)
+        self.assertIn(f"with {n} doublets {ri['lcoh_EUR_MWh']} EUR/MWh", msg)   # the design's LCoH is the reinjection one
+        line = next(x[2:] for x in msg.splitlines() if x.startswith("- Burning the associated gas in the gas engine"))
+        self.assertIn(f"-> {en['co2_total_kt']} kt", line)
+        self.assertFalse(any(x.startswith("- Reinjecting") for x in msg.splitlines()))
         alts = [x[2:] for x in msg.splitlines() if x.startswith("- ")]
         self.assertLessEqual(len(alts), 7)
         self.assertEqual(checker.check_alternatives(alts, {r["name"] for r in out}), [])
-        self.assertEqual(checker.check_reinjection(alts, out, n, t), [])
-        ans = {**answer(it, [f"Tried {it['tried']} candidates [C]."]), "rejected_alternatives": alts}
-        self.assertFalse([p for p in checker.check(ans, "", out, agent.BRIEF) if p.startswith(("(c)", "(h)"))])
-        bad = [a.replace(str(ri["co2_total_kt"]), "2.37") if a == line else a for a in alts]
-        self.assertTrue(any("2.37" in p for p in checker.check_reinjection(bad, out, n, t)))
-        self.assertTrue(checker.check_reinjection([a for a in alts if a != line], out, n, t))   # priced but not named
-        lcoh = [r for r in out if r["name"] == "economics" and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t]
-        self.assertEqual(sum(r["args"].get("gas_handling") == "reinject" for r in lcoh), 1)
-        self.assertNotIn(f"with {n} doublets {ri['lcoh_EUR_MWh']} EUR/MWh", msg)   # the design's LCoH stays the engine's
+        row = opt(out)["best_on_priority"]
+        ans = {**answer(it, [f"Tried {it['tried']} candidates [C].", gc["sentence"]]), "rejected_alternatives": alts,
+               "lcoh_EUR_MWh": ri["lcoh_EUR_MWh"], "co2_total_kt": ri["co2_total_kt"],
+               "chosen_design": {"n": row["n"], "t_return_c": row["t_return_c"], "esp_depth_m": row["esp_depth_m"], "gas_handling": "reinject"}}
+        self.assertEqual(checker.check_gas_choice(ans, alts, out), [])
+        self.assertFalse([p for p in checker.check(ans, "", out, agent.BRIEF) if p.startswith(("(c)", "(h)"))
+                          or "lcoh_EUR_MWh=" in p or "co2_total_kt=" in p])
+        engine_numbers = {**ans, "lcoh_EUR_MWh": en["lcoh_EUR_MWh"]}   # the design's LCoH with the wrong gas option
+        self.assertTrue(any("lcoh_EUR_MWh=" in p for p in checker.check(engine_numbers, "", out, agent.BRIEF)))
+        wrong = {**ans, "chosen_design": {**ans["chosen_design"], "gas_handling": "engine"}}
+        self.assertTrue(any("gas rule chose" in p for p in checker.check_gas_choice(wrong, alts, out)))
+        bad = [a.replace(str(en["co2_total_kt"]), "7.77") if a == line else a for a in alts]
+        self.assertTrue(any("7.77 " in p for p in checker.check_gas_choice(ans, bad, out)))
+        self.assertTrue(checker.check_gas_choice(ans, [a for a in alts if a != line], out))   # priced but not named
 
     def test_parse(self):
         options = moves.menu({"n_doublets": 2, "t_return_c": 56.25, "esp_depth_m": 800}, {},
@@ -238,16 +258,17 @@ class SplitJoined(unittest.TestCase):
 
 
 class Tidy(unittest.TestCase):
-    def test_verdict_moved_and_reinjection_added(self):
+    def test_verdict_moved_and_engine_added(self):
         import AI03_agent as agent
-        e = {"co2_total_kt": 9.429, "lcoh_EUR_MWh": 61.8}
-        r = {"co2_total_kt": 5.492, "lcoh_EUR_MWh": 61.93, "associated_gas_compression_GWh": 0.08}
-        results = [{"name": "economics", "args": {"n_doublets": 2, "t_return_c": 56.5}, "result": e},
-                   {"name": "economics", "args": {"n_doublets": 2, "t_return_c": 56.5, "gas_handling": "reinject"}, "result": r}]
+        e = {"co2_total_kt": 9.429, "lcoh_EUR_MWh": 61.8, "gas_handling": "engine"}
+        r = {"co2_total_kt": 5.492, "lcoh_EUR_MWh": 61.93, "associated_gas_compression_GWh": 0.08, "gas_handling": "reinject"}
+        results = [{"name": "economics", "args": {"n_doublets": 2, "t_return_c": 56.5, "gas_handling": "engine"}, "result": e},
+                   {"name": "economics", "args": {"n_doublets": 2, "t_return_c": 56.5, "gas_handling": "reinject"}, "result": r},
+                   {"name": "gas_choice", "args": {}, "result": {"gas_handling": "reinject"}}]
         j = {"n_doublets": 2, "t_return_c": 56.5, "reasoning": ["GEMINI's solver re-ran 3 days: ESP head within 0.2 bar [C]", "2 doublets [C]"],
              "rejected_alternatives": ["1 doublet leaves 3 GWh unmet [C]"]}
         j = agent.tidy(j, results)
         self.assertTrue(j["gemini_verification"].startswith("GEMINI's solver"))
         self.assertEqual(len(j["reasoning"]), 1)
-        self.assertIn("Reinjecting", j["rejected_alternatives"][-1])
+        self.assertIn("gas engine instead of reinjecting", j["rejected_alternatives"][-1])
         self.assertTrue(j["rejected_alternatives"][-1].endswith("; code]."))

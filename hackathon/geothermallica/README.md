@@ -123,13 +123,16 @@ Claude Code: `claude mcp add geohack -- python <absolute path>/ai/AI10_mcp.py`. 
 
 ## 6. The design answer for the brief
 
-All numbers below are [C] from the tools, for 2 doublets at a 56.5 C network return, ESP at 1 100 m, reservoir at 2 500 m.
+All numbers below are [C] from the tools, for 2 doublets at a 56.5 C network return, ESP at 1 100 m, reservoir at 2 500 m,
+associated gas reinjected.
 
 | quantity | value |
 |---|---|
-| LCoH | 61.8 EUR/MWh [C] |
-| CO2 | 9.43 kt/yr [C] |
-| electricity | 18.23 GWh/yr [C] |
+| LCoH | 61.93 EUR/MWh [C] |
+| CO2 | 5.49 kt/yr, all from grid electricity at 0.3 kg/kWh [C, D] |
+| gas handling | reinjected: under the 1 % gas rule (+0.13 EUR/MWh, +0.2 %), compression 0.08 GWh/yr, permit assumed [C, A] |
+| same design with a gas engine (rejected) | LCoH 61.8 EUR/MWh, CO2 9.43 kt/yr [C] |
+| electricity | 18.31 GWh/yr [C] |
 | geothermal share of heat | 91.25 % [C] |
 | boiler energy | 0 GWh; 16 MW backup boiler installed [C] |
 | cooling | 76.7 % free, 6.3 % absorption, 17.1 % electric [C] |
@@ -140,16 +143,21 @@ All numbers below are [C] from the tools, for 2 doublets at a 56.5 C network ret
 
 **Why 2 doublets and not 1 or 3.**
 One doublet needs a boiler for 21.74 % of the heat and is 48 % short at the peak [C].
-A third doublet adds 9.0 EUR/MWh and 9.86 MEUR of CAPEX when two already meet the heat [C].
+A third doublet adds 8.98 EUR/MWh and 9.86 MEUR of CAPEX when two already meet the heat [C].
 
 **Why a 56.5 C return.**
 The optimiser finds it as the lowest LCoH [C].
-A 55 C return needs 3.06 GWh of boiler energy [C], and the 60 C of our first sweeps costs 66.4 EUR/MWh [C].
+A 55 C return needs 3.06 GWh of boiler energy [C], and the 60 C of our first sweeps costs 66.5 EUR/MWh [C].
+
+**Why reinject the gas and not burn it in an engine.**
+The optimiser prices every design both ways; our rule reinjects when that adds under 1 % to the LCoH [A, our choice].
+Here it adds 0.13 EUR/MWh (0.2 %) and cuts CO2 from 9.43 to 5.49 kt a year [C].
+The compression is a lower bound and the permit is assumed; above 1 % the rule keeps the engine [A].
 
 **Why a heat pump and not a boiler.**
 The exchanger alone gives water below 100 C, so something must lift it.
-The boiler-lift layout costs 75.97 against 61.8 EUR/MWh [C].
-It burns 51.64 GWh of gas and emits 15.95 kt CO2 against 9.43 kt [C].
+The boiler-lift layout costs 76.1 against 61.93 EUR/MWh [C].
+It burns 51.64 GWh of gas and emits 11.97 kt CO2 against 5.49 kt [C].
 
 **GEMINI checks our design.**
 GEMINI's own solver re-runs the design on 3 days of 2027.
@@ -160,7 +168,7 @@ On TNO's unpatched tree the injection wellhead is 7 to 25 bar off, which is how 
 ## 7. What we are not sure about
 
 - Doublet CAPEX: the LCoH rests on the ThermoGIS well-cost curve, 9.33 MEUR per doublet [L]; other sources say 23.6-37.2 MEUR [L, TBC].
-  At 23.6 MEUR per doublet the LCoH is 91.6 EUR/MWh instead of 61.8, at 37.2 MEUR 120.0 (`geo.cost.economics(2, 56.5, 30, 10, doublet_MEUR=23.6)`) [C].
+  At 23.6 MEUR per doublet the LCoH is 91.7 EUR/MWh instead of 61.93, at 37.2 MEUR 120.1 (`geo.cost.economics(2, 56.5, 30, 10, doublet_MEUR=23.6)`) [C].
 - Peak margin: 2 doublets give 30.04 MW against the 30 MW peak, a margin of 0.14 % [C]; a small loss of flow or temperature puts the backup boiler on at the peak.
 - ESP frequency: GEMINI's own ESP needs up to 8.4 Hz less for the same flow, because it reads the 60 Hz curve at the actual flow [C].
 - Heat-pump COP is capped at 8 at small lifts [A].

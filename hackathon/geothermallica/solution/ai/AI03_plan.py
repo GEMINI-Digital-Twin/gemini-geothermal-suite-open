@@ -1,10 +1,15 @@
 """The code plan of the design agent: brief parsing, return sweeps, checks, the repair loop, alternatives and their sentences."""
 import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import AI01_log as log
 import AI02_tools as tools
 import AI03_moves as moves_
 import AI04_check as checker
+from geo import rule as rules  # noqa: E402
 
 brief_peak, brief_site, brief_priority = checker.brief_peak, checker.brief_site, checker.brief_priority
 SITE_DEFAULTS = {"depth_m": 2500.0, "supply_heat_c": 100.0, "supply_cold_c": 20.0}   # the challenge site
@@ -32,9 +37,18 @@ def brief_inputs(brief):
     return ph, pc, site, found
 
 
-def default_gas(r):
-    """True for a tool record priced with the default gas handling (the reinjection economics is kept apart)."""
-    return r["args"].get("gas_handling") in (None, tools.gas.GAS_HANDLING)
+GAS_WORDS = {"engine": "gas engine", "reinject": "gas reinjected"}   # the same words as the optimiser's versus phrase
+OTHER_GAS = {"engine": "reinject", "reinject": "engine"}
+
+
+def design_gas(r, gas):
+    """True for an economics record priced with the design's gas option (the other option is an alternative)."""
+    return r["result"].get("gas_handling") == gas
+
+
+def gas_record(out):
+    """The plan's gas_choice result, or {}."""
+    return next((r["result"] for r in out if r["name"] == "gas_choice"), {})
 
 
 def call(name, args):
@@ -77,29 +91,36 @@ def iterations(sweeps, chosen):
 
 
 def optimised(design, out, brief, max_n):
-    """Optimise from the repaired design; the design moves to the front row best on the brief's priority. Returns the front steps."""
+    """Optimise from the repaired design; the design moves to the front row best on the brief's priority.
+    Returns the front steps and that row's gas option (None when nothing is feasible)."""
     pr = brief_priority(brief)
     args = {k: v for k, v in design.items() if k not in ("n_doublets", "t_return_c")}   # peaks, depth, ESP depth
     res = call("optimise_point", {**args, "priority": pr, "max_doublets": max_n})
     out.append({"name": "optimise_point", "args": {**args, "priority": pr, "max_doublets": max_n}, "result": res})
     best = res.get("best_on_priority") if "error" not in res else None
     if not best:   # nothing feasible: the sweep's choice stands
-        return []
+        return [], None
     design.update({"n_doublets": best["n"], "t_return_c": best["t_return_c"], "esp_depth_m": best["esp_depth_m"]})
     heat = {k: v for k, v in design.items() if k not in ("n_doublets", "t_return_c", "peak_cold_MW")}
+    done = set()
     for p in res["front"]:   # every front row gets the year tools, so the model may choose any row and the checker can verify it
         d = {"n_doublets": p["n"], "t_return_c": p["t_return_c"], **args, "esp_depth_m": p["esp_depth_m"]}
-        sweep = {"n_doublets": p["n"], **heat, "esp_depth_m": p["esp_depth_m"], "extra_return_c": p["t_return_c"]}
-        out.append({"name": "return_sweep", "args": sweep, "result": call("return_sweep", sweep)})
-        for k in ("checks", "heating_year", "cooling_year", "economics"):
-            a = {k2: v for k2, v in d.items() if k2 != "peak_cold_MW"} if k == "heating_year" else d
-            out.append({"name": k, "args": a, "result": call(k, a)})
+        if (p["n"], p["t_return_c"], p["esp_depth_m"]) not in done:   # the year tools do not depend on the gas option
+            done.add((p["n"], p["t_return_c"], p["esp_depth_m"]))
+            sweep = {"n_doublets": p["n"], **heat, "esp_depth_m": p["esp_depth_m"], "extra_return_c": p["t_return_c"]}
+            out.append({"name": "return_sweep", "args": sweep, "result": call("return_sweep", sweep)})
+            for k in ("checks", "heating_year", "cooling_year"):
+                a = {k2: v for k2, v in d.items() if k2 != "peak_cold_MW"} if k == "heating_year" else d
+                out.append({"name": k, "args": a, "result": call(k, a)})
+        a = {**d, "gas_handling": p["gas_handling"]}
+        out.append({"name": "economics", "args": a, "result": call("economics", a)})
     out.append({"name": "checks", "args": dict(design), "result": call("checks", dict(design))})   # the chosen design last
-    return [{"candidate": name(p["n"], p["t_return_c"]) + f", ESP {p['esp_depth_m']:g} m", "n_doublets": p["n"],
-             "t_return_c": p["t_return_c"], "esp_depth_m": p["esp_depth_m"],
-             "verdict": "chosen" if (p["n"], p["t_return_c"]) == (best["n"], best["t_return_c"]) else "on the front",
+    key = lambda p: (p["n"], p["t_return_c"], p["gas_handling"])
+    return [{"candidate": name(p["n"], p["t_return_c"]) + f", ESP {p['esp_depth_m']:g} m, {GAS_WORDS[p['gas_handling']]}",
+             "n_doublets": p["n"], "t_return_c": p["t_return_c"], "esp_depth_m": p["esp_depth_m"], "gas_handling": p["gas_handling"],
+             "verdict": "chosen" if key(p) == key(best) else "on the front",
              "reason": p["verdict"], "number": f"{p['lcoh_EUR_MWh']} EUR/MWh, {p['co2_total_kt']} kt CO2", "front": True, "tag": "[C]"}
-            for p in res["front"]]
+            for p in res["front"]], best["gas_handling"]
 
 
 def plan(brief, chat=log.chat, records=None, exchanges=None):
@@ -125,13 +146,14 @@ def plan(brief, chat=log.chat, records=None, exchanges=None):
     design, life = {"n_doublets": chosen[0], "t_return_c": chosen[1], **peaks}, {}
     out.append({"name": "checks", "args": dict(design), "result": call("checks", dict(design))})
     moves = moves_.loop(brief, design, life, out, max_n, chat, records, exchanges)
-    front = optimised(design, out, brief, max_n)
+    front, gas = optimised(design, out, brief, max_n)
     n, t = design["n_doublets"], design["t_return_c"]
     peaks = {k: v for k, v in design.items() if k not in ("n_doublets", "t_return_c")}   # the moved inputs from here on
     heat = {k: v for k, v in peaks.items() if k != "peak_cold_MW"}
     well = {k: v for k, v in heat.items() if k != "peak_heat_MW"}
-    cost = [("economics", {"n_doublets": m, "t_return_c": t, **peaks}) for m in (n, n + 1) if m <= 3]   # what the next doublet costs
-    cost.append(("economics", {"n_doublets": n, "t_return_c": t, **peaks, "gas_handling": "reinject"}))   # the gas reinjected instead
+    gas = gas_choice(out, n, t, peaks, gas)
+    cost = [("economics", {"n_doublets": m, "t_return_c": t, **peaks, "gas_handling": gas})
+            for m in (n, n + 1) if m <= 3]   # what the next doublet costs, with the design's gas option
     alts = [("layout_compare", {"n_doublets": n, "t_return_c": t, **peaks}), ("storage_point", {"n_doublets": n, "t_return_c": t, **heat})]
     for k, a in (*cost, *alts, ("heating_year", {"n_doublets": n, "t_return_c": t, **heat}),
                  ("cooling_year", {"t_return_c": t, "n_doublets": n, **peaks}), ("injector_point", {"q_m3h": 300, **dep}),
@@ -150,14 +172,39 @@ def plan(brief, chat=log.chat, records=None, exchanges=None):
                            "model_moves": len([m for m in moves if m.get("move") and m["by"] == "model"]),
                            "code_moves": len([m for m in moves if m.get("move") and m["by"] == "code"]),
                            "stopped": any(m["verdict"] == "stopped" for m in moves), "chosen": name(n, t), "n_doublets": n, "t_return_c": t,
+                           "gas_handling": gas,
                            "optimised": len(front), "steps": trace + moves + front, "tag": "[C]"}})
 
-    econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"] and default_gas(r)}
+    econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]
+            and r["args"].get("t_return_c") == t and design_gas(r, gas)}
     if n in econ and n + 1 in econ:   # computed from two tool results so the checker can trace it
         out.append({"name": "economics_delta", "args": {"from_n": n, "to_n": n + 1},
                     "result": {"delta_lcoh_EUR_MWh": round(econ[n + 1]["lcoh_EUR_MWh"] - econ[n]["lcoh_EUR_MWh"], 2),
                                "delta_capex_MEUR": round(econ[n + 1]["capex_total_MEUR"] - econ[n]["capex_total_MEUR"], 2), "tag": "[C]"}})
     return out
+
+
+def gas_choice(out, n, t, peaks, gas):
+    """Price the design with both gas options, apply the gas rule, record it; returns the option chosen.
+    The optimiser's row (gas) is kept when its priority (lowest CO2) differs from the rule."""
+    e = {}
+    for g in ("engine", "reinject"):
+        a = {"n_doublets": n, "t_return_c": t, **peaks, "gas_handling": g}
+        r = next((r["result"] for r in out if r["name"] == "economics" and r["args"] == a), None)
+        if r is None:
+            r = call("economics", a)
+            out.append({"name": "economics", "args": a, "result": r})
+        e[g] = r
+    if any("error" in r for r in e.values()):
+        return gas or "engine"
+    choice, why = rules.gas_choice(e["engine"], e["reinject"])
+    d, pct = rules.gas_penalty(e["engine"], e["reinject"])
+    gas = gas or choice
+    out.append({"name": "gas_choice", "args": {"n_doublets": n, "t_return_c": t},
+                "result": {"gas_handling": gas, "rule_choice": choice, "sentence": f"Gas choice: {why}.",
+                           "lcoh_penalty_EUR_MWh": round(d, 2), "lcoh_penalty_pct": round(pct, 1),
+                           "lcoh_penalty_max_pct": 100 * rules.GAS_LCOH_PENALTY_MAX, "tag": "[C, A]"}})
+    return gas
 
 
 def plan_message(brief, out):
@@ -184,8 +231,9 @@ def plan_message(brief, out):
             "heat served, then the optimiser's front row best on the brief's priority [A]; so demand_met is true" if ok else
             f"the demand cannot be met with up to {brief_max_n(brief)} doublets at any return; least-boiler option shown; "
             "so demand_met is false")
-    econ = {r["args"]["n_doublets"]: r["result"]["lcoh_EUR_MWh"] for r in out
-            if r["name"] == "economics" and "error" not in r["result"] and default_gas(r)}
+    gas = it.get("gas_handling")
+    econ = {r["args"]["n_doublets"]: r["result"]["lcoh_EUR_MWh"] for r in out if r["name"] == "economics" and "error" not in r["result"]
+            and r["args"].get("t_return_c") == t and design_gas(r, gas)}
     lcoh = "; ".join(f"with {m} doublets {v} EUR/MWh" for m, v in econ.items())
     if n in econ and n + 1 in econ:
         lcoh += (f"; so the {({2: 'second', 3: 'third'}[n + 1])} doublet adds {round(econ[n + 1] - econ[n], 2)} EUR/MWh "
@@ -248,12 +296,13 @@ def pareto_lines(out):
     b = o["best_on_priority"]
     return (f"\nPareto front (copy as one reasoning string of its own, word for word, ending with its [C] tag): "
             f"Optimiser front of {len(o['front'])} designs from {o['n_evaluated']} tried, priority {o['priority']}, best: "
-            f"{b['n']} doublets, {b['t_return_c']:g} C, ESP {b['esp_depth_m']:g} m, LCoH {b['lcoh_EUR_MWh']} EUR/MWh, "
-            f"CO2 {b['co2_total_kt']} kt [C]."
+            f"{b['n']} doublets, {b['t_return_c']:g} C, ESP {b['esp_depth_m']:g} m, {GAS_WORDS[b['gas_handling']]}, "
+            f"LCoH {b['lcoh_EUR_MWh']} EUR/MWh, CO2 {b['co2_total_kt']} kt [C]."
             "\nThe other front rows are in the optimise_point result; name them only in trade_off, not in reasoning."
-            "\ntrade_off is 'LCoH <row lcoh_EUR_MWh> EUR/MWh, CO2 <row co2_total_kt> kt, <row versus> [C]' with the chosen row's "
-            "own values and its versus phrase word for word (the code did the subtraction)."
-            "\nDecision: chosen_design copies one front row (n, t_return_c, esp_depth_m) and the answer's n_doublets and t_return_c "
+            "\ntrade_off is 'LCoH <row lcoh_EUR_MWh> EUR/MWh, CO2 <row co2_total_kt> kt with the <gas engine or gas reinjected>, "
+            "<row versus> [C]' with the chosen row's own values and its versus phrase word for word (the code did the subtraction)."
+            "\nDecision: chosen_design copies one front row (n, t_return_c, esp_depth_m, gas_handling) and the answer's n_doublets "
+            "and t_return_c "
             "follow it; the row best on the priority is the default; another row is allowed only within 5 % of the best on the "
             "priority objective. trade_off is one sentence with the chosen row's LCoH and CO2 and what it gives up against the "
             "other end of the front, each number tagged [C].")
@@ -283,20 +332,21 @@ def gas_lifetime(out):
               f"bubble point {g['p_bubble_bar']} (log10 {g['p_bubble_log10_reading_bar']}) bar, {free}; {g['gas_Mm3_per_yr']} Mm3 gas, "
               f"{g['CH4_GWh_LHV_per_yr']} GWh CH4 per doublet-year [C, L, A].")
     it = next((r["result"] for r in out if r["name"] == "design_iterations"), {})
-    e = next((r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"] and default_gas(r)
-              and r["args"].get("n_doublets") == it.get("n_doublets")), None)
-    if g and "gas_handling" in g:
-        how = {"engine": "Gas engine", "flare": "Flare", "vent": "Venting", "boiler": "Site boiler", "reinject": "Reinjection"}
-        s += (f"\nGas handling and CO2 (one reasoning string, word for word, its tag included): {how[g['gas_handling']]}: "
-              f"{g['handling_CO2_kt_per_yr']} kt CO2/yr, {g['handling_electricity_GWh_per_yr']} GWh electricity per doublet against its "
+    gas = it.get("gas_handling", "engine")
+    e = economics_of(out, it.get("n_doublets"), it.get("t_return_c"), gas)
+    if g and "handling_options" in g:
+        o = next(o for o in g["handling_options"] if o["option"] == gas)
+        what = (f"Gas engine: {g['handling_CO2_kt_per_yr']} kt CO2/yr, {g['handling_electricity_GWh_per_yr']} GWh electricity"
+                if gas == "engine" else f"Reinjection: {o['CO2e_t_per_yr']} t CO2/yr, {o['compression_MWh_per_yr']} MWh compression")
+        s += (f"\nGas handling and CO2 (one reasoning string, word for word, its tag included): {what} per doublet against its "
               f"{g['esp_GWh_per_yr']} GWh ESP load"
               + (f"; plant CO2 {e['co2_total_kt']} kt/yr, {e['co2_electricity_kt']} kt from grid electricity" if e and "co2_total_kt" in e else "")
               + " [C, D, A].")
-    r = reinjection(out, it.get("n_doublets"), it.get("t_return_c"))
-    if e and r:
-        s += ("\nGas choice: the engine is kept because no reinjection permit is in hand; the reinjection numbers go in "
-              "rejected_alternatives (its 'Reinjecting the associated gas' sentence), and trade_off may end with 'gas engine kept, "
-              "reinjection rejected'.")
+    gc = gas_record(out)
+    if gc:
+        s += (f"\nGas choice (copy as one reasoning string of its own, word for word, ending with its tag): {gc['sentence']}"
+              f"\nchosen_design.gas_handling is \"{gc['gas_handling']}\"; the {GAS_WORDS[OTHER_GAS[gc['gas_handling']]]} goes in "
+              "rejected_alternatives with its numbers (copy its sentence below).")
     if l:
         s += (f"\nLifetime (say in reasoning): thermal breakthrough after {l['t_bt_mean_flow_yr']} yr at the mean running flow "
               f"{l['q_mean_running_m3h']} m3/h and {l['spacing_m']} m spacing; "
@@ -305,17 +355,21 @@ def gas_lifetime(out):
     return s
 
 
-def reinjection(out, n, t):
-    """The economics result of the chosen design with the associated gas reinjected, or None."""
-    return next((r["result"] for r in out if r["name"] == "economics" and r["args"].get("gas_handling") == "reinject"
-                 and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t and "error" not in r["result"]), None)
+def economics_of(out, n, t, gas):
+    """The economics result of design (n, t) priced with gas option gas, or None."""
+    return next((r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"] and design_gas(r, gas)
+                 and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t), None)
 
 
-def reinject_sentence(e, r):
-    """Engine against reinjection for the chosen design, from two economics results."""
-    return (f"Reinjecting the associated gas instead of the engine: CO2 {e['co2_total_kt']} -> {r['co2_total_kt']} kt, "
-            f"LCoH {e['lcoh_EUR_MWh']} -> {r['lcoh_EUR_MWh']} EUR/MWh, compression {r['associated_gas_compression_GWh']} GWh, "
-            "permit assumed [C, A].")
+def gas_sentence(chosen, other):
+    """The gas option not chosen, against the chosen one, from two economics results of the same design."""
+    if other["gas_handling"] == "reinject":
+        return (f"Reinjecting the associated gas instead of the engine: CO2 {chosen['co2_total_kt']} -> {other['co2_total_kt']} kt, "
+                f"LCoH {chosen['lcoh_EUR_MWh']} -> {other['lcoh_EUR_MWh']} EUR/MWh, compression "
+                f"{other['associated_gas_compression_GWh']} GWh, permit assumed [C, A].")
+    return (f"Burning the associated gas in the gas engine instead of reinjecting it: CO2 {chosen['co2_total_kt']} -> "
+            f"{other['co2_total_kt']} kt, LCoH {chosen['lcoh_EUR_MWh']} -> {other['lcoh_EUR_MWh']} EUR/MWh, "
+            "engine electricity credit not netted [C, A].")
 
 
 def _year(out, n, t):
@@ -370,11 +424,10 @@ def rejected(out, n, t):
         who = "Both" if n == 2 else f"All {n}"
         lines.append(f"{who} doublets out at once instead of staggered: the backup boiler carries up to "
                      f"{h['all_at_once_backup_max_MW']} MW for 35 days, {h['all_at_once_extra_gas_GWh']} GWh more gas, +{h['all_at_once_extra_gas_MEUR']} MEUR a year [C].")
-    e = next((r["result"] for r in out if r["name"] == "economics" and default_gas(r) and r["args"].get("n_doublets") == n
-              and r["args"].get("t_return_c") == t and "error" not in r["result"]), None)
-    ri = reinjection(out, n, t)
-    if e and ri:
-        lines.append(reinject_sentence(e, ri))
+    gas = gas_record(out).get("gas_handling")
+    e, other = (economics_of(out, n, t, gas), economics_of(out, n, t, OTHER_GAS[gas])) if gas else (None, None)
+    if e and other:
+        lines.append(gas_sentence(e, other))
     sw = res("return_sweep", n_doublets=n)
     low = [x for x in tools.SWEEP_C if x < t] if sw else []
     if low:

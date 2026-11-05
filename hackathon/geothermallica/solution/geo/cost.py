@@ -4,7 +4,8 @@ Well costs follow the TNO ThermoGIS cost model, https://pythermogis-15909e.ci.tn
 Parameter sources are in the inline comments.
 economics() returns a dict: the design inputs, CAPEX by item, annual cost of heating and cooling by item, heat and cold
 served, LCoH and LCoC, electricity, gas and CO2 (boiler gas, grid electricity, associated gas as handled by gas_handling, total),
-and a "basis" dict of sources.
+and a "basis" dict of sources. Without gas_handling the design's gas option comes from geo.rule.gas_choice (engine or reinject),
+and the dict carries that rule's sentence as "gas_choice".
 """
 import sys
 from functools import lru_cache
@@ -12,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from geo import gas as assoc, year  # noqa: E402
+from geo import gas as assoc, rule, year  # noqa: E402
 from geo.common import THICKNESS_M  # noqa: E402
 
 # PBL = Netherlands Environmental Assessment Agency; SDE++ = the Dutch renewable-energy subsidy scheme. "PBL SDE++ 2026" below is
@@ -62,9 +63,15 @@ def crf(r, n):
 
 @lru_cache
 def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doublet_MEUR=None, depth_m=year.DEPTH_M, heat_pump=True,
-              esp_depth_m=year.ESP_DEPTH_M, outage_mode="staggered", gas_handling=assoc.GAS_HANDLING):
+              esp_depth_m=year.ESP_DEPTH_M, outage_mode="staggered", gas_handling=None):
     """Economics dict (see module docstring); doublet_MEUR overrides the ThermoGIS price, heat_pump=False prices a boiler lift,
-    outage_mode places the planned outages (geo.outage), gas_handling is one of gas.OPTIONS for the associated gas."""
+    outage_mode places the planned outages (geo.outage), gas_handling is one of gas.OPTIONS for the associated gas (None: the
+    gas rule picks engine or reinject for this design)."""
+    if gas_handling is None:
+        args = (n_doublets, t_return_c, peak_heat_MW, peak_cold_MW, doublet_MEUR, depth_m, heat_pump, esp_depth_m, outage_mode)
+        e, r = economics(*args, gas_handling="engine"), economics(*args, gas_handling="reinject")
+        choice, why = rule.gas_choice(e, r)
+        return {**(r if choice == "reinject" else e), "gas_choice": why}
     if gas_handling not in assoc.OPTIONS:
         raise ValueError(f"gas_handling={gas_handling!r} not one of {assoc.OPTIONS}")
     doublet_given = doublet_MEUR is not None

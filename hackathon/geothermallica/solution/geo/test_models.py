@@ -42,9 +42,10 @@ class TestModels(unittest.TestCase):
         self.assertAlmostEqual(e["co2_total_kt"], e["co2_kt"] + e["co2_electricity_kt"] + e["co2_associated_gas_kt"], places=9)
 
     def test_gas_handling_in_economics(self):
-        """Challenge design (2 doublets, 56.5 C, ESP 1100 m): the engine default is unchanged; reinjection drops the associated-gas CO2,
-        bills its compression as grid electricity, and an unknown option is refused."""
-        e = cost.economics(2, 56.5, 30.0, 10.0)
+        """Challenge design (2 doublets, 56.5 C, ESP 1100 m): the engine numbers are unchanged; reinjection drops the associated-gas
+        CO2, bills its compression as grid electricity, leaves the heat year alone, is the rule's default, and an unknown option is
+        refused."""
+        e = cost.economics(2, 56.5, 30.0, 10.0, gas_handling="engine")
         self.assertEqual(e["gas_handling"], "engine")
         self.assertAlmostEqual(e["lcoh_EUR_MWh"], 61.7996, places=3)
         self.assertAlmostEqual(e["co2_total_kt"], 9.4291, places=3)
@@ -55,6 +56,13 @@ class TestModels(unittest.TestCase):
         self.assertAlmostEqual(r["co2_total_kt"], r["co2_kt"] + r["electricity_GWh"] * 0.3, places=9)
         self.assertGreater(r["lcoh_EUR_MWh"], e["lcoh_EUR_MWh"])
         self.assertLess(r["co2_total_kt"], e["co2_total_kt"])
+        self.assertAlmostEqual(r["lcoh_EUR_MWh"], 61.93, places=2)
+        self.assertAlmostEqual(r["co2_total_kt"], 5.492, places=3)
+        for k in ("heat_served_GWh", "cold_served_GWh", "gas_GWh", "co2_kt", "esp_GWh"):   # the year does not depend on the gas
+            self.assertEqual(r[k], e[k], k)
+        d = cost.economics(2, 56.5, 30.0, 10.0)
+        self.assertEqual((d["gas_handling"], d["lcoh_EUR_MWh"]), ("reinject", r["lcoh_EUR_MWh"]))
+        self.assertIn("below the 1 % rule", d["gas_choice"])
         with self.assertRaises(ValueError):
             cost.economics(2, 56.5, gas_handling="burn")
 
@@ -86,6 +94,27 @@ class TestModels(unittest.TestCase):
         self.assertLess(r["best_lcoh"]["lcoh_EUR_MWh"], 63.97)
         self.assertTrue(56.25 < r["best_lcoh"]["t_return_c"] <= 57.5)   # 56.25 C needs boiler lift, 57.5 C is the 1.25 C sweep point
         self.assertLessEqual(r["n_evaluated"], 400)
+
+    def test_gas_rule(self):
+        """Gas rule: reinjection 0.5 % dearer is chosen, 1.5 % dearer keeps the engine; the sentence carries both CO2 values."""
+        eng = {"lcoh_EUR_MWh": 60.0, "co2_total_kt": 9.4}
+        cheap, dear = {"lcoh_EUR_MWh": 60.3, "co2_total_kt": 5.5}, {"lcoh_EUR_MWh": 60.9, "co2_total_kt": 5.5}
+        choice, why = rule.gas_choice(eng, cheap)
+        self.assertEqual(choice, "reinject")
+        self.assertIn("CO2 9.40 -> 5.50 kt for +0.30 EUR/MWh (+0.5 %), below the 1 % rule", why)
+        choice, why = rule.gas_choice(eng, dear)
+        self.assertEqual(choice, "engine")
+        self.assertIn("above the 1 % rule", why)
+
+    def test_front_has_both_gas_rows(self):
+        """The challenge front carries an engine row and a reinjection row of the same design; the rule picks the reinjection row."""
+        r = optimise.optimise()
+        rows = {(p["n"], p["t_return_c"], p["esp_depth_m"], p["gas_handling"]) for p in r["front"]}
+        self.assertIn((2, 56.5, 1100.0, "engine"), rows)
+        self.assertIn((2, 56.5, 1100.0, "reinject"), rows)
+        self.assertEqual(r["best_lcoh"]["gas_handling"], "engine")
+        self.assertEqual((r["best_rule"]["gas_handling"], r["best_rule"]["n"]), ("reinject", 2))
+        self.assertIn("below the 1 % rule", r["gas_choice"])
 
     def test_rule_shared(self):
         """The doublet rule: boiler above 5 % of the heat served fails, a row with nothing unmet and a covered peak passes."""
