@@ -15,6 +15,7 @@ from gemini_model.chp.chp import CHP
 from gemini_model.filter.filter import Filter
 from gemini_model.fluid.pvt_water_stp import PVTConstantSTP
 from gemini_model.heat_exchanger.heat_exchanger import HeatExchanger
+from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
 from gemini_model.injector_pump.injector_pump import InjectorPump
 from gemini_model.mixer.mixer import Mixer
 from gemini_model.pump.esp import ESP
@@ -36,6 +37,7 @@ COMPONENT_REGISTRY = {
     "chp": CHP,
     "injector_pump": InjectorPump,
     "booster_pump": BoosterPump,
+    "heatpump_basic": HeatpumpBasic,
     "well": DPDT,
     "reservoir_bottomhole_skin": bottomhole_skin_dp,
     "reservoir_ipr": IPR,

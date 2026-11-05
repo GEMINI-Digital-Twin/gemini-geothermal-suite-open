@@ -1,0 +1,48 @@
+GEMINI GeoHackathon 2026 — Validation Report
+============================================================
+
+Plant design: 2 doublets, heat pump + boiler/CHP backup
+Geothermal operating days: 330 / 365
+
+GEMINI BASELINE (per doublet)
+----------------------------------------
+  Flow rate: 106.20 m3/h
+  Wellhead temperature: 80.0 C
+  HEX secondary outlet: 52.4 C
+  Injector inlet temp: 42.8 C
+  Brine cooling: 37.2 C
+  Geo heat extracted: 4.347 MW
+  ESP power: 157.2 kW
+
+CHALLENGE CONSTRAINTS
+----------------------------------------
+  PASS — Flow per doublet: 106.2 m3/h
+  PASS — Brine cooling: 37.2 C <= 40.0 C
+  PASS — Heating supply: 100.0 C (target 100 C)
+  PASS — Cooling supply: 20.0 C (target 20 C)
+  PASS — Pump efficiency: 0.7
+  PASS — Doublets: 2 in [1,3]
+  PASS — Geo operating days: 330
+  PASS — Volume balance: produced=injected (GEMINI enforced)
+
+ANNUAL PERFORMANCE
+----------------------------------------
+  Annual heating delivered (MW-day): 5478.6
+  Annual cooling delivered (MW-day): 1459.5
+  Geothermal heat extracted (MW-day): 2577.8
+  Heat pump contribution (MW-day): 4594.6
+  Gas thermal (boiler+CHP) (MW-day): 435.7
+  Additional backup boiler (MW-day): 191.4
+  Geothermal+HP share of heating (%): 100
+  Total CO2 emissions (tonnes/year): 33255.1
+  Net electricity consumption (MW-day): 1397.1
+  Geothermal operating days: 330
+  Number of doublets: 2
+  Flow per doublet (m3/h): 106.2
+  Brine cooling (C): 37.2
+  Heat pump COP: 3.92
+  Constraint violations: 0
+
+DAILY VIOLATIONS (0 days)
+----------------------------------------
+  None — all constraints satisfied.
