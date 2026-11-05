@@ -18,37 +18,48 @@ the violations back to the agent, which repairs and improves the design.
 The LLM never decides PASS/FAIL. Only the validator does, from the simulated
 numbers.
 
-## Result
+## Result — designed by the LLM agent (Ollama qwen2.5:7b, run 2)
 
 | | Agent's design (`agent_best_design.json`) |
 |---|---|
-| Doublets | **3**, wells 3,500 m TVD (117 °C reservoir) |
-| Heat exchanger | 2,000 kW/K per doublet. At this depth the brine heats the water to 100 °C directly, so the heat pump is not needed |
-| ESP | 50 stages at 1,000 m, variable speed → 58–196 m³/h per doublet |
-| Backup gas boiler | 4.5 MW (peak use 3.9 MW) |
-| Chillers (20 °C) | 10.5 MW electric + 9 MW absorption (geothermal heat) |
-| **CO₂** | **7,192 t/year** |
-| Heat from geothermal | 88.3 % (produced gas 9.7 %, backup boiler 2.0 %) |
-| Constraint checks | **16/16 PASS** |
+| Doublets | **3**, wells 3,200 m TVD (108 °C reservoir) |
+| Heat exchanger | 2,000 kW/K per doublet + heat pump to 100 °C |
+| ESP | 20 stages at 1,000 m, variable speed → 56–145 m³/h per doublet |
+| Backup gas boiler | 15 MW (peak use 8.7 MW) |
+| Chillers (20 °C) | 10 MW electric + 5 MW absorption (geothermal heat) |
+| **CO₂** | **8,080 t/year** |
+| Heat from geothermal | 83.8 % (produced gas 9.1 %, backup boiler 7.2 %) |
+| Constraint checks | **16/16 PASS** (reproduced with `python run_full_year.py`) |
 
-Benchmarks from the exhaustive search over 72 designs (`optimize_design.py`):
+How the agent got there (`agent_log.md`): it started with 1 doublet at 2,000 m → the validator
+reported 13.6 MW heating and 5 MW cooling shortfall → the agent added doublets and chiller
+capacity → first PASS at iteration 3 (9,350 t) → deeper wells and a larger HEX step by step →
+8,080 t at iteration 9. One out-of-range proposal (HEX 2,500 kW/K) was rejected by the
+schema check, and the agent corrected itself. That is **9 simulations, against 72 for the brute-force grid.**
+
+## Benchmarks (`optimize_design.py`, exhaustive search over 72 designs)
 
 | Best design with … | CO₂ t/yr |
 |---|---|
 | 1 doublet | 15,724 |
 | 2 doublets | 9,486 |
-| 3 doublets | 7,221 |
+| 3 doublets (3,500 m) | 7,221 |
 | 3 doublets, depth fixed at the 2,500 m reservoir midpoint | 9,075 |
-| **Agent (offline rule-based run)** | **7,192** (−0.4 % vs. the grid, because it found a combination outside the grid) |
+| LLM agent, run 2 (9 simulations) | 8,080 (+11.9 % vs. grid) |
+| Offline rule-based agent (24 simulations) | 7,192 (−0.4 %: it found a combination outside the grid) |
+
+The LLM stopped by its own decision before trying 3,500 m. Its remaining gap is
+the extra depth (3,200 → 3,500 m), where the heat pump becomes unnecessary.
 
 ## Agent runs (`agent_runs/`)
 
 | Run | Agent | Best CO₂ | What happened |
 |---|---|---|---|
-| 1 | Ollama qwen2.5:7b, 12 iterations | 10,596 t (2 doublets) | Loop works and the validator caught heating and cooling shortfalls, but the model repeated a failing design 5× and believed fewer doublets lower CO₂ |
-| — | offline rule agent, 24 iterations | 7,192 t | reference policy |
+| 1 | Ollama qwen2.5:7b, 12 iterations | 10,596 t (2 doublets) | Loop worked and the validator caught heating and cooling shortfalls, but the model repeated a failing design 5× and believed fewer doublets lower CO₂ |
+| 2 | Ollama qwen2.5:7b, after workflow fix | **8,080 t (3 doublets, 3,200 m)** | Repaired violations, improved monotonically, no repeats, stopped itself after 9 simulations |
+| — | offline rule agent, 24 iterations | 7,192 t | deterministic reference policy |
 
-The workflow itself was improved after run 1: exact repeats are now rejected
+The workflow itself was improved between runs 1 and 2: exact repeats are now rejected
 without simulation, the feedback shows the effect of the last change versus the
 best design, untried directions are listed, and the prompt states the
 key engineering facts (geothermal heat is almost CO₂-free, gas backup is not).

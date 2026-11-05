@@ -2,12 +2,12 @@
   "design": {
     "n_doublets": 3,
     "hex_ua_w_per_k": 2000000.0,
-    "esp_stages": 50,
+    "esp_stages": 20,
     "esp_depth_m": 1000.0,
-    "well_depth_m": 3500.0,
-    "backup_boiler_mw": 4.5,
-    "electric_chiller_mw": 10.5,
-    "absorption_chiller_mw": 9.0
+    "well_depth_m": 3200.0,
+    "backup_boiler_mw": 15.0,
+    "electric_chiller_mw": 10.0,
+    "absorption_chiller_mw": 5.0
   },
   "assumptions": {
     "t_return": 40.0,
@@ -22,8 +22,8 @@
     "wellbore_heat_loss_c": 7.0,
     "cp": 4186.0
   },
-  "agent": "rule-based agent (offline)",
-  "iteration": 22,
-  "co2_t_per_year": 7191.9,
-  "reasoning": "Right-size boiler and chillers to 105 % of their real peak use."
+  "agent": "Ollama qwen2.5:7b",
+  "iteration": 9,
+  "co2_t_per_year": 8080.1,
+  "reasoning": "The last design (#8) already performs well, but we can try increasing the well depth to see if it further improves COP and CO2 emissions, as deeper wells can provide hotter brine."
 }

@@ -1,25 +1,10 @@
 iter,n_doublets,well_depth_m,hex_ua_kw_per_k,esp_stages,backup_boiler_mw,electric_chiller_mw,absorption_chiller_mw,feasible,co2_t_per_year,failed,reasoning
-1,1,2500.0,250.0,10,5.0,5.0,0.0,False,10301.4,Heating demand met every day: max shortfall 19.5728 MW; Cooling demand met every day at 20 C: max shortfall 5.0000 MW,"Start small, like the GEMINI example: one doublet at the reservoir midpoint, small HEX and pump, small backup units. The validator will tell what is missing."
-2,1,2500.0,250.0,10,26.0,11.0,0.0,True,20447.3,,heating short by 19.57 MW -> enlarge backup boiler; cooling short by 5.0 MW -> enlarge electric chiller.
-3,2,2500.0,250.0,10,26.0,11.0,0.0,True,15724.6,,Passing; add a doublet to raise geothermal capacity and cut backup gas.
-4,3,2500.0,250.0,10,26.0,11.0,0.0,True,12135.4,,Passing; add a doublet to raise geothermal capacity and cut backup gas.
-5,3,3000.0,250.0,10,26.0,11.0,0.0,True,12368.9,,"Go 500 m deeper: +15 C brine, higher heat-pump COP or no heat pump at all."
-6,3,2500.0,500.0,10,26.0,11.0,0.0,True,12063.8,,"Double the heat-exchanger size: more direct heat, less heat-pump work."
-7,3,3000.0,500.0,10,26.0,11.0,0.0,True,12273.1,,"Go 500 m deeper: +15 C brine, higher heat-pump COP or no heat pump at all."
-8,3,2500.0,1000.0,10,26.0,11.0,0.0,True,12037.5,,"Double the heat-exchanger size: more direct heat, less heat-pump work."
-9,3,3000.0,1000.0,10,26.0,11.0,0.0,True,12248.0,,"Go 500 m deeper: +15 C brine, higher heat-pump COP or no heat pump at all."
-10,3,2500.0,2000.0,10,26.0,11.0,0.0,True,12034.4,,"Double the heat-exchanger size: more direct heat, less heat-pump work."
-11,3,3000.0,2000.0,10,26.0,11.0,0.0,True,12246.5,,"Go 500 m deeper: +15 C brine, higher heat-pump COP or no heat pump at all."
-12,3,2500.0,2000.0,30,26.0,11.0,0.0,True,9080.5,,More ESP stages: higher reachable flow on peak days.
-13,3,3000.0,2000.0,30,26.0,11.0,0.0,True,7838.9,,"Go 500 m deeper: +15 C brine, higher heat-pump COP or no heat pump at all."
-14,3,3500.0,2000.0,30,26.0,11.0,0.0,True,7559.0,,"Go 500 m deeper: +15 C brine, higher heat-pump COP or no heat pump at all."
-15,3,3500.0,2000.0,50,26.0,11.0,0.0,True,7487.6,,More ESP stages: higher reachable flow on peak days.
-16,3,3500.0,2000.0,60,26.0,11.0,0.0,True,7514.8,,More ESP stages: higher reachable flow on peak days.
-17,3,3500.0,2000.0,50,26.0,11.0,5.0,True,7232.9,,Add absorption-chiller capacity: summer geothermal heat can make cooling.
-18,3,3500.0,2000.0,60,26.0,11.0,5.0,True,7260.4,,More ESP stages: higher reachable flow on peak days.
-19,3,3500.0,2000.0,50,26.0,11.0,10.0,True,7191.9,,Add absorption-chiller capacity: summer geothermal heat can make cooling.
-20,3,3500.0,2000.0,60,26.0,11.0,10.0,True,7220.8,,More ESP stages: higher reachable flow on peak days.
-21,3,3500.0,2000.0,50,26.0,11.0,15.0,True,7191.9,,Add absorption-chiller capacity: summer geothermal heat can make cooling.
-22,3,3500.0,2000.0,50,4.5,10.5,9.0,True,7191.9,,Right-size boiler and chillers to 105 % of their real peak use.
-23,3,3500.0,2000.0,60,4.5,10.5,9.0,True,7220.8,,More ESP stages: higher reachable flow on peak days.
-24,3,3500.0,2000.0,50,4.5,10.5,14.0,True,7191.9,,Add absorption-chiller capacity: summer geothermal heat can make cooling.
+1,1.0,2000.0,1000.0,10.0,10.0,5.0,0.0,False,15439.0,Heating demand met every day: max shortfall 13.5630 MW; Cooling demand met every day at 20 C: max shortfall 5.0000 MW,Start with a simple design to ensure all checks pass before optimizing. Use one doublet to keep the plant small and test basic functionality.
+2,2.0,2500.0,1500.0,20.0,12.0,6.0,0.0,False,11794.6,Heating demand met every day: max shortfall 0.9674 MW; Cooling demand met every day at 20 C: max shortfall 4.0000 MW,Design #1 failed due to insufficient geothermal capacity to meet peak heating demand. Increasing the number of doublets and well depth will likely provide more heat.
+3,3.0,2500.0,1500.0,20.0,12.0,8.0,5.0,True,9349.8,,"The last design failed due to unmet cooling demand, likely due to insufficient cooling capacity. Increasing the number of doublets and cooling capacity should help meet the demand."
+4,3.0,2800.0,1500.0,20.0,12.0,8.0,5.0,True,8740.9,,"Design #3 is performing well, but we can try increasing the well depth to see if it improves the COP of the heat pump, potentially reducing CO2 emissions further."
+5,3.0,2800.0,2000.0,20.0,12.0,8.0,5.0,True,8738.2,,"Design #4 already performs well, but we can try increasing the heat exchanger size to see if it further reduces CO2 emissions while maintaining the plant's performance."
+6,,,,,,,,False,,"'hex_ua_kw_per_k'=2500 outside allowed range [100, 2000]","The current design with 3 doublets at 2800 m depth and 2000 UA per doublet is performing well, but we can explore if increasing the number of doublets or the heat exchanger size can further reduce CO2 emissions while maintaining the design within the constraints."
+7,3.0,2800.0,2000.0,20.0,15.0,10.0,5.0,True,8545.2,,"The best design so far uses 3 doublets, a well depth of 2800 m, and a heat exchanger size of 2000 kW/K, which is the upper limit. Increasing the well depth or ESP stages further would likely not improve CO2 emissions significantly, so we will try increasing the backup boiler and electric chiller sizes."
+8,3.0,3000.0,2000.0,20.0,15.0,10.0,5.0,True,8263.2,,"The last design (#7) with 3 doublets, 2800 m depth, 2000 UA/K per doublet, and optimal backup and chiller sizes performed well. Increasing any of these parameters further might not improve CO2 emissions significantly and could violate the CO2 constraint. We should explore deeper wells to see if they can further reduce CO2 emissions without increasing the plant size."
+9,3.0,3200.0,2000.0,20.0,15.0,10.0,5.0,True,8080.1,,"The last design (#8) already performs well, but we can try increasing the well depth to see if it further improves COP and CO2 emissions, as deeper wells can provide hotter brine."
