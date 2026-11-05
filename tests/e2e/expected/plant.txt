@@ -1,0 +1,17 @@
+Bare class: 110 values missing, the first d0.drainage_radius:
+  Radius of the drainage area around each well [m]
+Filled: 8 left: the reservoir and well of the case, the sizes
+Problems found by check: 0
+  sized size.doublets = {'value': 1, 'unit': '-'}
+  sized d0.nominal_flow = {'value': 180.0, 'unit': 'm3/h'}
+  sized compression_chiller.capacity = {'value': 0.15, 'unit': 'MW'}
+  sized peak_boiler.capacity = {'value': 3.034, 'unit': 'MW'}
+  sized heat_pump.capacity = {'value': 1.0338074074074062, 'unit': 'MW'}
+  sized injection_pump.nominal_flow = {'value': 180.0, 'unit': 'm3/h'}
+  sized injection_pump.nominal_head = {'value': 2435.610903562396, 'unit': 'Pa'}
+Left unchanged: ['heat_exchanger']
+Constraints broken by the start: 0
+Simulation of the start: simulated
+Check of the sized plant on the case: ready
+Failed steps: 0
+Heat delivered: 691.7 MWh

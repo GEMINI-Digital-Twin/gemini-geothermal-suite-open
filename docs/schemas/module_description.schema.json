@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GEMINI module description",
+  "type": "object",
+  "required": ["name", "type", "category", "summary", "doc", "parameters", "controls", "boundaries", "measured", "state", "inlets", "outlets", "outputs", "children", "connections"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"type": "string"},
+    "type": {"type": "string"},
+    "category": {"type": ["string", "null"]},
+    "summary": {"type": "string"},
+    "doc": {"type": "string"},
+    "parameters": {"$ref": "#/$defs/entries"},
+    "controls": {"$ref": "#/$defs/entries"},
+    "boundaries": {"$ref": "#/$defs/entries"},
+    "measured": {"$ref": "#/$defs/entries"},
+    "state": {"$ref": "#/$defs/entries"},
+    "inlets": {"$ref": "#/$defs/ports"},
+    "outlets": {"$ref": "#/$defs/ports"},
+    "outputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["unit", "quantity", "soft_sensor"],
+        "additionalProperties": false,
+        "properties": {
+          "unit": {"type": ["string", "null"]},
+          "quantity": {"type": ["string", "null"]},
+          "soft_sensor": {"type": "boolean"}
+        }
+      }
+    },
+    "children": {"type": "object", "additionalProperties": {"type": "string"}},
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "kind", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "source": {"type": "string"},
+          "target": {"type": "string"},
+          "kind": {"type": ["string", "null"]},
+          "type": {"enum": ["state", null]}
+        }
+      }
+    },
+    "values": {
+      "type": "object",
+      "required": ["parameters", "controls", "boundaries"],
+      "additionalProperties": false,
+      "properties": {
+        "parameters": {"type": "object"},
+        "controls": {"type": "object"},
+        "boundaries": {"type": "object"}
+      }
+    }
+  },
+  "$defs": {
+    "entries": {"type": "object", "additionalProperties": {"$ref": "#/$defs/entry"}},
+    "entry": {
+      "type": "object",
+      "required": ["type", "unit", "quantity", "default", "minimum", "maximum", "enum", "description", "section"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {"type": ["string", "null"]},
+        "unit": {"type": ["string", "null"]},
+        "quantity": {"type": ["string", "null"]},
+        "default": {},
+        "minimum": {"type": ["number", "null"]},
+        "maximum": {"type": ["number", "null"]},
+        "enum": {"type": ["array", "null"]},
+        "description": {"type": ["string", "null"]},
+        "section": {"type": "string"}
+      }
+    },
+    "ports": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["kind", "fields"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {"type": ["string", "null"]},
+          "port": {
+            "type": "object",
+            "required": ["direction", "carrier", "flow", "many", "required", "offered", "generic"],
+            "properties": {
+              "direction": {"enum": ["in", "out"]},
+              "carrier": {"enum": ["stream", "power"]},
+              "phase": {"enum": ["liquid", "gas", "two_phase", "any"]},
+              "fluid": {"type": "string"},
+              "level": {"enum": ["hot", "warm", "cool", "chilled", "ambient", "geothermal", "any"]},
+              "energy": {"type": "string"},
+              "temperature": {"type": ["array", "null"], "items": {"type": "number"}},
+              "pressure": {"type": ["array", "null"], "items": {"type": "number"}},
+              "generic": {"type": ["string", "null"]},
+              "flow": {"enum": ["imposed", "drawn"]},
+              "many": {"type": "boolean"},
+              "required": {"type": "boolean"},
+              "offered": {"type": "boolean"}
+            }
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["unit"],
+              "additionalProperties": false,
+              "properties": {"unit": {"type": "string"}}
+            }
+          }
+        }
+      }
+    }
+  }
+}

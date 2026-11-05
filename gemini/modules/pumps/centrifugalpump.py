@@ -1,0 +1,185 @@
+"""Variable-speed centrifugal pump with a quadratic head curve and affinity-law scaling."""
+
+from gemini import ops
+from gemini.errors import PhysicsError
+from gemini.modules._utils.equipment import Equipment
+from gemini.modules._utils.flow import require_forward
+from gemini.modules.declarations import Control, Output, Parameter, Port
+from gemini.modules.module import Module
+from gemini.physics import energy, heat_transfer, pumps
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import (
+    Efficiency,
+    Fraction,
+    Frequency,
+    HydraulicPower,
+    Power,
+    PressureDifference,
+    VolumeFlow,
+)
+
+
+class CentrifugalPump(Equipment, Module):
+    """Centrifugal booster or circulation pump with affinity-law speed control.
+
+    At the rated frequency the pressure rise follows the quadratic head curve
+    ``H(Q) = c0 + c1 Q + c2 Q^2`` (``head_coefficients``, H in Pa and Q in m3/s). With the speed
+    ratio ``s = frequency / rated_frequency`` the affinity laws (Q ~ s, H ~ s^2) give
+    ``H = c0 s^2 + c1 s Q + c2 Q^2``. The hydraulic efficiency is the parabola through the
+    origin with its maximum ``best_efficiency`` at the best-efficiency flow ``s * Q_bep``:
+    ``eta = eta_bep * x * (2 - x)`` with ``x = Q / (s Q_bep)``, the speed-scaled quadratic
+    efficiency curve of Ulanicki, Kahler and Coulbeck (2008), "Modeling the efficiency and
+    power characteristics of a pump group", J. Water Resour. Plann. Manage. 134(1), 88-93.
+
+    Hydraulic power is ``Q H``, shaft power ``Q H / eta`` and electricity the shaft power over
+    ``motor_efficiency``. The pump losses ``P_shaft - P_hydraulic`` heat the liquid,
+    ``dT = (P_shaft - P_hydraulic) / (m_dot cp)``, and the motor losses leave as ``loss_out``,
+    so the model is first-law closed when the flow work ``Q H`` is counted. NOTE(refactor): the
+    sensible-enthalpy audit of ``energy_balance`` excludes pressure energy, so its residual for
+    this pump equals ``hydraulic_power``; the unit tests check that and the full closure.
+
+    Assumptions: incompressible liquid at the suction density, constant heat capacity, an
+    efficiency that does not change with speed (affinity laws, adequate for speed ratios of
+    about 0.5 to 1.1), no leakage or recirculation. Valid on the curve between zero flow and
+    the run-out: a flow at or beyond twice the scaled best-efficiency flow, or one that gives
+    a negative head, raises ``PhysicsError``, as does reverse flow. Zero mass flow means
+    the pump is stopped: no head, no power. A running pump against a closed valve (deadhead),
+    whose shaft power would heat a trapped volume without bound, is outside the steady model.
+    """
+
+    equipment_kind = "circulation_pump"
+
+    repr_fields = ("rated_frequency", "best_efficiency", "best_efficiency_flow")
+
+    def __init__(self):
+        """Declare pump design data, ports and computed performance."""
+        super().__init__()
+
+        # Parameters
+        self.head_coefficients = Parameter(
+            list[float],
+            shape=(pumps.CENTRIFUGAL_HEAD_COEFFICIENT_COUNT,),
+            calibratable=True,
+            description=(
+                "Coefficients c0, c1, c2 of the quadratic head curve at the rated frequency"
+            ),
+        )
+        self.rated_frequency = Parameter(
+            Frequency, description="Frequency at which the head curve is given"
+        )
+        self.best_efficiency = Parameter(
+            Efficiency,
+            calibratable=True,
+            description="Peak hydraulic efficiency of the pump at its best-efficiency flow",
+        )
+        self.best_efficiency_flow = Parameter(
+            VolumeFlow, gt=0, description="Flow at which the pump reaches its best efficiency"
+        )
+        self.motor_efficiency = Parameter(
+            Efficiency,
+            description="Efficiency of the electric motor: shaft power over electric power drawn",
+        )
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
+
+        # Controls
+        self.frequency = Control(Frequency, description="Operating frequency of the pump motor")
+
+        # Outputs
+        self.head = Output(
+            PressureDifference, soft_sensor=True, description="Pressure rise given to the stream"
+        )
+        self.hydraulic_power = Output(
+            HydraulicPower, description="Power given to the fluid, flow times pressure rise"
+        )
+        self.shaft_power = Output(
+            Power, soft_sensor=True, description="Mechanical power on the pump shaft"
+        )
+        self.efficiency = Output(
+            Fraction, description="Hydraulic efficiency of the pump at the current flow and speed"
+        )
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
+
+    def forward(self, inputs, inlets, state):
+        """Raise the suction pressure by the head and heat the liquid by the pump losses."""
+
+        # Outlets
+        suction = inlets.fluid_in
+        performance = self._performance(suction, inputs["frequency"])
+        losses = performance["shaft_power"] - performance["hydraulic_power"]
+        rise = heat_transfer.temperature_change(losses, suction.heat_capacity_rate())
+
+        discharge = suction._with_si(p=suction.p + performance["head"], T=suction.T + rise)
+        power_in = energy.input_power(performance["shaft_power"], self.motor_efficiency)
+        loss_out = power_in - performance["shaft_power"]
+
+        # Outputs
+        outputs = dict(
+            head=performance["head"],
+            hydraulic_power=performance["hydraulic_power"],
+            shaft_power=performance["shaft_power"],
+            efficiency=performance["efficiency"],
+        )
+
+        outlets = dict(fluid_out=discharge, loss_out=loss_out, power_in=power_in)
+        return outputs, outlets
+
+    def cost_size(self):
+        """Return the shaft power [W] at the best-efficiency flow, the size the cost scales with."""
+        flow = self.best_efficiency_flow
+        head = pumps.centrifugal_head(flow, 1.0, self.head_coefficients)
+        hydraulic = pumps.hydraulic_power(flow, head)
+        return energy.input_power(hydraulic, self.best_efficiency)
+
+    def _performance(self, suction, frequency):
+        """Return flow [m3/s], head [Pa], hydraulic and shaft power [W] and efficiency [-]."""
+        flow = suction.volumetric_flow()
+        require_forward(self.path, "suction volume flow", flow, "m3/s")
+        speed = pumps.speed_ratio(frequency, self.rated_frequency)
+        head = pumps.centrifugal_head(flow, speed, self.head_coefficients)
+        load = pumps.best_efficiency_ratio(flow, speed, self.best_efficiency_flow)
+        ops.check(
+            ops.logical_or(
+                flow == 0, ops.logical_not(ops.logical_or(head < 0, load >= pumps.RUNOUT_LOAD))
+            ),
+            PhysicsError,
+            "{path}: flow = {flow} m3/s at frequency = {frequency} Hz gives "
+            "head = {head} Pa at {load} times the best-efficiency flow; expected a "
+            "nonnegative head below twice the best-efficiency flow (pump off its curve)",
+            path=self.path,
+            flow=flow,
+            frequency=frequency,
+            head=head,
+            load=load,
+        )
+        efficiency = pumps.parabolic_efficiency(self.best_efficiency, load)
+        hydraulic_power = pumps.hydraulic_power(flow, head)
+        stopped = flow == 0
+        return dict(
+            flow=ops.where(stopped, 0.0, flow),
+            head=ops.where(stopped, 0.0, head),
+            hydraulic_power=ops.where(stopped, 0.0, hydraulic_power),
+            shaft_power=ops.where(stopped, 0.0, energy.input_power(hydraulic_power, efficiency)),
+            efficiency=ops.where(stopped, 0.0, efficiency),
+        )

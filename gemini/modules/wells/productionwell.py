@@ -1,0 +1,152 @@
+"""Production well from the sandface to the wellhead, optionally split at an internal ESP."""
+
+from typing import Literal
+
+from gemini import ops
+from gemini.errors import ValidationError
+from gemini.modules.declarations import Output, Parameter, Port
+from gemini.modules.wells.well import _Well
+from gemini.physics import fluid, heat_transfer
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import Length, Pressure, PressureDifference, Temperature
+
+
+class ProductionWell(_Well):
+    """Production-well pressure and temperature profile with integrity checks.
+
+    ``segment`` selects the traversed interval: the full well, the part below an internal ESP
+    (sandface to intake) or the part above it (discharge to wellhead).
+
+    NOTE(refactor): ``esp_depth`` cuts the pipe path as a number, so one graph serves any ESP
+    depth: every section stays in the traversal, with the length that lies in the segment. The
+    ``section_pressure`` and ``section_temperature`` list outputs are vector outputs of the graph,
+    one item per section of the path, a section outside the segment giving the pressure and
+    temperature it was entered at.
+    """
+
+    repr_fields = ("segment", "esp_depth", "soil_temperature", "heat_transfer_coefficient")
+
+    def __init__(self):
+        """Declare production-well geometry, inlet and outputs."""
+        super().__init__()
+
+        # Parameters
+        self.segment = Parameter(
+            Literal["full", "below_esp", "above_esp"],
+            description="Interval of the well traversed: the full well, below the pump or above it",
+        )
+        self.esp_depth = Parameter(
+            Length | None,
+            default=None,
+            description="Depth of the pump that splits the well; empty when the well is not split",
+        )
+
+        # Inlets
+        self.bottom_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+
+        # Outputs
+        self.friction_pressure_drop = Output(
+            PressureDifference, description="Pressure drop caused by friction along the well"
+        )
+        self.gravity_pressure_drop = Output(
+            PressureDifference,
+            description="Pressure change caused by the weight of the fluid column",
+        )
+        self.section_pressure = Output(
+            list[Pressure], description="Pressure at each section of the well"
+        )
+        self.section_temperature = Output(
+            list[Temperature], description="Temperature at each section of the well"
+        )
+
+        # Outlets
+        self.wellhead_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
+
+    def forward(self, inputs, inlets, state):
+        """Traverse the selected segment upward and apply the pressure correction."""
+
+        # Outlets
+        bottom = inlets.bottom_in
+        start, end = self._segment_interval()
+        result = self.traverse(bottom, start, end, "up")
+        wellhead = self.corrected(bottom, result)
+
+        # Outputs
+        outputs = dict(
+            friction_pressure_drop=result.friction_pressure_drop,
+            gravity_pressure_drop=result.gravity_pressure_drop,
+            section_pressure=result.section_pressure,
+            section_temperature=result.section_temperature,
+        )
+
+        outlets = dict(wellhead_out=wellhead, loss_out=self._loss(bottom, wellhead))
+        return outputs, outlets
+
+    def _loss(self, bottom, wellhead):
+        """Return the heat [W] the well gives to the rock between its two ends."""
+        capacity_rate = fluid.heat_capacity_rate(
+            wellhead.m_dot, bottom.fluid.properties(bottom.p, bottom.T).cp_l
+        )
+        return heat_transfer.heat_rate(capacity_rate, bottom.T - wellhead.T)
+
+    def intake_conditions(self, bottom_stream):
+        """Traverse from the sandface to ESP intake, returning a stream in SI units."""
+        result = self.traverse(bottom_stream, self.total_length, self._esp_depth(), "up")
+        return self.corrected(bottom_stream, result)
+
+    def wellhead_from_discharge(self, discharge_stream):
+        """Traverse from ESP discharge to wellhead, returning a stream in SI units."""
+        result = self.traverse(discharge_stream, self._esp_depth(), 0, "up")
+        return self.corrected(discharge_stream, result)
+
+    def discharge_from_wellhead(self, wellhead_stream):
+        """Infer ESP discharge from measured wellhead conditions using downward traversal."""
+        result = self.traverse(wellhead_stream, 0, self._esp_depth(), "down")
+        return self.corrected(wellhead_stream, result)
+
+    def cost_size(self):
+        """Return the length [m] of the selected segment, the size the cost scales with."""
+        start, end = self._segment_interval()
+        return abs(start - end)
+
+    def _segment_interval(self):
+        """Return the measured-depth interval [m] the selected segment traverses upward."""
+        if self.segment == "below_esp":
+            return self.total_length, self._esp_depth()
+        if self.segment == "above_esp":
+            return self._esp_depth(), 0
+        return self.total_length, 0
+
+    def _esp_depth(self):
+        depth = self.esp_depth
+        if depth is None:
+            raise ValidationError(
+                f"{self.path}: esp_depth = None is not configured within the "
+                f"{self.total_length} m path",
+                code="invalid_design",
+            )
+        ops.check(
+            depth <= self.total_length,
+            ValidationError,
+            "{path}: esp_depth = {depth} m is not configured within the {total} m path",
+            code="invalid_design",
+            path=self.path,
+            depth=depth,
+            total=self.total_length,
+        )
+        return depth

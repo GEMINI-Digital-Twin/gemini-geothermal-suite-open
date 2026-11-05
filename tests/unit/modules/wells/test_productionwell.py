@@ -1,0 +1,145 @@
+"""Production well traversal and ESP splitting across a trajectory section."""
+
+import numpy as np
+import pytest
+
+from gemini.compiler.cache import GraphCache
+from gemini.compiler.run import run
+from gemini.modules.wells import ProductionWell
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE
+from gemini.streams.fluid import BRINE as DEFAULT_FLUID
+from gemini.units import Quantity
+from scripts.legacy import tables as mapping
+from tests.fixtures import OLD_PROJECT, si
+from tests.fixtures.designs import with_values
+from tests.fixtures.equivalence import assert_function_matches, assert_module_matches
+
+
+def test_split_esp_traversal():
+    """Split at 600 m inside a section; pumping raises the resulting wellhead pressure."""
+    c = si.set_params(
+        with_values(ProductionWell()),
+        "",
+        mapping.productionwell_params_from_gemini(
+            mapping.from_property(OLD_PROJECT / "production_well_c774.param"),
+            esp_property=mapping.from_property(OLD_PROJECT / "esp_1ee3.param"),
+        ),
+    )
+    stream = Stream(
+        fluid=BRINE, m_dot=Quantity(40, "kg/s"), T=Quantity(353.15, "K"), p=Quantity(25e6, "Pa")
+    )
+    intake = c.intake_conditions(stream)
+    out = c.wellhead_from_discharge(intake._with_si(p=intake.p + 3e6))
+    passive = c.wellhead_from_discharge(intake)
+    assert out.p - passive.p == pytest.approx(3e6)
+    assert out.m_dot == stream.m_dot
+    assert len(c.corrosion_profile(stream, {"co2_fraction": 0.1}, model="DLM")) == len(
+        c.pipe_path.sections
+    )
+    assert len(c.erosion_check(stream)["velocity"]) == len(c.pipe_path.sections)
+
+
+def _well(**changes):
+    return si.set_params(
+        with_values(ProductionWell()),
+        "",
+        mapping.productionwell_params_from_gemini(
+            mapping.from_property(OLD_PROJECT / "production_well_c774.param"),
+            esp_property=mapping.from_property(OLD_PROJECT / "esp_1ee3.param"),
+        )
+        | {"segment": "full"}
+        | changes,
+    )
+
+
+def _outlet(stream):
+    return dict(m_dot=stream.m_dot, T=stream.T, p=stream.p)
+
+
+def test_traversals_match_on_arrays():
+    """Intake, wellhead and discharge conditions on arrays equal one call per row."""
+    well = _well(correction_factors=(0.99, 1000.0))
+    rows = [(40.0, 353.15, 25e6), (-10.0, 340.0, 20e6), (0.0, 353.15, 25e6), (5.0, 300.0, 1e6)]
+
+    def stream(m_dot, T, p):
+        return Stream._si(m_dot=m_dot, T=T, p=p, fluid=DEFAULT_FLUID)
+
+    def intake(m_dot, T, p):
+        return _outlet(well.intake_conditions(stream(m_dot, T, p)))
+
+    def wellhead(m_dot, T, p):
+        return _outlet(well.wellhead_from_discharge(stream(m_dot, T, p)))
+
+    def discharge(m_dot, T, p):
+        return _outlet(well.discharge_from_wellhead(stream(m_dot, T, p)))
+
+    for function in (intake, wellhead, discharge):
+        assert_function_matches(function, rows)
+
+
+def test_production_well_traces_with_its_section_profiles():
+    """The per-section lists are vector outputs: the module traces and equals one call per row."""
+    rows = [
+        {
+            "bottom_in": Stream(
+                fluid=BRINE,
+                m_dot=Quantity(40.0, "kg/s"),
+                T=Quantity(353.15, "K"),
+                p=Quantity(25e6, "Pa"),
+            )
+        },
+        {
+            "bottom_in": Stream(
+                fluid=BRINE,
+                m_dot=Quantity(10.0, "kg/s"),
+                T=Quantity(340.0, "K"),
+                p=Quantity(20e6, "Pa"),
+            )
+        },
+        {
+            "bottom_in": Stream(
+                fluid=BRINE,
+                m_dot=Quantity(25.0, "kg/s"),
+                T=Quantity(300.0, "K"),
+                p=Quantity(5e6, "Pa"),
+            )
+        },
+    ]
+    assert_module_matches(_well(), rows)
+    traced = run(
+        _well(),
+        {
+            "bottom_in": Stream(
+                fluid=BRINE,
+                m_dot=Quantity(np.array([40.0, 10.0]), "kg/s"),
+                T=Quantity(np.array([353.15, 340.0]), "K"),
+                p=Quantity(np.array([25e6, 20e6]), "Pa"),
+            )
+        },
+    )
+    assert traced.breaks == [] and traced.outputs["section_pressure"].shape[0] == 2
+
+
+def test_another_esp_depth_and_path_length_reuse_the_graph():
+    """The ESP depth and the section lengths are graph inputs: a new value traces nothing."""
+    cache = GraphCache()
+    first, other = _well(), _well()
+    si.assign(other, "esp_depth", first.esp_depth - 50)
+    si.assign(other, "section_length", [length * 1.1 for length in first.section_length])
+    for well in (first, other):
+        cache.graph(well, {name: well.fluid for name in well._fed_inlets()})
+    assert cache.traces == 1
+    assert_module_matches(
+        other,
+        [
+            {
+                "bottom_in": Stream(
+                    fluid=BRINE,
+                    m_dot=Quantity(40.0, "kg/s"),
+                    T=Quantity(353.15, "K"),
+                    p=Quantity(25e6, "Pa"),
+                )
+            }
+        ],
+    )

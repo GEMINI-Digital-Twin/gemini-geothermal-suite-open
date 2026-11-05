@@ -1,0 +1,152 @@
+# Tests every push to dev with the whole fast suite, and publishes the version of pyproject.toml
+# the first time it reaches dev: the wheel and the source archive on a GitHub Release, and the
+# sandbox image on ghcr.io. The wheel and the image are built while the tests run; nothing is
+# published unless the tests pass. A push that keeps the version publishes nothing, because a
+# published version never changes. See VERSIONING.md. The Test workflow leaves pushes to dev to
+# this one, so a commit of dev is tested once.
+name: Release
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Read the version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      new: ${{ steps.read.outputs.new }}
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+    - id: read
+      name: Is this version already tagged?
+      run: |
+        version="$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        if git rev-parse --quiet --verify "refs/tags/v$version" >/dev/null; then
+          echo "new=false" >> "$GITHUB_OUTPUT"
+          echo "v$version is already published"
+        else
+          echo "new=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  test:
+    name: Python ${{ matrix.python }} (${{ matrix.resolution }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        # disabled during hackathon, re-enable after (Sahand 2026-11-03): 3.11, 3.13, 3.14 and lowest-direct.
+        # python: ["3.11", "3.12", "3.13", "3.14"]
+        python: ["3.12"]
+        resolution: [highest]
+        # include:
+        #   - python: "3.11"
+        #     resolution: lowest-direct
+        #   - python: "3.14"
+        #     resolution: lowest-direct
+    steps:
+    - uses: actions/checkout@v5
+    - uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+    - name: Install Python ${{ matrix.python }} and the ${{ matrix.resolution }} dependencies
+      run: |
+        uv venv --python "${{ matrix.python }}"
+        uv pip install --resolution "${{ matrix.resolution }}" -e . --group test
+        echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+    - name: Run the whole fast suite, in parallel
+      run: python -m pytest -n auto
+
+  build:
+    name: Build the wheel and the source archive
+    needs: version
+    if: needs.version.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v5
+    - uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+    - name: Build the wheel and the source archive
+      run: uv build
+    - name: Install the wheel alone and read its version
+      run: |
+        uv venv --python 3.12 /tmp/clean
+        uv pip install --python /tmp/clean/bin/python dist/*.whl
+        cd /tmp
+        test "$(/tmp/clean/bin/python -c 'import gemini; print(gemini.__version__)')" = "$VERSION"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+
+  image:
+    name: Build the sandbox image
+    needs: version
+    if: needs.version.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: docker/setup-buildx-action@v3
+    - name: Build the image into the layer cache, without pushing it
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: docker/sandbox.Dockerfile
+        push: false
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  publish:
+    name: Publish ${{ needs.version.outputs.version }}
+    needs: [version, test, build, image]
+    if: needs.version.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      IMAGE: ghcr.io/${{ github.repository_owner }}/gemini-sandbox
+      GH_TOKEN: ${{ github.token }}
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/download-artifact@v4
+      with:
+        name: dist
+        path: dist/
+    - uses: docker/setup-buildx-action@v3
+    - uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+    - name: Push the sandbox image, built from the layer cache
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: docker/sandbox.Dockerfile
+        push: true
+        tags: ${{ env.IMAGE }}:${{ env.VERSION }}
+        cache-from: type=gha
+    - name: Take the notes of this version from the changelog
+      run: |
+        awk -v head="## [$VERSION]" 'index($0, head) == 1 {found = 1; next} /^## \[/ {found = 0} found' \
+          docs/CHANGELOG.md > notes.md
+        test -s notes.md
+    - name: Create the tag and the release
+      run: gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" --title "$VERSION" --notes-file notes.md

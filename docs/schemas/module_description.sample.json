@@ -1,0 +1,585 @@
+{
+  "boundaries": {},
+  "category": "plants",
+  "children": {
+    "esp": "ESP",
+    "formation": "Formation",
+    "injector": "InjectionWell",
+    "reservoir": "ProductionReservoir",
+    "riser": "ProductionWell",
+    "sink": "InjectionReservoir",
+    "well": "ProductionWell"
+  },
+  "connections": [
+    {
+      "kind": "brine",
+      "source": "injector.bottom_out",
+      "target": "sink.sandface_in",
+      "type": null
+    },
+    {
+      "kind": "brine",
+      "source": "reservoir.sandface_out",
+      "target": "well.bottom_in",
+      "type": null
+    },
+    {
+      "kind": "brine",
+      "source": "well.wellhead_out",
+      "target": "esp.fluid_in",
+      "type": null
+    },
+    {
+      "kind": "brine",
+      "source": "esp.fluid_out",
+      "target": "riser.bottom_in",
+      "type": null
+    },
+    {
+      "kind": "heat",
+      "source": "well.loss_out",
+      "target": "formation.heat_in",
+      "type": null
+    },
+    {
+      "kind": "heat",
+      "source": "riser.loss_out",
+      "target": "formation.heat_in",
+      "type": null
+    },
+    {
+      "kind": "heat",
+      "source": "injector.loss_out",
+      "target": "formation.heat_in",
+      "type": null
+    }
+  ],
+  "controls": {},
+  "doc": "Production and injection limbs, with the children's values derived from a design.\n\n``depth`` is the true vertical depth of the reservoir midpoint, ``thickness`` its gross\nthickness and ``well_diameter`` the inner diameter of both vertical wells. ``set_params``\nderives, through ``gemini/plants/_utils/doublet_design.py``:\n\n- from ``depth``, ``gradient`` and ``surface_temperature``: a depth waits for the other two,\n  which the case holds (``site.ground``) and sets for a run on a copy; a run that\n  starts without them raises ``missing_value`` naming the path. They give the reservoir\n  temperature at the midpoint, the reservoir pressure of the case at that depth, the top\n  depth and the soil temperature of the wells, the geotherm at half the depth;\n- with ``permeability``, ``thickness`` (both of the case) and ``well_diameter``: the\n  productivity and injectivity indices of radial Darcy flow, with the fluid viscosity,\n  ``drainage_radius``, the wellbore radius and the ``skin`` of each reservoir, and the vertical\n  pipe paths of the wells, of the wall ``roughness`` the plant states;\n- with ``nominal_flow``, ``pump_efficiency`` and ``nominal_wellhead_pressure``: the pump setting\n  depth, the shallowest that keeps that pressure at the intake, and a one-stage ESP of constant\n  head that reaches the wellhead pressure at the nominal flow, with that hydraulic efficiency.\n\n``volume_imbalance`` is the produced less the injected liquid volume flow and\n``reinjection_ratio`` the injected over the produced one. Both sides are the\nliquid at the density of the brine, which is constant, so it reads the same at standard and at\nreservoir conditions: the gas a stream carries, or a degasser takes out, does not count.\n\n``gradient``, ``surface_temperature``, ``permeability`` and ``thickness`` are not design values:\na plant dict refuses them, and a run takes them from the case.\n\nA group of values that is not complete derives nothing, and the old way, setting every child\nvalue directly, works as it did. A child value in the same call wins over the derived one and\nstays explicit. Setting ``fluid`` gives it to every child and derives again.\n\nA doublet with a ``depth``, or with a value of ``DESIGNED``, is designed: ``check``,\n``gm.check`` and a run name the design value left out (``depth``, ``well_diameter``,\n``nominal_flow``, ...) instead of the children it would derive, so a child the case fills\nthrough the design is never listed as missing. A child stated by hand needs no design value.\n\nA building block, not schedulable on its own: a run sets ``reservoir.production_rate`` and\n``esp.frequency``; ``gm.schedule`` writes them for a doublet inside a plant with a demand.",
+  "inlets": {
+    "power_in": {
+      "fields": {
+        "power": {
+          "unit": "W"
+        }
+      },
+      "kind": "electricity",
+      "port": {
+        "carrier": "power",
+        "direction": "in",
+        "energy": "electricity",
+        "flow": "drawn",
+        "generic": null,
+        "many": false,
+        "offered": false,
+        "required": true
+      }
+    },
+    "return_in": {
+      "fields": {
+        "T": {
+          "unit": "K"
+        },
+        "m_dot": {
+          "unit": "kg/s"
+        },
+        "p": {
+          "unit": "Pa"
+        }
+      },
+      "kind": "brine",
+      "port": {
+        "carrier": "stream",
+        "direction": "in",
+        "flow": "imposed",
+        "fluid": "brine",
+        "generic": null,
+        "level": "geothermal",
+        "many": false,
+        "offered": false,
+        "phase": "liquid",
+        "pressure": null,
+        "required": true,
+        "temperature": null
+      }
+    }
+  },
+  "measured": {
+    "brine_cooling": {
+      "default": null,
+      "description": "riser.wellhead_out.T minus injector.wellhead_in.T",
+      "enum": null,
+      "maximum": null,
+      "minimum": null,
+      "quantity": "temperature_difference",
+      "section": "output",
+      "type": "number",
+      "unit": "K"
+    },
+    "reinjection_ratio": {
+      "default": null,
+      "description": "sink.liquid_flow over reservoir.liquid_flow",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "ratio",
+      "section": "output",
+      "type": "number",
+      "unit": "-"
+    },
+    "volume_imbalance": {
+      "default": null,
+      "description": "reservoir.liquid_flow minus sink.liquid_flow",
+      "enum": null,
+      "maximum": null,
+      "minimum": null,
+      "quantity": "volume_flow",
+      "section": "output",
+      "type": "number",
+      "unit": "m3/s"
+    }
+  },
+  "name": "doublet",
+  "outlets": {
+    "supply_out": {
+      "fields": {
+        "T": {
+          "unit": "K"
+        },
+        "m_dot": {
+          "unit": "kg/s"
+        },
+        "p": {
+          "unit": "Pa"
+        }
+      },
+      "kind": "brine",
+      "port": {
+        "carrier": "stream",
+        "direction": "out",
+        "flow": "imposed",
+        "fluid": "brine",
+        "generic": null,
+        "level": "geothermal",
+        "many": false,
+        "offered": false,
+        "phase": "liquid",
+        "pressure": null,
+        "required": true,
+        "temperature": null
+      }
+    }
+  },
+  "outputs": {
+    "brine_cooling": {
+      "quantity": "temperature_difference",
+      "soft_sensor": false,
+      "unit": "K"
+    },
+    "reinjection_ratio": {
+      "quantity": "ratio",
+      "soft_sensor": false,
+      "unit": "-"
+    },
+    "volume_imbalance": {
+      "quantity": "volume_flow",
+      "soft_sensor": false,
+      "unit": "m3/s"
+    }
+  },
+  "parameters": {
+    "backup": {
+      "default": null,
+      "description": "Redundancy sizing keeps: the boilers cover the peak or nothing",
+      "enum": [
+        "peak",
+        "none"
+      ],
+      "maximum": null,
+      "minimum": null,
+      "quantity": null,
+      "section": "parameter",
+      "type": "string",
+      "unit": null
+    },
+    "depth": {
+      "default": null,
+      "description": "True vertical depth of the reservoir midpoint; empty leaves the reservoirs to be set one by one",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "length",
+      "section": "parameter",
+      "type": "number",
+      "unit": "m"
+    },
+    "dispatch": {
+      "default": null,
+      "description": "Rule that orders the sources of a schedule; empty when not stated",
+      "enum": [
+        "least_cost"
+      ],
+      "maximum": null,
+      "minimum": null,
+      "quantity": null,
+      "section": "parameter",
+      "type": "string",
+      "unit": null
+    },
+    "drainage_radius": {
+      "default": null,
+      "description": "Radius of the drainage area around each well",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "length",
+      "section": "parameter",
+      "type": "number",
+      "unit": "m"
+    },
+    "gradient": {
+      "default": null,
+      "description": "Increase of undisturbed rock temperature with depth; empty takes it from the case",
+      "enum": null,
+      "maximum": null,
+      "minimum": null,
+      "quantity": "temperature_gradient",
+      "section": "parameter",
+      "type": "number",
+      "unit": "K/m"
+    },
+    "nominal_flow": {
+      "default": null,
+      "description": "Production flow the doublet and its pump are designed for",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "volume_flow",
+      "section": "parameter",
+      "type": "number",
+      "unit": "m3/s"
+    },
+    "nominal_wellhead_pressure": {
+      "default": null,
+      "description": "Wellhead pressure the doublet is designed for",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "pressure",
+      "section": "parameter",
+      "type": "number",
+      "unit": "Pa"
+    },
+    "outages": {
+      "default": null,
+      "description": "Rule that picks the steps of the outage; empty when not stated",
+      "enum": [
+        "lowest_demand"
+      ],
+      "maximum": null,
+      "minimum": null,
+      "quantity": null,
+      "section": "parameter",
+      "type": "string",
+      "unit": null
+    },
+    "permeability": {
+      "default": null,
+      "description": "Permeability of the reservoir rock; empty takes it from the case",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "permeability",
+      "section": "parameter",
+      "type": "number",
+      "unit": "m2"
+    },
+    "pump_efficiency": {
+      "default": null,
+      "description": "Overall efficiency of the production pump",
+      "enum": null,
+      "maximum": 1,
+      "minimum": 0,
+      "quantity": "efficiency",
+      "section": "parameter",
+      "type": "number",
+      "unit": "-"
+    },
+    "roughness": {
+      "default": null,
+      "description": "Absolute roughness of the inner wall of both vertical wells",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "length",
+      "section": "parameter",
+      "type": "number",
+      "unit": "m"
+    },
+    "surface_temperature": {
+      "default": null,
+      "description": "Ground temperature at the surface; empty takes it from the case",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "temperature",
+      "section": "parameter",
+      "type": "number",
+      "unit": "K"
+    },
+    "thickness": {
+      "default": null,
+      "description": "Gross thickness of the reservoir; empty takes it from the case",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "length",
+      "section": "parameter",
+      "type": "number",
+      "unit": "m"
+    },
+    "well_diameter": {
+      "default": null,
+      "description": "Inner diameter of both vertical wells",
+      "enum": null,
+      "maximum": null,
+      "minimum": 0,
+      "quantity": "length",
+      "section": "parameter",
+      "type": "number",
+      "unit": "m"
+    }
+  },
+  "state": {},
+  "summary": "Production and injection limbs, with the children's values derived from a design.",
+  "type": "Doublet",
+  "values": {
+    "boundaries": {},
+    "controls": {},
+    "parameters": {
+      "backup": null,
+      "depth": null,
+      "dispatch": null,
+      "drainage_radius": 1000.0,
+      "esp.best_efficiency_flow": 0.03610555555555555,
+      "esp.correction_factors": [
+        1.0,
+        0.0
+      ],
+      "esp.drift_threshold": 0.1,
+      "esp.head_coefficients": [
+        125.518426,
+        -0.0020852856,
+        2.28955651e-07,
+        -1.45640214e-11,
+        2.37859645e-16,
+        -1.18258356e-21
+      ],
+      "esp.maximum_flow": 0.049444444444444444,
+      "esp.maximum_gas_fraction": null,
+      "esp.minimum_flow": 0.02277777777777778,
+      "esp.minimum_intake_pressure": null,
+      "esp.motor_efficiency": 1.0,
+      "esp.power_coefficients": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "esp.pump_type": "DEFAULT-PUMP",
+      "esp.setting_depth": 600.0,
+      "esp.stage_count": 15,
+      "esp.tubing": 0.1778,
+      "formation.geothermal_gradient": null,
+      "formation.surface_temperature": null,
+      "gradient": null,
+      "injector.correction_factors": [
+        1.0,
+        0.0
+      ],
+      "injector.friction_correlation": "darcy_weisbach",
+      "injector.heat_transfer_coefficient": 10.0,
+      "injector.section_diameter": [
+        0.1778,
+        0.1778,
+        0.1778
+      ],
+      "injector.section_inclination": [
+        1.5707963267948966,
+        1.5707963267948966,
+        1.5707963267948966
+      ],
+      "injector.section_length": [
+        500.0,
+        500.0,
+        1000.0
+      ],
+      "injector.section_roughness": [
+        2e-05,
+        2e-05,
+        2e-05
+      ],
+      "injector.soil_temperature": 288.15,
+      "injector.two_phase_friction_correlation": "BeggsBrill",
+      "nominal_flow": null,
+      "nominal_wellhead_pressure": null,
+      "outages": null,
+      "permeability": null,
+      "pump_efficiency": null,
+      "reservoir.aquifer_thickness": 45.0,
+      "reservoir.decline_threshold": 0.15,
+      "reservoir.drainage_radius": 1000.0,
+      "reservoir.injectivity_index": null,
+      "reservoir.permeability": 9.869233e-12,
+      "reservoir.pressure": 22000000.0,
+      "reservoir.productivity_index": 5.833333333333333e-08,
+      "reservoir.role": "production",
+      "reservoir.skin": 0.0,
+      "reservoir.temperature": 353.15,
+      "reservoir.top_depth": 1800.0,
+      "reservoir.wellbore_radius": 0.0765,
+      "riser.correction_factors": [
+        1.0,
+        0.0
+      ],
+      "riser.esp_depth": 600.0,
+      "riser.friction_correlation": "darcy_weisbach",
+      "riser.heat_transfer_coefficient": 10.0,
+      "riser.section_diameter": [
+        0.1778,
+        0.1778,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.1778,
+        0.1778
+      ],
+      "riser.section_inclination": [
+        1.5707963267948966,
+        1.5707963267948966,
+        1.5707963267948966,
+        1.312662130424935,
+        0.9238027730805987,
+        1.5707963267948966,
+        0.9272934315845873,
+        0.814370628980554,
+        0.9272934315845873,
+        0.5235987755982988,
+        0.5235987755982988
+      ],
+      "riser.section_length": [
+        400.0,
+        150.0,
+        150.0,
+        362.0,
+        188.0,
+        100.0,
+        250.0,
+        550.0,
+        250.0,
+        100.0,
+        300.0
+      ],
+      "riser.section_roughness": [
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05
+      ],
+      "riser.segment": "above_esp",
+      "riser.soil_temperature": 288.15,
+      "riser.two_phase_friction_correlation": "BeggsBrill",
+      "roughness": 4.5e-05,
+      "sink.aquifer_thickness": 45.0,
+      "sink.decline_threshold": 0.15,
+      "sink.drainage_radius": 0.0,
+      "sink.injectivity_index": 5.5555555555555555e-08,
+      "sink.permeability": 9.869233e-12,
+      "sink.pressure": 22000000.0,
+      "sink.productivity_index": null,
+      "sink.role": "injection",
+      "sink.skin": 0.0,
+      "sink.temperature": 353.15,
+      "sink.top_depth": 0.0,
+      "sink.wellbore_radius": 0.0765,
+      "surface_temperature": null,
+      "thickness": null,
+      "well.correction_factors": [
+        1.0,
+        0.0
+      ],
+      "well.esp_depth": 600.0,
+      "well.friction_correlation": "darcy_weisbach",
+      "well.heat_transfer_coefficient": 10.0,
+      "well.section_diameter": [
+        0.1778,
+        0.1778,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.273,
+        0.1778,
+        0.1778
+      ],
+      "well.section_inclination": [
+        1.5707963267948966,
+        1.5707963267948966,
+        1.5707963267948966,
+        1.312662130424935,
+        0.9238027730805987,
+        1.5707963267948966,
+        0.9272934315845873,
+        0.814370628980554,
+        0.9272934315845873,
+        0.5235987755982988,
+        0.5235987755982988
+      ],
+      "well.section_length": [
+        400.0,
+        150.0,
+        150.0,
+        362.0,
+        188.0,
+        100.0,
+        250.0,
+        550.0,
+        250.0,
+        100.0,
+        300.0
+      ],
+      "well.section_roughness": [
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05,
+        2e-05
+      ],
+      "well.segment": "below_esp",
+      "well.soil_temperature": 288.15,
+      "well.two_phase_friction_correlation": "BeggsBrill",
+      "well_diameter": null
+    }
+  }
+}

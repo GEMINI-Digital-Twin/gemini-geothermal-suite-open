@@ -1,0 +1,67 @@
+"""One trial of a search: the metrics it may read and the run it makes."""
+
+import gemini as gm
+from gemini.study._utils import trial
+from gemini.study._utils.shared import Shared
+from gemini.units import Quantity
+from tests.fixtures.cases import make_case
+from tests.fixtures.errors import raises
+from tests.fixtures.result_tables import make_results
+from tests.unit.evaluate.test_summary import overflowing
+from tests.unit.study.conftest import shallow_case, shallow_plant, simulation
+
+PRICE = "case.economics.energy.electricity"
+
+
+def test_a_metric_is_a_kpi_or_an_economic_figure():
+    """The names a search may read; an unknown one is refused with the close names."""
+    assert trial.checked_metric("peak_heat") == "peak_heat"
+    assert trial.checked_metric("lcoh") == "lcoh"
+    with raises(gm.errors.ValidationError, "unknown_name", match="lcoh"):
+        trial.checked_metric("lcox")
+
+
+def test_a_trial_sets_the_values_on_copies_and_runs_them(monkeypatch):
+    """A parameter goes to the plant and a number of the case to the case; the originals stay."""
+    seen = []
+
+    def fake(plant, case=None, plan=None):
+        seen.append((plant, case))
+        return make_results({"users": {"unmet_demand": [0.0]}})
+
+    monkeypatch.setattr(trial, "simulation_steps", simulation(fake))
+    monkeypatch.setattr(trial, "metric", lambda plant, case, results, name: name)
+    plant, case = shallow_plant(), shallow_case()
+    values = {"peak_boiler.capacity": 1e6, PRICE: 2e-8}
+    [(metrics, reason)] = trial.run_trials(
+        Shared(plant), case, None, [values], ["peak_heat"], False
+    )
+    assert reason is None and metrics == {"peak_heat": "peak_heat"}
+    assert seen[0][0].get_submodule("peak_boiler").capacity == 1e6
+    assert seen[0][1].economics.energy.electricity == 2e-8
+    assert plant.get_submodule("peak_boiler").capacity == 3.5e6
+    assert case.economics.energy.electricity != 2e-8
+
+
+def test_a_trial_that_fails_gives_its_reason(monkeypatch):
+    """A failure of the run is a reason, not an error."""
+
+    def fake(plant, case=None, plan=None):
+        raise gm.errors.ValidationError("no run", code="invalid_value")
+
+    monkeypatch.setattr(trial, "simulation_steps", simulation(fake))
+    shared = Shared(shallow_plant())
+    [(metrics, reason)] = trial.run_trials(shared, shallow_case(), None, [{}], ["peak_heat"], False)
+    assert metrics == {} and reason == "no run"
+
+
+def test_a_breach_of_an_operating_limit_is_an_infeasible_trial_with_a_bound_reason():
+    """The search sees what the verdict sees: the boiler fuel past its limit, in relative excess."""
+    plant, run = overflowing()
+    plant.boiler.capacity = Quantity(1e6, "W")
+    plant.boiler.operating_limits = (("fuel", "max", "capacity"),)
+    reason, violation = trial.judged(plant, make_case(), run)
+    assert reason["kind"] == "bound" and reason["name"] == "fuel"
+    assert reason["violation"] == violation and 0.0 < violation < trial.LARGEST_VIOLATION
+    plant.boiler.capacity = Quantity(20e6, "W")
+    assert trial.judged(plant, make_case(), run) == (None, 0.0)

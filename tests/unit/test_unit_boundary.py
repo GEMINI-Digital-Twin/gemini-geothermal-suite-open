@@ -1,0 +1,254 @@
+"""One unit format: a value with a dimension is a ``Quantity``; text and bare numbers fail."""
+
+import ast
+import re
+
+import pytest
+
+import gemini as gm
+from gemini import units
+from gemini.streams.fluid import BRINE
+from gemini.units import Quantity
+from tests.fixtures import ROOT
+from tests.fixtures.errors import raises
+
+TEXT = re.compile(r"\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\s+(\S+)\s*")
+QUOTED = re.compile(r"[\"'][+-]?[.\d][^\"'\n]* \S+[\"']")
+
+
+def _documented(tree):
+    """Return the docstring nodes of a module."""
+    scopes = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+    return {
+        node.body[0].value
+        for node in ast.walk(tree)
+        if isinstance(node, scopes) and ast.get_docstring(node, clean=False) is not None
+    }
+
+
+def _unit_texts(path):
+    """Return the strings of a source file that are a number followed by a unit."""
+    source = path.read_text()
+    if not QUOTED.search(source):
+        return []
+    tree = ast.parse(source)
+    docstrings = _documented(tree)
+    strings = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    ]
+    matches = [(node, TEXT.fullmatch(node.value)) for node in strings if node not in docstrings]
+    return [
+        f"{path.relative_to(ROOT)}:{node.lineno}: {node.value!r}"
+        for node, match in matches
+        if match and units.si_unit(match.group(1)) is not None
+    ]
+
+
+def test_no_package_code_reads_or_holds_unit_text():
+    """No string of the package is a number followed by a unit: nothing parses unit text."""
+    found = [text for path in sorted((ROOT / "gemini").rglob("*.py")) for text in _unit_texts(path)]
+    assert found == []
+
+
+def _plant_file(params):
+    return lambda: gm.Plant.from_dict(
+        {"format": 1, "kind": "plant", "name": "test", "type": "HeatingPlant", "params": params}
+    )
+
+
+def _plant_dict(**params):
+    return _plant_file(params)
+
+
+def _plant_input(value):
+    return _plant_file({"peak_boiler": {"temperature_setpoint": value}})
+
+
+def _economics(**sections):
+    return gm.case.Economics.from_dict(
+        {"format": 1, "kind": "economics", "name": "test"} | sections
+    )
+
+
+def _requirement(**bounds):
+    return gm.case.Requirement.from_dict(
+        {"name": "flow", "on": "doublet", "quantity": "production_flow", "over": "each"} | bounds
+    )
+
+
+RAW_NUMBERS = {
+    "price": lambda: _economics(energy={"electricity": {"value": 2e-8}}),
+    "co2 price": lambda: _economics(carbon={"price": {"value": 80.0}}),
+    "cost factor": lambda: _economics(capex={"boiler": {"value": 0.5}}),
+    "emission factor": lambda: gm.case.Utilities.from_dict(
+        {"electricity": {"co2_intensity": {"value": 1e-7}}}
+    ),
+    "constraint bound": lambda: _requirement(max=3.0),
+    "plant parameter": _plant_dict(depth=2500.0),
+    "plant input": _plant_input(373.15),
+}
+"""Public inputs with a dimension, each called with a bare number."""
+FILE_INPUTS = (
+    "price",
+    "co2 price",
+    "cost factor",
+    "emission factor",
+    "constraint bound",
+    "plant parameter",
+    "plant input",
+)
+"""The inputs of the files of a case: a value with a dimension names its unit, so a bare number is
+``invalid_unit`` and a text is a value that is no number."""
+
+TEXTS = {
+    "price": lambda: _economics(energy={"electricity": {"value": "100 EUR/MWh"}}),
+    "cost factor": lambda: _economics(capex={"boiler": {"value": "0.5 EUR/W"}}),
+    "constraint bound": lambda: _requirement(max="3 m3/s"),
+    "set_params": lambda: gm.modules.Pipe().set_params("", {"length": "10 m"}),
+    "stream": lambda: gm.Stream(
+        fluid=BRINE, flow="150 m3/h", T=Quantity(300, "K"), p=Quantity(1e5, "Pa")
+    ),
+    "fluid": lambda: gm.Fluid(density="1000 kg/m3"),
+    "call": lambda: gm.call("Pipe", {"length": "10 m"}, {}, {}, "si"),
+}
+"""Public inputs called with unit text."""
+
+
+@pytest.mark.parametrize("name", RAW_NUMBERS)
+def test_a_bare_number_with_a_dimension_is_refused(name):
+    """A price, a cost, a site value or a bound without its unit is refused."""
+    code = "invalid_unit" if name in FILE_INPUTS else "invalid_value"
+    with raises(gm.errors.ValidationError, code):
+        RAW_NUMBERS[name]()
+
+
+@pytest.mark.parametrize("name", TEXTS)
+def test_unit_text_is_refused_everywhere(name):
+    """Text such as ``"2500 m"`` is no value: the message shows the form to give."""
+    code = "invalid_unit" if name in ("price", "cost factor") else "invalid_value"
+    with raises(gm.errors.ValidationError, code, match="expected a number|'value'"):
+        TEXTS[name]()
+
+
+def test_a_quantity_of_another_dimension_is_refused_naming_the_field():
+    """A length where a flow is wanted lists the units of a flow."""
+    with raises(gm.errors.ValidationError, "invalid_unit", match="m3/h"):
+        gm.modules.Pipe().set_params("", {"length": Quantity(5, "m3/h")})
+    with raises(gm.errors.ValidationError, "invalid_unit", match="EUR/W"):
+        _economics(capex={"boiler": Quantity(5, "EUR")})
+
+
+def test_a_dimensionless_value_stays_a_number():
+    """An efficiency, a fraction or a rate needs no unit."""
+    values = _economics(discount_rate={"value": 0.05})
+    assert values.discount_rate == 0.05
+    bound = gm.case.Requirement.from_dict(
+        {"name": "pump", "on": "doublet", "quantity": "pump_efficiency", "min": 0.6}
+    )
+    assert bound.min == 0.6
+
+
+def test_set_params_converts_a_quantity_and_refuses_a_bare_number():
+    """A length in km is stored in m; a bare length, zero too, names path, quantity and units."""
+    pipe = gm.modules.Pipe().set_params("", {"length": Quantity(1.5, "km")})
+    assert pipe.length == 1500.0
+    for bare in (1500.0, 0):
+        with raises(gm.errors.ValidationError, "invalid_value", match="length") as caught:
+            gm.modules.Pipe().set_params("", {"length": bare})
+        assert caught.value.path == "length" and "km" in str(caught.value)
+    assert gm.modules.Pipe().set_params("", {"length": {"value": 2, "unit": "km"}}).length == 2000.0
+
+
+def test_set_params_takes_a_bare_number_for_a_value_without_a_dimension():
+    """An efficiency is a plain number."""
+    pump = gm.modules.CirculationPump().set_params("", {"efficiency": 0.6})
+    assert pump.efficiency == 0.6
+
+
+def test_stream_converts_a_quantity_and_refuses_a_bare_number():
+    """Each of m_dot, flow, T and p takes a quantity; a bare one, zero too, is refused."""
+    stream = gm.Stream(
+        m_dot=Quantity(36, "t/h"), T=Quantity(25, "degC"), p=Quantity(2, "bar"), fluid=gm.Fluid()
+    )
+    assert (stream.m_dot, stream.T, stream.p) == (10.0, 298.15, 2e5)
+    good = {
+        "fluid": BRINE,
+        "m_dot": Quantity(1, "kg/s"),
+        "T": Quantity(300, "K"),
+        "p": Quantity(1e5, "Pa"),
+    }
+    for name, quantity in (("m_dot", "mass flow"), ("T", "temperature"), ("p", "pressure")):
+        with raises(gm.errors.ValidationError, "invalid_value", match=quantity) as caught:
+            gm.Stream(**(good | {name: 0}))
+        assert caught.value.path == f"Stream.{name}" and "accepted units" in str(caught.value)
+    with raises(gm.errors.ValidationError, "invalid_value", match="volume flow"):
+        gm.Stream(fluid=BRINE, flow=0.1, T=good["T"], p=good["p"])
+
+
+def test_the_private_stream_constructor_takes_si_numbers():
+    """``Stream._si`` is what ``gemini`` uses; it checks the physical limits, not units."""
+    stream = gm.Stream._si(m_dot=1.0, T=300.0, p=1e5, fluid=gm.Fluid())
+    assert (stream.m_dot, stream.T, stream.p) == (1.0, 300.0, 1e5)
+    with raises(gm.errors.PhysicsError, "out_of_range"):
+        gm.Stream._si(m_dot=1.0, T=-1.0, p=1e5, fluid=gm.Fluid())
+
+
+def test_fluid_converts_a_quantity_and_refuses_a_bare_number():
+    """The four properties take a quantity; the fractions stay plain numbers."""
+    fluid = gm.Fluid(
+        density=Quantity(1030, "kg/m3"),
+        viscosity=Quantity(0.4, "mPa.s"),
+        salinity=0.1,
+    )
+    assert (fluid.density, fluid.viscosity, fluid.salinity) == (1030.0, 0.0004, 0.1)
+    for name in ("density", "viscosity", "specific_heat", "thermal_conductivity"):
+        with raises(gm.errors.ValidationError, "invalid_value", match=name) as caught:
+            gm.Fluid(**{name: 1.0})
+        assert caught.value.path == f"Fluid.{name}" and "accepted units" in str(caught.value)
+    assert gm.Fluid._si(density=1030.0).density == 1030.0
+    assert gm.Fluid.model_validate({"density": 1030.0}).density == 1030.0
+
+
+def test_call_converts_quantities_and_refuses_bare_numbers_with_a_dimension():
+    """Parameters, controls and inlet fields are strict; a dimensionless parameter is a number."""
+    inlet = {
+        "fluid": {"kind": "brine"},
+        "m_dot": Quantity(1, "kg/s"),
+        "T": Quantity(20, "degC"),
+        "p": Quantity(10, "bar"),
+    }
+    params = {
+        "length": Quantity(1, "km"),
+        "inner_diameter": Quantity(100, "mm"),
+        "roughness": Quantity(0.045, "mm"),
+        "elevation_change": Quantity(0, "m"),
+        "heat_transfer_coefficient": Quantity(0, "W/m2/K"),
+    }
+    result = gm.call("Pipe", params, {"fluid_in": inlet, "air_in": inlet}, {}, "si")
+    assert result["errors"] == []
+    for parameters, inlets in (
+        (params | {"length": 1000.0}, {"fluid_in": inlet, "air_in": inlet}),
+        (params, {"fluid_in": inlet | {"T": 293.15}, "air_in": inlet}),
+    ):
+        recorded = gm.call("Pipe", parameters, inlets, {}, "si", on_error="record")["errors"]
+        assert [item["code"] for item in recorded] == ["invalid_value"]
+
+
+def test_validate_params_and_add_and_set_inputs_follow_set_params():
+    """The other public doors take a quantity and report a bare number with a dimension."""
+    problems = gm.modules.Pipe().validate_params({"length": 5.0}, on_error="record")
+    assert [item["code"] for item in problems] == ["invalid_value"]
+    assert gm.modules.Pipe().validate_params({"length": Quantity(5, "m")}) == []
+    plant = gm.Plant("One")
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        plant.add("Pipe", name="pipe", params={"length": 5.0})
+    pipe = plant.add("Pipe", name="pipe", params={"length": Quantity(5, "km")})
+    assert pipe.length == 5000.0
+    boiler = gm.Plant("Heat")
+    boiler.add("Boiler", name="boiler", params={"capacity": Quantity(1, "MW")})
+    with raises(gm.errors.ValidationError, "invalid_value"):
+        boiler.set_inputs({"boiler.temperature_setpoint": 373.15})
+    boiler.set_inputs({"boiler.temperature_setpoint": Quantity(100, "degC")})
+    assert boiler.input_value("boiler.temperature_setpoint") == 373.15

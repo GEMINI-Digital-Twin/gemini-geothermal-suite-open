@@ -1,0 +1,526 @@
+# Implementation conventions
+
+Write for Python 3.11, the oldest supported version (3.11 to 3.14), and use Black, isort,
+100-character lines and Flake8 with docstrings. Preserve captured numbers. Use SI internally: K, Pa,
+kg/s, m, W, J and s. Record an intentional physical or numerical decision as a `NOTE(refactor):`
+sentence in the docstring of the function, class or test that makes it, with its explanation and
+regression evidence, and list lasting decisions in [refactor-notes.md](refactor-notes.md).
+
+## General package
+
+gemini is a general geothermal heating and cooling package: a sample case is only a test, never
+the basis of an implementation, a default, a name or a structure, and nothing in `gemini/` knows one.
+gemini's shapes are the best general form and inputs adapt to them, in the sample folder or a short
+loader in `examples/`, never the other way round.
+
+## Dependencies
+
+A package may import only the packages to its left:
+
+`gemini._utils`, `gemini.errors`, `gemini.units` ← `gemini.ops.kernels` ← `gemini.ops`
+← `gemini.physics` ← `gemini.streams` ← `gemini.runtime` ← `gemini.modules` ← `gemini.plants`
+← `gemini.case` ← `gemini.engine` ← `gemini.compiler`, `gemini.study`,
+`gemini.evaluate`, `gemini.analysis` ← `gemini/__init__`.
+
+The complete table, with what each folder takes, gives and may call, is in
+[structure.md](structure.md); `tests/unit/test_package_boundaries.py` checks it from the real
+imports; the list of known violations is empty and stays so.
+
+The **run folders** are `modules`, `plants`, `case`, `physics`, `ops`, `runtime`, `engine`,
+`streams`, `units`, `errors` and `_utils`. They import none of `compiler`, `study`, `evaluate` and
+`analysis`, not even inside a function, and `modules` imports neither `plants` nor `engine`.
+
+`engine` owns `Results` and imports `case` for the `Dataset`; nothing imports `engine` from below, so
+`gemini/engine/__init__.py` needs no import order. `gemini/compiler/__init__.py` registers its
+executor when it is imported, and `gemini/__init__.py` imports it; the run works without it, see
+[engine.md](engine.md#folders-and-imports). `gemini.case` sits above `plants`, because it finds the
+units of a role by module class, and below `engine`: it imports none of `engine`, `evaluate`,
+`study`, `compiler` and `analysis` (`tests/unit/test_code_quality.py` enforces it).
+
+`gemini/runtime.py` sits in a package lower in the order than its own place. It stays safe because
+neither `gemini/ops/kernels/__init__.py` nor `gemini/_utils/__init__.py` imports it, so importing
+the lower package never loads it.
+
+`gemini.ops.kernels` and `gemini.ops` sit below the physics because physics is written with the
+ops; `gemini.compiler` sits above `gemini.modules` because its tracer runs module calls (see
+[native-engine.md](native-engine.md)).
+
+`gemini._utils` (its topic files) and `gemini.errors` are leaf packages:
+they import only the standard library, installed dependencies and themselves, never another part
+of `gemini` (`tests/unit/test_package_boundaries.py` enforces this). One topic file differs:
+`registry.py` imports `gemini.errors`, the other leaf, because it refuses a name.
+`tests/unit/test_code_quality.py` enforces the run-folder rule and the rule on `modules`
+([testing.md](testing.md#structure-and-quality-tests)).
+
+No package interprets old project names, tags, tables or node mappings; what the tests need of
+the old format is in `scripts/legacy/` ([legacy.md](legacy.md)).
+Equipment performs no file or database access. Calibration predicts only through public replay.
+A leaf module computes and a plant connects; no class does both. A leaf `Module` has physics calls
+and `forward`. Every composite is a `Plant`, a class that declares children, ports and connections
+and never writes `forward`, or `gm.Plant(name)` with `add` and `connect`. gemini keeps no JSON file:
+the plant dict (`to_dict`, `gm.Plant.from_dict`) is the interface agents use.
+
+## Public names and read/write naming
+
+A folder exports its public names flat from its `__init__`: `gm.<folder>.<Name>`. Inner files are
+private and no caller imports from them. There is no `core`, `base`, `registry`, `testing`,
+`backends`, `checks`, `economics`, `profiles`, `utils` or `graph` folder at the top of `gemini/`.
+
+**Read/write naming.** Every reader is `from_<format>` and every writer `to_<format>`: `from_csv`,
+`from_json`, `from_dict`, `from_values`, `from_bytes`, ... and `to_csv`, `to_json`, `to_dict`,
+`to_bytes`, .... A reader is a classmethod on the class it returns (`gm.Case.from_json(path)`); a
+writer is a method of the object (`case.to_json(path)`). Only a reader that returns no gemini
+class, such as a demand frame, is a plain function in its folder (`gm.case.from_csv`). No `read_*`,
+`write_*`, `load_*`, `save_*`, `parse_*` or `dump_*` name exists, public or private;
+`tests/unit/test_code_quality.py` rejects those prefixes.
+
+## Units
+
+**One unit format.** A value with a unit is a `gm.units.Quantity(value, unit)` whose unit is a member
+of the `gm.units.Unit` enum (generated from the unit table, so `Unit.M3_PER_H == "m3/h"`), or its
+dict `{"value": 150, "unit": "m3/h"}`. Text such as `"150 m3/h"` is never accepted: it raises
+`invalid_value` showing the dict form, and a unit of another dimension raises `invalid_unit`
+listing the units of the field. No code parses unit text (`units.parse` is gone;
+`tests/unit/test_unit_boundary.py` finds any string of the package that is a number followed by a
+unit). A dimensionless value (an efficiency, a share, a count) is a number. Inside the code a
+value is SI.
+
+**The public door converts, SI inside.** A bare number with a dimension is refused at every public
+door (`Module.set_params`, `Plant.add`, `validate_params`, `Plant.set_inputs`, `Stream(...)`, `Fluid(...)`,
+`Module.<name> = ...` outside a call, `Stream.with_`, `gm.call`, `gm.modules.check`, the plant dict, the case, `gm.study`): `ValidationError` `invalid_value`
+with the path, the quantity and the accepted units, zero included (`gemini/units/bare.py` is the one
+rule). `set_params` converts the quantities and calls the private `Module._set_si_params(path,
+params, valid_from=None)`; `Plant.set_inputs` calls `Plant._set_si_inputs`; `Stream._si(m_dot=, T=, p=,
+fluid=)` and `Fluid._si(...)` build from SI. `gemini` itself uses only the private path: the engine, the
+case apply, `gm.study`, the readers of checkpoints. A plant class that derives values for its children
+overrides `_set_si_params`, never `set_params`. Do not add a second public setter.
+
+Attribute assignment on a module and `Stream.with_` follow the same rule: `esp.frequency = 50` and
+`stream.with_(T=300.0)` raise `invalid_value`; a quantity or its dict is converted. Inside a running
+call (`forward`, hooks) an assigned control or boundary is SI by contract, and `gemini` assigns SI
+outside a call with `Module._assign_si(name, value)` and copies streams with `Stream._with_si(...)`,
+the hot path of the solvers, so a unit lookup is never added to a run. A module author writes
+`inlet._with_si(T=...)` in `forward`. Assignments in a constructor of a declared value go through
+`set_params` or a quantity. The stored forms of a plant dict (`fluids`, `param_history`) are quantities;
+`tree_dict` checkpoints and `state_dict` are SI by design. Tests wrap SI numbers through
+`tests/fixtures/si.py` (`si.set_params`, `si.stream`, `si.fluid`, ...) or use the private path to test
+private behaviour.
+
+## No defaults
+
+Nothing that a user must decide has a default in gemini: not a price, a temperature, a limit, a
+cost factor, an efficiency, a depth. A field is required or absent (`None`), and a call that needs
+an absent value raises `ValidationError` (`missing_value`, or `missing_assumption` below
+`economics` of the case) naming its path in the case or the plant. `gm.case` has no default at
+all (a requirement states `over`, and an absent `when` means every step);
+`test_the_case_has_no_default_but_absent` in `tests/unit/test_code_quality.py` checks it. The rule holds in `gemini/modules` and `gemini/plants` too, and is tested:
+`test_no_declaration_has_a_default_but_the_listed_constants` allows a default of a `Parameter`,
+`Control`, `Boundary` or `State` only for the entries of `DECLARED_DEFAULTS` in
+`tests/unit/test_code_quality.py`, each with its reason, in three classes: a physical constant or
+standard reference whose source is in the docstring of its constant (the latent heat of ice, the
+normal pressure), the reference zero of an accumulator state (the heat charged so far), and the
+identity of a subclass (the `role` of a reservoir). The Carnot fraction of a heat pump is a design
+value of the plant, not a default: the cited constant is a source for the plant author. "Feature
+off" is `None` (a monitoring threshold, `HeatPump.minimum_part_load`, `CHP.no_load_fuel_fraction`);
+every design value or assumption has no default and the plant dict states it. A `State` without a
+default: the case states it in `initial_state` and `gm.check` lists a stateful module it does not
+state (the code defaults of the modules not yet converted are on `DECLARED_DEFAULTS` and go with
+them). A plant class passes no value to a child in `__init__`, and a derivation
+reads no hidden constant: `Doublet.roughness` is a parameter.
+
+## Signatures
+
+Every function that runs, judges or studies a design takes `(plant, case)` first, and `results`
+after them when it reads a run: `gm.schedule(plant, case)`, `gm.simulate(plant, case=None,
+plan=None, ...)`, `gm.evaluate.<name>(plant, case, results, ...)` (`capex(plant, case)` has no
+results), `gm.study.<name>(plant, case, ...)`. The plant dict holds only the plant; everything that
+does not describe the plant is in the case ([data.md](data.md#the-case)).
+
+## Public API freeze
+
+From 0.5.0 the public API is backward compatible: [api.md](api.md) lists it. Nothing that exists in
+0.5.0 may break: no public name is renamed or removed, no signature loses or reorders a parameter or
+changes a default or a kind, no output field, code or behaviour changes, no key of the case,
+economics, plant or study schema disappears or becomes required, and the module-author contract
+(`forward`, `update`, `State`) stays. An addition that breaks nothing is allowed (the owner decides
+it) and raises the patch number (`0.5.1`); a breaking change is not made, and there is no minor
+bump that excuses one. What the competition runs stays exactly the same. `gm.__version__` is the
+one version, read from `version` in `pyproject.toml`, and every change has a line in the change log
+of [api.md](api.md) in the same commit.
+
+Two tests hold the rule. `tests/unit/test_api_compatibility.py` checks that the current API
+contains everything in `tests/fixtures/public_api_0_5_0.json` (names, parameters with kind, default
+and order, the signatures of `Module.forward`, `Module.update` and `State`, error codes, schema
+keys) and the list of names geomind uses; that file is written once by
+`tests/fixtures/capture_frozen_api.py` and never regenerated, and its hash is a constant in the
+test. `tests/unit/test_public_api.py` compares the working snapshot `tests/fixtures/public_api.json`
+(regenerated with `tests/fixtures/capture_public_api.py` when an addition is made, its hash added to
+`SNAPSHOTS` for the new version; never edit the hash of a released version).
+`tests/e2e/test_competition_surface.py` pins the calls, files and numbers of the competition.
+
+## Module rules
+
+**Physics lives in `gemini/physics/`, or in a `_physics.py` only when it needs streams.** Modules
+declare and wire; they never define physics. `gemini/physics/` keeps every correlation that holds
+for any equipment, whatever the number of categories that use it, and what `analysis`, `study` or
+`evaluate` read; it knows no `Stream` or `Fluid`. A `_physics.py` stays beside a category only for
+code that needs a `Stream` or `Fluid` (today `wells/_physics.py`, the pipe path march and the
+corrosion profile) or a module's own declarations (`heating/_burner.py`, `cooling/_sorption.py`
+under a name that says what they are); it imports only `gemini.physics`, `gemini.ops`,
+`gemini.streams` and `gemini.errors`, never another category's file. A function that takes plain
+values moves into `gemini/physics/`, the right topic file. Its functions keep `@ops.physics` and
+stay traceable on every backend. Reuse existing physics functions wherever possible and combine them; add
+a new physics function only when nothing existing can do the job, and generalise an existing one
+rather than writing a second copy. Never write a formula inside a module, and never write the same
+formula twice.
+
+**Where a file goes under `gemini/modules/`.** There are four homes:
+
+- A file that defines a core class users subclass or build goes directly in `gemini/modules/`:
+  `module.py` (`Module`), `declarations.py` (`Parameter`, `Port`, `Output`, `Control`,
+  `Boundary`, `State`), `container.py` (`ModuleList`, `ModuleDict`), `call.py` (`gm.call`) and `check.py`
+  (`gm.modules.check`). `Plant` is `gemini/plants/plant.py`. `Module` is split by job beside
+  `module.py`: `callrecord.py`, `callargs.py`, `states.py`, `tree.py`, `values.py`, `display.py`,
+  `classpath.py`.
+- Machinery goes in an `_utils/` folder, even if some of its functions are exported publicly:
+  `gemini/modules/_utils/` (`balance`, `description`, `design`, `equipment`, `trace`),
+  `gemini/plants/_utils/` for the plant tools (the plant file reader and writer, `serialization`) and `gemini/_utils/registry.py` for the registry.
+- Code shared by the modules of one category that needs a `Stream` or a module's declarations goes
+  in that category folder as a private file under a name that says what it is: `heating/_burner.py`,
+  `cooling/_sorption.py`, `wells/_physics.py`.
+- `gemini/plants/` holds only plant classes and `roles.py`, the one owner of the roles of a plant.
+
+`tests/unit/test_code_quality.py` checks the first and the last. A class in `_utils` belongs to no
+category, and the public names stay in `gm.modules`. Fitting and calibration belong in `gm.analysis`
+or `gm.study`, not in modules; a plant class belongs in `gemini/plants/`, never in `modules`.
+
+1. Assign declarations and children only in `__init__`, after `super().__init__()`.
+2. Constructor sections are `# Parameters`, `# Inlets`, `# Controls`, `# Boundaries`, `# States`,
+   `# Outputs`, `# Outlets` for a leaf and `# Modules`, `# Parameters`, `# Inlets`, `# Boundaries`,
+   `# Outlets`, `# Connections`, `# Constraints`, `# Outputs` for a plant, in that order, with empty
+   sections omitted. The `__init__` of a module or plant class has no length limit: it is one list of declarations
+   (one `description` each). Stateful equipment declares `State(kind)` values, with no default, and
+   implements `update(self, inputs, inlets, outlets, state, dt)`; see
+   [modules.md](modules.md#state-and-health).
+3. Controls are settable commands; boundaries are uncontrollable external conditions.
+4. `forward` is exactly `forward(self, inputs, inlets, state)` and returns `(outputs, outlets)`.
+   It reads declared streams through the immutable `Ports` mapping (`gemini.streams.Ports`), such
+   as `inlets.fluid_in`, the controls and boundaries from `inputs["frequency"]` and the states
+   from `state["temperature"]`; parameters are read on `self`. A stateful module also defines
+   `update(self, inputs, inlets, outlets, state, dt)`, returning the next state. Both are pure.
+5. `forward` sections are `# Outlets` and `# Outputs`, in that order with empty sections omitted;
+   `forward` writes nothing to `self`, returns exactly the declared outputs and outlets (a missing
+   or an extra key is a `DefinitionError` naming the module and the key), and computes each thing
+   once. No subclass of `Plant` defines `forward` or `update`, and no `Module` but a `Plant` or a
+   group holds children. A control, boundary, state or output is not read from `self` inside a
+   call and none is assigned there: the error names it. `tests/unit/test_purity.py` runs the guard
+   of `tests/fixtures/purity.py` on every registered class.
+6. A plant's own outputs are `Output.difference`, `Output.ratio` and `Output.sum` of paths; a parent
+   never sums its children, a total is read from the ports of the modules at the plant's edge.
+7. End every `forward` with `outlets = dict(...)`, the outlets in declaration order and then the
+   drawn inlets, then `return outputs, outlets`.
+   Zero- and one-outlet modules use the same dictionary shape.
+8. Do not construct `ModuleResult` in module code; `Module.__call__` creates it.
+9. Keep value arguments out of `__init__`; structural tree-shape arguments are the exception.
+   Build a configured module with `ESP().set_params("", {...})`.
+10. Never declare metadata or lists that `Module` derives.
+11. Ports (`Port(Direction.IN, ...)` and `Port(Direction.OUT, ...)`) carry a `Stream` or a `Power`: see [ports](modules.md#ports). A single
+    `Power` inlet is drawn: the module computes it in `forward` and returns it under the port's
+    name.
+12. Pre-hooks are exactly `(module, inputs, inlets, state)` and forward hooks are exactly
+    `(module, inputs, inlets, state, outputs, outlets)`; a returned mapping replaces inputs
+    or outputs.
+
+**Pure modules and the purity guard.** `forward` and `update` are pure functions of their
+arguments ([writing a module](writing-a-module.md)): a module holds only parameters, set before a
+run and fixed during it, so two trials can share one plant object, a batch of trials can run as one
+array pass, the compiler can trace a call, and time is one scan. Concretely:
+
+- the controls, boundaries and states of a step are read from `inputs` and `state`, never from
+  `self`; nothing is assigned to `self` (or to a child) in a call, and no call data is cached on it;
+- the inlets are the immutable `Ports`, the outputs and outlets are returned, and a missing or an
+  extra key is a `DefinitionError` naming the module and the key;
+- a per-step value is never `None` and never a structural marker: "none yet" is a value (a PID's
+  `previous_step = 0`), an output that is empty when off is NaN (declared `X | None` so a result
+  shows `None`), and a `None` that decides a branch is a parameter fixed for the whole run;
+- a value that changes per step decides with `ops.where`, `ops.minimum`, `ops.maximum`; a Python
+  `if` on it is a graph break.
+
+The guard is `tests/fixtures/purity.py`: `snapshot` freezes the `__dict__` of a module and of every
+child (plain values by value, arrays by bytes, declarations by their attributes, other objects by
+identity), `unchanged(module)` runs a block and fails naming the module and the attribute that the
+block wrote, replaced or added, and each class has a case (example parameters, inputs, inlets and
+state; `stateless_run`, `stateful_run`) in `CASES`. `tests/unit/test_purity.py` runs the guard on
+every registered class and on a plant of two loops. A new module class adds its case in the same
+commit (a fixture module of its own, `purity_flow.py`, `purity_thermal.py`,
+`purity_storage_exchangers.py`, holds the cases of a group of classes). The runtime side of the same
+rule is in the call itself: reading a control, boundary, state or output from `self` inside a call,
+or assigning one, raises an error that names the module and the value.
+
+Use dotted module paths consistently. Binding groups are `controls`, `boundaries`, `inlets`,
+`measured` and `state`. Reject unknown ports and parameters. In replay a missing observation
+skips only its measured twin; in simulation it skips the step. Never disguise a thermal-only
+audit as full first-law closure or tune against a holdout merely to meet a threshold.
+
+Examples live in `examples/`, five flat scripts: `quickstart.py`, `hackathon.py`, `costs.py`,
+`uncertainty.py` and `plant.py` ([README](../../examples/README.md)). An example is a script for a new reader: a module docstring
+that says what it shows, the names it uses and how to run it, then constants, small functions and
+`main()` under the `__main__` guard. It runs alone from any folder, with paths from `__file__`;
+it uses the public API (`gemini`, and `gemini.streams` for the streams of a new module); values
+are quantities, prints are labelled in MW, kW, °C, bar and m³/h, and an assumption that is not
+source data is printed as one. An example stays within about 150 lines: plant building beyond that
+belongs in gemini, as a registered plant. `GEMINI_EXAMPLE_DATASET` is the one way to change the
+dataset, the fast month by default. `tests/unit/test_code_quality.py` checks what can be checked.
+Generated output goes under ignored `runs/`.
+
+## Inputs
+
+Every input of a project has one owner and one file, and the rule that says which is the placement
+test of [inputs.md](inputs.md#2-the-placement-test): a new input goes where the placement test says,
+and the reason is written in inputs.md. A value is never written twice (a plant states a margin over
+the demand's supply temperature, not the temperature), a default for anything a user decides is
+refused, and a setting that cannot change a result is runtime and in no file. When a change adds,
+moves or removes an input, update inputs.md in the same commit.
+
+## Data files
+
+There is no data file inside `gemini/`: a plant is a class. Data that code reads has two homes,
+neither installed: `examples/<name>/`, one folder per sample project (its case, plants and data, so
+a user can copy it), and `tests/fixtures/` for what the tests read. A helper of the tests raises
+`inputs_missing` when one is absent. `docs/schemas/` is generated documentation. There is no other
+home for data ([data.md](data.md#where-data-lives)). `tests/fixtures/paths.py` is the only code that
+builds a path to them, except an example, which finds its own folder from `__file__` because it
+uses the public API alone. `tests/unit/test_code_quality.py` checks these rules.
+
+## Naming
+
+Every port name is `<role>_in` or `<role>_out`. A module with one circuit uses `fluid_in` and
+`fluid_out`. Splitter and mixer branches are `branch1_out`, `branch2_out` and `branch1_in`,
+`branch2_in`, with `fluid_in` or `fluid_out` for the common side. The roles are:
+
+| Group | Roles |
+| --- | --- |
+| Two sides of an exchanger or a machine | `hot`, `cold`, `source`, `sink`, `generator`, `chilled`, `cooling` |
+| Storage and circuits | `charge`, `discharge`, `supply`, `return`, `production`, `injection` |
+| Carriers | `gas`, `liquid`, `fuel`, `grid`, `excess`, `flue`, `power`, `heat`, `loss`, `air`, `wet_air`, `waste`, `chemical` |
+| Wells and rock | `wellhead`, `bottom`, `sandface` |
+| One circuit and branches | `fluid`, `branch<N>` |
+
+Add a role only when no existing one fits, here and in [glossary.md](glossary.md).
+`test_every_port_follows_the_naming_rule` in `tests/unit/test_code_quality.py` checks every port of
+every registered module against the rule and this list. A port's label says what may be connected:
+`Port(Direction.IN, fluid=Fluid.WATER, phase=Phase.LIQUID, level=Level.HOT)`; `kind` is still
+readable on a port and is the label derived from these fields. The first argument of a port is its `Direction`,
+of every other declaration its `type`.
+
+Outputs derived from a port field are named `<port>_<field>`, for example `hot_out_T`. Controls
+and boundaries name the commanded quantity in full words (`frequency`, `production_rate`);
+setpoints are `<quantity>_setpoint` (`pressure_setpoint`, `temperature_setpoint`). The `Stream`
+field symbols `m_dot`, `T` and `p` are reserved for `Stream` fields and binding field keys.
+
+[glossary.md](glossary.md) holds the one name of each concept. Elsewhere use full words, not
+abbreviations. Booleans read as questions (`is_leaf`,
+`is_initialized`). Add an SI unit suffix only where the type does not carry the
+unit, for example the summary column `energy_J` or the constant `TEST_BUDGET_S`; declared
+quantities carry their unit and never repeat it in the name.
+
+**File names.** A file of a module or plant folder is named by its class in lower case, words run
+together (`heatingheatpumpcoolingplant.py`, `thermalstorage.py`), so that the file of a class is found
+from its name without a table, and a folder under `gemini/modules/` is one word. Every other file
+(`_utils/`, `case/`, `evaluate/`, `engine/`, ...) is `snake_case`, as a Python module name is
+(`plant_inputs.py`, `co2_steps.py`). The style of the existing class files is kept; the rule is
+written down, not changed (decision D4 of the folder work). A new name must not repeat the name of a
+file in another folder with another meaning ([structure.md](structure.md)).
+
+Never name the framework the module design resembles, in code, docstrings, examples or
+documents; describe the concept itself. `test_no_framework_names_in_tracked_text_files` in
+`tests/unit/test_code_quality.py` fails on any occurrence in a tracked file.
+
+## Comments
+
+The only comments allowed in code are:
+
+- the fixed section headers: in `__init__` `# Modules`, `# Parameters`, `# Inlets`,
+  `# Controls`, `# Boundaries`, `# States`, `# Outputs`, `# Outlets`, `# Connections` and
+  `# Constraints`; in `forward` `# Outlets` and `# Outputs`;
+- tool directives with a specific code: `# noqa: <code>`, `# type: ignore[<code>]` and
+  `# pragma: no cover`.
+
+Everything worth explaining (why, units, sources, non-obvious physics or numerics) goes into
+docstrings. Intentional physical or numerical decisions are a `NOTE(refactor):` sentence in the
+docstring, never a comment. `test_only_section_headers_and_tool_directives_are_comments` in
+`tests/unit/test_code_quality.py` checks every Python file in `gemini/`, `examples/`, `tests/` and
+`scripts/`.
+
+## Code quality
+
+- Flat code: nest at most three blocks deep (an `elif` chain counts once), prefer guard clauses
+  and write no `else` after `return` or `raise`.
+- Small functions: about 40 lines of body and one job each. The documented exceptions, each with
+  its reason, are listed in `LONG_FUNCTIONS` in `tests/unit/test_code_quality.py`.
+  The `__init__` of a module or plant class under `gemini/modules/` or `gemini/plants/` is exempt:
+  it is a list of declarations, not logic.
+- McCabe complexity at most 10 (`max-complexity = 10` in the `[tool.flake8]` section of
+  `pyproject.toml`).
+- Just enough code: no dead code, unused options or parameters, speculative generality or golfed
+  one-liners.
+- Clear names, as in [Naming](#naming).
+- Explicit errors: raise a `gm.errors` class (see [errors.md](errors.md)), never a bare
+  `except`, and no silent fallback that hides a failure.
+- A bug gets a failing test first; the fix makes it pass.
+
+A module holds no `*`, `/`, `**`, numeric literal other than 0 and 1, `math.*`, NumPy maths or
+`ops.exp`-style call: `test_modules_hold_no_formulas` scans `gemini/modules/` except `plants/`, with
+the exceptions and their reasons in `FORMULA_EXCEPTIONS`. Bookkeeping of like quantities (`inlet.p -
+drop`, `m_1 + m_2`) stays in a module; a declared default is one of `DECLARED_DEFAULTS`, a sourced physics constant.
+`test_no_two_physics_functions_share_a_body` compares the normalised bodies of the physics functions,
+so a copy with renamed arguments fails; a body of one operator on two names is a definition and is
+not compared, and different relations of one form are listed in `SAME_FORM`.
+`tests/unit/modules/test_glossary.py` checks every name against [glossary.md](glossary.md).
+
+Enforcement: `tests/unit/test_code_quality.py` checks nesting
+(`test_functions_nest_at_most_three_blocks`), function length
+(`test_functions_are_short_or_documented_exceptions`), `else` after an early exit
+(`test_no_else_after_an_early_exit`), builtin raises (`test_package_code_raises_gemini_errors`),
+comments and framework names. Flake8
+(`make lint` and the Lint workflow) checks complexity (C901), bare `except` (E722), unused imports
+and variables (F401, F841) and docstrings. The remaining points (just enough code, names and
+test-first bug fixes) are checked in review.
+
+## One implementation per concept
+
+- No concept has two implementations; the only thing that differs is the backend. A rule, a
+  formula, a check, a message or a result structure is written once, with `gemini.ops`, and every
+  caller runs that source.
+- Behaviour is identical on every backend: values, error class and message, skips, `Results`
+  structure with children, output types, callbacks and health, bit-identical on the Python path and
+  within `1e-12` on NumPy.
+- A direct call (`esp(fluid_in=...)`, `pumps.head(...)`) is **eager**: the same `forward`, the same
+  ops, no graph, on the Python backend. It is not a second implementation. The eager scope below
+  makes plain operators safe in it; a function never has a "checked" and an "unchecked" version.
+- Update the code, never wrap it. When a refactor changes a name or a shape, every caller is
+  changed in the same task, and no wrapper, alias or shim is written for the old one: no function
+  that only calls another with its arguments, no second name, no `legacy`, `compat` or
+  `deprecated` branch. `tests/unit/test_code_quality.py` rejects such
+  wrappers, old names and unused private functions; a public name kept on purpose is listed there
+  with its reason.
+- Physics code uses plain operators (`/`, `**`, `-`) where the Python and NumPy results agree. A
+  public function of `physics` carries `@ops.physics`; a module method that a user can call
+  directly with raw operators carries it too. Do not add `Failed` handling anywhere in physics or
+  modules.
+
+## Implicit mechanisms
+
+The package avoids hidden behaviour. These are the only implicit mechanisms left, each with the
+reason it is needed:
+
+- `Module.__setattr__` registers what `__init__` assigns: a `Parameter`, `Port`, `Control`,
+  `Boundary`, `State` or `Output` goes to its ordered registry and a `Module` becomes a
+  child with a dotted path. Assigning to a declared name sets the parameter or persists the control
+  or boundary as a pre-run value (`esp.frequency = Quantity(50, "Hz")`: a `Quantity` at the door,
+  SI inside, poured into `inputs` by a call and by the engine). Inside a call of a converted module
+  no assignment is allowed. Constructors therefore read as plain assignments in section order.
+- `Module.__getattr__` resolves names that are not ordinary attributes: parameter values (the call
+  record's parameter values while a call runs, which is how the compiler passes traced values and
+  how trials can share one plant), the pre-run value of a control or boundary (outside a call),
+  and otherwise the port and output declarations. This lets `forward` read
+  `self.thermal_conductance` as a plain value. Inside a call of a converted module a control,
+  boundary, state or output is not read from `self`: the error names it.
+- The values of one call live in one `CallRecord` held in the `current_call` context variable
+  of `gemini/modules/callrecord.py`. Modules keep no per-call state on `self`, so nested,
+  re-entrant and concurrent calls stay separate. The state is explicit: a call takes `state=` (the
+  nested dict of the states of its stateful descendants), a plant hands each child its entry, and
+  `Module.step` runs `update` of every stateful module on the values of its own call, so there is
+  no step record. A plant combines the outputs of its children from the results it holds.
+- `gm.modules.no_outputs()` and `gm.runtime.settings()` are context settings built on
+  `gemini._utils.context.ContextSetting`: a context variable change usable as a `with` block and
+  as a decorator, restored on exit.
+- `Module.category` is `_FolderCategory` in `gemini/modules/module.py`, a descriptor that reads
+  the folder from the import path of the class, so the folder is the one source of a module's
+  category; a class in `gemini/plants/` reads `plants`. A class from outside assigns `category`
+  itself, which replaces the descriptor.
+- `Module.__init_subclass__` registers every class that has a category under its class name
+  (`gemini/_utils/registry.py`); `abstract = True` in its own body leaves it out, and a second class
+  of a registered name raises `duplicate_name`. There is no `register` call and no file loader.
+- `class_path`/`import_class` in `gemini/modules/classpath.py` are the only import-by-string.
+  Only checkpoints use them: a checkpoint names the plant class whose `from_dict` rebuilds the tree
+  from the plant dict it stores. A plant dict names registry types.
+- A plant child that sits in a cycle of composites but not of leaves is *opened*: the parent's
+  `forward` calls its children directly, in the order the connections give (see
+  [native-engine.md](native-engine.md), section 14). The call order is never configured by hand.
+- A child assigned on a `Plant` is noted as `add` notes it, and `Plant.fluid` passes the fluid to
+  every module below it.
+- Attribute access on mappings: `Ports` and `Values` derive from
+  `gemini._utils.mappings.AttributeMapping`, so `result.outlets.fluid_out` equals
+  `result.outlets["fluid_out"]`, and `Results[path].field` returns a pandas Series through
+  `ModuleSeries.__getattr__`.
+- `Plant.forward` runs a module with an `offered` outlet twice in one step: its offer first
+  (`_offer(inputs, inlets, state)`, pure), which no call records, then its call. A module whose
+  outlet is offered only as it is set says so in `_offers`, and the plan follows. The plan is built
+  before the call (`Plant._prepare`), never in `forward`. The modules of a loop or a constraint run
+  in trial calls, which no running call records, then once for the record (`Module._trial`). A drawn inlet takes its value from what `forward` returns,
+  so `ModuleResult.inlets` shows what was drawn. Both are needed because the value on a connection
+  can travel against the energy ([ports](modules.md#ports)).
+- Two optional method protocols: a module that is equipment (the mixin `Equipment` of
+  `gemini/modules/_utils/equipment.py`) sets `equipment_kind`, one of the kinds of `gm.case.Capex`,
+  and defines `cost_size()`, the size its cost scales with (a power, a length, a volume, or 1 for a
+  fixed item), in SI from its own design values, and `cost_size_of(quantity)` for another cost basis
+  of its kind (`None` when it has no size of that quantity, `missing_value` when its design value
+  is unset). A module never reads a case: `gemini/evaluate`
+  prices it, the unit cost of its kind in `case.economics` times that size, and the fixed opex is the
+  share of the kind times that capex ([economics.md](economics.md#costs)). A module that overrides `health(result, measured)` gets a
+  diagnostic, which the engine calls after each replayed twin (the base method returns `None`,
+  meaning not assessed).
+
+- Operator overloading on `gemini.ops.Operators`: a `Constant` (`physics/constants.py`)
+  and a traced `gemini.compiler.trace.proxy.Proxy` route `+`, `*`, `<`, ... through `gemini.ops.dispatch`, so
+  one physics source runs on floats, arrays and traced values. A constant acts as its float on
+  concrete values and becomes a named graph input in a trace. The math functions (`ops.log`,
+  `ops.sqrt`, `ops.maximum`, ...) and `ops.truediv`/`ops.pow` never raise or warn on an operand
+  that is invalid in the branch a `where` does not select: they return `inf` or `nan` as NumPy
+  does. `where` branches are plain values, never callables; `None` is allowed as a branch.
+  For speed the op functions evaluate plain scalars (`float`, `int`, `bool`, `None`, NumPy
+  `float64`/`bool_`) directly on the Python backend and a `Constant` computes its operators on its
+  value without `dispatch`; arrays, other NumPy scalars, traced values and an active
+  `gm.runtime.settings(backend=...)` take the full `dispatch` path. A `Constant` is not a `float`.
+- The eager scope (`gemini/ops/scope.py`, `gemini/ops/failed.py`), entered by `@ops.physics` and
+  by `Module._run`, is what makes a direct call behave like the graph. The outermost entry enters
+  `np.errstate(all="ignore")` and gives plain Python numbers to the function as NumPy scalars (an exact
+  `float` as `np.float64`, an exact `int` as `np.int64`; a module call wraps its parameters, on
+  first read, its controls, states and inlet fields), so `/` by zero, an invalid `**` and an overflow give `inf` or `nan` silently, as
+  on arrays. Leaving the outermost scope converts scalars back to `float` and `int`, `np.bool_` to `bool`,
+  recursively, so results, outputs and outlet streams never hold NumPy scalars. Recorded outputs
+  read back inside a call are wrapped too; results of child calls stay plain floats, so a
+  composite that divides child values uses `ops.truediv`. Arrays or traced values among the
+  arguments leave the scope unwrapped. `Module._scalar_mode()` (`WRAP` by default) lets a module
+  ask for `PLAIN`: the ESP does under `precision="float32"`, the one module that honours it,
+  because an `np.float64` scalar would promote the float32 coefficients; its
+  `pumps.esp_efficiency` keeps `ops.truediv` for that reason. A nested scope costs a
+  context-variable read.
+  A failing `ops.check` on concrete scalars raises the real error marked as coming from a check;
+  `@ops.physics` returns it as a `Failed` value at the function boundary, so
+  `where(stopped, 0.0, checked_function(x))` drops the error of the unselected branch and keeps the
+  selected one, like the graph's error codes. A `Failed` carries through every op, raises when used
+  as a number (`bool`, `float`, `int`, `format`, a `Stream`, a `Declaration`) and raises its error
+  when it leaves the outermost scope. A failing `check` on an eager array raises at once, for the
+  first failing row, unless the caller runs under `ops.failedrows.marking()` (the eager executor does):
+  the failing rows of a physics function then mark its results, which become `FailedRows` (an `ndarray`
+  with the failures of its rows, only when a row failed) and carry them through ops and NumPy
+  arithmetic, lowest check number first; `where` keeps the marks of the selected branch per row; a
+  row already marked is not checked again; an inline check outside every physics function raises
+  with `error.failures` of all its rows. A mark that reaches a result fails that row with the row
+  call's exact exception. Tests compare arrays through `gemini.compiler.run.run_function`. In a trace the graph
+  does the same: a check recorded in a physics function guards that function's traced results (all
+  of them, through an `identity` node for a passed-through argument) and reaches an outer function
+  through data, and a check outside any physics function (inline in `forward`) guards every graph
+  output, as it raises at once when eager. Never put the `repr`
+  of a physical value in a message (it reads `np.float64(1.0)`) and use `ops.round`, not `round`.
+- Traced graphs live in the one `GraphCache` of the process (`gemini.compiler.cache.graph_cache`),
+  keyed by structure, so an engine, a run function and a copy of a plant with other numeric values
+  trace nothing again. A graph holds no module (a break node holds a path, `evaluate` is given the
+  module), and the cache is bounded and locked: plants are not shared across threads, the cache is.
+- During a trace the `CallRecord` carries the traced parameter values, which
+  `Module.__getattr__` returns instead of the stored values, and records outputs without
+  validating them (`gemini/compiler/tracer.py`).
+
+Adding another implicit mechanism needs a reason of the same weight and an entry here.

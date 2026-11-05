@@ -1,0 +1,97 @@
+"""Circulation pump of a closed circuit: a fixed flow, a pressure rise and an efficiency."""
+
+from gemini.modules._utils.equipment import Equipment
+from gemini.modules.declarations import Output, Parameter, Port
+from gemini.modules.module import Module
+from gemini.physics import energy, fluid, pumps
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import (
+    Efficiency,
+    HydraulicPower,
+    MassFlow,
+    Pressure,
+    PressureDifference,
+)
+
+
+class CirculationPump(Equipment, Module):
+    """Pump that sets the flow of a closed circuit and draws the electricity for it.
+
+    The circuit carries ``flow`` whatever enters, and leaves at ``loop_pressure``, the static
+    pressure the circuit is held at, so a loop through this module closes in flow and pressure.
+    ``pressure_rise`` is the design head that covers the losses of the circuit, which are not
+    modelled: the hydraulic power is ``Q dp``, the electricity that power over ``efficiency``.
+
+    NOTE(refactor): all the electricity leaves as ``loss_out`` and the water keeps its temperature,
+    so a building circuit gives the same temperatures as with no pump: in the real circuit the
+    pumping work ends up as heat in it, which is small against the heat it carries. The module is
+    first-law closed with that port.
+    """
+
+    equipment_kind = "circulation_pump"
+
+    repr_fields = ("flow", "pressure_rise", "efficiency")
+
+    def __init__(self):
+        """Declare the flow, the pressure of the circuit and the efficiency."""
+        super().__init__()
+
+        # Parameters
+        self.flow = Parameter(MassFlow, gt=0, description="Mass flow the circuit carries")
+        self.pressure_rise = Parameter(
+            PressureDifference, ge=0, description="Design pressure rise of the circulation pump"
+        )
+        self.loop_pressure = Parameter(
+            Pressure, gt=0, description="Static pressure the circuit is held at"
+        )
+        self.efficiency = Parameter(
+            Efficiency,
+            description="Overall efficiency of the pump: hydraulic power over electric power",
+        )
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
+
+        # Outputs
+        self.pumping_power = Output(HydraulicPower, description="Electric power drawn by the pump")
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.LIQUID,
+            level=Level.ANY,
+            generic="T",
+            flow=Flow.IMPOSED,
+        )
+        self.loss_out = Port(Direction.OUT, energy=Energy.HEAT, flow=Flow.IMPOSED)
+
+    def forward(self, inputs, inlets, state):
+        """Set the flow and the pressure of the circuit and draw the electricity."""
+
+        # Outlets
+        discharge = inlets.fluid_in._with_si(m_dot=self.flow, p=self.loop_pressure)
+        hydraulic = pumps.hydraulic_power(discharge.volumetric_flow(), self.pressure_rise)
+        power_in = energy.input_power(hydraulic, self.efficiency)
+
+        # Outputs
+        outputs = dict(pumping_power=hydraulic)
+
+        outlets = dict(fluid_out=discharge, loss_out=power_in, power_in=power_in)
+        return outputs, outlets
+
+    def cost_size(self):
+        """Return the shaft power [W] at the nominal flow, the size the cost scales with."""
+        volume_flow = fluid.volume_flow(self.flow, self.fluid.properties(0, 0).rho_l)
+        hydraulic = pumps.hydraulic_power(volume_flow, self.pressure_rise)
+        return energy.input_power(hydraulic, self.efficiency)

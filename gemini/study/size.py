@@ -1,0 +1,495 @@
+"""Size the units of a plant for a case."""
+
+from copy import deepcopy
+
+import numpy as np
+
+from gemini import units
+from gemini.analysis.nodal import WELLHEAD_PRESSURES, solve_injection_pressure
+from gemini.case._utils.access import require
+from gemini.engine.apply import apply_case
+from gemini.engine.check import _set_value, check
+from gemini.engine.simulate import simulate
+from gemini.errors import PhysicsError, RunError, ValidationError
+from gemini.errors.base import raise_issues
+from gemini.evaluate import requirements
+from gemini.modules.pumps import InjectionPump
+from gemini.physics import constants
+from gemini.physics.fluid import FluidProperties, heat_capacity_rate
+from gemini.plants._utils.resize import free_doublets, resized
+from gemini.plants.roles import units_of
+from gemini.streams.flows import Stream
+from gemini.study._utils.shown import display_quantity, display_text
+
+POLICIES = ("none", "peak")
+"""The backup policies of ``size``."""
+BACKUP = "params.backup"
+"""The path of the backup policy in the plant file."""
+
+
+def _limit(case, quantity, bound, required=True):
+    """Return the ``bound`` of the requirement on ``quantity`` of each doublet.
+
+    Without it, ``None`` when not ``required``, else ``missing_value`` is raised.
+    """
+    for item in case.requirements or ():
+        if (item.on, item.quantity, item.over) == ("doublet", quantity, "each"):
+            if getattr(item, bound) is not None:
+                return getattr(item, bound)
+    if not required:
+        return None
+    raise ValidationError(
+        f"requirements is missing a {bound} of {quantity} on each doublet; expected a value in the "
+        "case (it has no default)",
+        path="requirements",
+        code="missing_value",
+    )
+
+
+def _peak(case, service):
+    """Return the largest demand [W] of ``heating`` or ``cooling``, or raise ``missing_value``."""
+    require(case, f"demand.{service}")
+    return float(case.demand.frame[f"{service}_demand"].max())
+
+
+def _note(notes, path, value, unit, reason):
+    """Record one size and the reason for it."""
+    notes["sized"].append({"path": path, "value": display_quantity(value, unit), "reason": reason})
+
+
+def _takes_doublets(plant):
+    """Whether the plant's number of doublets can be sized: its class takes ``doublets``.
+
+    A plant without a class takes it too when it can vary its doublets (``free_doublets``) and
+    states a ``range`` of ``size.doublets``: it kept one doublet whatever its range (QA-260).
+    """
+    if "doublets" in plant.size:
+        return True
+    return "size.doublets" in plant.ranges and free_doublets(plant) is not None
+
+
+def _doublet_range(plant):
+    """Return the ``range`` of ``size.doublets`` of the plant, or raise ``missing_value``."""
+    found = plant.ranges.get("size.doublets")
+    if found is None or found.min is None or found.max is None:
+        raise ValidationError(
+            "size.doublets.range is missing; expected a min and a max of the number of doublets "
+            "in the plant (it has no default)",
+            path="size.doublets.range",
+            code="missing_value",
+        )
+    return found
+
+
+def _doublets(plant, case, peak, notes):
+    """Return ``(plant, heat)``: the plant on the smallest number of doublets that covers ``peak``.
+
+    ``heat`` is the heat [W] of all its doublets at the flow limit and the brine cooling limit.
+    Each doublet is rated for the largest flow the case lets it run: the flow limit.
+    """
+    density = require(case, "site.fluid.density")
+    flow_max = _limit(case, "production_flow", "max")
+    cooling_max = _limit(case, "brine_cooling", "max")
+    heat = heat_capacity_rate(density * flow_max, FluidProperties().cp_l) * cooling_max
+    count = len(units_of(plant, "doublet"))
+    if _takes_doublets(plant):
+        top = _doublet_range(plant)
+        count = next(
+            (n for n in range(int(top.min), int(top.max) + 1) if n * heat >= peak), top.max
+        )
+        design = resized(plant, int(count))
+    else:
+        design = deepcopy(plant)
+    covered = "covers" if count * heat >= peak else "does not cover"
+    notes["sized"].append(
+        {
+            "path": "size.doublets",
+            "value": units.Quantity(count, "-"),
+            "reason": f"{count} doublet(s) of {display_text(heat, 'W')} each at the flow limit "
+            f"{display_text(flow_max, 'm3/s')} and the brine cooling limit "
+            f"{display_text(cooling_max, 'K', difference=True)} {covered} the heating peak "
+            f"of {display_text(peak, 'W')}",
+        }
+    )
+    for path in units_of(design, "doublet"):
+        design._set_si_params(path, {"nominal_flow": flow_max})
+        _note(notes, f"{path}.nominal_flow", flow_max, "m3/s", "the flow limit of the case")
+    return design, count * heat
+
+
+def _closes_series(design, path):
+    """Whether the chiller at ``path`` is the last of its chilled-water circuit."""
+    module = design.get_submodule(path)
+    port = "source_out" if hasattr(module, "source_out") else "chilled_out"
+    chillers = set(units_of(design, "chiller")) - {path}
+    return not chillers.intersection(design.feeds(f"{path}.{port}"))
+
+
+def _drive_heat(design, case):
+    """Return the drive heat [W] each step of the demand asks of the boilers for sorption chillers.
+
+    A sorption chiller (a unit with a ``thermal_cop``) whose generator is fed by a boiler turns
+    the cooling demand into evaporator duty, upstream units first, each up to its capacity, and
+    draws that duty over its ``thermal_cop`` from the heating side. The chillers must be sized.
+    """
+    applied = apply_case(design, case)
+    chillers = units_of(design, "chiller")
+    fed = set()
+    for boiler in units_of(design, "boiler"):
+        fed.update(design.feeds(f"{boiler}.fluid_out"))
+    drive = [
+        path
+        for path in chillers
+        if path in fed and getattr(applied.get_submodule(path), "thermal_cop", None) is not None
+    ]
+
+    def downstream(path):
+        return len(set(chillers) & set(design.feeds(f"{path}.chilled_out")))
+
+    left = case.demand.frame["cooling_demand"].to_numpy(dtype=float).copy()
+    heat = np.zeros_like(left)
+    for path in sorted(drive, key=downstream, reverse=True):
+        module = applied.get_submodule(path)
+        duty = np.minimum(left, module.capacity)
+        left -= duty
+        heat += duty / module.thermal_cop
+    return heat
+
+
+def _boiler_peak(design, case, backup, cover):
+    """Return the heat [W] the boilers are rated for under the policy ``backup``.
+
+    The step where the heating demand and the drive heat of the sorption chillers peak together
+    sets it. ``"peak"`` rates for all of it; ``"none"`` for what the doublets cannot reach: that
+    step less the heat of the doublets, at least the part of it the reservoir temperature
+    cannot reach.
+    """
+    heating = case.demand.frame["heating_demand"].to_numpy(dtype=float)
+    total = float((heating + _drive_heat(design, case)).max())
+    if backup == "peak" or not units_of(design, "doublet"):
+        return total
+    return max(total - cover, _lift_share(design, case) * total)
+
+
+def _capacities(design, case, notes, backup, cover):
+    """Set the capacity of each heat pump, boiler and chiller from the demand peaks."""
+    for role, service in (("chiller", "cooling"), ("boiler", "heating"), ("heat_pump", "heating")):
+        paths = units_of(design, role)
+        if not paths:
+            continue
+        peak = _peak(case, service)
+        if peak <= 0:
+            _skip(notes, paths, f"the case has no {service} demand")
+            continue
+        if role == "heat_pump":
+            part = _lift_share(design, case)
+            duty = part * peak
+        elif role == "boiler":
+            duty = _boiler_peak(design, case, backup, cover)
+            part = duty / peak
+        else:
+            part, duty = 1.0, peak
+        if duty <= 0:
+            why = (
+                "the reservoir is hotter than the heating supply temperature"
+                if role == "heat_pump"
+                else "the doublets cover the whole heating peak"
+            )
+            _skip(notes, paths, why)
+            continue
+        for path in paths:
+            if role == "chiller" and _closes_series(design, path):
+                value, reason = (
+                    peak,
+                    f"the whole {service} peak of {display_text(peak, 'W')}: it closes the series",
+                )
+            else:
+                value = duty / len(paths)
+                reason = (
+                    f"{part:.3g} of the {service} peak of {display_text(peak, 'W')} "
+                    f"shared by {len(paths)} {role} unit(s)"
+                )
+            design._set_si_params(path, {"capacity": value})
+            _note(notes, f"{path}.capacity", value, "W", reason)
+    for role in ("chp", "heat_exchanger"):
+        _skip(notes, units_of(design, role), "not sized from the demand")
+
+
+def _injection_pressure(applied, case, path):
+    """Return ``(head, discharge)`` [Pa] the doublet at ``path`` asks of an injection pump.
+
+    ``discharge`` is the wellhead pressure that injects the nominal flow, never below the pressure
+    of the production wellhead (``nominal_wellhead_pressure``), which the pump suction can be at
+    best; ``head`` is its rise over that pressure, zero when the column of brine injects the flow
+    alone. The brine is injected at the reservoir temperature less the brine cooling limit.
+    """
+    doublet = applied.get_submodule(path)
+    cooling = _limit(case, "brine_cooling", "max")
+    temperature = case.site.temperature_at(doublet.depth) - cooling
+    rate = doublet.fluid.density * doublet.nominal_flow
+    stream = Stream._si(
+        m_dot=rate, T=temperature, p=doublet.nominal_wellhead_pressure, fluid=doublet.fluid
+    )
+    low = float(doublet.nominal_wellhead_pressure)
+    needed = solve_injection_pressure(
+        doublet.injector, doublet.sink, stream, (low, WELLHEAD_PRESSURES[1])
+    )
+    if needed is None or needed < low:
+        return 0.0, low
+    return needed - low, needed
+
+
+def _lacking(applied, served):
+    """Return why a pump cannot be rated for the doublets ``served``, or ``None`` when it can."""
+    if not served:
+        return "it serves no doublet of the plant"
+    for path in served:
+        doublet = applied.get_submodule(path)
+        for name in ("depth", "nominal_flow", "nominal_wellhead_pressure"):
+            if getattr(doublet, name) is None:
+                return f"{path}.{name} is missing"
+    return None
+
+
+def _injection_pumps(design, case, notes):
+    """Rate each injection pump for the doublets it serves: their total flow and the head.
+
+    A pump serves the doublets that its brine reaches in the plant, found from the wiring. The
+    nominal flow is the sum of their nominal flows and the nominal head the largest head one of
+    them asks (``_injection_pressure``), floored at zero. A pump that serves no doublet of the plant,
+    or whose doublets lack a design value, is left unsized with a note.
+    """
+    pumps = [path for path, module in design.named_modules() if isinstance(module, InjectionPump)]
+    if not pumps:
+        return
+    applied = apply_case(design, case)
+    doublets = units_of(design, "doublet")
+    for path in pumps:
+        served = [item for item in design.feeds(f"{path}.fluid_out") if item in doublets]
+        reason = _lacking(applied, served)
+        if reason:
+            _skip(notes, [path], f"not sized: {reason}")
+            continue
+        flow = sum(applied.get_submodule(item).nominal_flow for item in served)
+        rated = [_injection_pressure(applied, case, item) for item in served]
+        head = max(item[0] for item in rated)
+        design._set_si_params(path, {"nominal_flow": flow, "nominal_head": head})
+        why = f"the flow of {len(served)} doublet(s) it serves, and the head that injects it"
+        _note(notes, f"{path}.nominal_flow", flow, "m3/s", why)
+        _note(notes, f"{path}.nominal_head", head, "Pa", why)
+        _injection_setpoint(design, path, max(item[1] for item in rated), notes)
+        _injection_drive(design, applied, path, served, notes)
+
+
+def _injection_drive(design, applied, path, served, notes):
+    """Set the ``efficiency`` and ``frequency`` of a pump without curves when unset (QA-343).
+
+    Without head and power curves the power is the hydraulic power over ``efficiency``, and the
+    motor ``frequency`` is a control with no default: a sized plant then failed on one, then on
+    the other. The efficiency is the doublets' own ``pump_efficiency`` (the design value of the
+    pumps of the doublets it serves, when they agree); the frequency is gemini's reference
+    frequency of pump curves (``ESP_REFERENCE_FREQUENCY``), which a pump without curves never
+    reads. A stated value, a pump with curves, or doublets of several efficiencies stay as they
+    are, with a note.
+    """
+    module = design.get_submodule(path)
+    if _set_value(module, "head_coefficients") is not None:
+        return
+    if module.efficiency is None and _set_value(module, "power_coefficients") is None:
+        found = {applied.get_submodule(item).pump_efficiency for item in served}
+        if len(found) == 1 and None not in found:
+            value = float(found.pop())
+            design._set_si_params(path, {"efficiency": value})
+            why = "the pump_efficiency of the doublets it serves"
+            _note(notes, f"{path}.efficiency", value, "-", why)
+        else:
+            _skip(notes, [f"{path}.efficiency"], "the doublets it serves state no one efficiency")
+    if design.input_value(f"{path}.frequency") is None:
+        value = float(constants.ESP_REFERENCE_FREQUENCY)
+        design._set_si_inputs({f"{path}.frequency": value})
+        why = "gemini's reference frequency of pump curves; a pump without curves does not read it"
+        _note(notes, f"{path}.frequency", value, "Hz", why)
+
+
+def _injection_setpoint(design, path, discharge, notes):
+    """Set the ``pressure_setpoint`` of a pump that has neither one nor head curves (QA-287).
+
+    Such a pump cannot run: its head comes from the curves or the setpoint. The setpoint is the
+    wellhead pressure that injects the nominal flow of the doublets it serves; a stated setpoint
+    or a pump with curves is left as it is.
+    """
+    module = design.get_submodule(path)
+    if _set_value(module, "head_coefficients") is not None:
+        return
+    if design.input_value(f"{path}.pressure_setpoint") is not None:
+        return
+    design._set_si_inputs({f"{path}.pressure_setpoint": discharge})
+    why = "the wellhead pressure that injects the nominal flow of the doublets it serves"
+    _note(notes, f"{path}.pressure_setpoint", discharge, "Pa", why)
+
+
+def _skip(notes, paths, reason):
+    """Record the units a size was not computed for."""
+    notes["unchanged"].extend({"path": path, "reason": reason} for path in paths)
+
+
+def _lift_share(design, case):
+    """Return the part of the heating peak that the reservoir cannot reach by itself, 0 to 1.
+
+    ``(supply - reservoir) / (supply - return)`` with the reservoir temperature at the depth of the
+    plant: the water of the heating network warms to the reservoir temperature in the exchanger
+    and the heat pump lifts it the rest of the way. Zero when the reservoir is hotter than the
+    supply temperature.
+    """
+    depth = getattr(design, "depth", None)
+    if depth is None:
+        doublet = units_of(design, "doublet")
+        depth = design.get_submodule(doublet[0]).depth if doublet else None
+    if depth is None:
+        raise ValidationError(
+            "depth is missing; expected a value of the plant (it has no default)",
+            path="depth",
+            code="missing_value",
+        )
+    supply = require(case, "demand.heating.supply_temperature")
+    back = require(case, "demand.heating.return_temperature")
+    if supply == back:
+        raise ValidationError(
+            f"demand.heating: supply_temperature = return_temperature = {supply} K; expected a "
+            "supply above the return",
+            path="demand.heating.supply_temperature",
+        )
+    reservoir = case.site.temperature_at(depth)
+    return min(1.0, max(0.0, (supply - reservoir) / (supply - back)))
+
+
+def _check(design, case, notes):
+    """Simulate the sized plant once and note each requirement it breaks."""
+    notes["broken"] = []
+    try:
+        results = simulate(design, case)
+    except (ValidationError, PhysicsError, RunError) as error:
+        notes["simulation"] = f"not simulated: {error.code}: {error}"
+        return
+    notes["simulation"] = "simulated"
+    for item in requirements(design, case, results):
+        if item["passed"] is False:
+            notes["broken"].append(
+                {
+                    key: item[key]
+                    for key in ("unit_path", "role", "quantity", "value", "limit", "worst_step")
+                }
+            )
+
+
+def _policy(plant):
+    """Return the backup policy the plant states, or raise ``missing_value`` naming its path."""
+    if plant.backup is None:
+        raise ValidationError(
+            f"{BACKUP} is missing; expected one of {POLICIES} (it has no default)",
+            path=BACKUP,
+            code="missing_value",
+        )
+    return plant.backup
+
+
+def _checked(plant, case):
+    """Raise the issues of ``gm.check`` but the parameters of the plant that have no value."""
+    raise_issues(
+        [
+            item
+            for item in check(plant, case)
+            if not (item.kind == "missing" and item.path.startswith("params."))
+        ]
+    )
+
+
+def size(plant, case):
+    """Return a new plant with first sizes from the case; the plant itself is not changed.
+
+    The sizes use gemini physics only. In order:
+
+    - the number of doublets, the smallest in the ``range`` of ``size.doublets`` of the plant whose
+      heat at the flow
+      limit and the brine cooling limit of the case's requirements covers the heating peak (the
+      largest, with a note, when none does), for a plant class that takes the structural size
+      ``doublets``; the nominal flow of each doublet is the flow limit, the largest flow the case
+      lets it run, so that its share in ``gm.evaluate.capacities`` is at most one;
+    - the capacity of each ``boiler`` by the policy ``backup`` (below); the capacity of each
+      ``heat_pump``: the part of the heating peak the reservoir cannot reach, ``(supply -
+      reservoir) / (supply - return)`` of it, shared by the units of the role, the reservoir
+      temperature taken at the depth of the plant and the temperatures from ``demand.heating`` (a
+      heat pump is left unsized, with a note, when the reservoir is hotter than the supply
+      temperature); the capacity of each ``chiller``: the cooling peak shared by the units, except
+      the chiller that closes the chilled-water series, which gets the whole peak because a
+      sorption unit delivers less than its rating when its characteristic map says so at the peak
+      conditions and the last chiller makes up the difference;
+    - the ``nominal_flow`` and ``nominal_head`` of each ``InjectionPump``: the total nominal flow
+      of the doublets its brine reaches, and the largest pressure rise one of them asks, the
+      wellhead pressure that injects its flow less ``nominal_wellhead_pressure`` as the best
+      suction, floored at zero (the injection well and aquifer of the case, ``gm.analysis``'s
+      ``solve_injection_pressure``). A pump that serves no doublet of the plant, such as the one
+      of a ``NodalDoublet``, or whose doublet lacks a depth or a wellhead pressure, is left
+      unsized with a note. A rated pump that has neither a ``pressure_setpoint`` nor head
+      curves gets the setpoint too: the wellhead pressure that injects that flow (geomind
+      QA-287), so a plant without one runs once sized;
+
+    The heat pump share assumes an ideal exchanger: a finite approach leaves the water colder at
+    the heat pump, which a boiler downstream makes up; a plant with a heat pump and no boiler may
+    then fall short of its supply temperature at the peak.
+
+    A size that is not computed for a module kind (``chp``, ``heat_exchanger``, a heat pump that
+    is not needed) leaves it unchanged and lists it. The sized plant is then simulated once on the
+    case and every requirement it breaks is listed: size never hides an infeasible start.
+
+    The plant states the design policy of the top-up units in ``params.backup``, which has no
+    default (a plant without it raises ``missing_value`` naming the path):
+
+    - ``"none"``: a boiler covers only the heat the doublets cannot reach, the larger of the step
+      of the heating plus the drive heat of the sorption chillers less the heat of the doublets at
+      their limits and the part of it that the reservoir temperature cannot reach; a plant
+      without doublets gets the peak;
+    - ``"peak"``: a boiler covers the whole heating plus drive heat of the sorption chillers (the
+      unit that draws heat from the boiler) at the step where they peak together, with the
+      doublets off, so that it carries the peak when a doublet is out.
+
+    ``gm.check`` runs first and raises its issues, except the parameters of the plant that have
+    no value: completing a template plant is what ``size`` is for.
+
+    Parameters
+    ----------
+    plant : Plant
+        A plant with parameter values and its ``backup``.
+    case : Case
+        The demand, the requirements on each doublet (a maximum production flow and brine cooling),
+        the reservoir and the fluid.
+
+    Returns
+    -------
+    Plant
+        A new plant. Its attribute ``sizing`` holds the notes: ``{"sized": [...], "unchanged":
+        [...], "broken": [...], "simulation": str}``. Each size is ``{path, value, reason}`` with a
+        ``Quantity`` value, each unit left unchanged ``{path, reason}``, each broken requirement
+        ``{unit_path, role, quantity, value, limit, worst_step}`` as ``gm.evaluate.requirements``
+        gives it, and ``simulation`` says ``simulated``, or ``not simulated: <code>: <reason>``
+        when the sized plant cannot run (a value it still lacks, a design the case refuses).
+
+    Raises
+    ------
+    ValidationError
+        ``missing_value`` naming ``params.backup`` or the path of what a size needs and the case or
+        plant lacks; ``invalid_design`` for a
+        plant that has doublets but whose class takes no structural size ``doublets``.
+    """
+    backup = _policy(plant)
+    _checked(plant, case)
+    require(case, "demand")
+    notes = {"sized": [], "unchanged": []}
+    design, cover = deepcopy(plant), 0.0
+    if units_of(plant, "doublet"):
+        design, cover = _doublets(plant, case, _peak(case, "heating"), notes)
+    _capacities(design, case, notes, backup, cover)
+    _injection_pumps(design, case, notes)
+    _check(design, case, notes)
+    design.sizing = notes
+    return design

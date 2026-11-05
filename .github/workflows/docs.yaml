@@ -17,30 +17,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.11"
-    - name: Install dependencies
+    - uses: actions/checkout@v5
+    - uses: astral-sh/setup-uv@v7
+    - name: Install Python 3.14, the package and the docs tools
       run: |
-        ./ci/linux/run_installation.sh
+        uv venv --python 3.14
+        uv pip install -e . --group docs
+        echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
     - name: Build documentation
-      env:
-        DOCS_VERSION: ${{ github.ref_name }}
       run: |
-        poetry run sphinx-build -M html ./src/gemini_documentation/source ./src/gemini_documentation/build --fail-on-warning
-    - name: Compute docs destination
-      id: docs_destination
-      shell: bash
-      run: |
-        BRANCH="${GITHUB_REF_NAME}"
-        SAFE_BRANCH="${BRANCH//\//-}"
-        echo "destination=${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
+        sphinx-build -W -b html docs docs/_build/html
     - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./src/gemini_documentation/build/html
-        destination_dir: ${{ steps.docs_destination.outputs.destination }}
+        publish_dir: ./docs/_build/html
+        destination_dir: main
         keep_files: true

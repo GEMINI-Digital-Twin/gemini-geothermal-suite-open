@@ -1,0 +1,74 @@
+{
+  "BoilerChpPlant": {
+    "boiler_gas.composition": {
+      "value": {
+        "CH4": 0.8249507401227822,
+        "C2H6": 0.039549858193534584,
+        "C3H8": 0.012748086337494389,
+        "CO2": 0.011912342910726407,
+        "N2": 0.11083897243546233
+      }
+    },
+    "chp_gas.composition": {
+      "value": {
+        "CH4": 0.8249507401227822,
+        "C2H6": 0.039549858193534584,
+        "C3H8": 0.012748086337494389,
+        "CO2": 0.011912342910726407,
+        "N2": 0.11083897243546233
+      }
+    },
+    "air.pressure": {
+      "value": 1.01325,
+      "unit": "bar"
+    }
+  },
+  "CoolingSubstation": {
+    "consumer.maximum_return_temperature": {
+      "value": 18,
+      "unit": "degC"
+    },
+    "consumer.dew_point_margin": {
+      "value": 1,
+      "unit": "K"
+    }
+  },
+  "DistrictEnergyPlant": {
+    "heating.substations.0.consumer.minimum_return_temperature": {
+      "value": 30,
+      "unit": "degC"
+    },
+    "heating.substations.1.consumer.minimum_return_temperature": {
+      "value": 30,
+      "unit": "degC"
+    },
+    "cooling.substations.0.consumer.maximum_return_temperature": {
+      "value": 19,
+      "unit": "degC"
+    },
+    "cooling.substations.0.consumer.dew_point_margin": {
+      "value": 1,
+      "unit": "K"
+    },
+    "air.pressure": {
+      "value": 1.01325,
+      "unit": "bar"
+    }
+  },
+  "DistrictNetwork": {
+    "substations.0.consumer.minimum_return_temperature": {
+      "value": 30,
+      "unit": "degC"
+    },
+    "substations.1.consumer.minimum_return_temperature": {
+      "value": 30,
+      "unit": "degC"
+    }
+  },
+  "HeatingSubstation": {
+    "consumer.minimum_return_temperature": {
+      "value": 30,
+      "unit": "degC"
+    }
+  }
+}

@@ -1,0 +1,204 @@
+"""Space or process heat demand on a hydronic circuit with a steady first-law balance."""
+
+from gemini import ops
+from gemini.errors import ValidationError
+from gemini.modules._utils.flow import require_forward
+from gemini.modules.declarations import Boundary, Control, Output, Parameter, Port
+from gemini.modules.module import Module
+from gemini.physics import heat_transfer
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import MassFlow, Power, Pressure, Temperature
+
+
+class HeatingGrid(Module):
+    """Heat consumer that cools the supply stream by the delivered heat demand.
+
+    The circuit's mass flow is imposed by the supply stream (the consumer has no flow control),
+    so the return temperature follows from the delivered heat:
+
+    Q_available = m_dot cp max(0, T_supply - T_return,min)
+    Q = min(heat_demand, Q_available)
+    T_return = T_supply - Q / (m_dot cp)
+
+    The return temperature is floored at ``minimum_return_temperature``, the lowest
+    temperature the consumer's emitters or process heat exchanger can cool the water to (for
+    example the space temperature plus an emitter approach, or a legionella or process limit).
+    Demand beyond ``Q_available`` is ``unmet_demand``. A supply colder than the minimum return
+    temperature delivers nothing and returns unchanged; the consumer never heats the water.
+
+    The return pressure and the return-temperature floor are conditions of the consumer: the case
+    gives them (``demand.heating``), a plant does not.
+
+    On a closed loop ``return_temperature``, ``return_pressure`` and the control ``flow`` set the
+    return water: ``return_out`` is offered before the other modules run, the heat delivered is the
+    fall of the water from ``supply_in`` to ``return_out``, what is short of ``heat_demand`` is
+    ``unmet_demand``, never an error, and what the water gives above it is ``surplus``. Bind
+    ``heat_demand`` to a ``gm.case.from_csv`` column. Without them the return follows from
+    the demand, as in a substation.
+
+    Simplifications: steady state without circuit inventory, constant fluid properties (the
+    inlet ``cp``), no pressure drop (pipes and valves carry the hydraulics) and no emitter
+    characteristic: whether the emitters can actually transfer ``heat_demand`` at the given
+    temperatures is the caller's assumption, bounded only by the return floor. There is no
+    design return temperature parameter, because with an imposed flow it would not change the
+    result. Mass is conserved and the model is first-law closed: the sensible enthalpy drop of
+    the stream equals ``heat_supplied``. Valid for liquid water, brine or glycol circuits at any
+    temperature above freezing, with nonnegative flow.
+
+    Reference: the steady hydronic heat balance Q = m_dot cp (T_supply - T_return), ASHRAE
+    Handbook - HVAC Systems and Equipment (2020), chapter 13, "Hydronic heating and cooling".
+    """
+
+    bypass = {}
+    """Removable: a demand the plant may decline to serve, with its branch."""
+
+    plant_role = "heating_supply"
+
+    def __init__(self):
+        """Declare the consumer's return limit, demand boundary and delivered heat."""
+        super().__init__()
+        self.fluid = WATER
+
+        # Parameters
+        self.minimum_return_temperature = Parameter(
+            Temperature | None,
+            default=None,
+            case="demand.heating.minimum_return_temperature",
+            description=(
+                "Lowest temperature the consumer can cool the water to; empty takes it from the "
+                "case"
+            ),
+        )
+        self.return_temperature = Parameter(
+            Temperature | None,
+            default=None,
+            structural=True,
+            case="demand.heating.return_temperature",
+            description="Return temperature of the heating circuit; empty takes it from the case",
+        )
+        self.minimum_supply_temperature = Parameter(
+            Temperature | None,
+            default=None,
+            case="demand.heating.supply_temperature",
+            description=(
+                "Lowest supply temperature at which the heat demand is served; empty takes it from "
+                "the case"
+            ),
+        )
+        self.return_pressure = Parameter(
+            Pressure | None,
+            default=None,
+            case="demand.heating.return_pressure",
+            description=(
+                "Pressure of the stream leaving the consumer; empty takes it from the case"
+            ),
+        )
+
+        # Inlets
+        self.supply_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.HOT, flow=Flow.IMPOSED
+        )
+
+        # Controls
+        self.flow = Control(
+            MassFlow | None,
+            default=None,
+            ge=0,
+            description="Mass flow of the heating circuit; empty lets the supply stream impose it",
+        )
+
+        # Boundaries
+        self.heat_demand = Boundary(Power, ge=0, description="Heat demand of the consumer")
+
+        # Outputs
+        self.unmet_demand = Output(Power, description="Heat demand not served")
+        self.surplus = Output(Power, description="Heat offered beyond the demand")
+        self.is_unmet = Output(bool, description="True when the demand was not fully served")
+
+        # Outlets
+        self.return_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.HOT,
+            flow=Flow.IMPOSED,
+            offered=True,
+        )
+
+    def forward(self, inputs, inlets, state):
+        """Return the supply stream cooled by the delivered heat."""
+
+        # Outlets
+        supply_in = inlets.supply_in
+        if self.return_temperature is None:
+            delivered = self._delivered_heat(inputs, supply_in)
+            return_out = supply_in._with_si(T=self._cooled_temperature(supply_in, delivered))
+        else:
+            return_out = self._offer(inputs, inlets, state)["return_out"]
+            delivered = heat_transfer.heat_rate(
+                supply_in.heat_capacity_rate(), supply_in.T - return_out.T
+            )
+
+        # Outputs
+        unmet_demand = ops.maximum(inputs["heat_demand"] - delivered, 0.0)
+        outputs = dict(
+            unmet_demand=unmet_demand,
+            surplus=ops.maximum(delivered - inputs["heat_demand"], 0.0),
+            is_unmet=unmet_demand > 0,
+        )
+
+        outlets = dict(return_out=return_out)
+        return outputs, outlets
+
+    def _loop_start(self, inputs, port, entering):
+        """Start a building loop at the lowest return temperature."""
+        return self.minimum_return_temperature
+
+    def _offers(self):
+        """Offer only on a closed loop; otherwise the outlet follows from the inlet."""
+        return self.return_temperature is not None
+
+    def _offer(self, inputs, inlets, state):
+        """Offer the return water of a closed loop, at the fixed temperature and the given flow."""
+        if (
+            self.return_temperature is None
+            or self.return_pressure is None
+            or inputs["flow"] is None
+        ):
+            raise ValidationError(
+                f"{self.path}: return_temperature, return_pressure and flow are needed to offer "
+                "return_out; expected all three on a closed loop",
+                code="invalid_design",
+            )
+        offered = Stream._si(
+            m_dot=inputs["flow"],
+            T=self.return_temperature,
+            p=self.return_pressure,
+            fluid=self.fluid,
+        )
+        return {"return_out": offered}
+
+    def _cooled_temperature(self, supply_in, delivered):
+        """Return the return temperature [K] after the users took ``delivered`` [W]."""
+        capacity_rate = supply_in.heat_capacity_rate()
+        cooled = ops.maximum(
+            self.minimum_return_temperature,
+            supply_in.T - heat_transfer.temperature_change(delivered, capacity_rate),
+        )
+        return ops.where(delivered == 0, supply_in.T, cooled)
+
+    def _delivered_heat(self, inputs, supply_in):
+        """Return the delivered heat [W]: the demand, capped by the return-temperature floor."""
+        require_forward(self.path, "supply_in.m_dot", supply_in.m_dot)
+        if self.minimum_return_temperature is None:
+            raise ValidationError(
+                f"{self.path}: minimum_return_temperature = None; expected a value without a "
+                "return_temperature",
+                code="missing_value",
+            )
+        available = heat_transfer.setpoint_duty(
+            supply_in.heat_capacity_rate(), supply_in.T - self.minimum_return_temperature
+        )
+        return ops.minimum(inputs["heat_demand"], available)

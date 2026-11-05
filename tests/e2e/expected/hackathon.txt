@@ -1,0 +1,35 @@
+Ranking with the rules of the brief only (no pump intake limits)
+                               lcts [EUR/MWh]  co2 [kt]  rank_lcts  rank_co2  pareto  feasible
+HackathonPlant                          44.25     13.05          4         4   False      True
+HeatingAbsorptionCoolingPlant            50.5     20.96          5         5   False      True
+HeatingCoolingPlant                     42.54     10.34          3         2   False      True
+HeatingFullCoolingPlant                 40.29     9.651          1         1    True      True
+HeatingHeatPumpCoolingPlant             40.34      12.9          2         3   False      True
+HeatingPlant                            29.41     7.605          6         6   False     False
+Pareto front of the feasible designs: ['HeatingFullCoolingPlant']
+
+Ranking with the pump intake limits of standard stages
+HackathonPlant: 80 trials, feasible True, []
+HeatingAbsorptionCoolingPlant: 135 trials, feasible True, []
+HeatingCoolingPlant: 240 trials, feasible True, []
+HeatingFullCoolingPlant: 135 trials, feasible True, []
+HeatingHeatPumpCoolingPlant: 240 trials, feasible True, []
+HeatingPlant: 120 trials, feasible False, ['cold_delivered']
+                               lcts [EUR/MWh]  co2 [kt]  rank_lcts  rank_co2  pareto  feasible
+HackathonPlant                          44.25     13.05          3         3   False      True
+HeatingAbsorptionCoolingPlant            50.5     20.96          4         4   False      True
+HeatingCoolingPlant                     42.54     10.34          2         1    True      True
+HeatingFullCoolingPlant                 55.57     22.16          5         5   False      True
+HeatingHeatPumpCoolingPlant             40.34      12.9          1         2    True      True
+HeatingPlant                            29.79     7.827          6         6   False     False
+Pareto front of the feasible designs: ['HeatingCoolingPlant', 'HeatingHeatPumpCoolingPlant']
+                           parameter metric  low  high value_unit  at_low  at_high  effect     unit
+0          case.site.ground.gradient   lcts   25    35       K/km   47.16    33.76    13.4  EUR/MWh
+1  case.economics.energy.electricity   lcts   80   140    EUR/MWh   36.87    44.97   8.101  EUR/MWh
+2        case.economics.carbon.price   lcts   30   110      EUR/t   37.77    45.39   7.621  EUR/MWh
+3          case.economics.energy.gas   lcts   25    70    EUR/MWh   37.87    45.33   7.467  EUR/MWh
+4       case.economics.discount_rate   lcts 0.02  0.08          -   37.02    44.17   7.151  EUR/MWh
+5   case.site.reservoir.permeability   lcts  100   400         mD   41.92    39.58   2.337  EUR/MWh
+Draws of the best design: 5
+lcts  mean    44.56  p5    40.85  p95    49.41 EUR/MWh
+co2   mean    13.83  p5    12.54  p95    15.22 kt

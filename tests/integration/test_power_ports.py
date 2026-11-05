@@ -1,0 +1,348 @@
+"""Ports that carry a power, ``many`` ports and connections whose taker decides the flow."""
+
+import numpy as np
+import pytest
+
+import gemini as gm
+from gemini._utils import registry
+from gemini.compiler.run import run
+from gemini.errors import ValidationError
+from gemini.modules import Module, Port
+from gemini.modules.declarations import Output, Parameter
+from gemini.physics import energy
+from gemini.streams.energy import Energy
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import Power
+from tests.fixtures.designs import with_values
+
+STREAM = gm.Stream(
+    fluid=BRINE,
+    m_dot=gm.units.Quantity(2.0, "kg/s"),
+    T=gm.units.Quantity(300.0, "K"),
+    p=gm.units.Quantity(2e5, "Pa"),
+)
+
+
+class Consumer(Module):
+    """Pass the stream on and draw ``rating`` of electricity per kg/s."""
+
+    category = "pumps"
+
+    abstract = True
+
+    def __init__(self):
+        """Declare the rating and the ports."""
+        super().__init__()
+
+        # Parameters
+        self.rating = Parameter(Power)
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
+
+        # Outputs
+        self.drawn = Output(Power)
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+
+    def forward(self, inputs, inlets, state):
+        """Draw what the flow needs."""
+
+        # Outlets
+        power_in = energy.total_power([self.rating * inlets.fluid_in.m_dot])
+
+        outputs = dict(drawn=power_in)
+        outlets = dict(fluid_out=inlets.fluid_in, power_in=power_in)
+        return outputs, outlets
+
+
+class Bus(Module):
+    """Take what its consumers draw and what a source gives, and report the balance."""
+
+    category = "power"
+
+    abstract = True
+
+    def __init__(self):
+        """Declare both sides of the bus."""
+        super().__init__()
+
+        # Inlets
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.IMPOSED, many=True)
+
+        # Outputs
+        self.net = Output(Power)
+
+        # Outlets
+        self.power_out = Port(Direction.OUT, energy=Energy.ELECTRICITY, flow=Flow.DRAWN, many=True)
+
+    def forward(self, inputs, inlets, state):
+        """Nothing leaves but what its takers draw."""
+
+        outlets = dict()
+        net = energy.total_power(inlets.power_out) - energy.total_power(inlets.power_in)
+        outputs = dict(net=net)
+        return outputs, outlets
+
+
+class Source(Module):
+    """A source whose stream exists before the other modules run."""
+
+    category = "piping"
+
+    abstract = True
+
+    def __init__(self):
+        """Declare the offer and the return side."""
+        super().__init__()
+
+        # Parameters
+        self.temperature = Parameter(float)
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+
+        # Outputs
+        self.back = Output(float)
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.ANY,
+            level=Level.ANY,
+            flow=Flow.IMPOSED,
+            offered=True,
+        )
+
+    def _offer(self, inputs, inlets, state):
+        return {
+            "fluid_out": gm.Stream(
+                fluid=BRINE,
+                m_dot=gm.units.Quantity(1.0, "kg/s"),
+                T=gm.units.Quantity(self.temperature, "K"),
+                p=gm.units.Quantity(1e5, "Pa"),
+            )
+        }
+
+    def forward(self, inputs, inlets, state):
+        """Give the same stream again."""
+
+        # Outlets
+        fluid_out = self._offer(inputs, inlets, state)["fluid_out"]
+
+        outputs = dict(back=inlets.fluid_in.m_dot)
+        outlets = dict(fluid_out=fluid_out)
+        return outputs, outlets
+
+
+class Taker(Module):
+    """Take half of what its source offers, at the offered temperature."""
+
+    category = "piping"
+
+    abstract = True
+
+    def __init__(self):
+        """Declare the drawn inlet."""
+        super().__init__()
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.DRAWN
+        )
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+
+    def forward(self, inputs, inlets, state):
+        """Draw half of the offer."""
+
+        # Outlets
+        taken = inlets.fluid_in._with_si(m_dot=inlets.fluid_in.m_dot / 2)
+
+        outlets = dict(fluid_out=taken, fluid_in=taken)
+        return dict(), outlets
+
+
+class Offer(Module):
+    """A source whose takers decide how much it gives."""
+
+    category = "piping"
+
+    abstract = True
+
+    def __init__(self):
+        """Declare the drawn offer."""
+        super().__init__()
+
+        # Outputs
+        self.taken = Output(float)
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT,
+            fluid=Fluid.ANY,
+            phase=Phase.ANY,
+            level=Level.ANY,
+            flow=Flow.DRAWN,
+            offered=True,
+        )
+
+    def _offer(self, inputs, inlets, state):
+        return {
+            "fluid_out": gm.Stream(
+                fluid=BRINE,
+                m_dot=gm.units.Quantity(8.0, "kg/s"),
+                T=gm.units.Quantity(320.0, "K"),
+                p=gm.units.Quantity(1e5, "Pa"),
+            )
+        }
+
+    def forward(self, inputs, inlets, state):
+        """Nothing to give but the offer."""
+
+        outputs = dict(taken=inlets.fluid_out.m_dot)
+        outlets = dict()
+        return outputs, outlets
+
+
+def consumer(rating):
+    """Return a consumer of ``rating`` W per kg/s."""
+    return Consumer().set_params("", {"rating": gm.units.Quantity(rating, "W")})
+
+
+def wired():
+    """Return a plant of two consumers on one bus, fed through the plant port ``feed``."""
+    plant = gm.Plant("Wired")
+    plant.add(Consumer, "first", {"rating": gm.units.Quantity(10.0, "W")})
+    plant.add(Consumer, "second", {"rating": gm.units.Quantity(30.0, "W")})
+    plant.add(Bus, "bus")
+    plant.connect("feed", "first.fluid_in")
+    plant.connect("first.fluid_out", "second.fluid_in")
+    plant.connect("second.fluid_out", "product")
+    plant.connect("bus.power_out", "first.power_in")
+    plant.connect("bus.power_out", "second.power_in")
+    return plant
+
+
+@pytest.fixture(autouse=True)
+def classes(monkeypatch):
+    """Register the test modules for the plants of this file."""
+    for cls in (Consumer, Bus, Source, Taker, Offer):
+        entry = registry._Entry(cls.category, module=cls)
+        monkeypatch.setitem(registry._entries, cls.__name__, entry)
+
+
+def test_a_consumer_decides_what_its_inlet_carries():
+    """A direct call needs no power: the module gives it and the result shows it."""
+    result = consumer(10.0)(fluid_in=STREAM)
+    assert result.inlets.power_in == result.outputs.drawn == 20.0
+
+
+def test_a_many_port_holds_what_its_takers_drew():
+    """The consumers run before the bus, which receives what each drew."""
+    result = wired()(feed=STREAM)
+    bus = result.children["bus"]
+    assert bus.outlets.power_out == [20.0, 60.0]
+    assert bus.outputs.net == 80.0
+    assert bus.inlets.power_in == []
+
+
+def test_the_same_plant_is_one_graph_on_every_backend():
+    """A power port is traced like a stream; a graph gives the numbers of a direct call."""
+    plant = wired()
+    stream = gm.Stream(
+        fluid=BRINE,
+        m_dot=gm.units.Quantity(np.array([1.0, 2.0]), "kg/s"),
+        T=gm.units.Quantity(300.0, "K"),
+        p=gm.units.Quantity(2e5, "Pa"),
+    )
+    outcome = run(plant, {"feed": stream}, {})
+    assert outcome.breaks == []
+    assert outcome.graph.result.children["bus"].outputs.net is not None
+
+
+def test_a_plant_port_shared_by_two_consumers_gives_their_sum():
+    """Inside a plant the ends of one plant port add up with an explicit function."""
+    plant = gm.Plant("Shared")
+    plant.add(Consumer, "first", {"rating": gm.units.Quantity(10.0, "W")})
+    plant.add(Consumer, "second", {"rating": gm.units.Quantity(30.0, "W")})
+    plant.connect("feed", "first.fluid_in")
+    plant.connect("first.fluid_out", "second.fluid_in")
+    plant.connect("second.fluid_out", "product")
+    plant.connect("power_in", "first.power_in")
+    plant.connect("power_in", "second.power_in")
+    assert plant.to_dict()["inlets"]["power_in"] == ["first.power_in", "second.power_in"]
+    assert plant(feed=STREAM).inlets.power_in == 80.0
+    assert gm.Plant.from_dict(plant.to_dict()).to_dict() == plant.to_dict()
+
+
+def test_a_second_end_is_refused_on_a_plain_stream_port():
+    """A stream port stays one to one; only a power or the air is shared."""
+    plant = gm.Plant("Plain")
+    plant.add("Filter", "first")
+    plant.add("Filter", "second")
+    plant.connect("feed", "first.fluid_in")
+    with pytest.raises(ValidationError, match="already taken"):
+        plant.connect("feed", "second.fluid_in")
+
+
+def test_a_power_port_does_not_fit_a_stream_port():
+    """Connections check the kinds and what the ports carry."""
+    plant = gm.Plant("Mismatch")
+    plant.add(Bus, "bus")
+    plant.add("Filter", "filter")
+    with pytest.raises(ValidationError) as caught:
+        plant.connect("bus.power_out", "filter.fluid_in")
+    assert caught.value.code == "stream_mismatch"
+
+
+def test_a_many_port_may_stay_empty():
+    """A bus without takers is connected; nothing is dangling."""
+    plant = gm.Plant("Idle")
+    plant.add(Bus, "bus")
+    assert plant()
+    assert plant.check() == []
+
+
+def test_an_offered_outlet_closes_a_loop_without_state():
+    """The offer runs first, the loop back to the source is no cycle of the plan."""
+    plant = gm.Plant("Loop")
+    plant.add(Source, "source", {"temperature": 330.0})
+    plant.add("Filter", "filter")
+    plant.connect("source.fluid_out", "filter.fluid_in")
+    plant.connect("filter.fluid_out", "source.fluid_in")
+    with_values(plant)
+    steps = plant._compiled().steps
+    assert [(step.path, step.offer) for step in steps] == [
+        ("source", True),
+        ("filter", False),
+        ("source", False),
+    ]
+    result = plant()
+    assert result.children["source"].outputs.back == 1.0
+    assert result.children["filter"].inlets.fluid_in.T == 330.0
+
+
+def test_a_taker_decides_what_a_drawn_offer_gives():
+    """The taker gets the conditions and returns what it took; the source receives that."""
+    plant = gm.Plant("Drawn")
+    plant.add(Offer, "well")
+    plant.add(Taker, "taker")
+    plant.connect("well.fluid_out", "taker.fluid_in")
+    plant.connect("taker.fluid_out", "product")
+    result = plant()
+    assert result.children["taker"].inlets.fluid_in.m_dot == 4.0
+    assert result.children["well"].outputs.taken == 4.0

@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "about": {},
+    "cases": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "evaluations": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "format": {
+      "const": 1
+    },
+    "kind": {
+      "const": "study"
+    },
+    "method": {
+      "enum": [
+        "run",
+        "minimize",
+        "sample",
+        "sensitivity",
+        "evolve"
+      ]
+    },
+    "metrics": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "name": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "objectives": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      ]
+    },
+    "percentiles": {
+      "items": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "number"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "plants": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "polish": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "population": {
+      "minimum": 2,
+      "type": "integer"
+    },
+    "prepare": {
+      "items": {
+        "enum": [
+          "size"
+        ]
+      },
+      "type": "array"
+    },
+    "samples": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "stop": {
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "generations": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "seconds": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "format",
+    "kind",
+    "name",
+    "cases",
+    "plants",
+    "method"
+  ],
+  "title": "Study",
+  "type": "object"
+}

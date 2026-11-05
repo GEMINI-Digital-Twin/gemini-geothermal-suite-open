@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "columns": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "quantity": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "unit",
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "minProperties": 1,
+      "type": "object"
+    },
+    "time": {
+      "items": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "values": {
+      "additionalProperties": {
+        "items": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "type": "array"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "columns",
+    "time",
+    "values"
+  ],
+  "title": "Demand profile",
+  "type": "object"
+}

@@ -1,0 +1,134 @@
+"""Hydrocyclone desander with a quadratic pressure loss and a constant sand removal share."""
+
+from gemini import ops
+from gemini.errors import PhysicsError
+from gemini.modules._utils.flow import require_forward
+from gemini.modules.declarations import Boundary, Output, Parameter, Port
+from gemini.modules.module import Module
+from gemini.physics import fluid, hydraulics, separation
+from gemini.streams.fluid import Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import Fraction, MassConcentration, MassFlow, PressureDifference
+
+
+class Desander(Module):
+    """Hydrocyclone desander removing a constant share of the produced sand.
+
+    Hydrocyclones separate solids centrifugally; their grade efficiency depends on particle
+    size and density relative to the cut size ``d50`` (Svarovsky, 2000, *Solid-Liquid
+    Separation*, 4th ed., chapter "Hydrocyclones"). This model lumps the grade-efficiency curve
+    over the produced size distribution into one constant ``separation_efficiency``, so it does
+    not follow cut-size changes with flow:
+
+    - liquid volume flow ``Q = m_dot * (1 - x_gas) / rho_l``;
+    - ``sand_removal_rate = separation_efficiency * sand_concentration * Q``;
+    - ``residual_sand_concentration = (1 - separation_efficiency) * sand_concentration``;
+    - ``pressure_drop = nominal_pressure_drop * (m_dot / nominal_mass_flow) ** 2``, the quadratic
+      law of a fixed-geometry cyclone at constant resistance coefficient (as for ``Filter``).
+
+    ``sand_concentration`` is kg of sand per m3 of liquid at the inlet (1 mg/l = 1 g/m3 =
+    1e-3 kg/m3); the brine brings it from the reservoir, so a run takes it from
+    ``site.fluid.sand_concentration`` of the case. Streams carry no solids, so the liquid mass
+    flow, temperature and fluid pass unchanged and the stream balances close exactly; the removed
+    sand is reported as ``sand_removal_rate`` only. Pressure loss (of the order of 1 bar at design
+    flow) and efficiency are design specific, so all three design values are required. Valid for
+    forward flow with a loss below the inlet pressure; otherwise ``PhysicsError`` is raised.
+    """
+
+    def __init__(self):
+        """Declare desander design data, ports, sand boundary and outputs."""
+        super().__init__()
+
+        # Parameters
+        self.separation_efficiency = Parameter(
+            Fraction, description="Share removed from the inlet stream"
+        )
+        self.nominal_pressure_drop = Parameter(
+            PressureDifference,
+            ge=0,
+            description="Pressure drop of the hydrocyclone at the nominal mass flow",
+        )
+        self.nominal_mass_flow = Parameter(
+            MassFlow, gt=0, description="Mass flow at which the nominal pressure drop holds"
+        )
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+
+        # Boundaries
+        self.sand_concentration = Boundary(
+            MassConcentration,
+            case="site.fluid.sand_concentration",
+            description="Mass concentration of sand in the produced stream",
+        )
+
+        # Outputs
+        self.pressure_drop = Output(
+            PressureDifference, soft_sensor=True, description="Pressure lost through the desander"
+        )
+        self.sand_removal_rate = Output(
+            MassFlow, soft_sensor=True, description="Mass flow of sand removed"
+        )
+        self.residual_sand_concentration = Output(
+            MassConcentration, description="Mass concentration of sand left in the stream"
+        )
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.BRINE,
+            level=Level.GEOTHERMAL,
+            flow=Flow.IMPOSED,
+        )
+        self.waste_out = Port(
+            Direction.OUT, phase=Phase.LIQUID, fluid=Fluid.WASTE, level=Level.ANY, flow=Flow.IMPOSED
+        )
+
+    def forward(self, inputs, inlets, state):
+        """Apply the quadratic cyclone pressure loss."""
+
+        # Outlets
+        inlet = inlets.fluid_in
+        removed, residual = self._sand(inputs, inlet)
+        drop = self._pressure_drop(inlet)
+        outlet = inlet._with_si(m_dot=inlet.m_dot - removed, p=inlet.p - drop)
+        waste_out = inlet._with_si(m_dot=removed)
+
+        # Outputs
+        outputs = dict(
+            pressure_drop=drop, sand_removal_rate=removed, residual_sand_concentration=residual
+        )
+
+        outlets = dict(fluid_out=outlet, waste_out=waste_out)
+        return outputs, outlets
+
+    def _sand(self, inputs, inlet):
+        """Return the sand removal rate [kg/s] and the residual sand concentration [kg/m3]."""
+        properties = inlet.fluid.properties(inlet.p, inlet.T)
+        liquid_flow = fluid.liquid_volume_flow(inlet.m_dot, properties.gmf, properties.rho_l)
+        return separation.cyclone_sand(
+            self.separation_efficiency, inputs["sand_concentration"], liquid_flow
+        )
+
+    def _pressure_drop(self, inlet):
+        """Return the cyclone loss [Pa], quadratic in forward mass flow."""
+        require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
+        drop = hydraulics.quadratic_pressure_drop(
+            self.nominal_pressure_drop, inlet.m_dot, self.nominal_mass_flow
+        )
+        ops.check(
+            drop <= inlet.p,
+            PhysicsError,
+            "{path}: pressure_drop = {drop} Pa; expected at most fluid_in.p = {pressure} Pa",
+            path=self.path,
+            drop=drop,
+            pressure=inlet.p,
+        )
+        return drop

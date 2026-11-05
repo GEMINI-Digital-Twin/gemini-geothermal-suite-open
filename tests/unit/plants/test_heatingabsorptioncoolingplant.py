@@ -1,0 +1,12 @@
+"""The class of the HeatingAbsorptionCoolingPlant: its example validates and rebuilds."""
+
+import gemini as gm
+from tests.fixtures.sample_cases import template_plant
+
+
+def test_the_example_is_complete_and_rebuilds():
+    """Every port is connected, and the plant dict gives the same plant."""
+    plant = template_plant("HeatingAbsorptionCoolingPlant")
+    assert plant.is_initialized
+    assert plant.check() == []
+    assert gm.Plant.from_dict(plant.to_dict()).to_dict() == plant.to_dict()

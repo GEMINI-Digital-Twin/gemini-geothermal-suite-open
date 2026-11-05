@@ -1,0 +1,15 @@
+Check: ready
+production_flow_range                         ok
+brine_cooling_limit                           ok
+running_time_limit                            ok
+pump_efficiency                               ok
+full_reinjection                              ok
+doublet_count                                 ok
+heat_delivered                                ok
+cold_delivered                                ok
+heating_supply_temperature                    ok
+cooling_supply_temperature                    ok
+Heat delivered         691.69 MWh
+Cold delivered          54.85 MWh
+LCTS                    59.29 EUR/MWh
+CO2                     56.81 t

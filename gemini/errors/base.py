@@ -1,0 +1,256 @@
+"""The seven error classes, the warning, the fixed lists of codes and the shape of a problem."""
+
+from dataclasses import dataclass
+
+CODES = (
+    "error",
+    "invalid_value",
+    "conflicting_value",
+    "out_of_bounds",
+    "missing_value",
+    "no_value",
+    "missing_assumption",
+    "invalid_unit",
+    "unknown_name",
+    "duplicate_name",
+    "unknown_port",
+    "invalid_call",
+    "invalid_format",
+    "old_format",
+    "migration_failed",
+    "invalid_connection",
+    "stream_mismatch",
+    "generic_conflict",
+    "ambiguous_port",
+    "port_in_use",
+    "unconnected_port",
+    "root_plant_port",
+    "invalid_binding",
+    "missing_column",
+    "invalid_data",
+    "inputs_missing",
+    "invalid_design",
+    "invalid_definition",
+    "out_of_range",
+    "no_convergence",
+    "loop_not_converged",
+    "missing_chemistry",
+    "too_little_data",
+    "clock",
+    "checkpoint",
+    "step",
+    "cancelled",
+    "not_implemented",
+    "deprecated",
+)
+"""Every value of ``GeminiError.code``; the backend puts them into ``422`` details."""
+
+ROW_CODES = {
+    "missing_value": "A bound column has no finite value at this tick; the row was skipped.",
+    "invalid_inlet": "An inlet stream breaks the stream limits; the row failed.",
+    "out_of_bounds": "A control, boundary or output is outside its bounds; the row failed.",
+    "out_of_range": "An input is outside the domain of a correlation; the row failed.",
+    "no_convergence": "An iterative solve did not converge; the row failed.",
+    "module_error": "A module raised any other error; the row failed.",
+}
+"""Every row code of ``Results.errors()`` with its meaning."""
+
+ON_ERROR = ("raise", "record")
+"""The values of ``on_error``, the one argument of a call that can report instead of raising."""
+
+
+def problem(path, code, message, suggestions=(), time=None):
+    """Return the shape ``{path, code, message, suggestions}`` of every problem as plain JSON.
+
+    A failed run row adds ``time``. The one helper of the shape, here because ``gemini.errors`` is
+    a leaf package and ``to_dict`` returns one; ``gemini.units.shapes`` exports it with the others.
+    """
+    shape = {"path": path, "code": code, "message": str(message), "suggestions": list(suggestions)}
+    return shape if time is None else shape | {"time": time}
+
+
+ISSUE_KINDS = {
+    "missing": "missing_value",
+    "unknown_key": "unknown_name",
+    "unit": "invalid_unit",
+    "out_of_bounds": "out_of_bounds",
+    "not_allowed": "invalid_value",
+    "incompatible": "invalid_value",
+    "coverage": "invalid_data",
+    "deprecated": "deprecated",
+    "warning": "out_of_range",
+}
+"""Every kind of an ``Issue`` with the code its problem carries."""
+
+
+@dataclass(frozen=True)
+class Issue:
+    """One problem found in an input: where, of which kind, what is wrong, and what is accepted.
+
+    ``kind`` is a key of ``ISSUE_KINDS``; ``deprecated`` marks a warning, which ``raise_issues``
+    leaves out. ``quantity`` and ``accepted`` name the quantity of a value and the units it
+    accepts, ``suggestions`` the closest valid names. ``code`` overrides the code of the kind
+    (``old_format`` for a file of an older shape). ``problem`` gives the shape
+    ``{path, code, message, suggestions}`` of every error, so an issue is also a problem.
+    """
+
+    path: str
+    kind: str
+    message: str
+    quantity: str | None = None
+    accepted: tuple = ()
+    suggestions: tuple = ()
+    code: str | None = None
+
+    def __post_init__(self):
+        """Refuse a kind or a code that does not exist."""
+        if self.kind not in ISSUE_KINDS:
+            raise GeminiError(f"Issue: kind = {self.kind!r}; expected one of {list(ISSUE_KINDS)}")
+        if self.code is not None and self.code not in CODES:
+            raise GeminiError(f"Issue: code = {self.code!r}; expected one of CODES")
+
+    @property
+    def is_warning(self):
+        """Whether this issue is a warning (kind ``deprecated`` or ``warning``): never a refusal."""
+        return self.kind in ("deprecated", "warning")
+
+    def problem(self):
+        """Return the problem ``{path, code, message, suggestions}`` of this issue.
+
+        A unit issue adds ``quantity`` (the quantity names, ``" or "`` between them) and
+        ``accepted`` (the units the value takes), so a caller need not read them from the message
+        (gemini request 34).
+        """
+        code = self.code or ISSUE_KINDS[self.kind]
+        shape = problem(self.path, code, self.message, self.suggestions)
+        if self.quantity is None and not self.accepted:
+            return shape
+        extra = {"quantity": self.quantity} if self.quantity is not None else {}
+        return shape | extra | ({"accepted": list(self.accepted)} if self.accepted else {})
+
+
+class GeminiError(Exception):
+    """Base class of every error GEMINI raises on purpose; catch it to handle them all.
+
+    ``path`` says where the problem is (a dotted module path or a path into a data),
+    ``suggestions`` lists close valid names and ``code`` is one of ``CODES``, by default the
+    class attribute. ``to_dict`` gives the JSON form used in ``422`` details and tool results.
+    ``problems`` lists every problem as such a dictionary: all of them when the error comes from
+    several, the one of ``to_dict`` otherwise.
+    """
+
+    code = "error"
+    path = None
+    suggestions = ()
+
+    def __init__(self, *args, path=None, code=None, suggestions=(), problems=()):
+        """Keep the message and the optional location, code, close-match names and problems."""
+        super().__init__(*args)
+        if code is not None:
+            if code not in CODES:
+                raise GeminiError(f"GeminiError: code = {code!r}; expected one of CODES")
+            self.code = code
+        if path is not None:
+            self.path = path
+        if suggestions:
+            self.suggestions = tuple(suggestions)
+        self._problems = list(problems)
+
+    @property
+    def problems(self):
+        """Every problem of this error, the list ``on_error="record"`` returns."""
+        return self._problems or [self.to_dict()]
+
+    def to_dict(self):
+        """Return the problem ``{path, code, message, suggestions}`` as plain JSON."""
+        return problem(self.path, self.code, self, self.suggestions)
+
+
+class GeminiWarning(UserWarning):
+    """Base class of every warning GEMINI emits."""
+
+
+class ValidationError(GeminiError, ValueError):
+    """Wrong input: a value, a dict, a binding, a unit or an unknown name."""
+
+    code = "invalid_value"
+    issues = ()
+
+    @classmethod
+    def of(cls, problems):
+        """Return the one error of a non-empty list of problems, carried in ``problems``."""
+        first = problems[0]
+        message = "; ".join(
+            f"{item['path']}: {item['message']}" if item["path"] else item["message"]
+            for item in problems
+        )
+        return cls(
+            message,
+            path=first["path"],
+            code=first["code"],
+            suggestions=first["suggestions"],
+            problems=problems,
+        )
+
+    @classmethod
+    def from_issues(cls, issues):
+        """Return the one error of a non-empty list of ``Issue``, which it keeps in ``issues``."""
+        error = cls.of([issue.problem() for issue in issues])
+        error.issues = tuple(issues)
+        return error
+
+
+class DefinitionError(GeminiError):
+    """A module class written wrongly: declarations, children, hooks, formulas or outlets."""
+
+    code = "invalid_definition"
+
+
+class PhysicsError(GeminiError):
+    """Out of range, no convergence, missing chemistry or too little data."""
+
+    code = "out_of_range"
+
+
+class RunError(GeminiError):
+    """A dataset, a clock, a checkpoint or a step of a run failed."""
+
+    code = "step"
+
+
+class Cancelled(GeminiError):
+    """A callback stopped a run; the ticks already committed stay readable."""
+
+    code = "cancelled"
+
+
+class NotImplementedYet(GeminiError):
+    """The name is final but its work lands in a later step."""
+
+    code = "not_implemented"
+
+
+def check_on_error(on_error):
+    """Refuse a value of ``on_error`` other than ``"raise"`` and ``"record"``."""
+    if on_error not in ON_ERROR:
+        raise ValidationError(
+            f"on_error = {on_error!r}; expected 'raise' or 'record'", path="on_error"
+        )
+
+
+def reported(problems, on_error):
+    """Return ``problems`` under ``on_error="record"``; else raise them, if there are any."""
+    check_on_error(on_error)
+    if problems and on_error == "raise":
+        raise ValidationError.of(problems)
+    return problems
+
+
+def raise_issues(issues):
+    """Raise the ``ValidationError`` that carries every issue of the list, if there are any.
+
+    A warning (``Issue.is_warning``) is not among the issues that are raised.
+    """
+    refused = [item for item in issues if not item.is_warning]
+    if refused:
+        raise ValidationError.from_issues(refused)

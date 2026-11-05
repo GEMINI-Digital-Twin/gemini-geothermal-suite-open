@@ -1,0 +1,152 @@
+"""Fits of model parameters to measurements."""
+
+import json
+
+import numpy as np
+import pytest
+
+import gemini as gm
+from gemini import analysis, units
+from gemini.analysis.fits import pump_curve
+from gemini.errors import PhysicsError, ValidationError
+from gemini.physics import pumps
+from tests.fixtures.errors import raises
+
+BAR = 1e5
+CURVE = [83.08389282, -0.000460444, -1.19e-07, 1.69e-11, -6.36e-16, 6.69e-21]
+
+
+def test_fit_head_coefficients_recovers_the_curve():
+    """A fit of synthetic heads predicts a withheld point of the same curve."""
+    flows = np.linspace(0.01, 0.06, 20)
+    frequencies = np.linspace(40, 60, 20)
+    heads = [pumps.head(q, f, 12, CURVE) for q, f in zip(flows, frequencies)]
+    fitted = analysis.fit_head_coefficients(flows, frequencies, heads, 12)["value"]
+    assert pumps.head(0.037, 53, 12, fitted) == pytest.approx(
+        pumps.head(0.037, 53, 12, CURVE), rel=1e-9
+    )
+
+
+def test_fit_head_coefficients_refuses_too_few_or_invalid_observations():
+    """Fewer than six points, repeated flows or a nonpositive frequency are insufficient."""
+    with raises(PhysicsError, "too_little_data", match="six matching"):
+        analysis.fit_head_coefficients([1, 2], [50, 50], [1, 2], 12)
+    with raises(PhysicsError, "too_little_data", match="six distinct"):
+        analysis.fit_head_coefficients([0.01] * 6, [50] * 6, list(range(6)), 12)
+    with raises(PhysicsError, "too_little_data", match="finite positive"):
+        analysis.fit_head_coefficients([0.01] * 6, [0] * 6, list(range(6)), 12)
+
+
+def test_fit_head_correction_is_the_least_squares_line():
+    """Exact points give the slope and the offset of their line."""
+    fitted = analysis.fit_head_correction([1, 2, 3], [3, 5, 7])
+    assert fitted["slope"]["value"] == pytest.approx(2) and fitted["slope"]["unit"] == "-"
+    assert fitted["offset"]["value"] == pytest.approx(1) and fitted["offset"]["unit"] == "Pa"
+    with raises(PhysicsError, "too_little_data", match="distinct"):
+        analysis.fit_head_correction([1, 1], [3, 5])
+
+
+def test_estimate_reservoir_pressure_finds_the_linear_inflow_pressure():
+    """Points of ``p_bh = p_res + b Q`` give ``p_res`` and an R-squared of one."""
+    flows = np.array([0.01, 0.02, 0.04])
+    estimate = analysis.estimate_reservoir_pressure(flows, 2e7 - 1e8 * flows)
+    assert estimate["pressure"]["value"] == pytest.approx(2e7)
+    assert estimate["pressure"]["unit"] == "Pa"
+    assert estimate["r_squared"]["value"] == pytest.approx(1)
+    with raises(PhysicsError, "too_little_data", match="nonzero"):
+        analysis.estimate_reservoir_pressure([0, 1], [1, 2])
+
+
+STATED = {"cp_hot": 4000, "cp_cold": 4000, "arrangement": "counterflow"}
+
+
+def test_estimate_conductance_is_the_mean_duty_over_the_lmtd():
+    """Equal terminal differences of 40 K give the duty over 40 K."""
+    conductance = analysis.estimate_conductance(350, 340, 300, 310, 10, 10, **STATED)
+    assert conductance["value"] == pytest.approx(10 * 4000 * 10 / 40)
+    assert conductance["unit"] == "W/K"
+    with raises(PhysicsError, "too_little_data", match="agree"):
+        analysis.estimate_conductance(350, 340, 300, 340, 10, 10, **STATED)
+    with raises(ValidationError, "unknown_name", match="arrangement"):
+        analysis.estimate_conductance(
+            350, 340, 300, 310, 10, 10, cp_hot=4000, cp_cold=4000, arrangement="cross"
+        )
+
+
+def test_estimate_conductance_needs_the_heat_capacities_and_the_arrangement():
+    """Nothing is assumed about the fluid or the flow arrangement."""
+    with pytest.raises(TypeError):
+        analysis.estimate_conductance(350, 340, 300, 310, 10, 10)
+
+
+def test_fits_take_units_for_what_has_a_quantity():
+    """The offset and the pressure convert; the slope has no unit to convert."""
+    fitted = analysis.fit_head_correction(
+        [1e5, 2e5, 3e5], [3e5, 5e5, 7e5], units={"pressure": "bar"}
+    )
+    assert fitted["offset"]["unit"] == "bar" and fitted["slope"]["unit"] == "-"
+    flows = np.array([0.01, 0.02, 0.04])
+    estimate = analysis.estimate_reservoir_pressure(
+        flows, 2e7 - 1e8 * flows, units={"pressure": "bar"}
+    )
+    assert estimate["pressure"]["value"] == pytest.approx(200.0)
+    assert estimate["pressure"]["unit"] == "bar"
+    conductance = analysis.estimate_conductance(
+        350, 340, 300, 310, 10, 10, **STATED, units={"thermal_conductance": "W/K"}
+    )
+    assert conductance["unit"] == "W/K"
+    with pytest.raises(ValidationError):
+        analysis.fit_head_coefficients([1], [1], [1], 1, units={"powr": "kW"})
+
+
+def test_pump_curve_starts_at_the_shut_in_head_of_the_polynomial(shared_plant):
+    """At zero flow and 60 Hz the head is the first coefficient times the stages, in Pa."""
+    pump = shared_plant.get_submodule("doublet.esp")
+    curve = pump_curve(shared_plant, "doublet.esp")
+    expected = units.ft_head_to_pa(pump.head_coefficients[0] * pump.stage_count)
+    assert curve["curve"]["flow"]["value"][0] == 0.0
+    assert curve["curve"]["head"]["value"][0] == pytest.approx(expected, rel=1e-12)
+    assert curve["frequency"] == {"value": 60.0, "unit": "Hz"}
+    assert curve["measured"] == [] and curve["correction"]["value"] is None
+
+
+def test_pump_curve_recovers_a_known_correction(shared_plant):
+    """Points measured at 0.9 times the model head plus 1 kPa give the inverse line back."""
+    pump = shared_plant.get_submodule("doublet.esp")
+    points = [
+        {"flow": flow, "frequency": 55.0, "head": 0.9 * pump.head_function(flow, 55.0) + 1000}
+        for flow in (0.02, 0.03, 0.04)
+    ]
+    curve = pump_curve(shared_plant, "doublet.esp", points)
+    assert curve["correction"]["slope"]["value"] == pytest.approx(1 / 0.9, rel=1e-9)
+    assert curve["correction"]["offset"]["value"] == pytest.approx(-1000 / 0.9, rel=1e-9)
+    assert curve["measured"][0]["theoretical_head"]["value"] == pump.head_function(0.02, 55.0)
+
+
+def test_pump_curve_with_one_point_has_no_correction_and_says_why(shared_plant):
+    """One point cannot fix a line; unit strings are read."""
+    point = {
+        "flow": {"value": 150, "unit": "m3/h"},
+        "frequency": {"value": 55, "unit": "Hz"},
+        "head": {"value": 20, "unit": "bar"},
+    }
+    curve = pump_curve(shared_plant, "doublet.esp", [point])
+    assert curve["correction"]["value"] is None
+    assert "two or more" in curve["correction"]["reason"]
+    assert curve["measured"][0]["flow"]["value"] == pytest.approx(150 / 3600)
+    assert curve["measured"][0]["head"]["value"] == 20 * BAR
+    json.dumps(curve, allow_nan=False)
+
+
+def test_pump_curve_needs_an_esp(shared_plant):
+    """A path that is not an ESP is refused."""
+    with pytest.raises(gm.errors.ValidationError, match="ESP"):
+        pump_curve(shared_plant, "doublet.well")
+
+
+def test_pump_curve_takes_units(shared_plant):
+    """Head is a pressure difference, reached by ``pressure``."""
+    curve = pump_curve(shared_plant, "doublet.esp", units={"pressure": "bar"})
+    assert curve["curve"]["head"]["unit"] == "bar" and curve["frequency"]["unit"] == "Hz"
+    with raises(gm.errors.ValidationError, "invalid_unit"):
+        pump_curve(shared_plant, "doublet.esp", units={"pressure": "kW"})

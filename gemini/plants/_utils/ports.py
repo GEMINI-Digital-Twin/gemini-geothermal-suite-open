@@ -1,0 +1,243 @@
+"""Which ports a connection joins: the lookups and rules of ``Plant.connect``."""
+
+from gemini._utils.strings import close_matches, did_you_mean, join_names, join_path
+from gemini.errors import ValidationError
+from gemini.modules.declarations import Declaration
+from gemini.modules.module import Module
+from gemini.plants._utils import connections
+from gemini.plants._utils.plan import is_group, members, port_ends, split_end
+
+SIDE_OF = {"source": "outlets", "target": "inlets"}
+
+
+def _connectable(first, second):
+    """Return whether two ports carry the same: the carrier, and each field equal or ``ANY``.
+
+    The direction is not compared: a plant port and the child port it names share one.
+    """
+    return _difference(first, second) is None
+
+
+def _difference(first, second):
+    """Return the first field the two ports carry differently, as text, or ``None``."""
+    if first.carries_stream != second.carries_stream:
+        return f"{_carried(first)} to {_carried(second)}"
+    for name in ("phase", "fluid", "level", "energy"):
+        one, other = first.value_of(name), second.value_of(name)
+        if one is None or other is None or one == other or "any" in (one, other):
+            continue
+        return f"{name} {one} to {other}"
+    return None
+
+
+def _carried(declaration):
+    """Return ``"stream"`` or ``"power"``, what a port carries."""
+    return "stream" if declaration.carries_stream else "power"
+
+
+def _fields_text(declaration):
+    """Return the fields of a port in brackets, as an error names them."""
+    if not declaration.carries_stream:
+        return f"[power, {declaration.value_of('energy')}]"
+    names = [declaration.value_of(name) for name in ("phase", "fluid", "level")]
+    if declaration.generic is not None:
+        names.append(f"generic {declaration.generic}")
+    return f"[{', '.join(names)}]"
+
+
+def _describe_end(candidate):
+    path, port, declaration = candidate
+    return f"{join_path(path, port)} {_fields_text(declaration)}"
+
+
+class PortResolver:
+    """Methods of ``Plant`` that find, check and name ports (needs its ``_connections``)."""
+
+    def _is_port_name(self, value):
+        return isinstance(value, str) and "." not in value and self._find_submodule(value) is None
+
+    def _name_port(self, side, name, end, explicit):
+        field = "target" if side == "inlets" else "source"
+        candidates = self._candidates(end, field, explicit)
+        if len(candidates) != 1:
+            raise self._ambiguous(list(map(_describe_end, candidates)), field)
+        if name in self._listed[side] and self._shareable(candidates[0][2]):
+            return self._join_port(side, name, candidates[0])
+        if name in self._listed[side] or name in self._children:
+            raise ValidationError(
+                f"{name}: plant port name is already taken", path="", code="invalid_connection"
+            )
+        path, port, declaration = candidates[0]
+        own = getattr(self, f"_{side}").get(name)
+        if own is not None and not _connectable(own, declaration):
+            raise ValidationError(
+                f"stream mismatch: plant port {name} {_fields_text(own)} to "
+                f"{_describe_end(candidates[0])}",
+                path=field,
+                code="stream_mismatch",
+            )
+        self._listed[side][name] = (path, port)
+        self._refresh()
+
+    def _join_port(self, side, name, candidate):
+        """Add ``candidate`` to the plant port ``name``, which several ends share."""
+        path, port, _ = candidate
+        kept = self._listed[side][name]
+        self._listed[side][name] = [*port_ends(kept), (path, port)]
+        self._refresh()
+
+    @staticmethod
+    def _shareable(declaration):
+        """Return whether several ends may share a plant port: a power, or air at no flow."""
+        return not declaration.carries_stream or declaration.kind == "air"
+
+    def _candidates(self, value, field, explicit):
+        side = SIDE_OF[field]
+        path, port = self._locate(value, field, explicit)
+        declared = getattr(self.get_submodule(path), side)()
+        if port is not None:
+            return [self._checked(path, port, declared, side, field)]
+        free = [
+            (path, name, item)
+            for name, item in declared.items()
+            if item.many or not self._in_use(path, name, side)
+        ]
+        if not free:
+            code = "port_in_use" if declared else "unknown_port"
+            raise ValidationError(f"{path}: no free {side[:-1]} to connect", path=field, code=code)
+        return free
+
+    def _checked(self, path, port, declared, side, field):
+        if port not in declared:
+            raise ValidationError(
+                f"{join_path(path, port)}: not an {side[:-1]}; valid: {join_names(declared)}"
+                f"{did_you_mean(port, declared)}",
+                path=field,
+                code="unknown_port",
+                suggestions=close_matches(port, declared),
+            )
+        if not declared[port].many and self._in_use(path, port, side):
+            raise ValidationError(
+                f"{join_path(path, port)}: {side[:-1]} is already connected",
+                path=field,
+                code="port_in_use",
+            )
+        return path, port, declared[port]
+
+    def _in_use(self, path, port, side):
+        key = "source" if side == "outlets" else "target"
+        used = {split_end(item[key]) for item in self._connections}
+        named = {end for ends in self._listed[side].values() for end in port_ends(ends)}
+        return (path, port) in used | named
+
+    def _locate(self, value, field, explicit):
+        path, port = self._from_handle(value, field)
+        if not path:
+            paths = [item for item, _ in members(self)]
+            raise ValidationError(
+                f"{value!r}: expected '<module>.<port>' of a module of the plant, such as "
+                f"'{paths[0] + '.' if paths else ''}<port>'; a bare name is no port",
+                path=field,
+                code="invalid_connection",
+                suggestions=close_matches(str(value), paths),
+            )
+        module = self._find_submodule(path)
+        if module is None:
+            paths = [item for item, _ in members(self)]
+            raise ValidationError(
+                f"{value!r}: no module {path!r}{did_you_mean(path, paths)}",
+                path=field,
+                suggestions=close_matches(path, paths),
+                code="unknown_name",
+            )
+        self._check_reach(path, field)
+        if port is None and explicit:
+            free = [f"{path}.{name}" for name in getattr(module, SIDE_OF[field])()]
+            raise ValidationError(
+                f"{value!r}: name a port, one of {join_names(free)}",
+                path=field,
+                code="invalid_connection",
+                suggestions=free,
+            )
+        return path, port
+
+    def _from_handle(self, value, field):
+        if isinstance(value, connections.Suggestion):
+            value = value.port
+        if isinstance(value, Declaration):
+            return self._descendant_path(value.owner) or "", value.name
+        if isinstance(value, Module):
+            return self._descendant_path(value) or "", None
+        if not isinstance(value, str):
+            raise ValidationError(
+                f"{value!r}: expected a module, a port or 'path.port'", path=field
+            )
+        if value and self._find_submodule(value) is not None:
+            return value, None
+        path, _, port = value.rpartition(".")
+        return path, port or None
+
+    def _check_reach(self, path, field):
+        parts = path.split(".")
+        module = self
+        for index, part in enumerate(parts):
+            if index and not is_group(module):
+                prefix = ".".join(parts[:index])
+                raise ValidationError(
+                    f"{path}: reaches into {prefix!r}; use its own ports, one of "
+                    f"{join_names(list(module.inlets()) + list(module.outlets()))}",
+                    path=field,
+                    code="invalid_connection",
+                )
+            module = module._children[part]
+        if is_group(module):
+            raise ValidationError(
+                f"{path}: a group has no ports", path=field, code="invalid_connection"
+            )
+
+    def _choose(self, first, second):
+        pairs = [(a, b) for a in first for b in second if _connectable(a[2], b[2])]
+        if len(pairs) == 1:
+            return pairs[0]
+        if not pairs:
+            reasons = {_difference(a[2], b[2]) for a in first for b in second}
+            raise ValidationError(
+                f"stream mismatch: {', '.join(map(_describe_end, first))} to "
+                f"{', '.join(map(_describe_end, second))}: {'; '.join(sorted(reasons))}",
+                path="target",
+                code="stream_mismatch",
+                suggestions=self._free_fits(first),
+            )
+        raise self._ambiguous([" -> ".join(map(_describe_end, pair)) for pair in pairs], "target")
+
+    def _free_fits(self, ends):
+        """Return the ``"path.port"`` of the free ports that would fit the first of ``ends``."""
+        path, port, declaration = ends[0]
+        return [item.path for item in connections.suggestions(self, path, port, declaration)]
+
+    def _ambiguous(self, listed, field):
+        return ValidationError(
+            f"ambiguous port: {len(listed)} candidates: {'; '.join(listed)}",
+            path=field,
+            code="ambiguous_port",
+            suggestions=listed,
+        )
+
+    def _port_map(self, side):
+        """Return the plant's named ``inlets`` or ``outlets`` as ``{name: (path, port)}``."""
+        return dict(self._listed[side])
+
+    def _unconnected_ports(self):
+        """Return ``(side, path, port)`` of every port with no connection and no plant name."""
+        return [
+            (side, path, port)
+            for side in SIDE_OF.values()
+            for path, module in members(self)
+            for port, declaration in getattr(module, side)().items()
+            if not declaration.many and not self._in_use(path, port, side)
+        ] + [
+            (side, "", name)
+            for side, declared in (("inlets", self._inlets), ("outlets", self._outlets))
+            for name in declared
+            if name not in self._listed[side]
+        ]

@@ -1,0 +1,103 @@
+"""A tank module, a valve and one-row datasets shared by the engine tests."""
+
+import pandas as pd
+
+import gemini as gm
+from gemini.modules import Module, Port
+from gemini.modules.bindings import Binding, ModuleBindings
+from gemini.modules.declarations import Control, Output, Parameter
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import MassFlow, Pressure, Temperature
+
+TIME = pd.Timestamp("2024-01-01", tz="UTC")
+
+
+class Tank(Module):
+    """Leaf passing its inlet through; its mass-flow control may be bound volumetrically."""
+
+    def __init__(self):
+        """Declare a reference state, one stream and a mass-flow control."""
+        super().__init__()
+        self.fluid = BRINE
+
+        # Parameters
+        self.pressure = Parameter(Pressure)
+        self.temperature = Parameter(Temperature)
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+
+        # Controls
+        self.m_dot = Control(MassFlow)
+
+        # Outputs
+        self.flow = Output(MassFlow)
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+
+    def forward(self, inputs, inlets, state):
+        """Pass the inlet stream through."""
+
+        # Outlets
+        outlet = inlets.fluid_in
+
+        outlets = dict(fluid_out=outlet)
+        if inputs["m_dot"] < 0:
+            raise ValueError("negative flow")
+        outputs = dict(flow=inputs["m_dot"])
+        return outputs, outlets
+
+
+class Valve(Module):
+    """Leaf with a mass-flow control but no reference state."""
+
+    def __init__(self):
+        """Declare one control and one output."""
+        super().__init__()
+        self.fluid = BRINE
+
+        # Controls
+        self.m_dot = Control(MassFlow)
+
+        # Outputs
+        self.flow = Output(MassFlow)
+
+    def forward(self, inputs, inlets, state):
+        """Expose no fluid outlets."""
+
+        outlets = dict()
+        outputs = dict(flow=inputs["m_dot"])
+        return outputs, outlets
+
+
+def tank(unit="kg/s"):
+    """Return a configured tank bound to ``rate`` and inlet columns."""
+    module = Tank()
+    module.set_params(
+        "", {"pressure": gm.units.Quantity(2e5, "Pa"), "temperature": gm.units.Quantity(320.0, "K")}
+    )
+    stream = {
+        "m_dot": Binding(column="flow", unit="kg/s"),
+        "p": Binding(column="p", unit="Pa"),
+        "T": Binding(column="T", unit="K"),
+    }
+    module.bindings = {
+        "": ModuleBindings(
+            controls={"m_dot": Binding(column="rate", unit=unit)}, inlets={"fluid_in": stream}
+        )
+    }
+    return module
+
+
+def dataset(**columns):
+    """Return a one-row dataset with the given column values."""
+    return gm.Dataset.from_dict({k: [v] for k, v in columns.items()}, [TIME])
+
+
+ROW = dict(rate=2.0, flow=10.0, p=3e5, T=330.0)

@@ -1,0 +1,276 @@
+"""Reservoir IPR and monitoring checks using example design data."""
+
+import pytest
+
+from gemini.errors import ValidationError
+from gemini.modules import Port
+from gemini.modules.subsurface import InjectionReservoir, ProductionReservoir
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import BRINE, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units import Quantity
+from scripts.legacy import tables as mapping
+from tests.fixtures import OLD_PROJECT, si
+from tests.fixtures.designs import with_values
+from tests.fixtures.equivalence import assert_health_matches, assert_module_matches
+
+
+def test_example_production_and_decline():
+    """The example PI controls drawdown, and a 16% decline raises an alarm."""
+    p = mapping.reservoir_params_from_gemini(
+        mapping.from_property(OLD_PROJECT / "reservoir_c1b5.param"),
+        mapping.from_property(OLD_PROJECT / "production_well_c774.param"),
+    )
+    c = si.set_params(with_values(ProductionReservoir()), "", p)
+    c.fluid = mapping.reservoir_fluid(mapping.from_property(OLD_PROJECT / "reservoir_c1b5.param"))
+    result = c(production_rate=40)
+    out, flow = result.outputs, 40 / 1068
+    assert out.drawdown == pytest.approx(flow / c.productivity_index)
+    pressure = out.bottomhole_pressure
+    assert not c.health(result, dict(flow=flow, bottomhole_pressure=pressure)).alarm
+    assert c.health(result, dict(flow=flow * 0.84, bottomhole_pressure=pressure)).alarm
+
+
+def test_injection_zero_radius_is_explicit():
+    """Unconfigured example drainage radius leaves only radial diagnostics unavailable."""
+    p = mapping.reservoir_params_from_gemini(
+        mapping.from_property(OLD_PROJECT / "reservoir_28fc.param"),
+        mapping.from_property(OLD_PROJECT / "injection_well_a06b.param"),
+        "injection",
+    )
+    c = si.set_params(with_values(InjectionReservoir()), "", p)
+    result = c(
+        sandface_in=Stream(
+            fluid=BRINE, m_dot=Quantity(-40, "kg/s"), T=Quantity(300, "K"), p=Quantity(23e6, "Pa")
+        )
+    )
+    out = result.outputs
+    assert out.bottomhole_pressure > c.pressure
+    assert out.radial_bottomhole_pressure is None
+    assert out.flow_pressure_drop is None and out.skin_pressure_drop is None
+    assert not c.health(
+        result, dict(flow=40 / 1068, bottomhole_pressure=out.bottomhole_pressure)
+    ).alarm
+
+
+def test_ipr_helpers_match_the_call_outputs():
+    """``sandface_stream`` and ``required_pressure`` give the pressures a call reports."""
+    common = dict(
+        temperature=353.15,
+        permeability=1e-12,
+        aquifer_thickness=100,
+        drainage_radius=0,
+        top_depth=2400,
+        wellbore_radius=0.1,
+    )
+    producer = si.set_params(
+        with_values(ProductionReservoir()),
+        "",
+        {
+            "pressure": Quantity(250e5, "Pa"),
+            "productivity_index": Quantity(10 / 3.6e8, "m3/s/Pa"),
+            **common,
+        },
+    )
+    sandface = producer.sandface_stream(40)
+    assert sandface.m_dot == 40 and sandface.T == 353.15
+    assert sandface.p == producer(production_rate=40).outputs.bottomhole_pressure
+    assert sandface.p == pytest.approx(250e5 - 40 / 1000 * 3.6e8 / 10)
+    sink = si.set_params(
+        with_values(InjectionReservoir()),
+        "",
+        {
+            "pressure": Quantity(240e5, "Pa"),
+            "injectivity_index": Quantity(10 / 3.6e8, "m3/s/Pa"),
+            **common,
+        },
+    )
+    arriving = Stream(
+        fluid=BRINE, m_dot=Quantity(-40, "kg/s"), T=Quantity(300, "K"), p=Quantity(230e5, "Pa")
+    )
+    assert (
+        sink.required_pressure(arriving) == sink(sandface_in=arriving).outputs.bottomhole_pressure
+    )
+    assert sink.required_pressure(arriving) == pytest.approx(240e5 + 40 / 1000 * 3.6e8 / 10)
+
+
+ROW = Stream(
+    fluid=BRINE, m_dot=Quantity(1.0, "kg/s"), T=Quantity(300.0, "K"), p=Quantity(1e5, "Pa")
+)
+
+
+class RowCarrier(ProductionReservoir):
+    """A production reservoir with an unused inlet that carries the number of rows."""
+
+    def __init__(self):
+        """Declare the reservoir and the row-carrying inlet."""
+        super().__init__()
+        self.fluid = BRINE
+        self.rows = Port(
+            Direction.IN, fluid=Fluid.ANY, phase=Phase.ANY, level=Level.ANY, flow=Flow.IMPOSED
+        )
+
+
+def _producer(**changes):
+    design = dict(
+        pressure=250e5,
+        temperature=353.15,
+        permeability=1e-12,
+        aquifer_thickness=100,
+        drainage_radius=1000,
+        top_depth=2400,
+        wellbore_radius=0.1,
+        productivity_index=10 / 3.6e8,
+        skin=2,
+        decline_threshold=0.15,
+    )
+    return si.set_params(RowCarrier(), "", design | changes)
+
+
+def test_production_reservoir_matches_traced():
+    """Radial diagnostics, another fluid and several rates equal one call per row."""
+    rows = [dict(rows=ROW, production_rate=rate) for rate in (0.0, 5.0, 40.0, 120.0)]
+    assert_module_matches(_producer(), rows)
+    dense = _producer()
+    dense.fluid = Fluid(density=Quantity(990.0, "kg/m3"), viscosity=Quantity(5e-4, "Pa.s"))
+    assert_module_matches(dense, rows)
+
+
+def test_reservoir_without_drainage_radius_matches_traced():
+    """An unconfigured drainage radius leaves the radial diagnostics undefined on every row."""
+    producer = _producer(drainage_radius=0)
+    assert_module_matches(producer, [dict(rows=ROW, production_rate=rate) for rate in (5.0, 40.0)])
+
+
+def test_injection_reservoir_matches_traced():
+    """Positive and negative sandface flows equal one call per row."""
+    sink = with_values(InjectionReservoir()).set_params(
+        "",
+        {
+            "pressure": Quantity(240e5, "Pa"),
+            "temperature": Quantity(353.15, "K"),
+            "permeability": Quantity(1e-12, "m2"),
+            "aquifer_thickness": Quantity(100, "m"),
+            "drainage_radius": Quantity(1000, "m"),
+            "top_depth": Quantity(2400, "m"),
+            "wellbore_radius": Quantity(0.1, "m"),
+            "injectivity_index": Quantity(10 / 3.6e8, "m3/s/Pa"),
+            "skin": 1,
+        },
+    )
+    rows = [
+        dict(
+            sandface_in=Stream(
+                fluid=BRINE,
+                m_dot=Quantity(m_dot, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(230e5, "Pa"),
+            )
+        )
+        for m_dot in (-40.0, -5.0, 0.0, 20.0)
+    ]
+    assert_module_matches(sink, rows)
+
+
+def test_the_fluid_owns_the_density_and_viscosity():
+    """A reservoir has no density or viscosity of its own: it reads its fluid."""
+    producer = _producer()
+    producer.fluid = Fluid(density=Quantity(990.0, "kg/m3"), viscosity=Quantity(5e-4, "Pa.s"))
+    assert producer(rows=ROW, production_rate=9.9).outputs.drawdown == pytest.approx(
+        0.01 / producer.productivity_index
+    )
+    with pytest.raises(ValidationError):
+        producer.set_params("", {"liquid_density": 990.0})
+
+
+def _health_rows(module, call):
+    """Return results of module(**call) and measurements crossing alarms, clamps, equal pressure."""
+    nominal = module.productivity_index or module.injectivity_index
+    sign = 1 if module.role == "production" else -1
+    pressure = module.pressure
+    measured = [
+        dict(flow=nominal * 1e5 * scale, bottomhole_pressure=pressure - sign * 1e5)
+        for scale in (1.0, 0.9, 0.5, 2.0, -0.3)
+    ]
+    measured.append(dict(flow=0.01, bottomhole_pressure=pressure))
+    return [module(**call) for _ in measured], measured
+
+
+def test_production_health_matches_on_arrays():
+    """Nominal, declining, clamped, reversed and unassessed rows give the same health."""
+    producer = _producer()
+    results, measured = _health_rows(producer, dict(production_rate=5.0, rows=ROW))
+    assert_health_matches(producer, results, measured)
+    assert [producer.health(r, m).alarm for r, m in zip(results, measured)] == [
+        False,
+        False,
+        True,
+        False,
+        True,
+        False,
+    ]
+
+
+def test_injection_health_matches_on_arrays():
+    """The injectivity comparison agrees on arrays, including the unassessed row."""
+    sink = with_values(InjectionReservoir()).set_params(
+        "",
+        {
+            "pressure": Quantity(240e5, "Pa"),
+            "temperature": Quantity(353.15, "K"),
+            "permeability": Quantity(1e-12, "m2"),
+            "aquifer_thickness": Quantity(100, "m"),
+            "drainage_radius": Quantity(1000, "m"),
+            "top_depth": Quantity(2400, "m"),
+            "wellbore_radius": Quantity(0.1, "m"),
+            "injectivity_index": Quantity(10 / 3.6e8, "m3/s/Pa"),
+            "decline_threshold": 0.2,
+        },
+    )
+    results, measured = _health_rows(
+        sink,
+        dict(
+            sandface_in=Stream(
+                fluid=BRINE,
+                m_dot=Quantity(-5.0, "kg/s"),
+                T=Quantity(300, "K"),
+                p=Quantity(230e5, "Pa"),
+            )
+        ),
+    )
+    assert_health_matches(sink, results, measured)
+
+
+def test_health_without_a_nominal_index_or_measurements_is_not_assessed():
+    """A structural lack of data returns None; an equal pressure gives an unassessed health."""
+    producer = _producer(productivity_index=None)
+    assert producer.health(None, dict(flow=1.0, bottomhole_pressure=1e5)) is None
+    producer = _producer()
+    assert producer.health(None, dict(flow=1.0)) is None
+    health = producer.health(None, dict(flow=1.0, bottomhole_pressure=producer.pressure))
+    assert not health.assessed and not health.alarm and health.score == 1
+    assert health.message == "No diagnostic model or sufficient measurements"
+
+
+def test_an_injection_reservoir_without_a_fluid_takes_the_fluid_of_its_sandface():
+    """A call of the aquifer alone works on the fluid the sandface stream carries."""
+    design = dict(
+        pressure=2.4e7,
+        temperature=353.15,
+        permeability=1e-12,
+        aquifer_thickness=100,
+        drainage_radius=500,
+        wellbore_radius=0.1,
+        top_depth=3100,
+        injectivity_index=1e-8,
+    )
+    kept = si.set_params(with_values(InjectionReservoir()), "", design)
+    alone = si.set_params(with_values(InjectionReservoir()), "", design)
+    object.__setattr__(alone, "_fluid", None)
+    sandface = Stream(
+        m_dot=Quantity(20.0, "kg/s"),
+        T=Quantity(330.0, "K"),
+        p=Quantity(2e7, "Pa"),
+        fluid=BRINE,
+    )
+    assert alone(sandface_in=sandface).outputs == kept(sandface_in=sandface).outputs

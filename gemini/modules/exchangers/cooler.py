@@ -1,0 +1,199 @@
+"""Dry or wet (evaporative) closed-circuit cooler rejecting heat to ambient air."""
+
+from typing import Literal
+
+from gemini import ops
+from gemini.errors import ValidationError
+from gemini.modules._utils.equipment import Equipment
+from gemini.modules._utils.flow import require_forward
+from gemini.modules.declarations import Control, Output, Parameter, Port
+from gemini.modules.module import Module
+from gemini.physics import energy, heat_transfer, psychrometrics
+from gemini.streams.energy import Energy
+from gemini.streams.flows import Stream
+from gemini.streams.fluid import WATER, Fluid
+from gemini.streams.kinds import Direction, Flow, Level, Phase
+from gemini.units.quantities import (
+    MassFlow,
+    Power,
+    Pressure,
+    Ratio,
+    SpecificEnthalpy,
+    Temperature,
+    TemperatureDifference,
+)
+
+
+class Cooler(Equipment, Module):
+    """Dry or wet (evaporative) closed-circuit cooler rejecting heat to ambient air.
+
+    The fluid is cooled towards ``temperature_setpoint`` but not below the air on ``air_in`` plus
+    ``approach``: connect ``Atmosphere.air_out`` for a ``dry`` cooler and ``Atmosphere.wet_air_out``
+    for a ``wet`` one. The removed duty is capped at ``capacity``. Fans draw electricity =
+    specific_fan_power * duty; the fan work is dissipated into the air stream, so the air on
+    ``air_out`` takes up duty + electricity and the model is first-law closed.
+
+    On a closed water loop ``loop_pressure`` and the control ``flow`` set ``fluid_out``, offered at
+    the setpoint before the other modules run; ``is_capped`` tells when the cooler cannot reach it.
+
+    A wet cooler is a closed-circuit evaporative fluid cooler: spray water evaporates on the
+    outside of the coil, so the process stream keeps its mass flow and the evaporated water is
+    reported as evaporation_rate = duty / latent_heat (default 2430 kJ/kg, water at about
+    30 degC from the IAPWS-IF97 saturation tables). Taking all rejected heat as latent gives
+    an upper bound (rules of thumb put about 80 to 90 % of the heat into evaporation); make-up
+    water also covers drift and blowdown, which are not modelled.
+
+    Assumptions: fixed approach at every load (the outlet limit does not improve at part load),
+    fan power proportional to duty (speed-controlled fans, no cubic fan law), no pressure loss,
+    constant liquid heat capacity. Validity: ambient air of about -20 to 45 degC; approach
+    values of 5 to 15 K are typical for dry coolers and 3 to 8 K for wet coolers (ASHRAE
+    Handbook, HVAC Systems and Equipment, chapters on cooling towers and dry coolers).
+    """
+
+    equipment_kind = "cooler"
+
+    def __init__(self):
+        """Declare cooler design data, the cooled stream, ambient air and energy flows."""
+        super().__init__()
+        self.fluid = WATER
+
+        # Parameters
+        self.cooler_type = Parameter(
+            Literal["dry", "wet"],
+            description="Heat rejection type: dry air cooler or wet (evaporative) cooler",
+        )
+        self.capacity = Parameter(
+            Power, gt=0, description="Largest heat duty the cooler can reject"
+        )
+        self.approach = Parameter(
+            TemperatureDifference,
+            ge=0,
+            description="Smallest temperature difference between the cooled fluid and the air",
+        )
+        self.specific_fan_power = Parameter(
+            Ratio, description="Fan electricity per unit of heat rejected"
+        )
+        self.loop_pressure = Parameter(
+            Pressure | None,
+            default=None,
+            structural=True,
+            description=(
+                "Static pressure the closed loop is held at; empty leaves the pressure of the "
+                "stream"
+            ),
+        )
+        self.latent_heat = Parameter(
+            SpecificEnthalpy,
+            default=psychrometrics.DEFAULT_LATENT_HEAT,
+            gt=0,
+            description="Latent heat of vaporization of the evaporated water",
+        )
+
+        # Inlets
+        self.fluid_in = Port(
+            Direction.IN, phase=Phase.LIQUID, fluid=Fluid.WATER, level=Level.ANY, flow=Flow.IMPOSED
+        )
+        self.air_in = Port(
+            Direction.IN, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.DRAWN
+        )
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.DRAWN)
+
+        # Controls
+        self.temperature_setpoint = Control(
+            Temperature, description="Outlet temperature the cooler cools the fluid towards"
+        )
+
+        self.flow = Control(
+            MassFlow | None,
+            default=None,
+            ge=0,
+            description="Mass flow of the cooled fluid; empty takes the stream flow",
+        )
+
+        # Outputs
+        self.evaporation_rate = Output(
+            MassFlow, description="Mass flow of water evaporated by a wet cooler"
+        )
+        self.is_capped = Output(bool, description="True when the duty was limited by the capacity")
+
+        # Outlets
+        self.fluid_out = Port(
+            Direction.OUT,
+            phase=Phase.LIQUID,
+            fluid=Fluid.WATER,
+            level=Level.ANY,
+            flow=Flow.IMPOSED,
+            offered=True,
+        )
+        self.air_out = Port(
+            Direction.OUT, phase=Phase.GAS, fluid=Fluid.AIR, level=Level.AMBIENT, flow=Flow.IMPOSED
+        )
+
+    def _offers(self):
+        """Offer only on a closed loop; otherwise the outlet follows from the inlet."""
+        return self.loop_pressure is not None
+
+    def _offer(self, inputs, inlets, state):
+        """Offer the water of a closed loop, at the setpoint and the given flow."""
+        flow = inputs["flow"]
+        if self.loop_pressure is None or flow is None:
+            raise ValidationError(
+                f"{self.path}: loop_pressure and flow are needed to offer fluid_out; expected "
+                "both on a closed loop",
+                code="invalid_design",
+            )
+        offered = Stream._si(
+            m_dot=flow, T=inputs["temperature_setpoint"], p=self.loop_pressure, fluid=self.fluid
+        )
+        return {"fluid_out": offered}
+
+    def forward(self, inputs, inlets, state):
+        """Cool the stream by the rejected duty and heat the air by it and by the fan."""
+
+        # Outlets
+        inlet, air = inlets.fluid_in, inlets.air_in
+        duty, rate, requested = self._duty(inlet, air, inputs["temperature_setpoint"])
+        cooled = inlet._with_si(T=inlet.T - heat_transfer.temperature_change(duty, rate))
+        outlet = (
+            cooled
+            if self.loop_pressure is None
+            else self._offer(inputs, inlets, state)["fluid_out"]
+        )
+        power_in = heat_transfer.fan_power(duty, self.specific_fan_power)
+        air_in, air_out = self._air(air, cooled.T, duty + power_in)
+
+        # Outputs
+        outputs = dict(
+            evaporation_rate=(
+                psychrometrics.evaporation_rate(duty, self.latent_heat)
+                if self.cooler_type == "wet"
+                else 0.0
+            ),
+            is_capped=requested > self.capacity,
+        )
+
+        outlets = dict(fluid_out=outlet, air_out=air_out, air_in=air_in, power_in=power_in)
+        return outputs, outlets
+
+    def cost_size(self):
+        """Return the size that the cost of the cooler scales with: capacity."""
+        return self.capacity
+
+    def _air(self, air, water_T, heat):
+        """Return the air taken and returned: it leaves at the cooled water, at least an approach.
+
+        The flow follows from the heat it takes up. NOTE(refactor): a simple air-side balance; the
+        fan curve is not modelled.
+        """
+        rise = ops.maximum(water_T - air.T, self.approach)
+        specific_heat = air.fluid.properties(air.p, air.T).cp_l
+        flow = ops.where(heat > 0, energy.circuit_flow(heat, specific_heat, rise), 0.0)
+        return air._with_si(m_dot=flow), air._with_si(m_dot=flow, T=air.T + rise)
+
+    def _duty(self, inlet, air, setpoint):
+        """Return the rejected duty [W], heat capacity rate [W/K] and uncapped request [W]."""
+        require_forward(self.path, "fluid_in.m_dot", inlet.m_dot)
+        target = ops.maximum(setpoint, air.T + self.approach)
+        rate = inlet.heat_capacity_rate()
+        requested = heat_transfer.setpoint_duty(rate, inlet.T - target)
+        return ops.minimum(requested, self.capacity), rate, requested

@@ -1,0 +1,464 @@
+"""The reusable doublet produces through its upper limb and injects through its lower limb."""
+
+import json
+import math
+
+import pytest
+
+import gemini as gm
+from gemini import units
+from gemini.engine.apply import apply_case
+from gemini.physics import constants, hydraulics
+from gemini.streams.flows import Stream
+from tests.fixtures import si
+from tests.fixtures.balance import assert_plant_closes
+from tests.fixtures.designs import WELL
+from tests.fixtures.esp_design import ESP_DESIGN
+from tests.fixtures.plant_files import leaves, tree
+from tests.fixtures.reading import reading
+from tests.fixtures.sample_cases import RULES
+
+
+@pytest.fixture
+def doublet(fresh_plant):
+    """Return the example doublet with its production controls set."""
+    module = fresh_plant.doublet
+    module._set_inputs({"reservoir.production_rate": 40.0, "esp.frequency": 50.0})
+    return module
+
+
+def test_supply_is_the_riser_wellhead_and_return_reaches_the_sink(doublet):
+    """Both limbs run once; electricity and heat loss sum over every leaf call."""
+    returned = Stream(
+        m_dot=gm.units.Quantity(40, "kg/s"),
+        T=gm.units.Quantity(330, "K"),
+        p=gm.units.Quantity(5e6, "Pa"),
+        fluid=doublet.fluid,
+    )
+    result = doublet(return_in=returned)
+    leaves = result.leaves()
+    assert result.outlets.supply_out == leaves["riser"].outlets.wellhead_out
+    assert leaves["injector"].inlets.wellhead_in == returned
+    assert leaves["sink"].inlets.sandface_in == leaves["injector"].outlets.bottom_out
+    electricity = sum(reading(leaf).get("electricity", 0.0) for leaf in leaves.values())
+    assert reading(result).electricity == pytest.approx(electricity)
+    lossy = [leaf for leaf in leaves.values() if "loss_out" in leaf.outlets]
+    heat_loss = sum(leaf.outlets.loss_out for leaf in lossy)
+    assert sum(leaves["formation"].inlets.heat_in) == pytest.approx(heat_loss)
+    assert_plant_closes(doublet, result)
+
+
+DESIGN = {
+    "depth": {"value": 2500, "unit": "m"},
+    "gradient": {"value": 30, "unit": "K/km"},
+    "surface_temperature": {"value": 12, "unit": "degC"},
+    "permeability": {"value": 200, "unit": "mD"},
+    "thickness": {"value": 100, "unit": "m"},
+    "well_diameter": {"value": 0.244, "unit": "m"},
+    "roughness": {"value": 4.5e-5, "unit": "m"},
+    "drainage_radius": {"value": 1000, "unit": "m"},
+    "reservoir.skin": 0.0,
+    "sink.skin": 0.0,
+    **{
+        f"{well}.{name}": value
+        for well in ("well", "riser", "injector")
+        for name, value in WELL.items()
+        if name != "heat_transfer_coefficient"
+    },
+    **{
+        f"{well}.heat_transfer_coefficient": {"value": 10.0, "unit": "W/m2/K"}
+        for well in ("well", "riser", "injector")
+    },
+}
+OWNED = ("gradient", "surface_temperature", "permeability", "thickness")
+STORED = {name: value for name, value in DESIGN.items() if name not in OWNED}
+PUMP = {
+    "nominal_flow": {"value": 300, "unit": "m3/h"},
+    "pump_efficiency": 0.7,
+    "nominal_wellhead_pressure": {"value": 10, "unit": "bar"},
+} | ESP_DESIGN
+BRINE = gm.Fluid(
+    density={"value": 1030, "unit": "kg/m3"}, viscosity={"value": 0.4, "unit": "mPa*s"}
+)
+
+
+def design_case():
+    """Return a case whose site is the ground, reservoir and brine of ``DESIGN``."""
+    Q = units.Quantity
+    return gm.Case.from_dict(
+        {
+            "format": 1,
+            "kind": "case",
+            "name": "design",
+            "time": {"start": "2027-01-01", "end": "2027-01-02", "step": Q(1, "d")},
+            "site": {
+                "ground": {"surface_temperature": Q(12, "degC"), "gradient": Q(30, "K/km")},
+                "reservoir": {
+                    "reference_depth": Q(2500, "m"),
+                    "thickness": Q(100, "m"),
+                    "permeability": Q(200, "mD"),
+                    "pressure": Q(hydraulics.hydrostatic_pressure(1030.0, 2500.0), "Pa"),
+                },
+                "fluid": {"density": Q(1030, "kg/m3"), "viscosity": Q(0.4, "mPa.s")},
+            },
+        }
+    )
+
+
+def designed(**extra):
+    """Return a doublet in a plant, designed from its depth, in a brine of 1030 kg/m3."""
+    plant = gm.Plant("Holder")
+    doublet = si.add(plant, "Doublet", name="d0", values=DESIGN | extra)
+    doublet.fluid = BRINE
+    plant.connect("return_in", "d0.return_in")
+    plant.connect("power_in", "d0.power_in")
+    plant.connect("d0.supply_out", "supply_out")
+    return plant, doublet
+
+
+def test_the_reservoir_comes_from_the_depth():
+    """87 degC, and 252.6 bar(g) of hydrostatic brine at the 2 500 m midpoint."""
+    _, doublet = designed()
+    assert doublet.reservoir.temperature == pytest.approx(360.15)
+    assert doublet.sink.temperature == pytest.approx(360.15)
+    assert doublet.reservoir.pressure == pytest.approx(1030 * 9.81 * 2500 + 101325)
+    assert units.convert(doublet.reservoir.pressure, "Pa", "bar(g)") == pytest.approx(252.6, 0.01)
+
+
+def test_the_productivity_index_is_radial_darcy():
+    """12.39 m3/h/bar for 200 mD, 100 m and a 0.244 m well, from a hand calculation."""
+    _, doublet = designed()
+    k_h = 200 * 9.869233e-16 * 100
+    expected = 2 * math.pi * k_h / (4e-4 * math.log(1000 / 0.122))
+    assert doublet.reservoir.productivity_index == pytest.approx(expected)
+    assert doublet.sink.injectivity_index == pytest.approx(expected)
+    assert units.convert(expected, "m3/s/Pa", "m3/h/bar") == pytest.approx(12.386, abs=1e-3)
+
+
+def test_the_wells_are_vertical_paths():
+    """Both wells reach the depth at the diameter; the soil is the geotherm at half depth."""
+    _, doublet = designed()
+    for well in (doublet.well, doublet.riser, doublet.injector):
+        (section,) = well.pipe_path.sections
+        assert section.length == 2500 and section.inner_diameter == 0.244
+        assert section.inclination == pytest.approx(math.pi / 2)
+        assert well.soil_temperature == pytest.approx(322.65)
+
+
+def test_the_skin_of_a_reservoir_enters_its_index():
+    """A larger skin lowers the index of that reservoir only."""
+    _, clean = designed()
+    _, skinned = designed(**{"reservoir.skin": 5.0})
+    assert skinned.reservoir.productivity_index < clean.reservoir.productivity_index
+    assert skinned.sink.injectivity_index == clean.sink.injectivity_index
+
+
+def test_an_explicit_child_value_wins_over_the_derived_one():
+    """A stated pressure and pipe path stay, and the pump is sized on the stated pressure."""
+    path = {
+        "well.section_length": [2600.0],
+        "well.section_inclination": [1.0],
+        "well.section_diameter": [0.2],
+        "well.section_roughness": [1e-5],
+    }
+    _, doublet = designed(**{"reservoir.pressure": {"value": 250, "unit": "bar(g)"}} | path | PUMP)
+    assert doublet.reservoir.pressure == pytest.approx(250e5 + 101325)
+    assert doublet.well.pipe_path.total_length == 2600
+    assert doublet.riser.pipe_path.total_length == 2500
+    _, derived = designed(**PUMP)
+    assert doublet.esp.head_coefficients[0] > derived.esp.head_coefficients[0]
+
+
+def test_the_pump_is_sized_at_its_nominal_flow():
+    """The pump keeps the wellhead pressure at the nominal flow, with its efficiency."""
+    plant, doublet = designed(**PUMP)
+    flow = 300 / 3600
+    plant._set_inputs(
+        {
+            "d0.reservoir.production_rate": flow * 1030,
+            "d0.esp.frequency": constants.ESP_REFERENCE_FREQUENCY,
+        }
+    )
+    returned = gm.Stream(
+        m_dot=gm.units.Quantity(flow * 1030, "kg/s"),
+        T=gm.units.Quantity(320, "K"),
+        p=gm.units.Quantity(5e6, "Pa"),
+        fluid=BRINE,
+    )
+    result = plant(return_in=returned)
+    assert result.outlets.supply_out.p == pytest.approx(10e5, rel=2e-2)
+    esp = reading(result.leaves()["d0.esp"])
+    hydraulic = esp.flow * esp.head
+    assert esp.electricity == pytest.approx(hydraulic / 0.7, rel=1e-6)
+    assert doublet.esp.setting_depth == doublet.well.esp_depth == doublet.riser.esp_depth
+    assert 0 < doublet.esp.setting_depth < 2500
+
+
+def test_setting_the_fluid_derives_again():
+    """Pressure and index follow a fluid set after the design."""
+    _, doublet = designed()
+    doublet.fluid = gm.Fluid(
+        density=gm.units.Quantity(1000.0, "kg/m3"), viscosity=gm.units.Quantity(8e-4, "Pa.s")
+    )
+    assert doublet.reservoir.pressure == pytest.approx(1000 * 9.81 * 2500 + 101325)
+    assert doublet.reservoir.fluid.density == 1000
+    assert doublet.sink.fluid.viscosity == 8e-4
+
+
+def test_the_file_holds_the_design_and_rebuilds_the_same_numbers():
+    """No derived value is written, and reading derives the same ones."""
+    plant, doublet = designed(**PUMP | {"reservoir.skin": 2.0})
+    spec = plant.to_dict()
+    params = {key[3:]: v for key, v in leaves(spec).items() if key.startswith("d0.")}
+    assert params == STORED | PUMP | {"reservoir.skin": 2.0}
+    rebuilt = apply_case(gm.Plant.from_dict(json.loads(json.dumps(spec))), design_case()).d0
+    assert rebuilt.reservoir.productivity_index == doublet.reservoir.productivity_index
+    assert rebuilt.reservoir.pressure == doublet.reservoir.pressure
+    assert rebuilt.esp.head_coefficients == doublet.esp.head_coefficients
+    assert rebuilt.well.pipe_path == doublet.well.pipe_path
+
+
+def test_a_designed_doublet_as_the_root_round_trips():
+    """A doublet stores its class and its flat design, never its structure."""
+    doublet = gm.plants.get("Doublet")
+    assert leaves(doublet.to_dict()) == {} and "modules" not in doublet.to_dict()
+    doublet.set_params("", DESIGN)
+    spec = doublet.to_dict()
+    assert spec["type"] == "Doublet" and leaves(spec) == STORED
+    rebuilt = apply_case(gm.Plant.from_dict(spec), design_case())
+    assert rebuilt.reservoir.temperature == pytest.approx(360.15)
+
+
+def test_a_dated_design_derives_at_its_date():
+    """A deeper design from a date on gives its temperature from that date on."""
+    plant, _ = designed()
+    plant.set_params("d0", {"depth": {"value": 3000, "unit": "m"}}, valid_from="2030-01-01")
+    assert plant.params_at("d0.reservoir", "2031-01-01")["temperature"] == pytest.approx(375.15)
+    assert plant.params_at("d0.reservoir", "2029-01-01")["temperature"] == pytest.approx(360.15)
+
+
+def test_a_waiting_depth_is_a_missing_parameter():
+    """``check`` names the geotherm, and a doublet without a depth needs none."""
+    doublet = gm.plants.Doublet().set_params("", {"depth": {"value": 2500, "unit": "m"}})
+    assert [item.path for item in doublet.check()[:2]] == [
+        "params.gradient",
+        "params.surface_temperature",
+    ]
+    assert "params.gradient" not in [item.path for item in gm.plants.Doublet().check()]
+
+
+def test_a_depth_waits_for_its_geotherm():
+    """A plant holds the design and a case the environment: nothing is derived until both exist."""
+    doublet = gm.plants.Doublet()
+    doublet.fluid = BRINE
+    doublet.set_params(
+        "",
+        {
+            "depth": {"value": 2500, "unit": "m"},
+            "gradient": {"value": 30, "unit": "K/km"},
+            "drainage_radius": {"value": 1000, "unit": "m"},
+            "reservoir.skin": 0.0,
+            "sink.skin": 0.0,
+        },
+    )
+    assert doublet.get_submodule("reservoir")._params_at(None).get("temperature") is None
+    doublet.set_params("", {"surface_temperature": {"value": 12, "unit": "degC"}})
+    assert doublet.reservoir.temperature == pytest.approx(285.15 + 75)
+
+
+def test_the_values_of_a_stored_doublet_rebuild_in_any_order():
+    """The depth before its geotherm in a plant dict is read like the geotherm before the depth."""
+    plant, _ = designed()
+    spec = plant.to_dict()
+    params = leaves(spec)
+    spec["params"] = tree(dict(reversed(list(params.items()))))
+    rebuilt = apply_case(gm.Plant.from_dict(spec), design_case())
+    assert rebuilt.d0.reservoir.temperature == pytest.approx(360.15)
+    spec["params"] = tree(params)
+    rebuilt = apply_case(gm.Plant.from_dict(spec), design_case())
+    assert rebuilt.d0.reservoir.temperature == pytest.approx(360.15)
+
+
+def test_the_old_way_keeps_working(fresh_plant):
+    """A doublet set child by child has no design and derives nothing."""
+    assert fresh_plant.doublet.depth is None
+    assert fresh_plant.doublet.reservoir.pressure == 22000000.0
+
+
+def test_the_volume_imbalance_of_a_balanced_doublet_is_zero():
+    """Produced and injected liquid at one density: the gas leaves in between, the liquid stays."""
+    doublet = gm.plants.Doublet()
+    doublet.fluid = gm.Fluid(
+        density=gm.units.Quantity(1030, "kg/m3"),
+        viscosity={"value": 0.4, "unit": "mPa*s"},
+        gas_liquid_ratio=0.8,
+        gas_composition={"CH4": 0.8, "CO2": 0.2},
+    )
+    doublet.set_params("", DESIGN | PUMP)
+    si.assign(doublet.reservoir, "production_rate", 80.0)
+    doublet.esp.frequency = {"value": 60, "unit": "Hz"}
+    liquid = doublet.fluid.with_gas_fraction(0.0)
+    produced = doublet.fluid.properties(0, 0)
+    injected = gm.Stream(
+        m_dot=gm.units.Quantity(80.0 * (1 - produced.gmf), "kg/s"),
+        T=gm.units.Quantity(320.0, "K"),
+        p=gm.units.Quantity(5e6, "Pa"),
+        fluid=liquid,
+    )
+    outputs = doublet(return_in=injected).outputs
+    assert outputs.volume_imbalance == pytest.approx(0, abs=1e-14)
+
+
+def test_the_volume_imbalance_is_produced_less_injected():
+    """Less injected than produced is a positive imbalance."""
+    doublet = gm.plants.Doublet()
+    doublet.fluid = gm.Fluid(
+        density=gm.units.Quantity(1030, "kg/m3"), viscosity={"value": 0.4, "unit": "mPa*s"}
+    )
+    doublet.set_params("", DESIGN | PUMP)
+    si.assign(doublet.reservoir, "production_rate", 80.0)
+    doublet.esp.frequency = {"value": 60, "unit": "Hz"}
+    injected = gm.Stream(
+        m_dot=gm.units.Quantity(70.0, "kg/s"),
+        T=gm.units.Quantity(320.0, "K"),
+        p=gm.units.Quantity(5e6, "Pa"),
+        fluid=doublet.fluid,
+    )
+    assert doublet(return_in=injected).outputs.volume_imbalance == pytest.approx(10 / 1030)
+
+
+def _doublet_at(production_rate):
+    """Return a designed doublet pumping ``production_rate`` kg/s at 60 Hz."""
+    doublet = gm.plants.Doublet()
+    doublet.fluid = gm.Fluid(
+        density=gm.units.Quantity(1030, "kg/m3"), viscosity={"value": 0.4, "unit": "mPa*s"}
+    )
+    doublet.set_params("", DESIGN | PUMP)
+    si.assign(doublet.reservoir, "production_rate", production_rate)
+    doublet.esp.frequency = {"value": 60, "unit": "Hz"}
+    return doublet
+
+
+def _returned(doublet, rate):
+    """Return a stream of ``rate`` kg/s of the doublet's brine at 320 K."""
+    return gm.Stream(
+        m_dot=gm.units.Quantity(rate, "kg/s"),
+        T=gm.units.Quantity(320.0, "K"),
+        p=gm.units.Quantity(5e6, "Pa"),
+        fluid=doublet.fluid,
+    )
+
+
+def test_the_reinjection_ratio_is_injected_over_produced_liquid():
+    """80 kg/s produced and 80 injected is 1; 60 injected is 0.75."""
+    doublet = _doublet_at(80.0)
+    assert doublet(return_in=_returned(doublet, 80.0)).outputs.reinjection_ratio == pytest.approx(1)
+    assert doublet(return_in=_returned(doublet, 60.0)).outputs.reinjection_ratio == pytest.approx(
+        0.75
+    )
+
+
+def test_the_reinjection_ratio_without_production_is_none():
+    """No produced liquid: the ratio does not exist."""
+    doublet = _doublet_at(0.0)
+    assert doublet(return_in=_returned(doublet, 0.0)).outputs.reinjection_ratio is None
+
+
+@pytest.mark.parametrize("flow", [0, -0.1])
+def test_a_nominal_flow_of_zero_or_below_is_refused(flow):
+    """A doublet designed for no flow would price its pump as free, so the door refuses it."""
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        designed(nominal_flow={"value": flow, "unit": "m3/s"})
+    assert caught.value.code == "out_of_bounds" and "nominal_flow" in str(caught.value)
+
+
+def test_a_doublet_may_have_no_nominal_flow():
+    """``None`` still means not sized."""
+    _, doublet = designed()
+    assert doublet.nominal_flow is None
+
+
+def _holder(values):
+    """Return a plant holding one doublet ``d0`` of ``values``, its ports wired to the plant's."""
+    plant = gm.Plant("Holder").set_params("", RULES)
+    si.add(plant, "Doublet", name="d0", values=values)
+    plant.connect("return_in", "d0.return_in")
+    plant.connect("power_in", "d0.power_in")
+    plant.connect("d0.supply_out", "supply_out")
+    return plant
+
+
+@pytest.mark.parametrize("name", ["well_diameter", "roughness", "nominal_flow", "pump_efficiency"])
+def test_an_incomplete_design_names_its_value_not_the_children_it_derives(name):
+    """The case gives the reservoir; a design value left out is the one issue, as for the run.
+
+    The children that value derives (the reservoir permeability and thickness of the case, the
+    well sections, the pump) are not listed as missing: they are derived once it is given.
+    """
+    values = {key: value for key, value in (STORED | PUMP).items() if key != name}
+    plant = _holder(values)
+    case = design_case()
+    found = [item.path for item in gm.check(plant, case)]
+    assert found == [f"params.d0.{name}"]
+    with pytest.raises(gm.errors.ValidationError) as caught:
+        gm.simulate(plant, case)
+    assert [item["path"] for item in caught.value.problems] == [f"params.d0.{name}"]
+    complete = _holder(STORED | PUMP)
+    assert gm.check(complete, case) == []
+
+
+def test_a_child_stated_by_hand_needs_no_design_value():
+    """A doublet whose children are stated one by one keeps the old way: no design value missing."""
+    values = {key: value for key, value in (STORED | PUMP).items() if key != "nominal_flow"}
+    plant = _holder(values)
+    case = design_case()
+    derived = apply_case(_holder(STORED | PUMP), case).d0
+    by_hand = {
+        name: derived.get(name).value
+        for name in ("esp.stage_count", "esp.head_coefficients", "esp.power_coefficients")
+    }
+    plant._set_si_params(
+        "d0",
+        by_hand
+        | {
+            "esp.setting_depth": derived.esp.setting_depth,
+            "well.esp_depth": derived.well.esp_depth,
+            "riser.esp_depth": derived.riser.esp_depth,
+            "well.segment": "below_esp",
+            "riser.segment": "above_esp",
+        },
+    )
+    assert gm.check(plant, case) == []
+
+
+def test_the_derived_names_are_those_the_design_gives():
+    """The children each group of the design names are exactly the ones it derives."""
+    from gemini.plants._utils import doublet_design as design
+
+    _, doublet = designed(**PUMP)
+    values = {name: doublet.get(name).value for name in (*design.COLUMN, *design.FLOW_PATH)}
+    values |= {name: doublet.get(name).value for name in design.PUMP} | {
+        "drainage_radius": doublet.drainage_radius
+    }
+    derived = design.design(values, 1030.0, 4e-4, {"reservoir": 0.0, "sink": 0.0})
+    named = (*design.COLUMN_VALUES, *design.FLOW_PATH_VALUES, *design.PUMP_VALUES)
+    assert sorted(derived) == sorted(named)
+
+
+def test_a_designed_doublet_without_a_depth_names_the_depth():
+    """A doublet stating its design but no depth misses the depth, not the reservoir it gives."""
+    values = {key: value for key, value in (STORED | PUMP).items() if key != "depth"}
+    assert [item.path for item in gm.check(_holder(values), design_case())] == ["params.d0.depth"]
+
+
+def test_a_plant_of_doublets_without_a_depth_names_its_own_depth():
+    """``depth`` of a plant of doublets is the one value to give, not each doublet's."""
+    plant = gm.plants.HeatingPlant(doublets=2)
+    for index in range(2):
+        si.set_params(plant, f"d{index}", {"well_diameter": {"value": 0.244, "unit": "m"}})
+    paths = [item.path for item in plant.check()]
+    assert paths[0] == "params.depth"
+    assert not {"params.d0.depth", "params.d0.reservoir.permeability"} & set(paths)
+    assert "params.d0.reservoir.permeability" in [
+        item.path for item in gm.plants.HeatingPlant(doublets=2).check()
+    ]

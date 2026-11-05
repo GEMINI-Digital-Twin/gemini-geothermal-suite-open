@@ -1,0 +1,85 @@
+"""The public electricity grid: the plant's edge for bought and sold electricity."""
+
+from gemini.modules.declarations import Output, Parameter, Port
+from gemini.modules.module import Module
+from gemini.physics import energy
+from gemini.streams.energy import Energy
+from gemini.streams.kinds import Direction, Flow
+from gemini.units.quantities import Power
+
+
+class ElectricityGrid(Module):
+    """Grid connection point: what the consumers draw and the generators give, within limits.
+
+    Every consumer connects its ``power_in`` to ``power_out`` and every generator its ``power_out``
+    to ``power_in``; both ports take any number of connections. Their balance is imported when
+    positive and exported when negative, each up to its connection limit (``None`` means unlimited;
+    ``energy.net_exchange``). The limits are the physical property of the grid connection,
+    ``utilities.electricity.import_limit`` and ``export_limit`` of the case. Consumption above the
+    import limit is ``unserved_consumption`` (load to shed) and surplus generation above the export
+    limit ``curtailed_generation``. Prices and emission factors live in the case. Assumptions: no
+    reactive power, losses or demand charges.
+    """
+
+    bypass = {}
+    """Removable: a connection point that goes when what it fed and what fed it go."""
+
+    def __init__(self):
+        """Declare the connection limits, both sides and the exchange."""
+        super().__init__()
+
+        # Parameters
+        self.import_limit = Parameter(
+            Power | None,
+            default=None,
+            ge=0,
+            case="utilities.electricity.import_limit",
+            description="Largest power the connection can import; empty means unlimited",
+        )
+        self.export_limit = Parameter(
+            Power | None,
+            default=None,
+            ge=0,
+            case="utilities.electricity.export_limit",
+            description="Largest power the connection can export; empty means unlimited",
+        )
+
+        # Inlets
+        self.power_in = Port(Direction.IN, energy=Energy.ELECTRICITY, flow=Flow.IMPOSED, many=True)
+
+        # Outputs
+        self.net_import = Output(Power, description="Power imported from the grid")
+        self.net_export = Output(Power, description="Power exported to the grid")
+        self.unserved_consumption = Output(
+            Power, description="Consumption above the import limit that cannot be served"
+        )
+        self.curtailed_generation = Output(
+            Power, description="Generation above the export limit that is curtailed"
+        )
+        self.is_import_limited = Output(bool, description="True when the import limit was reached")
+        self.is_export_limited = Output(bool, description="True when the export limit was reached")
+
+        # Outlets
+        self.power_out = Port(Direction.OUT, energy=Energy.ELECTRICITY, flow=Flow.DRAWN, many=True)
+
+    def forward(self, inputs, inlets, state):
+        """Exchange electricity only: what leaves is what the consumers drew."""
+
+        # Outputs
+        exchange = energy.net_exchange(
+            energy.total_power(inlets.power_out),
+            energy.total_power(inlets.power_in),
+            self.import_limit,
+            self.export_limit,
+        )
+        outputs = dict(
+            net_import=exchange.net_import,
+            net_export=exchange.net_export,
+            unserved_consumption=exchange.unserved_consumption,
+            curtailed_generation=exchange.curtailed_generation,
+            is_import_limited=exchange.unserved_consumption > 0,
+            is_export_limited=exchange.curtailed_generation > 0,
+        )
+
+        outlets = dict()
+        return outputs, outlets

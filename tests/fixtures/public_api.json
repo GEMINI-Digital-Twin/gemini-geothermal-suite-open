@@ -1,0 +1,1080 @@
+{
+ "call": [
+  "module",
+  "parameters",
+  "inlets",
+  "controls",
+  "units",
+  "on_error",
+  "state",
+  "dt"
+ ],
+ "classes": {
+  "Case": {
+   "__init__": [
+    "found"
+   ],
+   "check": [],
+   "field": [
+    "path"
+   ],
+   "files": [],
+   "from_dict": [
+    "data",
+    "files",
+    "folder"
+   ],
+   "from_json": [
+    "path"
+   ],
+   "leaf": [
+    "path"
+   ],
+   "schema": [],
+   "to_dict": [],
+   "to_json": [
+    "path"
+   ],
+   "with_value": [
+    "path",
+    "number"
+   ]
+  },
+  "Engine": {
+   "__init__": [
+    "plant",
+    "backend",
+    "callbacks",
+    "on_error",
+    "compile"
+   ],
+   "from_checkpoint": [
+    "path",
+    "callbacks"
+   ],
+   "live": [
+    "source",
+    "checkpoint",
+    "step",
+    "now",
+    "sink"
+   ],
+   "replay": [
+    "data",
+    "start",
+    "end",
+    "state",
+    "clock",
+    "only"
+   ],
+   "resume": [],
+   "simulate": [
+    "profile",
+    "clock"
+   ],
+   "to_checkpoint": [
+    "path"
+   ]
+  },
+  "Module": {
+   "bindable": [
+    "path"
+   ],
+   "describe": [],
+   "get": [
+    "path"
+   ],
+   "get_submodule": [
+    "path"
+   ],
+   "help": [],
+   "named_modules": [
+    "prefix"
+   ],
+   "param_history": [
+    "path"
+   ],
+   "parameter_schema": [],
+   "params_at": [
+    "path",
+    "time"
+   ],
+   "set_bindings": [
+    "path",
+    "bindings"
+   ],
+   "set_params": [
+    "path",
+    "params",
+    "valid_from"
+   ],
+   "validate_params": [
+    "params",
+    "on_error"
+   ]
+  },
+  "Plant": {
+   "__init__": [
+    "name"
+   ],
+   "add": [
+    "type",
+    "name",
+    "params"
+   ],
+   "check": [
+    "results"
+   ],
+   "connect": [
+    "source",
+    "target",
+    "type"
+   ],
+   "constrain": [
+    "target",
+    "by",
+    "bounds",
+    "equals",
+    "at_least"
+   ],
+   "feeds": [
+    "source"
+   ],
+   "from_dict": [
+    "data"
+   ],
+   "from_json": [
+    "path"
+   ],
+   "input_value": [
+    "path"
+   ],
+   "set_bypass": [
+    "name",
+    "pairs"
+   ],
+   "set_choice": [
+    "name",
+    "groups"
+   ],
+   "set_inputs": [
+    "values"
+   ],
+   "set_optional": [
+    "name",
+    "optional"
+   ],
+   "set_options": [
+    "path",
+    "options"
+   ],
+   "set_range": [
+    "path",
+    "min",
+    "max"
+   ],
+   "source_of": [
+    "target"
+   ],
+   "structures": [],
+   "summary": [],
+   "target_of": [
+    "source"
+   ],
+   "to_dict": [
+    "structure",
+    "units"
+   ],
+   "to_json": [
+    "path",
+    "structure",
+    "units"
+   ],
+   "with_structure": [
+    "structure"
+   ]
+  },
+  "Results": {
+   "energy_report": [
+    "units"
+   ],
+   "errors": [],
+   "from_bytes": [
+    "data"
+   ],
+   "from_npz": [
+    "path"
+   ],
+   "get": [
+    "path",
+    "field",
+    "start",
+    "end",
+    "units"
+   ],
+   "names": [],
+   "summary": [
+    "path",
+    "start",
+    "end",
+    "units"
+   ],
+   "to_bytes": [],
+   "to_dict": [
+    "units"
+   ],
+   "to_frame": [
+    "units",
+    "table"
+   ],
+   "to_npz": [
+    "path"
+   ]
+  },
+  "Study": {
+   "check": [],
+   "from_dict": [
+    "data",
+    "files",
+    "folder"
+   ],
+   "from_json": [
+    "path"
+   ],
+   "run": [
+    "plants",
+    "on_progress"
+   ],
+   "to_dict": [],
+   "to_json": [
+    "path"
+   ]
+  }
+ },
+ "codes": [
+  "error",
+  "invalid_value",
+  "conflicting_value",
+  "out_of_bounds",
+  "missing_value",
+  "no_value",
+  "missing_assumption",
+  "invalid_unit",
+  "unknown_name",
+  "duplicate_name",
+  "unknown_port",
+  "invalid_call",
+  "invalid_format",
+  "old_format",
+  "migration_failed",
+  "invalid_connection",
+  "stream_mismatch",
+  "generic_conflict",
+  "ambiguous_port",
+  "port_in_use",
+  "unconnected_port",
+  "root_plant_port",
+  "invalid_binding",
+  "missing_column",
+  "invalid_data",
+  "inputs_missing",
+  "invalid_design",
+  "invalid_definition",
+  "out_of_range",
+  "no_convergence",
+  "loop_not_converged",
+  "missing_chemistry",
+  "too_little_data",
+  "clock",
+  "checkpoint",
+  "step",
+  "cancelled",
+  "not_implemented",
+  "deprecated"
+ ],
+ "errors": {
+  "Cancelled": "cancelled",
+  "DefinitionError": "invalid_definition",
+  "GeminiError": "error",
+  "NotImplementedYet": "not_implemented",
+  "PhysicsError": "out_of_range",
+  "RunError": "step",
+  "ValidationError": "invalid_value"
+ },
+ "modules": {
+  "Boundary": "class",
+  "Control": "class",
+  "Direction": "class",
+  "Flow": "class",
+  "Level": "class",
+  "Module": "class",
+  "ModuleDict": "class",
+  "ModuleList": "class",
+  "Output": "class",
+  "Parameter": "class",
+  "Phase": "class",
+  "Port": "class",
+  "State": "class",
+  "categories": [],
+  "check": [
+   "example"
+  ],
+  "get": [
+   "name"
+  ],
+  "names": [
+   "category"
+  ],
+  "no_outputs": [],
+  "trace_wiring": [
+   "plant",
+   "inputs"
+  ]
+ },
+ "namespaces": {
+  "analysis": {
+   "corrosion_forecast": [
+    "model",
+    "until",
+    "units"
+   ],
+   "estimate_conductance": [
+    "hot_in_T",
+    "hot_out_T",
+    "cold_in_T",
+    "cold_out_T",
+    "m_dot_hot",
+    "m_dot_cold",
+    "cp_hot",
+    "cp_cold",
+    "arrangement",
+    "units"
+   ],
+   "estimate_reservoir_pressure": [
+    "flows",
+    "bottomhole_pressures",
+    "units"
+   ],
+   "fit_head_coefficients": [
+    "flows",
+    "frequencies",
+    "heads",
+    "stage_count",
+    "units"
+   ],
+   "fit_head_correction": [
+    "measured",
+    "theoretical",
+    "units"
+   ],
+   "nodal": [
+    "plant",
+    "well",
+    "conditions",
+    "on_error",
+    "units"
+   ],
+   "pump_curve": [
+    "plant",
+    "pump",
+    "measured",
+    "units"
+   ]
+  },
+  "case": {
+   "Accounting": "class",
+   "Air": "class",
+   "Capex": "class",
+   "Carbon": "class",
+   "Case": "class",
+   "CoolingService": "class",
+   "Demand": "class",
+   "DepthTable": "class",
+   "Economics": "class",
+   "Electricity": "class",
+   "Energy": "class",
+   "Fluid": "class",
+   "Gas": "class",
+   "Ground": "class",
+   "Gwp": "class",
+   "Opex": "class",
+   "Range": "class",
+   "Requirement": "class",
+   "Reservoir": "class",
+   "Revenue": "class",
+   "Service": "class",
+   "Site": "class",
+   "Subsidy": "class",
+   "Time": "class",
+   "Uncertainty": "class",
+   "Utilities": "class",
+   "from_csv": [
+    "path",
+    "columns",
+    "unit"
+   ],
+   "from_values": [
+    "values",
+    "unit",
+    "start",
+    "step",
+    "quantity"
+   ],
+   "missing": [
+    "case"
+   ],
+   "profile_schema": []
+  },
+  "compiler": {
+   "compile": [
+    "plant"
+   ]
+  },
+  "evaluate": {
+   "annualised_cost": [
+    "plant",
+    "case",
+    "results",
+    "on_error",
+    "units"
+   ],
+   "bounds": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "call_emissions": [
+    "result_tree",
+    "fuel_factor",
+    "electricity_factor"
+   ],
+   "call_energy_balance": [
+    "module",
+    "result"
+   ],
+   "call_mass_balance": [
+    "module",
+    "result"
+   ],
+   "capacities": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "capex": [
+    "plant",
+    "case",
+    "on_error",
+    "units"
+   ],
+   "co2": [
+    "plant",
+    "case",
+    "results",
+    "on_error"
+   ],
+   "collect_flows": [
+    "result_tree"
+   ],
+   "compare": [
+    "reports",
+    "by"
+   ],
+   "daily_coverage": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "energy_balance": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "failures": [
+    "results"
+   ],
+   "lcoc": [
+    "plant",
+    "case",
+    "results",
+    "on_error",
+    "units"
+   ],
+   "lcoh": [
+    "plant",
+    "case",
+    "results",
+    "on_error",
+    "units"
+   ],
+   "lcts": [
+    "plant",
+    "case",
+    "results",
+    "on_error",
+    "units"
+   ],
+   "mass_balance": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "metrics": [],
+   "missing": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "npv": [
+    "plant",
+    "case",
+    "results",
+    "on_error",
+    "units"
+   ],
+   "opex": [
+    "plant",
+    "case",
+    "results",
+    "on_error",
+    "units"
+   ],
+   "payback": [
+    "plant",
+    "case",
+    "results",
+    "on_error",
+    "units"
+   ],
+   "plant_balance": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "report": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "requirements": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "totals": [
+    "plant",
+    "case",
+    "results"
+   ],
+   "verdict": [
+    "plant",
+    "case",
+    "results"
+   ]
+  },
+  "ops": {
+   "Constant": "class",
+   "Failed": "class",
+   "Operators": "class",
+   "Symbolic": "class",
+   "abs": [
+    "value"
+   ],
+   "acos": [
+    "value"
+   ],
+   "add": [
+    "left",
+    "right"
+   ],
+   "any_nan": [
+    "values"
+   ],
+   "asin": [
+    "value"
+   ],
+   "atan": [
+    "value"
+   ],
+   "atan2": [
+    "left",
+    "right"
+   ],
+   "brentq": [
+    "function",
+    "low",
+    "high",
+    "args",
+    "xtol",
+    "rtol",
+    "maxiter"
+   ],
+   "ceil": [
+    "value"
+   ],
+   "check": [
+    "condition",
+    "error",
+    "message",
+    "code",
+    "values"
+   ],
+   "check_numbers": [
+    "function",
+    "values"
+   ],
+   "clip": [
+    "first",
+    "second",
+    "third"
+   ],
+   "control": "module",
+   "cos": [
+    "value"
+   ],
+   "cosh": [
+    "value"
+   ],
+   "cumsum": [
+    "values"
+   ],
+   "dispatch": [
+    "name",
+    "operands",
+    "attributes"
+   ],
+   "eq": [
+    "left",
+    "right"
+   ],
+   "exp": [
+    "value"
+   ],
+   "expm1": [
+    "value"
+   ],
+   "floor": [
+    "value"
+   ],
+   "floordiv": [
+    "left",
+    "right"
+   ],
+   "ge": [
+    "left",
+    "right"
+   ],
+   "getitem": [
+    "value",
+    "index"
+   ],
+   "gt": [
+    "left",
+    "right"
+   ],
+   "interp": [
+    "x",
+    "xp",
+    "fp"
+   ],
+   "isfinite": [
+    "value"
+   ],
+   "isinf": [
+    "value"
+   ],
+   "isnan": [
+    "value"
+   ],
+   "le": [
+    "left",
+    "right"
+   ],
+   "log": [
+    "value"
+   ],
+   "log10": [
+    "value"
+   ],
+   "logical_and": [
+    "left",
+    "right"
+   ],
+   "logical_not": [
+    "value"
+   ],
+   "logical_or": [
+    "left",
+    "right"
+   ],
+   "lt": [
+    "left",
+    "right"
+   ],
+   "maximum": [
+    "left",
+    "right"
+   ],
+   "mean": [
+    "values"
+   ],
+   "minimum": [
+    "left",
+    "right"
+   ],
+   "mod": [
+    "left",
+    "right"
+   ],
+   "mul": [
+    "left",
+    "right"
+   ],
+   "ne": [
+    "left",
+    "right"
+   ],
+   "neg": [
+    "value"
+   ],
+   "newton": [
+    "function",
+    "start",
+    "derivative",
+    "args",
+    "tolerance",
+    "max_iterations"
+   ],
+   "physics": [
+    "function"
+   ],
+   "pow": [
+    "left",
+    "right"
+   ],
+   "register_backend": [
+    "backend"
+   ],
+   "require": [
+    "value"
+   ],
+   "round": [
+    "left",
+    "right"
+   ],
+   "scope": "module",
+   "sign": [
+    "value"
+   ],
+   "sin": [
+    "value"
+   ],
+   "sinh": [
+    "value"
+   ],
+   "sqrt": [
+    "value"
+   ],
+   "sub": [
+    "left",
+    "right"
+   ],
+   "sum": [
+    "values"
+   ],
+   "tan": [
+    "value"
+   ],
+   "tanh": [
+    "value"
+   ],
+   "truediv": [
+    "left",
+    "right"
+   ],
+   "where": [
+    "first",
+    "second",
+    "third"
+   ]
+  },
+  "physics": {
+   "chemistry": "module",
+   "combustion": "module",
+   "constants": "module",
+   "corrosion": "module",
+   "cycles": "module",
+   "diagnostics": "module",
+   "energy": "module",
+   "erosion": "module",
+   "fluid": "module",
+   "gas": "module",
+   "geometry": "module",
+   "ground": "module",
+   "heat_transfer": "module",
+   "hydraulics": "module",
+   "psychrometrics": "module",
+   "pumps": "module",
+   "refrigeration": "module",
+   "separation": "module",
+   "steam": "module"
+  },
+  "plants": {
+   "ATESPlant": "class",
+   "BoilerChpPlant": "class",
+   "CoolingSubstation": "class",
+   "DistrictEnergyPlant": "class",
+   "DistrictNetwork": "class",
+   "Doublet": "class",
+   "DoubletHeatPlant": "class",
+   "HeatingAbsorptionCoolingPlant": "class",
+   "HeatingCoolingPlant": "class",
+   "HeatingFullCoolingPlant": "class",
+   "HeatingHeatPumpCoolingPlant": "class",
+   "HeatingPlant": "class",
+   "HeatingSubstation": "class",
+   "Match": "class",
+   "MultiWellPlant": "class",
+   "NodalDoublet": "class",
+   "ParallelExchangerPlant": "class",
+   "Plant": "class",
+   "Suggestion": "class",
+   "capabilities": [],
+   "get": [
+    "name"
+   ],
+   "names": [
+    "category"
+   ],
+   "roles": [],
+   "schema": [],
+   "union": [
+    "plants",
+    "name"
+   ]
+  },
+  "runtime": {
+   "settings": [
+    "backend",
+    "changes"
+   ],
+   "state": []
+  },
+  "streams": {
+   "BRINE": "Fluid",
+   "Energy": "class",
+   "Fluid": "class",
+   "GLYCOL_30": "Fluid",
+   "Ports": "class",
+   "STEAM": "Fluid",
+   "Stream": "class",
+   "WATER": "Fluid"
+  },
+  "study": {
+   "CalibrationResult": "class",
+   "Design": "class",
+   "Evolution": "class",
+   "Run": "class",
+   "Sample": "class",
+   "Search": "class",
+   "Study": "class",
+   "StudyResult": "class",
+   "Tornado": "class",
+   "calibrate": [
+    "plant",
+    "dataset",
+    "params",
+    "start",
+    "end",
+    "backend",
+    "apply"
+   ],
+   "evolve": [
+    "plant",
+    "case",
+    "objectives",
+    "evaluations",
+    "seed",
+    "population",
+    "polish",
+    "plan",
+    "on_progress",
+    "stop"
+   ],
+   "kinds": [],
+   "metrics": [],
+   "minimize": [
+    "plant",
+    "case",
+    "objective",
+    "evaluations",
+    "seed",
+    "plan",
+    "on_progress"
+   ],
+   "sample": [
+    "plant",
+    "case",
+    "metrics",
+    "samples",
+    "seed",
+    "plan",
+    "on_progress",
+    "percentiles"
+   ],
+   "sensitivity": [
+    "plant",
+    "case",
+    "metrics",
+    "plan",
+    "on_progress"
+   ],
+   "size": [
+    "plant",
+    "case"
+   ],
+   "structure_plant": [
+    "plant",
+    "structure",
+    "parameters"
+   ]
+  },
+  "units": {
+   "Quantity": "class",
+   "Unit": "class",
+   "convert": [
+    "value",
+    "from_unit",
+    "to_unit",
+    "quantity"
+   ],
+   "fits": [
+    "unit",
+    "quantity"
+   ],
+   "names": [
+    "quantity"
+   ]
+  }
+ },
+ "row_codes": [
+  "invalid_inlet",
+  "missing_value",
+  "module_error",
+  "no_convergence",
+  "out_of_bounds",
+  "out_of_range"
+ ],
+ "run": {
+  "check": [
+   "plant",
+   "case"
+  ],
+  "live": [
+   "plant",
+   "source",
+   "checkpoint",
+   "step",
+   "now",
+   "sink",
+   "backend",
+   "callbacks",
+   "on_error"
+  ],
+  "replay": [
+   "plant",
+   "data",
+   "start",
+   "end",
+   "state",
+   "clock",
+   "only",
+   "checkpoint",
+   "checkpoint_every",
+   "backend",
+   "callbacks",
+   "on_error"
+  ],
+  "resume": [
+   "checkpoint",
+   "callbacks"
+  ],
+  "schedule": [
+   "plant",
+   "case"
+  ],
+  "simulate": [
+   "plant",
+   "case",
+   "plan",
+   "clock",
+   "checkpoint",
+   "checkpoint_every",
+   "backend",
+   "callbacks",
+   "on_error",
+   "compile"
+  ]
+ },
+ "schemas": {
+  "case.schema.json": "61e3040bf120fdd90b77febac22ada8bebec451ad5666fa9ff8883e96d0403b7",
+  "check.schema.json": "729caab1629ebfaa3c6ff1324e29b93c2209350b9dafec7f099eda9d455610ea",
+  "economics.schema.json": "94360bd981ee80271eac0ff21cd1315c197e5bf579bab5f592da380d35e3ddd8",
+  "module_description.schema.json": "ab505f2142d76ff6792ebcea84d05fe3a3896f43b56ae910ce9213cf28dc6e45",
+  "plant.schema.json": "3d9a366d93d3eac0a870e1f18a2321e5aef9878dd0cdcbca93ef5433cb9024c8",
+  "problem.schema.json": "784d933816644729285e751dad0c18b967108dddd78ceaf2aff8b6244199f7e8",
+  "profile.schema.json": "a6a417ba35af581a0b082bbf9fc560785303c51dde6bb2466770f499f7440805",
+  "results_summary.schema.json": "733213574165c3f2dc0176924aeb6eb350c38a75864b9dd1d146353fa442edf8",
+  "study.schema.json": "dd8aa14370558b662090ebbb33ca756885d24501cc8e9485416f1aefef028792",
+  "value.schema.json": "99da0d9dff87ea775bbd0ebeec60c185376587064f605f9647d7537020d40cc6"
+ },
+ "streams": [
+  "brine",
+  "hot_water",
+  "chilled_water",
+  "gas",
+  "electricity",
+  "fuel",
+  "heat",
+  "air",
+  "waste",
+  "chemical"
+ ],
+ "top_level": [
+  "BRINE",
+  "Case",
+  "Dataset",
+  "Engine",
+  "Fluid",
+  "Module",
+  "Output",
+  "Parameter",
+  "Plant",
+  "Port",
+  "Results",
+  "Stream",
+  "Study",
+  "WATER",
+  "analysis",
+  "call",
+  "case",
+  "check",
+  "compiler",
+  "errors",
+  "evaluate",
+  "live",
+  "modules",
+  "ops",
+  "physics",
+  "plants",
+  "replay",
+  "resume",
+  "runtime",
+  "schedule",
+  "simulate",
+  "streams",
+  "study",
+  "units"
+ ],
+ "version": "0.6.35"
+}
