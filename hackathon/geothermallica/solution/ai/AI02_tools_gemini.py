@@ -34,7 +34,7 @@ def gemini(names):
 
 
 def gemini_traps():
-    """GEMINI findings as short sentences the agent may cite; heat_pump_point runs GEMINI's own heat pump with the root fix [C]."""
+    """GEMINI findings as short sentences the agent may cite; heat_pump_point runs GEMINI's own heat pump with the root fix."""
     return {"esp_floor": "The ESP curve is valid 158-342 m3/h; GEMINI returns numbers at 50 m3/h without warning, "
                          "so 160 m3/h is the real floor.",
             "return_temperature": "The network return temperature decides the plant: at 55-60 C a brine-source heat pump replaces the boiler.",
@@ -44,22 +44,22 @@ def gemini_traps():
                             "(92 % with daily mean).",
             "esp_head_law": "GEMINI's ESP reads the head curve at the actual flow, not q*60/f (similarity law); it overstates head "
                             "at reduced speed, 9 % at 57 Hz and 300 m3/h; corrected in ESPAffinity.",
-            "injector_sign": "nodal_solver.py:150 passes a positive injection flow, so friction adds pressure going down. The 0.001 "
-                             "bar injection wellhead others see at 300 m3/h is this bug: TNO 38.3 bar at 0.045 mm roughness, 0.001 at "
-                             "the 10 mm default, our fork 63.3. Fixed on the fork [C, reproduced 5 Nov; reported by PR #58/#59].",
+            "injector_sign": "nodal_solver.py:150 passes a positive injection flow, so friction adds pressure going down. A 0.001 "
+                             "bar injection wellhead at 300 m3/h is this bug: TNO 38.3 bar at 0.045 mm roughness, 0.001 at "
+                             "the 10 mm default, our fork 63.3. Fixed on the fork.",
             "heatpump_floor_branch": "heatpump_basic.py:286-305: when the source floor binds, HeatpumpBasic has two roots and Nelder-Mead "
                                      "may pick the unphysical one (COP 1.01, water out 796 C at 720 m3/h); it flips root at 398.66 and "
                                      "534.48 m3/h. Our HeatPumpLift brackets the solve, swept 100-720 m3/h: never above 100 C, not "
-                                     "exposed [C, reproduced 5 Nov; reported by PR #58/#59].",
+                                     "exposed.",
             "exchanger_abs": "heat_exchanger.py:107 takes abs() of the temperature difference, so 2.15 MW flows from a 50 C primary to "
                              "a 56.5 C secondary. Our chain feeds the exchanger at 78 C or more against a 56.5 C return and never "
-                             "enters that case [C, reproduced 5 Nov; reported by PR #58].",
+                             "enters that case.",
             "esp_intake_clamp": "nodal_solver.py:67 and well_flow.py:295 floor the ESP intake at 0 bar without a warning: 168.9 m3/h "
                                 "reported with intake 0.00 bar where discharge minus head is -36.2 bar. Our check 14 needs the intake "
-                                "above the gas bubble point, so a clamped intake fails, not passes [C, reproduced 5 Nov; reported by PR #58/#59].",
+                                "above the gas bubble point, so a clamped intake fails, not passes.",
             "roughness_default": "well_flow.py defaults roughness to 0.01, read as metres (10 mm): 61.7 bar vs 12.5 bar of friction at "
                                  "300 m3/h in 7 in tubing over 2 500 m. We set 0.045 mm in geo/well.py and write it into every "
-                                 "generated project [C, reproduced 5 Nov; reported by PR #58].",
+                                 "generated project.",
             "tag": "[C]"}
 
 
@@ -77,7 +77,7 @@ def gemini_replay(n_doublets, t_return_c, peak_heat_MW=None, depth_m=DEPTH_M, es
     needs for our flow, and at that flow GEMINI's pressures, brine and supply temperatures, exchanger, heat-pump, boiler and
     chiller MW, heat-pump COP, bubble point, breakthrough years and interference next to ours (_ours, _gemini, _diff_pct);
     residual columns take out the known 1 000 vs 1 030 kg/m3 well-column offset. Also the project file path, gemini_version
-    and a verdict sentence [C]."""
+    and a verdict sentence."""
     _need("n_doublets", n_doublets, 1, 3)
     _need("t_return_c", t_return_c, 30, 70)
     _need("depth_m", depth_m, 1500, 4000)

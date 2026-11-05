@@ -1,6 +1,6 @@
-"""Cross-checks: our five GEMINI models (in src/gemini_model) against the plant model in geo.
+"""Cross-checks: our five GEMINI models (in the fork's src/gemini_model) against the plant model in geo.
 
-The models' own unit tests live in unit_test/gemini_model/. Run: python -m unittest geo.test_gemini_models -v
+The models' own unit tests live in the fork, unit_test/gemini_model/. Run: python -m unittest geo.test_gemini_models -v
 """
 import sys
 import unittest

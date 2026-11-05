@@ -1,4 +1,4 @@
-"""Answer questions about GEMINI's modules from their docstrings (plus GEMINI_MODELS.md), citing module and class:
+"""Answer questions about GEMINI's modules from their docstrings (plus PATCH.md, GEMINI_MODELS.md), citing module and class:
 embedding cosine + rare-word overlap, one local-model answer, grounding check, one re-prompt.
 Run: python ai/AI06_rag.py "<question>"   (--build rebuilds the corpus and the embeddings)"""
 import ast
@@ -76,7 +76,7 @@ def index(rebuild=False):
     log.RUNS.mkdir(exist_ok=True)
     if rebuild or not DOCS.exists():
         build_docs()
-    notes = [d / n for n in ("GEMINI_MODELS.md",) for d in (SOL, SOL.parent)]   # solution root, or one up on the fork
+    notes = [d / n for n in ("PATCH.md", "GEMINI_MODELS.md") for d in (SOL, SOL.parent)]   # solution root, or one up on the fork
     cs = [c for f in [DOCS] + notes if f.exists() for c in chunks(f)]
     keys = [hashlib.sha1(c["embed_text"].encode()).hexdigest() for c in cs]
     cache = {} if rebuild or not INDEX.exists() else json.loads(INDEX.read_text())

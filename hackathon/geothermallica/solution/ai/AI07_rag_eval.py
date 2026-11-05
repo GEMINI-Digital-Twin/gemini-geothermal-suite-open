@@ -11,7 +11,7 @@ QUESTIONS = [
      ("gemini_model/pump/esp.py", "gemini_model/pump/esp_affinity.py"), "60"),
     ("Which input keys does HeatpumpBasic take?", ("gemini_model/heatpump/heatpump_basic.py",), "Ts_in"),
     ("What is the sign of the injector flow rate in the nodal solver?",
-     ("gemini_simulator/nodal_solver.py", "gemini_model/well/pressure_drop.py", "GEMINI_MODELS.md"), "down"),
+     ("gemini_simulator/nodal_solver.py", "gemini_model/well/pressure_drop.py", "PATCH.md"), "down"),
     ("What does HenryGasBubblePoint return?", ("gemini_model/fluid/henry_gas.py",), "bubble"),
     ("What inputs does the AbsorptionChiller need?", ("gemini_model/chiller/absorption_chiller.py",), "floor"),
     ("What does DoubletThermalBreakthrough compute?", ("gemini_model/reservoir/thermal_breakthrough.py",), "interference"),
