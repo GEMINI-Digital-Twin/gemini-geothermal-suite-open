@@ -5,6 +5,7 @@ import pandas as pd
 
 from gemini.evaluate._utils.columns import series
 from gemini.evaluate._utils.series import leaf_total, useful_cold, useful_heat
+from gemini.modules.cooling import AbsorptionUnit, AdsorptionChiller
 from gemini.modules.grids import CoolingGrid, HeatingGrid
 from gemini.modules.heating import ElectricBoiler, HeatPump
 from gemini.plants.roles import delivery_ports, units_of
@@ -68,6 +69,60 @@ def _backup_power(plant, frame, service):
     return total
 
 
+HEAT_DRIVEN = (AbsorptionUnit, AdsorptionChiller)
+"""The chillers driven by hot water: their cold is made from the heat of the plant's water."""
+DRIVE_PORTS = ("generator_in.enthalpy_flow", "generator_out.enthalpy_flow")
+"""The ports whose enthalpy flows, first less second, give a heat-driven chiller's drive heat."""
+
+
+def _heat_driven(plant):
+    """Return the paths of the heat-driven chillers of the plant that chill the cooling grid."""
+    return [
+        path
+        for path in units_of(plant, "chiller")
+        if isinstance(plant.get_submodule(path), HEAT_DRIVEN)
+    ]
+
+
+def _backup_share(plant, frame, heat):
+    """Return the share [-] of the heating water's heat that its backup gave, tick by tick.
+
+    The water the heat exchanger and the backup heat goes to the heating users and to the
+    generators of the heat-driven chillers (``HeatingAbsorptionCoolingPlant``): the backup's heat
+    is shared over both by what each took, so neither is all backup nor all geothermal (geomind
+    QA-214: heating showed no geothermal heat on 125 summer days while both doublets ran, the
+    boiler topping up the chiller drive).
+    """
+    drive = np.zeros(len(frame))
+    for path in _heat_driven(plant):
+        drive += np.maximum(_delivered(plant, frame, path, *DRIVE_PORTS), 0.0)
+    water = heat + drive
+    backup = _backup_power(plant, frame, "heating")
+    with np.errstate(divide="ignore", invalid="ignore"):
+        share = np.where(water > 0, backup / water, 0.0)
+    return np.clip(np.nan_to_num(share), 0.0, 1.0)
+
+
+def _shared_backup(plant, frame, service, given):
+    """Return the backup power [W] of ``service``, tick by tick.
+
+    Heating takes its part of the backup's heat; cooling the cold of the compression chillers plus
+    the backup's share of the heat-driven chillers' cold.
+    """
+    if service == "heating":
+        return _backup_share(plant, frame, given) * given
+    heat = useful_heat(plant, frame)
+    heat = np.zeros(len(frame)) if heat is None else np.nan_to_num(heat.to_numpy(dtype=float))
+    share = _backup_share(plant, frame, np.maximum(heat, 0.0))
+    driven = np.zeros(len(frame))
+    for path in _heat_driven(plant):
+        first, second = (
+            f"{port}.enthalpy_flow" for port in delivery_ports(plant.get_submodule(path), "chiller")
+        )
+        driven += np.maximum(_delivered(plant, frame, path, first, second), 0.0)
+    return _backup_power(plant, frame, "cooling") + share * driven
+
+
 def _pump_work(plant, frame, service):
     """Return the electricity [W] the heating heat pumps take, tick by tick; cooling has none.
 
@@ -109,7 +164,7 @@ def _energies(plant, frame, seconds, service, useful, unmet):
     delivered, short = useful.to_numpy(dtype=float), unmet.to_numpy(dtype=float)
     known = np.isfinite(delivered + short)
     given = np.where(known, np.maximum(delivered, 0.0), 0.0)
-    backup = np.minimum(_backup_power(plant, frame, service), given)
+    backup = np.minimum(_shared_backup(plant, frame, service, given), given)
     work = np.minimum(_pump_work(plant, frame, service), given - backup)
     table = pd.DataFrame(
         {
@@ -179,9 +234,10 @@ def daily_coverage(plant, case, results):
         consumers asked for, which is ``geothermal + electricity + backup + short``;
         ``electricity`` is the compressor work of the heating heat pumps (zero for cooling), so
         that ``geothermal`` is the brine's heat alone; ``backup`` is the part
-        given by the units whose role is ``boiler`` or ``chp`` and by an electric boiler (heating),
-        or by a compression chiller (cooling), ``geothermal`` the rest of what was delivered
-        and ``short`` the unmet demand.
+        given by the units whose role is ``boiler`` or ``chp`` and by an electric boiler (heating;
+        shared with the heat-driven chillers' drive by what each took of the water), or by a
+        compression chiller and the backup's share of a heat-driven chiller's cold (cooling),
+        ``geothermal`` the rest of what was delivered and ``short`` the unmet demand.
         ``failed_steps`` is the number of ticks of the day that failed, were skipped, or show no
         demand; they add no energy, as in ``gm.evaluate.totals``, but a day with one is ``short``.
         ``source`` is the one the day is drawn with: ``short`` when a step failed or the unmet

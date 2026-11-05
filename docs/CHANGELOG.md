@@ -12,6 +12,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.25] - 2026-11-05
+
+### Fixed
+- `gm.evaluate.daily_coverage` shares a backup's heat over the heating users and the generators
+  of the heat-driven chillers that the same water feeds, by what each took, and counts the
+  backup's share of an absorption or adsorption chiller's cold as cooling backup: heating no
+  longer shows no geothermal heat on summer days while the doublets run, and the chiller's cold
+  is no longer all geothermal (geomind QA-214, QA-228).
+
 ## [0.6.24] - 2026-11-05
 
 ### Fixed

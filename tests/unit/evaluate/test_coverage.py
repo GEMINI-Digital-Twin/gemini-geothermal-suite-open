@@ -159,3 +159,29 @@ def test_a_heat_pump_s_compressor_work_is_shown_apart_from_the_geothermal_heat()
     assert first["geothermal"].value == pytest.approx(24 * 4000 / 1e6)
     parts = sum(first[key].value for key in ("geothermal", "electricity", "backup", "short"))
     assert parts == pytest.approx(first["demand"].value)
+
+
+def test_a_backup_that_heats_the_water_of_users_and_chiller_is_shared_over_both():
+    """QA-214: the boiler topping up an absorption chiller's drive left heating no geothermal heat.
+
+    5 kW to the heating users and 5 kW to the chiller's generator from one water, 2 kW of it from
+    the boiler: each takes 20 % backup, the heating 1 kW and the chiller's 1 kW of cold 0.2 kW.
+    """
+    plant = plant_of_boiler()
+    plant.add("AbsorptionUnit", "chiller")
+    plant.connect("chiller.chilled_out", "cool.supply_in")
+    chiller = {
+        "chiller": {
+            "operating": [1.0] * HOURS,
+            "generator_in.enthalpy_flow": [1e6 + 5000.0] * HOURS,
+            "generator_out.enthalpy_flow": [1e6] * HOURS,
+            "chilled_in.enthalpy_flow": [1e6 + 1000.0] * HOURS,
+            "chilled_out.enthalpy_flow": [1e6] * HOURS,
+        }
+    }
+    results = run(by_hour([2000.0] * 3), by_hour([0.0] * 3), extra=chiller)
+    found = gm.evaluate.daily_coverage(plant, None, results)
+    heating, cooling = found["heating"][0], found["cooling"][0]
+    assert heating["backup"].value == pytest.approx(24 * 1000 / 1e6)
+    assert heating["geothermal"].value == pytest.approx(24 * 4000 / 1e6)
+    assert cooling["backup"].value == pytest.approx(24 * 200 / 1e6)
