@@ -102,6 +102,7 @@ def issues_of(applied, case):
             *_pump_setpoints(applied),
             *_closed_coolers(applied),
             *_split_paths(applied),
+            *_frozen_paths(applied),
             *_kinds(applied, case),
             *_sizes(applied, case),
             *_roles(applied, case),
@@ -330,6 +331,74 @@ def _split_paths(plant):
                 code="invalid_design",
             )
         )
+    return issues
+
+
+def _frozen_paths(plant):
+    """Return an ``incompatible`` issue for each doublet whose stated well paths miss its depth.
+
+    A doublet derives its ``well``, ``riser`` and ``injector`` section lists from ``depth``, but a
+    list stated by hand is kept as it is: a search of ``depth`` then moved the reservoir and not
+    the wells (geomind QA-357: paths of 2500 m stated, the search chose 2875 m, 10000 m drilled for
+    11500 m, the hydraulics at 2500 m). Named when the depth is searched (a range) while a path is
+    stated, and when a stated path's true vertical extent (with ``section_inclination``) differs
+    from the depth by more than a metre; a deviated well reaching the depth passes.
+    """
+    import math
+
+    from gemini.plants._utils.doublet_design import WELLS
+    from gemini.plants.doublet import Doublet
+
+    ranges = plant.ranges
+    issues = []
+    for path, module in plant.named_modules():
+        if not isinstance(module, Doublet):
+            continue
+        stated = [well for well in WELLS if f"{well}.section_length" in module._stated_child_params]
+        if not stated:
+            continue
+        own = join_path(path, "depth")
+        where = join_path("params", form.file_path(join_path(path, f"{stated[0]}.section_length")))
+        if own in ranges or (path and "depth" in ranges and own not in module._stated_child_params):
+            issues.append(
+                Issue(
+                    where,
+                    "incompatible",
+                    f"{where}: the depth of {path or 'the doublet'} is searched, but its well "
+                    f"paths ({', '.join(stated)}) are stated by hand and do not follow it: a "
+                    "search moves "
+                    "the reservoir and not the wells. Expected the section lists left out (gemini "
+                    "derives the vertical path from depth), or no range on depth",
+                    code="invalid_design",
+                )
+            )
+            continue
+        depth = _set_value(module, "depth")
+        if depth is None:
+            continue
+        for well in stated:
+            child = getattr(module, well)
+            lengths = _set_value(child, "section_length")
+            angles = _set_value(child, "section_inclination")
+            if lengths is None or angles is None:
+                continue
+            vertical = sum(
+                float(length) * math.sin(float(angle)) for length, angle in zip(lengths, angles)
+            )
+            if abs(vertical - float(depth)) <= 1.0:
+                continue
+            spot = join_path("params", form.file_path(join_path(path, f"{well}.section_length")))
+            issues.append(
+                Issue(
+                    spot,
+                    "incompatible",
+                    f"{spot}: the {well} path reaches {vertical:.1f} m true vertical depth, but "
+                    f"the doublet's depth is {float(depth):.1f} m; expected the path to reach the "
+                    "depth, "
+                    "or the section lists left out so gemini derives them from depth",
+                    code="invalid_design",
+                )
+            )
     return issues
 
 
