@@ -12,6 +12,18 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.20] - 2026-11-05
+
+### Fixed
+- An ESP reads its curves up to 2 % above its speed-scaled `maximum_flow`
+  (`gm.physics.pumps.CURVE_FLOW_TOLERANCE`, `curve_flow_limit`): a design flow at the top of the
+  range reaches the suction a little larger by the brine's expansion and no longer fails every
+  step; the `out_of_range` message says that `maximum_flow` is the range of the curves, not the
+  case's flow band (geomind QA-250).
+- `gm.check` names `params.<pump>.pressure_setpoint` (`missing_value`) for an `InjectionPump`
+  with neither a pressure setpoint nor head curves, instead of a run whose every step failed with a
+  head of NaN (geomind QA-250).
+
 ## [0.6.19] - 2026-11-05
 
 ### Fixed

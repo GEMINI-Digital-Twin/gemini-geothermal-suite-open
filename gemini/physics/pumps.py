@@ -222,6 +222,32 @@ def speed_scaled_flow(flow, speed):
     return flow * speed
 
 
+CURVE_FLOW_TOLERANCE = 0.02
+"""The share above a pump's speed-scaled ``maximum_flow`` up to which its fitted curves still hold.
+
+A design flow at the top of the range reaches the suction a little larger, by the expansion of the
+hot brine (0.5 % in geomind QA-250): the step no longer fails for it."""
+
+
+def curve_flow_limit(maximum_flow, speed):
+    """Return the largest flow [m3/s] at which a pump's fitted curves are read at a speed ratio.
+
+    Parameters
+    ----------
+    maximum_flow : float
+        Highest flow of the fitted range at rated speed [m3/s].
+    speed : float
+        Speed ratio [-].
+
+    Notes
+    -----
+    ``speed_scaled_flow`` of ``maximum_flow`` with ``CURVE_FLOW_TOLERANCE`` on top: a curve fitted
+    up to a flow extrapolates a few percent beyond it within the accuracy of the fit (Takacs,
+    Electrical Submersible Pumps Manual, 2009, catalogue curves to the end of the range).
+    """
+    return speed_scaled_flow(maximum_flow, speed) * (1.0 + CURVE_FLOW_TOLERANCE)
+
+
 @ops.physics
 def is_in_operating_window(flow, minimum_flow, maximum_flow, speed):
     """Return whether a flow lies inside the speed-scaled operating window of a pump.

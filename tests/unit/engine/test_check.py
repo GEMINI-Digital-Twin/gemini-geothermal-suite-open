@@ -289,3 +289,16 @@ def test_a_pipe_priced_per_w_and_metre_needs_its_nominal_capacity():
     assert "params.line.nominal_capacity" in paths(gm.check(plant, priced))
     plant.set_params("line", {"nominal_capacity": Quantity(10, "MW")})
     assert "params.line.nominal_capacity" not in paths(gm.check(plant, priced))
+
+
+def test_an_injection_pump_without_setpoint_or_curves_is_named():
+    """QA-250: without a pressure setpoint the pump has no head; check names it before a run."""
+    from tests.fixtures.sample_cases import template_plant
+
+    plant = template_plant("HeatingHeatPumpCoolingPlant")
+    case = sample_case()
+    path = "params.injection_pump.pressure_setpoint"
+    assert path not in {item.path for item in gm.check(plant, case)}
+    plant._set_si_inputs({"injection_pump.pressure_setpoint": None})
+    found = [item for item in gm.check(plant, case) if item.path == path]
+    assert [item.code for item in found] == ["missing_value"]

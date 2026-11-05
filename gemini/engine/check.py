@@ -99,6 +99,7 @@ def issues_of(applied, case):
             *depths,
             *(item for item in _parameters(applied) if item.path not in named),
             *_rules(applied),
+            *_pump_setpoints(applied),
             *_kinds(applied, case),
             *_sizes(applied, case),
             *_roles(applied, case),
@@ -162,7 +163,9 @@ def _rules(plant):
         if _declares(plant, attribute) and _set_value(plant, attribute) is None:
             path = f"params.{name}"
             issues.append(
-                Issue(path, "missing", f"{path} is missing; expected {expected}", code="missing_value")
+                Issue(
+                    path, "missing", f"{path} is missing; expected {expected}", code="missing_value"
+                )
             )
     for path, module in plant.named_modules():
         split = _set_value(module, "segment") in ("below_esp", "above_esp")
@@ -176,6 +179,35 @@ def _rules(plant):
                     code="missing_value",
                 )
             )
+    return issues
+
+
+def _pump_setpoints(plant):
+    """Return a ``missing`` issue for each injection pump that has no way to set its head.
+
+    A pump without head curves (``head_coefficients`` with ``stage_count``) raises its water to its
+    ``pressure_setpoint``; without one every step of a run failed with a head of NaN (geomind
+    QA-250), so ``check`` names the setpoint.
+    """
+    from gemini.modules.pumps import InjectionPump
+
+    issues = []
+    for path, module in plant.named_modules():
+        if not isinstance(module, InjectionPump):
+            continue
+        curves = _set_value(module, "head_coefficients") is not None
+        if curves or plant.input_value(join_path(path, "pressure_setpoint")) is not None:
+            continue
+        where = join_path("params", form.file_path(join_path(path, "pressure_setpoint")))
+        issues.append(
+            Issue(
+                where,
+                "missing",
+                f"{where} is missing; expected the discharge pressure the injection pump "
+                "delivers (the injection well's need), or head_coefficients and stage_count",
+                code="missing_value",
+            )
+        )
     return issues
 
 

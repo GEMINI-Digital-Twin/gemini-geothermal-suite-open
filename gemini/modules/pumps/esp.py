@@ -42,7 +42,6 @@ def _float32():
     return runtime.get_precision() == "float32"
 
 
-
 CURVE_STEPS = 200
 """The flows from zero to ``maximum_flow`` the curves are read at to name where they are negative."""
 
@@ -57,6 +56,7 @@ def _below_zero(flows, values):
             ranges.append((float(start), float(flows[index - 1] if value >= 0 else flow)))
             start = None
     return ranges
+
 
 class ESP(Module):
     """Electrical submersible pump installed inside a production well."""
@@ -256,20 +256,23 @@ class ESP(Module):
 
         The polynomials are fitted on a finite flow range and extrapolate outside it, to a power
         of any size or to a negative head or power. The range is the pump's own: the flow at most
-        ``maximum_flow`` scaled by the speed ratio (affinity law), the head and the power at least
-        zero. The row fails with ``out_of_range`` naming the path, the flow, the head, the power,
-        the largest flow and the intake pressure and gas volume fraction that inflated the flow.
+        ``maximum_flow`` scaled by the speed ratio (affinity law) with
+        ``pumps.CURVE_FLOW_TOLERANCE`` on top, the head and the power at least zero. The row
+        fails with ``out_of_range`` naming the path, the flow, the head, the power, the largest flow
+        and the intake pressure and gas volume fraction that inflated the flow.
         ``minimum_flow`` is the recommended range, not this one: a flow below it only raises the
         health alarm.
         """
-        largest = pumps.speed_scaled_flow(self.maximum_flow, scale)
+        largest = pumps.curve_flow_limit(self.maximum_flow, scale)
         ops.check(
             ops.logical_and(ops.logical_and(flow <= largest, head >= 0), power >= 0),
             PhysicsError,
             "{path}: flow = {flow} m3/s gives head = {head} Pa and power = {power} W; expected "
             "flow at most {largest} m3/s (maximum_flow at this speed) and head and power at "
             "least 0, the range the curves are valid for; intake pressure = {intake} Pa and gas "
-            "volume fraction = {gas}{curves}",
+            "volume fraction = {gas}{curves}. maximum_flow is the range of the pump curves, not "
+            "the case's flow band: the suction flow is above the doublet's flow by the expansion "
+            "of the brine and its free gas",
             code="out_of_range",
             path=self.path,
             curves=self._negative_curves(),

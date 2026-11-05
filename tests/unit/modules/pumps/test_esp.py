@@ -413,3 +413,14 @@ def test_a_flow_exactly_at_the_speed_scaled_maximum_is_inside_the_curve():
     pump = si.set_params(ESP(), "", {**ESP_PARAMS, "maximum_flow": gm.units.Quantity(0.05, "m3/s")})
     assert _esp_call(pump, 0.05, 60).outputs.power > 0
     assert _esp_call(pump, 0.025, 30).outputs.power > 0
+
+
+def test_a_flow_just_above_the_maximum_is_inside_the_curve_within_its_tolerance():
+    """A design flow at maximum_flow reaches the suction 0.5 % larger: still valid (QA-250).
+
+    Above ``pumps.CURVE_FLOW_TOLERANCE`` the row fails and says what maximum_flow is.
+    """
+    pump = si.set_params(ESP(), "", {**ESP_PARAMS, "maximum_flow": gm.units.Quantity(0.05, "m3/s")})
+    assert _esp_call(pump, 0.05 * 1.015, 60).outputs.power > 0
+    with raises(PhysicsError, "out_of_range", match="not the case's flow band"):
+        _esp_call(pump, 0.05 * 1.03, 60)
