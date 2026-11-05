@@ -944,6 +944,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.6.34 | 2026-11-05 | **Fix, no break** (geomind QA-260, QA-343). `gm.study.size` honours a `size.doublets` range on a plant without a class, and sets an unset injection pump `efficiency` and `frequency` with a note; `gm.check` names every missing injection pump and closed-loop cooler value at once. No name or schema key changed. |
 | 0.6.33 | 2026-11-05 | **Fix, no break** (geomind QA-335). `gm.study.size` again keeps each air `Cooler` at the capacity of the plant file, as before 0.6.31 (the cooler sizing of QA-324 is reverted); no name or schema key changed. |
 | 0.6.32 | 2026-11-05 | **Fix, no break.** The case schema's series form of the relative humidity takes no required `unit` again (fractions 0 to 1, as in 0.5.0); `gm.check` asks a doublet's `depth` only when the doublet does not state its reservoir temperature and pressure. |
 | 0.6.31 | 2026-11-05 | **Addition, no break** (geomind QA-322). The KPI `heat_pump_cop` (the heating heat pumps' heat over their electricity) beside `cop`, whose key and value stay and whose metric title is "Heat per bought electricity"; each day of `gm.evaluate.daily_coverage` adds `no_demand` and `labels` `{main, other}`, the names of what `geothermal` and `backup` are in the plant. |

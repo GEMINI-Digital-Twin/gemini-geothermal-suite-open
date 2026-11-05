@@ -12,6 +12,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.34] - 2026-11-05
+
+### Fixed
+- `gm.study.size` honours a `range` of `size.doublets` on a plant without a class whose doublets
+  can vary (on `d0`): it kept one doublet whatever its range (geomind QA-260).
+- `gm.study.size` sets an injection pump's `efficiency` (the `pump_efficiency` of the doublets it
+  serves, when they agree) and its motor `frequency` (gemini's reference frequency of pump
+  curves, which a pump without curves never reads) when they are unset, each with a note; a
+  sized plant failed on one, then on the other (geomind QA-343).
+- `gm.check` names at once every missing value of an injection pump (`frequency`, and
+  `efficiency` for a pump without both curves) and of an air cooler on a closed loop
+  (`loop_pressure`, `flow`), instead of one per run (geomind QA-343).
+
 ## [0.6.33] - 2026-11-05
 
 ### Fixed
