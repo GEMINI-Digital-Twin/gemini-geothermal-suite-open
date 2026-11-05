@@ -44,6 +44,7 @@ P_SEPARATOR_BAR = 10.0         # pressure of the degasser that releases the gas 
 # default handling: the engine burns the methane, so it emits the same CO2 as a flare, and its electricity covers the pumps' load;
 # the organisers allow any option (organiser answer on Discord, 3 Nov 2026)
 GAS_HANDLING = "engine"
+OPTIONS = ("vent", "flare", "engine", "boiler", "reinject")   # the handling options, in the order handling_options() returns them
 BASIS = ("GLR 0.8 Nm3/m3, 80/20 CH4/CO2 [D]; 22.414 L/mol ideal [C]; CH4 LHV 802.7 kJ/mol = NIST 890.7 - 2 x 44.0 [L, C]; bubble point "
          "= Henry's law at reservoir T (Sander compilation, henrys-law.org): central = mean of 6 CH4 / 5 CO2 measured fits, "
          "upper = van 't Hoff from 298 K; CH4 salted out by exp(0.319 x 0.77) = 1.28 (ln reading) or 1.76 (log10 reading) [L, A, TBC]; "

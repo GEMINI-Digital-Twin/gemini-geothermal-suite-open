@@ -32,6 +32,11 @@ def brief_inputs(brief):
     return ph, pc, site, found
 
 
+def default_gas(r):
+    """True for a tool record priced with the default gas handling (the reinjection economics is kept apart)."""
+    return r["args"].get("gas_handling") in (None, tools.gas.GAS_HANDLING)
+
+
 def call(name, args):
     """A tool result, or {"error": ...} when the tool rejects its arguments."""
     try:
@@ -126,6 +131,7 @@ def plan(brief, chat=log.chat, records=None, exchanges=None):
     heat = {k: v for k, v in peaks.items() if k != "peak_cold_MW"}
     well = {k: v for k, v in heat.items() if k != "peak_heat_MW"}
     cost = [("economics", {"n_doublets": m, "t_return_c": t, **peaks}) for m in (n, n + 1) if m <= 3]   # what the next doublet costs
+    cost.append(("economics", {"n_doublets": n, "t_return_c": t, **peaks, "gas_handling": "reinject"}))   # the gas reinjected instead
     alts = [("layout_compare", {"n_doublets": n, "t_return_c": t, **peaks}), ("storage_point", {"n_doublets": n, "t_return_c": t, **heat})]
     for k, a in (*cost, *alts, ("heating_year", {"n_doublets": n, "t_return_c": t, **heat}),
                  ("cooling_year", {"t_return_c": t, "n_doublets": n, **peaks}), ("injector_point", {"q_m3h": 300, **dep}),
@@ -146,7 +152,7 @@ def plan(brief, chat=log.chat, records=None, exchanges=None):
                            "stopped": any(m["verdict"] == "stopped" for m in moves), "chosen": name(n, t), "n_doublets": n, "t_return_c": t,
                            "optimised": len(front), "steps": trace + moves + front, "tag": "[C]"}})
 
-    econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
+    econ = {r["args"]["n_doublets"]: r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"] and default_gas(r)}
     if n in econ and n + 1 in econ:   # computed from two tool results so the checker can trace it
         out.append({"name": "economics_delta", "args": {"from_n": n, "to_n": n + 1},
                     "result": {"delta_lcoh_EUR_MWh": round(econ[n + 1]["lcoh_EUR_MWh"] - econ[n]["lcoh_EUR_MWh"], 2),
@@ -178,7 +184,8 @@ def plan_message(brief, out):
             "heat served, then the optimiser's front row best on the brief's priority [A]; so demand_met is true" if ok else
             f"the demand cannot be met with up to {brief_max_n(brief)} doublets at any return; least-boiler option shown; "
             "so demand_met is false")
-    econ = {r["args"]["n_doublets"]: r["result"]["lcoh_EUR_MWh"] for r in out if r["name"] == "economics" and "error" not in r["result"]}
+    econ = {r["args"]["n_doublets"]: r["result"]["lcoh_EUR_MWh"] for r in out
+            if r["name"] == "economics" and "error" not in r["result"] and default_gas(r)}
     lcoh = "; ".join(f"with {m} doublets {v} EUR/MWh" for m, v in econ.items())
     if n in econ and n + 1 in econ:
         lcoh += (f"; so the {({2: 'second', 3: 'third'}[n + 1])} doublet adds {round(econ[n + 1] - econ[n], 2)} EUR/MWh "
@@ -271,7 +278,7 @@ def gas_lifetime(out):
               f"bubble point {g['p_bubble_bar']} (log10 {g['p_bubble_log10_reading_bar']}) bar, {free}; {g['gas_Mm3_per_yr']} Mm3 gas, "
               f"{g['CH4_GWh_LHV_per_yr']} GWh CH4 per doublet-year [C, L, A].")
     it = next((r["result"] for r in out if r["name"] == "design_iterations"), {})
-    e = next((r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"]
+    e = next((r["result"] for r in out if r["name"] == "economics" and "error" not in r["result"] and default_gas(r)
               and r["args"].get("n_doublets") == it.get("n_doublets")), None)
     if g and "gas_handling" in g:
         how = {"engine": "Gas engine", "flare": "Flare", "vent": "Venting", "boiler": "Site boiler", "reinject": "Reinjection"}
@@ -280,12 +287,30 @@ def gas_lifetime(out):
               f"{g['esp_GWh_per_yr']} GWh ESP load"
               + (f"; plant CO2 {e['co2_total_kt']} kt/yr, {e['co2_electricity_kt']} kt from grid electricity" if e and "co2_total_kt" in e else "")
               + " [C, D, A].")
+    r = reinjection(out, it.get("n_doublets"), it.get("t_return_c"))
+    if e and r:
+        s += ("\nGas choice: the engine is kept because no reinjection permit is in hand; the reinjection numbers go in "
+              "rejected_alternatives (its 'Reinjecting the associated gas' sentence), and trade_off may end with 'gas engine kept, "
+              "reinjection rejected'.")
     if l:
         s += (f"\nLifetime (say in reasoning): thermal breakthrough after {l['t_bt_mean_flow_yr']} yr at the mean running flow "
               f"{l['q_mean_running_m3h']} m3/h and {l['spacing_m']} m spacing; "
               f"doublet interference {l['interference_worst_injector_bar']} bar leaves "
               f"a SodM margin of {l['sodm_margin_after_interference_bar']} bar [C, L, A].")
     return s
+
+
+def reinjection(out, n, t):
+    """The economics result of the chosen design with the associated gas reinjected, or None."""
+    return next((r["result"] for r in out if r["name"] == "economics" and r["args"].get("gas_handling") == "reinject"
+                 and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t and "error" not in r["result"]), None)
+
+
+def reinject_sentence(e, r):
+    """Engine against reinjection for the chosen design, from two economics results."""
+    return (f"Reinjecting the associated gas instead of the engine: CO2 {e['co2_total_kt']} -> {r['co2_total_kt']} kt, "
+            f"LCoH {e['lcoh_EUR_MWh']} -> {r['lcoh_EUR_MWh']} EUR/MWh, compression {r['associated_gas_compression_GWh']} GWh, "
+            "permit assumed [C, A].")
 
 
 def _year(out, n, t):
@@ -340,6 +365,11 @@ def rejected(out, n, t):
         who = "Both" if n == 2 else f"All {n}"
         lines.append(f"{who} doublets out at once instead of staggered: the backup boiler carries up to "
                      f"{h['all_at_once_backup_max_MW']} MW for 35 days, {h['all_at_once_extra_gas_GWh']} GWh more gas, +{h['all_at_once_extra_gas_MEUR']} MEUR a year [C].")
+    e = next((r["result"] for r in out if r["name"] == "economics" and default_gas(r) and r["args"].get("n_doublets") == n
+              and r["args"].get("t_return_c") == t and "error" not in r["result"]), None)
+    ri = reinjection(out, n, t)
+    if e and ri:
+        lines.append(reinject_sentence(e, ri))
     sw = res("return_sweep", n_doublets=n)
     low = [x for x in tools.SWEEP_C if x < t] if sw else []
     if low:

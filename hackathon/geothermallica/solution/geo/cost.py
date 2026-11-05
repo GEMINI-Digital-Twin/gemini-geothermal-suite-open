@@ -3,7 +3,8 @@
 Well costs follow the TNO ThermoGIS cost model, https://pythermogis-15909e.ci.tno.nl/theory/economicmodel/cost_model/ .
 Parameter sources are in the inline comments.
 economics() returns a dict: the design inputs, CAPEX by item, annual cost of heating and cooling by item, heat and cold
-served, LCoH and LCoC, electricity, gas and CO2 (boiler gas, grid electricity, associated gas, total), and a "basis" dict of sources.
+served, LCoH and LCoC, electricity, gas and CO2 (boiler gas, grid electricity, associated gas as handled by gas_handling, total),
+and a "basis" dict of sources.
 """
 import sys
 from functools import lru_cache
@@ -61,9 +62,11 @@ def crf(r, n):
 
 @lru_cache
 def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doublet_MEUR=None, depth_m=year.DEPTH_M, heat_pump=True,
-              esp_depth_m=year.ESP_DEPTH_M, outage_mode="staggered"):
+              esp_depth_m=year.ESP_DEPTH_M, outage_mode="staggered", gas_handling=assoc.GAS_HANDLING):
     """Economics dict (see module docstring); doublet_MEUR overrides the ThermoGIS price, heat_pump=False prices a boiler lift,
-    outage_mode places the planned outages (geo.outage)."""
+    outage_mode places the planned outages (geo.outage), gas_handling is one of gas.OPTIONS for the associated gas."""
+    if gas_handling not in assoc.OPTIONS:
+        raise ValueError(f"gas_handling={gas_handling!r} not one of {assoc.OPTIONS}")
     doublet_given = doublet_MEUR is not None
     doublet_MEUR = float(doublet_MEUR) if doublet_given else doublet_meur(float(depth_m))
     d = year.heating_year(int(n_doublets), float(t_return_c), peak_heat_MW=peak_heat_MW, depth_m=float(depth_m), heat_pump=bool(heat_pump),
@@ -77,15 +80,18 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
              "absorption_chillers": c.absorption.max() * ABSORPTION_EUR_KW / 1000}
     life = {k: LIFE_DOUBLET if k == "doublets" else LIFE_SURFACE for k in capex}
     heat_items, cold_items = ("doublets", "heat_pump", "backup_boiler"), ("electric_chillers", "cooling_tower", "absorption_chillers")
-    el_heat = gwh(d.esp) + gwh(d.el_hp) + gwh(year.injection_pump_MW(d))
-    el_cold = tot["el_chillers"] + tot["el_aux"]
-    gas = gwh(d.boiler) / BOILER_EFF
-    co2_kt = gas * CO2_T_MWH                                     # boiler gas: GWh x t/MWh = kilotonnes
     on = d.doublets_on
     days_run = float(on.sum())                                   # doublet-days run in the year
     q_run = float((d.q_m3h * on).sum() / days_run) if days_run else 0.0   # flow-weighted mean running flow, m3/h per doublet
-    # associated gas over the doublet-days actually run, handled by gas.GAS_HANDLING; the engine's credit is reported, not netted
-    ag = assoc.handling(q_run, float(depth_m), days=days_run, esp_kW=float(d.esp.sum()) * 1000 / days_run) if days_run else None
+    # associated gas over the doublet-days actually run, handled by gas_handling; an engine or boiler credit is reported, not netted;
+    # reinjection buys its compression electricity from the grid, so it is billed and carries grid CO2
+    ag = (assoc.handling(q_run, float(depth_m), days=days_run, option=gas_handling, esp_kW=float(d.esp.sum()) * 1000 / days_run)
+          if days_run else None)
+    compression = ag["compression_MWh_per_yr"] / 1000 if ag else 0.0   # GWh
+    el_heat = gwh(d.esp) + gwh(d.el_hp) + gwh(year.injection_pump_MW(d)) + compression
+    el_cold = tot["el_chillers"] + tot["el_aux"]
+    gas = gwh(d.boiler) / BOILER_EFF
+    co2_kt = gas * CO2_T_MWH                                     # boiler gas: GWh x t/MWh = kilotonnes
 
     def annual(items, el, gas_gwh, co2):
         return {"capital": sum(capex[k] * crf(R, life[k]) for k in items), "fom": sum(capex[k] * FOM for k in items),
@@ -104,7 +110,8 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
             "co2_electricity_kt": (el_heat + el_cold) * EF_EL_KG_KWH,   # GWh x kg/kWh = kilotonnes
             "co2_associated_gas_kt": ag["CO2e_t_per_yr"] / 1000 if ag else 0.0,
             "co2_total_kt": co2_kt + (el_heat + el_cold) * EF_EL_KG_KWH + (ag["CO2e_t_per_yr"] / 1000 if ag else 0.0),
-            "gas_handling": assoc.GAS_HANDLING, "associated_gas_q_m3h": q_run, "associated_gas_doublet_days": days_run,
+            "gas_handling": gas_handling, "associated_gas_q_m3h": q_run, "associated_gas_doublet_days": days_run,
+            "associated_gas_compression_GWh": compression,
             "associated_gas_electricity_GWh": ag["electricity_MWh_per_yr"] / 1000 if ag else 0.0,
             "associated_gas_heat_GWh": ag["heat_MWh_per_yr"] / 1000 if ag else 0.0, "esp_GWh": gwh(d.esp), "tag": "[C]",
             "basis": {"discount_rate": f"{R} real [L, PBL 2026]", "life_yr": "doublets 30 [L, PBL], surface 20 [A]",
@@ -120,8 +127,10 @@ def economics(n_doublets, t_return_c, peak_heat_MW=None, peak_cold_MW=None, doub
                       "gas_EUR_MWh": f"{P_GAS} GCV [L, Eurostat], boiler eff {BOILER_EFF} [A]",
                       "co2": f"{CO2_T_MWH:.3f} t/MWh gas [D, RVO], {P_CO2} EUR/t [L, ETS2]",
                       "co2_electricity": f"{EF_EL_KG_KWH} kg/kWh grid [D, organiser Q&A 3 Nov 2026]; no CO2 cost, the grid price carries ETS [A]",
-                      "co2_associated_gas": f"gas handled by '{assoc.GAS_HANDLING}' at the flow-weighted mean running flow {q_run:.0f} m3/h over "
-                                            f"{days_run:.0f} doublet-days [C]; engine or boiler credit reported, not netted [A]"}}
+                      "co2_associated_gas": f"gas handled by '{gas_handling}' at the flow-weighted mean running flow {q_run:.0f} m3/h over "
+                                            f"{days_run:.0f} doublet-days [C]; engine or boiler credit reported, not netted [A]; "
+                                            "reinjection compression is isothermal (a lower bound) and billed as grid electricity, "
+                                            "permit assumed [A]"}}
 
 
 if __name__ == "__main__":

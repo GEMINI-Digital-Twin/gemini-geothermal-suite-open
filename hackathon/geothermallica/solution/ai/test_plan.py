@@ -162,6 +162,31 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(checker.check_iterations(it, good, good["reasoning"], out), [])   # 'stopped' explains a failing design
         self.assertIn("The model stopped the repair at checks", planner.plan_message(BRIEF_F, out))
 
+    def test_reinjection_line(self):
+        """The plan prices the gas reinjected, says it in the message, and an answer carrying the sentence passes the checker."""
+        out = plan(agent.BRIEF)
+        it = trace(out)
+        n, t = it["n_doublets"], it["t_return_c"]
+        ri = planner.reinjection(out, n, t)
+        self.assertEqual(ri["gas_handling"], "reinject")
+        self.assertGreater(ri["associated_gas_compression_GWh"], 0)
+        msg = planner.plan_message(agent.BRIEF, out)
+        line = next(x[2:] for x in msg.splitlines() if x.startswith("- Reinjecting the associated gas instead of the engine"))
+        self.assertIn(f"-> {ri['co2_total_kt']} kt", line)
+        self.assertIn("Gas choice: the engine is kept", msg)
+        alts = [x[2:] for x in msg.splitlines() if x.startswith("- ")]
+        self.assertLessEqual(len(alts), 7)
+        self.assertEqual(checker.check_alternatives(alts, {r["name"] for r in out}), [])
+        self.assertEqual(checker.check_reinjection(alts, out, n, t), [])
+        ans = {**answer(it, [f"Tried {it['tried']} candidates [C]."]), "rejected_alternatives": alts}
+        self.assertFalse([p for p in checker.check(ans, "", out, agent.BRIEF) if p.startswith(("(c)", "(h)"))])
+        bad = [a.replace(str(ri["co2_total_kt"]), "2.37") if a == line else a for a in alts]
+        self.assertTrue(any("2.37" in p for p in checker.check_reinjection(bad, out, n, t)))
+        self.assertTrue(checker.check_reinjection([a for a in alts if a != line], out, n, t))   # priced but not named
+        lcoh = [r for r in out if r["name"] == "economics" and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t]
+        self.assertEqual(sum(r["args"].get("gas_handling") == "reinject" for r in lcoh), 1)
+        self.assertNotIn(f"with {n} doublets {ri['lcoh_EUR_MWh']} EUR/MWh", msg)   # the design's LCoH stays the engine's
+
     def test_parse(self):
         options = moves.menu({"n_doublets": 2, "t_return_c": 56.25, "esp_depth_m": 800}, {},
                              {"14 free gas at ESP intake [D]": "min intake 44.7 bar (limit >= 62.5 bar) -> FAIL", "summary": ""}, 3)

@@ -25,7 +25,7 @@ def make_tool(name):
                 return tools.call(name, {k: v for k, v in kw.items() if v is not None})
         except ValueError as e:      # AI02's range check becomes a tool error
             raise ToolError(str(e)) from e
-    kind = lambda a: int if a == "n_doublets" else str if a == "priority" else float
+    kind = lambda a: int if a in ("n_doublets", "outage_days", "max_doublets") else str if a in tools.STRINGS else float
     params = [inspect.Parameter(a, inspect.Parameter.KEYWORD_ONLY, annotation=kind(a) | None if a in tools.OPTIONAL else kind(a),
                                 default=None if a in tools.OPTIONAL else inspect.Parameter.empty) for a in tools.SIG[name]]
     fn.__signature__ = inspect.Signature(params, return_annotation=dict)

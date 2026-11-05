@@ -1,6 +1,6 @@
 """Check a final JSON answer against the tool results the model saw; each problem is prefixed by its rule (a) to (k).
 (a) 'best' needs a sweep (b) tags (c) numbers from tools (d) consistency (e) brief values used (f) shape (g) site (h) alternatives
-(i) trace (j) the chosen design is on the Pareto front and the trade-off quotes its numbers
+(i) trace (j) the chosen design is on the Pareto front and the trade-off quotes its numbers (k) GEMINI verification
 """
 import json
 import re
@@ -114,6 +114,7 @@ def check(run_json, transcript, tool_results, brief=""):
             if not any(close(x, p) for p in pool):
                 problems.append(f"(c) {x} not in any tool result of this run: {r}")
     problems += check_alternatives(alts, called)
+    problems += check_reinjection(alts_s, tool_results, run_json.get("n_doublets"), run_json.get("t_return_c"))
     sweeps = {r["result"]["n_doublets"]: r["result"] for r in tool_results if r["name"] == "return_sweep"}
     n, t, boiler = run_json.get("n_doublets"), run_json.get("t_return_c"), run_json.get("boiler_needed_for_energy")
     met = any(meets_rule(sm["by_return_C"][str(sm["best_return_c"])]) for sm in sweeps.values())
@@ -168,7 +169,8 @@ def check(run_json, transcript, tool_results, brief=""):
             problems.append(f"(d) {name} missing, {tool} gives {w}")
         elif not close(v, w):
             problems.append(f"(d) {name}={v} but {tool} gives {w}")
-    econ = {r["name"]: r["result"] for r in tool_results if r["name"] == "economics" and same(r)}
+    econ = {r["name"]: r["result"] for r in tool_results if r["name"] == "economics" and same(r)
+            and r["args"].get("gas_handling") in (None, "engine")}   # the reinjection economics is an alternative, not the design
     for path, (tool, key) in OPTIONAL.items():
         v, w = run_json.get(path[0]), econ.get(tool, {}).get(key)
         if v is None:
@@ -307,10 +309,10 @@ def check_choice(run_json, opt, stated):
 
 
 def check_alternatives(alts, called):
-    """(h) 3 to 6 rejected alternatives of 4 to 40 words, each with a number and a tag, naming layout and tank when priced."""
+    """(h) 3 to 7 rejected alternatives of 4 to 40 words, each with a number and a tag, naming layout and tank when priced."""
     if not isinstance(alts, list) or not all(isinstance(x, str) for x in alts):
         return [f"(h) rejected_alternatives must be a list of strings, got {type(alts).__name__}"]
-    problems = [] if 3 <= len(alts) <= 6 else [f"(h) {len(alts)} rejected_alternatives, need 3 to 6"]
+    problems = [] if 3 <= len(alts) <= 7 else [f"(h) {len(alts)} rejected_alternatives, need 3 to 7"]
     for a in alts:
         if not 4 <= len(a.split()) <= 40:
             problems.append(f"(h) {len(a.split())} words, need 4 to 40: {a}")
@@ -324,6 +326,20 @@ def check_alternatives(alts, called):
     if "storage_point" in called and not re.search(r"tank|storage", text):
         problems.append("(h) storage_point ran but no rejected alternative names the storage tank")
     return problems
+
+
+def check_reinjection(alts, tool_results, n, t):
+    """(h) when the plan priced the gas reinjected, one alternative names it and its numbers come from the two economics results."""
+    ec = [r for r in tool_results if r["name"] == "economics" and r["args"].get("n_doublets") == n and r["args"].get("t_return_c") == t
+          and "error" not in r["result"]]
+    if not any(r["args"].get("gas_handling") == "reinject" for r in ec):
+        return []
+    said = [a for a in alts if re.search(r"reinject", a, re.I)]
+    if not said:
+        return ["(h) economics priced the gas reinjected but no rejected alternative names reinjection"]
+    pool = [float(x) for r in ec for x in NUM.findall(json.dumps(r["result"]))]
+    return [f"(h) {x} in the reinjection alternative is not in the economics results for {n} doublets at {t} C: {a}"
+            for a in said for x in NUM.findall(TAG.sub("", a)) if not (float(x) < 13 and "." not in x) and not any(close(x, p) for p in pool)]
 
 
 def newest_run():

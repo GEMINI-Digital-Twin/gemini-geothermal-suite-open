@@ -41,6 +41,23 @@ class TestModels(unittest.TestCase):
         self.assertAlmostEqual(e["co2_electricity_kt"], e["electricity_GWh"] * 0.3, places=9)
         self.assertAlmostEqual(e["co2_total_kt"], e["co2_kt"] + e["co2_electricity_kt"] + e["co2_associated_gas_kt"], places=9)
 
+    def test_gas_handling_in_economics(self):
+        """Challenge design (2 doublets, 56.5 C, ESP 1100 m): the engine default is unchanged; reinjection drops the associated-gas CO2,
+        bills its compression as grid electricity, and an unknown option is refused."""
+        e = cost.economics(2, 56.5, 30.0, 10.0)
+        self.assertEqual(e["gas_handling"], "engine")
+        self.assertAlmostEqual(e["lcoh_EUR_MWh"], 61.7996, places=3)
+        self.assertAlmostEqual(e["co2_total_kt"], 9.4291, places=3)
+        self.assertAlmostEqual(e["electricity_GWh"], 18.2256, places=3)
+        r = cost.economics(2, 56.5, 30.0, 10.0, gas_handling="reinject")
+        self.assertEqual(r["co2_associated_gas_kt"], 0.0)
+        self.assertAlmostEqual(r["electricity_GWh"] - e["electricity_GWh"], r["associated_gas_compression_GWh"], places=9)
+        self.assertAlmostEqual(r["co2_total_kt"], r["co2_kt"] + r["electricity_GWh"] * 0.3, places=9)
+        self.assertGreater(r["lcoh_EUR_MWh"], e["lcoh_EUR_MWh"])
+        self.assertLess(r["co2_total_kt"], e["co2_total_kt"])
+        with self.assertRaises(ValueError):
+            cost.economics(2, 56.5, gas_handling="burn")
+
     def test_bubble_point_tens_of_bar(self):
         """Bubble point between 10 and 100 bar, van 't Hoff above the fits."""
         self.assertTrue(10 < gas.p_bubble_bar(2500.0) < gas.p_bubble_bar(2500.0, "vant_hoff") < 100)

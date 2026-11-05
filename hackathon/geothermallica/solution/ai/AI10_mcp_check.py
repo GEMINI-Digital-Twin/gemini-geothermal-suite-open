@@ -24,6 +24,9 @@ async def main():
             r = await s.call_tool(name, args)
             print(f"\n{name}({args}) is_error={r.is_error}\n{r.content[0].text}")
         assert r.is_error, "out-of-range q must come back as a tool error"
+        r = await s.call_tool("economics", {"n_doublets": 2, "t_return_c": 56.5, "gas_handling": "reinject"})   # a text argument
+        assert not r.is_error and '"gas_handling": "reinject"' in r.content[0].text, r.content[0].text[:300]
+        print("\neconomics with gas_handling reinject: not an error")
         print("\nresources:", [str(x.uri) for x in (await s.list_resources()).resources])
         print("findings first line:", (await s.read_resource("notes://findings")).contents[0].text.splitlines()[0])
         print("prompts:", [p.name for p in (await s.list_prompts()).prompts])

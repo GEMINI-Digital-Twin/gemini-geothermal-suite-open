@@ -143,6 +143,9 @@ def optimise(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_start_m=
     def best(k):
         return min(rows, key=lambda p: p[k]) if rows else None
 
+    for p in rows[:FRONT_MAX]:   # the same row with the associated gas reinjected instead of burned: one cached economics call each
+        p["co2_reinject_kt"] = cost.economics(p["n"], p["t_return_c"], peak_heat_MW, peak_cold_MW, depth_m=float(depth_m),
+                                              esp_depth_m=p["esp_depth_m"], gas_handling="reinject")["co2_total_kt"]
     secs = round(time.time() - t0, 1)
     return {"front": rows[:FRONT_MAX], "best_lcoh": best("lcoh_EUR_MWh"), "best_co2": best("co2_total_kt"),
             "n_evaluated": len(s.seen), "n_feasible": sum(p["feasible"] for p in s.seen.values()), "seconds": secs,
@@ -150,7 +153,8 @@ def optimise(peak_heat_MW=None, peak_cold_MW=None, depth_m=DEPTH_M, esp_start_m=
                       f"step {T_STEP_C:g}, pump depth {ESP_RANGE_M[0]:g}-{ESP_RANGE_M[1]:g} m step {ESP_STEP_M:g} plus "
                       f"the start {esp_start_m:g} m; pattern search with {HALVINGS} halvings for weights {WEIGHTS} on "
                       f"min-max normalised objectives [A, our choice]; feasible = 17 checks pass and the doublet rule "
-                      f"[C]; {len(s.seen)} designs in {secs} s")}
+                      f"[C]; co2_reinject_kt = the row with the associated gas reinjected (compression billed, permit assumed) [C, A]; "
+                      f"{len(s.seen)} designs in {secs} s")}
 
 
 if __name__ == "__main__":
