@@ -3,6 +3,7 @@
 import importlib
 import json
 
+import numpy as np
 import pytest
 
 import gemini as gm
@@ -388,3 +389,33 @@ def test_the_result_is_a_search_with_its_history_as_plain_json(found):
     assert len(plain["history"]) == plain["evaluations"] == found["evaluations"]
     assert plain["history"][0]["parameters"]["depth"].keys() == {"value", "unit"}
     assert all("violation" in entry for entry in plain["history"])
+
+
+def test_a_search_of_four_variables_runs_its_budget_never_four_times_it():
+    """QA-285: five per variable was a multiplier of the variables: twenty evaluations ran eighty."""
+    _, members, generations, polish = minimize_module._generations(20, 4)
+    assert members * (generations + 1) + polish == 20 and polish >= 10
+    _, members, generations, polish = minimize_module._generations(5, 1)
+    assert (members, generations, polish) == (5, 0, 0)
+
+
+def test_the_polish_finds_a_better_design_next_to_the_only_feasible_one():
+    """QA-285: of eighty random points only the start was feasible, so it came back as best.
+
+    Feasible is a narrow band of the second variable around the start; the cost falls as the
+    first variable falls, which the compass search follows within its budget.
+    """
+    from gemini.study._utils.variables import Variable
+
+    found = [Variable("a", ("a",), 3.0, 30.0), Variable("b", ("b",), 0.0, 1.0)]
+    trials = []
+
+    def evaluated(point):
+        trials.append(point.copy())
+        feasible = abs(point[1] - 0.5) < 0.01
+        return point[0] / 100 if feasible else 3.0
+
+    start = np.array([9.75, 0.5])
+    minimize_module._polish(evaluated, found, (evaluated(start), start), 12)
+    assert len(trials) <= 13
+    assert min(point[0] for point in trials if abs(point[1] - 0.5) < 0.01) == 3.0

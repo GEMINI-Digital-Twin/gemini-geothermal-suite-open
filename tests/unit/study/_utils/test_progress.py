@@ -60,11 +60,11 @@ def test_the_trials_of_every_doublet_count_are_told_in_one_count(runs):
 
 
 def test_the_total_is_the_trials_a_search_of_two_variables_runs(runs):
-    """A population is five per variable times the variables: twenty trials for two of them."""
+    """QA-285: two variables run their budget, ten trials (the evolution, then the polish)."""
     listener = Listener()
     flow = {"d0.nominal_flow": (Quantity(50, "m3/h"), Quantity(300, "m3/h"))}
     minimized(DEPTH | flow, 10, on_progress=listener)
-    assert listener.calls[-1] == (len(runs), len(runs)) and len(listener.calls) == len(runs) == 20
+    assert listener.calls[-1] == (len(runs), len(runs)) and len(listener.calls) == len(runs) == 10
 
 
 def test_sensitivity_counts_both_ends_of_each_value(runs):

@@ -17,7 +17,7 @@ from gemini.study._utils.execute import executed, trials
 from gemini.study._utils.parallel import mapped
 from gemini.study._utils.progress import counting
 from gemini.study._utils.trial import checked_metric
-from gemini.study.evolve import checked_stop
+from gemini.study.evolve import checked_stop, polish_shortfall, variable_space
 from gemini.study.result import Run, StudyResult
 from gemini.units import inputs
 
@@ -362,7 +362,19 @@ class Study:
         ]
         if self.method == "evolve" and (plant.optional or plant.choices):
             found += superstructure.none_valid(plant, Plant)
-        return found
+        return found + self._polish_issues(plant)
+
+    def _polish_issues(self, plant):
+        """Return the ``population`` issue of an evolve study too small for its ``polish``."""
+        if self.method != "evolve" or not self.polish or self.population is None:
+            return []
+        try:
+            message = polish_shortfall(variable_space(plant), self.population, self.polish)
+        except ValidationError:
+            return []
+        if message is None:
+            return []
+        return [Issue("population", "incompatible", message, code="invalid_value")]
 
     @property
     def names(self):

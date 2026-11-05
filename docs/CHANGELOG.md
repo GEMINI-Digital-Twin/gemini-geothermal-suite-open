@@ -12,6 +12,27 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.24] - 2026-11-05
+
+### Fixed
+- `gm.Study.check()` names an `evolve` study whose `population` is too small for its `polish`
+  (`population`, `invalid_value`: "population 16 is too small for polish: needs at least N (5 per
+  variable, V variables); raise population to N or set polish 0"), the rule `evolve` applies, so
+  the study is refused when it is made instead of failing at its end (geomind QA-282).
+
+## [0.6.23] - 2026-11-05
+
+### Fixed
+- `gm.study.minimize` runs at most `evaluations` simulations for each doublet count: five per
+  variable was passed to `differential_evolution` as `popsize`, a multiplier of the number of
+  variables, so four variables ran four times the budget, all of it random first-population
+  points. About half of the budget is now the evolution (at most five per variable), and the
+  rest polishes its best trial by a compass search, one continuous or integer variable at a
+  time. On `HackathonPlant` and the hackathon case (sized, 20 evaluations, seed 0) only the
+  plant's own start was feasible, so it came back as the optimum (LCTS 41.30 EUR/MWh, heat
+  pump 9.75 MW); now the search finds 32.53 EUR/MWh (heat pump 3 MW) in 20 trials (geomind
+  QA-285). The trials of a seed differ from 0.6.22; `trials_of` gives the new totals.
+
 ## [0.6.22] - 2026-11-05
 
 ### Added

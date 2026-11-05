@@ -55,7 +55,7 @@ def test_minimize_over_a_range_and_an_option_and_the_best_plant_round_trips(case
     plant.set_options("heat_exchanger.arrangement", ["counterflow", "parallel"])
     found = gm.study.minimize(plant, case, "lcts", 10, 0)
     best = found["best"]
-    assert found["evaluations"] == 20 and found["feasible"]
+    assert found["evaluations"] == 10 and found["feasible"]
     assert 1000 <= best.parts["parameters"]["depth"].value <= 1800
     assert best.parts["parameters"]["heat_exchanger.arrangement"] in ("counterflow", "parallel")
     best["plant"].to_json(tmp_path / "best.json")

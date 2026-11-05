@@ -202,3 +202,16 @@ def test_the_plants_of_a_study_run_in_worker_processes_as_in_turn(folder):
     with gm.runtime.settings(processes=2):
         together = study.run(plants=plants).to_dict()
     assert json.dumps(together, sort_keys=True) == json.dumps(alone, sort_keys=True)
+
+
+def test_an_evolve_study_too_small_for_its_polish_is_named_by_check(folder):
+    """QA-282: polish needs 5 per variable; check says so when the study is made, not at its end."""
+    data = without(settings(method="evolve"), "objective", "metrics")
+    data |= {"objectives": ["lcts"], "evaluations": 4, "population": 2, "seed": 0, "polish": 1}
+    found = [item for item in gm.Study.from_dict(data, folder=folder).check()]
+    issue = next(item for item in found if item.path == "population")
+    assert issue.code == "invalid_value"
+    assert "population 2 is too small for polish: needs at least" in issue.message
+    assert "raise population to" in issue.message and "or set polish 0" in issue.message
+    quiet = gm.Study.from_dict(data | {"polish": 0}, folder=folder).check()
+    assert all(item.path != "population" for item in quiet)

@@ -1011,15 +1011,38 @@ def _checked(plant, evaluations, seed, population, polish):
             path="params",
             code="invalid_design",
         )
-    if polish and population < POPULATION_PER_VARIABLE * (len(space.genes) - space.structural):
+    message = polish_shortfall(space, population, polish)
+    if message:
         raise ValidationError(
-            f"study.evolve: population = {population}; polish searches with minimize, which needs "
-            f"at least {POPULATION_PER_VARIABLE} per variable",
+            f"study.evolve: {message} (polish searches with minimize)",
             path="population",
             code="invalid_value",
         )
     _judge_structures(plant, space)
     return space
+
+
+def polish_shortfall(space, population, polish):
+    """Return why ``population`` is too small for ``polish``, or ``None`` when it is not.
+
+    Polish searches with minimize, which needs ``POPULATION_PER_VARIABLE`` members per variable;
+    ``gm.Study.check`` names it when the study is made, so no study starts that fails at its end
+    (geomind QA-282). ``space`` is the ``_Space`` of the plant (``variable_space``).
+    """
+    variables = len(space.genes) - space.structural
+    needed = POPULATION_PER_VARIABLE * variables
+    if not polish or population >= needed:
+        return None
+    return (
+        f"population {population} is too small for polish: needs at least {needed} "
+        f"({POPULATION_PER_VARIABLE} per variable, {variables} variables); raise population to "
+        f"{needed} or set polish 0"
+    )
+
+
+def variable_space(plant):
+    """Return the genes of ``plant`` that evolve searches (its ``_Space``)."""
+    return _Space(plant)
 
 
 def _count(plant):

@@ -25,6 +25,10 @@ POPULATION_PER_VARIABLE = 5
 """Candidates of a generation per variable: a small budget still sees several generations."""
 SMALLEST_POPULATION = 5
 """The fewest candidates of a generation, which ``differential_evolution`` needs."""
+FIRST_STEP = 0.25
+"""The first step of the polish, a share of each variable's range (QA-285)."""
+SMALLEST_STEP = 1e-4
+"""The step of the polish, a share of the range, below which it has converged."""
 
 
 NOT_A_NUMBER = "the objective is not a number"
@@ -90,7 +94,14 @@ def _entry(parameters, metrics, name, reason, violation, lifts):
 
 
 def _generations(evaluations, count):
-    """Return ``(population, generations after the first)`` that fit the budget."""
+    """Return ``(popsize, members, generations after the first, polish)`` that fit the budget.
+
+    QA-285: ``popsize`` is a multiplier of the number of variables in ``differential_evolution``,
+    so four variables ran four times the budget, all in the first population; of eighty random
+    points only the plant's own start was feasible, and it came back as the optimum. Now the
+    evolution has about half the budget, its population ``members`` at most five per variable,
+    and the rest of the budget is the ``polish``: a compass search from the best trial.
+    """
     population = max(SMALLEST_POPULATION, POPULATION_PER_VARIABLE * count)
     if evaluations < population:
         raise ValidationError(
@@ -98,7 +109,12 @@ def _generations(evaluations, count):
             f"{population}",
             path="evaluations",
         )
-    return population, evaluations // population - 1
+    half = evaluations // 2
+    wanted = max(SMALLEST_POPULATION, min(population, half))
+    popsize = max(1, wanted // count)
+    members = max(SMALLEST_POPULATION, popsize * count)
+    generations = max(0, max(half, members) // members - 1)
+    return popsize, members, generations, evaluations - members * (generations + 1)
 
 
 def _values(found, point):
@@ -205,24 +221,68 @@ def _search(evaluated, found, evaluations, start, seed, generations=None):
     """Run the search of the variables from ``start``; with none, evaluate once.
 
     ``generations`` is the number of generations after the first; without it, what the budget
-    allows. With ``0`` only the first population is evaluated, which is how the points of the
-    first generation are known before the search runs.
+    allows, and then the rest of the budget polishes the best trial (``_polish``). With ``0``
+    only the first population is evaluated, which is how the points of the first generation are
+    known before the search runs.
     """
     if not found:
         evaluated(np.empty(0))
         return
-    population, allowed = _generations(evaluations, len(found))
+    popsize, _, allowed, polish = _generations(evaluations, len(found))
+    seen = []
+
+    def kept(point):
+        ranked = evaluated(point)
+        seen.append((ranked, np.array(point, dtype=float)))
+        return ranked
+
     differential_evolution(
-        evaluated,
+        kept,
         _bounds(found),
         maxiter=allowed if generations is None else generations,
-        popsize=population,
+        popsize=popsize,
         x0=start,
         tol=0,
         polish=False,
         seed=seed,
         integrality=_discrete(found),
     )
+    if generations is None and polish and seen:
+        _polish(kept, found, min(seen, key=lambda item: item[0]), polish)
+
+
+def _polish(evaluated, found, best, budget):
+    """Search around the best trial one variable at a time, ``budget`` trials at most (QA-285).
+
+    A compass search: each continuous or integer variable steps up and down by a share of its
+    range (``FIRST_STEP``), a better trial becomes the centre, and a sweep with no better trial
+    halves the step, until the budget is spent or the step is below ``SMALLEST_STEP``. A choice
+    is left as the evolution found it. It is deterministic, so a seed gives the same trials.
+    """
+    ranked, centre = best
+    moving = [index for index, item in enumerate(found) if item.options is None]
+    step, tried = FIRST_STEP, {centre.tobytes()}
+    while budget > 0 and moving and step >= SMALLEST_STEP:
+        better = False
+        for index in moving:
+            variable = found[index]
+            span = variable.high - variable.low
+            delta = max(1.0, round(step * span)) if variable.integer else step * span
+            for sign in (-1.0, 1.0):
+                point = centre.copy()
+                point[index] = min(max(centre[index] + sign * delta, variable.low), variable.high)
+                if variable.integer:
+                    point[index] = float(round(point[index]))
+                if point.tobytes() in tried or budget <= 0:
+                    continue
+                tried.add(point.tobytes())
+                budget -= 1
+                value = evaluated(point)
+                if value < ranked:
+                    ranked, centre, better = value, point, True
+                    break
+        if not better:
+            step /= 2
 
 
 class _Population:
@@ -302,8 +362,14 @@ def trials_of(plant, evaluations):
     """Return the number of trials ``minimize`` runs on ``plant``: the sum over its doublet counts.
 
     A count with variables runs whole populations, as many as the budget allows; one without
-    runs the design once. A search that ends before its budget runs fewer. A population of
-    ``differential_evolution`` is its ``popsize`` times the number of variables.
+    runs the design once. A search that ends before its budget runs fewer (a polish whose step
+    has converged). A population of ``differential_evolution`` is its ``popsize`` times the
+    number of variables.
+
+    NOTE(QA-285): from 0.6.23 a count with variables runs ``evaluations`` trials: about half in
+    the evolution, the rest in the polish; before, a population of five per variable was taken
+    as the multiplier of the number of variables, so a search ran up to that many times its
+    budget.
 
     NOTE(refactor): before 0.6.2 this left out the number of variables, so with two variables or
     more ``on_progress`` was told a ``total`` below the trials that ran; the trials and every
@@ -315,8 +381,8 @@ def trials_of(plant, evaluations):
         if not found:
             total += 1
             continue
-        population, allowed = _generations(evaluations, len(found))
-        total += population * len(found) * (allowed + 1)
+        _, members, allowed, polish = _generations(evaluations, len(found))
+        total += members * (allowed + 1) + polish
     return total
 
 
@@ -335,8 +401,11 @@ def minimize(plant, case, objective, evaluations, seed, *, plan=None, on_progres
     ``gm.evaluate``. The variables are searched with ``scipy.optimize.differential_evolution``
     from a Latin hypercube with the given ``seed``; the integers and the choices are searched as
     integers. One member is the plant as it is given (its own values, clipped to the bounds), so a
-    start inside the bounds is among the trials and the best is never worse than it. It needs no
-    gradient and its population gives the exact number of simulations. The number of doublets is
+    start inside the bounds is among the trials and the best is never worse than it. About half
+    of the budget is the evolution; the rest polishes its best trial by a compass search, one
+    continuous or integer variable at a time (a choice keeps its value), so a better design next
+    to a feasible one is found even where most of the space is infeasible. It needs no gradient
+    and runs at most ``evaluations`` simulations for each doublet count. The number of doublets is
     a discrete variable: the search runs once for each count, from the lowest to the highest, on
     a new plant of that size, and the best trial of all counts wins; with
     ``gm.runtime.settings(processes=n)`` the searches of the counts run in ``n`` worker processes
