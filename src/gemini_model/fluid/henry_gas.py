@@ -1,7 +1,7 @@
 """Bubble point and gas rates of a brine with dissolved methane and CO2, by Henry's law.
 
 Henry constants: Sander (2023), https://www.henrys-law.org (methane 74-82-8, CO2 124-38-9).
-Methane salting-out: Sun et al. (2024), J. Chem. Eng. Data,
+Methane salting-out: the reference value in Table 2 of Fang et al. (2023), J. Chem. Eng. Data 69, 3330-3346, DOI 10.1021/acs.jced.3c00225,
 https://pmc.ncbi.nlm.nih.gov/articles/PMC11472311/. The paper does not state the log base of its
 Setschenow coefficient, so both readings are offered (salting_out_convention): "ln" gives the
 factor exp(k m), "log10" gives 10^(k m) and a higher bubble point. "ln" is the default; a design
@@ -33,7 +33,7 @@ class HenryGasBubblePoint(StaticModel):
             "methane_fraction": 0.8,  # mole fraction of methane in the gas
             "co2_fraction": 0.2,  # mole fraction of CO2 in the gas
             "nacl_concentration": 0.0,  # NaCl in the brine, g/L; 0 is pure water
-            "salting_out_coefficient": 0.319,  # methane Setschenow coefficient, kg/mol; Sun 2024
+            "salting_out_coefficient": 0.319,  # methane Setschenow coefficient, kg/mol; Fang et al. 2023, Table 2 reference value
             "salting_out_convention": "ln",  # "ln": factor exp(k m); "log10": factor 10^(k m)
             "henry_method": "fits",  # "fits": mean of the fits below; "vant_hoff": pair below
             # H = exp(A + B/T + C ln T), mol/(m3 Pa); measured fits from henrys-law.org

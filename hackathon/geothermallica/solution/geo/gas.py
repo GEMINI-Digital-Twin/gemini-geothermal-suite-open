@@ -20,7 +20,7 @@ V_M = R_GAS * 273.15 / 101325.0   # ideal-gas molar volume at 0 C and 1.01325 ba
 # https://webbook.nist.gov/cgi/cbook.cgi?ID=C74828&Mask=1) minus 2 x the latent heat of water (WebBook entry C7732185)
 LHV_CH4 = 890.7 - 2 * (285.830 - 241.826)
 SALT_G_L, M_NACL = 45.0, 58.44e-3      # NaCl in the brine, g/L (assumed, matches the 1 030 kg/m3 density); NaCl molar mass, kg/mol
-# methane salting-out (Setschenow) constant, kg/mol; source: Sun et al. 2024, J. Chem. Eng. Data, PubMed Central PMC11472311
+# methane salting-out (Setschenow) constant, kg/mol; source: Table 2 reference value in Fang et al. (2023), J. Chem. Eng. Data 69, 3330-3346, DOI 10.1021/acs.jced.3c00225
 K_SALT_CH4 = 0.319
 # Henry constants: Sander 2023, Atmos. Chem. Phys. 23, 10901, https://www.henrys-law.org
 # H^cp at 298.15 K in mol/(m3 Pa) and its temperature slope dlnH/d(1/T) in K; values from Burkholder et al. 2019 on those pages
