@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.9] - 2026-11-05
+
+### Changed
+- `gm.check` names a doublet without a depth first (`params.<doublet>.depth`), saying that the
+  case's reservoir temperature and pressure reach the doublet only with it (geomind QA-082,
+  QA-049); the plain missing-parameter issue of the same path is not repeated.
+
 ## [0.6.8] - 2026-11-05
 
 ### Fixed
