@@ -12,6 +12,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.10] - 2026-11-05
+
+### Fixed
+- A plant file's inlet or outlet target given as a bare name (`"inlets": {"grid_gas": "gas"}`)
+  is refused as `invalid_connection` with the expected `<module>.<port>`, instead of raising
+  `KeyError('')` from the port lookup (geomind QA-083: build_plant returned a bare internal error).
+
 ## [0.6.9] - 2026-11-05
 
 ### Changed
