@@ -1,0 +1,12 @@
+    eval   10: f=11.932 unmet=0.000 best feasible so far: 11.932 MEUR
+    eval   20: f=8.861 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval   30: f=8.956 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval   40: f=8.969 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval   50: f=8.970 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval   60: f=8.960 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval   70: f=8.947 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval   80: f=8.958 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval   90: f=8.958 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval  100: f=8.957 unmet=0.000 best feasible so far: 8.861 MEUR
+    eval  110: f=8.956 unmet=0.000 best feasible so far: 8.861 MEUR
+done dftr_from2500 in 296 s -> D:\agent\Gemini-digital-twin\gemini_design_agent\outputs_opt\dftr_from2500.json

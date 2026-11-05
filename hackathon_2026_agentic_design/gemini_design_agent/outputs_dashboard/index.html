@@ -1,0 +1,538 @@
+<meta name="dash-one-writer">
+<style>
+  .gd { font-family: var(--font-anthropic-sans); font-variant-numeric: tabular-nums; }
+  .gd h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0 0 var(--cds-gap-xs); }
+  .gd h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: var(--cds-gap-xl) 0 var(--cds-gap-sm); }
+  .gd h3 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0 0 var(--cds-gap-xs); }
+  .gd p { margin: 0 0 var(--cds-gap-sm); max-width: 70ch; }
+  .gd .muted { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .gd .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--cds-gap-md); }
+  .gd .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--cds-gap-md); }
+  .gd .card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+  .gd .tile .v { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: calc(var(--cds-font-size-title) * 1.25); line-height: 1.1; }
+  .gd .tile .l { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); margin-bottom: var(--cds-gap-xs); }
+  .gd .tile .s { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); margin-top: var(--cds-gap-xs); }
+  .gd .chart { position: relative; min-height: 220px; }
+  .gd .chart.tall { min-height: 260px; }
+  .gd .chart svg { width: 100%; height: auto; display: block; }
+  .gd .tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; }
+  .gd .tip .d { color: var(--cds-text-secondary); }
+  .gd .sw { display: inline-block; width: .6em; height: .6em; border-radius: 50%; margin-right: .35em; }
+  .gd .legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-bottom: var(--cds-gap-xs); }
+  .gd table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); }
+  .gd th, .gd td { text-align: left; padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+  .gd th { position: sticky; top: 0; background: var(--color-panel); font-weight: var(--cds-font-weight-medium); }
+  .gd td.n, .gd th.n { text-align: right; }
+  .gd .tbox { max-height: 24rem; overflow: auto; }
+  .gd .pill { display: inline-block; padding: 0 .5em; border-radius: 1em; font-size: var(--cds-font-size-caption); border: 1px solid var(--color-border-line); }
+  .gd .pass { color: var(--color-ok); } .gd .fail { color: var(--color-bad); } .gd .no { color: var(--color-bad); } .gd .yes { color: var(--color-ok); }
+  .gd .wide { overflow-x: auto; }
+  .gd .why { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); max-width: 60ch; }
+  .gd [data-dash-source-state=empty] { color: transparent; }
+  .gd [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+  .gd .fail-line { display: flex; align-items: center; justify-content: center; gap: .4em; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: 220px; }
+  .gd .fail-line i { width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+</style>
+
+<div class="gd">
+  <h1>GEMINI Geothermal Design Agent</h1>
+  <p>Agentic design of a deep-geothermal heating and cooling system for the 2027 demand profiles, evaluated with the GEMINI digital-twin well models. The selected design uses
+    <b data-draw="tk-dbl" data-source="kpis" data-field="n_doublets" data-row="0">—</b> doublets at
+    <b data-draw="tk-depth" data-source="kpis" data-field="depth_m" data-row="0">—</b> m, delivers every MWh of the year at a system COP of
+    <b data-draw="tk-cop" data-source="kpis" data-field="system_cop" data-row="0">—</b> and costs
+    <b data-draw="tk-cost" data-source="kpis" data-field="annual_cost_meur" data-row="0">—</b> MEUR per year.</p>
+
+  <div class="grid3" id="tiles">
+    <div class="card tile"><div class="l">Annual cost</div><div class="v"><span data-draw="t-cost" data-source="kpis" data-field="annual_cost_meur" data-row="0" data-fetchpriority="high">—</span> <small>MEUR</small></div><div class="s">capex annuity + electricity + O&amp;M</div></div>
+    <div class="card tile"><div class="l">Levelised cost</div><div class="v"><span data-draw="t-lcoe" data-source="kpis" data-field="lcoe_eur_mwh" data-row="0">—</span> <small>EUR/MWh</small></div><div class="s">per MWh of heat and cooling</div></div>
+    <div class="card tile"><div class="l">System COP</div><div class="v" data-draw="t-cop" data-source="kpis" data-field="system_cop" data-row="0">—</div><div class="s">(heat + cooling) / electricity</div></div>
+    <div class="card tile"><div class="l">Electricity</div><div class="v"><span data-draw="t-el" data-source="kpis" data-field="electricity_gwh" data-row="0">—</span> <small>GWh/yr</small></div><div class="s">ESPs, injection, heat pump, chillers</div></div>
+    <div class="card tile"><div class="l">Geothermal share</div><div class="v" data-draw="t-geo" data-source="kpis" data-field="geothermal_share" data-row="0">—</div><div class="s">of delivered energy not from electricity</div></div>
+    <div class="card tile"><div class="l">Unmet demand</div><div class="v"><span data-draw="t-unmet" data-source="kpis" data-field="unmet_heat_gwh" data-row="0">—</span> <small>GWh</small></div><div class="s">heating, over 365 days</div></div>
+  </div>
+
+  <h2>Selected design</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Configuration</h3>
+      <div class="wide"><table id="design">
+        <tbody>
+          <tr><td>Doublets</td><td class="n" data-draw="d-dbl" data-source="kpis" data-field="n_doublets" data-row="0">—</td><td class="muted">each 330 operating days, staggered outages</td></tr>
+          <tr><td>Reservoir depth</td><td class="n"><span data-draw="d-depth" data-source="kpis" data-field="depth_m" data-row="0">—</span> m TVD</td><td class="muted">reservoir <span data-draw="d-tres" data-source="kpis" data-field="reservoir_t_c" data-row="0">—</span> C, wellhead <span data-draw="d-twh" data-source="kpis" data-field="wellhead_t_c" data-row="0">—</span> C</td></tr>
+          <tr><td>ESP</td><td class="n"><span data-draw="d-esp" data-source="kpis" data-field="esp_stages" data-row="0">—</span> stages</td><td class="muted">set at <span data-draw="d-espd" data-source="kpis" data-field="esp_depth_m" data-row="0">—</span> m, intake <span data-draw="d-pin" data-source="kpis" data-field="esp_intake_bar" data-row="0">—</span> bar vs bubble point <span data-draw="d-pb" data-source="kpis" data-field="bubble_point_bar" data-row="0">—</span> bar</td></tr>
+          <tr><td>Heat pump</td><td class="n"><span data-draw="d-hp" data-source="kpis" data-field="heat_pump_mw" data-row="0">—</span> MW</td><td class="muted">top-up only; direct heat exchange carries the load</td></tr>
+          <tr><td>Absorption chiller</td><td class="n"><span data-draw="d-abs" data-source="kpis" data-field="absorption_mw" data-row="0">—</span> MW</td><td class="muted">brine-driven, single effect</td></tr>
+          <tr><td>Electric chiller</td><td class="n"><span data-draw="d-ech" data-source="kpis" data-field="electric_chiller_mw" data-row="0">—</span> MW</td><td class="muted">none needed</td></tr>
+          <tr><td>Capex</td><td class="n"><span data-draw="d-capex" data-source="kpis" data-field="capex_meur" data-row="0">—</span> MEUR</td><td class="muted">wells <span data-draw="d-cw" data-source="kpis" data-field="capex_wells_meur" data-row="0">—</span>, cooling <span data-draw="d-cc" data-source="kpis" data-field="capex_cooling_meur" data-row="0">—</span>, heat pump <span data-draw="d-chp" data-source="kpis" data-field="capex_hp_meur" data-row="0">—</span></td></tr>
+          <tr><td>Maintenance windows</td><td colspan="2" data-draw="d-mw" data-source="kpis" data-field="maintenance_windows" data-row="0">—</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h3>Constraint scorecard</h3>
+      <p class="muted">Every challenge cap plus three well-engineering guards, checked for all 365 days.</p>
+      <div class="tbox"><table id="constraints" data-source="constraints" data-row-key="constraint">
+        <thead><tr><th data-field="constraint">Constraint</th><th data-field="value">Value</th><th data-field="limit">Limit</th><th data-field="status">Status</th></tr></thead>
+        <tbody data-draw="constraints"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <h2>Annual operation, 2027</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Heating dispatch</h3>
+      <p class="muted">Daily average MWth. Direct geothermal through the plate exchanger, heat pump on cold spells.</p>
+      <div class="legend"><span><i class="sw" id="sw-hd"></i>Direct geothermal</span><span><i class="sw" id="sw-hp"></i>Heat pump</span><span><i class="sw" id="sw-dem"></i>Demand</span></div>
+      <div class="chart" data-draw="heat" data-source="daily"></div>
+    </div>
+    <div class="card">
+      <h3>Cooling dispatch</h3>
+      <p class="muted">Daily average MWcool. Absorption chiller driven by the brine; electric chiller unused.</p>
+      <div class="legend"><span><i class="sw" id="sw-ca"></i>Absorption</span><span><i class="sw" id="sw-ce"></i>Electric</span><span><i class="sw" id="sw-cdem"></i>Demand</span></div>
+      <div class="chart" data-draw="cool" data-source="daily"></div>
+    </div>
+    <div class="card">
+      <h3>Brine flow per doublet and doublets available</h3>
+      <p class="muted">Flow stays between the 50 and 300 m3/h caps; one doublet at a time is out for its 35-day maintenance window.</p>
+      <div class="chart" data-draw="flow" data-source="daily"></div>
+    </div>
+    <div class="card">
+      <h3>Brine temperatures</h3>
+      <p class="muted">Wellhead, injection and the cooling across the plant, capped at 40 C.</p>
+      <div class="legend"><span><i class="sw" id="sw-twh"></i>Wellhead</span><span><i class="sw" id="sw-tinj"></i>Injection</span><span><i class="sw" id="sw-dt"></i>Brine cooling dT</span></div>
+      <div class="chart" data-draw="temps" data-source="daily"></div>
+    </div>
+  </div>
+
+  <h2>How the agent got there</h2>
+  <p>Each step is one engineering move: a candidate, the twin's verdict, the violations found and the repair. The Claude-orchestrated run needed seven moves; the rule-based agent explored 31 (16 structural alternatives, each repaired).</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Annual cost per step</h3>
+      <p class="muted">Claude run in the accent color, rule-based run muted. Hollow marks are infeasible designs.</p>
+      <div class="chart" data-draw="steps-chart" data-source="steps"></div>
+    </div>
+    <div class="card">
+      <h3>Decision log</h3>
+      <div class="tbox"><table id="steps" data-source="steps" data-row-key="mode,step">
+        <thead><tr><th data-field="mode">Run</th><th class="n" data-field="step">#</th><th data-field="action">Action</th><th data-field="feasible">Feasible</th><th class="n" data-field="annual_cost_meur">MEUR/yr</th><th data-field="rationale">Why</th></tr></thead>
+        <tbody data-draw="steps"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <h2>Alternatives compared</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Feasible designs by annual cost</h3>
+      <p class="muted">From the rule-based exploration: 2 or 3 doublets, 2,500 to 4,000 m, absorption or electric cooling.</p>
+      <div class="chart tall" data-draw="alts" data-source="alternatives"></div>
+    </div>
+    <div class="card">
+      <h3>Why depth matters</h3>
+      <p class="why">At the specified 2,500 m the brine reaches the surface at about 85 C, below the 100 C supply, so all heat must be lifted by a heat pump. From about 3,300 m the wellhead clears 103 C and the plate exchanger supplies 100 C directly, while the absorption chiller runs at full COP. Hotter than that does not help: the 40 C brine-cooling cap, not the temperature, fixes the heat each doublet can deliver.</p>
+      <div class="tbox"><table id="alts" data-source="alternatives" data-row-key="design">
+        <thead><tr><th data-field="design">Design</th><th class="n" data-field="wellhead_t_c">WH T C</th><th class="n" data-field="cop">COP</th><th class="n" data-field="electricity_gwh">GWh el</th><th class="n" data-field="annual_cost_meur">MEUR/yr</th><th class="n" data-field="lcoe">EUR/MWh</th></tr></thead>
+        <tbody data-draw="alts-table"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <h2>Well engineering (GEMINI models)</h2>
+  <div class="card">
+    <p class="muted">Radial Darcy inflow, IPR, DPDT wellbore pressure and temperature marched with the geothermal gradient, the ESP stage curve, CO2 corrosion and API erosional velocity, evaluated at six flow rates.</p>
+    <div class="wide"><table id="wells" data-source="wells" data-row-key="flow_m3_h">
+      <thead><tr><th class="n" data-field="flow_m3_h">m3/h</th><th class="n" data-field="prod_bhp_bar">BHP bar</th><th class="n" data-field="esp_intake_bar">ESP intake bar</th><th class="n" data-field="esp_head_bar">ESP head bar</th><th class="n" data-field="esp_hz">Hz</th><th class="n" data-field="esp_kw">ESP kW</th><th class="n" data-field="wellhead_t_c">WH T C</th><th class="n" data-field="inj_whp_bar">Inj WHP bar</th><th class="n" data-field="inj_pump_kw">Inj pump kW</th><th class="n" data-field="velocity_m_s">v m/s</th></tr></thead>
+      <tbody data-draw="wells"></tbody>
+    </table></div>
+  </div>
+
+  <h2>Closed-loop management, 25 years</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Equipment health</h3>
+      <p class="muted">Health indices the controller watches each year: ESP efficiency factor (workover at 0.90), injector skin growth (acid job at +3), and tubing wall loss with and without corrosion mitigation. Green bands mark intervention years.</p>
+      <div class="legend"><span><i class="sw" id="sw-h1"></i>ESP efficiency (x3)</span><span><i class="sw" id="sw-h2"></i>injector skin</span><span><i class="sw" id="sw-h3"></i>wall loss, mitigated (mm)</span><span><i class="sw" id="sw-h4"></i>wall loss, un-mitigated (mm)</span></div>
+      <div class="chart" data-draw="health" data-source="health"></div>
+    </div>
+    <div class="card">
+      <h3>Injectivity and interventions</h3>
+      <p class="muted">Injector skin grows each year and ESP efficiency erodes; the controller schedules acid jobs and workovers when the twin shows injection pressure drifting up. Green bands mark intervention years.</p>
+      <div class="chart" data-draw="cl" data-source="closed_loop"></div>
+    </div>
+    <div class="card">
+      <h3>Thermal breakthrough vs well spacing</h3>
+      <p class="muted">Gringarten-Sauty estimate at the mean flow. The dashed line is the 25-year project life.</p>
+      <div class="chart" data-draw="spacing" data-source="spacing"></div>
+    </div>
+  </div>
+
+  <h2>Real-time ESP smart monitoring</h2>
+  <p>Hourly telemetry of one producer ESP is compared with the GEMINI-based twin at every sample. A robust Mahalanobis detector and an Isolation Forest watch the residuals, a CUSUM watches the hydraulic-efficiency drift, and a signature classifier names the fault. The health index feeds the 25-year loop as the ESP efficiency factor. Telemetry is synthetic (no field data in the challenge) with four injected faults the detector was not told about.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Telemetry with detected fault episodes</h3>
+      <p class="muted">Flow and motor current, January to March. Shaded bands are the monitor's own detections, coloured by fault kind.</p>
+      <div class="legend"><span><i class="sw" id="sw-m1"></i>flow m3/h</span><span><i class="sw" id="sw-m2"></i>motor current A</span><span><i class="sw" id="sw-mg"></i>gas interference</span><span><i class="sw" id="sw-mw"></i>stage wear</span><span><i class="sw" id="sw-mt"></i>motor thermal</span><span><i class="sw" id="sw-mx"></i>trip</span></div>
+      <div class="chart" data-draw="esp-tele" data-source="esp_telemetry"></div>
+    </div>
+    <div class="card">
+      <h3>Health index and remaining useful life</h3>
+      <p class="muted">Health = hydraulic efficiency relative to a new pump (quiet hours only). RUL is the linear trend of the last 7 days to the 90 % workover threshold.</p>
+      <div class="legend"><span><i class="sw" id="sw-m3"></i>health %</span><span><i class="sw" id="sw-m4"></i>RUL days</span></div>
+      <div class="chart" data-draw="esp-health" data-source="esp_telemetry"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top: var(--cds-gap-md)">
+    <h3>Alerts and recommended actions</h3>
+    <div class="tbox"><table id="esp-alerts" data-source="esp_alerts" data-row-key="hour">
+      <thead><tr><th class="n" data-field="day">Day</th><th data-field="kind">Fault</th><th class="n" data-field="score">Distance</th><th data-field="action">Recommended action (handed to the dispatcher / controller)</th></tr></thead>
+      <tbody data-draw="esp-alerts"></tbody>
+    </table></div>
+  </div>
+
+  <h2>Component models built for this challenge</h2>
+  <p>GEMINI has no heating or cooling plant, so these transfer functions are ours. They are deliberately simple and transparent; every design decision above traces back to one of them.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Heat-pump COP vs brine inlet temperature</h3>
+      <p class="muted">Sink 100 C supply; COP = 0.5 x Carnot with 5 C pinches, capped at 8. Below about 20 C brine the lift exceeds the 85 C envelope.</p>
+      <div class="chart" data-draw="c-hp" data-source="components"></div>
+    </div>
+    <div class="card">
+      <h3>Absorption-chiller COP vs driving temperature</h3>
+      <p class="muted">Single-effect LiBr: off below 72 C, ramps to the nominal 0.72 at 95 C. The dashed line is the selected design's wellhead temperature.</p>
+      <div class="chart" data-draw="c-abs" data-source="components"></div>
+    </div>
+    <div class="card">
+      <h3>Bubble point vs gas-liquid ratio</h3>
+      <p class="muted">Henry-type estimate for 80 % CH4 / 20 % CO2. At the specified GLR of 0.8 Nm3/m3 the brine degasses below about 29 bar, which sets the ESP depth.</p>
+      <div class="chart" data-draw="c-pb" data-source="components"></div>
+    </div>
+    <div class="card">
+      <h3>Wellhead temperature vs depth and the direct-supply threshold</h3>
+      <p class="muted">12 C surface + 30 C/km, less about 3 C wellbore loss. Direct 100 C supply needs 103 C at the wellhead (3 C heat-exchanger approach): the cliff near 3,250 m.</p>
+      <div class="chart" data-draw="c-wh" data-source="components"></div>
+    </div>
+  </div>
+
+  <h2>External optimisers on the same twin</h2>
+  <p>The continuous design variables were handed to black-box optimisers through petlab: DFTR-Filter (py-trsqp), COBYLA, and StoSAG robust optimisation over a geological ensemble. Every candidate was re-checked at full daily fidelity.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Convergence</h3>
+      <p class="muted">Best feasible annual cost found so far against simulator evaluations.</p>
+      <div class="legend"><span><i class="sw" id="sw-o1"></i>DFTR from agent design</span><span><i class="sw" id="sw-o2"></i>DFTR from 2,500 m</span><span><i class="sw" id="sw-o3"></i>COBYLA</span><span><i class="sw" id="sw-o4"></i>StoSAG (expected cost)</span></div>
+      <div class="chart" data-draw="opt" data-source="optimizers"></div>
+    </div>
+    <div class="card">
+      <h3>Candidates after full-fidelity polish</h3>
+      <p class="muted">Expected and worst cost over six realisations of permeability, gradient and injector skin.</p>
+      <div class="tbox"><table id="cands" data-source="candidates" data-row-key="candidate">
+        <thead><tr><th data-field="candidate">Candidate</th><th class="n" data-field="depth_m">Depth m</th><th class="n" data-field="heat_pump_mw">HP MW</th><th class="n" data-field="absorption_mw">Abs MW</th><th data-field="feasible">Feasible</th><th class="n" data-field="annual_cost_meur">MEUR/yr</th><th class="n" data-field="expected_cost_meur">E[cost]</th><th class="n" data-field="worst_cost_meur">Worst</th></tr></thead>
+        <tbody data-draw="cands"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <p class="muted">Data: outputs of the gemini_design_agent runs (Claude-orchestrated design, rule-based exploration, 25-year closed loop, optimiser study), attached as files. Costs are indicative planning figures used to rank alternatives.</p>
+</div>
+
+<script>
+(function () {
+  const C = dash.colors;
+  const f1 = d3.format('.1f'), f2 = d3.format('.2f'), f0 = d3.format(',.0f'), pct = d3.format('.0%');
+  const num = (v) => (v === null || v === undefined || v === '') ? NaN : Number(v);
+  const swatch = (id, color) => document.querySelectorAll('#' + id).forEach((e) => { e.style.background = color; });
+  swatch('sw-hd', C[0]); swatch('sw-hp', C[1]); swatch('sw-dem', 'var(--color-fg)');
+  swatch('sw-ca', C[2]); swatch('sw-ce', C[4]); swatch('sw-cdem', 'var(--color-fg)');
+  swatch('sw-twh', C[0]); swatch('sw-tinj', C[2]); swatch('sw-dt', C[1]);
+  swatch('sw-o1', C[0]); swatch('sw-o2', C[1]); swatch('sw-o3', C[2]); swatch('sw-o4', C[3]);
+
+  const failLine = (el) => { el.replaceChildren(); const d = document.createElement('div'); d.className = 'fail-line'; d.innerHTML = '<i></i>Failed to load'; el.appendChild(d); };
+  const state = (el, src) => { const g = dash.data(src); if (g.status === 'error') { failLine(el); return null; } if (g.status !== 'ok') { el.textContent = '—'; return null; } return g; };
+
+  // ---- single values
+  const one = (name, field, fmt) => dash.draw(name, (el) => {
+    const g = dash.data('kpis'); if (g.status !== 'ok' || !g.data.length) { el.textContent = '—'; return; }
+    el.textContent = fmt(g.data[0][field]);
+  });
+  one('tk-dbl', 'n_doublets', f0); one('tk-depth', 'depth_m', f0); one('tk-cop', 'system_cop', f1); one('tk-cost', 'annual_cost_meur', f2);
+  one('t-cost', 'annual_cost_meur', f2); one('t-lcoe', 'lcoe_eur_mwh', f1); one('t-cop', 'system_cop', f1); one('t-el', 'electricity_gwh', f1);
+  one('t-geo', 'geothermal_share', (v) => pct(num(v))); one('t-unmet', 'unmet_heat_gwh', (v) => d3.format('.3f')(num(v)));
+  one('d-dbl', 'n_doublets', f0); one('d-depth', 'depth_m', f0); one('d-tres', 'reservoir_t_c', f0); one('d-twh', 'wellhead_t_c', f0);
+  one('d-esp', 'esp_stages', f0); one('d-espd', 'esp_depth_m', f0); one('d-pin', 'esp_intake_bar', f0); one('d-pb', 'bubble_point_bar', f0);
+  one('d-hp', 'heat_pump_mw', f1); one('d-abs', 'absorption_mw', f1); one('d-ech', 'electric_chiller_mw', f1);
+  one('d-capex', 'capex_meur', f1); one('d-cw', 'capex_wells_meur', f1); one('d-cc', 'capex_cooling_meur', f1); one('d-chp', 'capex_hp_meur', f1);
+  one('d-mw', 'maintenance_windows', (v) => String(v));
+
+  // ---- tables
+  const table = (name, src, cols) => dash.draw(name, (tb) => {
+    const g = dash.data(src); tb.replaceChildren(); if (g.status !== 'ok') return;
+    for (const r of g.data) {
+      const tr = document.createElement('tr');
+      for (const c of cols) {
+        const td = document.createElement('td'); const v = r[c.f];
+        td.textContent = c.fmt ? c.fmt(v) : String(v ?? '');
+        if (c.n) td.className = 'n';
+        if (c.cls) td.classList.add(String(v).toLowerCase());
+        tr.appendChild(td);
+      }
+      tb.appendChild(tr);
+    }
+  });
+  table('constraints', 'constraints', [{f: 'constraint'}, {f: 'value'}, {f: 'limit'}, {f: 'status', cls: true}]);
+  table('steps', 'steps', [{f: 'mode'}, {f: 'step', n: true}, {f: 'action'}, {f: 'feasible', cls: true}, {f: 'annual_cost_meur', n: true, fmt: (v) => num(v) > 0 ? f2(num(v)) : ''}, {f: 'rationale'}]);
+  table('alts-table', 'alternatives', [{f: 'design'}, {f: 'wellhead_t_c', n: true, fmt: (v) => f0(num(v))}, {f: 'cop', n: true, fmt: (v) => f1(num(v))}, {f: 'electricity_gwh', n: true, fmt: (v) => f1(num(v))}, {f: 'annual_cost_meur', n: true, fmt: (v) => f2(num(v))}, {f: 'lcoe', n: true, fmt: (v) => f1(num(v))}]);
+  table('wells', 'wells', [{f: 'flow_m3_h', n: true, fmt: (v) => f0(num(v))}, {f: 'prod_bhp_bar', n: true, fmt: (v) => f0(num(v))}, {f: 'esp_intake_bar', n: true, fmt: (v) => f0(num(v))}, {f: 'esp_head_bar', n: true, fmt: (v) => f0(num(v))}, {f: 'esp_hz', n: true, fmt: (v) => f0(num(v))}, {f: 'esp_kw', n: true, fmt: (v) => f0(num(v))}, {f: 'wellhead_t_c', n: true, fmt: (v) => f0(num(v))}, {f: 'inj_whp_bar', n: true, fmt: (v) => f0(num(v))}, {f: 'inj_pump_kw', n: true, fmt: (v) => f0(num(v))}, {f: 'velocity_m_s', n: true, fmt: (v) => f2(num(v))}]);
+  table('cands', 'candidates', [{f: 'candidate'}, {f: 'depth_m', n: true, fmt: (v) => f0(num(v))}, {f: 'heat_pump_mw', n: true, fmt: (v) => f1(num(v))}, {f: 'absorption_mw', n: true, fmt: (v) => f1(num(v))}, {f: 'feasible', cls: true}, {f: 'annual_cost_meur', n: true, fmt: (v) => f2(num(v))}, {f: 'expected_cost_meur', n: true, fmt: (v) => f2(num(v))}, {f: 'worst_cost_meur', n: true, fmt: (v) => f2(num(v))}]);
+
+  // ---- chart helpers
+  const frame = (el, h, mL, mR) => {
+    el.replaceChildren();
+    const w = Math.max(280, el.clientWidth), m = {t: 12, r: mR ?? 16, b: 28, l: mL ?? 40};
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('width', '100%');
+    const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return {svg, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m};
+  };
+  const axes = (F, x, y, xfmt, yticks) => {
+    F.g.append('g').attr('transform', `translate(0,${F.ih})`).call(d3.axisBottom(x).ticks(6).tickFormat(xfmt).tickSizeOuter(0)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('line').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+    F.g.append('g').call(d3.axisLeft(y).ticks(yticks ?? 5).tickSize(-F.iw)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').remove(); s.selectAll('line').attr('stroke', 'var(--cds-chart-grid)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+  };
+  const tip = (el) => { const t = document.createElement('div'); t.className = 'tip'; t.hidden = true; el.appendChild(t); return t; };
+  const place = (t, el, px, py) => { t.hidden = false; const w = t.offsetWidth, W = el.clientWidth; t.style.left = Math.min(Math.max(0, px + 12), W - w - 4) + 'px'; t.style.top = Math.max(0, py - 10) + 'px'; };
+  const mon = d3.utcFormat('%b'), dayf = d3.utcFormat('%b %-d');
+
+  const daily = () => { const g = dash.data('daily'); if (g.status !== 'ok') return null; return g.data.map((r) => ({...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === 'date' ? v : num(v)])), d: new Date(r.date)})); };
+
+  const stacked = (name, keys, colors, demandKey, unit) => dash.draw(name, (el) => {
+    if (!state(el, 'daily')) return; const rows = daily(); if (!rows) return;
+    const F = frame(el, 220), x = d3.scaleUtc(d3.extent(rows, (r) => r.d), [0, F.iw]);
+    const ymax = d3.max(rows, (r) => Math.max(r[demandKey], keys.reduce((s, k) => s + r[k], 0))) * 1.05;
+    const y = d3.scaleLinear([0, ymax], [F.ih, 0]);
+    const st = d3.stack().keys(keys)(rows);
+    F.g.selectAll('path.a').data(st).join('path').attr('class', 'a').attr('fill', (d, i) => colors[i]).attr('opacity', .85)
+      .attr('d', d3.area().x((d) => x(d.data.d)).y0((d) => y(d[0])).y1((d) => y(d[1])));
+    F.g.append('path').attr('fill', 'none').attr('stroke', 'var(--color-fg)').attr('stroke-width', 1.2).attr('d', d3.line().x((r) => x(r.d)).y((r) => y(r[demandKey]))(rows));
+    axes(F, x, y, mon);
+    const t = tip(el), bis = d3.bisector((r) => r.d).center, rule = F.g.append('line').attr('stroke', 'var(--cds-chart-reference)').attr('y1', 0).attr('y2', F.ih).attr('opacity', 0);
+    F.svg.on('pointermove', (ev) => {
+      const [px] = d3.pointer(ev, F.g.node()); const i = bis(rows, x.invert(px)); const r = rows[i]; if (!r) return;
+      rule.attr('x1', x(r.d)).attr('x2', x(r.d)).attr('opacity', 1);
+      t.innerHTML = `<div class="d">${dayf(r.d)}</div>` + keys.map((k, j) => `<div><i class="sw" style="background:${colors[j]}"></i>${k.replace('_', ' ')}: ${f1(r[k])} ${unit}</div>`).join('') + `<div>demand: ${f1(r[demandKey])} ${unit}</div>`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]);
+    }).on('pointerleave', () => { t.hidden = true; rule.attr('opacity', 0); });
+  });
+  stacked('heat', ['heat_direct', 'heat_hp'], [C[0], C[1]], 'heat_demand', 'MW');
+  stacked('cool', ['cool_abs', 'cool_el'], [C[2], C[4]], 'cool_demand', 'MW');
+
+  dash.draw('flow', (el) => {
+    if (!state(el, 'daily')) return; const rows = daily(); if (!rows) return;
+    const F = frame(el, 220, 40, 40), x = d3.scaleUtc(d3.extent(rows, (r) => r.d), [0, F.iw]);
+    const y = d3.scaleLinear([0, 320], [F.ih, 0]), y2 = d3.scaleLinear([0, 3.5], [F.ih, 0]);
+    const CAP_MAX = 300, CAP_MIN = 50;
+    axes(F, x, y, mon);
+    F.g.append('g').attr('transform', `translate(${F.iw},0)`).call(d3.axisRight(y2).ticks(3)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').remove(); s.selectAll('line').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+    for (const cap of [CAP_MAX, CAP_MIN]) F.g.append('line').attr('x1', 0).attr('x2', F.iw).attr('y1', y(cap)).attr('y2', y(cap)).attr('stroke', 'var(--cds-chart-status-critical)').attr('stroke-dasharray', '4 3');
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[3]).attr('stroke-width', 1.5).attr('d', d3.line().curve(d3.curveStepAfter).x((r) => x(r.d)).y((r) => y2(r.doublets_available))(rows));
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[0]).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('d', d3.line().x((r) => x(r.d)).y((r) => y(r.flow_per_doublet))(rows));
+    const t = tip(el), bis = d3.bisector((r) => r.d).center;
+    F.svg.on('pointermove', (ev) => { const [px] = d3.pointer(ev, F.g.node()); const r = rows[bis(rows, x.invert(px))]; if (!r) return;
+      t.innerHTML = `<div class="d">${dayf(r.d)}</div><div><i class="sw" style="background:${C[0]}"></i>flow: ${f0(r.flow_per_doublet)} m3/h per doublet</div><div><i class="sw" style="background:${C[3]}"></i>doublets available: ${f0(r.doublets_available)}</div><div>ESP ${f0(r.esp_freq)} Hz</div>`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+
+  dash.draw('temps', (el) => {
+    if (!state(el, 'daily')) return; const rows = daily(); if (!rows) return;
+    const F = frame(el, 220), x = d3.scaleUtc(d3.extent(rows, (r) => r.d), [0, F.iw]);
+    const y = d3.scaleLinear([0, d3.max(rows, (r) => r.t_wellhead) * 1.05], [F.ih, 0]);
+    axes(F, x, y, mon);
+    const CAP_DT = 40;
+    F.g.append('line').attr('x1', 0).attr('x2', F.iw).attr('y1', y(CAP_DT)).attr('y2', y(CAP_DT)).attr('stroke', 'var(--cds-chart-status-critical)').attr('stroke-dasharray', '4 3');
+    const series = [['t_wellhead', C[0]], ['t_injection', C[2]], ['brine_dt', C[1]]];
+    for (const [k, c] of series) F.g.append('path').attr('fill', 'none').attr('stroke', c).attr('stroke-width', 1.8).attr('d', d3.line().x((r) => x(r.d)).y((r) => y(r[k]))(rows));
+    const t = tip(el), bis = d3.bisector((r) => r.d).center;
+    F.svg.on('pointermove', (ev) => { const [px] = d3.pointer(ev, F.g.node()); const r = rows[bis(rows, x.invert(px))]; if (!r) return;
+      t.innerHTML = `<div class="d">${dayf(r.d)}</div>` + series.map(([k, c]) => `<div><i class="sw" style="background:${c}"></i>${k.replace('t_', '').replace('_', ' ')}: ${f1(r[k])} C</div>`).join('');
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+
+  dash.draw('steps-chart', (el) => {
+    const g = state(el, 'steps'); if (!g) return;
+    const rows = g.data.map((r) => ({...r, step: num(r.step), cost: num(r.annual_cost_meur)})).filter((r) => r.cost > 0);
+    const F = frame(el, 220), x = d3.scaleLinear([1, d3.max(rows, (r) => r.step)], [0, F.iw]);
+    const y = d3.scaleLinear([d3.min(rows, (r) => r.cost) * 0.95, d3.max(rows, (r) => r.cost) * 1.05], [F.ih, 0]);
+    axes(F, x, y, d3.format('d'));
+    for (const [mode, color] of [['rule-based', 'var(--cds-chart-muted)'], ['claude', C[0]]]) {
+      const rr = rows.filter((r) => r.mode === mode);
+      F.g.append('path').attr('fill', 'none').attr('stroke', color).attr('stroke-width', 1.5).attr('d', d3.line().x((r) => x(r.step)).y((r) => y(r.cost))(rr));
+      F.g.selectAll(null).data(rr).join('circle').attr('cx', (r) => x(r.step)).attr('cy', (r) => y(r.cost)).attr('r', 4)
+        .attr('fill', (r) => r.feasible === 'yes' ? color : 'var(--color-panel)').attr('stroke', color).attr('stroke-width', 1.5);
+    }
+    const t = tip(el);
+    F.svg.on('pointermove', (ev) => { const [px, py] = d3.pointer(ev, F.g.node()); let best = null, bd = 1e9;
+      for (const r of rows) { const d = Math.hypot(x(r.step) - px, y(r.cost) - py); if (d < bd) { bd = d; best = r; } }
+      if (!best || bd > 30) { t.hidden = true; return; }
+      t.innerHTML = `<div class="d">${best.mode} step ${best.step}</div><div>${best.action}</div><div>${f2(best.cost)} MEUR/yr, ${best.feasible === 'yes' ? 'feasible' : 'infeasible'}</div>`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+
+  dash.draw('alts', (el) => {
+    const g = state(el, 'alternatives'); if (!g) return;
+    const rows = g.data.map((r) => ({...r, cost: num(r.annual_cost_meur)})).sort((a, b) => a.cost - b.cost);
+    const F = frame(el, Math.max(260, rows.length * 22 + 40), 190, 50);
+    const x = d3.scaleLinear([0, d3.max(rows, (r) => r.cost) * 1.1], [0, F.iw]), y = d3.scaleBand(rows.map((r) => r.design), [0, F.ih]).padding(.25);
+    F.g.selectAll('rect').data(rows).join('rect').attr('x', 0).attr('y', (r) => y(r.design)).attr('height', y.bandwidth()).attr('width', (r) => x(r.cost)).attr('rx', 3)
+      .attr('fill', (r, i) => i === 0 ? C[0] : 'var(--cds-chart-muted)');
+    F.g.selectAll('text.v').data(rows).join('text').attr('class', 'v').attr('x', (r) => x(r.cost) + 4).attr('y', (r) => y(r.design) + y.bandwidth() / 2).attr('dy', '.35em').attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text((r) => f2(r.cost));
+    F.g.selectAll('text.l').data(rows).join('text').attr('class', 'l').attr('x', -6).attr('y', (r) => y(r.design) + y.bandwidth() / 2).attr('dy', '.35em').attr('text-anchor', 'end').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text((r) => r.design.replace('alt-', '').slice(0, 30));
+    F.g.append('g').attr('transform', `translate(0,${F.ih})`).call(d3.axisBottom(x).ticks(5).tickSizeOuter(0)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('line').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+  });
+
+  dash.draw('cl', (el) => {
+    const g = state(el, 'closed_loop'); if (!g) return;
+    const rows = g.data.map((r) => ({year: num(r.year), whp: num(r.injection_whp_bar), cop: num(r.cop), skin: num(r.skin_extra), actions: r.actions}));
+    const F = frame(el, 220, 40, 40), x = d3.scaleLinear([1, d3.max(rows, (r) => r.year)], [0, F.iw]);
+    const y = d3.scaleLinear([0, d3.max(rows, (r) => r.whp) * 1.2], [F.ih, 0]), y2 = d3.scaleLinear([0, d3.max(rows, (r) => r.cop) * 1.2], [F.ih, 0]);
+    axes(F, x, y, d3.format('d'));
+    F.g.append('g').attr('transform', `translate(${F.iw},0)`).call(d3.axisRight(y2).ticks(4)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').remove(); s.selectAll('line').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+    F.g.selectAll('rect').data(rows.filter((r) => r.actions)).join('rect').attr('x', (r) => x(r.year) - 4).attr('width', 8).attr('y', 0).attr('height', F.ih).attr('fill', 'var(--color-ok)').attr('opacity', .25);
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[0]).attr('stroke-width', 2).attr('d', d3.line().x((r) => x(r.year)).y((r) => y(r.whp))(rows));
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[2]).attr('stroke-width', 2).attr('d', d3.line().x((r) => x(r.year)).y((r) => y2(r.cop))(rows));
+    F.g.append('text').attr('x', 4).attr('y', y(rows[0].whp) - 6).attr('fill', C[0]).style('font-size', 'var(--cds-font-size-caption)').text('injection WHP (bar)');
+    F.g.append('text').attr('x', 4).attr('y', y2(rows[0].cop) - 6).attr('fill', C[2]).style('font-size', 'var(--cds-font-size-caption)').text('system COP');
+    const t = tip(el);
+    F.svg.on('pointermove', (ev) => { const [px] = d3.pointer(ev, F.g.node()); const yr = Math.round(x.invert(px)); const r = rows.find((q) => q.year === yr); if (!r) return;
+      t.innerHTML = `<div class="d">year ${r.year}</div><div>injection WHP ${f0(r.whp)} bar, skin +${f1(r.skin)}</div><div>COP ${f1(r.cop)}</div>${r.actions ? `<div>${r.actions}</div>` : ''}`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+
+  dash.draw('spacing', (el) => {
+    const g = state(el, 'spacing'); if (!g) return;
+    const rows = g.data.map((r) => ({sp: num(r.spacing_m), yr: num(r.breakthrough_years)}));
+    const F = frame(el, 220, 44), x = d3.scaleBand(rows.map((r) => r.sp), [0, F.iw]).padding(.3), y = d3.scaleLinear([0, d3.max(rows, (r) => r.yr) * 1.1], [F.ih, 0]);
+    const LIFE = 25;
+    axes(F, x, y, (v) => f0(v) + ' m');
+    F.g.selectAll('rect').data(rows).join('rect').attr('x', (r) => x(r.sp)).attr('width', x.bandwidth()).attr('y', (r) => y(r.yr)).attr('height', (r) => F.ih - y(r.yr)).attr('rx', 3).attr('fill', (r) => r.yr < LIFE ? 'var(--cds-chart-status-critical)' : C[0]);
+    F.g.append('line').attr('x1', 0).attr('x2', F.iw).attr('y1', y(LIFE)).attr('y2', y(LIFE)).attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 3');
+    F.g.selectAll('text.v').data(rows).join('text').attr('class', 'v').attr('x', (r) => x(r.sp) + x.bandwidth() / 2).attr('y', (r) => y(r.yr) - 4).attr('text-anchor', 'middle').attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text((r) => f0(r.yr) + ' yr');
+  });
+
+
+  swatch('sw-h1', C[0]); swatch('sw-h2', C[1]); swatch('sw-h3', C[2]); swatch('sw-h4', 'var(--cds-chart-status-critical)');
+  dash.draw('health', (el) => {
+    const g = state(el, 'health'); if (!g) return;
+    const rows = g.data.map((r) => ({year: num(r.year), eff: num(r.esp_eff), skin: num(r.skin_extra), wm: num(r.wall_loss_mm_mitigated), wu: num(r.wall_loss_mm_unmitigated), actions: r.actions}));
+    const F = frame(el, 220, 40, 40), x = d3.scaleLinear([1, d3.max(rows, (r) => r.year)], [0, F.iw]);
+    const y = d3.scaleLinear([0, 4], [F.ih, 0]), y2 = d3.scaleLinear([0, d3.max(rows, (r) => r.wu) * 1.05], [F.ih, 0]);
+    axes(F, x, y, d3.format('d'));
+    F.g.append('g').attr('transform', `translate(${F.iw},0)`).call(d3.axisRight(y2).ticks(4)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').remove(); s.selectAll('line').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+    F.g.selectAll('rect').data(rows.filter((r) => r.actions)).join('rect').attr('x', (r) => x(r.year) - 4).attr('width', 8).attr('y', 0).attr('height', F.ih).attr('fill', 'var(--color-ok)').attr('opacity', .25);
+    F.g.append('line').attr('x1', 0).attr('x2', F.iw).attr('y1', y(0.9 * 3)).attr('y2', y(0.9 * 3)).attr('stroke', C[0]).attr('stroke-dasharray', '4 3').attr('opacity', .6);
+    F.g.append('line').attr('x1', 0).attr('x2', F.iw).attr('y1', y(3)).attr('y2', y(3)).attr('stroke', C[1]).attr('stroke-dasharray', '4 3').attr('opacity', .6);
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[0]).attr('stroke-width', 2).attr('d', d3.line().curve(d3.curveStepAfter).x((r) => x(r.year)).y((r) => y(r.eff * 3))(rows));
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[1]).attr('stroke-width', 2).attr('d', d3.line().curve(d3.curveStepAfter).x((r) => x(r.year)).y((r) => y(r.skin))(rows));
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[2]).attr('stroke-width', 2).attr('d', d3.line().x((r) => x(r.year)).y((r) => y2(r.wm))(rows));
+    F.g.append('path').attr('fill', 'none').attr('stroke', 'var(--cds-chart-status-critical)').attr('stroke-width', 2).attr('d', d3.line().x((r) => x(r.year)).y((r) => y2(r.wu))(rows));
+    F.g.append('text').attr('x', 4).attr('y', 10).attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text('left: skin, ESP efficiency x3 (dashed = action thresholds); right: wall loss mm');
+    const t = tip(el);
+    F.svg.on('pointermove', (ev) => { const [px] = d3.pointer(ev, F.g.node()); const yr = Math.round(x.invert(px)); const r = rows.find((q) => q.year === yr); if (!r) return;
+      t.innerHTML = `<div class="d">year ${r.year}</div><div>ESP efficiency ${f2(r.eff)}, skin +${f1(r.skin)}</div><div>wall loss ${f1(r.wm)} mm mitigated, ${f0(r.wu)} mm un-mitigated</div>${r.actions ? `<div>${r.actions}</div>` : ''}`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+
+  const curve = (name, key, xfmt, ylab, extra) => dash.draw(name, (el) => {
+    const g = state(el, 'components'); if (!g) return;
+    const rows = g.data.filter((r) => r.curve === key).map((r) => ({x: num(r.x), y: num(r.y)})).sort((a, b) => a.x - b.x);
+    const F = frame(el, 200, 44), x = d3.scaleLinear(d3.extent(rows, (r) => r.x), [0, F.iw]), y = d3.scaleLinear([0, d3.max(rows, (r) => r.y) * 1.1], [F.ih, 0]);
+    axes(F, x, y, xfmt);
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[0]).attr('stroke-width', 2).attr('d', d3.line().x((r) => x(r.x)).y((r) => y(r.y))(rows));
+    F.g.append('text').attr('x', 4).attr('y', 10).attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text(ylab);
+    if (extra) extra(F, x, y, rows);
+    const t = tip(el);
+    F.svg.on('pointermove', (ev) => { const [px] = d3.pointer(ev, F.g.node()); const xv = x.invert(px); let r = rows[0]; for (const q of rows) if (Math.abs(q.x - xv) < Math.abs(r.x - xv)) r = q;
+      t.innerHTML = `<div class="d">${xfmt(r.x)}</div><div>${ylab}: ${f2(r.y)}</div>`; place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+  const vline = (F, x, y, xv, label) => { F.g.append('line').attr('x1', x(xv)).attr('x2', x(xv)).attr('y1', 0).attr('y2', F.ih).attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 3');
+    F.g.append('text').attr('x', x(xv) + 4).attr('y', F.ih - 6).attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text(label); };
+  const kv = (f) => { const g = dash.data('kpis'); return g.status === 'ok' && g.data.length ? num(g.data[0][f]) : NaN; };
+  curve('c-hp', 'hp_cop', (v) => f0(v) + ' C', 'COP', (F, x, y) => { const t = kv('wellhead_t_c'); if (Number.isFinite(t)) vline(F, x, y, Math.min(t, x.domain()[1]), 'design wellhead'); });
+  curve('c-abs', 'abs_cop', (v) => f0(v) + ' C', 'thermal COP', (F, x, y) => { const t = kv('wellhead_t_c'); if (Number.isFinite(t)) vline(F, x, y, Math.min(t, x.domain()[1]), 'design wellhead'); });
+  curve('c-pb', 'bubble', (v) => f1(v) + ' Nm3/m3', 'bubble point (bar)', (F, x, y) => vline(F, x, y, 0.8, 'specified GLR 0.8'));
+  curve('c-wh', 'wellhead_t', (v) => f0(v) + ' m', 'wellhead T (C)', (F, x, y) => {
+    F.g.append('line').attr('x1', 0).attr('x2', F.iw).attr('y1', y(103)).attr('y2', y(103)).attr('stroke', 'var(--cds-chart-status-critical)').attr('stroke-dasharray', '4 3');
+    F.g.append('text').attr('x', 4).attr('y', y(103) - 5).attr('fill', 'var(--cds-chart-status-critical)').style('font-size', 'var(--cds-font-size-caption)').text('103 C needed for direct 100 C supply');
+    vline(F, x, y, 2500, 'specified 2,500 m'); const d = kv('depth_m'); if (Number.isFinite(d)) vline(F, x, y, d, 'selected'); });
+
+
+  swatch('sw-m1', C[0]); swatch('sw-m2', C[1]); swatch('sw-m3', C[2]); swatch('sw-m4', C[3]);
+  const FK = {gas_interference: C[3], wear: C[1], thermal: 'var(--cds-chart-status-critical)', trip: 'var(--color-fg)', unclassified: 'var(--color-fg-muted)'};
+  swatch('sw-mg', FK.gas_interference); swatch('sw-mw', FK.wear); swatch('sw-mt', FK.thermal); swatch('sw-mx', FK.trip);
+  const tele = () => { const g = dash.data('esp_telemetry'); if (g.status !== 'ok') return null;
+    return g.data.map((r) => ({d: num(r.day), q: num(r.flow_m3_h), i: num(r.current_a), h: num(r.health), rul: num(r.rul_days), k: r.fault_kind, a: num(r.anomaly)})).filter((r) => Number.isFinite(r.d)); };
+  const episodes = (rows) => { const out = []; let cur = null;
+    for (const r of rows) { if (r.a && r.k !== 'normal') { if (cur && cur.k === r.k) cur.e = r.d; else { cur = {k: r.k, s: r.d, e: r.d}; out.push(cur); } } else cur = null; }
+    return out.filter((e) => e.e - e.s >= 0.3); };
+  const bands = (F, x, rows) => F.g.selectAll('rect.ep').data(episodes(rows)).join('rect').attr('class', 'ep').attr('x', (e) => x(e.s)).attr('width', (e) => Math.max(2, x(e.e) - x(e.s))).attr('y', 0).attr('height', F.ih).attr('fill', (e) => FK[e.k] || FK.unclassified).attr('opacity', .18);
+
+  dash.draw('esp-tele', (el) => {
+    const g = state(el, 'esp_telemetry'); if (!g) return; const rows = tele(); if (!rows) return;
+    const F = frame(el, 220, 40, 40), x = d3.scaleLinear([0, d3.max(rows, (r) => r.d)], [0, F.iw]);
+    const y = d3.scaleLinear([0, d3.max(rows, (r) => r.q) * 1.1], [F.ih, 0]), y2 = d3.scaleLinear([0, d3.max(rows, (r) => r.i) * 1.1], [F.ih, 0]);
+    axes(F, x, y, (v) => 'day ' + f0(v));
+    F.g.append('g').attr('transform', `translate(${F.iw},0)`).call(d3.axisRight(y2).ticks(4)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').remove(); s.selectAll('line').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+    bands(F, x, rows);
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[0]).attr('stroke-width', 1).attr('d', d3.line().x((r) => x(r.d)).y((r) => y(r.q))(rows));
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[1]).attr('stroke-width', 1).attr('d', d3.line().x((r) => x(r.d)).y((r) => y2(r.i))(rows));
+    const t = tip(el);
+    F.svg.on('pointermove', (ev) => { const [px] = d3.pointer(ev, F.g.node()); const dv = x.invert(px); let r = rows[0]; for (const q of rows) if (Math.abs(q.d - dv) < Math.abs(r.d - dv)) r = q;
+      t.innerHTML = `<div class="d">day ${f1(r.d)}</div><div>flow ${f0(r.q)} m3/h, current ${f0(r.i)} A</div><div>${r.a ? 'detected: ' + r.k.replace('_', ' ') : 'normal'}</div>`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+
+  dash.draw('esp-health', (el) => {
+    const g = state(el, 'esp_telemetry'); if (!g) return; const rows = tele(); if (!rows) return;
+    const F = frame(el, 220, 40, 40), x = d3.scaleLinear([0, d3.max(rows, (r) => r.d)], [0, F.iw]);
+    const hr = rows.filter((r) => Number.isFinite(r.h)), rr = rows.filter((r) => Number.isFinite(r.rul));
+    const y = d3.scaleLinear([Math.min(80, d3.min(hr, (r) => r.h) - 2), 102], [F.ih, 0]), y2 = d3.scaleLinear([0, Math.max(10, d3.max(rr, (r) => r.rul) || 10) * 1.1], [F.ih, 0]);
+    axes(F, x, y, (v) => 'day ' + f0(v));
+    F.g.append('g').attr('transform', `translate(${F.iw},0)`).call(d3.axisRight(y2).ticks(4)).attr('font-size', null).attr('font-family', null)
+      .call((s) => { s.select('.domain').remove(); s.selectAll('line').attr('stroke', 'var(--cds-chart-axis)'); s.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); });
+    bands(F, x, rows);
+    F.g.append('line').attr('x1', 0).attr('x2', F.iw).attr('y1', y(90)).attr('y2', y(90)).attr('stroke', 'var(--cds-chart-status-critical)').attr('stroke-dasharray', '4 3');
+    F.g.append('text').attr('x', 4).attr('y', y(90) - 5).attr('fill', 'var(--cds-chart-status-critical)').style('font-size', 'var(--cds-font-size-caption)').text('workover threshold 90 %');
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[2]).attr('stroke-width', 2).attr('d', d3.line().defined((r) => Number.isFinite(r.h)).x((r) => x(r.d)).y((r) => y(r.h))(rows));
+    F.g.append('path').attr('fill', 'none').attr('stroke', C[3]).attr('stroke-width', 1.5).attr('d', d3.line().defined((r) => Number.isFinite(r.rul)).x((r) => x(r.d)).y((r) => y2(r.rul))(rows));
+    const t = tip(el);
+    F.svg.on('pointermove', (ev) => { const [px] = d3.pointer(ev, F.g.node()); const dv = x.invert(px); let r = rows[0]; for (const q of rows) if (Math.abs(q.d - dv) < Math.abs(r.d - dv)) r = q;
+      t.innerHTML = `<div class="d">day ${f1(r.d)}</div><div>health ${Number.isFinite(r.h) ? f1(r.h) + ' %' : '—'}</div><div>RUL ${Number.isFinite(r.rul) ? f0(r.rul) + ' days' : 'no downward trend'}</div>`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+  table('esp-alerts', 'esp_alerts', [{f: 'day', n: true, fmt: (v) => f0(num(v))}, {f: 'kind'}, {f: 'score', n: true, fmt: (v) => f0(num(v))}, {f: 'action'}]);
+
+  dash.draw('opt', (el) => {
+    const g = state(el, 'optimizers'); if (!g) return;
+    const rows = g.data.map((r) => ({b: r.backend, i: num(r.evaluation), best: num(r.best_feasible)})).filter((r) => Number.isFinite(r.best));
+    const backs = [['dftr_final', C[0]], ['dftr_from2500', C[1]], ['cobyla_final', C[2]], ['stosag_robust', C[3]]];
+    const F = frame(el, 220), x = d3.scaleLinear([1, d3.max(rows, (r) => r.i)], [0, F.iw]);
+    const y = d3.scaleLinear([d3.min(rows, (r) => r.best) * 0.97, d3.max(rows, (r) => r.best) * 1.03], [F.ih, 0]);
+    axes(F, x, y, d3.format('d'));
+    for (const [b, c] of backs) { const rr = rows.filter((r) => r.b === b); if (!rr.length) continue;
+      F.g.append('path').attr('fill', 'none').attr('stroke', c).attr('stroke-width', 2).attr('d', d3.line().curve(d3.curveStepAfter).x((r) => x(r.i)).y((r) => y(r.best))(rr));
+      const last = rr[rr.length - 1]; F.g.append('text').attr('x', x(last.i) + 3).attr('y', y(last.best)).attr('dy', '.35em').attr('fill', c).style('font-size', 'var(--cds-font-size-caption)').text(f2(last.best)); }
+    const t = tip(el);
+    F.svg.on('pointermove', (ev) => { const [px, py] = d3.pointer(ev, F.g.node()); let best = null, bd = 1e9;
+      for (const r of rows) { const d = Math.hypot(x(r.i) - px, y(r.best) - py); if (d < bd) { bd = d; best = r; } }
+      if (!best || bd > 40) { t.hidden = true; return; }
+      t.innerHTML = `<div class="d">${best.b}, evaluation ${best.i}</div><div>best feasible ${f2(best.best)} MEUR/yr</div>`;
+      place(t, el, d3.pointer(ev, el)[0], d3.pointer(ev, el)[1]); }).on('pointerleave', () => { t.hidden = true; });
+  });
+})();
+</script>

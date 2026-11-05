@@ -1,0 +1,78 @@
+{
+ "backend": "nominal-check",
+ "x": [
+  3500.0,
+  2.5,
+  10.0,
+  0.0,
+  1000.0,
+  170.0
+ ],
+ "expected_cost_meur": 8.703402375957396,
+ "worst_cost_meur": 8.858575295275893,
+ "feasible_fraction": 1.0,
+ "per_realisation": [
+  {
+   "ensemble": {
+    "permeability_md": 200.08612927533116,
+    "gradient": 30.090215403896156,
+    "skin_injection_extra": 0.15812137349684807
+   },
+   "cost": 8.649281855702888,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 222.04460934379335,
+    "gradient": 32.0103228683318,
+    "skin_injection_extra": -1.395702067062307
+   },
+   "cost": 8.551512731928495,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 181.7022061728452,
+    "gradient": 29.261690222173005,
+    "skin_injection_extra": -0.043877733694910326
+   },
+   "cost": 8.706679334129076,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 146.43918502426877,
+    "gradient": 29.06928765027009,
+    "skin_injection_extra": 1.042954791687432
+   },
+   "cost": 8.858575295275893,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 170.57628085870076,
+    "gradient": 30.734763075277797,
+    "skin_injection_extra": -2.0
+   },
+   "cost": 8.660780666822978,
+   "unmet_gwh": 0.0,
+   "hard": []
+  },
+  {
+   "ensemble": {
+    "permeability_md": 141.35028102664947,
+    "gradient": 30.53533051224009,
+    "skin_injection_extra": -0.6864236415603273
+   },
+   "cost": 8.793584371885043,
+   "unmet_gwh": 0.0,
+   "hard": []
+  }
+ ],
+ "case": "robust_nominal",
+ "elapsed_total_s": 16.1276535987854
+}

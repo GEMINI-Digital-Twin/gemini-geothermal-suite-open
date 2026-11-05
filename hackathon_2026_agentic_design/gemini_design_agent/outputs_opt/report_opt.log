@@ -1,0 +1,20 @@
+[01] polish      agent_Claude_-_rule-based    feasible=True  hard=0 soft=0 COP=17.3 LCOE=63.8 EUR/MWh (16s) :: full-fidelity check
+[02] polish      dftr_final                   feasible=False hard=2 soft=1 COP=18.9 LCOE=60.3 EUR/MWh (13s) :: full-fidelity check
+[03] polish      dftr_final-fix1              feasible=False hard=1 soft=0 COP=18.8 LCOE=60.3 EUR/MWh (13s) :: larger ESP
+[04] polish      dftr_final-fix2              feasible=True  hard=0 soft=0 COP=19.1 LCOE=60.3 EUR/MWh (1s) :: enlarge absorption chiller
+[05] polish      dftr_from2500                feasible=True  hard=0 soft=1 COP=15.1 LCOE=65.4 EUR/MWh (15s) :: full-fidelity check
+[06] polish      cobyla_final                 feasible=True  hard=0 soft=1 COP=16.4 LCOE=61.2 EUR/MWh (6s) :: full-fidelity check
+[07] polish      stosag_robust                feasible=True  hard=0 soft=0 COP=16.8 LCOE=62.2 EUR/MWh (11s) :: full-fidelity check
+# External optimiser study (petlab / py-trsqp DFTR-Filter / StoSAG)
+
+Continuous design variables for the 3-doublet system were handed to black-box optimisers through petlab's backend interface (`petlab.optimization.optimize`): **DFTR-Filter** (`py_trsqp`, derivative-free trust region with output constraints), **COBYLA** (scipy baseline) and **StoSAG** (ensemble-gradient robust optimisation over permeability 140-220 mD, gradient 29-32 C/km and injector skin). Objective: total annual cost (MEUR); constraints: zero unmet demand, ESP intake >= bubble point + 5 bar, injection WHP limit, API erosional velocity. Screening used the fast evaluator (every 2nd/3rd day, filled forward); every candidate was then re-run at full daily fidelity and, if marginally infeasible, repaired by the rule-based diagnoser.
+
+## Candidates after full-fidelity polish
+
+| Candidate | depth m | HP MW | abs MW | el.ch MW | ESP m | BEP | feasible | WH T C | el GWh | COP | capex MEUR | annual MEUR | EUR/MWh | E[cost] ens | worst ens | feas % ens |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| agent (Claude / rule-based) | 3500 | 2.5 | 10.0 | 0.0 | 1000 | 170 | yes | 113 | 7.8 | 17.3 | 67.3 | 8.63 | 63.8 | 8.70 | 8.86 | 100 |
+| dftr_final | 3344 | 0.0 | 10.0 | 0.0 | 984 | 231 | yes | 109 | 7.1 | 19.1 | 63.6 | 8.17 | 60.3 | 8.31 | 8.65 | 100 |
+| dftr_from2500 | 3938 | 0.0 | 0.0 | 10.2 | 1500 | 300 | yes | 125 | 9.0 | 15.1 | 68.2 | 8.86 | 65.4 | 8.91 | 9.02 | 100 |
+| cobyla_final | 3246 | 0.0 | 11.5 | 0.0 | 1000 | 170 | yes | 106 | 8.3 | 16.4 | 63.4 | 8.28 | 61.2 | 8.80 | 10.63 | 83 |
+written D:\agent\Gemini-digital-twin\gemini_design_agent\outputs_opt\OPTIMIZATION_REPORT.md

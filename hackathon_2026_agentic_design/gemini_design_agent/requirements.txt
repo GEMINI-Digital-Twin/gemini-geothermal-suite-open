@@ -1,0 +1,8 @@
+numpy>=1.26
+pandas>=2.0
+scipy>=1.10
+matplotlib>=3.7
+scikit-learn>=1.4   # ESP monitoring (MinCovDet, IsolationForest)
+pytest>=8
+anthropic>=0.80     # optional, only for --mode claude
+# optional, optimiser study only (run_optimizers.py): petlab, py-trsqp, stosag, vendored as sibling folders

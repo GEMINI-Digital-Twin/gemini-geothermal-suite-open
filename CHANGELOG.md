@@ -1,5 +1,9 @@
 # Changelog
 
+## Hackathon 2026 contribution (unreleased)
+
+- Added `hackathon_2026_agentic_design/`: agentic design workflow (propose-evaluate-diagnose-repair on the twin), surface component models (plate HX, HT heat pump, absorption and electric chillers, gas handling), daily dispatcher, 25-year closed-loop management, external-optimiser bridge (DFTR, COBYLA, StoSAG), request intake gate and real-time ESP anomaly detection. Submission by R. A. Wibawa.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

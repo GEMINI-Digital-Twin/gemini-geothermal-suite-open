@@ -1,0 +1,36 @@
+{
+  "name": "alt-2dbl-3500m-absorption-r1~trim",
+  "n_doublets": 3,
+  "well": {
+    "reservoir_midpoint_m": 3500.0,
+    "production_id_m": 0.2168,
+    "injection_id_m": 0.2168,
+    "esp_depth_m": 1000.0,
+    "esp_frequency_hz": 50.0,
+    "esp_stages": 0,
+    "esp_bep_m3_h": 220.0,
+    "skin_production": 0.0,
+    "skin_injection": 2.0,
+    "drainage_radius_m": 1000.0,
+    "wellbore_radius_m": 0.108,
+    "surface_pressure_required_bar": 12.0,
+    "plant_pressure_drop_bar": 6.0,
+    "roughness_m": 2e-05
+  },
+  "heat_pump_mw": 2.0,
+  "absorption_chiller_mw": 10.0,
+  "electric_chiller_mw": 0.0,
+  "district_return_c": 60.0,
+  "maintenance_start_days": [
+    125,
+    214,
+    249
+  ],
+  "corrosion_mitigation": "inhibitor+GRE-lined tubing",
+  "rationale": [
+    "Brine ~114 C allows direct 100 C supply; heat pump kept small (7.5 MW) for top-up.",
+    "Single-effect absorption chiller (10.0 MW) driven by 114 C brine covers the cooling peak.",
+    "Heating unmet on 12 days while every available doublet runs at the 300 m3/h cap and the 40 C brine-cooling cap binds; an additional doublet raises extractable heat.",
+    "Capacities trimmed to 110 % of the peak actually used in the annual simulation."
+  ]
+}

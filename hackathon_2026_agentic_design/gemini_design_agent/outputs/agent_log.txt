@@ -1,0 +1,73 @@
+Agent: RuleBasedDesignAgent
+Demand: heating peak 30.0 MW on 2027-01-28, 111.7 GWh/yr; cooling peak 10.0 MW on 2027-07-19, 23.7 GWh/yr
+[01] repair      baseline-1dbl-2500m          feasible=False hard=3 soft=1 COP=0.0 LCOE=inf EUR/MWh (0s) :: evaluate
+[02] repair      baseline-1dbl-2500m-r1       feasible=False hard=2 soft=1 COP=0.0 LCOE=inf EUR/MWh (0s) :: add doublet
+[03] repair      baseline-1dbl-2500m-r2       feasible=False hard=1 soft=1 COP=3.1 LCOE=96.2 EUR/MWh (7s) :: size heat pump
+[04] repair      baseline-1dbl-2500m-r3       feasible=True  hard=0 soft=1 COP=3.8 LCOE=81.4 EUR/MWh (7s) :: electric chiller
+[05] repair      baseline-1dbl-2500m-r4       feasible=True  hard=0 soft=1 COP=3.8 LCOE=81.4 EUR/MWh (15s) :: re-select ESP frame
+[06] explore     alt-2dbl-2500m-absorption    feasible=True  hard=0 soft=1 COP=3.8 LCOE=86.0 EUR/MWh (0s) :: evaluate
+[07] explore     alt-2dbl-2500m-absorption-r1 feasible=True  hard=0 soft=1 COP=3.8 LCOE=86.0 EUR/MWh (1s) :: re-select ESP frame
+[08] explore     alt-2dbl-2500m-electric      identical to baseline-1dbl-2500m-r3 - reused
+[08] explore     alt-2dbl-2500m-electric-r1   identical to baseline-1dbl-2500m-r4 - reused
+[08] explore     alt-3dbl-2500m-absorption    feasible=True  hard=0 soft=1 COP=3.7 LCOE=98.6 EUR/MWh (7s) :: evaluate
+[09] explore     alt-3dbl-2500m-absorption-r1 feasible=True  hard=0 soft=1 COP=3.7 LCOE=98.6 EUR/MWh (11s) :: re-select ESP frame
+[10] explore     alt-3dbl-2500m-electric      feasible=True  hard=0 soft=1 COP=3.7 LCOE=94.1 EUR/MWh (0s) :: evaluate
+[11] explore     alt-3dbl-2500m-electric-r1   feasible=True  hard=0 soft=1 COP=3.7 LCOE=94.1 EUR/MWh (0s) :: re-select ESP frame
+[12] explore     alt-2dbl-3000m-absorption    feasible=False hard=2 soft=1 COP=5.0 LCOE=78.9 EUR/MWh (21s) :: evaluate
+[13] explore     alt-2dbl-3000m-absorption-r1 feasible=True  hard=0 soft=1 COP=5.1 LCOE=92.1 EUR/MWh (12s) :: add doublet
+[14] explore     alt-2dbl-3000m-absorption-r2 feasible=True  hard=0 soft=0 COP=5.1 LCOE=92.1 EUR/MWh (16s) :: re-select ESP frame
+[15] explore     alt-2dbl-3000m-electric      feasible=True  hard=0 soft=1 COP=4.7 LCOE=78.1 EUR/MWh (7s) :: evaluate
+[16] explore     alt-3dbl-3000m-absorption    identical to alt-2dbl-3000m-absorption-r1 - reused
+[16] explore     alt-3dbl-3000m-absorption-r1 identical to alt-2dbl-3000m-absorption-r2 - reused
+[16] explore     alt-3dbl-3000m-electric      feasible=True  hard=0 soft=1 COP=4.7 LCOE=92.3 EUR/MWh (3s) :: evaluate
+[17] explore     alt-3dbl-3000m-electric-r1   feasible=True  hard=0 soft=1 COP=4.7 LCOE=92.3 EUR/MWh (14s) :: re-select ESP frame
+[18] explore     alt-2dbl-3500m-absorption    feasible=False hard=2 soft=1 COP=13.7 LCOE=52.9 EUR/MWh (24s) :: evaluate
+[19] explore     alt-2dbl-3500m-absorption-r1 feasible=True  hard=0 soft=1 COP=17.3 LCOE=66.6 EUR/MWh (17s) :: add doublet
+[20] explore     alt-2dbl-3500m-absorption-r2 feasible=True  hard=0 soft=0 COP=17.3 LCOE=66.6 EUR/MWh (23s) :: re-select ESP frame
+[21] explore     alt-2dbl-3500m-electric      feasible=False hard=1 soft=1 COP=10.6 LCOE=53.6 EUR/MWh (7s) :: evaluate
+[22] explore     alt-2dbl-3500m-electric-r1   feasible=True  hard=0 soft=1 COP=11.2 LCOE=68.5 EUR/MWh (2s) :: add doublet
+[23] explore     alt-2dbl-3500m-electric-r2   feasible=True  hard=0 soft=1 COP=11.2 LCOE=68.5 EUR/MWh (5s) :: re-select ESP frame
+[24] explore     alt-3dbl-3500m-absorption    identical to alt-2dbl-3500m-absorption-r1 - reused
+[24] explore     alt-3dbl-3500m-absorption-r1 identical to alt-2dbl-3500m-absorption-r2 - reused
+[24] explore     alt-3dbl-3500m-electric      identical to alt-2dbl-3500m-electric-r1 - reused
+[24] explore     alt-3dbl-3500m-electric-r1   identical to alt-2dbl-3500m-electric-r2 - reused
+[24] explore     alt-2dbl-4000m-absorption    feasible=False hard=2 soft=1 COP=14.2 LCOE=55.6 EUR/MWh (28s) :: evaluate
+[25] explore     alt-2dbl-4000m-absorption-r1 feasible=True  hard=0 soft=1 COP=18.4 LCOE=70.7 EUR/MWh (19s) :: add doublet
+[26] explore     alt-2dbl-4000m-absorption-r2 feasible=True  hard=0 soft=0 COP=18.4 LCOE=70.7 EUR/MWh (26s) :: re-select ESP frame
+[27] explore     alt-2dbl-4000m-electric      feasible=False hard=1 soft=1 COP=12.4 LCOE=54.8 EUR/MWh (10s) :: evaluate
+[28] explore     alt-2dbl-4000m-electric-r1   feasible=True  hard=0 soft=1 COP=14.3 LCOE=70.7 EUR/MWh (4s) :: add doublet
+[29] explore     alt-2dbl-4000m-electric-r2   feasible=True  hard=0 soft=1 COP=14.3 LCOE=70.6 EUR/MWh (7s) :: re-select ESP frame
+[30] explore     alt-3dbl-4000m-absorption    identical to alt-2dbl-4000m-absorption-r1 - reused
+[30] explore     alt-3dbl-4000m-absorption-r1 identical to alt-2dbl-4000m-absorption-r2 - reused
+[30] explore     alt-3dbl-4000m-electric      identical to alt-2dbl-4000m-electric-r1 - reused
+[30] explore     alt-3dbl-4000m-electric-r1   identical to alt-2dbl-4000m-electric-r2 - reused
+[30] refine      alt-2dbl-3500m-absorption-r1~trim feasible=True  hard=0 soft=1 COP=17.3 LCOE=63.5 EUR/MWh (1s) :: trim capacities
+[31] refine      alt-2dbl-3500m-absorption-r2~trim feasible=True  hard=0 soft=0 COP=17.3 LCOE=63.5 EUR/MWh (1s) :: trim capacities
+
+Final design: alt-2dbl-3500m-absorption-r1~trim  feasible=True  annual cost 8.60 MEUR  LCOE 63.5 EUR/MWh
+[closed-loop] mean flow 136 m3/h/doublet, mean injection T 69 C, breakthrough at 1500 m spacing after 125.8 yr; spacing for 30 yr without breakthrough: 732 m
+[closed-loop] year  1: Tprod  117.0 C  skin+0.0  ESP eff 1.00  el   7.9 GWh  COP  17.2  feasible=True  
+[closed-loop] year  2: Tprod  117.0 C  skin+0.6  ESP eff 0.98  el   8.1 GWh  COP  16.8  feasible=True  
+[closed-loop] year  3: Tprod  117.0 C  skin+1.2  ESP eff 0.96  el   8.3 GWh  COP  16.4  feasible=True  
+[closed-loop] year  4: Tprod  117.0 C  skin+1.8  ESP eff 0.94  el   8.4 GWh  COP  16.0  feasible=True  
+[closed-loop] year  5: Tprod  117.0 C  skin+2.4  ESP eff 0.92  el   8.6 GWh  COP  15.7  feasible=True  
+[closed-loop] year  6: Tprod  117.0 C  skin+3.0  ESP eff 0.90  el   8.8 GWh  COP  15.3  feasible=True  acid stimulation of injectors (skin +3.0 -> 0; WHP 41 bar); ESP workover / replacement (efficiency factor 0.90 -> 1.00)
+[closed-loop] year  7: Tprod  117.0 C  skin+0.6  ESP eff 0.98  el   8.1 GWh  COP  16.8  feasible=True  
+[closed-loop] year  8: Tprod  117.0 C  skin+1.2  ESP eff 0.96  el   8.3 GWh  COP  16.4  feasible=True  
+[closed-loop] year  9: Tprod  117.0 C  skin+1.8  ESP eff 0.94  el   8.4 GWh  COP  16.0  feasible=True  
+[closed-loop] year 10: Tprod  117.0 C  skin+2.4  ESP eff 0.92  el   8.6 GWh  COP  15.7  feasible=True  
+[closed-loop] year 11: Tprod  117.0 C  skin+3.0  ESP eff 0.90  el   8.8 GWh  COP  15.3  feasible=True  acid stimulation of injectors (skin +3.0 -> 0; WHP 41 bar); ESP workover / replacement (efficiency factor 0.90 -> 1.00)
+[closed-loop] year 12: Tprod  117.0 C  skin+0.6  ESP eff 0.98  el   8.1 GWh  COP  16.8  feasible=True  
+[closed-loop] year 13: Tprod  117.0 C  skin+1.2  ESP eff 0.96  el   8.3 GWh  COP  16.4  feasible=True  
+[closed-loop] year 14: Tprod  117.0 C  skin+1.8  ESP eff 0.94  el   8.4 GWh  COP  16.0  feasible=True  
+[closed-loop] year 15: Tprod  117.0 C  skin+2.4  ESP eff 0.92  el   8.6 GWh  COP  15.7  feasible=True  
+[closed-loop] year 16: Tprod  117.0 C  skin+3.0  ESP eff 0.90  el   8.8 GWh  COP  15.3  feasible=True  acid stimulation of injectors (skin +3.0 -> 0; WHP 41 bar); ESP workover / replacement (efficiency factor 0.90 -> 1.00)
+[closed-loop] year 17: Tprod  117.0 C  skin+0.6  ESP eff 0.98  el   8.1 GWh  COP  16.8  feasible=True  
+[closed-loop] year 18: Tprod  117.0 C  skin+1.2  ESP eff 0.96  el   8.3 GWh  COP  16.4  feasible=True  
+[closed-loop] year 19: Tprod  117.0 C  skin+1.8  ESP eff 0.94  el   8.4 GWh  COP  16.0  feasible=True  
+[closed-loop] year 20: Tprod  117.0 C  skin+2.4  ESP eff 0.92  el   8.6 GWh  COP  15.7  feasible=True  
+[closed-loop] year 21: Tprod  117.0 C  skin+3.0  ESP eff 0.90  el   8.8 GWh  COP  15.3  feasible=True  acid stimulation of injectors (skin +3.0 -> 0; WHP 41 bar); ESP workover / replacement (efficiency factor 0.90 -> 1.00)
+[closed-loop] year 22: Tprod  117.0 C  skin+0.6  ESP eff 0.98  el   8.1 GWh  COP  16.8  feasible=True  
+[closed-loop] year 23: Tprod  117.0 C  skin+1.2  ESP eff 0.96  el   8.3 GWh  COP  16.4  feasible=True  
+[closed-loop] year 24: Tprod  117.0 C  skin+1.8  ESP eff 0.94  el   8.4 GWh  COP  16.0  feasible=True  
+[closed-loop] year 25: Tprod  117.0 C  skin+2.4  ESP eff 0.92  el   8.6 GWh  COP  15.7  feasible=True  

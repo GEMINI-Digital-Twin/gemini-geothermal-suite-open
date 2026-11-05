@@ -1,0 +1,63 @@
+{
+ "health_now": 85.7871702448379,
+ "rul_days": 0.0,
+ "esp_efficiency_factor": 0.857871702448379,
+ "summary": {
+  "hours": 2160,
+  "anomalous_hours": 1180,
+  "n_alerts": 6,
+  "md_threshold": 18.83784601395292,
+  "iso_threshold": 0.6683386964544037,
+  "eff0": 0.9987316472207246,
+  "true_positive_h": 1174,
+  "false_positive_h": 6,
+  "false_negative_h": 122,
+  "recall": 0.9058641975308642,
+  "false_alarm_rate": 0.006944444444444444,
+  "label_accuracy": 1.0
+ },
+ "alerts": [
+  {
+   "hour": 482,
+   "kind": "gas_interference",
+   "score": 148.8,
+   "message": "gas interference detected from hour 482 to 575 (day 21-24), max distance 148.8, health 100 %",
+   "action": "Intake within 8 bar of the bubble point with unstable current: reduce VSD frequency 2-3 Hz to raise intake pressure, re-balance flow to the other doublets; if recurring, set the ESP deeper at the next workover."
+  },
+  {
+   "hour": 1080,
+   "kind": "wear",
+   "score": 13.8,
+   "message": "wear detected from hour 1080 to 1679 (day 46-70), max distance 13.8, health 92 %",
+   "action": "Hydraulic efficiency drifting down with rising vibration (scale or stage wear): book an ESP workover when RUL falls under 90 days; meanwhile hold frequency and let the dispatcher share load across doublets."
+  },
+  {
+   "hour": 1680,
+   "kind": "thermal",
+   "score": 24.5,
+   "message": "thermal detected from hour 1680 to 1775 (day 71-74), max distance 24.5, health 92 %",
+   "action": "Motor temperature and power above the twin with normal flow: check motor cooling flow past the housing and the VSD harmonics; derate to 45 Hz until cleared."
+  },
+  {
+   "hour": 1776,
+   "kind": "wear",
+   "score": 14.3,
+   "message": "wear detected from hour 1776 to 2039 (day 75-85), max distance 14.3, health 87 %",
+   "action": "Hydraulic efficiency drifting down with rising vibration (scale or stage wear): book an ESP workover when RUL falls under 90 days; meanwhile hold frequency and let the dispatcher share load across doublets."
+  },
+  {
+   "hour": 2040,
+   "kind": "trip",
+   "score": 471.4,
+   "message": "trip detected from hour 2040 to 2063 (day 86-86), max distance 471.4, health 87 %",
+   "action": "Pump stopped (no-load current, zero flow): dispatcher moves the load to the remaining doublets within the 300 m3/h cap; investigate shaft or electrical fault before restart."
+  },
+  {
+   "hour": 2064,
+   "kind": "wear",
+   "score": 456.3,
+   "message": "wear detected from hour 2064 to 2159 (day 87-90), max distance 456.3, health 86 %",
+   "action": "Hydraulic efficiency drifting down with rising vibration (scale or stage wear): book an ESP workover when RUL falls under 90 days; meanwhile hold frequency and let the dispatcher share load across doublets."
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+{
+  "model": "claude-fable-5-1 (Claude Code session)",
+  "turns": 8,
+  "input_tokens": 31848,
+  "output_tokens": 770,
+  "total_tokens": 32618,
+  "method": "estimated at 4 chars/token from the logged text; API mode (--mode claude) meters response.usage exactly"
+}
