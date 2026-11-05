@@ -41,11 +41,11 @@ def test_a_price_profile_gives_a_cost_per_step():
 
 
 def test_the_carbon_price_adds_the_emission_of_the_carrier():
-    """Gas burns to CO2; electricity emits what its factor says."""
+    """Gas burns to CO2; grid electricity's CO2 is in its price, not priced again (QA-128)."""
     gas = costs(prices={"gas": 0.0}, co2=1.0).gas("boiler", 1.0)
     assert gas[0] == pytest.approx(sources.dispatch.methane_emission_factor())
     power = costs(prices={"electricity": 0.0}, co2=1.0, factor=2e-8)
-    assert power.electric("hp", 1.0)[0] == pytest.approx(2e-8)
+    assert power.electric("hp", 1.0)[0] == pytest.approx(0.0)
 
 
 def test_a_case_without_a_carbon_price_has_no_carbon_cost():

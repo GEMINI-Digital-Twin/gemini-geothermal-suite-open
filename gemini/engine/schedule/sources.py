@@ -41,12 +41,12 @@ class Costs:
         return np.broadcast_to(cost, self.steps).astype(float)
 
     def electric(self, path, efficiency):
-        """Return the cost of heat or cold made from grid electricity at ``efficiency``."""
-        if _absent(self.case, "economics.carbon.price"):
-            factor = 0.0
-        else:
-            factor = series(self.case, "utilities.electricity.co2_intensity")
-        return self._cost("electricity", path, efficiency, factor)
+        """Return the cost of heat or cold made from grid electricity at ``efficiency``.
+
+        Its CO2 is not priced again: the electricity price carries it, as the cost does
+        (``priced_steps``, geomind QA-128).
+        """
+        return self._cost("electricity", path, efficiency, 0.0)
 
     def gas(self, path, efficiency):
         """Return the cost of heat made from grid gas at ``efficiency``."""

@@ -6,7 +6,7 @@ from gemini._utils.strings import join_path
 from gemini.case._utils.access import require
 from gemini.case._utils.kinds import PRODUCTS, is_priced
 from gemini.evaluate._utils import pricing
-from gemini.evaluate._utils.co2_steps import emitted_steps
+from gemini.evaluate._utils.co2_steps import priced_steps
 from gemini.evaluate._utils.flows import Flows
 from gemini.evaluate._utils.level import level
 from gemini.evaluate._utils.outcome import unavailable
@@ -99,7 +99,7 @@ def _bills(flows, case, results, plant):
     bills = {name: flows.cost(name, case) for name in BILLED}
     carbon = require(case, ECONOMICS).carbon
     if carbon is not None and carbon.price is not None:
-        steps = emitted_steps(plant, case, results)
+        steps = priced_steps(plant, case, results)
         price = level(case, f"{ECONOMICS}.carbon.price", len(steps))
         bills["co2"] = float(np.sum(steps * price)) * SECONDS_PER_YEAR / results.durations.sum()
     return bills

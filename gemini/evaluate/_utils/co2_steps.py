@@ -45,6 +45,19 @@ def emissions_steps(plant, case, results):
     return direct, methane, equivalent, electricity
 
 
+def priced_steps(plant, case, results):
+    """Return the CO2-equivalent [kg] in each tick that the carbon price applies to.
+
+    The plant's own emissions: the CO2 it releases (fuel burnt, flared or vented gas) and its
+    methane as CO2-equivalent. The CO2 of grid electricity is counted in ``emitted_steps`` but
+    not priced again: the generators pay for it (the EU ETS covers power generation) and the
+    electricity price carries it (geomind QA-128: 0.45 of 0.71 MEUR/yr of carbon cost came from
+    grid electricity in the hackathon sample).
+    """
+    direct, _, equivalent, _ = emissions_steps(plant, case, results)
+    return direct + equivalent
+
+
 def emitted_steps(plant, case, results):
     """Return the CO2-equivalent [kg] emitted in each tick of the run."""
     direct, _, equivalent, electricity = emissions_steps(plant, case, results)
