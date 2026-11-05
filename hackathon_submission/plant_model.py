@@ -40,7 +40,16 @@ from gemini_model.heat_exchanger.heat_exchanger import HeatExchanger  # noqa: E4
 
 # ─────────────────────────── official challenge values ──────────────────────
 BRINE_DENSITY = 1030.0          # kg/m3
-T_WELLHEAD = 80.0               # C  (GEMINI boundary; 87 C reservoir minus well losses)
+BRINE_VISCOSITY = 0.40e-3       # Pa s
+SURFACE_TEMP = 12.0             # C
+GEO_GRADIENT = 30.0             # C/km
+REF_DEPTH, REF_PRESSURE = 2500.0, 250.0   # m TVD, bar(g)
+PERMEABILITY_MD = 200.0
+THICKNESS_M = 100.0
+GLR = 0.8                       # Nm3 gas / m3 liquid (0 C, 1.01325 bar)
+X_CH4, X_CO2 = 0.80, 0.20       # mol fractions
+RHO_CH4_N, RHO_CO2_N = 0.7175, 1.9767     # kg/Nm3 at 0 C, 1.01325 bar
+LHV_CH4_N = 35.88e6             # J/Nm3 CH4
 MAX_BRINE_COOLING = 40.0        # C  T_producer - T_injector
 MIN_FLOW_M3H, MAX_FLOW_M3H = 50.0, 300.0
 PUMP_EFFICIENCY = 0.70
@@ -53,8 +62,29 @@ MAX_DOUBLETS = 3
 # ─────────────────────────── documented assumptions ─────────────────────────
 CP = 4186.0                     # J/kg/K brine & water (not supplied)
 FILTER_B_DROP = 1.0             # C  GEMINI filter_b temperature_drop
-T_INJ_MIN = T_WELLHEAD - MAX_BRINE_COOLING          # 40 C
-T_SOURCE_OUT_MIN = T_INJ_MIN + FILTER_B_DROP        # 41 C at HP evaporator exit
+
+
+def reservoir_temperature(depth_m):
+    return SURFACE_TEMP + GEO_GRADIENT * depth_m / 1000.0          # 87 C at 2500 m
+
+
+def reservoir_pressure(depth_m):
+    # hydrostatic, anchored to the official 250 bar(g) at 2500 m
+    return REF_PRESSURE * depth_m / REF_DEPTH
+
+
+def productivity_index_m3h_bar(skin, r_drainage=600.0, r_well=0.1):
+    """Pseudo-steady radial Darcy PI from k = 200 mD, h = 100 m, mu = 0.40 mPa s."""
+    k = PERMEABILITY_MD * 9.869233e-16
+    pi_si = 2 * math.pi * k * THICKNESS_M / (BRINE_VISCOSITY * (math.log(r_drainage / r_well) - 0.75 + skin))
+    return pi_si * 3600.0 * 1e5
+
+
+# produced gas (per Nm3 of gas mixture)
+GAS_RHO_N = X_CH4 * RHO_CH4_N + X_CO2 * RHO_CO2_N                 # 0.969 kg/Nm3
+GAS_LHV_PER_KG = X_CH4 * LHV_CH4_N / GAS_RHO_N                   # J/kg mixture
+# CO2 released per GJ of mixture fuel energy: combustion of CH4 + native CO2
+GAS_CO2_PER_GJ = (X_CH4 * RHO_CO2_N + X_CO2 * RHO_CO2_N) / (X_CH4 * LHV_CH4_N / 1e9)
 
 
 @dataclass
@@ -67,6 +97,9 @@ class Assumptions:
     gas_ef_kg_per_gj: float = 56.6      # natural gas
     backup_boiler_eff: float = 0.90
     min_esp_intake_bar: float = 10.0    # keep ESP intake above gas break-out
+    skin: float = 2.0                   # well skin for PI (0 = ideal)
+    wellbore_heat_loss_c: float = 7.0   # reservoir -> wellhead (87 -> 80 C as in GEMINI example)
+    cp: float = CP                      # J/kg/K brine & water
 
 
 @dataclass
@@ -75,9 +108,11 @@ class Design:
     hex_ua_w_per_k: float = 400_000.0   # per doublet
     esp_stages: int = 40
     esp_depth_m: float = 1000.0
+    well_depth_m: float = 2500.0        # TVD of both wells (reservoir midpoint)
 
     def label(self):
-        return f"N={self.n_doublets} UA={self.hex_ua_w_per_k/1e3:.0f}kW/K stages={self.esp_stages}"
+        return (f"N={self.n_doublets} depth={self.well_depth_m:.0f}m UA={self.hex_ua_w_per_k/1e3:.0f}kW/K "
+                f"stages={self.esp_stages}")
 
 
 # ─────────────────────────── GEMINI well/gas layer ──────────────────────────
@@ -92,6 +127,24 @@ def build_well_table(design: Design, assumptions: Assumptions):
     (P = dp * Q / 0.70); GEMINI's ESP-curve power is kept for reference.
     """
     base = json.loads(PLANT_JSON.read_text())
+    z = design.well_depth_m
+    t_res = reservoir_temperature(z)
+    t_wh = t_res - assumptions.wellbore_heat_loss_c
+    pi = productivity_index_m3h_bar(assumptions.skin)
+    traj = [{"MD": d, "TVD": d, "ID": 0.15} for d in (0, 300, 500, 1000)] + [{"MD": z, "TVD": z, "ID": 0.15}]
+    pvt = {"RHOL": BRINE_DENSITY, "VISL": BRINE_VISCOSITY, "temperature_max": 200 + 273.15}
+    c = base["components"]
+    for w in ("producer_well", "injector_well"):
+        wp = c[w]["parameters"]
+        wp.update(reservoir_pressure_bar=reservoir_pressure(z), productivity_index_m3h_per_bar=pi,
+                  trajectory_table=traj, pvt=pvt)
+    c["producer_well"]["parameters"]["ambient_temperature_c"] = SURFACE_TEMP
+    c["separator"]["parameters"].update(gas_water_ratio=GLR, gas_density=GAS_RHO_N)
+    for b in ("boiler", "chp"):
+        c[b]["parameters"].update(caloric_value=GAS_LHV_PER_KG, gas_emission_factor=GAS_CO2_PER_GJ)
+    for bi in base["boundary_inputs"]:
+        if bi["component"] == "producer_well" and bi["key"] == "wellhead_temperature":
+            bi["value"] = t_wh
     rows = []
     for f in ESP_FREQS:
         p = copy.deepcopy(base)
@@ -111,7 +164,12 @@ def build_well_table(design: Design, assumptions: Assumptions):
             continue
         dp_bar = g("producer_well", "esp_discharge_pressure") - intake
         q_m3s = q / 3600.0
+        gas_in = g("separator", "gas_mass_flow_rate")
         rows.append(dict(
+            t_wellhead=t_wh, t_reservoir=t_res, pi_m3h_bar=pi,
+            gas_kg_s=gas_in,
+            gas_to_burners_kg_s=g("gas_splitter", "output_0") + g("gas_splitter", "output_1"),
+            gas_ch4_nm3_h=q * GLR * X_CH4,
             esp_freq_hz=float(f),
             q_m3h=q,
             q_inj_m3h=g("injector_well", "flow_rate_m3s") * 3600.0,
@@ -134,13 +192,13 @@ def _lmt(t_in_c, t_out_c):
     return a if abs(a - b) < 1e-6 else (a - b) / math.log(a / b)
 
 
-def heat_pump(th_in, mh, ts_in, ms, eta, th_out=SUPPLY_TEMP_HEATING, ts_min=T_SOURCE_OUT_MIN):
+def heat_pump(th_in, mh, ts_in, ms, eta, ts_min, th_out=SUPPLY_TEMP_HEATING, cp=CP):
     """Solve Lorenz HP for source outlet temperature.
 
     Returns dict(Q_h, W, Q_s, COP, Ts_out) or None if 100 C is unreachable
     without cooling the brine below ``ts_min``.
     """
-    q_h = mh * CP * max(th_out - th_in, 0.0)
+    q_h = mh * cp * max(th_out - th_in, 0.0)
     if q_h <= 0:
         return dict(Q_h=0.0, W=0.0, Q_s=0.0, COP=float("nan"), Ts_out=ts_in)
     th_lm = _lmt(th_in, th_out)
@@ -150,7 +208,7 @@ def heat_pump(th_in, mh, ts_in, ms, eta, th_out=SUPPLY_TEMP_HEATING, ts_min=T_SO
         return min(eta * th_lm / max(th_lm - ts_lm, 1e-6), 15.0)
 
     def resid(ts_out):  # source heat taken from brine minus heat HP needs
-        return ms * CP * (ts_in - ts_out) - q_h * (1 - 1 / cop(ts_out))
+        return ms * cp * (ts_in - ts_out) - q_h * (1 - 1 / cop(ts_out))
 
     if ts_in <= ts_min or resid(ts_min) < 0:
         return None
@@ -174,19 +232,25 @@ def doublet_point(row, design: Design, a: Assumptions, m_w):
     hx = HeatExchanger()
     hx.update_parameters(dict(flow_resistance=0.0, flow_configuration="counter",
                               heat_transfer_coefficient=design.hex_ua_w_per_k,
-                              fluid_density=BRINE_DENSITY, specific_heat=CP))
+                              fluid_density=BRINE_DENSITY, specific_heat=a.cp))
     # secondary given as brine-equivalent volume so mass flow is exact
     hx.calculate_output(dict(pressure_in=3e5, primary_flow_rate=q_m3s,
                              secondary_flow_rate=m_w / BRINE_DENSITY,
                              primary_temperature_in=row["t_hex_in"],
                              secondary_temperature_in=a.t_return))
-    o = hx.get_output()
-    hp = heat_pump(o["secondary_temperature_out"], m_w, o["primary_temperature_out"], m_b, a.eta_lorenz)
-    if hp is None:
+    o = dict(hx.get_output())
+    if o["secondary_temperature_out"] > SUPPLY_TEMP_HEATING:
+        # hot brine (deep wells): HEX bypass trims the water to exactly 100 C
+        o["heat_duty"] = m_w * a.cp * (SUPPLY_TEMP_HEATING - a.t_return)
+        o["secondary_temperature_out"] = SUPPLY_TEMP_HEATING
+        o["primary_temperature_out"] = row["t_hex_in"] - o["heat_duty"] / (m_b * a.cp)
+    ts_min = row["t_wellhead"] - MAX_BRINE_COOLING + FILTER_B_DROP     # injector >= T_prod - 40 C
+    hp = heat_pump(o["secondary_temperature_out"], m_w, o["primary_temperature_out"], m_b, a.eta_lorenz, ts_min, cp=a.cp)
+    if hp is None or hp["Ts_out"] < ts_min - 1e-9:
         return None
     t_inj = hp["Ts_out"] - FILTER_B_DROP
-    q_delivered = m_w * CP * (SUPPLY_TEMP_HEATING - a.t_return)
-    q_geo = m_b * CP * (row["t_hex_in"] - hp["Ts_out"])
+    q_delivered = m_w * a.cp * (SUPPLY_TEMP_HEATING - a.t_return)
+    q_geo = m_b * a.cp * (row["t_hex_in"] - hp["Ts_out"])
     closure = q_delivered - (o["heat_duty"] + hp["Q_h"])          # network side
     closure_src = q_geo - (o["heat_duty"] + hp["Q_s"])             # brine side
     return dict(m_w=m_w, t_mid=o["secondary_temperature_out"], t_b1=o["primary_temperature_out"],

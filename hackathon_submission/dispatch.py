@@ -15,7 +15,7 @@ import pandas as pd
 
 from plant_model import (CP, MAX_BRINE_COOLING, MAX_DOUBLETS, MAX_FLOW_M3H, MIN_FLOW_M3H,
                          PUMP_EFFICIENCY, SUPPLY_TEMP_COOLING, SUPPLY_TEMP_HEATING,
-                         GEO_OPERATING_DAYS, TOTAL_DAYS, T_WELLHEAD, Assumptions, Design,
+                         GEO_OPERATING_DAYS, TOTAL_DAYS, GLR, RHO_CO2_N, Assumptions, Design,
                          build_well_table, capacity_curve, doublet_point)
 
 ABS_FRACTIONS = (0.0, 0.25, 0.5, 0.75, 1.0)
@@ -45,11 +45,11 @@ class Plant:
         r, c = self.rows[i], self.curves[i]
         need = heat_w + f_abs * cool_w / self.a.cop_absorption       # 100 C heat
         per = need / n
-        m_w = max(0.0, per - r["gas_heat_w"]) / (CP * self.dT)
+        m_w = max(0.0, per - r["gas_heat_w"]) / (self.a.cp * self.dT)
         m_w_run = min(m_w, c["m_max"])
         w_hp = float(np.interp(m_w_run, c["grid"], c["w_hp"]))
         t_inj = float(np.interp(m_w_run, c["grid"], c["t_inj"]))
-        geo_chain = m_w_run * CP * self.dT                             # HEX + HP heat
+        geo_chain = m_w_run * self.a.cp * self.dT                             # HEX + HP heat
         backup = n * max(0.0, per - r["gas_heat_w"] - geo_chain)
         gas_used = n * min(r["gas_heat_w"], per)                       # surplus gas heat is dumped
         chiller_el = (1 - f_abs) * cool_w / self.a.cop_electric_chiller
@@ -93,6 +93,12 @@ class Plant:
             r = self.rows[o["i"]] if o["i"] is not None else None
             pt = (doublet_point(r, self.d, self.a, o["m_w"]) if (r and o["m_w"] > 0) else None)
             n = o["n"]
+            if pt is not None:  # replace interpolated HP power by the exact solution
+                o = dict(o)
+                o["elec"] += n * (pt["w_hp"] - o["w_hp"])
+                o["w_hp"], o["t_inj"] = pt["w_hp"], pt["t_inj"]
+                o["co2"] = (max(o["elec"], 0.0) * self.co2_el + n * r["gas_co2_kg_s"]
+                            + o["backup"] * self.co2_gas) * 86400
             recs.append(dict(
                 date=dates[day], day=day + 1,
                 heating_demand_MW=heat_mw[day], cooling_demand_MW=cool_mw[day],
@@ -101,9 +107,10 @@ class Plant:
                 esp_freq_hz=r["esp_freq_hz"] if r else 0.0,
                 flow_per_doublet_m3h=r["q_m3h"] if r else 0.0,
                 injection_per_doublet_m3h=r["q_inj_m3h"] if r else 0.0,
-                T_producer_C=T_WELLHEAD if r else np.nan,
+                T_reservoir_C=r["t_reservoir"] if r else np.nan,
+                T_producer_C=r["t_wellhead"] if r else np.nan,
                 T_injector_C=o["t_inj"] if r else np.nan,
-                brine_cooling_C=(T_WELLHEAD - o["t_inj"]) if r else 0.0,
+                brine_cooling_C=(r["t_wellhead"] - o["t_inj"]) if r else 0.0,
                 T_heating_supply_C=SUPPLY_TEMP_HEATING,
                 T_cooling_supply_C=SUPPLY_TEMP_COOLING,
                 hp_COP=pt["cop"] if pt else np.nan,
@@ -123,13 +130,29 @@ class Plant:
                 chp_elec_MW=n * r["chp_el_w"] / 1e6 if r else 0.0,
                 net_elec_MW=o["elec"] / 1e6,
                 energy_closure_kW=n * pt["closure_w"] / 1e3 if pt else 0.0,
+                gas_separated_kg_s=n * r["gas_kg_s"] if r else 0.0,
+                gas_burned_kg_s=n * r["gas_to_burners_kg_s"] if r else 0.0,
+                gas_co2_gemini_t=n * r["gas_co2_kg_s"] * 86.4 if r else 0.0,
+                gas_co2_stoich_t=n * r["q_m3h"] / 3600 * GLR * RHO_CO2_N * 86.4 if r else 0.0,
                 co2_t=o["co2"] / 1000,
             ))
         df = pd.DataFrame(recs)
+        df.attrs["pi"] = self.rows[0]["pi_m3h_bar"]
         heat_out = df.heat_hex_MW + df.heat_hp_MW + df.heat_produced_gas_MW + df.heat_backup_boiler_MW
         df["heating_delivered_MW"] = heat_out - df.absorption_share * df.cooling_demand_MW / self.a.cop_absorption
         df["cooling_delivered_MW"] = df.cooling_absorption_MW + df.cooling_electric_MW
+        # whole-plant heat balance from independent terms: brine heat + HP work + gas + backup
+        #   = heat delivered to the network + absorption-chiller drive heat
+        df["plant_heat_residual_MW"] = (df.heat_geo_brine_MW + df.hp_elec_MW + df.heat_produced_gas_MW
+                                        + df.heat_backup_boiler_MW - df.heating_delivered_MW
+                                        - df.absorption_share * df.cooling_demand_MW / self.a.cop_absorption)
+        df["elec_residual_MW"] = (df.esp_elec_MW + df.inj_pump_elec_MW + df.hp_elec_MW + df.chiller_elec_MW
+                                  - df.chp_elec_MW - df.net_elec_MW)
         return df
+
+
+def self_pi(df):
+    return df.attrs.get("pi", float("nan"))
 
 
 def summarize(df, design: Design):
@@ -142,6 +165,10 @@ def summarize(df, design: Design):
         "n_doublets": design.n_doublets,
         "hex_ua_kW_per_K": design.hex_ua_w_per_k / 1e3,
         "esp_stages": design.esp_stages,
+        "well_depth_m": design.well_depth_m,
+        "reservoir_T_C": round(float(df.T_reservoir_C.max()), 1),
+        "productivity_index_m3h_bar": round(float(self_pi(df)), 2),
+        "drilled_m_total": 2 * design.n_doublets * design.well_depth_m,
         "co2_t_per_year": round(df.co2_t.sum(), 1),
         "heating_delivered_MWh": round(mwh("heating_delivered_MW"), 0),
         "absorption_drive_heat_MWh": round(heat - mwh("heating_delivered_MW"), 0),
@@ -189,4 +216,12 @@ def validate(df, design: Design, tol=1e-3):
         f"{int(df.geothermal_active.sum())} days")
     add("Energy balance closes (HEX+HP)", df.energy_closure_kW.abs().max() <= 1.0,
         f"max residual {df.energy_closure_kW.abs().max():.3f} kW")
+    add("Whole-plant daily heat balance", df.plant_heat_residual_MW.abs().max() <= 1e-3,
+        f"max residual {df.plant_heat_residual_MW.abs().max()*1e3:.3f} kW")
+    add("Electricity balance", df.elec_residual_MW.abs().max() <= 1e-6,
+        f"max residual {df.elec_residual_MW.abs().max()*1e3:.4f} kW")
+    gb = (act.gas_separated_kg_s - act.gas_burned_kg_s).abs().max()
+    add("Gas mass balance separated = burned", gb <= 1e-9, f"max |diff| {gb:.1e} kg/s")
+    co2 = ((act.gas_co2_gemini_t - act.gas_co2_stoich_t).abs() / act.gas_co2_stoich_t).max()
+    add("Produced-gas CO2 = CH4 burned + native CO2", co2 <= 0.01, f"max deviation {100*co2:.2f} %")
     return checks
