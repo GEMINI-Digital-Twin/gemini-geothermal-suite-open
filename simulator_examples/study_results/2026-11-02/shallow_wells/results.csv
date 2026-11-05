@@ -1,0 +1,145 @@
+design,n_doublets,depth_m,upgrade,chp,cooling_option,meets_all_hard_rules,failed_rules,unmet_heating_mwh,unmet_cooling_mwh,purchased_gas_mwh,electricity_mwh,co2_t_per_year,capex_meur,lcoe_eur_per_mwh
+1D-1500m-boiler-electric-screw,1,1500,boiler,False,screw + dry cooler,True,,0.0,0.0,84306,6388,21759,17.5,55.39
+1D-1500m-boiler-electric-aircooled-fc-ates3,1,1500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,84306,4833,21293,20.35,55.69
+1D-1500m-boiler-electric-chp-screw,1,1500,boiler,True,screw + dry cooler,True,,0.0,0.0,84306,6388,21759,18.04,55.76
+1D-1500m-boiler-electric-chp-aircooled-fc-ates3,1,1500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,84306,4833,21293,20.89,56.06
+1D-1500m-heat_pump-electric-screw,1,1500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,22477,19802,13215,24.5,48.76
+1D-1500m-heat_pump-electric-aircooled-fc-ates3,1,1500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,22477,18247,12749,27.35,49.05
+1D-1500m-heat_pump-electric-chp-screw,1,1500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,22459,19874,13146,25.04,47.68
+1D-1500m-heat_pump-electric-chp-aircooled-fc-ates3,1,1500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,22459,18319,12680,27.89,47.97
+1D-1800m-boiler-electric-screw,1,1800,boiler,False,screw + dry cooler,True,,0.0,0.0,67836,6579,18530,18.7,49.61
+1D-1800m-boiler-electric-aircooled-fc-ates3,1,1800,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,67836,5024,18063,21.55,49.91
+1D-1800m-boiler-electric-chp-screw,1,1800,boiler,True,screw + dry cooler,True,,0.0,0.0,67836,6579,18530,19.24,49.98
+1D-1800m-boiler-electric-chp-aircooled-fc-ates3,1,1800,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,67836,5024,18063,22.09,50.28
+1D-1800m-heat_pump-electric-screw,1,1800,heat_pump,False,screw + dry cooler,True,,0.0,0.0,22027,16817,12147,25.7,46.17
+1D-1800m-heat_pump-electric-aircooled-fc-ates3,1,1800,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,22027,15262,11680,28.55,46.46
+1D-1800m-heat_pump-electric-chp-screw,1,1800,heat_pump,True,screw + dry cooler,True,,0.0,0.0,21219,18427,11870,26.24,44.44
+1D-1800m-heat_pump-electric-chp-aircooled-fc-ates3,1,1800,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,21219,16872,11404,29.09,44.73
+1D-2000m-boiler-electric-screw,1,2000,boiler,False,screw + dry cooler,True,,0.0,0.0,56985,6678,16380,19.5,45.77
+1D-2000m-boiler-electric-aircooled-fc-ates3,1,2000,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,56985,5123,15914,22.35,46.07
+1D-2000m-boiler-electric-chp-screw,1,2000,boiler,True,screw + dry cooler,True,,0.0,0.0,56985,6678,16380,20.04,46.14
+1D-2000m-boiler-electric-chp-aircooled-fc-ates3,1,2000,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,56985,5123,15914,22.89,46.44
+1D-2000m-heat_pump-electric-screw,1,2000,heat_pump,False,screw + dry cooler,True,,0.0,0.0,66684,10087,18132,26.5,57.48
+1D-2000m-heat_pump-electric-aircooled-fc-ates3,1,2000,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,66684,8532,17666,29.35,57.78
+1D-2000m-heat_pump-electric-chp-screw,1,2000,heat_pump,True,screw + dry cooler,True,,0.0,0.0,60124,11896,17186,27.04,54.84
+1D-2000m-heat_pump-electric-chp-aircooled-fc-ates3,1,2000,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,60124,10341,16720,29.89,55.13
+1D-2200m-boiler-electric-screw,1,2200,boiler,False,screw + dry cooler,True,,0.0,0.0,46160,6779,14239,20.3,41.94
+1D-2200m-boiler-electric-aircooled-fc-ates3,1,2200,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,46160,5224,13773,23.15,42.24
+1D-2200m-boiler-electric-chp-screw,1,2200,boiler,True,screw + dry cooler,True,,0.0,0.0,46160,6779,14239,20.84,42.31
+1D-2200m-boiler-electric-chp-aircooled-fc-ates3,1,2200,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,46160,5224,13773,23.69,42.61
+1D-2200m-heat_pump-electric-screw,1,2200,heat_pump,False,screw + dry cooler,True,,0.0,0.0,73272,8221,18767,27.3,58.7
+1D-2200m-heat_pump-electric-aircooled-fc-ates3,1,2200,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,73272,6666,18301,30.15,58.99
+1D-2200m-heat_pump-electric-chp-screw,1,2200,heat_pump,True,screw + dry cooler,True,,0.0,0.0,64070,10543,17497,27.84,55.67
+1D-2200m-heat_pump-electric-chp-aircooled-fc-ates3,1,2200,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,64070,8988,17030,30.69,55.97
+1D-2500m-boiler-electric-screw,1,2500,boiler,False,screw + dry cooler,True,,0.0,0.0,32840,6904,11597,21.5,37.38
+1D-2500m-boiler-electric-aircooled-fc-ates3,1,2500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,32840,5349,11131,24.35,37.68
+1D-2500m-boiler-electric-chp-screw,1,2500,boiler,True,screw + dry cooler,True,,0.0,0.0,34354,6904,11575,22.04,37.21
+1D-2500m-boiler-electric-chp-aircooled-fc-ates3,1,2500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,34354,5349,11108,24.89,37.5
+1D-2500m-heat_pump-electric-screw,1,2500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,27759,8302,10772,28.5,41.42
+1D-2500m-heat_pump-electric-aircooled-fc-ates3,1,2500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,27759,6747,10305,31.35,41.72
+1D-2500m-heat_pump-electric-chp-screw,1,2500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,29879,9229,10712,29.04,40.33
+1D-2500m-heat_pump-electric-chp-aircooled-fc-ates3,1,2500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,29879,7674,10245,31.89,40.62
+1D-3100m-boiler-electric-screw,1,3100,boiler,False,screw + dry cooler,True,,0.0,0.0,25875,6918,9991,23.9,36.03
+1D-3100m-boiler-electric-aircooled-fc-ates3,1,3100,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25875,5363,9525,26.75,36.32
+1D-3100m-boiler-electric-chp-screw,1,3100,boiler,True,screw + dry cooler,True,,0.0,0.0,28341,7127,9796,24.44,34.39
+1D-3100m-boiler-electric-chp-aircooled-fc-ates3,1,3100,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28339,5563,9331,27.29,34.71
+1D-3100m-heat_pump-electric-screw,1,3100,heat_pump,False,screw + dry cooler,True,,0.0,0.0,25894,7030,10064,30.9,40.97
+1D-3100m-heat_pump-electric-aircooled-fc-ates3,1,3100,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,25894,5475,9597,33.75,41.26
+1D-3100m-heat_pump-electric-chp-screw,1,3100,heat_pump,True,screw + dry cooler,True,,0.0,0.0,28338,7206,9791,31.44,39.18
+1D-3100m-heat_pump-electric-chp-aircooled-fc-ates3,1,3100,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,28338,5647,9328,34.29,39.49
+2D-1500m-boiler-electric-screw,2,1500,boiler,False,screw + dry cooler,True,,0.0,0.0,77110,6220,21379,29.5,61.11
+2D-1500m-boiler-electric-aircooled-fc-ates3,2,1500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,77110,4665,20912,32.35,61.4
+2D-1500m-boiler-electric-chp-screw,2,1500,boiler,True,screw + dry cooler,True,,0.0,0.0,76734,6678,21520,30.58,61.7
+2D-1500m-boiler-electric-chp-aircooled-fc-ates3,2,1500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,76734,5123,21054,33.43,62.0
+2D-1500m-heat_pump-electric-screw,2,1500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,13438,19265,12492,36.5,53.4
+2D-1500m-heat_pump-electric-aircooled-fc-ates3,2,1500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,13438,17710,12025,39.35,53.69
+2D-1500m-heat_pump-electric-chp-screw,2,1500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,13127,19044,12529,37.58,51.71
+2D-1500m-heat_pump-electric-chp-aircooled-fc-ates3,2,1500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,13127,17489,12063,40.43,52.0
+2D-1800m-boiler-electric-screw,2,1800,boiler,False,screw + dry cooler,True,,0.0,0.0,58846,6465,17868,31.9,55.49
+2D-1800m-boiler-electric-aircooled-fc-ates3,2,1800,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,58846,4910,17401,34.75,55.79
+2D-1800m-boiler-electric-chp-screw,2,1800,boiler,True,screw + dry cooler,True,,0.0,0.0,58819,6610,17932,32.98,56.24
+2D-1800m-boiler-electric-chp-aircooled-fc-ates3,2,1800,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,58819,5055,17465,35.83,56.53
+2D-1800m-heat_pump-electric-screw,2,1800,heat_pump,False,screw + dry cooler,True,,0.0,0.0,3950,18757,10087,38.9,50.36
+2D-1800m-heat_pump-electric-aircooled-fc-ates3,2,1800,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,3950,17202,9621,41.75,50.66
+2D-1800m-heat_pump-electric-chp-screw,2,1800,heat_pump,True,screw + dry cooler,True,,0.0,0.0,3428,18759,10234,39.98,48.12
+2D-1800m-heat_pump-electric-chp-aircooled-fc-ates3,2,1800,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,3428,17204,9767,42.83,48.41
+2D-2000m-boiler-electric-screw,2,2000,boiler,False,screw + dry cooler,True,,0.0,0.0,46834,6602,15533,33.5,51.78
+2D-2000m-boiler-electric-aircooled-fc-ates3,2,2000,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,46834,5047,15067,36.35,52.08
+2D-2000m-boiler-electric-chp-screw,2,2000,boiler,True,screw + dry cooler,True,,0.0,0.0,46833,6602,15534,34.58,52.52
+2D-2000m-boiler-electric-chp-aircooled-fc-ates3,2,2000,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,46833,5047,15067,37.43,52.82
+2D-2000m-heat_pump-electric-screw,2,2000,heat_pump,False,screw + dry cooler,True,,0.0,0.0,1017,17149,8635,40.5,48.31
+2D-2000m-heat_pump-electric-aircooled-fc-ates3,2,2000,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,1017,15594,8169,43.35,48.6
+2D-2000m-heat_pump-electric-chp-screw,2,2000,heat_pump,True,screw + dry cooler,True,,0.0,0.0,148,17960,8970,41.58,46.08
+2D-2000m-heat_pump-electric-chp-aircooled-fc-ates3,2,2000,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,148,16405,8504,44.43,46.38
+2D-2200m-boiler-electric-screw,2,2200,boiler,False,screw + dry cooler,True,,0.0,0.0,34853,6755,13208,35.1,48.1
+2D-2200m-boiler-electric-aircooled-fc-ates3,2,2200,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,34853,5200,12741,37.95,48.4
+2D-2200m-boiler-electric-chp-screw,2,2200,boiler,True,screw + dry cooler,True,,0.0,0.0,34842,6759,13211,36.18,48.84
+2D-2200m-boiler-electric-chp-aircooled-fc-ates3,2,2200,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,34842,5204,12745,39.03,49.13
+2D-2200m-heat_pump-electric-screw,2,2200,heat_pump,False,screw + dry cooler,True,,0.0,0.0,1006,14530,7794,42.1,46.58
+2D-2200m-heat_pump-electric-aircooled-fc-ates3,2,2200,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,1006,12975,7328,44.95,46.88
+2D-2200m-heat_pump-electric-chp-screw,2,2200,heat_pump,True,screw + dry cooler,True,,0.0,0.0,0,16627,8073,43.18,44.46
+2D-2200m-heat_pump-electric-chp-aircooled-fc-ates3,2,2200,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,0,15072,7607,46.03,44.76
+2D-2500m-boiler-electric-screw,2,2500,boiler,False,screw + dry cooler,True,,0.0,0.0,17409,6894,9709,37.5,42.65
+2D-2500m-boiler-electric-aircooled-fc-ates3,2,2500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,17409,5339,9242,40.35,42.94
+2D-2500m-boiler-electric-chp-screw,2,2500,boiler,True,screw + dry cooler,True,,0.0,0.0,17385,6925,9747,38.58,43.38
+2D-2500m-boiler-electric-chp-aircooled-fc-ates3,2,2500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,17385,5370,9281,41.43,43.67
+2D-2500m-heat_pump-electric-screw,2,2500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,76,11372,6774,44.5,44.55
+2D-2500m-heat_pump-electric-aircooled-fc-ates3,2,2500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,76,9817,6308,47.35,44.84
+2D-2500m-heat_pump-electric-chp-screw,2,2500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,0,13260,6728,45.58,42.65
+2D-2500m-heat_pump-electric-chp-aircooled-fc-ates3,2,2500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,0,11705,6261,48.43,42.94
+2D-3100m-boiler-electric-screw,2,3100,boiler,False,screw + dry cooler,True,,0.0,0.0,59,6480,5342,42.3,37.86
+2D-3100m-boiler-electric-aircooled-fc-ates3,2,3100,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,59,4925,4875,45.15,38.15
+2D-3100m-boiler-electric-chp-screw,2,3100,boiler,True,screw + dry cooler,True,,0.0,0.0,26,7140,4875,43.38,35.18
+2D-3100m-boiler-electric-chp-aircooled-fc-ates3,2,3100,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,27,5545,4345,46.23,35.51
+2D-3100m-heat_pump-electric-screw,2,3100,heat_pump,False,screw + dry cooler,True,,0.0,0.0,83,6731,5445,49.3,42.94
+2D-3100m-heat_pump-electric-aircooled-fc-ates3,2,3100,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,83,5176,4979,52.15,43.23
+2D-3100m-heat_pump-electric-chp-screw,2,3100,heat_pump,True,screw + dry cooler,True,,0.0,0.0,21,7324,4847,50.38,39.97
+2D-3100m-heat_pump-electric-chp-aircooled-fc-ates3,2,3100,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,23,5739,4356,53.23,40.3
+3D-1500m-boiler-electric-screw,3,1500,boiler,False,screw + dry cooler,True,,0.0,0.0,72356,6604,21754,41.5,68.47
+3D-1500m-boiler-electric-aircooled-fc-ates3,3,1500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,72356,5050,21288,44.35,68.77
+3D-1500m-boiler-electric-chp-screw,3,1500,boiler,True,screw + dry cooler,True,,0.0,0.0,70502,8766,22405,43.12,68.88
+3D-1500m-boiler-electric-chp-aircooled-fc-ates3,3,1500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,70502,7211,21940,45.97,69.17
+3D-1500m-heat_pump-electric-screw,3,1500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,11428,18495,12513,48.5,60.34
+3D-1500m-heat_pump-electric-aircooled-fc-ates3,3,1500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,11428,16940,12047,51.35,60.64
+3D-1500m-heat_pump-electric-chp-screw,3,1500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,11119,18226,12890,50.12,58.47
+3D-1500m-heat_pump-electric-chp-aircooled-fc-ates3,3,1500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,11119,16671,12423,52.97,58.77
+3D-1800m-boiler-electric-screw,3,1800,boiler,False,screw + dry cooler,True,,0.0,0.0,54136,6850,18276,45.1,63.72
+3D-1800m-boiler-electric-aircooled-fc-ates3,3,1800,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,54136,5295,17809,47.95,64.01
+3D-1800m-boiler-electric-chp-screw,3,1800,boiler,True,screw + dry cooler,True,,0.0,0.0,53986,7634,18620,46.72,64.83
+3D-1800m-boiler-electric-chp-aircooled-fc-ates3,3,1800,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,53986,6079,18154,49.57,65.12
+3D-1800m-heat_pump-electric-screw,3,1800,heat_pump,False,screw + dry cooler,True,,0.0,0.0,2574,18070,10111,52.1,58.39
+3D-1800m-heat_pump-electric-aircooled-fc-ates3,3,1800,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2574,16515,9644,54.95,58.69
+3D-1800m-heat_pump-electric-chp-screw,3,1800,heat_pump,True,screw + dry cooler,True,,0.0,0.0,2145,17745,10550,53.72,55.67
+3D-1800m-heat_pump-electric-chp-aircooled-fc-ates3,3,1800,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,2145,16190,10084,56.57,55.96
+3D-2000m-boiler-electric-screw,3,2000,boiler,False,screw + dry cooler,True,,0.0,0.0,42170,6996,15964,47.5,60.59
+3D-2000m-boiler-electric-aircooled-fc-ates3,3,2000,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,42170,5441,15498,50.35,60.88
+3D-2000m-boiler-electric-chp-screw,3,2000,boiler,True,screw + dry cooler,True,,0.0,0.0,42166,6997,15965,49.12,61.7
+3D-2000m-boiler-electric-chp-aircooled-fc-ates3,3,2000,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,42166,5442,15498,51.97,61.99
+3D-2000m-heat_pump-electric-screw,3,2000,heat_pump,False,screw + dry cooler,True,,0.0,0.0,819,16651,8587,54.5,57.36
+3D-2000m-heat_pump-electric-aircooled-fc-ates3,3,2000,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,819,15096,8121,57.35,57.66
+3D-2000m-heat_pump-electric-chp-screw,3,2000,heat_pump,True,screw + dry cooler,True,,0.0,0.0,59,16843,9300,56.12,54.29
+3D-2000m-heat_pump-electric-chp-aircooled-fc-ates3,3,2000,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,59,15288,8834,58.97,54.59
+3D-2200m-boiler-electric-screw,3,2200,boiler,False,screw + dry cooler,True,,0.0,0.0,30473,7118,13651,49.9,57.52
+3D-2200m-boiler-electric-aircooled-fc-ates3,3,2200,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,30473,5563,13184,52.75,57.81
+3D-2200m-boiler-electric-chp-screw,3,2200,boiler,True,screw + dry cooler,True,,0.0,0.0,30426,7138,13666,51.52,58.62
+3D-2200m-boiler-electric-chp-aircooled-fc-ates3,3,2200,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,30426,5583,13199,54.37,58.92
+3D-2200m-heat_pump-electric-screw,3,2200,heat_pump,False,screw + dry cooler,True,,0.0,0.0,1183,14233,7737,56.9,56.47
+3D-2200m-heat_pump-electric-aircooled-fc-ates3,3,2200,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,1183,12678,7271,59.75,56.76
+3D-2200m-heat_pump-electric-chp-screw,3,2200,heat_pump,True,screw + dry cooler,True,,0.0,0.0,0,15603,8351,58.52,53.36
+3D-2200m-heat_pump-electric-chp-aircooled-fc-ates3,3,2200,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,0,14048,7884,61.37,53.65
+3D-2500m-boiler-electric-screw,3,2500,boiler,False,screw + dry cooler,True,,0.0,0.0,14054,7152,10125,53.5,53.08
+3D-2500m-boiler-electric-aircooled-fc-ates3,3,2500,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,14054,5597,9659,56.35,53.37
+3D-2500m-boiler-electric-chp-screw,3,2500,boiler,True,screw + dry cooler,True,,0.0,0.0,13973,7284,10315,55.12,54.16
+3D-2500m-boiler-electric-chp-aircooled-fc-ates3,3,2500,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,13973,5729,9849,57.97,54.45
+3D-2500m-heat_pump-electric-screw,3,2500,heat_pump,False,screw + dry cooler,True,,0.0,0.0,124,10929,6630,60.5,55.03
+3D-2500m-heat_pump-electric-aircooled-fc-ates3,3,2500,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,124,9374,6164,63.35,55.33
+3D-2500m-heat_pump-electric-chp-screw,3,2500,heat_pump,True,screw + dry cooler,True,,0.0,0.0,0,12540,6988,62.12,52.74
+3D-2500m-heat_pump-electric-chp-aircooled-fc-ates3,3,2500,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,0,10985,6522,64.97,53.04
+3D-3100m-boiler-electric-screw,3,3100,boiler,False,screw + dry cooler,True,,0.0,0.0,49,5593,5100,60.7,49.52
+3D-3100m-boiler-electric-aircooled-fc-ates3,3,3100,boiler,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,49,4038,4633,63.55,49.81
+3D-3100m-boiler-electric-chp-screw,3,3100,boiler,True,screw + dry cooler,True,,0.0,0.0,42,6614,5138,62.32,47.78
+3D-3100m-boiler-electric-chp-aircooled-fc-ates3,3,3100,boiler,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,54,4979,4450,65.17,47.88
+3D-3100m-heat_pump-electric-screw,3,3100,heat_pump,False,screw + dry cooler,True,,0.0,0.0,84,5917,5219,67.7,54.67
+3D-3100m-heat_pump-electric-aircooled-fc-ates3,3,3100,heat_pump,False,air-cooled + free cooling + ATES x3,True,,0.0,0.0,84,4362,4752,70.55,54.97
+3D-3100m-heat_pump-electric-chp-screw,3,3100,heat_pump,True,screw + dry cooler,True,,0.0,0.0,42,6867,5062,69.32,52.58
+3D-3100m-heat_pump-electric-chp-aircooled-fc-ates3,3,3100,heat_pump,True,air-cooled + free cooling + ATES x3,True,,0.0,0.0,40,5261,4449,72.17,52.69

@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- `simulator_examples/run_thermogis_crosscheck.py`: cross-check of one doublet against TNO's
+  pyThermoGIS 3.0.3 (DoubletCalc1D), with results in
+  `simulator_examples/study_results/2026-11-02/thermogis/` (pump pressure, pump power and well
+  spacing within 6%; heat gap explained by the brine heat capacity and the cool-down definition).
+- `gemini_model.chiller`: hot-water-fired absorption chiller and electric chiller models, with unit tests.
+- `gemini_model.ates` (aquifer thermal energy storage, cold well pairs) and `gemini_model.orc`
+  (organic Rankine cycle) models, with unit tests.
+- `gemini_design`: heating + cooling plant design layer for the SPE GeoHackathon 2026
+  (challenge inputs, doublet hydraulics at any depth, daily flowsheet with HEX bypass,
+  heat pump and gas boiler top-up, 365-day dispatch with outage scheduling, hard-constraint
+  checks, economics, design screening, and project-JSON export re-run through the Solver).
+- `simulator_examples/run_heat_cool_design.py` and `run_design_screening.py`, plus the
+  hackathon demand profiles in `simulator_examples/hackathon_inputs/`.
+- `gemini_agent`: physics-gated design agent on any OpenAI-compatible LLM endpoint
+  (default: DeepSeek V4.1 Flash via OpenRouter, placeholder API key; Ollama, llama.cpp, vLLM and
+  Codex CLI backends; a six-model benchmark in `gemini_agent.bench`). Fifteen tools over
+  `gemini_design` / `gemini_simulator`, a six-step physics gate (schema, hard rules, daily
+  energy balances, Solver re-run, Carnot and temperature bounds, no untraceable numbers in
+  answers), three memory layers (scratchpad, run ledger, project notes), sandboxed
+  model writing, a slot for a Fimbul reservoir provider, and JSONL/Markdown transcripts
+  with token counts. CLI: `python -m gemini_agent`; demo transcripts:
+  `simulator_examples/run_agent_transcripts.py`.
+- Simulator registry entries for `heat_pump`, `absorption_chiller` and `electric_chiller`.
+- Optional `pvt` overrides in well configs so wells can use a brine density/viscosity.
+- `ElectricChiller`: refrigerant approach temperatures, DOE-2 part-load curve, staged
+  modules and heat-rejection auxiliaries (system COP about 4-5 for 20 degC supply).
+- `gemini_design`: optional CHP on associated gas (ahead of the boiler), with grid
+  import/export, flaring accounting and CHP CAPEX; screening tries every design with and
+  without it.
+- `gemini_uncertainty`: Latin-hypercube Monte Carlo, P10/P90 tornado and paired design
+  comparison over 14 sourced subsurface, demand, price and cost parameters; ThermoGIS well-cost
+  model; report figures; agent tool `assess_design_uncertainty`
+  (`simulator_examples/run_uncertainty_study.py`).
+### Fixed
+- Injection wellhead pressure: friction now opposes downward injection flow instead of
+  adding to the bottomhole pressure, which made deep injectors look like they need no pump.
+- NORSOK M-506 corrosion: the rate is interpolated between the standard's table temperatures
+  instead of falling back to pH 7 (rates 10-30x too high), and two slips in the 5 degC pH
+  function are corrected.
+- Compressor power: the isentropic work per stage now includes the factor k.
+
 ## [1.0.3] - 2026-10-13
 ## added
 - parameters and tagnames of geothermal_example using csv data

@@ -1,0 +1,212 @@
+{
+  "weather": "knmi_etmgeg_240_1991_2025.txt (2025)",
+  "pick_run_id": "R0001",
+  "pick": {
+    "design": "2D-3100m-boiler-electric-chp-aircooled-fc-ates3",
+    "all_hard_constraints_met": true,
+    "days_with_violations": 0,
+    "heating_demand_mwh": 111667.68,
+    "heating_delivered_mwh": 111667.68,
+    "cooling_demand_mwh": 23742.528000000002,
+    "cooling_delivered_mwh": 23742.528000000002,
+    "heat_share_hex_chp_boiler": [
+      0.8994448853691257,
+      0.07384779768508233,
+      0.02670731695585198
+    ],
+    "cooling_free_ates_chiller_mwh": [
+      4315.223599999999,
+      12431.631980813907,
+      6995.672419186094
+    ],
+    "max_chiller_load_mw": 5.92910254050306,
+    "mean_chiller_cop": 5.980646769115591,
+    "purchased_gas_mwh": 2643.1482330361596,
+    "associated_gas_flared_mwh": 2.560052948864374,
+    "electricity_used_mwh": 5486.956062669384,
+    "chp_electricity_mwh": 4123.206120301256,
+    "grid_import_mwh": 1638.7790411886099,
+    "grid_export_mwh": 275.02909882048203,
+    "co2_t_per_year": 4789.999419109359,
+    "max_flow_per_doublet_m3h": 300.0,
+    "min_running_flow_m3h": 93.75,
+    "max_brine_cooling_k": 40.0,
+    "doublet_operating_days": [
+      330,
+      330
+    ],
+    "geothermal_source_days": 330,
+    "days_without_geothermal": 35,
+    "esp_setting_depth_m": 731.0707980052457,
+    "max_esp_dp_bar": 42.80288857497275,
+    "max_injector_wellhead_pressure_bar": 27.546482574972632,
+    "wellhead_temperature_c": [
+      97.00588534150171,
+      102.36429506627866
+    ],
+    "capex_eur": {
+      "wells": 25840000.0,
+      "doublet_surface": 6000000.0,
+      "heat_pump": 0.0,
+      "boiler": 3000000.0,
+      "chp": 1081387.6247979933,
+      "chiller": 1800000.0,
+      "electric_backup_chiller": 0.0,
+      "cooling_tower": 0.0,
+      "ates": 2647665.0,
+      "well_integrity": 4960000.0,
+      "free_cooling": 900000.0,
+      "storage": 0.0,
+      "total": 46229052.62479799
+    },
+    "annual_capital_eur": 3358490.352407684,
+    "annual_fixed_om_eur": 924581.0524959599,
+    "annual_energy_cost_eur": 669077.6218635995,
+    "annual_start_cost_eur": 0.0,
+    "annual_total_cost_eur": 4952149.026767244,
+    "lcoe_eur_per_mwh": 36.57146015732613,
+    "ates": {
+      "well_pairs": 3,
+      "nominal_capacity_mw": 7.063875,
+      "heat_balance_imbalance": 0.0990132939834916,
+      "discharge_flow_fraction": 0.5273024141788483,
+      "charge_flow_fraction": 1.0,
+      "cooling_mwh": 12431.631980813907,
+      "charge_mwh": 11200.735148803005,
+      "electricity_mwh": 533.645351788653,
+      "standing_loss_mwh": 3017.537344614807,
+      "max_cold_volume_m3": 1345862.9989048815,
+      "max_cold_well_extraction_c": 10.33972996184703
+    },
+    "operations": null
+  },
+  "reference": {
+    "design": "30 MW gas boiler (90 %) + 12 MW air-cooled screw chiller",
+    "unmet_mwh": 4.515750333666802e-13,
+    "purchased_gas_mwh": 124075.20000000001,
+    "electricity_mwh": 3800.680869621741,
+    "co2_t_per_year": 26421.767012886525,
+    "capex_eur": 5400000.0,
+    "annual_capital_eur": 392304.1220462549,
+    "annual_fixed_om_eur": 108000.0,
+    "annual_energy_cost_eur": 7532831.06538553,
+    "lcoe_eur_per_mwh": 59.32444315743009
+  },
+  "pick_vs_reference": {
+    "extra_capex_eur": 40829052.62479799,
+    "annual_saving_eur": 6047172.39102597,
+    "simple_payback_years": 6.751759332244023,
+    "npv_eur": 42409254.28162309,
+    "discount_rate": 0.06,
+    "lifetime_years": 30
+  },
+  "co2_avoided_t_per_year": 21631.767593777164,
+  "uncertainty": {
+    "n_samples": 400,
+    "sourced_base_case": [
+      {
+        "design": "2D-3100m-boiler-electric-chp-aircooled-fc-ates3",
+        "demand_met": true,
+        "lcoe_eur_per_mwh": 32.59894240678228,
+        "co2_t_per_year": 4480.523013331788,
+        "capex_meur": 42.96745262479799
+      },
+      {
+        "design": "2D-3100m-boiler-electric-chp",
+        "demand_met": true,
+        "lcoe_eur_per_mwh": 33.41910969566347,
+        "co2_t_per_year": 4966.375940674612,
+        "capex_meur": 40.61978762479799
+      }
+    ],
+    "summary": [
+      {
+        "design": "2D-3100m-boiler-electric-chp-aircooled-fc-ates3",
+        "n": 400,
+        "failed_runs": 0,
+        "p_demand_met": 1.0,
+        "p_heating_met": 1.0,
+        "p_cooling_met": 1.0,
+        "unmet_mwh_mean": 1.5777969565533568e-12,
+        "unmet_mwh_p90": 1.9398561562411488e-12,
+        "lcoe_p10": 32.094608512269595,
+        "lcoe_p50": 37.55765505481436,
+        "lcoe_p90": 43.60466406675644,
+        "lcoe_mean": 37.82672304702981,
+        "co2_kt_p10": 4.226904216068229,
+        "co2_kt_p50": 4.695178016492143,
+        "co2_kt_p90": 5.7419193922873415,
+        "capex_meur_p50": 45.783474807450716,
+        "geothermal_share_p50": 0.9128916389421098
+      },
+      {
+        "design": "2D-3100m-boiler-electric-chp",
+        "n": 400,
+        "failed_runs": 0,
+        "p_demand_met": 0.9775,
+        "p_heating_met": 1.0,
+        "p_cooling_met": 0.9775,
+        "unmet_mwh_mean": 0.30645253487431096,
+        "unmet_mwh_p90": 8.598435670137406e-13,
+        "lcoe_p10": 33.08621509304365,
+        "lcoe_p50": 38.32301571410201,
+        "lcoe_p90": 44.610601995206686,
+        "lcoe_mean": 38.70464309379672,
+        "co2_kt_p10": 4.6771660715350585,
+        "co2_kt_p50": 5.226295650239961,
+        "co2_kt_p90": 6.288996062212304,
+        "capex_meur_p50": 43.32570085484069,
+        "geothermal_share_p50": 0.9112810868797283
+      }
+    ],
+    "paired_pick_vs_earlier": {
+      "design_a": "2D-3100m-boiler-electric-chp-aircooled-fc-ates3",
+      "design_b": "2D-3100m-boiler-electric-chp",
+      "n": 400,
+      "p_a_cheaper": 1.0,
+      "lcoe_diff_p10": -1.3216841913781443,
+      "lcoe_diff_p50": -0.8988348905615808,
+      "lcoe_diff_p90": -0.4058864197827978,
+      "p_a_lower_co2": 1.0,
+      "co2_diff_kt_p50": -0.4981060562047062
+    },
+    "tornado_top6": [
+      {
+        "parameter": "well_cost_factor",
+        "lcoe_low": 31.17380831191799,
+        "lcoe_high": 38.05875611625521,
+        "lcoe_swing": 6.884947804337219
+      },
+      {
+        "parameter": "discount_rate",
+        "lcoe_low": 30.85600112115114,
+        "lcoe_high": 36.92777940082411,
+        "lcoe_swing": 6.071778279672966
+      },
+      {
+        "parameter": "permeability_md",
+        "lcoe_low": 35.237566968727975,
+        "lcoe_high": 31.532926726429537,
+        "lcoe_swing": 3.7046402422984386
+      },
+      {
+        "parameter": "heating_scale",
+        "lcoe_low": 34.30648753274563,
+        "lcoe_high": 31.14943447123424,
+        "lcoe_swing": 3.1570530615113874
+      },
+      {
+        "parameter": "geothermal_gradient_c_per_km",
+        "lcoe_low": 35.269115567280025,
+        "lcoe_high": 32.33168130750228,
+        "lcoe_swing": 2.9374342597777456
+      },
+      {
+        "parameter": "surface_cost_factor",
+        "lcoe_low": 31.621369758381018,
+        "lcoe_high": 34.33438326444394,
+        "lcoe_swing": 2.713013506062925
+      }
+    ]
+  }
+}

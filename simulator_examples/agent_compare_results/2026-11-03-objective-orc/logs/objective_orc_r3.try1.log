@@ -1,0 +1,12 @@
+E:\Github Repos\SPEHackathon\wt-orc\src\gemini_model\heatpump\heatpump_basic.py:193: RuntimeWarning: invalid value encountered in log
+  Ts = (Ts_in - Ts_out) / np.log(Ts_in / Ts_out)
+
+=== 10_design_with_objective: Open design with the client's objective stated: cost, CO2 and resilience
+user> Design the heating and cooling plant for the district. We want the lowest cost, but CO2 matters to us: count it at 100 EUR per tonne when you weigh options, on top of the 80 already in the cost. The plant must still meet demand if the geothermal wells trip on the coldest days. Use the measured weather.
+agent (answer)> ## Result
+
+**Recommended plant: 2 doublets at 3000 m, gas boiler to 100 °C, electric centrifugal wet-tower chiller, CHP on the co-produced gas, operating rules on — LCOE 38.38 EUR/MWh, 4 479 t CO₂/yr, capex 42.87 MEUR [R0082].** All hard rules met, and it still meets every day of demand when both doublets are down for 35 days starting on the coldest day.
+
+**Why this one**
+- 3 000 m gives 102 °C brine [R0082 reservoir], so the boiler only has to top up ~1 % of the heat: geothermal share 93.3 %, purchased gas 112.8 MWh/yr [R0082].
+- The CHP burns the associated gas instead of flaring it: 3 778 MWhₑ/yr, grid

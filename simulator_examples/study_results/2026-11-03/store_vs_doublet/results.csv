@@ -1,0 +1,46 @@
+basis,case,design,n_doublets,storage_gwh,storage_mw,meets_all_hard_rules,unmet_heating_mwh,unmet_cooling_mwh,lcoe_eur_per_mwh,co2_t_per_year,capex_meur,storage_capex_meur,purchased_gas_mwh,geothermal_heat_mwh,boiler_heat_mwh,storage_in_mwh,storage_out_mwh,storage_loss_mwh
+A,"1D, no store",1D-3100m-boiler-electric-chp-screw,1,0.0,0.0,True,0.0,0.0,47.57,11800,24.45,0.0,39965,70694,36453,0,0,0
+A,1D + 5 GWh store,1D-3100m-boiler-electric-chp-screw-tes5GWh,1,5.0,25.0,True,0.0,0.0,48.43,10920,29.45,5.0,34582,75546,31588,5131,4839,292
+A,1D + 10 GWh store,1D-3100m-boiler-electric-chp-screw-tes10GWh,1,10.0,25.0,True,0.0,0.0,47.51,10030,31.95,7.5,29343,80568,26804,10395,9553,842
+A,1D + 20 GWh store,1D-3100m-boiler-electric-chp-screw-tes20GWh,1,20.0,25.0,True,0.0,0.0,45.79,8283,36.95,12.5,19099,90913,17460,21219,18774,2445
+A,1D + 30 GWh store,1D-3100m-boiler-electric-chp-screw-tes30GWh,1,30.0,25.0,True,0.0,0.0,44.21,6599,41.95,17.5,9011,101652,8231,32468,27852,4616
+A,1D + 37.5 GWh store,1D-3100m-boiler-electric-chp-screw-tes37.5GWh,1,37.5,25.0,True,0.0,0.0,43.14,5378,45.7,21.25,1574,110006,1418,41224,34546,6678
+A,1D + 40 GWh store,1D-3100m-boiler-electric-chp-screw-tes40GWh,1,40.0,25.0,True,0.0,0.0,43.73,5288,46.95,22.5,986,110691,887,41947,35073,6874
+A,"2D, no store",2D-3100m-boiler-electric-chp-screw,2,0.0,0.0,True,0.0,0.0,51.11,8825,43.38,0.0,23834,84131,22244,0,0,0
+A,2D + 5 GWh store,2D-3100m-boiler-electric-chp-screw-tes5GWh,2,5.0,25.0,True,0.0,0.0,51.95,7930,48.38,5.0,18295,88939,17259,5090,4976,114
+A,2D + 10 GWh store,2D-3100m-boiler-electric-chp-screw-tes10GWh,2,10.0,25.0,True,0.0,0.0,51.05,7032,50.88,7.5,12809,93879,12321,10331,9912,419
+A,2D + 20 GWh store,2D-3100m-boiler-electric-chp-screw-tes20GWh,2,20.0,25.0,True,0.0,0.0,49.18,5234,55.88,12.5,1970,104055,2488,21082,19660,1422
+A,2D + 30 GWh store,2D-3100m-boiler-electric-chp-screw-tes30GWh,2,30.0,25.0,True,0.0,0.0,52.13,5073,60.88,17.5,995,104995,1596,22073,20538,1536
+A,2D + 37.5 GWh store,2D-3100m-boiler-electric-chp-screw-tes37.5GWh,2,37.5,25.0,True,0.0,0.0,54.7,5073,64.63,21.25,995,104995,1596,22073,20538,1536
+A,2D + 40 GWh store,2D-3100m-boiler-electric-chp-screw-tes40GWh,2,40.0,25.0,True,0.0,0.0,55.55,5073,65.88,22.5,995,104995,1596,22073,20538,1536
+A,"final pick (2D, ATES, 33 MW boiler)",2D-3100m-boiler-electric-chp-aircooled-fc-ates3,2,0.0,0.0,True,0.0,0.0,51.29,8356,46.53,0.0,23831,84159,22259,0,0,0
+B,"1D, no store",1D-3100m-boiler-electric-chp-screw,1,0.0,0.0,True,0.0,0.0,34.4,9796,24.45,0.0,28341,80640,25771,0,0,0
+B,1D + 5 GWh store,1D-3100m-boiler-electric-chp-screw-tes5GWh,1,5.0,25.0,True,0.0,0.0,34.92,8463,29.45,5.0,20345,87790,18531,7538,7193,345
+B,1D + 10 GWh store,1D-3100m-boiler-electric-chp-screw-tes10GWh,1,10.0,25.0,True,0.0,0.0,34.66,7565,31.95,7.5,15106,92823,13769,12802,11908,895
+B,1D + 20 GWh store,1D-3100m-boiler-electric-chp-screw-tes20GWh,1,20.0,25.0,True,0.0,0.0,34.29,5839,36.95,12.5,4927,103484,4507,23941,21068,2873
+B,1D + 30 GWh store,1D-3100m-boiler-electric-chp-screw-tes30GWh,1,30.0,25.0,True,0.0,0.0,35.9,5024,41.95,17.5,4,109074,17,29787,25499,4288
+B,1D + 37.5 GWh store,1D-3100m-boiler-electric-chp-screw-tes37.5GWh,1,37.5,25.0,True,0.0,0.0,38.47,5024,45.7,21.25,4,109074,17,29787,25499,4288
+B,1D + 40 GWh store,1D-3100m-boiler-electric-chp-screw-tes40GWh,1,40.0,25.0,True,0.0,0.0,39.33,5024,46.95,22.5,4,109074,17,29787,25499,4288
+B,"2D, no store",2D-3100m-boiler-electric-chp-screw,2,0.0,0.0,True,0.0,0.0,35.18,4875,43.38,0.0,26,103837,703,0,0,0
+B,2D + 5 GWh store,2D-3100m-boiler-electric-chp-screw-tes5GWh,2,5.0,25.0,True,0.0,0.0,38.6,4875,48.38,5.0,26,103837,703,0,0,0
+B,2D + 10 GWh store,2D-3100m-boiler-electric-chp-screw-tes10GWh,2,10.0,25.0,True,0.0,0.0,40.32,4875,50.88,7.5,26,103837,703,0,0,0
+B,2D + 20 GWh store,2D-3100m-boiler-electric-chp-screw-tes20GWh,2,20.0,25.0,True,0.0,0.0,43.74,4875,55.88,12.5,26,103837,703,0,0,0
+B,2D + 30 GWh store,2D-3100m-boiler-electric-chp-screw-tes30GWh,2,30.0,25.0,True,0.0,0.0,47.16,4875,60.88,17.5,26,103837,703,0,0,0
+B,2D + 37.5 GWh store,2D-3100m-boiler-electric-chp-screw-tes37.5GWh,2,37.5,25.0,True,0.0,0.0,49.72,4875,64.63,21.25,26,103837,703,0,0,0
+B,2D + 40 GWh store,2D-3100m-boiler-electric-chp-screw-tes40GWh,2,40.0,25.0,True,0.0,0.0,50.58,4875,65.88,22.5,26,103837,703,0,0,0
+B,"final pick (2D, ATES, 33 MW boiler)",2D-3100m-boiler-electric-chp-aircooled-fc-ates3,2,0.0,0.0,True,0.0,0.0,35.71,4345,46.53,0.0,27,104012,700,0,0,0
+C,"1D, no store",1D-3100m-boiler-electric-chp-screw,1,0.0,0.0,True,0.0,0.0,41.62,9758,24.45,0.0,28345,80693,25879,0,0,0
+C,1D + 5 GWh store,1D-3100m-boiler-electric-chp-screw-tes5GWh,1,5.0,25.0,True,0.0,0.0,41.15,8431,29.45,5.0,20347,87838,18622,7538,7193,345
+C,1D + 10 GWh store,1D-3100m-boiler-electric-chp-screw-tes10GWh,1,10.0,25.0,True,0.0,0.0,40.24,7541,31.95,7.5,15108,92859,13838,12802,11908,895
+C,1D + 20 GWh store,1D-3100m-boiler-electric-chp-screw-tes20GWh,1,20.0,25.0,True,0.0,0.0,38.6,5829,36.95,12.5,4928,103497,4536,23941,21068,2873
+C,1D + 30 GWh store,1D-3100m-boiler-electric-chp-screw-tes30GWh,1,30.0,25.0,True,0.0,0.0,39.61,5023,41.95,17.5,6,109076,22,29787,25499,4288
+C,1D + 37.5 GWh store,1D-3100m-boiler-electric-chp-screw-tes37.5GWh,1,37.5,25.0,True,0.0,0.0,42.18,5023,45.7,21.25,6,109076,22,29787,25499,4288
+C,1D + 40 GWh store,1D-3100m-boiler-electric-chp-screw-tes40GWh,1,40.0,25.0,True,0.0,0.0,43.03,5023,46.95,22.5,6,109076,22,29787,25499,4288
+C,"2D, no store",2D-3100m-boiler-electric-chp-screw,2,0.0,0.0,True,0.0,0.0,38.67,4676,43.38,0.0,38,104270,828,0,0,0
+C,2D + 5 GWh store,2D-3100m-boiler-electric-chp-screw-tes5GWh,2,5.0,25.0,True,0.0,0.0,42.09,4676,48.38,5.0,38,104270,828,0,0,0
+C,2D + 10 GWh store,2D-3100m-boiler-electric-chp-screw-tes10GWh,2,10.0,25.0,True,0.0,0.0,43.8,4676,50.88,7.5,38,104270,828,0,0,0
+C,2D + 20 GWh store,2D-3100m-boiler-electric-chp-screw-tes20GWh,2,20.0,25.0,True,0.0,0.0,47.22,4676,55.88,12.5,38,104270,828,0,0,0
+C,2D + 30 GWh store,2D-3100m-boiler-electric-chp-screw-tes30GWh,2,30.0,25.0,True,0.0,0.0,50.64,4676,60.88,17.5,38,104270,828,0,0,0
+C,2D + 37.5 GWh store,2D-3100m-boiler-electric-chp-screw-tes37.5GWh,2,37.5,25.0,True,0.0,0.0,53.21,4676,64.63,21.25,38,104270,828,0,0,0
+C,2D + 40 GWh store,2D-3100m-boiler-electric-chp-screw-tes40GWh,2,40.0,25.0,True,0.0,0.0,54.06,4676,65.88,22.5,38,104270,828,0,0,0
+C,"final pick (2D, ATES, 33 MW boiler)",2D-3100m-boiler-electric-chp-aircooled-fc-ates3,2,0.0,0.0,True,0.0,0.0,38.84,4207,46.53,0.0,35,104298,843,0,0,0

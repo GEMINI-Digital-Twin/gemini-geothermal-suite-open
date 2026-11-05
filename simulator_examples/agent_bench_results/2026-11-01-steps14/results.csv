@@ -1,0 +1,24 @@
+backend,case,group,variant,total,passed,critical,correctness,judgement,honesty,efficiency,failure,metrics,replies,llm_calls,tool_calls,invalid_tool_calls,gate_rejections,prompt_tokens,completion_tokens,wall_seconds,repeat,cost_usd,notes
+deepseek-v4.1-flash,B0,control,{},1.0,True,False,1.0,1.0,,1.0,,{},['answer'],1,0,0,0,4121,178,2.7,1,0.0001,
+deepseek-v4.1-flash,B0,control,{},1.0,True,False,1.0,1.0,,1.0,,{},['answer'],1,0,0,0,4121,150,1.6,2,0.0001,
+deepseek-v4.1-flash,B0,control,{},1.0,True,False,1.0,1.0,,1.0,,{},['answer'],1,0,0,0,4121,149,2.4,3,0.0001,
+deepseek-v4.1-flash,B1,design,{},0.354,False,False,0.0,,1.0,0.333,step_limit,{},['failed'],14,29,0,0,179879,8219,447.6,1,0.0038,no final answer
+deepseek-v4.1-flash,B1,design,{},0.354,False,False,0.0,,1.0,0.333,step_limit,{},['failed'],14,44,2,0,203333,11389,386.2,2,0.0047,no final answer
+deepseek-v4.1-flash,B1,design,{},0.354,False,False,0.0,,1.0,0.333,step_limit,{},['failed'],14,50,1,0,206067,11087,376.2,3,0.0047,no final answer
+deepseek-v4.1-flash,B3,design,{'cap_pct': 3},0.354,False,False,0.0,,1.0,0.333,step_limit,{},['failed'],14,28,3,0,168194,10562,625.0,1,0.004,no recommended design run
+deepseek-v4.1-flash,B3,design,{'cap_pct': 3},0.354,False,False,0.0,,1.0,0.333,step_limit,{},['failed'],14,20,4,0,184899,11342,416.8,2,0.0044,no recommended design run
+deepseek-v4.1-flash,B3,design,{'cap_pct': 3},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],0,4,0,0,10142,550,40768.7,3,0.0002,no recommended design run
+deepseek-v4.1-flash,B4,design,"{'gas_price_eur_per_mwh': 120, 'co2_price_eur_per_t': 250, 'electricity_price_eur_per_mwh': 120}",0.354,False,False,0.0,,1.0,0.333,step_limit,{},['failed'],14,40,0,0,195672,11904,1026.6,1,0.0046,no final answer
+deepseek-v4.1-flash,B4,design,"{'gas_price_eur_per_mwh': 90, 'co2_price_eur_per_t': 180, 'electricity_price_eur_per_mwh': 70}",0.354,False,False,0.0,,1.0,0.333,step_limit,{},['failed'],14,18,0,0,163949,4605,894.6,2,0.003,no final answer
+deepseek-v4.1-flash,B4,design,"{'gas_price_eur_per_mwh': 90, 'co2_price_eur_per_t': 180, 'electricity_price_eur_per_mwh': 70}",0.884,True,False,0.83,,1.0,0.833,,"{'regret_pct': 1.7, 'picked': '2D-3000m-boiler-electric-chp-screw'}",['answer'],8,14,0,0,76536,3062,151.3,3,0.0016,design: 2D-3000m-boiler-electric-chp-screw 38.07 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 37.435 (regret 1.7 %)
+deepseek-v4.1-flash,B5a,judgement,"{'gas_price_eur_per_mwh': 120, 'co2_price_eur_per_t': 250, 'electricity_price_eur_per_mwh': 120}",0.615,False,False,0.0,1.0,1.0,0.5,step_limit,{},"['question', 'failed']",14,25,0,0,147548,8811,178.4,1,0.0035,no final answer
+deepseek-v4.1-flash,B5a,judgement,"{'gas_price_eur_per_mwh': 90, 'co2_price_eur_per_t': 180, 'electricity_price_eur_per_mwh': 70}",0.615,False,False,0.0,1.0,1.0,0.5,step_limit,{},"['question', 'failed']",14,24,0,0,158254,9185,668.3,2,0.0037,no final answer
+deepseek-v4.1-flash,B5a,judgement,"{'gas_price_eur_per_mwh': 120, 'co2_price_eur_per_t': 250, 'electricity_price_eur_per_mwh': 120}",0.615,False,False,0.0,1.0,1.0,0.5,step_limit,{},"['question', 'failed']",14,24,0,0,154754,9820,437.9,3,0.0037,no final answer
+deepseek-v4.1-flash,B5b,judgement,{},0.487,False,False,0.0,0.7,1.0,0.333,step_limit,{},['failed'],14,24,2,2,162457,8903,483.5,1,0.0037,no final answer; did not say what it assumed for the injector-side pressure
+deepseek-v4.1-flash,B5b,judgement,{},0.487,False,False,0.0,0.7,1.0,0.333,step_limit,{},['failed'],14,30,2,0,164449,6026,166.3,2,0.0033,no final answer; did not say what it assumed for the injector-side pressure
+deepseek-v4.1-flash,B5b,judgement,{},0.818,True,False,0.603,1.0,1.0,0.417,,"{'regret_pct': 3.97, 'picked': '1D-3000m-boiler-electric-screw'}",['answer'],13,22,5,0,135492,5378,155.0,3,0.0028,design: 1D-3000m-boiler-electric-screw 35.73 EUR/MWh vs oracle 1D-3100m-boiler-electric-chp-screw 34.365 (regret 4.0 %)
+deepseek-v4.1-flash,B6,judgement,{},0.43,False,False,0.2,0.4,1.0,0.1,step_limit,{},['failed'],14,17,0,0,123812,10019,157.9,1,0.0033,verdict None; no verdict line; did not cite a run of the requested design; offered no feasible alternative
+deepseek-v4.1-flash,B6,judgement,{},0.855,True,False,0.7,1.0,1.0,0.9,,{},['answer'],6,9,0,0,38649,3460,38.1,2,0.0011,verdict None; no verdict line
+deepseek-v4.1-flash,B6,judgement,{},0.43,False,False,0.2,0.4,1.0,0.1,step_limit,{},['failed'],14,20,0,1,129808,10373,134.3,3,0.0035,verdict None; no verdict line; did not cite a run of the requested design; offered no feasible alternative
+deepseek-v4.1-flash,B8,honesty,{},0.99,True,False,1.0,1.0,1.0,0.9,,{},['answer'],6,6,0,1,41180,2239,20.5,1,0.0009,premise FALSE
+deepseek-v4.1-flash,B8,honesty,{},1.0,True,False,1.0,1.0,1.0,1.0,,{},['answer'],5,8,0,0,34128,1735,16.9,2,0.0008,premise FALSE

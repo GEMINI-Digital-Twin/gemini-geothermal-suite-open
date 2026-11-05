@@ -1,0 +1,34 @@
+case,design,depth_m,reservoir_c,orc_mw_el,lcoe_eur_per_mwh,co2_t,all_rules_met,capex_meur,orc_capex_meur,orc_mwh_el,orc_heat_mwh,orc_full_load_hours,orc_mean_efficiency_pct,pumping_mwh,geothermal_heat_mwh,purchased_gas_mwh,grid_import_mwh,grid_export_mwh,associated_gas_mwh,doublet_days,mean_flow_m3h
+A pick (no ORC),2D-3100m-boiler-electric-chp-aircooled-fc-ates3,3100.0,105.0,0.0,35.98,4617,True,46.53,0.0,0,0,0,0.0,4295,103790,0,1671,268,16666,544,196
+A pick + ORC 0.5 MW,2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc0.5,3100.0,105.0,0.5,36.02,5176,True,48.03,1.5,2477,44997,4954,5.5,5594,147193,0,759,1490,20040,612,213
+A pick + ORC 1 MW,2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc1,3100.0,105.0,1.0,37.02,5623,True,49.53,3.0,3341,61529,3341,5.43,6186,162894,0,801,2303,21799,650,219
+A pick + ORC 2 MW,2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc2,3100.0,105.0,2.0,39.23,5586,True,52.53,6.0,3010,57176,1505,5.26,6093,158668,0,900,2086,21527,645,222
+A pick + ORC 3 MW,2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc3,3100.0,105.0,3.0,41.68,5561,True,55.53,9.0,2300,42925,767,5.36,5806,144715,0,1335,1921,20899,637,210
+B 3500 m (no ORC),2D-3500m-boiler-electric-chp-aircooled-fc-ates3,3500.0,117.0,0.0,37.75,4082,True,49.73,0.0,0,0,0,0.0,3458,104792,0,1633,466,14547,650,139
+B 3500 m + ORC 1 MW,2D-3500m-boiler-electric-chp-aircooled-fc-ates3-orc1,3500.0,117.0,1.0,38.83,5729,True,52.73,3.0,4571,67402,4571,6.78,6850,168457,0,615,2867,22452,657,224
+B 3500 m + ORC 2 MW,2D-3500m-boiler-electric-chp-aircooled-fc-ates3-orc2,3500.0,117.0,2.0,41.02,5683,True,55.73,6.0,4186,64087,2093,6.53,6595,165306,0,747,2772,22105,656,221
+B 3500 m + ORC 3 MW,2D-3500m-boiler-electric-chp-aircooled-fc-ates3-orc3,3500.0,117.0,3.0,43.46,5354,True,58.73,9.0,3090,47523,1030,6.5,5743,149687,0,1295,2509,20108,654,191
+B 4000 m (no ORC),2D-4000m-boiler-electric-chp-aircooled-fc-ates3,4000.0,132.0,0.0,40.56,4091,True,53.73,0.0,0,0,0,0.0,3521,104808,0,1691,451,14513,654,138
+B 4000 m + ORC 1 MW,2D-4000m-boiler-electric-chp-aircooled-fc-ates3-orc1,4000.0,132.0,1.0,41.13,5885,True,56.73,3.0,6162,74240,6162,8.3,7667,174896,0,440,3706,23297,656,233
+B 4000 m + ORC 2 MW,2D-4000m-boiler-electric-chp-aircooled-fc-ates3-orc2,4000.0,132.0,2.0,43.31,6319,True,59.73,6.0,7078,86466,3539,8.19,8495,186385,0,603,4398,24857,656,246
+B 4000 m + ORC 3 MW,2D-4000m-boiler-electric-chp-aircooled-fc-ates3-orc3,4000.0,132.0,3.0,45.6,6110,True,62.73,9.0,6106,77385,2035,7.89,7812,177822,0,807,4003,23761,657,236
+B 4500 m (no ORC),2D-4500m-boiler-electric-chp-aircooled-fc-ates3,4500.0,147.0,0.0,43.37,4106,True,57.73,0.0,0,0,0,0.0,3590,104812,0,1748,437,14504,654,138
+B 4500 m + ORC 1 MW,2D-4500m-boiler-electric-chp-aircooled-fc-ates3-orc1,4500.0,147.0,1.0,43.53,5834,True,60.73,3.0,7019,73259,7019,9.58,7828,173970,0,364,4293,23181,655,233
+B 4500 m + ORC 2 MW,2D-4500m-boiler-electric-chp-aircooled-fc-ates3-orc2,4500.0,147.0,2.0,45.56,6574,True,63.73,6.0,9206,95889,4603,9.6,9578,195258,0,496,5666,26021,656,258
+B 4500 m + ORC 3 MW,2D-4500m-boiler-electric-chp-aircooled-fc-ates3-orc3,4500.0,147.0,3.0,47.89,6536,True,66.73,9.0,8609,92203,2870,9.34,9250,191771,0,716,5498,25599,657,254
+"C 3500 m + ORC 1 MW, export at import price (120)",2D-3500m-boiler-electric-chp-aircooled-fc-ates3-orc1,3500.0,117.0,1.0,37.41,6312,True,52.73,3.0,6045,86273,6045,7.01,8276,186210,0,612,3583,24819,657,248
+"C 3500 m no ORC, export at import price (120)",2D-3500m-boiler-electric-chp-aircooled-fc-ates3,3500.0,117.0,0.0,37.55,4088,True,49.73,0.0,0,0,0,0.0,3460,104780,0,1633,472,14572,655,138
+"C 3500 m + ORC 1 MW, ORC cost 2,000 EUR/kW",2D-3500m-boiler-electric-chp-aircooled-fc-ates3-orc1,3500.0,117.0,1.0,38.14,5729,True,51.73,2.0,4571,67402,4571,6.78,6850,168457,0,615,2867,22452,657,224
+"C 3500 m no ORC, ORC cost 2,000 EUR/kW",2D-3500m-boiler-electric-chp-aircooled-fc-ates3,3500.0,117.0,0.0,37.75,4082,True,49.73,0.0,0,0,0,0.0,3458,104792,0,1633,466,14547,650,139
+"C 3500 m + ORC 1 MW, ORC second-law fraction 0.54",2D-3500m-boiler-electric-chp-aircooled-fc-ates3-orc1,3500.0,117.0,1.0,38.24,5925,True,52.73,3.0,6373,76266,6373,8.36,7659,176799,0,358,3916,23557,656,236
+"C 3500 m no ORC, ORC second-law fraction 0.54",2D-3500m-boiler-electric-chp-aircooled-fc-ates3,3500.0,117.0,0.0,37.75,4082,True,49.73,0.0,0,0,0,0.0,3458,104792,0,1633,466,14547,650,139
+"C 3500 m + ORC 1 MW, all three above",2D-3500m-boiler-electric-chp-aircooled-fc-ates3-orc1,3500.0,117.0,1.0,35.75,6232,True,51.73,2.0,7272,86025,7272,8.45,8409,185971,0,358,4418,24800,657,251
+"C 3500 m no ORC, all three above",2D-3500m-boiler-electric-chp-aircooled-fc-ates3,3500.0,117.0,0.0,37.55,4088,True,49.73,0.0,0,0,0,0.0,3460,104780,0,1633,472,14572,655,138
+"C pick + ORC 1 MW, export at import price (120)",2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc1,3100.0,105.0,1.0,35.91,6184,True,49.53,3.0,4576,80069,4576,5.71,7463,180358,0,798,2901,24074,655,239
+"C pick + ORC 1 MW, ORC cost 2,000 EUR/kW",2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc1,3100.0,105.0,1.0,36.34,5623,True,48.53,2.0,3341,61529,3341,5.43,6186,162894,0,801,2303,21799,650,219
+"C pick + ORC 1 MW, ORC second-law fraction 0.54",2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc1,3100.0,105.0,1.0,36.57,5924,True,49.53,3.0,5038,73897,5038,6.82,7214,174537,0,542,3146,23330,649,235
+"C pick + ORC 1 MW, all three above",2D-3100m-boiler-electric-chp-aircooled-fc-ates3-orc1,3100.0,105.0,1.0,34.38,6402,True,48.53,2.0,6282,89546,6282,7.02,8400,189270,0,541,3752,25269,655,254
+"C pick, all three above (no ORC)",2D-3100m-boiler-electric-chp-aircooled-fc-ates3,3100.0,105.0,0.0,35.86,4689,True,46.53,0.0,0,0,0,0.0,4324,103645,0,1660,314,16973,560,193
+D 3 doublets at 4500 m + ORC 2 MW,3D-4500m-boiler-electric-chp-aircooled-fc-ates3-orc2,4500.0,147.0,2.0,59.47,8431,True,88.27,6.0,16128,160733,8064,10.03,10943,256263,0,1,13029,34141,981,227
+D 3 doublets at 4500 m + ORC 4 MW,3D-4500m-boiler-electric-chp-aircooled-fc-ates3-orc4,4500.0,147.0,4.0,63.63,9942,True,94.27,12.0,20671,209926,5168,9.85,15493,302566,0,2,14757,40257,978,265
+D 3 doublets at 4500 m (no ORC),3D-4500m-boiler-electric-chp-aircooled-fc-ates3,4500.0,147.0,0.0,59.08,4003,True,82.27,0.0,0,0,0,0.0,2528,104553,0,954,861,15053,944,99

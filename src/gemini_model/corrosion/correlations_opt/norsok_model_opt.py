@@ -44,7 +44,36 @@ class NORSOK(StaticModel):
         """Get output of the model."""
         return self.output
 
+    TABLE_TEMPERATURES = (5.0, 15.0, 20.0, 40.0, 60.0, 80.0, 90.0, 120.0, 150.0)
+
     def calculate_corrosion_rate(self, u):
+        """
+        Calculate the corrosion rate, interpolating between table temperatures.
+
+        NORSOK M-506 gives the pH function f(pH)_t only at the temperatures in
+        ``TABLE_TEMPERATURES``; between them the standard interpolates the
+        corrosion rate linearly. Outside 5-150 degC the nearest table
+        temperature is used.
+
+        Parameters:
+        u (dict): Dictionary containing the required
+        parameters for corrosion rate calculation.
+
+        Returns:
+        float: Corrosion rate in mm/year
+        """
+        table = self.TABLE_TEMPERATURES
+        temperature = min(max(float(u["temperature"]), table[0]), table[-1])
+        if temperature in table:
+            return self._corrosion_rate_at_table_temperature(dict(u, temperature=temperature))
+        upper = next(t for t in table if t > temperature)
+        lower = table[table.index(upper) - 1]
+        rate_lower = self._corrosion_rate_at_table_temperature(dict(u, temperature=lower))
+        rate_upper = self._corrosion_rate_at_table_temperature(dict(u, temperature=upper))
+        weight = (temperature - lower) / (upper - lower)
+        return rate_lower + weight * (rate_upper - rate_lower)
+
+    def _corrosion_rate_at_table_temperature(self, u):
         """
         Calculate the corrosion rate based on various parameters.
 
@@ -307,9 +336,9 @@ class NORSOK(StaticModel):
         ph = 7
         if temperature == 5.0:
             if 3.5 <= initial_ph <= 4.6:
-                ph = 2.0676 + 0.2309 * initial_ph
+                ph = 2.0676 - 0.2309 * initial_ph
             elif 4.6 < initial_ph <= 6.5:
-                ph = 4.342 - 1.061 * initial_ph + 0.0708 * initial_ph**2
+                ph = 4.342 - 1.051 * initial_ph + 0.0708 * initial_ph**2
         elif temperature == 15.0:
             if 3.5 <= initial_ph <= 4.6:
                 ph = 2.0676 - 0.2309 * initial_ph

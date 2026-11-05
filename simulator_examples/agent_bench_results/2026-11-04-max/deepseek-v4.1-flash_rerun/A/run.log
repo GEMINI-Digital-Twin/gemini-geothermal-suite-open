@@ -1,0 +1,15 @@
+oracle B1 {}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 6}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 8}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 12}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B4 {'gas_price_eur_per_mwh': 90, 'co2_price_eur_per_t': 180, 'electricity_price_eur_per_mwh': 70}: best 2D-3100m-boiler-electric-chp-screw 37.722
+oracle B4 {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+oracle B4 {'gas_price_eur_per_mwh': 120, 'co2_price_eur_per_t': 250, 'electricity_price_eur_per_mwh': 120}: best 2D-3100m-boiler-electric-chp-screw 41.519
+oracle B5a {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+deepseek-v4.1-flash    B0   r1 total 1.00 PASS  []
+deepseek-v4.1-flash    B0   r2 total 1.00 PASS  []
+deepseek-v4.1-flash    B0   r3 total 1.00 PASS  []
+deepseek-v4.1-flash    B1   r1 total 0.88 PASS  ['design: 1D-2875m-boiler-electric-screw-2xB-retref/28 34.95 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)']
+deepseek-v4.1-flash    B1   r2 total 0.88 PASS  ['design: 2D-3050m-boiler-electric-chp-screw-ret40/28 32.57 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)']
+deepseek-v4.1-flash    B1   r3 total 0.88 PASS  ['design: 1D-3100m-boiler-electric-chp-screw-2xB-ret45/30 33.52 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)']
+deepseek-v4.1-flash    B3   r1 total 0.90 PASS  ['limit 37.27 EUR/MWh; picked 2D-3250m-boiler-electric-chp-tower-hrhp1-ret33/30 34.47 EUR/MWh 4191.0 t; oracle 2D-3400m-boiler-electric-chp-tower 36.559 EUR/MWh 4384.4 t']

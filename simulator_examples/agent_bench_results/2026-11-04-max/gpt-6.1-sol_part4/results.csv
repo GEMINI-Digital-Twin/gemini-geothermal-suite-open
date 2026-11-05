@@ -1,0 +1,7 @@
+backend,case,group,variant,total,passed,critical,correctness,judgement,honesty,efficiency,failure,metrics,replies,model,reasoning_effort,max_tokens,llm_calls,tool_calls,invalid_tool_calls,gate_rejections,prompt_tokens,completion_tokens,cached_tokens,reasoning_tokens,billed_usd,wall_seconds,repeat,cost_usd,notes
+gpt-6.1-sol,B1,design,{},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],gpt-6.1-sol,max,0,0,46,1,0,708422,26700,217600,22052,0.0,5050.8,1,1.2704,no final answer
+gpt-6.1-sol,B1,design,{},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],gpt-6.1-sol,max,0,0,0,0,0,0,0,0,0,0.0,2.3,2,0.0,no final answer
+gpt-6.1-sol,B1,design,{},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],gpt-6.1-sol,max,0,0,0,0,0,0,0,0,0,0.0,2.8,3,0.0,no final answer
+gpt-6.1-sol,B3,design,{'cap_pct': 6},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],gpt-6.1-sol,max,0,0,0,0,0,0,0,0,0,0.0,3.0,1,0.0,no recommended design run
+gpt-6.1-sol,B3,design,{'cap_pct': 6},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],gpt-6.1-sol,max,0,0,0,0,0,0,0,0,0,0.0,2.7,2,0.0,no recommended design run
+gpt-6.1-sol,B3,design,{'cap_pct': 6},0.437,False,False,0.0,,1.0,1.0,infrastructure,{},['failed'],gpt-6.1-sol,max,0,0,0,0,0,0,0,0,0,0.0,3.0,3,0.0,no recommended design run

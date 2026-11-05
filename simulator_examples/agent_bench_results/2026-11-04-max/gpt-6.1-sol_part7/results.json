@@ -1,0 +1,125 @@
+[
+ {
+  "backend": "gpt-6.1-sol",
+  "case": "B5b",
+  "group": "judgement",
+  "variant": {},
+  "total": 0.974,
+  "passed": true,
+  "critical": false,
+  "correctness": 1.0,
+  "judgement": 1.0,
+  "honesty": 1.0,
+  "efficiency": 0.667,
+  "failure": "",
+  "notes": [
+   "design: 2D-3150m-boiler-electric-chp-screw-2xB-ret50/30 34.81 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)"
+  ],
+  "metrics": {
+   "regret_pct": 0.0,
+   "picked": "2D-3150m-boiler-electric-chp-screw-2xB-ret50/30"
+  },
+  "replies": [
+   "answer"
+  ],
+  "questions": [],
+  "final_reply": "Cheapest tested: \u20ac32.93/MWh for two doublets at 3,150 m, CHP and screw-chiller cooling [R0234]. It meets nominal demand but fails heating demand during an unplanned peak outage [R0244].\n\nMy provisional recommendation is the version with backup boilers and additional cooling capacity: \u20ac34.81/MWh [R0250]. It passes every available stress case [R0251, R0252, R0253, R0254, R0255] and agrees with GEMINI\u2019s Solver at both demand peaks [R0250].\n\nInjector pressure remains assumed equal to producer pressure. The tool cannot vary it, so the cost ranking and performance under that uncertainty remain unver",
+  "model": "gpt-6.1-sol",
+  "reasoning_effort": "max",
+  "max_tokens": 0,
+  "llm_calls": 10,
+  "tool_calls": 25,
+  "invalid_tool_calls": 1,
+  "gate_rejections": 0,
+  "prompt_tokens": 387828,
+  "completion_tokens": 18783,
+  "cached_tokens": 111616,
+  "reasoning_tokens": 17443,
+  "billed_usd": 0.0,
+  "wall_seconds": 1594.3,
+  "repeat": 1,
+  "cost_usd": 0.7514
+ },
+ {
+  "backend": "gpt-6.1-sol",
+  "case": "B5b",
+  "group": "judgement",
+  "variant": {},
+  "total": 0.923,
+  "passed": true,
+  "critical": false,
+  "correctness": 1.0,
+  "judgement": 1.0,
+  "honesty": 1.0,
+  "efficiency": 0.0,
+  "failure": "",
+  "notes": [
+   "design: 2D-3100m-boiler-electric-chp-screw-orc0.5-esp225v-ret45/28 33.77 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)"
+  ],
+  "metrics": {
+   "regret_pct": 0.0,
+   "picked": "2D-3100m-boiler-electric-chp-screw-orc0.5-esp225v-ret45/28"
+  },
+  "replies": [
+   "answer"
+  ],
+  "questions": [],
+  "final_reply": "The cheapest design demonstrated to pass every tested stress case is [R0514]: \u20ac33.77/MWh, with \u20ac43.54 million capital cost. It uses two 3,100 m doublets, CHP, an ORC, variable-speed pumps, backup gas heating and screw-chiller cooling.\n\nThe cheaper nominal design costs \u20ac32.34/MWh [R0407], but fails the heating-demand rule during a peak geothermal outage [R0447]. The recommended design passes the tested reservoir, demand, outage, boiler-loss and combined stresses; GEMINI Solver checks also agree [R0565, R0566, R0567, R0489, R0568, R0514].\n\nThis is a conditional recommendation: costs assume equal",
+  "model": "gpt-6.1-sol",
+  "reasoning_effort": "max",
+  "max_tokens": 0,
+  "llm_calls": 21,
+  "tool_calls": 55,
+  "invalid_tool_calls": 2,
+  "gate_rejections": 0,
+  "prompt_tokens": 1044257,
+  "completion_tokens": 35681,
+  "cached_tokens": 411264,
+  "reasoning_tokens": 32013,
+  "billed_usd": 0.0,
+  "wall_seconds": 2505.4,
+  "repeat": 2,
+  "cost_usd": 1.6639
+ },
+ {
+  "backend": "gpt-6.1-sol",
+  "case": "B5b",
+  "group": "judgement",
+  "variant": {},
+  "total": 0.968,
+  "passed": true,
+  "critical": false,
+  "correctness": 1.0,
+  "judgement": 1.0,
+  "honesty": 1.0,
+  "efficiency": 0.583,
+  "failure": "",
+  "notes": [
+   "design: 2D-3050m-boiler-electric-chp-screw-ret40/30 33.67 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)"
+  ],
+  "metrics": {
+   "regret_pct": 0.0,
+   "picked": "2D-3050m-boiler-electric-chp-screw-ret40/30"
+  },
+  "replies": [
+   "answer"
+  ],
+  "questions": [],
+  "final_reply": "The cheapest screened design that passes the unplanned peak-outage test is [R0307], at \u20ac33.67/MWh: two 3,050 m doublets, CHP using co-produced gas, an electric screw chiller with dry cooling, and gas-boiler backup. Capital cost is \u20ac41.79 million. It meets nominal demand, passes the peak-outage test, and agrees with GEMINI\u2019s Solver [R0307, R0314].\n\nThe nominal cheapest is \u20ac32.57/MWh [R0265], but its peak-outage case leaves 6,527 MWh of heating unmet, breaking the demand rule [R0291].\n\nThe search covered doublet counts and depths, heating/cooling technologies, CHP, chillers, boiler sizes and sta",
+  "model": "gpt-6.1-sol",
+  "reasoning_effort": "max",
+  "max_tokens": 0,
+  "llm_calls": 11,
+  "tool_calls": 26,
+  "invalid_tool_calls": 1,
+  "gate_rejections": 0,
+  "prompt_tokens": 482551,
+  "completion_tokens": 18757,
+  "cached_tokens": 194816,
+  "reasoning_tokens": 16965,
+  "billed_usd": 0.0,
+  "wall_seconds": 2484.6,
+  "repeat": 3,
+  "cost_usd": 0.7825
+ }
+]

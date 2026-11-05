@@ -1,0 +1,41 @@
+group,case,design,meets_all_hard_rules,physics_gate,lcoe_eur_per_mwh,co2_t_per_year,capex_meur,store_capex_meur,purchased_gas_mwh,store_volume_m3,pits,land_ha,store_capacity_mwh,store_in_mwh,store_out_mwh,boiler_topup_mwh,store_loss_mwh,store_efficiency,max_top_c,cost_eur_per_m3,unmet_heating_mwh
+reference,"current pick (2D, ATES, 33 MW boiler)",2D-3100m-boiler-electric-chp-aircooled-fc-ates3,True,pass,35.71,4345,46.53,0.0,27,0,0,0.0,0,0,0,0,0,0.0,0.0,0.0,0.0
+reference,"1D, Sol's plant, no store",1D-3100m-boiler-electric-chp-screw,True,pass,34.4,9796,24.45,0.0,28341,0,0,0.0,0,0,0,0,0,0.0,0.0,0.0,0.0
+reference,"1D, pick's cooling, no store",1D-3100m-boiler-electric-chp-aircooled-fc-ates3,True,pass,34.92,9331,27.6,0.0,28339,0,0,0.0,0,0,0,0,0,0.0,0.0,0.0,0.0
+"1D + pit, Sol's plant",1D + 100k m3 @ 10 MW,1D-3100m-boiler-electric-chp-screw-pit100k,True,pass,36.01,8698,30.34,5.89,21531,100000,1,1.8,5814,7459,6124,4612,1335,0.82,89.2,43.6,0.0
+"1D + pit, Sol's plant",1D + 100k m3 @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit100k,True,pass,36.32,8684,30.84,6.39,21447,100000,1,1.8,5814,7538,6201,4585,1337,0.82,89.5,43.6,0.0
+"1D + pit, Sol's plant",1D + 100k m3 @ 25 MW,1D-3100m-boiler-electric-chp-screw-pit100k,True,pass,36.99,8676,31.84,7.39,21400,100000,1,1.8,5814,7581,6242,4567,1339,0.82,89.7,43.6,0.0
+"1D + pit, Sol's plant",1D + 200k m3 @ 10 MW,1D-3100m-boiler-electric-chp-screw-pit200k,True,pass,35.92,7876,32.87,8.42,16725,200000,1,3.0,11628,12886,10456,8311,2433,0.81,88.8,32.6,0.0
+"1D + pit, Sol's plant",1D + 200k m3 @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit200k,True,pass,36.18,7836,33.37,8.92,16413,200000,1,3.0,11628,13167,10731,8287,2436,0.81,89.1,32.6,0.0
+"1D + pit, Sol's plant",1D + 200k m3 @ 25 MW,1D-3100m-boiler-electric-chp-screw-pit200k,True,pass,36.82,7813,34.37,9.92,16268,200000,1,3.0,11628,13303,10861,8239,2442,0.82,89.5,32.6,0.0
+"1D + pit, Sol's plant",1D + 250k m3 @ 10 MW,1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,35.66,7428,33.95,9.5,14133,250000,1,3.6,14535,15846,12790,9599,3070,0.81,88.5,29.7,0.0
+"1D + pit, Sol's plant",1D + 250k m3 @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,35.97,7405,34.45,10.0,13853,250000,1,3.6,14535,16069,13036,9774,3033,0.81,89.0,29.7,0.0
+"1D + pit, Sol's plant",1D + 250k m3 @ 25 MW,1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,36.59,7375,35.45,11.0,13664,250000,1,3.6,14535,16247,13205,9700,3043,0.81,89.4,29.7,0.0
+"1D + pit, Sol's plant",1D + 350k m3 @ 10 MW,1D-3100m-boiler-electric-chp-screw-pit350k,True,pass,38.36,7064,39.14,14.69,11845,350000,2,5.5,20349,19875,14853,9662,5115,0.75,87.6,34.4,0.0
+"1D + pit, Sol's plant",1D + 350k m3 @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit350k,True,pass,38.27,6858,39.64,15.19,10359,350000,2,5.5,20349,21390,16182,9317,5201,0.76,88.5,34.4,0.0
+"1D + pit, Sol's plant",1D + 350k m3 @ 25 MW,1D-3100m-boiler-electric-chp-screw-pit350k,True,pass,38.82,6797,40.64,16.19,9958,350000,2,5.5,20349,21808,16540,8959,5250,0.76,89.1,34.4,0.0
+"1D + pit, Sol's plant",1D + 500k m3 @ 10 MW,1D-3100m-boiler-electric-chp-screw-pit500k,True,pass,41.48,7470,42.46,18.01,13791,500000,2,7.3,29069,19352,13094,11421,6256,0.68,85.4,29.7,0.0
+"1D + pit, Sol's plant",1D + 500k m3 @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit500k,True,pass,41.53,7330,42.96,18.51,12791,500000,2,7.3,29069,20461,13990,11509,6321,0.68,86.1,29.7,0.0
+"1D + pit, Sol's plant",1D + 500k m3 @ 25 MW,1D-3100m-boiler-electric-chp-screw-pit500k,True,pass,42.21,7330,43.96,19.51,12791,500000,2,7.3,29069,20461,13990,11509,6321,0.68,86.1,29.7,0.0
+"1D + pit, Sol's plant",1D + 750k m3 @ 10 MW,1D-3100m-boiler-electric-chp-screw-pit750k,True,pass,48.59,8099,50.96,26.51,16895,750000,3,10.9,43604,19146,10299,14216,8404,0.54,80.1,29.7,0.0
+"1D + pit, Sol's plant",1D + 750k m3 @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit750k,True,pass,48.71,7988,51.46,27.01,16116,750000,3,10.9,43604,19841,10998,14501,8475,0.55,80.9,29.7,0.0
+"1D + pit, Sol's plant",1D + 750k m3 @ 25 MW,1D-3100m-boiler-electric-chp-screw-pit750k,True,pass,49.39,7988,52.46,28.01,16116,750000,3,10.9,43604,19841,10998,14501,8475,0.55,80.9,29.7,0.0
+one pit above the built range (upper bound),1D + one 300k m3 pit @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit300k,True,pass,35.68,6965,35.46,11.01,11224,300000,1,4.2,17442,19162,15402,10095,3759,0.8,88.9,27.5,0.0
+one pit above the built range (upper bound),1D + one 350k m3 pit @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit350k,True,pass,35.84,6753,36.4,11.95,9876,350000,1,4.8,20349,21127,16617,8882,4505,0.79,88.7,25.7,0.0
+one pit above the built range (upper bound),1D + one 400k m3 pit @ 15 MW,1D-3100m-boiler-electric-chp-screw-pit400k,True,pass,36.73,6884,37.29,12.84,10511,400000,1,5.4,23256,21025,16042,9457,4904,0.76,88.1,24.3,0.0
+"1D + pit, pick's cooling",1D pick-cooling + 200k m3 @ 25 MW,1D-3100m-boiler-electric-chp-aircooled-fc-ates3-pit200k,True,pass,37.33,7346,37.52,9.92,16267,200000,1,3.0,11628,13303,10861,8239,2442,0.82,89.5,32.6,0.0
+"1D + pit, pick's cooling",1D pick-cooling + 350k m3 @ 25 MW,1D-3100m-boiler-electric-chp-aircooled-fc-ates3-pit350k,True,pass,39.34,6329,43.79,16.19,9957,350000,2,5.5,20349,21808,16540,8959,5250,0.76,89.1,34.4,0.0
+"1D + pit, pick's cooling",1D pick-cooling + 500k m3 @ 25 MW,1D-3100m-boiler-electric-chp-aircooled-fc-ates3-pit500k,True,pass,42.73,6862,47.1,19.51,12790,500000,2,7.3,29069,20461,13990,11509,6321,0.68,86.1,29.7,0.0
+2D + pit,pick + 100k m3 @ 15 MW,2D-3100m-boiler-electric-chp-aircooled-fc-ates3-pit100k,True,pass,40.11,4366,52.92,6.39,29,100000,1,1.8,5814,943,0,0,943,0.0,45.8,43.6,0.0
+2D + pit,pick + 250k m3 @ 15 MW,2D-3100m-boiler-electric-chp-aircooled-fc-ates3-pit250k,True,pass,42.62,4398,56.53,10.0,36,250000,1,3.6,14535,1885,0,0,1885,0.0,46.1,29.7,0.0
+kinder store assumptions,"1D + 250k m3 @ 10 MW, cheaper pits (-30 %)",1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,34.14,7428,31.73,7.28,14133,250000,1,3.6,14535,15846,12790,9599,3070,0.81,88.5,20.8,0.0
+kinder store assumptions,"1D + 250k m3 @ 10 MW, half the losses",1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,35.3,7239,33.95,9.5,13327,250000,1,3.6,14535,15043,13512,9456,1555,0.9,89.2,29.7,0.0
+kinder store assumptions,"1D + 250k m3 @ 10 MW, 95 degC liner",1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,35.03,7139,33.95,9.5,12504,250000,1,3.6,15988,17498,14256,8509,3260,0.81,93.2,29.7,0.0
+kinder store assumptions,"1D + 250k m3 @ 10 MW, no land cost, no price index",1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,33.6,7428,30.94,6.49,14133,250000,1,3.6,14535,15846,12790,9599,3070,0.81,88.5,22.0,0.0
+kinder store assumptions,"1D + 250k m3 @ 10 MW, all four together",1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,31.45,6935,29.29,4.84,11608,250000,1,3.6,15988,16686,15065,8222,1651,0.9,94.1,15.4,0.0
+basis: winter stop (both doublets down 35 days from day 11),"current pick, winter stop (both doublets down 35 days from day 11)",2D-3100m-boiler-electric-chp-aircooled-fc-ates3,True,pass,45.1,8662,46.53,0.0,23826,0,0,0.0,0,0,0,0,0,0.0,0.0,0.0,0.0
+basis: winter stop (both doublets down 35 days from day 11),"1D + 250k m3 @ 10 MW, winter stop (both doublets down 35 days from day 11)",1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,40.56,9690,33.95,9.5,27039,250000,1,3.6,14535,14553,11633,8554,2928,0.8,88.5,29.7,0.0
+basis: winter stop (both doublets down 35 days from day 11),"1D, Sol's plant, no store, winter stop (both doublets down 35 days from day 11)",1D-3100m-boiler-electric-chp-screw,True,pass,38.84,11855,24.45,0.0,39961,0,0,0.0,0,0,0,0,0,0.0,0.0,0.0,0.0
+basis: CO2 at 180 EUR/t,"current pick, CO2 at 180 EUR/t",2D-3100m-boiler-electric-chp-aircooled-fc-ates3,True,pass,38.84,4207,46.53,0.0,35,0,0,0.0,0,0,0,0,0,0.0,0.0,0.0,0.0
+basis: CO2 at 180 EUR/t,"1D + 250k m3 @ 10 MW, CO2 at 180 EUR/t",1D-3100m-boiler-electric-chp-screw-pit250k,True,pass,41.14,7411,33.95,9.5,14136,250000,1,3.6,14535,15846,12790,9599,3070,0.81,88.5,29.7,0.0
+basis: CO2 at 180 EUR/t,"1D, Sol's plant, no store, CO2 at 180 EUR/t",1D-3100m-boiler-electric-chp-screw,True,pass,41.62,9758,24.45,0.0,28345,0,0,0.0,0,0,0,0,0,0.0,0.0,0.0,0.0

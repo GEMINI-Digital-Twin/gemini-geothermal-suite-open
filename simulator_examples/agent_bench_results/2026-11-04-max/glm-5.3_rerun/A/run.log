@@ -1,0 +1,20 @@
+oracle B1 {}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 6}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 8}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 12}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B4 {'gas_price_eur_per_mwh': 90, 'co2_price_eur_per_t': 180, 'electricity_price_eur_per_mwh': 70}: best 2D-3100m-boiler-electric-chp-screw 37.722
+oracle B4 {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+oracle B4 {'gas_price_eur_per_mwh': 120, 'co2_price_eur_per_t': 250, 'electricity_price_eur_per_mwh': 120}: best 2D-3100m-boiler-electric-chp-screw 41.519
+oracle B5a {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+glm-5.3                B0   r1 total 1.00 PASS  []
+glm-5.3                B0   r2 total 1.00 PASS  []
+glm-5.3                B0   r3 total 1.00 PASS  []
+glm-5.3                B1   r1 total 0.85 PASS  ['design: 2D-3000m-boiler-electric-chp-screw-2xB-retref/28 35.28 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.3 %)']
+glm-5.3                B1   r2 total 0.88 PASS  ['design: 1D-3100m-boiler-electric-chp-screw-2xB-ret45/29 33.59 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)']
+glm-5.3                B1   r3 total 0.88 PASS  ['design: 2D-3250m-boiler-electric-chp-screw 33.96 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 35.158 (regret 0.0 %)']
+glm-5.3                B3   r1 total 0.44 fail infrastructure ['no recommended design run']
+glm-5.3                B3   r2 total 0.44 fail infrastructure ['no recommended design run']
+glm-5.3                B3   r3 total 0.44 fail infrastructure ['no recommended design run']
+glm-5.3                B4   r1 total 0.44 fail infrastructure ['no final answer']
+glm-5.3                B4   r2 total 0.64 fail wrong_conclusion ['design: 2D-3000m-boiler-electric-screw-2xB-retref/28 39.73 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 37.722 (regret 5.3 %)']
+glm-5.3                B4   r3 total 0.64 fail wrong_conclusion ['design: 2D-3000m-boiler-electric-screw-2xB-retref/28 39.67 EUR/MWh vs oracle 2D-3100m-boiler-electric-chp-screw 37.722 (regret 5.2 %)']

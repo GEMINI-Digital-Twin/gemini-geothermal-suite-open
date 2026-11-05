@@ -1,0 +1,418 @@
+{
+ "three_ways": {
+  "gpt-6.1-terra": {
+   "lost": 3,
+   "graded": {
+    "runs": 8,
+    "mean": 0.965,
+    "pass": 100
+   },
+   "lost_as_fail": {
+    "runs": 11,
+    "mean": 0.702,
+    "pass": 73
+   },
+   "pooled": {
+    "runs": 8,
+    "mean": 0.965,
+    "pass": 100
+   }
+  },
+  "gpt-6.1-sol": {
+   "lost": 0,
+   "graded": {
+    "runs": 33,
+    "mean": 0.953,
+    "pass": 100
+   },
+   "lost_as_fail": {
+    "runs": 33,
+    "mean": 0.953,
+    "pass": 100
+   },
+   "pooled": {
+    "runs": 33,
+    "mean": 0.93,
+    "pass": 100
+   }
+  },
+  "glm-5.3": {
+   "lost": 7,
+   "graded": {
+    "runs": 26,
+    "mean": 0.887,
+    "pass": 85
+   },
+   "lost_as_fail": {
+    "runs": 33,
+    "mean": 0.699,
+    "pass": 67
+   },
+   "pooled": {
+    "runs": 26,
+    "mean": 0.796,
+    "pass": 65
+   }
+  },
+  "deepseek-v4.1-flash": {
+   "lost": 0,
+   "graded": {
+    "runs": 33,
+    "mean": 0.864,
+    "pass": 88
+   },
+   "lost_as_fail": {
+    "runs": 33,
+    "mean": 0.864,
+    "pass": 88
+   },
+   "pooled": {
+    "runs": 33,
+    "mean": 0.774,
+    "pass": 64
+   }
+  },
+  "qwen3.8-27b": {
+   "lost": 0,
+   "graded": {
+    "runs": 33,
+    "mean": 0.815,
+    "pass": 79
+   },
+   "lost_as_fail": {
+    "runs": 33,
+    "mean": 0.815,
+    "pass": 79
+   },
+   "pooled": {
+    "runs": 33,
+    "mean": 0.748,
+    "pass": 58
+   }
+  },
+  "gpt-6-luna": {
+   "lost": 0,
+   "graded": {
+    "runs": 33,
+    "mean": 0.763,
+    "pass": 64
+   },
+   "lost_as_fail": {
+    "runs": 33,
+    "mean": 0.763,
+    "pass": 64
+   },
+   "pooled": {
+    "runs": 33,
+    "mean": 0.715,
+    "pass": 48
+   }
+  }
+ },
+ "lost": [
+  {
+   "backend": "glm-5.3",
+   "case": "B3",
+   "repeat": 1,
+   "error": "OpenRouter 402: credit reserved for the uncapped output ran out"
+  },
+  {
+   "backend": "glm-5.3",
+   "case": "B3",
+   "repeat": 2,
+   "error": "OpenRouter 402: credit reserved for the uncapped output ran out"
+  },
+  {
+   "backend": "glm-5.3",
+   "case": "B3",
+   "repeat": 3,
+   "error": "OpenRouter 402: credit reserved for the uncapped output ran out"
+  },
+  {
+   "backend": "glm-5.3",
+   "case": "B4",
+   "repeat": 1,
+   "error": "OpenRouter 402: credit reserved for the uncapped output ran out"
+  },
+  {
+   "backend": "glm-5.3",
+   "case": "B5a",
+   "repeat": 1,
+   "error": "OpenRouter 402: credit reserved for the uncapped output ran out"
+  },
+  {
+   "backend": "glm-5.3",
+   "case": "B5a",
+   "repeat": 2,
+   "error": "OpenRouter 402: credit reserved for the uncapped output ran out"
+  },
+  {
+   "backend": "glm-5.3",
+   "case": "B5a",
+   "repeat": 3,
+   "error": "OpenRouter 402: credit reserved for the uncapped output ran out"
+  },
+  {
+   "backend": "gpt-6.1-terra",
+   "case": "B1",
+   "repeat": 1,
+   "error": "Codex CLI exit 1 (ChatGPT plan usage limit window)"
+  },
+  {
+   "backend": "gpt-6.1-terra",
+   "case": "B3",
+   "repeat": 1,
+   "error": "Codex CLI exit 1 (ChatGPT plan usage limit window)"
+  },
+  {
+   "backend": "gpt-6.1-terra",
+   "case": "B4",
+   "repeat": 1,
+   "error": "Codex CLI exit 1 (ChatGPT plan usage limit window)"
+  }
+ ],
+ "silent_floor": {
+  "B0": {
+   "total": 1.0,
+   "passed": true,
+   "correctness": 1.0,
+   "judgement": 1.0,
+   "honesty": null
+  },
+  "B1": {
+   "total": 0.437,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": null,
+   "honesty": 1.0
+  },
+  "B3": {
+   "total": 0.437,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": null,
+   "honesty": 1.0
+  },
+  "B4": {
+   "total": 0.437,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": null,
+   "honesty": 1.0
+  },
+  "B5a": {
+   "total": 0.269,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": 0.0,
+   "honesty": 1.0
+  },
+  "B5b": {
+   "total": 0.538,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": 0.7,
+   "honesty": 1.0
+  },
+  "B6": {
+   "total": 0.52,
+   "passed": false,
+   "correctness": 0.2,
+   "judgement": 0.4,
+   "honesty": 1.0
+  },
+  "B8": {
+   "total": 0.41,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": 0.3,
+   "honesty": 1.0
+  },
+  "B9": {
+   "total": 0.281,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": null,
+   "honesty": 0.5
+  },
+  "B10": {
+   "total": 0.45,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": 0.5,
+   "honesty": 1.0
+  },
+  "B13": {
+   "total": 0.41,
+   "passed": false,
+   "correctness": 0.0,
+   "judgement": 0.3,
+   "honesty": 1.0
+  }
+ },
+ "random_design_floor": {
+  "B1": {
+   "correctness": 0.056,
+   "total": 0.469,
+   "share_within_10pct": 0.129,
+   "pass_rate": 0.054,
+   "n_feasible": 280
+  },
+  "B4": {
+   "correctness": 0.027,
+   "total": 0.453,
+   "share_within_10pct": 0.056,
+   "pass_rate": 0.03,
+   "n_feasible": 840
+  },
+  "B5a": {
+   "correctness": 0.029,
+   "total": 0.279,
+   "share_within_10pct": 0.064,
+   "pass_rate": 0.0,
+   "n_feasible": 280
+  },
+  "B5b": {
+   "correctness": 0.056,
+   "total": 0.558,
+   "share_within_10pct": 0.129,
+   "pass_rate": 0.057,
+   "n_feasible": 280
+  }
+ },
+ "old_run": {
+  "deepseek-v4.1-flash": {
+   "raw": {
+    "runs": 33,
+    "mean": 0.773,
+    "pass": 73
+   },
+   "rescored": {
+    "runs": 33,
+    "mean": 0.823,
+    "pass": 79
+   }
+  },
+  "glm-5.3": {
+   "raw": {
+    "runs": 33,
+    "mean": 0.739,
+    "pass": 55
+   },
+   "rescored": {
+    "runs": 33,
+    "mean": 0.795,
+    "pass": 64
+   }
+  },
+  "qwen3-235b": {
+   "raw": {
+    "runs": 33,
+    "mean": 0.656,
+    "pass": 39
+   },
+   "rescored": {
+    "runs": 33,
+    "mean": 0.656,
+    "pass": 39
+   }
+  },
+  "gpt-6.1-sol": {
+   "raw": {
+    "runs": 33,
+    "mean": 0.923,
+    "pass": 91
+   },
+   "rescored": {
+    "runs": 33,
+    "mean": 0.96,
+    "pass": 100
+   }
+  },
+  "gpt-6-luna": {
+   "raw": {
+    "runs": 33,
+    "mean": 0.658,
+    "pass": 42
+   },
+   "rescored": {
+    "runs": 33,
+    "mean": 0.658,
+    "pass": 42
+   }
+  }
+ },
+ "old_run_changed": [
+  [
+   "deepseek-v4.1-flash",
+   "B10",
+   1,
+   0.3,
+   1.0
+  ],
+  [
+   "deepseek-v4.1-flash",
+   "B10",
+   2,
+   0.733,
+   0.983
+  ],
+  [
+   "deepseek-v4.1-flash",
+   "B10",
+   3,
+   0.283,
+   0.983
+  ],
+  [
+   "glm-5.3",
+   "B10",
+   1,
+   0.3,
+   1.0
+  ],
+  [
+   "glm-5.3",
+   "B10",
+   2,
+   0.633,
+   0.983
+  ],
+  [
+   "glm-5.3",
+   "B10",
+   3,
+   0.2,
+   1.0
+  ],
+  [
+   "gpt-6.1-sol",
+   "B8",
+   1,
+   0.635,
+   1.0
+  ],
+  [
+   "gpt-6.1-sol",
+   "B8",
+   2,
+   0.635,
+   1.0
+  ],
+  [
+   "gpt-6.1-sol",
+   "B8",
+   3,
+   0.635,
+   1.0
+  ],
+  [
+   "gpt-6.1-sol",
+   "B10",
+   2,
+   0.9,
+   1.0
+  ]
+ ],
+ "note": "silent and random-design floors carried over from the pre-Terra run (unchanged: they do not depend on the model rows)"
+}

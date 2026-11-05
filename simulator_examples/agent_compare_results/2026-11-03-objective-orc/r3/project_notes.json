@@ -1,0 +1,38 @@
+[
+ {
+  "time": "2026-11-03T16:15:44",
+  "kind": "lesson",
+  "text": "free cooling (dry-cooler economizer) (2D-3000m-boiler-electric-chp-tower-fc, R0083): alternative. Cuts CO2 from 4479 to 4378 t/yr but LCOE rises from 38.38 to 38.51 EUR/MWh (+1.0 MEUR capex).",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-03T16:15:45",
+  "kind": "lesson",
+  "text": "ATES cold store (4 well pairs) (2D-3000m-boiler-electric-chp-tower-ates4, R0084): alternative. Lowest CO2 of the options tried (4101 vs 4479 t/yr) at LCOE 38.77 vs 38.38 EUR/MWh.",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-03T16:16:37",
+  "kind": "lesson",
+  "text": "screw dry-cooler chiller (2D-3000m-boiler-electric-chp-screw, R0104): alternative. LCOE 38.30 vs 38.38 EUR/MWh (capex 42.58 vs 42.87 MEUR) but CO2 4639 vs 4479 t/yr, so it is a trade-off, not a win.",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-03T16:16:37",
+  "kind": "lesson",
+  "text": "ATES4 cold store + free cooling (2D-3000m-boiler-electric-chp-tower-fc-ates4, R0100): alternative. Lowest CO2 of all options (3988 vs 4479 t/yr) at LCOE 38.89 vs 38.38 EUR/MWh; worth 0.51 EUR/MWh if CO2 is valued at 180 EUR/t.",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-03T16:16:39",
+  "kind": "decision",
+  "text": "Baseline design (R0082): 2 doublets at 3000 m (102 degC), gas boiler to 100 degC, electric centrifugal wet-tower chiller, CHP on co-produced gas, operating rules on (min run/stop, 2 starts). LCOE 38.38 EUR/MWh at CO2 180 EUR/t (80 in cost + 100 user adder), CO2 4479 t/yr, capex 42.87 MEUR, all hard rules met, cross-checked with GEMINI Solver on peak heating and peak cooling days. Stress test: both doublets down for 35 days starting on the coldest day (R0086) still meets all demand, LCOE 49.65 EUR/MWh, CO2 8179 t/yr.",
+  "source": "agent"
+ },
+ {
+  "time": "2026-11-03T16:16:39",
+  "kind": "assumption",
+  "text": "User values CO2 at 100 EUR/t on top of the 80 EUR/t already in the cost model, so all option comparisons use co2_price_eur_per_t = 180. Weather is the measured Amsterdam Schiphol daily series (free cooling and ATES use it).",
+  "source": "agent"
+ }
+]

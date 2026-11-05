@@ -1,0 +1,14 @@
+# Final pick and variants, weather: knmi_etmgeg_240_1991_2025.txt (2025)
+
+| case | run_id | design | operating_rules | physics_gate | meets_all_hard_rules | unmet_cooling_mwh | free_cooling_mwh | ates_cooling_mwh | grid_import_mwh | doublet_starts | co2_t_per_year | capex_meur | lcoe_eur_per_mwh |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| final pick | R0001 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | False | pass | True | 0.0 | 4315 | 12432 | 1671 |  | 4617 | 46.53 | 35.98 |
+| final pick, with operating rules | R0002 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | True | pass | True | 0.0 | 4315 | 12432 | 1527 | 2 | 4255 | 46.53 | 35.7 |
+| earlier pick (legacy 12 MW chiller) | R0003 | 2D-3100m-boiler-electric-chp | False | pass | True | 0.0 | 0 | 0 | 3931 |  | 5382 | 43.88 | 36.32 |
+| earlier pick + free cooling | R0004 | 2D-3100m-boiler-electric-chp-fc | False | pass | True | 0.0 | 4315 | 0 | 3447 |  | 5194 | 45.08 | 36.63 |
+| air-cooled 12 MW + free cooling, no ATES | R0005 | 2D-3100m-boiler-electric-chp-aircooled-fc | False | pass | True | 0.0 | 4315 | 0 | 3144 |  | 5094 | 44.78 | 36.11 |
+| final pick, ATES well pair cost x2 | R0006 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | False | pass | True | 0.0 | 4315 | 12432 | 1671 |  | 4617 | 48.33 | 37.21 |
+| final pick, ATES well pair cost x0.5 | R0007 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | False | pass | True | 0.0 | 4315 | 12432 | 1671 |  | 4617 | 45.63 | 35.36 |
+| final pick, ATES cold losses doubled | R0008 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | False | pass | True | 0.0 | 4315 | 7766 | 2237 |  | 4787 | 46.53 | 36.51 |
+| final pick, corrosion mitigation free | R0009 | 2D-3100m-boiler-electric-chp-aircooled-fc-ates3 | False | pass | True | 0.0 | 4315 | 12432 | 1671 |  | 4617 | 41.57 | 32.58 |
+| final pick, 1 doublet | R0010 | 1D-3100m-boiler-electric-chp-aircooled-fc-ates3 | False | pass | True | 0.0 | 4315 | 12432 | 2433 |  | 10080 | 27.59 | 36.24 |

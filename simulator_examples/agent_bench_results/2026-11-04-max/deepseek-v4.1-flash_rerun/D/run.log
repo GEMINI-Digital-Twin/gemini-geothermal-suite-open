@@ -1,0 +1,21 @@
+oracle B5a {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+deepseek-v4.1-flash    B5a  r3 total 0.92 PASS  ['design: 1D-3000m-boiler-electric-chp-tower-2xB-ret40/28 32.92 EUR/MWh vs oracle 1D-3100m-boiler-electric-chp-tower 33.015 (regret 0.0 %)']
+# Agent benchmark v2
+
+Scores are 0-1. Total = 0.45 correctness + 0.20 judgement + 0.25 honesty + 0.10 efficiency (unscored dimensions left out). Pass = total >= 0.7 and nothing critical. pass^k = share of cases where every repeat passed.
+
+| backend | runs | mean total (95 % CI) | pass rate | pass^k | correctness | judgement | honesty | efficiency | critical | USD at --price | USD billed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| deepseek-v4.1-flash | 1 | 0.92 (0.923-0.923) | 100% | 100% | 1.00 | 1.00 | 1.00 | 0.00 | 0 | 0.027 | 0.032 |
+
+## Mean total per case
+
+| backend | B5a |
+|---|---|
+| deepseek-v4.1-flash | 0.92 (1/1) |
+
+## Failures
+
+| backend | case | variant | total | class | notes |
+|---|---|---|---|---|---|
+

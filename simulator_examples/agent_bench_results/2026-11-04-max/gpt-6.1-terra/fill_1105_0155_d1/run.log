@@ -1,0 +1,32 @@
+oracle B1 {}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 6}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 8}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B3 {'cap_pct': 12}: best 2D-3100m-boiler-electric-chp-screw 35.158
+oracle B4 {'gas_price_eur_per_mwh': 90, 'co2_price_eur_per_t': 180, 'electricity_price_eur_per_mwh': 70}: best 2D-3100m-boiler-electric-chp-screw 37.722
+oracle B4 {'gas_price_eur_per_mwh': 30, 'co2_price_eur_per_t': 50, 'electricity_price_eur_per_mwh': 200}: best 1D-3100m-boiler-electric-chp-tower 33.015
+oracle B4 {'gas_price_eur_per_mwh': 120, 'co2_price_eur_per_t': 250, 'electricity_price_eur_per_mwh': 120}: best 2D-3100m-boiler-electric-chp-screw 41.519
+gpt-6.1-terra          B1   r1 total 0.44 fail infrastructure ['no final answer']
+gpt-6.1-terra          B3   r1 total 0.44 fail infrastructure ['no recommended design run']
+gpt-6.1-terra          B4   r1 total 0.44 fail infrastructure ['no final answer']
+# Agent benchmark v2
+
+Scores are 0-1. Total = 0.45 correctness + 0.20 judgement + 0.25 honesty + 0.10 efficiency (unscored dimensions left out). Pass = total >= 0.7 and nothing critical. pass^k = share of cases where every repeat passed.
+
+| backend | runs | mean total (95 % CI) | pass rate | pass^k | correctness | judgement | honesty | efficiency | critical | USD at --price | USD billed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| gpt-6.1-terra | 3 | 0.44 (0.437-0.437) | 0% | 0% | 0.00 | - | 1.00 | 1.00 | 0 | 1.879 | 0.000 |
+
+## Mean total per case
+
+| backend | B1 | B3 | B4 |
+|---|---|---|---|
+| gpt-6.1-terra | 0.44 (0/1) | 0.44 (0/1) | 0.44 (0/1) |
+
+## Failures
+
+| backend | case | variant | total | class | notes |
+|---|---|---|---|---|---|
+| gpt-6.1-terra | B1 | {} | 0.437 | infrastructure | no final answer |
+| gpt-6.1-terra | B3 | {"cap_pct": 6} | 0.437 | infrastructure | no recommended design run |
+| gpt-6.1-terra | B4 | {"gas_price_eur_per_mwh": 120, "co2_price_eur_per_t": 250, "electricity_price_eur_per_mwh": 120} | 0.437 | infrastructure | no final answer |
+

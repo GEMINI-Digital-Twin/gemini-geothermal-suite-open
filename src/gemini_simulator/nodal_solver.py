@@ -142,6 +142,13 @@ def _well_bottomhole_pressure_injection(dpdt, flow_rate, wellhead_pressure, well
 
     Injection flows *down* the well from a fixed wellhead pressure; no
     ESP is involved on the injection side.
+
+    ``DPDT`` with ``direction="down"`` walks the well from the wellhead
+    with the *production* sign convention (fluid flowing up), so it adds
+    friction on the way down. For injection the fluid flows down, so
+    friction opposes the gravity gain instead: the bottomhole pressure is
+    ``P_wh + dP_grav - dP_fric``, rebuilt from the model's gravity and
+    friction outputs.
     """
     u = {
         "pressure": wellhead_pressure,
@@ -151,7 +158,8 @@ def _well_bottomhole_pressure_injection(dpdt, flow_rate, wellhead_pressure, well
         "direction": "down",
     }
     dpdt.calculate_output(u, None)
-    return dpdt.get_output()["pressure_output"]
+    y = dpdt.get_output()
+    return wellhead_pressure + y["pressuredrop_grav_output"] - y["pressuredrop_fric_output"]
 
 
 def solve_injection_flow_rate(
