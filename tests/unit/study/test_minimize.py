@@ -419,3 +419,15 @@ def test_the_polish_finds_a_better_design_next_to_the_only_feasible_one():
     minimize_module._polish(evaluated, found, (evaluated(start), start), 12)
     assert len(trials) <= 13
     assert min(point[0] for point in trials if abs(point[1] - 0.5) < 0.01) == 3.0
+
+
+def test_a_search_whose_every_trial_failed_names_the_first_failure():
+    """QA-359: six studies ended with no result and no cause; the reason now names it."""
+    from gemini.study.minimize import _best
+
+    failed = Best(None, "-", "d0.esp: flow = 8808335 m3/s gives head = 3824522 Pa", {}, None)
+    found, feasible = _best([failed, failed], 1, None)
+    assert found.value is None and found.plant is None and not feasible
+    assert found.reason == (
+        "every trial failed; the first: d0.esp: flow = 8808335 m3/s gives head = 3824522 Pa"
+    )

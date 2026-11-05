@@ -170,12 +170,14 @@ def _best(history, sign, plant):
     """Return ``(Best, feasible)``: the best feasible trial, else the least violating one.
 
     A trial that ran but broke a limit is returned, with its ``reason``, only when none is
-    feasible; with no trial that ran, ``Best`` has no value and no plant.
+    feasible; with no trial that ran, ``Best`` has no value and no plant, and its reason names
+    the first trial's failure (QA-359: six studies ended with no result and no cause).
     """
     ran = [item for item in history if item.value is not None]
     feasible = [item for item in ran if item.reason is None]
     if not ran:
-        reason = "every trial failed"
+        first = next((item.reason for item in history if item.reason), None)
+        reason = f"every trial failed; the first: {first}" if first else "every trial failed"
         return Best(None, "-", reason, {"parameters": None}, None), False
     if feasible:
         found = min(feasible, key=lambda item: sign * item.value)
