@@ -207,11 +207,15 @@ def solve_primary_flow_m3h(
     if esp_depth is not None and esp_config is not None:
         top_segments, bottom_segments = _split_trajectory_at_depth(trajectory_segments, esp_depth)
         dpdt_top = _build_dpdt(top_segments, roughness=roughness_m, pvt=well_config.get("pvt"))
-        dpdt_bottom = _build_dpdt(bottom_segments, roughness=roughness_m, pvt=well_config.get("pvt"))
+        dpdt_bottom = _build_dpdt(
+            bottom_segments, roughness=roughness_m, pvt=well_config.get("pvt")
+        )
         esp = ESP()
         esp.update_parameters(esp_config)
     else:
-        dpdt_top = _build_dpdt(trajectory_segments, roughness=roughness_m, pvt=well_config.get("pvt"))
+        dpdt_top = _build_dpdt(
+            trajectory_segments, roughness=roughness_m, pvt=well_config.get("pvt")
+        )
         dpdt_bottom = None
         esp = None
 
@@ -277,7 +281,9 @@ def producer_esp_pressures_bar(
     top_segments, _ = _split_trajectory_at_depth(
         _resolve_trajectory_segments(well_config), esp_depth
     )
-    dpdt_top = _build_dpdt(top_segments, roughness=well_config.get("roughness_m", 0.01), pvt=well_config.get("pvt"))
+    dpdt_top = _build_dpdt(
+        top_segments, roughness=well_config.get("roughness_m", 0.01), pvt=well_config.get("pvt")
+    )
     wellhead_temperature_k = wellhead_temperature_c + CELSIUS_TO_KELVIN
     dpdt_top.calculate_output(
         {

@@ -245,7 +245,9 @@ class HeatpumpBasic(StaticModel):
         def source_residual(ts_out):
             """Heat taken from the source minus the heat the cycle needs."""
             qh = self.parameters["Cp_h"] * (Th_out - Th_in) * mh
-            return self.parameters["Cp_s"] * (Ts_in - ts_out) * ms - qh * (1 - 1 / cop_of(Th_out, ts_out))
+            return self.parameters["Cp_s"] * (Ts_in - ts_out) * ms - qh * (
+                1 - 1 / cop_of(Th_out, ts_out)
+            )
 
         # Nelder-Mead has no bounds and no convergence check: accept its result
         # only if it satisfies both equations, else solve the bracketed problem.
@@ -297,6 +299,7 @@ class HeatpumpBasic(StaticModel):
 
             def cop(th_out, ts_out):
                 return eta * th_out / max(th_out - Ts_in, 1e-9)
+
         else:
             eta = self.parameters["eta_lorenz"]
 

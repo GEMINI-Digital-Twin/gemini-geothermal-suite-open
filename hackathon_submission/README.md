@@ -55,6 +55,33 @@ gradient"). Going to 3,300 m assumes the official reservoir properties (200 mD, 
 there, and drilling cost is not counted. If the depth must stay at the 2,500 m reservoir midpoint,
 the best design is **8,324 t** (3 doublets; grid search).
 
+## Plant and engineering decisions
+
+```
+reservoir (depth z: T = 12 + 30·z/1000 °C, p hydrostatic, k = 200 mD, h = 100 m)
+  └─ producer well + ESP (GEMINI ProducerWell, nodal; ESP at 1,000 m, variable speed)
+       └─ separator (GEMINI) ── gas 0.8 Nm³/m³ (80 % CH₄ / 20 % CO₂) ─► boiler 80 % / CHP 20 % (GEMINI)
+       └─ filter A ─► plate HEX (GEMINI HeatExchanger) ─► heat-pump evaporator ─► filter B
+                                                                └─► injector well + pump (GEMINI InjectorWell)
+district return 40 °C ─► HEX ─► heat-pump condenser ─► 100 °C supply ─► absorption chiller ─► 20 °C cooling
+electricity ─► ESP, injector pump, heat pump, electric chiller (20 °C cooling)
+backup gas boiler (100 °C) ─► maintenance block and peaks
+```
+
+| Decision | Choice | Why |
+|---|---|---|
+| Number of doublets | 3 (chosen by the agent) | 1 doublet leaves the 30 MW January peak to gas (14,924 t); 3 doublets cover 87 % of the heat |
+| Well depth | 3,300 m (agent; allowed by the PDF) | hotter brine (104 °C at the wellhead) heats the water to 100 °C directly, so no heat-pump electricity is needed; 3,400 m was tested and was worse |
+| Heat cascade | HEX first, heat pump second | the hottest brine is used directly; the heat pump only lifts the rest, so its COP stays high |
+| Brine-cooling limit | heat pump may not cool the brine below T_producer − 40 °C | enforces the 40 °C cap physically, so it can never be exceeded |
+| Flow control | variable-speed ESP, 50–300 m³/h per doublet, chosen daily | follows the seasonal demand; low flow in summer saves pump power and produced-gas CO₂ |
+| ESP setting depth | 1,000 m | keeps the pump intake above 10 bar at high flow (limits gas break-out) |
+| Produced gas | burned on site (boiler 80 %, CHP 20 %) | uses the methane's energy instead of venting it; its CO₂ is counted |
+| Cooling | absorption chiller on 100 °C geothermal heat + electric chiller | spare summer geothermal heat makes cooling; the electric chiller covers the maintenance block and the rest |
+| 330 operating days | one contiguous 35-day maintenance block, July–August | placed by the dispatcher where switching off costs the least CO₂ (lowest heating demand) |
+| Backup boiler | sized by the agent (peak use 3.5 MW) | covers the maintenance block and peaks geothermal cannot |
+| Pump power | Δp·Q / 0.70 for ESP and injector | the challenge's simplified 70 % hydraulic efficiency |
+
 ## Benchmarks
 
 | Reference | CO₂ t/yr |
@@ -88,7 +115,7 @@ reaches 100 °C, 10 MW peak cooling).
 ```bash
 python -m venv .venv
 .venv\Scripts\activate            # Windows   (Linux/Mac: source .venv/bin/activate)
-python -m pip install numpy scipy pandas matplotlib
+python -m pip install -r hackathon_submission/requirements.txt
 cd hackathon_submission
 
 # 1. agentic design loop  (needs Ollama:  ollama pull qwen2.5:7b)
