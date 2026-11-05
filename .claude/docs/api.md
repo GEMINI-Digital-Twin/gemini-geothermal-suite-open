@@ -944,6 +944,7 @@ where they differ (several older lines name `gm.Problem`, `gm.kpi` or `gm.optim`
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.6.35 | 2026-11-05 | **Fix, no break** (geomind QA-356, QA-357, QA-359). `gm.check` refuses a pressure drop on a closed loop with no pump and a producer whose well and riser are both `full`, names hand-stated well paths a searched depth leaves behind, and lists a doublet's depth rather than the children its design derives; `gm.study.minimize` names the first failure when every trial failed; the problem shape adds the optional `quantity` and `accepted`. |
 | 0.6.34 | 2026-11-05 | **Fix, no break** (geomind QA-260, QA-343). `gm.study.size` honours a `size.doublets` range on a plant without a class, and sets an unset injection pump `efficiency` and `frequency` with a note; `gm.check` names every missing injection pump and closed-loop cooler value at once. No name or schema key changed. |
 | 0.6.33 | 2026-11-05 | **Fix, no break** (geomind QA-335). `gm.study.size` again keeps each air `Cooler` at the capacity of the plant file, as before 0.6.31 (the cooler sizing of QA-324 is reverted); no name or schema key changed. |
 | 0.6.32 | 2026-11-05 | **Fix, no break.** The case schema's series form of the relative humidity takes no required `unit` again (fractions 0 to 1, as in 0.5.0); `gm.check` asks a doublet's `depth` only when the doublet does not state its reservoir temperature and pressure. |

@@ -12,6 +12,27 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.35] - 2026-11-05
+
+### Added
+- The problem shape (`docs/schemas/problem.schema.json`) declares the optional `quantity` and
+  `accepted` a unit problem has carried since 0.6.5.
+
+### Fixed
+- `gm.check` refuses a nominal pressure drop (heat exchanger, degasser, filter, desander) on a
+  closed loop with no pump (`incompatible`, `invalid_design`): the loop's mixer takes the lower
+  pressure, so the absorption drive loop fell on every pass to -9e19 Pa and every step failed
+  (geomind QA-356).
+- `gm.check` names a doublet's well paths stated by hand that a searched depth would leave
+  behind, or whose true vertical extent misses the depth (geomind QA-357).
+- `gm.check` lists a doublet's `depth` and design values, not the children its design derives
+  (section lists, segments, `esp_depth`, the ESP's curves and setting depth, the reservoirs'
+  values), while it has no depth; and it refuses a producer whose `well` and `riser` are both
+  `full` (the producer twice over, an ESP flow of 8.8e6 m3/s at every step). geomind QA-359.
+- `gm.study.minimize` names the first trial's failure in its reason when every trial failed
+  (QA-359).
+- The cooler sizing of QA-324 (1433bf2e) was reverted: coolers keep the plant file's capacity.
+
 ## [0.6.34] - 2026-11-05
 
 ### Fixed
