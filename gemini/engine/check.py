@@ -393,8 +393,6 @@ def _frozen_paths(plant):
     stated, and when a stated path's true vertical extent (with ``section_inclination``) differs
     from the depth by more than a metre; a deviated well reaching the depth passes.
     """
-    import math
-
     from gemini.plants._utils.doublet_design import WELLS
     from gemini.plants.doublet import Doublet
 
@@ -407,47 +405,59 @@ def _frozen_paths(plant):
         if not stated:
             continue
         own = join_path(path, "depth")
-        where = join_path("params", form.file_path(join_path(path, f"{stated[0]}.section_length")))
         if own in ranges or (path and "depth" in ranges and own not in module._stated_child_params):
-            issues.append(
-                Issue(
-                    where,
-                    "incompatible",
-                    f"{where}: the depth of {path or 'the doublet'} is searched, but its well "
-                    f"paths ({', '.join(stated)}) are stated by hand and do not follow it: a "
-                    "search moves "
-                    "the reservoir and not the wells. Expected the section lists left out (gemini "
-                    "derives the vertical path from depth), or no range on depth",
-                    code="invalid_design",
-                )
-            )
+            issues.append(_searched_depth_issue(path, stated))
             continue
-        depth = _set_value(module, "depth")
-        if depth is None:
+        issues.extend(_paths_off_depth(path, module, stated))
+    return issues
+
+
+def _searched_depth_issue(path, stated):
+    """Return the issue of a doublet whose depth is searched while its well paths are stated."""
+    where = join_path("params", form.file_path(join_path(path, f"{stated[0]}.section_length")))
+    return Issue(
+        where,
+        "incompatible",
+        f"{where}: the depth of {path or 'the doublet'} is searched, but its well "
+        f"paths ({', '.join(stated)}) are stated by hand and do not follow it: a "
+        "search moves "
+        "the reservoir and not the wells. Expected the section lists left out (gemini "
+        "derives the vertical path from depth), or no range on depth",
+        code="invalid_design",
+    )
+
+
+def _paths_off_depth(path, module, stated):
+    """Return the issues of the stated well paths whose true vertical depth misses the depth."""
+    import math
+
+    depth = _set_value(module, "depth")
+    if depth is None:
+        return []
+    issues = []
+    for well in stated:
+        child = getattr(module, well)
+        lengths = _set_value(child, "section_length")
+        angles = _set_value(child, "section_inclination")
+        if lengths is None or angles is None:
             continue
-        for well in stated:
-            child = getattr(module, well)
-            lengths = _set_value(child, "section_length")
-            angles = _set_value(child, "section_inclination")
-            if lengths is None or angles is None:
-                continue
-            vertical = sum(
-                float(length) * math.sin(float(angle)) for length, angle in zip(lengths, angles)
+        vertical = sum(
+            float(length) * math.sin(float(angle)) for length, angle in zip(lengths, angles)
+        )
+        if abs(vertical - float(depth)) <= 1.0:
+            continue
+        spot = join_path("params", form.file_path(join_path(path, f"{well}.section_length")))
+        issues.append(
+            Issue(
+                spot,
+                "incompatible",
+                f"{spot}: the {well} path reaches {vertical:.1f} m true vertical depth, but "
+                f"the doublet's depth is {float(depth):.1f} m; expected the path to reach the "
+                "depth, "
+                "or the section lists left out so gemini derives them from depth",
+                code="invalid_design",
             )
-            if abs(vertical - float(depth)) <= 1.0:
-                continue
-            spot = join_path("params", form.file_path(join_path(path, f"{well}.section_length")))
-            issues.append(
-                Issue(
-                    spot,
-                    "incompatible",
-                    f"{spot}: the {well} path reaches {vertical:.1f} m true vertical depth, but "
-                    f"the doublet's depth is {float(depth):.1f} m; expected the path to reach the "
-                    "depth, "
-                    "or the section lists left out so gemini derives them from depth",
-                    code="invalid_design",
-                )
-            )
+        )
     return issues
 
 
