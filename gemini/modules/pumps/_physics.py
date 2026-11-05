@@ -28,6 +28,8 @@ def negative_curves(maximum_flow, stage_count, head_coefficients, power_coeffici
         )
     except Exception:
         return ""
+    if not all(isinstance(value, (int, float)) for value in key[2] + key[3]):
+        return ""
     return curves_text(*key, bool(as_float32))
 
 

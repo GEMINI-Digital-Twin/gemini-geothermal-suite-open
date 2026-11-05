@@ -22,6 +22,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `gm.check` names a doublet's missing `depth` only when the doublet does not state its
   reservoir temperature and pressure itself: a measured doublet (`DoubletHeatPlant`) takes
   nothing from the case and needs no depth (since 0.6.9 it could not run).
+- An ESP whose head or power curve is unset no longer raises `TypeError` when its
+  `out_of_range` message looks for where the curves are below zero; the message stays as it is.
 
 ## [0.6.31] - 2026-11-05
 
