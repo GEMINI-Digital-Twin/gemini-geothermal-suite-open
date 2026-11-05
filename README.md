@@ -1,4 +1,4 @@
-> **GEMINI GeoHackathon 2026 submission (Mahdi Izadi):** see [`hackathon_submission/README.md`](hackathon_submission/README.md) — agentic design workflow, results and validation. The GEMINI suite below is the development branch with three documented fixes.
+> **GEMINI GeoHackathon 2026 submission — team: Mahdi Izadi, Tara Modarrespanah, Sina Madani, Sarah Mirsadeghi.** see [`hackathon_submission/README.md`](hackathon_submission/README.md) — agentic design workflow, results and validation. The GEMINI suite below is the development branch with three documented fixes.
 
 [![Test workflow status](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_test.yaml/badge.svg)](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_test.yaml)
 [![Lint workflow status](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_lint.yaml/badge.svg)](https://github.com/GEMINI-Digital-Twin/gemini-geothermal-suite-open/actions/workflows/python_lint.yaml)

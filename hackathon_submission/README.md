@@ -1,6 +1,6 @@
 # GEMINI GeoHackathon 2026 — Agentic geothermal design
 
-**Author:** Mahdi Izadi
+**Team:** Mahdi Izadi, Tara Modarrespanah, Sina Madani, Sarah Mirsadeghi
 
 An agentic AI workflow that designs a deep-geothermal district heating **and**
 cooling plant for the official 2027 demand profiles. An LLM agent (Ollama, local)
