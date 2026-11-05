@@ -1,14 +1,14 @@
 {
   "backend": "rules",
-  "total_runtime_s": 26.054183800006285,
+  "total_runtime_s": 26.65882100001909,
   "status": "selected",
   "timing": {
     "evaluations": 14,
     "computed": 14,
     "cached": 0,
-    "wall_s_per_computed_evaluation_mean": 1.760151678571544,
-    "wall_s_per_computed_evaluation_max": 3.9712911000242457,
-    "scenario_runtime_s": 24.752910899929702,
+    "wall_s_per_computed_evaluation_mean": 1.8002930857141368,
+    "wall_s_per_computed_evaluation_max": 3.9167772999498993,
+    "scenario_runtime_s": 25.308353200089186,
     "backend_calls": 0,
     "backend_wall_s": 0
   },

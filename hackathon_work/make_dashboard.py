@@ -38,7 +38,7 @@ DAILY_COLS = [
 # Export size per panel in CSS px; 960 px x 2.03125 = 1950 px = 6.5 in at 300 dpi.
 PANELS = [("p1", "kpis", 330), ("p2", "heating", 520), ("p3", "cooling", 460), ("p4", "brine", 600),
           ("p5", "agent_path", 560), ("p6", "emissions", 460), ("p7", "schematic", 560),
-          ("p8", "constraints", 640), ("p9", "judges_tests", 600),
+          ("p8", "constraints", 640), ("p9", "judges_tests", 820),
           ("p10", "sensitivity_tornado", 600), ("p11", "resilience_gas", 560),
           ("p12", "energy_sankey", 600), ("p13", "monthly_supply", 600), ("p14", "agent_replay", 700), ("p15", "why_this_design", 520)]
 EXPORT_WIDTH_PX, EXPORT_INCH, DPI = 960, 6.5, 300
@@ -222,6 +222,20 @@ def agent_replay(b: list[dict]) -> list[dict]:
     return [s for s in steps if s.get("candidate")]
 
 
+def llm_comparison(rules: dict, path: Path) -> dict | None:
+    """The claude_cli run next to the rules run: same pick?, evaluations, calls, tokens, cost, tests not triggered."""
+    if not path.exists():
+        return None
+    llm = load_json(path)
+    calls = llm.get("backend_calls") or []
+    usage = [c.get("usage") or {} for c in calls]
+    tokens_in = sum((u.get("input_tokens") or 0) + (u.get("cache_creation_input_tokens") or 0) + (u.get("cache_read_input_tokens") or 0) for u in usage)
+    return {"same_pick": llm["pick"] == rules["pick"], "pick": json.dumps(llm["pick"]), "evaluations": llm["timing"]["evaluations"],
+            "rules_evaluations": rules["timing"]["evaluations"], "calls": len(calls), "tokens_in": thousands(tokens_in),
+            "tokens_out": thousands(sum(u.get("output_tokens") or 0 for u in usage)), "cost_usd": sum(c.get("total_cost_usd") or 0 for c in calls),
+            "not_triggered": [t["test"].split(" ")[0] for t in llm["judges_tests"] if not t["pass"]]}
+
+
 def agent_chat() -> list[dict]:
     """Human-in-the-loop transcript of the interactive run (AGENT ASKED / USER ANSWERED)."""
     path = OUT / "agent" / "interactive" / "decision_log.jsonl"
@@ -312,6 +326,7 @@ def collect() -> dict:
     sens_path = OUT / "sensitivity" / "summary.json"
     agent = agent_data()
     agent["why"] = why_this_design(load_json(OUT / "agent" / "run_summary.json"), agent["evaluations"], agent["depth_steps"], designs, ref)
+    agent["llm"] = llm_comparison(load_json(OUT / "agent" / "run_summary.json"), OUT / "agent" / "claude_cli" / "run_summary.json")
     return {"designs": designs, "order": [label for label, _ in folders], "reference": ref, "agent": agent,
             "sensitivity": load_json(sens_path) if sens_path.exists() else None,
             "sources": {"candidates": "outputs/candidates/base/", "final": "outputs/agent/final_design/", "reference": "outputs/reference/summary.json",
@@ -793,7 +808,11 @@ function renderTests() {
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   document.getElementById("tests").innerHTML = t.map(x =>
     `<li>${badge(x.pass ? "PASS" : "FAIL")}<span class="t">${esc(x.test)}</span><span class="e">${esc(x.evidence).split("; also ").join("<br>")}</span></li>`).join("");
-  document.getElementById("p9-note").textContent = "The claude_cli run predates gas handling as a design variable (it picked 2 doublets at 3 250 m with CHP); it never proposed an invalid flow or a failing design, so tests (ii) and (iv) were not triggered there.";
+  const L = D.agent.llm;
+  document.getElementById("p9-note").textContent = !L ? "" :
+    `LLM backend (claude_cli): ${L.same_pick ? "same pick as the rules backend" : "different pick: " + L.pick}, in ${L.evaluations} annual evaluations ` +
+    `(rules: ${L.rules_evaluations}); ${L.calls} calls, ${L.tokens_in} input / ${L.tokens_out} output tokens, USD ${L.cost_usd.toFixed(2)}.` +
+    (L.not_triggered.length ? ` Test${L.not_triggered.length > 1 ? "s" : ""} ${L.not_triggered.join(", ")} not triggered there: it never proposed a design that needed it.` : "");
 }
 
 // ---------- 10. sensitivity tornado ----------

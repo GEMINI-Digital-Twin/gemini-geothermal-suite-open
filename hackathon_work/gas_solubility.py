@@ -39,6 +39,7 @@ WS_GAS = {"CO2": (-0.0172, -0.338e-3), "CH4": (0.0022, -0.524e-3)}  # (h_G0, h_T
 WS_ION = {"Na+": 0.1143, "Cl-": 0.0318}                             # m3/kmol
 PR = {"CO2": (304.13, 73.77, 0.224), "CH4": (190.56, 45.99, 0.011)}  # Tc K, Pc bar, omega
 K_IJ = 0.09                                                          # ASSUMED CO2-CH4
+P_MAX_BAR = 2000.0  # search limit; with the Poynting term kH grows with P, so a large gas load has no bubble point
 
 
 def p_sat_bar(t_k: float) -> float:
@@ -116,11 +117,14 @@ def _residual(molality: dict, t_k: float, p_bar: float, nacl_mol_kg: float, nacl
 
 
 def bubble_point_bar(molality: dict, t_k: float, nacl_mol_kg: float, nacl_mol_l: float) -> float:
-    """Pressure (bar abs) at which brine holding ``molality`` (mol/kg water) of each gas first releases a gas phase."""
+    """Pressure (bar abs) at which brine holding ``molality`` (mol/kg water) of each gas first releases a gas phase;
+    inf if a gas phase remains at every pressure up to P_MAX_BAR (the gas cannot all dissolve)."""
     lo = p_sat_bar(t_k) * 1.0001 + 1e-6
     hi = max(2 * lo, 10.0)
     while _residual(molality, t_k, hi, nacl_mol_kg, nacl_mol_l) > 0:
-        lo, hi = hi, hi * 2
+        if hi >= P_MAX_BAR:
+            return math.inf
+        lo, hi = hi, min(hi * 2, P_MAX_BAR)
     return brentq(lambda p: _residual(molality, t_k, p, nacl_mol_kg, nacl_mol_l), lo, hi)
 
 
@@ -171,12 +175,15 @@ def dissolution_check(mode: str, x_ch4: float, glr_nm3_m3: float, rho: float, we
     mw = sum(f * {"CO2": 44.01, "CH4": 16.04}[g] for g, f in gases.items()) / sum(gases.values()) / 1000
     p_to = max(wh["bubble_point_bar_g"], wh["p_bar_g"]) + P_ATM_BAR
     # DERIVED minimum: isothermal ideal-gas compression from 1 atm to the injection pressure at 40 C, /0.7 (ASSUMED eff.)
-    out["compression_kWh_per_kg_derived"] = R * 313.15 * math.log(p_to / P_ATM_BAR) / mw / 0.7 / 3.6e6
+    out["compression_kWh_per_kg_derived"] = (R * 313.15 * math.log(p_to / P_ATM_BAR) / mw / 0.7 / 3.6e6
+                                             if math.isfinite(p_to) else None)
     out["compression_kWh_per_kg_assumed"] = compression_kwh_per_kg
     ok = res["margin"] >= 1 and dip_m < reservoir_depth_m
     how = (f"dissolves at the wellhead (margin {wh['margin']:.2f})" if wh["margin"] >= 1 else
+           f"wellhead margin {wh['margin']:.2f} < 1 and no bubble point below {P_MAX_BAR:.0f} bar: the gas cannot all dissolve"
+           if math.isinf(dip_m) else
            f"wellhead margin {wh['margin']:.2f} < 1: co-inject through a dip tube reaching >= {dip_m:.0f} m (bubble point {wh['bubble_point_bar_g']:.1f} bar(g))")
-    if out["compression_kWh_per_kg_derived"] > compression_kwh_per_kg:
+    if out["compression_kWh_per_kg_derived"] is not None and out["compression_kWh_per_kg_derived"] > compression_kwh_per_kg:
         how += (f"; ASSUMED compression {compression_kwh_per_kg:g} kWh/kg is below the DERIVED minimum "
                 f"{out['compression_kWh_per_kg_derived']:.3f} kWh/kg to {p_to - P_ATM_BAR:.0f} bar(g)")
     out["check"] = {"check": "gas_dissolution", "scope": "injector_well", "status": "PASS" if ok else "FAIL",

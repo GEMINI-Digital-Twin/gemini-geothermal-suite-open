@@ -130,4 +130,15 @@ PASS     heating_supply_T   plant                      100.00 C meets 100 C
 MISSING  cooling_supply_T   plant                      not modeled yet; cannot be shown compliant
 VERDICT: REJECTED (1 check(s) not passed)
 
-9/9 expectations met
+=== T9_gas_cannot_dissolve: reinjected CO2 200x the OFFICIAL load (GLR 160 Nm3/m3 -> 32 Nm3 CO2/m3) at the pick's reservoir (351 bar(g), 117 C)
+expected: rejected by gas_dissolution=FAIL -> OK
+STATUS   CHECK              SCOPE                      REASON
+FAIL     gas_dissolution    injector_well              CO2 32.00 Nm3/m3: wellhead margin 0.04 < 1 and no bubble point below 2000 bar: the gas cannot all dissolve; reservoir margin 0.7 (conservative salinity 2.29 mol/kg)
+VERDICT: REJECTED (1 check(s) not passed)
+
+--- control: OFFICIAL GLR 0.8 Nm3/m3 at the same conditions: expected feasible -> OK
+STATUS   CHECK              SCOPE                      REASON
+PASS     gas_dissolution    injector_well              CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg)
+VERDICT: FEASIBLE
+
+10/10 expectations met

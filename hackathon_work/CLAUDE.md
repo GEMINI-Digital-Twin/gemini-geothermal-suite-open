@@ -171,6 +171,7 @@ Cascade per active doublet:
   accepted depth. Every summary carries N-1 duties and installed backup.
   claude_cli backend: bundled VS Code `claude.exe` if not on PATH (or $CLAUDE_CLI); `-p --output-format
   json --tools "" --no-session-persistence`, neutral cwd; outputs in `outputs/agent/claude_cli/`.
+  Final-model run (2026-11-05): same pick as rules, 10 evaluations, 11 calls, USD 1.46 (~0.12/call, cache writes).
   `--retrace NOTE` rebuilds agent_trace.md from a saved decision_log.jsonl (no calls, no simulation).
   `REQUIRED_INPUTS`: the 12 inputs not in the organizers' data (heating/cooling return T, brine cp,
   absorption COP + drive inlet/outlet T, electric chiller COP, HP η / COP cap, produced-gas / external-gas /
@@ -190,7 +191,8 @@ Cascade per active doublet:
 ## Prioritized tasks
 1. [done] `projects/doublet_challenge.json` + run script with logged inputs/outputs.
 2. [done] Constraint checker + negative tests (350, 30 m³/h, 45 K, 4 doublets, 77.75 °C,
-   curve-efficiency pump power, volume imbalance, missing cooling).
+   curve-efficiency pump power, volume imbalance, missing cooling, and T9: reinjected gas that cannot
+   dissolve at reservoir conditions, with a passing control at the OFFICIAL load): 10/10.
 3–5. [done, one daily model] 365-day driver + 330-day schedule, 100 °C cascade
    (HEX → heat pump → boiler, no CHP), absorption + electric cooling; 3 candidates compared.
    v2 (absorber at hot end, CHP first, HP η 0.45 / cap 6, ranking): C1 (2 doublets, s1.8,

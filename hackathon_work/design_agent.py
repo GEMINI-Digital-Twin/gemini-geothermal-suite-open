@@ -423,7 +423,8 @@ class ClaudeCliBackend:
             "the ranking; respect the parsimony rules in ranking_rule; stop when further evaluations are unlikely to "
             "change the pick or the budget is nearly spent. Explain your reasoning briefly in the rationale.\n"
             "Reply with ONLY a JSON object: {\"done\": bool, \"candidate\": {\"n_doublets\": int, \"flow_cap_m3h\": number, "
-            "\"esp\": string, \"hex_ua_W_K\": number, \"depth_m\": number}, \"rationale\": string}.\n\nSTATE:\n" + self._context_text(ctx))
+            "\"esp\": string, \"hex_ua_W_K\": number, \"depth_m\": number, \"gas_handling\": string (one of design_space.gas_handling)}, "
+            "\"rationale\": string}.\n\nSTATE:\n" + self._context_text(ctx))
         if reply.get("done"):
             self.stop_rationale = reply.get("rationale", "")
             return None
@@ -1167,11 +1168,17 @@ def write_trace(path, entries, backend, results, note=None, design_scenario="B_d
                   f"- Backend calls: {t['backend_calls']} ({t['backend_wall_s']:.1f} s)"]
         calls = [c for e in entries for c in (e["data"] or {}).get("backend_calls", []) if isinstance(e["data"], dict)]
         if calls:
-            lines += ["", "| Call | Purpose | Wall (s) | Input tokens | Cache read | Output tokens | Cost (USD) |", "|---|---|---|---|---|---|---|"]
+            lines += ["", "| Call | Purpose | Wall (s) | Input tokens | Cache write | Cache read | Output tokens | Cost (USD) |", "|---|---|---|---|---|---|---|---|"]
             for i, c in enumerate(calls, 1):
                 u = c.get("usage") or {}
-                lines.append(f"| {i} | {c['purpose']} | {c['wall_s']:.1f} | {u.get('input_tokens', '-')} | {u.get('cache_read_input_tokens', '-')} | "
-                             f"{u.get('output_tokens', '-')} | {c.get('total_cost_usd') if c.get('total_cost_usd') is not None else '-'} |")
+                cost = f"{c['total_cost_usd']:.3f}" if c.get("total_cost_usd") is not None else "-"
+                lines.append(f"| {i} | {c['purpose']} | {c['wall_s']:.1f} | {u.get('input_tokens', '-')} | {u.get('cache_creation_input_tokens', '-')} | "
+                             f"{u.get('cache_read_input_tokens', '-')} | {u.get('output_tokens', '-')} | {cost} |")
+            used = {k: sum((c.get("usage") or {}).get(k) or 0 for c in calls)
+                    for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")}
+            cost = sum(c.get("total_cost_usd") or 0 for c in calls)
+            lines.append(f"| total | {len(calls)} calls | {sum(c['wall_s'] for c in calls):.1f} | {used['input_tokens']} | {used['cache_creation_input_tokens']} | "
+                         f"{used['cache_read_input_tokens']} | {used['output_tokens']} | {cost:.2f} |")
     start_a = next((e for e in entries if e["scenario"] == "A_missing_input" and e["phase"] == "start"), None)
     removed = ", ".join((start_a["data"] if start_a else {}).get("removed_inputs", ["heating return temperature"]))
     scenario_titles = {"A_missing_input": f"Scenario A: {removed} removed from the inputs"

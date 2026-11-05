@@ -11,7 +11,7 @@
     "cooling_supply_temperature_C": 20,
     "equal_production_injection_liquid_volumes_required": true
   },
-  "summary": "9/9 expectations met",
+  "summary": "10/10 expectations met",
   "tests": [
     {
       "id": "T0_reference",
@@ -1133,6 +1133,73 @@
             "reason": "not modeled yet; cannot be shown compliant"
           }
         ]
+      }
+    },
+    {
+      "id": "T9_gas_cannot_dissolve",
+      "description": "reinjected CO2 200x the OFFICIAL load (GLR 160 Nm3/m3 -> 32 Nm3 CO2/m3) at the pick's reservoir (351 bar(g), 117 C)",
+      "expected": "rejected by gas_dissolution=FAIL",
+      "ok": true,
+      "case": {
+        "gas_handling": "co2_reinject",
+        "x_ch4": 0.8,
+        "glr_nm3_m3": 160.0,
+        "rho": 1030.0,
+        "wellhead": {
+          "p_bar_g": 5.1,
+          "t_c": 74.7
+        },
+        "reservoir": {
+          "p_bar_g": 351.0,
+          "t_c": 117.0
+        },
+        "depth_m": 3500.0,
+        "compression_kWh_per_kg": 0.1
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "gas_dissolution",
+            "scope": "injector_well",
+            "status": "FAIL",
+            "value": 0.7376906103729145,
+            "limit": ">= 1 at reservoir conditions; dip-tube depth < well depth",
+            "reason": "CO2 32.00 Nm3/m3: wellhead margin 0.04 < 1 and no bubble point below 2000 bar: the gas cannot all dissolve; reservoir margin 0.7 (conservative salinity 2.29 mol/kg)"
+          }
+        ]
+      },
+      "control": {
+        "description": "control: OFFICIAL GLR 0.8 Nm3/m3 at the same conditions",
+        "case": {
+          "gas_handling": "co2_reinject",
+          "x_ch4": 0.8,
+          "glr_nm3_m3": 0.8,
+          "rho": 1030.0,
+          "wellhead": {
+            "p_bar_g": 5.1,
+            "t_c": 74.7
+          },
+          "reservoir": {
+            "p_bar_g": 351.0,
+            "t_c": 117.0
+          },
+          "depth_m": 3500.0,
+          "compression_kWh_per_kg": 0.1
+        },
+        "report": {
+          "feasible": true,
+          "results": [
+            {
+              "check": "gas_dissolution",
+              "scope": "injector_well",
+              "status": "PASS",
+              "value": 147.53812207458287,
+              "limit": ">= 1 at reservoir conditions; dip-tube depth < well depth",
+              "reason": "CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg)"
+            }
+          ]
+        }
       }
     }
   ]

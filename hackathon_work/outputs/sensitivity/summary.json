@@ -14,7 +14,7 @@
     {
       "parameter": "heating_return_T",
       "value": 50,
-      "runtime_s": 3.851223299978301,
+      "runtime_s": 27.60254640004132,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -38,7 +38,7 @@
     {
       "parameter": "heating_return_T",
       "value": 70,
-      "runtime_s": 6.907186099910177,
+      "runtime_s": 26.054371100035496,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -62,7 +62,7 @@
     {
       "parameter": "hp_eta_lorenz",
       "value": 0.4,
-      "runtime_s": 23.220327500021085,
+      "runtime_s": 32.82309040008113,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -86,7 +86,7 @@
     {
       "parameter": "hp_eta_lorenz",
       "value": 0.5,
-      "runtime_s": 26.36210840009153,
+      "runtime_s": 25.890018600039184,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -110,7 +110,7 @@
     {
       "parameter": "absorption_COP",
       "value": 0.6,
-      "runtime_s": 29.57160450005904,
+      "runtime_s": 26.884204600006342,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -134,7 +134,7 @@
     {
       "parameter": "absorption_COP",
       "value": 0.8,
-      "runtime_s": 30.517478400026448,
+      "runtime_s": 11.981412000022829,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -158,7 +158,7 @@
     {
       "parameter": "gradient",
       "value": 27,
-      "runtime_s": 36.28310439991765,
+      "runtime_s": 13.997025599936023,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -182,7 +182,7 @@
     {
       "parameter": "gradient",
       "value": 33,
-      "runtime_s": 31.375628100009635,
+      "runtime_s": 12.167934499913827,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -206,7 +206,7 @@
     {
       "parameter": "brine_cp",
       "value": 4000,
-      "runtime_s": 37.12234540004283,
+      "runtime_s": 13.819233000045642,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
@@ -230,7 +230,7 @@
     {
       "parameter": "brine_cp",
       "value": 4200,
-      "runtime_s": 30.812241800013,
+      "runtime_s": 11.769197200075723,
       "final_design": {
         "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
         "feasible": true,
