@@ -12,6 +12,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `docs/rules.md` (every project rule, out of `AGENTS.md`) and this file, moved from the root.
 - Every git worktree goes under `.tmp/`, and a test fails if anything under `.tmp/` is tracked.
 
+## [0.6.15] - 2026-11-05
+
+### Fixed
+- The schedule runs a doublet at most at its `nominal_flow` (the flow its pump is designed and
+  priced for), never below the case's minimum flow (geomind QA-130).
+
+### Added
+- A plant without a class on one doublet `d0` takes a range on `size.doublets`; `resized`
+  copies `d0` and joins the copies in parallel with mixers and splitters, so `minimize` searches
+  the doublet count of a free plant (geomind QA-129).
+
 ## [0.6.14] - 2026-11-05
 
 ### Fixed
