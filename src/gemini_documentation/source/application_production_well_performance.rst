@@ -73,20 +73,24 @@ where:
 - :math:`\rho_l` is the liquid local density
 - :math:`D` is the pipe diameter
 
-In turbulent flow, the friction factor :math:`\lambda` depends on Reynolds number
-:math:`Re` and can be solved iteratively or approximated by:
+The friction factor :math:`\lambda` depends on the Reynolds number
+:math:`Re` and is computed directly (no iteration) with the explicit
+Swamee-Jain approximation of the Colebrook-White equation:
 
-.. math:: 
-    \lambda = \left[0.86859 \ln\left(\frac{Re}{1.964 \ln(Re) - 3.8215}\right)\right]^{-2}
+.. math::
 
-    Re = \frac{uD}{v}
+    \lambda = \frac{0.25}{\left[\log_{10}\left(\dfrac{K}{3.7 D} +
+        \dfrac{5.74}{Re^{0.9}}\right)\right]^2}
+
+    Re = \frac{u D \rho_l}{\eta_l}
 
 where:
 
 - :math:`Re` is the Reynolds number
 - :math:`u` is the mean velocity
 - :math:`D` is the pipe diameter
-- :math:`v` is the kinematic viscosity
+- :math:`K` is the pipe roughness
+- :math:`\eta_l` is the liquid dynamic viscosity
 
 Thus, total pressure loss is calculated by:
 
