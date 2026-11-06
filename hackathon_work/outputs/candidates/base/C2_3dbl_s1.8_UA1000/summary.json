@@ -1,0 +1,202 @@
+{
+  "candidate": {
+    "name": "C2_3dbl_s1.8_UA1000",
+    "n_doublets": 3,
+    "esp": "s1.8",
+    "hex_ua_W_K": 1000000
+  },
+  "heat_pump": {
+    "mode": "lorenz",
+    "eta_lorenz": 0.45,
+    "COP_0": 3.0,
+    "cop_cap": 6.0
+  },
+  "esp": {
+    "flow_scale": 1.8,
+    "no_stages": 24
+  },
+  "esp_max_flow_m3h": 300,
+  "esp_setting_depth_m": 660,
+  "esp_intake_at_max_flow_bar": 30.30562939401187,
+  "tubing_velocity_at_max_flow_m_s": 3.348797354961397,
+  "flow_cap_m3h": 300,
+  "depth_m": 2500,
+  "reservoir_temperature_C": 87.0,
+  "reservoir_pressure_bar": 250.0,
+  "drilled_m": 15000,
+  "maintenance_windows": [
+    "2027-05-05..2027-06-08",
+    "2027-07-21..2027-08-24",
+    "2027-08-25..2027-09-28"
+  ],
+  "heating_demand_GWh": 111.66767999999986,
+  "heat_hex_GWh": 45.0875528406426,
+  "heat_hp_GWh": 54.48411959983576,
+  "heat_chp_GWh": 12.094417725283307,
+  "heat_boiler_produced_gas_GWh": 0.0,
+  "heat_boiler_external_gas_GWh": 0.0015898342383242506,
+  "heat_unmet_GWh": 5.822628736495969e-15,
+  "geothermal_heat_share": 0.8916785272200378,
+  "cooling_demand_GWh": 23.742528000000014,
+  "cool_absorption_GWh": 23.306692469835134,
+  "cool_electric_GWh": 0.4358355301648844,
+  "cool_unmet_GWh": 0.0,
+  "el_load_GWh": 17.179511559911546,
+  "el_esp_GWh": 4.833194030514857,
+  "el_injector_GWh": 1.1521260774768372,
+  "el_hp_GWh": 11.107024345886877,
+  "el_chiller_GWh": 0.08716710603297691,
+  "el_chp_GWh": 6.047208862641653,
+  "el_gas_handling_GWh": 0.0,
+  "gas_handling": "chp",
+  "produced_gas_emission_factor_kg_per_GJ": 68.6,
+  "grid_import_GWh": 11.13852592185367,
+  "grid_export_GWh": 0.006223224583773583,
+  "produced_gas_fuel_GWh": 22.887920959116013,
+  "produced_gas_chp_GWh": 22.67703323490621,
+  "produced_gas_boiler_GWh": 0.0,
+  "produced_gas_flared_GWh": 0.21088772420980473,
+  "external_gas_fuel_GWh": 0.001987292797905313,
+  "external_gas_Mm3": 0.00019983949923070153,
+  "emissions_t": 8994.36366739989,
+  "emissions_produced_gas_t": 5652.400960063292,
+  "emissions_external_gas_t": 0.40493078050118614,
+  "emissions_electricity_t": 3341.557776556101,
+  "capacity_MW": {
+    "heat_pump_th": 15.321764845396515,
+    "absorption_chiller_cool": 10.0,
+    "electric_chiller_cool": 2.472411250361589,
+    "chp_th": 2.4439851521461975,
+    "chp_el": 1.2219925760730985,
+    "boiler_th": 0.015686986417388776,
+    "boiler_external_gas_th": 0.015686986417388776,
+    "external_gas_fuel": 0.01960873302173597
+  },
+  "max_brine_dT_K": 40.00000000465625,
+  "flow_min_when_on_m3h": 149.99999999976987,
+  "flow_max_m3h": 300.0000000785007,
+  "doublet_days_active": 653,
+  "days_without_geothermal": 0,
+  "days_all_doublets_in_maintenance": 0,
+  "days_geothermal_meets_need": 346,
+  "days_hex_bypass": 0,
+  "hp_seasonal_COP": 4.9053750044234095,
+  "hp_days": 339,
+  "hp_days_capped": 111,
+  "hp_days_heatpumpbasic_checked": 228,
+  "hp_days_heatpumpbasic_agrees": 228,
+  "days_failing_daily_checks": 0,
+  "failing_checks": [],
+  "annual_checks": [
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_1",
+      "status": "PASS",
+      "value": 330,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-05-05..2027-06-08 (35 days), operated 330 days"
+    },
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_2",
+      "status": "PASS",
+      "value": 243,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-07-21..2027-08-24 (35 days), operated 243 days"
+    },
+    {
+      "check": "330_day_rule",
+      "scope": "doublet_3",
+      "status": "PASS",
+      "value": 80,
+      "limit": "<= 330 operating days, 35 maintenance days",
+      "reason": "maintenance 2027-08-25..2027-09-28 (35 days), operated 80 days"
+    },
+    {
+      "check": "demand_met_365",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) with unmet heating or cooling (full system incl. backup)"
+    },
+    {
+      "check": "daily_constraints",
+      "scope": "plant",
+      "status": "PASS",
+      "value": 0,
+      "limit": "0 days",
+      "reason": "0 day(s) failing a daily check"
+    },
+    {
+      "check": "esp_intake_pressure",
+      "scope": "producer_well",
+      "status": "PASS",
+      "value": 30.30562939401187,
+      "limit": ">= 30 bar at 300 m3/h",
+      "reason": "ESP set at 660 m (deepest allowed 2400 m): intake 30.31 bar"
+    },
+    {
+      "check": "tubing_velocity",
+      "scope": "producer_well + injector_well",
+      "status": "PASS",
+      "value": 3.348797354961397,
+      "limit": "<= 4 m/s",
+      "reason": "300 m3/h in ID 0.178 m: 3.35 m/s"
+    }
+  ],
+  "feasible": true,
+  "n_minus_1": [
+    {
+      "case": "peak heating day",
+      "date": "2027-01-28",
+      "doublet_out": "doublet_1",
+      "heating_demand_MW": 30.0,
+      "cooling_demand_MW": 0.0,
+      "n_active_normal": 2,
+      "n_active_n_minus_1": 2,
+      "boiler_MWth": 0.0,
+      "boiler_external_gas_MWth": 0.0,
+      "external_gas_fuel_MW": 0.0,
+      "electric_chiller_MWcool": 0.0,
+      "boiler_MWth_normal": 0.0,
+      "electric_chiller_MWcool_normal": 0.0,
+      "heat_unmet_MW": 0.0,
+      "cool_unmet_MW": 0.0,
+      "constraints_pass": true
+    },
+    {
+      "case": "peak cooling day",
+      "date": "2027-07-19",
+      "doublet_out": "doublet_1",
+      "heating_demand_MW": 2.673,
+      "cooling_demand_MW": 10.0,
+      "n_active_normal": 3,
+      "n_active_n_minus_1": 2,
+      "boiler_MWth": 0.0,
+      "boiler_external_gas_MWth": 0.0,
+      "external_gas_fuel_MW": 0.0,
+      "electric_chiller_MWcool": 2.5554112503615887,
+      "boiler_MWth_normal": 0.0,
+      "electric_chiller_MWcool_normal": 0.0,
+      "heat_unmet_MW": 0.0,
+      "cool_unmet_MW": 0.0,
+      "constraints_pass": true
+    }
+  ],
+  "gas_dissolution": null,
+  "installed_backup_MW": {
+    "boiler_th": 0.015686986417388776,
+    "electric_chiller_cool": 2.5554112503615887
+  },
+  "case": "base",
+  "run_utc": "2026-11-04T00:10:30.150749+00:00",
+  "git_commit": "4e87022ad16221b4ae4c69c8c73d2312f898a658",
+  "runtime_s": 0.9011785984039307,
+  "ranking": {
+    "status": "REJECTED",
+    "reason": "parsimony rule not met: ranks better than C1_2dbl_s1.8_UA1000 (decided by grid_import_GWh: 11.14 vs 12.01); extra doublet: external gas +0.0%, emissions -1.0% (needs >= 5% on either, beyond the tie tolerance)",
+    "marginal": false,
+    "rank": 2
+  }
+}

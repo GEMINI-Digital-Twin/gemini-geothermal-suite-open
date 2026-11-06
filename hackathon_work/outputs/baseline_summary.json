@@ -1,0 +1,47 @@
+{
+  "heating": {
+    "n_days": 365,
+    "peak_MW": 30.0,
+    "peak_date": "2027-01-28",
+    "annual_GWh": 111.66768,
+    "positive_demand_days": 365
+  },
+  "cooling": {
+    "n_days": 365,
+    "peak_MW": 10.0,
+    "peak_date": "2027-07-19",
+    "annual_GWh": 23.742528,
+    "positive_demand_days": 219
+  },
+  "estimated_reservoir_temperature_C": 87.0,
+  "required_district_heating_supply_temperature_C": 100,
+  "illustrative_max_heat_extraction_per_doublet_MW": 14.077,
+  "illustrative_heat_extraction_bounds": {
+    "1": {
+      "maximum_extracted_heat_MW": 14.077,
+      "heating_peak_MW_exceeds_this_bound": true,
+      "days_heating_MW_exceeds_this_bound": 161
+    },
+    "2": {
+      "maximum_extracted_heat_MW": 28.153,
+      "heating_peak_MW_exceeds_this_bound": true,
+      "days_heating_MW_exceeds_this_bound": 4
+    },
+    "3": {
+      "maximum_extracted_heat_MW": 42.23,
+      "heating_peak_MW_exceeds_this_bound": false,
+      "days_heating_MW_exceeds_this_bound": 0
+    }
+  },
+  "operating_days_rule": {
+    "annual_demand_days": 365,
+    "specified_geothermal_operating_days": 330,
+    "remaining_days_need_separate_strategy": 35
+  },
+  "caveats": [
+    "The theoretical bounds are not GEMINI simulation results.",
+    "Thermal power does not establish 100 C supply-temperature feasibility.",
+    "No hydraulics, well losses, heat-pump COP, cooling equipment or actual 330-day schedule modeled.",
+    "Heat capacity 4100 J/(kg K) is illustrative, not a fixed challenge input."
+  ]
+}

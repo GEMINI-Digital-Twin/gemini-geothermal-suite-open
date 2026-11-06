@@ -1,0 +1,1206 @@
+{
+  "limits": {
+    "minimum_doublets": 1,
+    "maximum_doublets": 3,
+    "flow_min_when_on_m3_per_h_per_doublet": 50,
+    "flow_max_m3_per_h_per_doublet": 300,
+    "maximum_brine_delta_T_C": 40,
+    "pump_efficiency": 0.7,
+    "geothermal_operating_days": 330,
+    "heating_supply_temperature_C": 100,
+    "cooling_supply_temperature_C": 20,
+    "equal_production_injection_liquid_volumes_required": true
+  },
+  "summary": "10/10 expectations met",
+  "tests": [
+    {
+      "id": "T0_reference",
+      "description": "compliant reference: 200 m3/h, dT 35 K, eta 0.70, 100 C / 20 C",
+      "expected": "feasible",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": true,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T1_flow_350",
+      "description": "proposed 350 m3/h per doublet",
+      "expected": "rejected by flow_range=FAIL",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 350.0,
+            "injection_m3h": 350.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.09722222222222222,
+                "dp_pa": 2770000.0,
+                "power_w": 384722.22222222225
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.09722222222222222,
+                "dp_pa": 100000.0,
+                "power_w": 13888.88888888889
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "FAIL",
+            "value": 350.0,
+            "limit": "<= 300 m3/h",
+            "reason": "350.00 m3/h exceeds the 300 m3/h hard cap"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 350.00 = injection 350.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "384.7 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "13.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T2_flow_30",
+      "description": "proposed 30 m3/h per active doublet",
+      "expected": "rejected by flow_range=FAIL",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 30.0,
+            "injection_m3h": 30.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.008333333333333333,
+                "dp_pa": 2770000.0,
+                "power_w": 32976.19047619047
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.008333333333333333,
+                "dp_pa": 100000.0,
+                "power_w": 1190.4761904761906
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "FAIL",
+            "value": 30.0,
+            "limit": ">= 50 m3/h",
+            "reason": "30.00 m3/h is below the 50 m3/h minimum stable flow while active"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 30.00 = injection 30.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7000000000000001,
+            "limit": 0.7,
+            "reason": "33.0 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "1.2 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T3_dT_45",
+      "description": "brine cooled 85 -> 40 C (45 K)",
+      "expected": "rejected by brine_dT=FAIL",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 40.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "FAIL",
+            "value": 45.0,
+            "limit": "<= 40 K",
+            "reason": "45.00 K brine cooling exceeds the 40 K cap"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T4_four_doublets",
+      "description": "4 doublets",
+      "expected": "rejected by doublet_count=FAIL",
+      "ok": true,
+      "case": {
+        "n_doublets": 4,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          },
+          {
+            "name": "doublet_2",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          },
+          {
+            "name": "doublet_3",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          },
+          {
+            "name": "doublet_4",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "FAIL",
+            "value": 4,
+            "limit": "1-3",
+            "reason": "4 doublets is outside the allowed 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_2",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_2",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_2",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_2.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_2.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_3",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_3",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_3",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_3.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_3.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_4",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_4",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_4",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_4.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_4.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T5_supply_77.75",
+      "description": "task-1 heating supply 77.75 C",
+      "expected": "rejected by heating_supply_T=FAIL",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 77.75,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "FAIL",
+            "value": 77.75,
+            "limit": "100 +/- 0.5 C",
+            "reason": "77.75 C is -22.25 K from the fixed 100 C supply"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T6_esp_curve_power",
+      "description": "extra: ESP power taken from the curve at eta 0.65",
+      "expected": "rejected by pump_efficiency=FAIL",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 236752.13675213672
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "FAIL",
+            "value": 0.65,
+            "limit": 0.7,
+            "reason": "236.8 kW implies eta 0.650, required 0.7 -> expected 219.8 kW"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T7_volume_imbalance",
+      "description": "extra: 200 m3/h produced, 190 m3/h injected",
+      "expected": "rejected by volume_balance=FAIL",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 190.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": 20.0
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "FAIL",
+            "value": 10.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 != injection 190.00 m3/h (imbalance +10.00 m3/h)"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 20.0,
+            "limit": "20 +/- 0.5 C",
+            "reason": "20.00 C meets 20 C"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T8_no_cooling_model",
+      "description": "extra: cooling supply not modeled",
+      "expected": "rejected by cooling_supply_T=MISSING",
+      "ok": true,
+      "case": {
+        "n_doublets": 1,
+        "doublets": [
+          {
+            "name": "doublet_1",
+            "active": true,
+            "production_m3h": 200.0,
+            "injection_m3h": 200.0,
+            "T_production_C": 85.0,
+            "T_injection_C": 50.0,
+            "pumps": [
+              {
+                "name": "ESP",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 2770000.0,
+                "power_w": 219841.26984126982
+              },
+              {
+                "name": "injector_pump",
+                "flow_m3s": 0.05555555555555555,
+                "dp_pa": 100000.0,
+                "power_w": 7936.507936507937
+              }
+            ]
+          }
+        ],
+        "heating_supply_C": 100.0,
+        "cooling_supply_C": null
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "doublet_count",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 1,
+            "limit": "1-3",
+            "reason": "1 doublet(s) within 1-3"
+          },
+          {
+            "check": "flow_range",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 200.0,
+            "limit": "50-300 m3/h",
+            "reason": "200.00 m3/h within 50-300 m3/h"
+          },
+          {
+            "check": "volume_balance",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 0.0,
+            "limit": "0 m3/h",
+            "reason": "production 200.00 = injection 200.00 m3/h"
+          },
+          {
+            "check": "brine_dT",
+            "scope": "doublet_1",
+            "status": "PASS",
+            "value": 35.0,
+            "limit": "0-40 K",
+            "reason": "35.00 K within 0-40 K"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.ESP",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "219.8 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "pump_efficiency",
+            "scope": "doublet_1.injector_pump",
+            "status": "PASS",
+            "value": 0.7,
+            "limit": 0.7,
+            "reason": "7.9 kW = Q*dp/0.7 (implied eta 0.700)"
+          },
+          {
+            "check": "heating_supply_T",
+            "scope": "plant",
+            "status": "PASS",
+            "value": 100.0,
+            "limit": "100 +/- 0.5 C",
+            "reason": "100.00 C meets 100 C"
+          },
+          {
+            "check": "cooling_supply_T",
+            "scope": "plant",
+            "status": "MISSING",
+            "value": null,
+            "limit": "20 +/- 0.5 C",
+            "reason": "not modeled yet; cannot be shown compliant"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T9_gas_cannot_dissolve",
+      "description": "reinjected CO2 200x the OFFICIAL load (GLR 160 Nm3/m3 -> 32 Nm3 CO2/m3) at the pick's reservoir (351 bar(g), 117 C)",
+      "expected": "rejected by gas_dissolution=FAIL",
+      "ok": true,
+      "case": {
+        "gas_handling": "co2_reinject",
+        "x_ch4": 0.8,
+        "glr_nm3_m3": 160.0,
+        "rho": 1030.0,
+        "wellhead": {
+          "p_bar_g": 5.1,
+          "t_c": 74.7
+        },
+        "reservoir": {
+          "p_bar_g": 351.0,
+          "t_c": 117.0
+        },
+        "depth_m": 3500.0,
+        "compression_kWh_per_kg": 0.1
+      },
+      "report": {
+        "feasible": false,
+        "results": [
+          {
+            "check": "gas_dissolution",
+            "scope": "injector_well",
+            "status": "FAIL",
+            "value": 0.7376906103729145,
+            "limit": ">= 1 at reservoir conditions; dip-tube depth < well depth",
+            "reason": "CO2 32.00 Nm3/m3: wellhead margin 0.04 < 1 and no bubble point below 2000 bar: the gas cannot all dissolve; reservoir margin 0.7 (conservative salinity 2.29 mol/kg)"
+          }
+        ]
+      },
+      "control": {
+        "description": "control: OFFICIAL GLR 0.8 Nm3/m3 at the same conditions",
+        "case": {
+          "gas_handling": "co2_reinject",
+          "x_ch4": 0.8,
+          "glr_nm3_m3": 0.8,
+          "rho": 1030.0,
+          "wellhead": {
+            "p_bar_g": 5.1,
+            "t_c": 74.7
+          },
+          "reservoir": {
+            "p_bar_g": 351.0,
+            "t_c": 117.0
+          },
+          "depth_m": 3500.0,
+          "compression_kWh_per_kg": 0.1
+        },
+        "report": {
+          "feasible": true,
+          "results": [
+            {
+              "check": "gas_dissolution",
+              "scope": "injector_well",
+              "status": "PASS",
+              "value": 147.53812207458287,
+              "limit": ">= 1 at reservoir conditions; dip-tube depth < well depth",
+              "reason": "CO2 0.16 Nm3/m3: dissolves at the wellhead (margin 7.27); reservoir margin 147.5 (conservative salinity 2.29 mol/kg)"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

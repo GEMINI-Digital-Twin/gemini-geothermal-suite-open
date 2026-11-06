@@ -1,0 +1,262 @@
+{
+  "base": {
+    "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+    "emissions_t": 3983.3377693476887,
+    "values": {
+      "heating_return_T": 60,
+      "hp_eta_lorenz": 0.45,
+      "absorption_COP": 0.7,
+      "gradient": 30,
+      "brine_cp": 4100
+    }
+  },
+  "cases": [
+    {
+      "parameter": "heating_return_T",
+      "value": 50,
+      "runtime_s": 27.60254640004132,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 3958.146949194463,
+        "external_gas_GWh": 0.017828090033804988,
+        "grid_import_GWh": 0.7663499177983998
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3250_co2ri",
+      "agent_pick_emissions_t": 4023.886428250462,
+      "agent_evaluations": 13,
+      "base_pick_verdict": "parsimony rule not met: ranks better than n2_q300_s1.8_ua1000_z3250_co2ri (decided by emissions_t: 3958 vs 4024); deeper 3250 -> 3500 m: emissions +1.634% (needs >= 5% beyond the tie tolerance), marginal abatement 0.066 t CO2/yr per extra metre drilled",
+      "label": "Heating return temperature",
+      "unit": "C",
+      "base": 60,
+      "side": "low",
+      "delta_emissions_t": -25.19082015322556,
+      "delta_emissions_pct": -0.006324048225855275,
+      "pick_changed": true
+    },
+    {
+      "parameter": "heating_return_T",
+      "value": 70,
+      "runtime_s": 26.054371100035496,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4172.446343246378,
+        "external_gas_GWh": 0.00642355829437314,
+        "grid_import_GWh": 1.6388158613866868
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 4172.446343246378,
+      "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0064 GWh, emissions 4172 t, grid import 1.64 GWh, 2 doublets, 14000 m drilled",
+      "label": "Heating return temperature",
+      "unit": "C",
+      "base": 60,
+      "side": "high",
+      "delta_emissions_t": 189.10857389868943,
+      "delta_emissions_pct": 0.047474902920336036,
+      "pick_changed": false
+    },
+    {
+      "parameter": "hp_eta_lorenz",
+      "value": 0.4,
+      "runtime_s": 32.82309040008113,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 3983.3377693476887,
+        "external_gas_GWh": 0.01572551248391401,
+        "grid_import_GWh": 0.8743811349150898
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 3983.3377693476887,
+      "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled",
+      "label": "Heat pump Lorenz efficiency",
+      "unit": "-",
+      "base": 0.45,
+      "side": "low",
+      "delta_emissions_t": 0.0,
+      "delta_emissions_pct": 0.0,
+      "pick_changed": false
+    },
+    {
+      "parameter": "hp_eta_lorenz",
+      "value": 0.5,
+      "runtime_s": 25.890018600039184,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 3983.3377693476887,
+        "external_gas_GWh": 0.01572551248391401,
+        "grid_import_GWh": 0.8743811349150898
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 3983.3377693476887,
+      "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0157 GWh, emissions 3983 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled",
+      "label": "Heat pump Lorenz efficiency",
+      "unit": "-",
+      "base": 0.45,
+      "side": "high",
+      "delta_emissions_t": 0.0,
+      "delta_emissions_pct": 0.0,
+      "pick_changed": false
+    },
+    {
+      "parameter": "absorption_COP",
+      "value": 0.6,
+      "runtime_s": 26.884204600006342,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4136.508401308884,
+        "external_gas_GWh": 0.15768701455445283,
+        "grid_import_GWh": 0.8152328651028522
+      },
+      "agent_pick": "n3_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 4098.633233067363,
+      "agent_evaluations": 14,
+      "base_pick_verdict": "superseded by n3_q300_s1.8_ua1000_z3500_co2ri: ranks better than n2_q300_s1.8_ua1000_z3500_co2ri (decided by external_gas_fuel_GWh: 0.00468 vs 0.1577, beyond its tie tolerance); extra doublet: external gas +97.0%, emissions +0.9% (needs >= 5% on either, beyond the tie tolerance)",
+      "label": "Absorption chiller COP",
+      "unit": "-",
+      "base": 0.7,
+      "side": "low",
+      "delta_emissions_t": 153.17063196119489,
+      "delta_emissions_pct": 0.03845283549385723,
+      "pick_changed": true
+    },
+    {
+      "parameter": "absorption_COP",
+      "value": 0.8,
+      "runtime_s": 11.981412000022829,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 3873.89056801407,
+        "external_gas_GWh": 0.011780735457239323,
+        "grid_import_GWh": 0.8743763686328221
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 3873.89056801407,
+      "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0118 GWh, emissions 3874 t, grid import 0.87 GWh, 2 doublets, 14000 m drilled",
+      "label": "Absorption chiller COP",
+      "unit": "-",
+      "base": 0.7,
+      "side": "high",
+      "delta_emissions_t": -109.44720133361852,
+      "delta_emissions_pct": -0.027476254254868673,
+      "pick_changed": false
+    },
+    {
+      "parameter": "gradient",
+      "value": 27,
+      "runtime_s": 13.997025599936023,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4617.871264841744,
+        "external_gas_GWh": 0.002824613642154327,
+        "grid_import_GWh": 3.167756693402088
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3750_co2ri",
+      "agent_pick_emissions_t": 4018.0726973869187,
+      "agent_evaluations": 15,
+      "base_pick_verdict": "not evaluated: the depth ladder stopped elsewhere (each step must cut emissions >= 5%)",
+      "label": "Geothermal gradient",
+      "unit": "C/km",
+      "base": 30,
+      "side": "low",
+      "delta_emissions_t": 634.5334954940554,
+      "delta_emissions_pct": 0.15929693443947301,
+      "pick_changed": true
+    },
+    {
+      "parameter": "gradient",
+      "value": 33,
+      "runtime_s": 12.167934499913827,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 3971.2788645209575,
+        "external_gas_GWh": 0.019992936968680965,
+        "grid_import_GWh": 0.8006050514384176
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3000_co2ri",
+      "agent_pick_emissions_t": 4103.705554836494,
+      "agent_evaluations": 12,
+      "base_pick_verdict": "not evaluated: the depth ladder stopped elsewhere (each step must cut emissions >= 5%)",
+      "label": "Geothermal gradient",
+      "unit": "C/km",
+      "base": 30,
+      "side": "high",
+      "delta_emissions_t": -12.058904826731123,
+      "delta_emissions_pct": -0.003027336752490836,
+      "pick_changed": true
+    },
+    {
+      "parameter": "brine_cp",
+      "value": 4000,
+      "runtime_s": 13.819233000045642,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 4085.362538910276,
+        "external_gas_GWh": 0.0757485197373211,
+        "grid_import_GWh": 0.884990064973116
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3250_co2ri",
+      "agent_pick_emissions_t": 4344.365757334653,
+      "agent_evaluations": 13,
+      "base_pick_verdict": "parsimony rule not met: ranks better than n2_q300_s1.8_ua1000_z3250_co2ri (decided by emissions_t: 4085 vs 4344); deeper 3250 -> 3500 m: emissions +5.962% (needs >= 5% beyond the tie tolerance), marginal abatement 0.259 t CO2/yr per extra metre drilled - within the tie tolerance of the threshold, counts as NOT met (marginal sensitivity case)",
+      "label": "Brine specific heat",
+      "unit": "J/(kg K)",
+      "base": 4100,
+      "side": "low",
+      "delta_emissions_t": 102.02476956258715,
+      "delta_emissions_pct": 0.025612884337271435,
+      "pick_changed": true
+    },
+    {
+      "parameter": "brine_cp",
+      "value": 4200,
+      "runtime_s": 11.769197200075723,
+      "final_design": {
+        "candidate": "n2_q300_s1.8_ua1000_z3500_co2ri",
+        "feasible": true,
+        "failing": [],
+        "emissions_t": 3903.657721887771,
+        "external_gas_GWh": 0.003996616288350662,
+        "grid_import_GWh": 0.8792987049676687
+      },
+      "agent_pick": "n2_q300_s1.8_ua1000_z3500_co2ri",
+      "agent_pick_emissions_t": 3903.657721887771,
+      "agent_evaluations": 14,
+      "base_pick_verdict": "selected: feasible; external gas 0.0040 GWh, emissions 3904 t, grid import 0.88 GWh, 2 doublets, 14000 m drilled",
+      "label": "Brine specific heat",
+      "unit": "J/(kg K)",
+      "base": 4100,
+      "side": "high",
+      "delta_emissions_t": -79.68004745991766,
+      "delta_emissions_pct": -0.020003336918366844,
+      "pick_changed": false
+    }
+  ],
+  "pick_changed_in": [
+    "heating_return_T=50",
+    "absorption_COP=0.6",
+    "gradient=27",
+    "gradient=33",
+    "brine_cp=4000"
+  ]
+}

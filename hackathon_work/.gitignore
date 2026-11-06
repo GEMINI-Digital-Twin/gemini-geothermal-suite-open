@@ -1,0 +1,12 @@
+# Regenerable outputs (rerun the scripts); summaries, comparisons and evidence are kept.
+outputs/runs/
+outputs/candidates/**/daily.csv
+outputs/candidates/**/daily_supply.png
+outputs/candidates/_previous_run_v1/
+outputs/agent/cache/
+outputs/agent/**/final_design/daily.csv
+
+# Organizer / personal reference PDFs are not redistributed in this open repository.
+inputs/*.pdf
+outputs/sensitivity/runs/*/designs/
+outputs/sensitivity/runs/*/final_design/

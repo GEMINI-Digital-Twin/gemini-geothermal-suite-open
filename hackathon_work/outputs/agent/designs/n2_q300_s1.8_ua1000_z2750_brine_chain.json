@@ -1,0 +1,325 @@
+{
+  "_description": "Task 1 challenge baseline: one doublet, one time step. Same topology as simulator_examples/projects/doublet_plant.json (Separator -> FilterA -> HeatExchanger -> FilterB, Boiler/CHP on the secondary side), with the official challenge inputs and tagged assumptions. Units follow doublet_plant.json: SI flow [m3/s] except the wells [m3/h], pressure [bar], temperature [C], caloric_value [J/kg]. Run with hackathon_work/run_doublet_challenge.py, which also overrides the well models' brine properties (see _brine_pvt_override).",
+  "_brine_pvt_override": {
+    "RHOL": 1030,
+    "VISL": 0.0004,
+    "CPL": 4100,
+    "_description": "Applied at runtime to every well DPDT by run_doublet_challenge.py (gemini_model's PVTConstantSTP defaults are 1000 kg/m3, 1 mPa s, 4217 J/kg/K)."
+  },
+  "_design_controls": {
+    "_description": "Limits used by doublet_model.solve_producer_controls when solving esp_freq_hz / wellhead_pressure for a target brine flow.",
+    "esp_freq_hz_range": [
+      30,
+      70
+    ],
+    "min_surface_pressure_bar": 1.0,
+    "max_wellhead_pressure_bar": 30.0
+  },
+  "_provenance": {
+    "_brine_pvt_override.RHOL / VISL": "OFFICIAL: requirements.pdf 3.2 (1030 kg/m3, 0.40 mPa s).",
+    "_brine_pvt_override.CPL, heat_exchanger/boiler/chp.specific_heat": "ASSUMED 4100 J/(kg K), technical guide illustrative value.",
+    "heat_exchanger/boiler/chp.fluid_density": "OFFICIAL 1030 kg/m3 brine; ASSUMED the same props on the district-water side (the models use one set for both sides).",
+    "producer_well.reservoir_pressure_bar, injector_well.reservoir_pressure_bar": "OFFICIAL 250 bar(g); injector in the same reservoir.",
+    "*.productivity_index_m3h_per_bar": "DERIVED 12.1 = 2*pi*k*h/(mu*ln(re/rw)) with k=200 mD, h=100 m, mu=0.4 mPa s; ASSUMED re/rw=1e4, skin=0, injectivity = productivity.",
+    "*.trajectory_table": "ASSUMED vertical wells to the OFFICIAL 2500 m TVD midpoint, ID 0.178 m (ASSUMED 7-inch production/injection casing; replaces the 0.15 m GEMINI example ID).",
+    "*.roughness_m": "ASSUMED 4.5e-5 m, commercial steel.",
+    "producer_well.ambient_temperature_c": "DERIVED 49.5 C = mean formation temperature (12 + 87)/2; only used for the in-well temperature profile of the nodal solve, does not affect flow (constant PVT).",
+    "producer_well.esp_depth_m / esp": "ASSUMED: GEMINI example (HC27000 curve, 10 stages, 650 m). In the daily model and design agent the setting depth is a design variable: the pump is placed so the intake is >= 30 bar at the flow cap (ASSUMED gas-handling limit, see candidates_2027.json esp_placement). Reported pump power is recomputed as Q*dp/0.70 by the run script.",
+    "producer_well.esp_freq_hz": "CONTROL: solved per run for the target brine flow; 65 Hz is only the stored starting value.",
+    "_design_controls.esp_freq_hz_range": "ASSUMED 30-70 Hz variable-speed-drive range (example runs at 65 Hz).",
+    "_design_controls.min_surface_pressure_bar": "ASSUMED 1.0 bar minimum anywhere in the surface chain (filter_b outlet = injector pump suction); sets the wellhead pressure floor.",
+    "_design_controls.max_wellhead_pressure_bar": "ASSUMED 30 bar upper bound when the wellhead must be choked to reduce flow.",
+    "separator/filter_a/filter_b.temperature_drop": "ASSUMED 0.2 K each, short insulated surface equipment.",
+    "*.electricity_emission_factor": "ASSUMED 0.3 kg CO2/kWh (GEMINI example).",
+    "injector_well.injector_pump.efficiency_factor": "OFFICIAL 0.70 pump hydraulic efficiency.",
+    "separator.gas_water_ratio": "OFFICIAL GLR 0.8 Nm3/m3.",
+    "separator.gas_density, boiler/chp.gas_density": "DERIVED 0.9653 kg/Nm3 = (0.8*16.043 + 0.2*44.01)/22.414 for 80/20 mol% CH4/CO2.",
+    "boiler/chp.caloric_value": "DERIVED 29.67 MJ/kg = 0.8 * 35.8 MJ/Nm3 (CH4 LHV, standard value) / 0.9653 kg/Nm3.",
+    "boiler/chp.gas_emission_factor": "DERIVED 68.6 kg CO2/GJ = 1.0 Nm3 CO2/Nm3 gas (0.8 combustion + 0.2 pass-through) * 1.9635 kg/Nm3 / 28.64 MJ/Nm3.",
+    "boiler/chp.efficiency_factor, separator/filter resistances, split fractions": "ASSUMED: GEMINI doublet_plant.json example values.",
+    "heat_exchanger.heat_transfer_coefficient": "DESIGN parameter (UA, W/K); 250 kW/K is the GEMINI example value and one option.",
+    "boundary producer_well.wellhead_pressure": "CONTROL: 3.0 bar nominal (GEMINI example); raised to the surface-pressure floor or adjusted when the ESP frequency range cannot reach the target flow.",
+    "boundary producer_well.wellhead_temperature": "DERIVED 85 C nominal (~0.44 MW wellbore loss, U = 10 W/m2K); the run script recomputes it from the solved flow rate.",
+    "boundary secondary_splitter.input": "DERIVED per run: heating demand per doublet / (rho * cp * (100 - 60 C)); 140 m3/h is only the stored starting value.",
+    "boundary heat_exchanger.secondary_temperature_in, chp.temperature_in": "ASSUMED 60 C district heating return (sensitivity 50 / 70 C)."
+  },
+  "components": {
+    "producer_well": {
+      "type": "producer_well",
+      "parameters": {
+        "reservoir_pressure_bar": 275.26075000000003,
+        "productivity_index_m3h_per_bar": 12.1,
+        "ambient_temperature_c": 49.5,
+        "roughness_m": 4.5e-05,
+        "trajectory_table": [
+          {
+            "MD": 0,
+            "TVD": 0,
+            "ID": 0.178
+          },
+          {
+            "MD": 300,
+            "TVD": 300,
+            "ID": 0.178
+          },
+          {
+            "MD": 400,
+            "TVD": 400,
+            "ID": 0.178
+          },
+          {
+            "MD": 600,
+            "TVD": 600,
+            "ID": 0.178
+          },
+          {
+            "MD": 2750,
+            "TVD": 2750,
+            "ID": 0.178
+          }
+        ],
+        "esp_depth_m": 670,
+        "esp": {
+          "no_stages": 24,
+          "head_coeff": [
+            83.08389282,
+            -0.000460444,
+            -1.19e-07,
+            1.69e-11,
+            -6.36e-16,
+            6.69e-21
+          ],
+          "power_coeff": [
+            10.02089977,
+            -0.000160233,
+            6.52e-08,
+            -2.13e-12,
+            1.71e-17,
+            1.38e-23
+          ],
+          "electricity_emission_factor": 0.3,
+          "flow_scale": 1.8
+        },
+        "esp_freq_hz": 65
+      }
+    },
+    "injector_well": {
+      "type": "injector_well",
+      "parameters": {
+        "reservoir_pressure_bar": 275.26075000000003,
+        "productivity_index_m3h_per_bar": 12.1,
+        "roughness_m": 4.5e-05,
+        "trajectory_table": [
+          {
+            "MD": 0,
+            "TVD": 0,
+            "ID": 0.178
+          },
+          {
+            "MD": 300,
+            "TVD": 300,
+            "ID": 0.178
+          },
+          {
+            "MD": 400,
+            "TVD": 400,
+            "ID": 0.178
+          },
+          {
+            "MD": 600,
+            "TVD": 600,
+            "ID": 0.178
+          },
+          {
+            "MD": 2750,
+            "TVD": 2750,
+            "ID": 0.178
+          }
+        ],
+        "injector_pump": {
+          "efficiency_factor": 0.7,
+          "electricity_emission_factor": 0.3
+        }
+      }
+    },
+    "separator": {
+      "type": "separator",
+      "parameters": {
+        "flow_resistance": 3.6,
+        "temperature_drop": 0.2,
+        "gas_water_ratio": 0.8,
+        "gas_density": 0.9653
+      }
+    },
+    "filter_a": {
+      "type": "filter",
+      "parameters": {
+        "base_resistance": 36.0,
+        "fouling_coeff_a": 18.0,
+        "fouling_coeff_b": 0.036,
+        "temperature_drop": 0.2
+      }
+    },
+    "heat_exchanger": {
+      "type": "heat_exchanger",
+      "parameters": {
+        "flow_resistance": 0,
+        "flow_configuration": "counter",
+        "heat_transfer_coefficient": 1000000.0,
+        "fluid_density": 1030,
+        "specific_heat": 4100
+      }
+    },
+    "filter_b": {
+      "type": "filter",
+      "parameters": {
+        "base_resistance": 3.6,
+        "fouling_coeff_a": 18.0,
+        "fouling_coeff_b": 0.036,
+        "temperature_drop": 0.2
+      }
+    },
+    "absorber_generator": {
+      "type": "filter",
+      "_description": "Absorption chiller generator: zero resistance; temperature_drop = drive heat / (m_dot * cp), set per day.",
+      "parameters": {
+        "base_resistance": 0.0,
+        "fouling_coeff_a": 0.0,
+        "fouling_coeff_b": 0.0,
+        "temperature_drop": 0.0
+      }
+    }
+  },
+  "boundary_inputs": [
+    {
+      "component": "producer_well",
+      "key": "wellhead_pressure",
+      "value": 3.0
+    },
+    {
+      "component": "producer_well",
+      "key": "wellhead_temperature",
+      "value": 85.0
+    },
+    {
+      "component": "heat_exchanger",
+      "key": "secondary_temperature_in",
+      "value": 60.0
+    },
+    {
+      "component": "heat_exchanger",
+      "key": "secondary_flow_rate",
+      "value": 0.0
+    }
+  ],
+  "connections": [
+    {
+      "predecessor": "producer_well",
+      "successor": "separator",
+      "ports": [
+        [
+          "flow_rate_m3s",
+          "flow_rate"
+        ],
+        [
+          "pressure_out",
+          "pressure"
+        ],
+        [
+          "temperature_out",
+          "temperature"
+        ]
+      ]
+    },
+    {
+      "predecessor": "separator",
+      "successor": "filter_a",
+      "ports": [
+        [
+          "pressure_out",
+          "pressure"
+        ],
+        [
+          "temperature_out",
+          "temperature"
+        ],
+        [
+          "flow_rate",
+          "flow_rate"
+        ]
+      ]
+    },
+    {
+      "predecessor": "filter_a",
+      "successor": "absorber_generator",
+      "ports": [
+        [
+          "pressure_out",
+          "pressure"
+        ],
+        [
+          "temperature_out",
+          "temperature"
+        ],
+        [
+          "flow_rate",
+          "flow_rate"
+        ]
+      ]
+    },
+    {
+      "predecessor": "absorber_generator",
+      "successor": "heat_exchanger",
+      "ports": [
+        [
+          "pressure_out",
+          "pressure_in"
+        ],
+        [
+          "temperature_out",
+          "primary_temperature_in"
+        ],
+        [
+          "flow_rate",
+          "primary_flow_rate"
+        ]
+      ]
+    },
+    {
+      "predecessor": "heat_exchanger",
+      "successor": "filter_b",
+      "ports": [
+        [
+          "pressure_out",
+          "pressure"
+        ],
+        [
+          "primary_temperature_out",
+          "temperature"
+        ],
+        [
+          "primary_flow_rate",
+          "flow_rate"
+        ]
+      ]
+    },
+    {
+      "predecessor": "filter_b",
+      "successor": "injector_well",
+      "ports": [
+        [
+          "flow_rate_m3h",
+          "flow_rate"
+        ],
+        [
+          "temperature_out",
+          "wellhead_temperature"
+        ],
+        [
+          "pressure_out_pa",
+          "pressure_in"
+        ]
+      ]
+    }
+  ]
+}
