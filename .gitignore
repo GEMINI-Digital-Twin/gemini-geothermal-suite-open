@@ -10,3 +10,15 @@ poetry.lock
 codedocumentation
 build
 .env
+# Added for SPE GeoHackathon 2026 (GeoAgent, WP-00): run outputs (only the final submitted run is committed)
+runs/*
+!runs/final/
+!runs/final_policy/
+!runs/final_qwen27b/
+# tool memo caches (design_cache.sqlite) are not evidence; keep them out of the final run
+runs/**/cache/
+runs/final/**/whatif/
+runs/final_policy/whatif/
+.venv/
+.ruff_cache/
+.pytest_cache/

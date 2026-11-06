@@ -1,0 +1,145 @@
+{
+  "generated_at": "2026-11-04T07:59:01.288960+00:00",
+  "models": [
+    {
+      "model": "gemma4:12b-it-q4_K_M",
+      "engine": "llm",
+      "eval_dir": "runs/final/eval/gemma4_12b-it-q4_K_M",
+      "outcomes": {
+        "pass": 8,
+        "pending": 3,
+        "fail": 0,
+        "skipped": 0,
+        "error": 0
+      },
+      "scenarios": {
+        "S1": "pass",
+        "S2": "pass",
+        "S3": "pass",
+        "S4": "pass",
+        "S5": "pass",
+        "S6": "pass",
+        "S7": "pending",
+        "S8": "pass",
+        "S9": "pass",
+        "S10": "pending",
+        "S11": "pending"
+      },
+      "checks_passed": 46,
+      "checks_total": 46,
+      "tool_call_validity_frac": 0.9408,
+      "llm_calls": 338,
+      "retries": 111,
+      "fallbacks": 20,
+      "step_rejections": 8,
+      "kind_coercions": 60,
+      "token_budget_overruns": 0,
+      "total_tokens": 1089550,
+      "runtime_s": 4166.744
+    },
+    {
+      "model": "qwen3.6:27b",
+      "engine": "llm",
+      "eval_dir": "runs/final/eval/qwen3.6_27b",
+      "outcomes": {
+        "pass": 0,
+        "pending": 1,
+        "fail": 0,
+        "skipped": 0,
+        "error": 0
+      },
+      "scenarios": {
+        "S11": "pending"
+      },
+      "checks_passed": 2,
+      "checks_total": 2,
+      "tool_call_validity_frac": 0.8158,
+      "llm_calls": 38,
+      "retries": 17,
+      "fallbacks": 7,
+      "step_rejections": 1,
+      "kind_coercions": 0,
+      "token_budget_overruns": 0,
+      "total_tokens": 126855,
+      "runtime_s": 672.538
+    },
+    {
+      "model": "qwen3.6:35b-a3b",
+      "engine": "llm",
+      "eval_dir": "runs/final/eval/qwen3.6_35b-a3b",
+      "outcomes": {
+        "pass": 0,
+        "pending": 0,
+        "fail": 1,
+        "skipped": 0,
+        "error": 0
+      },
+      "scenarios": {
+        "S11": "fail"
+      },
+      "checks_passed": 1,
+      "checks_total": 2,
+      "tool_call_validity_frac": 0.9655,
+      "llm_calls": 29,
+      "retries": 7,
+      "fallbacks": 1,
+      "step_rejections": 1,
+      "kind_coercions": 0,
+      "token_budget_overruns": 0,
+      "total_tokens": 79061,
+      "runtime_s": 167.335
+    },
+    {
+      "model": "gemma4:26b-a4b",
+      "engine": "llm",
+      "eval_dir": "runs/final/eval/gemma4_26b-a4b",
+      "outcomes": {
+        "pass": 0,
+        "pending": 0,
+        "fail": 1,
+        "skipped": 0,
+        "error": 0
+      },
+      "scenarios": {
+        "S11": "fail"
+      },
+      "checks_passed": 1,
+      "checks_total": 2,
+      "tool_call_validity_frac": 0.7037,
+      "llm_calls": 27,
+      "retries": 14,
+      "fallbacks": 7,
+      "step_rejections": 2,
+      "kind_coercions": 4,
+      "token_budget_overruns": 0,
+      "total_tokens": 101871,
+      "runtime_s": 175.731
+    },
+    {
+      "model": "qwen3.5:9b-q4_K_M",
+      "engine": "llm",
+      "eval_dir": "runs/final/eval/qwen3.5_9b-q4_K_M",
+      "outcomes": {
+        "pass": 0,
+        "pending": 0,
+        "fail": 1,
+        "skipped": 0,
+        "error": 0
+      },
+      "scenarios": {
+        "S11": "fail"
+      },
+      "checks_passed": 1,
+      "checks_total": 2,
+      "tool_call_validity_frac": 0.6818,
+      "llm_calls": 22,
+      "retries": 17,
+      "fallbacks": 7,
+      "step_rejections": 1,
+      "kind_coercions": 0,
+      "token_budget_overruns": 0,
+      "total_tokens": 83724,
+      "runtime_s": 203.201
+    }
+  ]
+}
