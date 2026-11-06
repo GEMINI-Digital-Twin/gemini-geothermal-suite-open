@@ -423,7 +423,7 @@
     "heating_return_T": {
       "value": 60.0,
       "unit": "C",
-      "source": "USER ANSWER (interactive, 2026-11-05T05:57:38.033834+00:00)"
+      "source": "USER ANSWER (interactive, 2026-11-05T06:30:16.422239+00:00)"
     }
   }
 }
