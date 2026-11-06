@@ -1,0 +1,611 @@
+{
+ "designs": {
+  "Shallow_2dp_preheat_hp_engine": {
+   "design": {
+    "name": "Shallow_2dp_preheat_hp_engine",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 240,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     0,
+     180
+    ]
+   },
+   "boiler_pct": 16.3,
+   "grid_gwh": 11.18,
+   "co2_t": 11169,
+   "co2_reduction_pct": 56.9,
+   "renewable_heat_pct": 77.4,
+   "equipment_mw": {
+    "heat_pump": 8.5,
+    "backup_boiler": 20.1,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 493
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Doublet 1 outage has 35 days in the peak heating season (Dec-Feb / mid-Nov): move it to spring (start day 82-130) or late summer",
+    "Backup boiler supplies 16% of heat",
+    "Geothermal flow at capacity on 110 days (backup used)"
+   ]
+  },
+  "Shallow_2dp_preheat_hp_engine_fixed": {
+   "design": {
+    "name": "Shallow_2dp_preheat_hp_engine_fixed",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 240,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     100,
+     200
+    ]
+   },
+   "boiler_pct": 9.3,
+   "grid_gwh": 12.0,
+   "co2_t": 9982,
+   "co2_reduction_pct": 61.5,
+   "renewable_heat_pct": 84.0,
+   "equipment_mw": {
+    "heat_pump": 8.5,
+    "backup_boiler": 10.2,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 493
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Geothermal flow at capacity on 126 days (backup used)"
+   ]
+  },
+  "Shallow_3dp_preheat_hp_engine": {
+   "design": {
+    "name": "Shallow_3dp_preheat_hp_engine",
+    "depth_m": 2500,
+    "n_doublets": 3,
+    "target_flow_m3h": 240,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     0,
+     120,
+     240
+    ]
+   },
+   "boiler_pct": 4.6,
+   "grid_gwh": 11.47,
+   "co2_t": 9001,
+   "co2_reduction_pct": 65.3,
+   "renewable_heat_pct": 88.1,
+   "equipment_mw": {
+    "heat_pump": 10.0,
+    "backup_boiler": 10.2,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 696
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Doublet 1 outage has 35 days in the peak heating season (Dec-Feb / mid-Nov): move it to spring (start day 82-130) or late summer",
+    "Geothermal flow at capacity on 35 days (backup used)"
+   ]
+  },
+  "Deep_2dp_preheat_hp_engine": {
+   "design": {
+    "name": "Deep_2dp_preheat_hp_engine",
+    "depth_m": 3400,
+    "n_doublets": 2,
+    "target_flow_m3h": 230,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     200
+    ]
+   },
+   "boiler_pct": 10.5,
+   "grid_gwh": 3.86,
+   "co2_t": 7509,
+   "co2_reduction_pct": 71.1,
+   "renewable_heat_pct": 86.3,
+   "equipment_mw": {
+    "heat_pump": 0.0,
+    "backup_boiler": 9.8,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 471
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "GEMINI: Injector wellhead pressure at solver lower bound (0.001 bar): injection pump reported as 0 MW, verify",
+    "Network return 50.0 C: brine leaving the direct heat exchanger is limited to 74 C by the 40 C cooling cap",
+    "Backup boiler supplies 10% of heat",
+    "Geothermal flow at capacity on 138 days (backup used)"
+   ]
+  },
+  "Shallow_2dp_direct_engine": {
+   "design": {
+    "name": "Shallow_2dp_direct_engine",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 240,
+    "network_return_c": 50,
+    "heating_mode": "direct",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     200
+    ]
+   },
+   "boiler_pct": 41.2,
+   "grid_gwh": 4.21,
+   "co2_t": 14433,
+   "co2_reduction_pct": 44.4,
+   "renewable_heat_pct": 53.7,
+   "equipment_mw": {
+    "heat_pump": 0.0,
+    "backup_boiler": 13.4,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 493
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Backup boiler supplies 41% of heat",
+    "Geothermal flow at capacity on 20 days (backup used)",
+    "Minimum stable flow forced on 44 days"
+   ]
+  },
+  "Shallow_3dp_preheat_hp_engine_fixed": {
+   "design": {
+    "name": "Shallow_3dp_preheat_hp_engine_fixed",
+    "depth_m": 2500,
+    "n_doublets": 3,
+    "target_flow_m3h": 240,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     180,
+     260
+    ]
+   },
+   "boiler_pct": 0.0,
+   "grid_gwh": 11.64,
+   "co2_t": 8184,
+   "co2_reduction_pct": 68.5,
+   "renewable_heat_pct": 92.3,
+   "equipment_mw": {
+    "heat_pump": 12.7,
+    "backup_boiler": 0.3,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 739
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Geothermal flow at capacity on 4 days (backup used)"
+   ]
+  },
+  "Shallow_2dp_preheat_hp_engine_detail": {
+   "design": {
+    "name": "Shallow_2dp_preheat_hp_engine_detail",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 240,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     0,
+     120
+    ]
+   },
+   "boiler_pct": 16.3,
+   "grid_gwh": 11.21,
+   "co2_t": 11176,
+   "co2_reduction_pct": 56.9,
+   "renewable_heat_pct": 77.4,
+   "equipment_mw": {
+    "heat_pump": 8.5,
+    "backup_boiler": 20.1,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 493
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Doublet 1 outage has 35 days in the peak heating season (Dec-Feb / mid-Nov): move it to spring (start day 82-130) or late summer",
+    "Backup boiler supplies 16% of heat",
+    "Geothermal flow at capacity on 113 days (backup used)"
+   ]
+  },
+  "Deep_2dp_preheat_hp_flare": {
+   "design": {
+    "name": "Deep_2dp_preheat_hp_flare",
+    "depth_m": 3400,
+    "n_doublets": 2,
+    "target_flow_m3h": 230,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "flare",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     200
+    ]
+   },
+   "boiler_pct": 13.7,
+   "grid_gwh": 8.59,
+   "co2_t": 9719,
+   "co2_reduction_pct": 62.5,
+   "renewable_heat_pct": 86.3,
+   "equipment_mw": {
+    "heat_pump": 0.0,
+    "backup_boiler": 11.1,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 471
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "GEMINI: Injector wellhead pressure at solver lower bound (0.001 bar): injection pump reported as 0 MW, verify",
+    "Network return 50.0 C: brine leaving the direct heat exchanger is limited to 74 C by the 40 C cooling cap",
+    "Backup boiler supplies 14% of heat",
+    "Geothermal flow at capacity on 138 days (backup used)"
+   ]
+  },
+  "Deep_2dp_hp_only_engine": {
+   "design": {
+    "name": "Deep_2dp_hp_only_engine",
+    "depth_m": 3400,
+    "n_doublets": 2,
+    "target_flow_m3h": 230,
+    "network_return_c": 50,
+    "heating_mode": "hp_only",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     200
+    ]
+   },
+   "boiler_pct": 0.2,
+   "grid_gwh": 37.89,
+   "co2_t": 14331,
+   "co2_reduction_pct": 44.8,
+   "renewable_heat_pct": 95.0,
+   "equipment_mw": {
+    "heat_pump": 28.3,
+    "backup_boiler": 2.6,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 471
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "GEMINI: Injector wellhead pressure at solver lower bound (0.001 bar): injection pump reported as 0 MW, verify",
+    "Network return 50.0 C: brine leaving the direct heat exchanger is limited to 74 C by the 40 C cooling cap",
+    "hp_only: brine 109 C is hotter than the 50 C network return, so sending all heat through a heat pump wastes exergy and electricity. (Note: GEMINI's heat pump solver fails for this case and returns ~390 C; that is a solver error, NOT a real temperature. Our simulation uses COP 3.) Prefer preheat_hp.",
+    "Geothermal flow at capacity on 17 days (backup used)",
+    "Minimum stable flow forced on 48 days"
+   ]
+  },
+  "Shallow_2dp_preheat_hp_engine_newout": {
+   "design": {
+    "name": "Shallow_2dp_preheat_hp_engine_newout",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 240,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     200
+    ]
+   },
+   "boiler_pct": 11.4,
+   "grid_gwh": 11.93,
+   "co2_t": 10365,
+   "co2_reduction_pct": 60.0,
+   "renewable_heat_pct": 82.1,
+   "equipment_mw": {
+    "heat_pump": 8.5,
+    "backup_boiler": 10.2,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 493
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Backup boiler supplies 11% of heat",
+    "Geothermal flow at capacity on 143 days (backup used)"
+   ]
+  },
+  "Deep_2dp_direct_engine": {
+   "design": {
+    "name": "Deep_2dp_direct_engine",
+    "depth_m": 3400,
+    "n_doublets": 2,
+    "target_flow_m3h": 230,
+    "network_return_c": 50,
+    "heating_mode": "direct",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     200
+    ]
+   },
+   "boiler_pct": 10.5,
+   "grid_gwh": 3.86,
+   "co2_t": 7509,
+   "co2_reduction_pct": 71.1,
+   "renewable_heat_pct": 86.3,
+   "equipment_mw": {
+    "heat_pump": 0.0,
+    "backup_boiler": 9.8,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 471
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "GEMINI: Injector wellhead pressure at solver lower bound (0.001 bar): injection pump reported as 0 MW, verify",
+    "Network return 50.0 C: brine leaving the direct heat exchanger is limited to 74 C by the 40 C cooling cap",
+    "Backup boiler supplies 10% of heat",
+    "Geothermal flow at capacity on 138 days (backup used)"
+   ]
+  },
+  "Deep_3dp_preheat_hp_flare": {
+   "design": {
+    "name": "Deep_3dp_preheat_hp_flare",
+    "depth_m": 3400,
+    "n_doublets": 3,
+    "target_flow_m3h": 230,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "flare",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     0,
+     120,
+     240
+    ]
+   },
+   "boiler_pct": 5.3,
+   "grid_gwh": 8.55,
+   "co2_t": 8019,
+   "co2_reduction_pct": 69.1,
+   "renewable_heat_pct": 94.7,
+   "equipment_mw": {
+    "heat_pump": 0.0,
+    "backup_boiler": 11.1,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 649
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Doublet 1 outage has 35 days in the peak heating season (Dec-Feb / mid-Nov): move it to spring (start day 82-130) or late summer",
+    "GEMINI: Injector wellhead pressure at solver lower bound (0.001 bar): injection pump reported as 0 MW, verify",
+    "Network return 50.0 C: brine leaving the direct heat exchanger is limited to 74 C by the 40 C cooling cap",
+    "Geothermal flow at capacity on 35 days (backup used)"
+   ]
+  },
+  "Deep_3dp_hp_only_engine": {
+   "design": {
+    "name": "Deep_3dp_hp_only_engine",
+    "depth_m": 3400,
+    "n_doublets": 3,
+    "target_flow_m3h": 230,
+    "network_return_c": 50,
+    "heating_mode": "hp_only",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     80,
+     160,
+     240
+    ]
+   },
+   "boiler_pct": 0.0,
+   "grid_gwh": 37.86,
+   "co2_t": 14286,
+   "co2_reduction_pct": 44.9,
+   "renewable_heat_pct": 95.2,
+   "equipment_mw": {
+    "heat_pump": 28.6,
+    "backup_boiler": 0.0,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 499
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "GEMINI: Injector wellhead pressure at solver lower bound (0.001 bar): injection pump reported as 0 MW, verify",
+    "Network return 50.0 C: brine leaving the direct heat exchanger is limited to 74 C by the 40 C cooling cap",
+    "hp_only: brine 109 C is hotter than the 50 C network return, so sending all heat through a heat pump wastes exergy and electricity. (Note: GEMINI's heat pump solver fails for this case and returns ~390 C; that is a solver error, NOT a real temperature. Our simulation uses COP 3.) Prefer preheat_hp.",
+    "Minimum stable flow forced on 48 days"
+   ]
+  },
+  "Shallow_2dp_direct_engine_new": {
+   "design": {
+    "name": "Shallow_2dp_direct_engine_new",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 200,
+    "network_return_c": 50,
+    "heating_mode": "direct",
+    "absorption_chiller": true,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": [
+     30,
+     200
+    ]
+   },
+   "boiler_pct": 44.2,
+   "grid_gwh": 1.08,
+   "co2_t": 15752,
+   "co2_reduction_pct": 39.3,
+   "renewable_heat_pct": 48.3,
+   "equipment_mw": {
+    "heat_pump": 0.0,
+    "backup_boiler": 20.3,
+    "electric_chiller": 8.4,
+    "absorption_chiller": 10.0,
+    "peak_brine_flow_m3h": 404
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Doublet 1 outage has 29 days in the peak heating season (Dec-Feb / mid-Nov): move it to spring (start day 82-130) or late summer",
+    "Backup boiler supplies 44% of heat",
+    "Geothermal flow at capacity on 237 days (backup used)"
+   ]
+  },
+  "Deep_2dp_preheat_hp_engine_fixed": {
+   "design": {
+    "name": "Deep_2dp_preheat_hp_engine_fixed",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 200,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": null
+   },
+   "boiler_pct": 21.2,
+   "grid_gwh": 8.08,
+   "co2_t": 11136,
+   "co2_reduction_pct": 57.1,
+   "renewable_heat_pct": 73.0,
+   "equipment_mw": {
+    "heat_pump": 6.9,
+    "backup_boiler": 13.8,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 404
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Backup boiler supplies 21% of heat",
+    "Geothermal flow at capacity on 191 days (backup used)"
+   ]
+  },
+  "Shallow_2dp_hp_only_engine": {
+   "design": {
+    "name": "Shallow_2dp_hp_only_engine",
+    "depth_m": 2500,
+    "n_doublets": 2,
+    "target_flow_m3h": 200,
+    "network_return_c": 50,
+    "heating_mode": "hp_only",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": null
+   },
+   "boiler_pct": 1.5,
+   "grid_gwh": 36.58,
+   "co2_t": 14190,
+   "co2_reduction_pct": 45.3,
+   "renewable_heat_pct": 93.8,
+   "equipment_mw": {
+    "heat_pump": 24.3,
+    "backup_boiler": 4.6,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 404
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "hp_only: brine 82 C is hotter than the 50 C network return, so sending all heat through a heat pump wastes exergy and electricity. (Note: GEMINI's heat pump solver fails for this case and returns ~390 C; that is a solver error, NOT a real temperature. Our simulation uses COP 3.) Prefer preheat_hp.",
+    "Geothermal flow at capacity on 71 days (backup used)",
+    "Minimum stable flow forced on 48 days"
+   ]
+  },
+  "Deep3400_2dp_preheat_hp_engine": {
+   "design": {
+    "name": "Deep3400_2dp_preheat_hp_engine",
+    "depth_m": 3400,
+    "n_doublets": 2,
+    "target_flow_m3h": 200,
+    "network_return_c": 50,
+    "heating_mode": "preheat_hp",
+    "absorption_chiller": false,
+    "gas_use": "engine",
+    "storage_mwh": 0,
+    "maintenance_start_day": null
+   },
+   "boiler_pct": 17.5,
+   "grid_gwh": 3.68,
+   "co2_t": 8843,
+   "co2_reduction_pct": 65.9,
+   "renewable_heat_pct": 78.6,
+   "equipment_mw": {
+    "heat_pump": 0.0,
+    "backup_boiler": 12.6,
+    "electric_chiller": 10.0,
+    "absorption_chiller": 0.0,
+    "peak_brine_flow_m3h": 405
+   },
+   "n_violations": 0,
+   "violations": [],
+   "warnings": [
+    "Network return 50.0 C: brine leaving the direct heat exchanger is limited to 74 C by the 40 C cooling cap",
+    "Backup boiler supplies 18% of heat",
+    "Geothermal flow at capacity on 181 days (backup used)"
+   ]
+  }
+ }
+}
