@@ -29,6 +29,9 @@ class Solver:
         self.inputs = {name: {} for name in components}
         self.states = {name: None for name in components}
         self.history = {name: {"input": [], "output": []} for name in components}
+        # (component, key) -> sequence of per-timestep values, applied in run() before
+        # that timestep's connections/standalone components are evaluated.
+        self.boundary_series = {}
 
     def connect(self, predecessor, successor, predecessor_output, successor_input):
         """Declare that ``predecessor``'s output feeds one of ``successor``'s inputs.
@@ -75,6 +78,22 @@ class Solver:
             raise KeyError(f"Unknown component '{component}'.")
         self.inputs[component][key] = value
 
+    def set_boundary_input_series(self, component, key, values):
+        """Set a per-timestep input value on a component, one entry per simulated step.
+
+        Use this (instead of :meth:`set_boundary_input`) for a prescribed
+        input that varies over the run (e.g. an hourly demand or control
+        profile) rather than being fixed for the whole simulation. ``values``
+        is indexed by timestep position (0-based); if ``run`` is called with
+        more timesteps than ``len(values)``, the last entry is held constant
+        for the remaining steps.
+        """
+        if component not in self.components:
+            raise KeyError(f"Unknown component '{component}'.")
+        if len(values) == 0:
+            raise ValueError(f"Boundary input series for '{component}.{key}' must not be empty.")
+        self.boundary_series[(component, key)] = list(values)
+
     def run(self, time_vector=None):
         """Run the solver over ``time_vector`` (defaults to a single steady-state step).
 
@@ -86,8 +105,11 @@ class Solver:
         component driven entirely by :meth:`set_boundary_input` values,
         e.g. a unit fed only by fixed setpoints alongside the rest of the
         network) is still evaluated once per timestep from its current
-        input dict, so it is not silently skipped. After all connections
-        (and any standalone components) for a timestep are processed,
+        input dict, so it is not silently skipped. Before connections are
+        processed, any per-timestep values registered via
+        :meth:`set_boundary_input_series` are applied for the current
+        timestep index. After all connections (and any standalone
+        components) for a timestep are processed,
         dynamic components' state is advanced and a snapshot of every
         component's current input/output is recorded in ``self.history``.
 
@@ -115,7 +137,11 @@ class Solver:
             if hasattr(component, "set_time"):
                 component.set_time(0)
 
-        for t in time_vector:
+        for step_index, t in enumerate(time_vector):
+            for (component_name, key), values in self.boundary_series.items():
+                index = step_index if step_index < len(values) else -1
+                self.inputs[component_name][key] = values[index]
+
             for name, component in self.components.items():
                 if hasattr(component, "set_time"):
                     component.set_time(t)

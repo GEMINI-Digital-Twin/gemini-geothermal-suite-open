@@ -55,3 +55,14 @@ class TestSplitter(unittest.TestCase):
         y = splitter.get_output()
 
         self.assertAlmostEqual(y["output_0"], TOTAL_FLOW)
+
+    def test_split_fractions_input_overrides_parameter_per_step(self):
+        """Test u["split_fractions"] overrides the parameter default for that step."""
+        splitter = Splitter()
+        splitter.update_parameters({"split_fractions": [0.5, 0.5]})
+        u = {"input": TOTAL_FLOW, "split_fractions": [0.9, 0.1]}
+        splitter.calculate_output(u)
+        y = splitter.get_output()
+
+        self.assertAlmostEqual(y["output_0"], TOTAL_FLOW * 0.9)
+        self.assertAlmostEqual(y["output_1"], TOTAL_FLOW * 0.1)
