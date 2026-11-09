@@ -6,40 +6,6 @@ import numpy as np
 
 from gemini_model.bhe_geoloop.bhe_geoloop import BHEGeoloop
 
-# lithology_params = {
-#                             "input_dir_lithology": "input",
-#                             "out_dir_lithology": "output",
-#                             "borehole_lithology_path": "lithology_B58G0191_Roermond.xlsx",
-#                             "borehole_lithology_sheetname": "poro-litho",
-#                             "out_table": "lithology_samples_Roermond.h5",
-#                             "read_from_table": True,
-#                             "Tg": [
-#                                 10.8, 10.4, 10.4, 10.6, 11.2,
-#                                 11.5, 11.8, 12.0, 12.3, 12.5,
-#                                 12.7, 13.0, 13.2, 13.4, 13.8,
-#                                 14.1, 14.5, 14.9, 15.3, 15.6,
-#                                 16.0, 16.3, 16.6, 17.0, 17.3,
-#                                 17.7, 18.0, 18.3, 18.7, 19.0,
-#                                 19.4, 19.7, 20.0, 20.4, 20.7,
-#                                 21.1, 21.4, 21.7, 22.1, 22.4,
-#                                 22.8, 23.1, 23.5, 23.8, 24.1,
-#                                 24.5, 24.8, 25.2, 25.5, 25.8
-#                             ],
-#                             "Tgrad": 2,
-#                             "z_Tg": [
-#                                 20, 40, 60, 80, 100, 120, 140, 160, 180, 200,
-#                                 220, 240, 260, 280, 300, 320, 340, 360, 380, 400,
-#                                 420, 440, 460, 480, 500, 520, 540, 560, 580, 600,
-#                                 620, 640, 660, 680, 700, 720, 740, 760, 780, 800,
-#                                 820, 840, 860, 880, 900, 920, 940, 960, 980, 1000
-#                             ],
-#                             "phi_scale": 0.1,
-#                             "lithology_scale": 0.1,
-#                             "lithology_error": 0.1,
-#                             "basecase": False,
-#                             "n_samples": 500
-#         }
-
 BHE_PARAMS = {
                 "H": 300,
 
@@ -91,13 +57,22 @@ class TestBHEGeoloop(unittest.TestCase):
 		self.assertEqual(self.bhe_geoloop.state["step_index"], 1)
 		self.assertEqual(self.bhe_geoloop._single_run.sim_params.Nt, 1)
 
-	# def test_lithology_update_parameters(self):
-	# 	"""Test nested dict parameters are merged rather than replaced."""
+	def _run_tin(self, parameters):
+		"""Run a single TIN step with extra parameters and return the output."""
+		self.bhe_geoloop.update_parameters({"run_type": "TIN", **parameters})
+		self.bhe_geoloop.calculate_output({"inlet_temperature": 5.0,
+		                                  "mass_flow_rate": 1.0})
+		return self.bhe_geoloop.output
 
-	# 	self.bhe_geoloop.update_parameters({"litho_k_param": {"added": 2.0}})
+	def test_depth_dependent_subsurface_profiles(self):
+		"""Test a depth-dependent temperature and thermal conductivity affects the output."""
+		z_tg = [0, 100, 200, 300]
+		cold = self._run_tin({"Tg": [10, 10, 10, 10], "z_Tg": z_tg})
+		self.assertAlmostEqual(round(cold["outlet_temperature"], 1), 5.9)
+		self.assertAlmostEqual(round(cold["mean_borehole_wall_temperature"], 1), 7.2)
 
-	# 	self.assertEqual(self.bhe_geoloop.parameters["litho_k_param"]["existing"], 1.0)
-	# 	self.assertEqual(self.bhe_geoloop.parameters["litho_k_param"]["added"], 2.0)
+		low_k = self._run_tin({"k_s": [1.5, 1, 0.8], "z_k_s": [100, 200, 300]})
+		self.assertAlmostEqual(round(low_k["heat_extracted"], 0), 3425)
 
 
 if __name__ == "__main__":
