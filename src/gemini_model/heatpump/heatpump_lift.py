@@ -1,0 +1,164 @@
+"""Heat pump lifting district water to a target on brine from the exchanger (HeatpumpBasic, Lorenz).
+
+Why: a plant may set a lowest allowed brine outlet temperature (the floor), for example a limit on
+the reinjection temperature or on the brine cooling. HeatpumpBasic already has a source floor
+(Ts_in_minimum): when the network duty would cool the brine below it, it fixes the brine at the
+floor and lets the delivered temperature drop. HeatPumpLift takes that floor from the input of each
+call without changing the loaded parameters, works in plant units (C, m3/h, MW) and reports when
+the floor binds. In that floor branch the Nelder-Mead search of HeatpumpBasic can land on a second,
+unphysical root (COP about 1, water out about 800 C), so HeatPumpLift re-solves it as a
+one-variable root between water-in and the target (brentq), where the root is bracketed.
+COP = eta_lorenz T_h / (T_h - T_s) with log-mean temperatures of the sink and source glides
+(Ommen et al. 2015, Int. J. Refrig. 55, 168-182, DOI 10.1016/j.ijrefrig.2015.02.012;
+Arpagaus et al. 2018, Energy 152, 985-1010, DOI 10.1016/j.energy.2018.03.166).
+
+Defaults: eta_lorenz 0.5, brine rho 1030 kg/m3 and cp 4000 J/kg/K, network water rho 1000 kg/m3 and
+cp 4000 J/kg/K, target 100 C; all assumptions a plant model may overwrite through update_parameters.
+"""
+
+import numpy as np
+from scipy.optimize import brentq
+
+from gemini_model.heatpump.heatpump_basic import HeatpumpBasic
+
+
+def _tlm(a_k, b_k):
+    """Log-mean of two absolute temperatures (K)."""
+    return (a_k - b_k) / np.log(a_k / b_k)
+
+
+class HeatPumpLift(HeatpumpBasic):
+    """HeatpumpBasic in Lorenz mode with a brine floor set per call and a bracketed floor branch.
+
+    Inputs (u): T_brine_in_C, brine_flow_m3h, T_brine_floor_C, T_water_in_C, water_flow_m3h;
+    or HeatpumpBasic's own keys Ts_in, Th_in (C), source_flow_rate, hot_flow_rate (m3/s) with the
+    floor taken from the parameter Ts_in_minimum, so a project file can drive it.
+    Outputs added to HeatpumpBasic's: Q_th_MW, P_el_MW, Q_brine_MW, T_brine_out_C, T_water_out_C,
+    floor_binds.
+    """
+
+    def __init__(self):
+        """Initialize with Lorenz mode, eta 0.5, cp 4000 J/kg/K on both sides, target 100 C."""
+        super().__init__()
+        self.parameters.update(
+            {
+                "mode": "lorenz",
+                "eta_lorenz": 0.5,
+                "Cp_h": 4000.0,
+                "Cp_s": 4000.0,
+                "rho_h": 1000.0,
+                "rho_s": 1030.0,
+                "Th_out_target": 100.0,
+                "cop_max": 8.0,  # Arpagaus et al. 2018, Energy 152: COP 6-8 at small lifts
+            }
+        )
+
+    def _calculate(self, Th_out, Th_in, Ts_in, mh, ms):
+        """Return _lorenz's (COP, T out, T brine out, heat, power), COP capped at cop_max."""
+        return self._capped(
+            self._lorenz(Th_out, Th_in, Ts_in, mh, ms), Th_out, Th_in, Ts_in, mh, ms
+        )
+
+    def _capped(self, result, Th_out, Th_in, Ts_in, mh, ms):
+        """Cap the COP at cop_max; the floor binds if the brine cannot give its share."""
+        p, cmax = self.parameters, self.parameters["cop_max"]
+        if not result[0] > cmax:
+            return result
+        floor = p["Ts_in_minimum"] + 273.15
+        q_h = p["Cp_h"] * mh * (Th_out - Th_in)
+        # at the cap the brine gives (cop_max - 1) / cop_max of the duty
+        ts = Ts_in - q_h * (cmax - 1) / cmax / (p["Cp_s"] * ms)
+        if ts < floor - 1e-9:
+            q_h = p["Cp_s"] * ms * (Ts_in - floor) * cmax / (cmax - 1)
+            Th_out, ts = Th_in + q_h / (p["Cp_h"] * mh), floor
+        return cmax, Th_out, ts, q_h, q_h / cmax
+
+    def _lorenz(self, Th_out, Th_in, Ts_in, mh, ms):
+        """Return the HeatpumpBasic solution, except in the floor branch, re-solved by brentq."""
+        Ts_floor = self.parameters["Ts_in_minimum"] + 273.15
+        # brine at or below the floor: nothing to take, so no heat, no power, water passes through
+        if Ts_in <= Ts_floor:
+            return float("nan"), Th_in, Ts_in, 0.0, 0.0
+        # water already at or above the target: nothing to lift
+        if Th_in >= Th_out:
+            return float("nan"), Th_in, Ts_in, 0.0, 0.0
+        result = super()._calculate(Th_out, Th_in, Ts_in, mh, ms)
+        if abs(result[2] - Ts_floor) >= 1e-9:
+            return result
+        p = self.parameters
+        q_s = p["Cp_s"] * ms * (Ts_in - Ts_floor)
+        t_s = _tlm(Ts_in, Ts_floor)
+
+        def cop(th):
+            t_h = _tlm(th, Th_in)
+            return p["eta_lorenz"] * t_h / (t_h - t_s)
+
+        def gap(th):
+            # sink duty minus what the source and the compressor can give at that outlet temperature
+            return p["Cp_h"] * mh * (th - Th_in) - q_s * cop(th) / (cop(th) - 1)
+
+        if gap(Th_out) <= 0:
+            # the floor tripped only within the Nelder-Mead tolerance: the target is reachable
+            return self._at_target(Th_out, Th_in, Ts_in, Ts_floor, mh, ms)
+        th = brentq(gap, Th_in + 1e-6, Th_out)
+        q_h = p["Cp_h"] * mh * (th - Th_in)
+        return cop(th), th, Ts_floor, q_h, q_h / cop(th)
+
+    def _at_target(self, Th_out, Th_in, Ts_in, Ts_floor, mh, ms):
+        """Water at the target; brine outlet between floor and inlet where the balance closes."""
+        p = self.parameters
+        q_h = p["Cp_h"] * mh * (Th_out - Th_in)
+        t_h = _tlm(Th_out, Th_in)
+
+        def cop(ts):
+            return p["eta_lorenz"] * t_h / (t_h - _tlm(Ts_in, ts))
+
+        def left(ts):
+            # brine heat minus what the sink needs from the brine at that brine outlet
+            return p["Cp_s"] * ms * (Ts_in - ts) - q_h * (cop(ts) - 1) / cop(ts)
+
+        ts = brentq(left, Ts_floor, Ts_in - 1e-6)
+        return cop(ts), Th_out, ts, q_h, q_h / cop(ts)
+
+    def _plant_keys(self, u):
+        """Return u in plant keys; maps HeatpumpBasic keys (C, m3/s), floor from parameters."""
+        if "Ts_in" not in u:
+            return u
+        return {
+            **u,
+            "T_brine_in_C": u["Ts_in"],
+            "brine_flow_m3h": u["source_flow_rate"] * 3600.0,
+            "T_brine_floor_C": self.parameters["Ts_in_minimum"],
+            "T_water_in_C": u["Th_in"],
+            "water_flow_m3h": u["hot_flow_rate"] * 3600.0,
+        }
+
+    def calculate_output(self, u, x=None):
+        """Run HeatpumpBasic on u (plant keys or its own keys) and add MW, C and floor outputs."""
+        u = self._plant_keys(u)
+        # HeatpumpBasic echoes these pressures, so a pressure chain passes through the heat pump
+        pressures = {k: u[k] for k in ("hot_pressure_in", "source_pressure_in") if k in u}
+        # solve in Lorenz mode with this call's floor on a copy; the loaded parameters stay as set
+        loaded = self.parameters
+        self.parameters = {**loaded, "mode": "lorenz", "Ts_in_minimum": u["T_brine_floor_C"]}
+        try:
+            super().calculate_output(
+                {
+                    "Th_in": u["T_water_in_C"],
+                    "Ts_in": u["T_brine_in_C"],
+                    "hot_flow_rate": u["water_flow_m3h"] / 3600.0,
+                    "source_flow_rate": u["brine_flow_m3h"] / 3600.0,
+                    **pressures,
+                },
+                x,
+            )
+        finally:
+            self.parameters = loaded
+        y = self.output
+        m_s = u["brine_flow_m3h"] / 3600.0 * self.parameters["rho_s"]
+        y["Q_th_MW"] = y["Thermal_production"] / 1e6
+        y["P_el_MW"] = y["electrical_consumption"] / 1e6
+        y["Q_brine_MW"] = m_s * self.parameters["Cp_s"] * (u["T_brine_in_C"] - y["Ts_out"]) / 1e6
+        y["T_brine_out_C"] = y["Ts_out"]
+        y["T_water_out_C"] = y["Th_out"]
+        y["floor_binds"] = y["Ts_out"] <= u["T_brine_floor_C"] + 1e-9

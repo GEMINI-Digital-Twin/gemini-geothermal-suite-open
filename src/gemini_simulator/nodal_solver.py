@@ -147,7 +147,7 @@ def _well_bottomhole_pressure_injection(dpdt, flow_rate, wellhead_pressure, well
         "pressure": wellhead_pressure,
         "temperature": wellhead_temperature,
         "temperature_ambient": wellhead_temperature,
-        "flowrate": flow_rate,
+        "flowrate": -flow_rate,  # signed: injection flows down, friction opposes it
         "direction": "down",
     }
     dpdt.calculate_output(u, None)

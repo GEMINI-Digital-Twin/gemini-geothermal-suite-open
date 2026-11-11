@@ -183,7 +183,7 @@ def test_solve_injection_flow_rate_balances_pressures():
             "pressure": 1e5,
             "temperature": 60 + 273.15,
             "temperature_ambient": 60 + 273.15,
-            "flowrate": flow_rate,
+            "flowrate": -flow_rate,  # signed: injection flows down (as test_pressure_drop.py)
             "direction": "down",
         },
         None,
