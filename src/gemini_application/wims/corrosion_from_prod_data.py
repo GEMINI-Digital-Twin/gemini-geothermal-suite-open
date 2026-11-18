@@ -329,9 +329,13 @@ def build_prod_corrosion_context(
     pressure-drop solve, PVT, and CO2 partial-pressure model -- per
     interval/time-step/joint, and caches the resulting per-joint pressure,
     temperature, and CO2 partial pressure together with step durations and
-    flow.  :func:`corrosion_rates_from_context` (and the single-joint variant
-    used during calibration) can then re-run only the corrosion correlation,
-    which is the sole part that depends on the calibrated parameters.
+    flow.  Kept samples partition each window from its start to its end.
+    Rows with non-finite flow, pressure, or temperature are dropped first, so
+    an empty anchor does not own that time.  Near-zero flow stays and
+    contributes no metal loss.  :func:`corrosion_rates_from_context` (and the
+    single-joint variant used during calibration) can then re-run only the
+    corrosion correlation, which is the sole part that depends on the
+    calibrated parameters.
 
     Parameters
     ----------
@@ -433,19 +437,37 @@ def build_prod_corrosion_context(
         mask = (prod_df["datetime"] >= interval_start) & (prod_df["datetime"] < interval_end)
         interval_data = prod_df.loc[mask].reset_index(drop=True)
 
+        # -- drop non-finite anchors before assigning time ------------------
+        # A coarsened flat year can start with the raw first sample, which is
+        # often NaN.  That row must not take the window.  Near-zero flow is
+        # finite, so it stays and is skipped later as downtime.
+        finite_rows = (
+            np.isfinite(interval_data["flow"].to_numpy(dtype=float))
+            & np.isfinite(interval_data["pressure"].to_numpy(dtype=float))
+            & np.isfinite(interval_data["temperature"].to_numpy(dtype=float))
+        )
+        interval_data = interval_data.loc[finite_rows].reset_index(drop=True)
+
         n_steps = len(interval_data)
         if n_steps == 0:
             if verbose:
                 print(f"No data for interval {interval_start} to {interval_end}")
             continue
 
-        # -- compute step durations (non-uniform after coarsening) ----------
+        # -- samples partition the whole window -----------------------------
+        # The first kept sample owns the time back to the window start, and
+        # the last sample runs to the window end.  One point near the end of
+        # a flat year then lasts the full year, not the tail after that point.
         step_times = interval_data["datetime"].values
+        step_starts = np.empty(n_steps, dtype=object)
+        step_starts[0] = interval_start
+        if n_steps > 1:
+            step_starts[1:] = step_times[:-1]
         step_ends = np.append(step_times[1:], interval_end)
         step_durations_yr = np.array(
             [
                 (pd.Timestamp(end) - pd.Timestamp(start)).total_seconds() / SECONDS_PER_YEAR
-                for start, end in zip(step_times, step_ends)
+                for start, end in zip(step_starts, step_ends)
             ]
         )
 
