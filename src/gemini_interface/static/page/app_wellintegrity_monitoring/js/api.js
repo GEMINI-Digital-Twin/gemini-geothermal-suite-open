@@ -271,6 +271,13 @@ function checkForSavedSchematics() {
                 data.forEach(schematic => {
                     $select.append(`<option value="${schematic.filename}">${schematic.name}</option>`);
                 });
+                // -- open the double-skin tie-back schematic when this well has it --
+                var doubleSkin = data.find(function(schematic) {
+                    return schematic.filename === 'New double skin.json';
+                });
+                if (doubleSkin) {
+                    $select.val(doubleSkin.filename).trigger('change');
+                }
             } else {
                 $select.append('<option value="">No saved schematics found</option>');
             }
@@ -2100,6 +2107,14 @@ function showJointQaqcPanel(logNames) {
     }
 }
 
+function jointKindLabel(kind, emptyLabel) {
+    var rawKind = kind || '';
+    if (rawKind.indexOf('spike') >= 0) return 'Connection';
+    if (rawKind.indexOf('gradient') >= 0) return 'Size-change';
+    if (rawKind.toLowerCase().indexOf('tally') >= 0) return 'Tally';
+    return rawKind || emptyLabel;
+}
+
 function renderJointCandidatesTable(logName) {
     var $tbody = $('#joint_qaqc_table_body');
     $tbody.empty();
@@ -2137,7 +2152,7 @@ function renderJointCandidatesTable(logName) {
             (isChecked ? ' checked' : '') + '></td>' +
             '<td>' + (cand.idx !== undefined ? cand.idx : idx) + '</td>' +
             '<td><input type="number" class="joint-depth-input" data-cand-idx="' + idx + '" value="' + depth + '" step="0.01"></td>' +
-            '<td>' + ((cand.kind || '').indexOf('spike') >= 0 ? 'Connection' : ((cand.kind || '').indexOf('gradient') >= 0 ? 'Size-change' : (cand.kind || '-'))) + '</td>' +
+            '<td>' + jointKindLabel(cand.kind, '-') + '</td>' +
             '<td>' + score + '</td>' +
             '</tr>'
         );
@@ -2344,8 +2359,7 @@ function renderJointQaqcChart(logName, restoreScales) {
 
                         if (isActive && showLabels) {
                             var idx = cand.idx !== undefined ? cand.idx : ci;
-                            var rawKind = (cand.kind || '?');
-                            var kindStr = rawKind.indexOf('spike') >= 0 ? 'Connection' : (rawKind.indexOf('gradient') >= 0 ? 'Size-change' : rawKind);
+                            var kindStr = jointKindLabel(cand.kind, '?');
                             var lbl = 'idx=' + idx + '  ' + kindStr + '  depth=' + depth.toFixed(1) + 'm  score=' + (cand.score || 0).toFixed(0);
                             ctx.fillStyle = color;
                             ctx.textAlign = 'right';
