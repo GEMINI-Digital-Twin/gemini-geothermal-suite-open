@@ -10,3 +10,5 @@ poetry.lock
 codedocumentation
 build
 .env
+gemini-project/
+.cursor/skills/
