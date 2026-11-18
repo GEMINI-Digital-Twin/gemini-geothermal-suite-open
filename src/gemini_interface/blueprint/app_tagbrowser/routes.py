@@ -7,8 +7,6 @@ This module provides data tag management and system component browsing functiona
 database connectivity, tag listing, and data visualization.
 """
 
-import csv
-import io
 import json
 import os
 import tempfile
@@ -19,6 +17,7 @@ from celery import Celery
 from flask import Blueprint, Response, current_app, jsonify, request
 
 from gemini_application.tagbrowser.datamanager import DataManager
+from gemini_application.tagbrowser.sample_csv import build_sample_csv, sample_csv_columns
 from gemini_framework.database.connector.avevadb_driver import AvevaDriver
 
 # Create the tag browser application blueprint
@@ -38,48 +37,10 @@ celery = Celery(
 # Allowed file extensions for plant configuration uploads
 ALLOWED_EXTENSIONS = set(["csv"])
 
-# Placeholder timestamp written into the sample CSV data row
-SAMPLE_CSV_TIMESTAMP = "2026-01-01 00:00:00"
-
 
 def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def sample_csv_columns(units):
-    """Return Timestamp plus unique non-empty measured external tag names.
-
-    Column order follows unit order, then tag order. The external tag name is
-    the last entry of each measured tag, matching CSV import.
-    """
-    # -- collect external tag names in unit order ---------------------------
-    columns = ["Timestamp"]
-    seen = set()
-    for unit in units:
-        measured = unit.tags.get("measured", {})
-        for value in measured.values():
-            if not value:
-                continue
-            external_tagname = str(value[-1]).strip()
-            if external_tagname == "" or external_tagname in seen:
-                continue
-            seen.add(external_tagname)
-            columns.append(external_tagname)
-
-    return columns
-
-
-def build_sample_csv(columns):
-    """Build a semicolon-separated sample CSV with one placeholder row."""
-    # -- write header and placeholder row -----------------------------------
-    buffer = io.StringIO()
-    writer = csv.writer(buffer, delimiter=";", lineterminator="\n")
-    writer.writerow(columns)
-    placeholder_row = [SAMPLE_CSV_TIMESTAMP] + ["0"] * (len(columns) - 1)
-    writer.writerow(placeholder_row)
-
-    return buffer.getvalue()
 
 
 # ================================================================

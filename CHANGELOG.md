@@ -18,7 +18,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ## [Unreleased]
 
 ### Added
-- Data Management sample CSV download with headers from the loaded plant's measured tags.
+- Data Management sample CSV download with headers from the loaded plant's measured tags and one month of daily rows filled with random example numbers.
 
 
 ## [1.0.1] - 2026-08-20
