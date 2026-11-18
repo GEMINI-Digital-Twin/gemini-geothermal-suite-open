@@ -171,6 +171,36 @@ function upload_data_csv() {
     })
 }
 
+function download_sample_csv() {
+    fetch('/app/tagbrowser/download_sample_csv')
+        .then(function (response) {
+            var contentType = response.headers.get('Content-Type') || '';
+            if (!response.ok || contentType.indexOf('text/csv') === -1) {
+                return response.json().then(function (data) {
+                    alert(typeof data === 'string' ? data : 'Could not download the sample CSV.');
+                });
+            }
+
+            var disposition = response.headers.get('Content-Disposition') || '';
+            var match = /filename="([^"]+)"/.exec(disposition);
+            var filename = match ? match[1] : 'sample_data.csv';
+
+            return response.blob().then(function (blob) {
+                var url = window.URL.createObjectURL(blob);
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+            });
+        })
+        .catch(function () {
+            alert('Could not download the sample CSV.');
+        });
+}
+
 $('#select_unitnames_status').on('change', function () {
     get_tagnames_status()
 });

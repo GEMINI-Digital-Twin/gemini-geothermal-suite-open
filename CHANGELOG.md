@@ -15,6 +15,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Fixed
 - fix grafana reverse-proxy authentication inside iframe
 
+## [Unreleased]
+
+### Added
+- Data Management sample CSV download with headers from the loaded plant's measured tags.
+
+
 ## [1.0.1] - 2026-08-20
 ### Fixed
 - add python-dotenv package to pyproject.toml
