@@ -7,6 +7,8 @@ This module provides data tag management and system component browsing functiona
 database connectivity, tag listing, and data visualization.
 """
 
+import csv
+import io
 import json
 import os
 import tempfile
@@ -14,7 +16,7 @@ from datetime import datetime, timezone
 
 import pytz
 from celery import Celery
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from gemini_application.tagbrowser.datamanager import DataManager
 from gemini_framework.database.connector.avevadb_driver import AvevaDriver
@@ -36,10 +38,48 @@ celery = Celery(
 # Allowed file extensions for plant configuration uploads
 ALLOWED_EXTENSIONS = set(["csv"])
 
+# Placeholder timestamp written into the sample CSV data row
+SAMPLE_CSV_TIMESTAMP = "2026-01-01 00:00:00"
+
 
 def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def sample_csv_columns(units):
+    """Return Timestamp plus unique non-empty measured external tag names.
+
+    Column order follows unit order, then tag order. The external tag name is
+    the last entry of each measured tag, matching CSV import.
+    """
+    # -- collect external tag names in unit order ---------------------------
+    columns = ["Timestamp"]
+    seen = set()
+    for unit in units:
+        measured = unit.tags.get("measured", {})
+        for value in measured.values():
+            if not value:
+                continue
+            external_tagname = str(value[-1]).strip()
+            if external_tagname == "" or external_tagname in seen:
+                continue
+            seen.add(external_tagname)
+            columns.append(external_tagname)
+
+    return columns
+
+
+def build_sample_csv(columns):
+    """Build a semicolon-separated sample CSV with one placeholder row."""
+    # -- write header and placeholder row -----------------------------------
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=";", lineterminator="\n")
+    writer.writerow(columns)
+    placeholder_row = [SAMPLE_CSV_TIMESTAMP] + ["0"] * (len(columns) - 1)
+    writer.writerow(placeholder_row)
+
+    return buffer.getvalue()
 
 
 # ================================================================
@@ -175,6 +215,33 @@ def upload_data_csv():
 
         return jsonify("CSV data is uploaded")
     return jsonify("ERROR : file type should be csv!")
+
+
+@app_tagbrowser.route("/app/tagbrowser/download_sample_csv", methods=["GET"])
+def download_sample_csv():
+    """Download a sample CSV whose headers match the loaded plant tags."""
+    plant = app_instance.plant
+    if plant is None:
+        return jsonify("ERROR : No plant loaded!"), 400
+
+    # -- build columns from measured external tag names ---------------------
+    columns = sample_csv_columns(plant.units)
+    if len(columns) == 1:
+        return (
+            jsonify(
+                "ERROR : No measured tags with an external tag name are configured "
+                "for this project."
+            ),
+            400,
+        )
+
+    # -- return the sample file ---------------------------------------------
+    filename = f"{plant.name}_sample_data.csv"
+    return Response(
+        build_sample_csv(columns),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app_tagbrowser.route("/app/tagbrowser/status_unit_tagnames", methods=["POST"])

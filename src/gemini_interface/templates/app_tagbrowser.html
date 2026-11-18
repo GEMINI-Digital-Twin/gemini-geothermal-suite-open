@@ -89,11 +89,19 @@
                                 <strong><i class="fa fa-info-circle"></i> Info:</strong><br>
                                 this action will overwrite your current data in the internal database with the value from csv</strong>
                             </div>
+                            <p style="color:white">
+                                The sample CSV is semicolon-separated. The first column is Timestamp, and each
+                                following column is an external tag name from the loaded project. Replace the
+                                example zeros before uploading.
+                            </p>
                             <label style="color:white">Import data from CSV file</label>
                             <br>
                             <input type="file" name="data_csv" id="data_csv" accept=".csv" />
                             <button id="button_upload_data_csv" type="button" class="btn btn-default"
                                 onclick="upload_data_csv();">Upload Data
+                            </button>
+                            <button id="button_download_sample_csv" type="button" class="btn btn-default"
+                                style="margin-left: 8px;" onclick="download_sample_csv();">Download sample CSV
                             </button>
                         </div>
                     </div>
