@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-11-19
+### Added
+- Data Management sample CSV download with headers from the loaded plant's measured tags and one month of daily rows filled with random example numbers.
+### Fixed
+- Fix caliper joint review and production corrosion forecast windows.
+
 ## [1.0.3] - 2026-10-13
 ## added
 - parameters and tagnames of geothermal_example using csv data
@@ -22,9 +28,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - more info for setting up environment variables in documentation
 - change naming environment variables of OLLAMA and CHROMADB
 
-
 ## [1.0.0] - 2026-07-19
-
 ### Added
 - Initial open-source release of the GEMINI Geothermal Suite.
 - Initial release of the GEMINI Geothermal Model.

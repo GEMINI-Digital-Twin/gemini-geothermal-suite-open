@@ -14,9 +14,10 @@ from datetime import datetime, timezone
 
 import pytz
 from celery import Celery
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from gemini_application.tagbrowser.datamanager import DataManager
+from gemini_application.tagbrowser.sample_csv import build_sample_csv, sample_csv_columns
 from gemini_framework.database.connector.avevadb_driver import AvevaDriver
 
 # Create the tag browser application blueprint
@@ -175,6 +176,33 @@ def upload_data_csv():
 
         return jsonify("CSV data is uploaded")
     return jsonify("ERROR : file type should be csv!")
+
+
+@app_tagbrowser.route("/app/tagbrowser/download_sample_csv", methods=["GET"])
+def download_sample_csv():
+    """Download a sample CSV whose headers match the loaded plant tags."""
+    plant = app_instance.plant
+    if plant is None:
+        return jsonify("ERROR : No plant loaded!"), 400
+
+    # -- build columns from measured external tag names ---------------------
+    columns = sample_csv_columns(plant.units)
+    if len(columns) == 1:
+        return (
+            jsonify(
+                "ERROR : No measured tags with an external tag name are configured "
+                "for this project."
+            ),
+            400,
+        )
+
+    # -- return the sample file ---------------------------------------------
+    filename = f"{plant.name}_sample_data.csv"
+    return Response(
+        build_sample_csv(columns),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app_tagbrowser.route("/app/tagbrowser/status_unit_tagnames", methods=["POST"])

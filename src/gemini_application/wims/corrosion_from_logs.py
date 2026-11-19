@@ -1177,6 +1177,49 @@ def _estimate_joint_length_from_tally(well_tally, default=12.0):
     return float(np.median(lengths))
 
 
+def _average_caliper_chart_series(caliper_df, avg_col, finger_name=None):
+    """Depth and average-caliper samples for the joint-review chart.
+
+    Uses ``avg_col`` when that column is present. Otherwise averages the
+    numbered finger columns. Non-finite samples are dropped.
+
+    Parameters
+    ----------
+    caliper_df : DataFrame
+        Caliper log with a depth index (m).
+    avg_col : str or None
+        Average-caliper column. Preferred source for the curve.
+    finger_name : str or None
+        Finger prefix used when ``avg_col`` is missing.
+
+    Returns
+    -------
+    chart_depths_m : list[float]
+        Sample depths (m).
+    chart_values : list[float]
+        Average caliper at those depths, in the log's own units.
+    """
+    # -- choose the average column or the finger mean -----------------------
+    if avg_col and avg_col in caliper_df.columns:
+        series = pd.to_numeric(caliper_df[avg_col], errors="coerce")
+    else:
+        finger_prefix = finger_name if finger_name else "D"
+        finger_regex = rf"^{re.escape(finger_prefix)}\d{{1,2}}$"
+        finger_frame = caliper_df.filter(regex=finger_regex)
+        if finger_frame.empty:
+            return [], []
+        series = finger_frame.apply(pd.to_numeric, errors="coerce").mean(axis=1)
+
+    # -- drop non-finite samples --------------------------------------------
+    finite = series.replace([np.inf, -np.inf], np.nan).dropna()
+    if finite.empty:
+        return [], []
+
+    chart_depths_m = [float(depth_m) for depth_m in finite.index.to_numpy()]
+    chart_values = [float(value) for value in finite.to_numpy()]
+    return chart_depths_m, chart_values
+
+
 # ---------------------------------------------------------------------------
 # Joint detection (standalone)
 # ---------------------------------------------------------------------------
@@ -1250,13 +1293,31 @@ def detect_joints(uploaded_logs, well_tally, detection_params=None):
 
         else:
             method = "tally"
+            # -- tally tops plus the shoe -----------------------------------
             candidates = [
                 {"idx": i, "depth": float(joint["TopMD"]), "kind": "tally", "score": 0.0}
                 for i, joint in enumerate(well_tally)
             ]
+            if well_tally:
+                shoe_depth_m = float(well_tally[-1]["BottomMD"])
+                shoe_already_marked = any(
+                    abs(candidate["depth"] - shoe_depth_m) <= 1e-6 for candidate in candidates
+                )
+                if not shoe_already_marked:
+                    candidates.append(
+                        {
+                            "idx": len(candidates),
+                            "depth": shoe_depth_m,
+                            "kind": "tally",
+                            "score": 0.0,
+                        }
+                    )
             boundaries = [(joint["TopMD"], joint["BottomMD"]) for joint in well_tally]
-            chart_depths = []
-            chart_values = []
+            # -- average caliper curve for the review chart -----------------
+            finger_name = _get_log_metadata(uploaded_logs, "finger_name", log_idx)
+            chart_depths, chart_values = _average_caliper_chart_series(
+                caliper_log_data, avg_col, finger_name
+            )
 
         serializable_candidates = []
         for c in candidates:
