@@ -10,6 +10,7 @@ gemini\_interface.blueprint.app\_tagbrowser.routes
    
       allowed_file
       change_to_iso
+      download_sample_csv
       get_tagnames
       get_unitnames
       load_plant

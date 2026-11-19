@@ -421,9 +421,13 @@
 <span class="sd">    pressure-drop solve, PVT, and CO2 partial-pressure model -- per</span>
 <span class="sd">    interval/time-step/joint, and caches the resulting per-joint pressure,</span>
 <span class="sd">    temperature, and CO2 partial pressure together with step durations and</span>
-<span class="sd">    flow.  :func:`corrosion_rates_from_context` (and the single-joint variant</span>
-<span class="sd">    used during calibration) can then re-run only the corrosion correlation,</span>
-<span class="sd">    which is the sole part that depends on the calibrated parameters.</span>
+<span class="sd">    flow.  Kept samples partition each window from its start to its end.</span>
+<span class="sd">    Rows with non-finite flow, pressure, or temperature are dropped first, so</span>
+<span class="sd">    an empty anchor does not own that time.  Near-zero flow stays and</span>
+<span class="sd">    contributes no metal loss.  :func:`corrosion_rates_from_context` (and the</span>
+<span class="sd">    single-joint variant used during calibration) can then re-run only the</span>
+<span class="sd">    corrosion correlation, which is the sole part that depends on the</span>
+<span class="sd">    calibrated parameters.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -525,19 +529,37 @@
         <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">prod_df</span><span class="p">[</span><span class="s2">"datetime"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">interval_start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">prod_df</span><span class="p">[</span><span class="s2">"datetime"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">interval_end</span><span class="p">)</span>
         <span class="n">interval_data</span> <span class="o">=</span> <span class="n">prod_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+        <span class="c1"># -- drop non-finite anchors before assigning time ------------------</span>
+        <span class="c1"># A coarsened flat year can start with the raw first sample, which is</span>
+        <span class="c1"># often NaN.  That row must not take the window.  Near-zero flow is</span>
+        <span class="c1"># finite, so it stays and is skipped later as downtime.</span>
+        <span class="n">finite_rows</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">interval_data</span><span class="p">[</span><span class="s2">"flow"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+            <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">interval_data</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+            <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">interval_data</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="n">interval_data</span> <span class="o">=</span> <span class="n">interval_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">finite_rows</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
         <span class="n">n_steps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">interval_data</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">n_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No data for interval </span><span class="si">{</span><span class="n">interval_start</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">interval_end</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">continue</span>
 
-        <span class="c1"># -- compute step durations (non-uniform after coarsening) ----------</span>
+        <span class="c1"># -- samples partition the whole window -----------------------------</span>
+        <span class="c1"># The first kept sample owns the time back to the window start, and</span>
+        <span class="c1"># the last sample runs to the window end.  One point near the end of</span>
+        <span class="c1"># a flat year then lasts the full year, not the tail after that point.</span>
         <span class="n">step_times</span> <span class="o">=</span> <span class="n">interval_data</span><span class="p">[</span><span class="s2">"datetime"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">step_starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_steps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="n">step_starts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">interval_start</span>
+        <span class="k">if</span> <span class="n">n_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">step_starts</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">step_times</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">step_ends</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step_times</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">interval_end</span><span class="p">)</span>
         <span class="n">step_durations_yr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">))</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="n">SECONDS_PER_YEAR</span>
-                <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">step_times</span><span class="p">,</span> <span class="n">step_ends</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">step_starts</span><span class="p">,</span> <span class="n">step_ends</span><span class="p">)</span>
             <span class="p">]</span>
         <span class="p">)</span>
 

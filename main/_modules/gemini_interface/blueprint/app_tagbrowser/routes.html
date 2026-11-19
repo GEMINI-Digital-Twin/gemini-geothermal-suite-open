@@ -95,9 +95,10 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pytz</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">Celery</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blueprint</span><span class="p">,</span> <span class="n">current_app</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blueprint</span><span class="p">,</span> <span class="n">Response</span><span class="p">,</span> <span class="n">current_app</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">request</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_application.tagbrowser.datamanager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gemini_application.tagbrowser.sample_csv</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_sample_csv</span><span class="p">,</span> <span class="n">sample_csv_columns</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gemini_framework.database.connector.avevadb_driver</span><span class="w"> </span><span class="kn">import</span> <span class="n">AvevaDriver</span>
 
 <span class="c1"># Create the tag browser application blueprint</span>
@@ -276,6 +277,36 @@
 
         <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">"CSV data is uploaded"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">"ERROR : file type should be csv!"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="download_sample_csv">
+<a class="viewcode-back" href="../../../../codedocumentation/gemini_interface.blueprint.app_tagbrowser.routes.html#gemini_interface.blueprint.app_tagbrowser.routes.download_sample_csv">[docs]</a>
+<span class="nd">@app_tagbrowser</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"/app/tagbrowser/download_sample_csv"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"GET"</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">download_sample_csv</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""Download a sample CSV whose headers match the loaded plant tags."""</span>
+    <span class="n">plant</span> <span class="o">=</span> <span class="n">app_instance</span><span class="o">.</span><span class="n">plant</span>
+    <span class="k">if</span> <span class="n">plant</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="s2">"ERROR : No plant loaded!"</span><span class="p">),</span> <span class="mi">400</span>
+
+    <span class="c1"># -- build columns from measured external tag names ---------------------</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">sample_csv_columns</span><span class="p">(</span><span class="n">plant</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">jsonify</span><span class="p">(</span>
+                <span class="s2">"ERROR : No measured tags with an external tag name are configured "</span>
+                <span class="s2">"for this project."</span>
+            <span class="p">),</span>
+            <span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># -- return the sample file ---------------------------------------------</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">plant</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">_sample_data.csv"</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+        <span class="n">build_sample_csv</span><span class="p">(</span><span class="n">columns</span><span class="p">),</span>
+        <span class="n">mimetype</span><span class="o">=</span><span class="s2">"text/csv"</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Content-Disposition"</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'attachment; filename="</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s1">"'</span><span class="p">},</span>
+    <span class="p">)</span></div>
 
 
 

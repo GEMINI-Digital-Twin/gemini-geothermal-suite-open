@@ -156,9 +156,13 @@
 pressure-drop solve, PVT, and CO2 partial-pressure model – per
 interval/time-step/joint, and caches the resulting per-joint pressure,
 temperature, and CO2 partial pressure together with step durations and
-flow.  <a class="reference internal" href="#gemini_application.wims.corrosion_from_prod_data.corrosion_rates_from_context" title="gemini_application.wims.corrosion_from_prod_data.corrosion_rates_from_context"><code class="xref py py-func docutils literal notranslate"><span class="pre">corrosion_rates_from_context()</span></code></a> (and the single-joint variant
-used during calibration) can then re-run only the corrosion correlation,
-which is the sole part that depends on the calibrated parameters.</p>
+flow.  Kept samples partition each window from its start to its end.
+Rows with non-finite flow, pressure, or temperature are dropped first, so
+an empty anchor does not own that time.  Near-zero flow stays and
+contributes no metal loss.  <a class="reference internal" href="#gemini_application.wims.corrosion_from_prod_data.corrosion_rates_from_context" title="gemini_application.wims.corrosion_from_prod_data.corrosion_rates_from_context"><code class="xref py py-func docutils literal notranslate"><span class="pre">corrosion_rates_from_context()</span></code></a> (and the
+single-joint variant used during calibration) can then re-run only the
+corrosion correlation, which is the sole part that depends on the
+calibrated parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

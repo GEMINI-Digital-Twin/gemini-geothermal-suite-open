@@ -131,25 +131,28 @@ database connectivity, tag listing, and data visualization.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.change_to_iso" title="gemini_interface.blueprint.app_tagbrowser.routes.change_to_iso"><code class="xref py py-obj docutils literal notranslate"><span class="pre">change_to_iso</span></code></a>(str_time)</p></td>
 <td><p>Change date string to ISO format.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.get_tagnames" title="gemini_interface.blueprint.app_tagbrowser.routes.get_tagnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_tagnames</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.download_sample_csv" title="gemini_interface.blueprint.app_tagbrowser.routes.download_sample_csv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_sample_csv</span></code></a>()</p></td>
+<td><p>Download a sample CSV whose headers match the loaded plant tags.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.get_tagnames" title="gemini_interface.blueprint.app_tagbrowser.routes.get_tagnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_tagnames</span></code></a>()</p></td>
 <td><p>Get list of tag names for a specific unit.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.get_unitnames" title="gemini_interface.blueprint.app_tagbrowser.routes.get_unitnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_unitnames</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.get_unitnames" title="gemini_interface.blueprint.app_tagbrowser.routes.get_unitnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_unitnames</span></code></a>()</p></td>
 <td><p>Get list of unit names from the project.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.load_plant" title="gemini_interface.blueprint.app_tagbrowser.routes.load_plant"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_plant</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.load_plant" title="gemini_interface.blueprint.app_tagbrowser.routes.load_plant"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_plant</span></code></a>()</p></td>
 <td><p>Load plant configuration and setup plant instance.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.plot_tagnames" title="gemini_interface.blueprint.app_tagbrowser.routes.plot_tagnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_tagnames</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.plot_tagnames" title="gemini_interface.blueprint.app_tagbrowser.routes.plot_tagnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_tagnames</span></code></a>()</p></td>
 <td><p>Plot tag data for visualization.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.save_esp_database" title="gemini_interface.blueprint.app_tagbrowser.routes.save_esp_database"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_esp_database</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.save_esp_database" title="gemini_interface.blueprint.app_tagbrowser.routes.save_esp_database"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_esp_database</span></code></a>()</p></td>
 <td><p>Save updated esp database.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.status_unit_tagnames" title="gemini_interface.blueprint.app_tagbrowser.routes.status_unit_tagnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status_unit_tagnames</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.status_unit_tagnames" title="gemini_interface.blueprint.app_tagbrowser.routes.status_unit_tagnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status_unit_tagnames</span></code></a>()</p></td>
 <td><p>Get status of tag names for a specific unit.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.upload_data_csv" title="gemini_interface.blueprint.app_tagbrowser.routes.upload_data_csv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">upload_data_csv</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#gemini_interface.blueprint.app_tagbrowser.routes.upload_data_csv" title="gemini_interface.blueprint.app_tagbrowser.routes.upload_data_csv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">upload_data_csv</span></code></a>()</p></td>
 <td><p>Upload CSV data to the plant instance.</p></td>
 </tr>
 </tbody>
@@ -164,6 +167,12 @@ database connectivity, tag listing, and data visualization.</p>
 <dt class="sig sig-object py" id="gemini_interface.blueprint.app_tagbrowser.routes.change_to_iso">
 <span class="sig-prename descclassname"><span class="pre">gemini_interface.blueprint.app_tagbrowser.routes.</span></span><span class="sig-name descname"><span class="pre">change_to_iso</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">str_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gemini_interface/blueprint/app_tagbrowser/routes.html#change_to_iso"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gemini_interface.blueprint.app_tagbrowser.routes.change_to_iso" title="Link to this definition"></a></dt>
 <dd><p>Change date string to ISO format.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gemini_interface.blueprint.app_tagbrowser.routes.download_sample_csv">
+<span class="sig-prename descclassname"><span class="pre">gemini_interface.blueprint.app_tagbrowser.routes.</span></span><span class="sig-name descname"><span class="pre">download_sample_csv</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gemini_interface/blueprint/app_tagbrowser/routes.html#download_sample_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gemini_interface.blueprint.app_tagbrowser.routes.download_sample_csv" title="Link to this definition"></a></dt>
+<dd><p>Download a sample CSV whose headers match the loaded plant tags.</p>
 </dd></dl>
 
 <dl class="py function">

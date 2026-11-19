@@ -11,3 +11,4 @@ gemini\_application.tagbrowser
    :recursive:
 
    datamanager
+   sample_csv

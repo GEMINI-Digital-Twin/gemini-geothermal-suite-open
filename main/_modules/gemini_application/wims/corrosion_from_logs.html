@@ -1276,6 +1276,49 @@
     <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">lengths</span><span class="p">))</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_average_caliper_chart_series</span><span class="p">(</span><span class="n">caliper_df</span><span class="p">,</span> <span class="n">avg_col</span><span class="p">,</span> <span class="n">finger_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Depth and average-caliper samples for the joint-review chart.</span>
+
+<span class="sd">    Uses ``avg_col`` when that column is present. Otherwise averages the</span>
+<span class="sd">    numbered finger columns. Non-finite samples are dropped.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    caliper_df : DataFrame</span>
+<span class="sd">        Caliper log with a depth index (m).</span>
+<span class="sd">    avg_col : str or None</span>
+<span class="sd">        Average-caliper column. Preferred source for the curve.</span>
+<span class="sd">    finger_name : str or None</span>
+<span class="sd">        Finger prefix used when ``avg_col`` is missing.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    chart_depths_m : list[float]</span>
+<span class="sd">        Sample depths (m).</span>
+<span class="sd">    chart_values : list[float]</span>
+<span class="sd">        Average caliper at those depths, in the log's own units.</span>
+<span class="sd">    """</span>
+    <span class="c1"># -- choose the average column or the finger mean -----------------------</span>
+    <span class="k">if</span> <span class="n">avg_col</span> <span class="ow">and</span> <span class="n">avg_col</span> <span class="ow">in</span> <span class="n">caliper_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">caliper_df</span><span class="p">[</span><span class="n">avg_col</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">finger_prefix</span> <span class="o">=</span> <span class="n">finger_name</span> <span class="k">if</span> <span class="n">finger_name</span> <span class="k">else</span> <span class="s2">"D"</span>
+        <span class="n">finger_regex</span> <span class="o">=</span> <span class="sa">rf</span><span class="s2">"^</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">finger_prefix</span><span class="p">)</span><span class="si">}</span><span class="s2">\d</span><span class="se">{{</span><span class="s2">1,2</span><span class="se">}}</span><span class="s2">$"</span>
+        <span class="n">finger_frame</span> <span class="o">=</span> <span class="n">caliper_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">regex</span><span class="o">=</span><span class="n">finger_regex</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">finger_frame</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">series</span> <span class="o">=</span> <span class="n">finger_frame</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># -- drop non-finite samples --------------------------------------------</span>
+    <span class="n">finite</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">replace</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">finite</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[],</span> <span class="p">[]</span>
+
+    <span class="n">chart_depths_m</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">depth_m</span><span class="p">)</span> <span class="k">for</span> <span class="n">depth_m</span> <span class="ow">in</span> <span class="n">finite</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()]</span>
+    <span class="n">chart_values</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">finite</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()]</span>
+    <span class="k">return</span> <span class="n">chart_depths_m</span><span class="p">,</span> <span class="n">chart_values</span>
+
+
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="c1"># Joint detection (standalone)</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -1351,13 +1394,31 @@
 
         <span class="k">else</span><span class="p">:</span>
             <span class="n">method</span> <span class="o">=</span> <span class="s2">"tally"</span>
+            <span class="c1"># -- tally tops plus the shoe -----------------------------------</span>
             <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="p">{</span><span class="s2">"idx"</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s2">"depth"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">joint</span><span class="p">[</span><span class="s2">"TopMD"</span><span class="p">]),</span> <span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"tally"</span><span class="p">,</span> <span class="s2">"score"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">joint</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">well_tally</span><span class="p">)</span>
             <span class="p">]</span>
+            <span class="k">if</span> <span class="n">well_tally</span><span class="p">:</span>
+                <span class="n">shoe_depth_m</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">well_tally</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"BottomMD"</span><span class="p">])</span>
+                <span class="n">shoe_already_marked</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+                    <span class="nb">abs</span><span class="p">(</span><span class="n">candidate</span><span class="p">[</span><span class="s2">"depth"</span><span class="p">]</span> <span class="o">-</span> <span class="n">shoe_depth_m</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">1e-6</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">candidates</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">shoe_already_marked</span><span class="p">:</span>
+                    <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">"idx"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">),</span>
+                            <span class="s2">"depth"</span><span class="p">:</span> <span class="n">shoe_depth_m</span><span class="p">,</span>
+                            <span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"tally"</span><span class="p">,</span>
+                            <span class="s2">"score"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
             <span class="n">boundaries</span> <span class="o">=</span> <span class="p">[(</span><span class="n">joint</span><span class="p">[</span><span class="s2">"TopMD"</span><span class="p">],</span> <span class="n">joint</span><span class="p">[</span><span class="s2">"BottomMD"</span><span class="p">])</span> <span class="k">for</span> <span class="n">joint</span> <span class="ow">in</span> <span class="n">well_tally</span><span class="p">]</span>
-            <span class="n">chart_depths</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">chart_values</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1"># -- average caliper curve for the review chart -----------------</span>
+            <span class="n">finger_name</span> <span class="o">=</span> <span class="n">_get_log_metadata</span><span class="p">(</span><span class="n">uploaded_logs</span><span class="p">,</span> <span class="s2">"finger_name"</span><span class="p">,</span> <span class="n">log_idx</span><span class="p">)</span>
+            <span class="n">chart_depths</span><span class="p">,</span> <span class="n">chart_values</span> <span class="o">=</span> <span class="n">_average_caliper_chart_series</span><span class="p">(</span>
+                <span class="n">caliper_log_data</span><span class="p">,</span> <span class="n">avg_col</span><span class="p">,</span> <span class="n">finger_name</span>
+            <span class="p">)</span>
 
         <span class="n">serializable_candidates</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
